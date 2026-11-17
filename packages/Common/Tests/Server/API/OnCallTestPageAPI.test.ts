@@ -7,6 +7,7 @@ import {
   readObjectId,
   readTestedSeverity,
 } from "../../../Server/API/OnCallTestPageAPI";
+import OnCallFireDrillHistoryService from "../../../Server/Services/OnCallFireDrillHistoryService";
 import OnCallFireDrillService from "../../../Server/Services/OnCallFireDrillService";
 import { ON_CALL_FIRE_DRILL_NOT_ALLOWED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import TestSendAccess, {
@@ -739,6 +740,156 @@ describe("a monitor's fire drill", () => {
     expect(readFireDrillEventKey("")).toBeUndefined();
     expect(readFireDrillEventKey(42)).toBeUndefined();
     expect(readFireDrillEventKey({ key: "a" })).toBeUndefined();
+    // A declared incident's key (#9397) is well inside the limit.
+    expect(
+      readFireDrillEventKey(
+        `${MONITOR.toString()}:Incident:${OTHER_POLICY.toString()}:12:declared`,
+      ),
+    ).toBe(
+      `${MONITOR.toString()}:Incident:${OTHER_POLICY.toString()}:12:declared`,
+    );
+  });
+
+  // #9385: each policy's test walks every level only when asked with true.
+  test.each([
+    [true, true],
+    [false, false],
+    ["true", false],
+    [1, false],
+    [undefined, false],
+  ] as Array<[unknown, boolean]>)(
+    "starting it with walksEscalation %p walks every level: %p",
+    async (walksEscalation: unknown, walks: boolean) => {
+      const start: jest.SpyInstance = jest
+        .spyOn(OnCallFireDrillService, "start")
+        .mockResolvedValue({ runs: [] } as never);
+
+      await call("POST", "/fire-drill/start", {
+        body: {
+          monitorId: MONITOR.toString(),
+          eventKey: "criteria-1:Incident:template-1:0",
+          ...(walksEscalation === undefined
+            ? {}
+            : { walksEscalation: walksEscalation as JSONObject[string] }),
+        },
+      });
+
+      expect(start).toHaveBeenCalledWith(
+        expect.objectContaining({ walksEscalation: walks }),
+      );
+    },
+  );
+
+  /*
+   * #9386: a monitor's last drill, for its card - read in the caller's
+   * project with the caller's own standing (a read like the result's), the
+   * monitor named in the path and nothing else read from the request.
+   */
+  describe("GET /fire-drill/last/:monitorId", () => {
+    const props: DatabaseCommonInteractionProps = {
+      userId: ANA,
+      tenantId: PROJECT,
+    };
+
+    beforeEach(() => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(props as never);
+      jest
+        .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+        .mockReturnValue(PROJECT);
+    });
+
+    test("runs behind the user middleware", () => {
+      expect(
+        mockRouter.match(
+          "GET",
+          `${ON_CALL_TEST_PAGE_API_PATH}/fire-drill/last/:monitorId`,
+        ).middleware,
+      ).toBe(UserMiddleware.getUserMiddleware);
+    });
+
+    test("reads the monitor's last drill in the caller's project, as the caller may read it", async () => {
+      const getLast: jest.SpyInstance = jest
+        .spyOn(OnCallFireDrillHistoryService, "getLast")
+        .mockResolvedValue({ fireDrillId: "drill-1", runs: [] } as never);
+
+      const { thrown, sent } = await call(
+        "GET",
+        "/fire-drill/last/:monitorId",
+        {
+          params: { monitorId: MONITOR.toString() },
+          body: { projectId: OTHER_PROJECT.toString() },
+        },
+      );
+
+      expect(thrown).toBeUndefined();
+      expect(getLast).toHaveBeenCalledWith({
+        projectId: PROJECT,
+        monitorId: MONITOR,
+        props: props,
+      });
+      expect(sent).toEqual({ fireDrill: { fireDrillId: "drill-1", runs: [] } });
+    });
+
+    test("none to read is said as none", async () => {
+      jest
+        .spyOn(OnCallFireDrillHistoryService, "getLast")
+        .mockResolvedValue(null as never);
+
+      const { sent } = await call("GET", "/fire-drill/last/:monitorId", {
+        params: { monitorId: MONITOR.toString() },
+      });
+
+      expect(sent).toEqual({ fireDrill: null });
+    });
+
+    test("a monitor the caller may not read is refused as the history refuses it", async () => {
+      jest
+        .spyOn(OnCallFireDrillHistoryService, "getLast")
+        .mockRejectedValue(new BadDataException("Monitor not found.") as never);
+
+      const { thrown } = await call("GET", "/fire-drill/last/:monitorId", {
+        params: { monitorId: MONITOR.toString() },
+      });
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+    });
+
+    test("a monitor that is not an id is refused before anything is read", async () => {
+      const getLast: jest.SpyInstance = jest.spyOn(
+        OnCallFireDrillHistoryService,
+        "getLast",
+      );
+
+      const { thrown } = await call("GET", "/fire-drill/last/:monitorId", {
+        params: { monitorId: "1 OR 1=1" },
+      });
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect(getLast).not.toHaveBeenCalled();
+    });
+
+    test("a caller who is not a member of the project reads nothing", async () => {
+      jest
+        .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+        .mockImplementation(() => {
+          throw new NotAuthorizedException(
+            ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+          );
+        });
+      const getLast: jest.SpyInstance = jest.spyOn(
+        OnCallFireDrillHistoryService,
+        "getLast",
+      );
+
+      const { thrown } = await call("GET", "/fire-drill/last/:monitorId", {
+        params: { monitorId: MONITOR.toString() },
+      });
+
+      expect(thrown).toBeInstanceOf(NotAuthorizedException);
+      expect(getLast).not.toHaveBeenCalled();
+    });
   });
 });
 

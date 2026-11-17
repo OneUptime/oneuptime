@@ -459,6 +459,11 @@ export const FIRE_DRILL_WORDS: Readonly<{
   policyYouCantSee: string;
   cantTestPolicy: string;
   reachesNobody: string;
+  firstLevelsReachNobody: string;
+  walkDescription: string;
+  declaredIncident: string;
+  declaredNow: string;
+  declaredNowHiddenRule: string;
   started: string;
 }> = {
   button: translationKey("Run Fire Drill"),
@@ -475,9 +480,52 @@ export const FIRE_DRILL_WORDS: Readonly<{
   reachesNobody: translationKey(
     "This fire drill would send nothing yet: nobody these policies page can receive it right now. Each line above says why.",
   ),
+  /*
+   * Nobody on any policy's first level can receive it, and a later level of
+   * one can (#9385): walking every level, in one click, as a policy's own
+   * test offers it (#7259).
+   */
+  firstLevelsReachNobody: translationKey(
+    "Nobody on these policies' first levels can receive this fire drill right now, so it would send nothing. A later level can.",
+  ),
+  // Under Walk every escalation level, folded under More fields (#9385).
+  walkDescription: translationKey(
+    "Pages each level of every policy in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages each policy's first level only.",
+  ),
+  /*
+   * The incident an alert incident rule declares from an alert of the
+   * criteria (#9397), as the picker offers it: "Slow · An incident
+   * (Critical) declared from its alert".
+   */
+  declaredIncident: translationKey(
+    "An incident ({{severity}}) declared from its alert",
+  ),
+  declaredNow: translationKey(
+    "Alert incident rule {{rule}} declares this incident from the alert right away.",
+  ),
+  declaredNowHiddenRule: translationKey(
+    "An alert incident rule you can't see declares this incident from the alert right away.",
+  ),
   started: translationKey(
     "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.",
   ),
+};
+
+/*
+ * The incident an alert incident rule declares once its alert has been open
+ * a while (#9397): by the rule, or one the reader can't see - and that the
+ * drill does not wait for it.
+ */
+export const FIRE_DRILL_DECLARED_AFTER: PluralTemplate = {
+  one: "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minute. The fire drill tests it now, without the wait.",
+  other:
+    "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.",
+};
+
+export const FIRE_DRILL_DECLARED_AFTER_HIDDEN_RULE: PluralTemplate = {
+  one: "An alert incident rule you can't see declares this incident from the alert if it's still open after {{count}} minute. The fire drill tests it now, without the wait.",
+  other:
+    "An alert incident rule you can't see declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.",
 };
 
 /*
@@ -491,11 +539,43 @@ export const FIRE_DRILL_CANT_TEST: PluralTemplate = {
     "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.",
 };
 
+/*
+ * A MONITOR'S LAST FIRE DRILL (#9386), on its When this goes down card:
+ * the failure it rehearsed, then when and by whom - "Offline · An incident
+ * (Critical) · Started 2 hours ago by Ana Lopez" - how many of its tests
+ * were acknowledged, and, folded until wanted, each policy's.
+ */
+export const FIRE_DRILL_LAST_WORDS: Readonly<{
+  title: string;
+  startedBy: string;
+  started: string;
+  walked: string;
+}> = {
+  title: translationKey("Last fire drill"),
+  startedBy: translationKey("Started {{time}} by {{name}}"),
+  // Who started it is gone.
+  started: translationKey("Started {{time}}"),
+  walked: translationKey("Each test walked every escalation level."),
+};
+
+// How many of its tests were acknowledged: the drill is over.
+export const FIRE_DRILL_LAST_ACKNOWLEDGED: PluralTemplate = {
+  one: "{{acknowledged}} of {{count}} test acknowledged.",
+  other: "{{acknowledged}} of {{count}} tests acknowledged.",
+};
+
+// The same while a test of it still waits for somebody.
+export const FIRE_DRILL_LAST_ACKNOWLEDGED_SO_FAR: PluralTemplate = {
+  one: "{{acknowledged}} of {{count}} test acknowledged so far.",
+  other: "{{acknowledged}} of {{count}} tests acknowledged so far.",
+};
+
 // What a test costs, in a sentence: the first level's, or a walk's at most.
 export const COST_SENTENCES: Readonly<{
   firstLevel: { withAmount: string; withoutAmount: string };
   walk: { withAmount: string; withoutAmount: string };
   fireDrill: { withAmount: string; withoutAmount: string };
+  fireDrillWalk: { withAmount: string; withoutAmount: string };
 }> = {
   firstLevel: {
     withAmount: translationKey(
@@ -520,6 +600,15 @@ export const COST_SENTENCES: Readonly<{
     ),
     withoutAmount: translationKey(
       "This fire drill sends {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+  // A fire drill's that walks every level of each policy (#9385), at most.
+  fireDrillWalk: {
+    withAmount: translationKey(
+      "If nobody acknowledges them, walking every level of each policy sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "If nobody acknowledges them, walking every level of each policy sends up to {{items}}, paid from this project's SMS and call balance.",
     ),
   },
 };

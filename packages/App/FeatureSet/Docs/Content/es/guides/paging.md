@@ -67,7 +67,7 @@ En **Enviar un aviso de prueba**, haz clic en **Probar esta política**. Elige u
 
 ### Reconocer el aviso de prueba
 
-Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante la llamada. La app muestra que el aviso ha llegado, pero no puede reconocer una prueba. Después haz clic en **Hecho** en el cuadro de diálogo y en **Continuar**.
+Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante la llamada. En la app OneUptime On-Call, en versiones posteriores a la 1.6.0, también puedes reconocerlo desde su notificación push. Después haz clic en **Hecho** en el cuadro de diálogo y en **Continuar**.
 :::
 
 ## Comprobar que ha funcionado

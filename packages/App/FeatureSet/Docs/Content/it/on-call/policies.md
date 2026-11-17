@@ -107,9 +107,13 @@ Chi viene chiamato riconosce il test da uno qualsiasi dei suoi messaggi: il link
 
 ### Fare un'esercitazione su un monitor
 
-**Fai un'esercitazione**, sulla scheda **Quando va giù** di un monitor, prova uno dei suoi guasti: un incidente o un avviso che apre uno dei suoi criteri. Testa ogni policy di reperibilità che quel guasto chiamerebbe, ognuna come la testa **Testa questa policy**, e non accade nulla di pubblico: non viene creato alcun incidente né avviso, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Prima di inviare qualsiasi cosa, la finestra di dialogo nomina il guasto, ogni policy e chi quella policy chiama ora.
+**Fai un'esercitazione**, sulla scheda **Quando va giù** di un monitor, prova uno dei suoi guasti: un incidente o un avviso che apre uno dei suoi criteri, oppure l'incidente che una regola di incidente degli avvisi dichiara da un tale avviso. Testa ogni policy di reperibilità che quel guasto chiamerebbe, ognuna come la testa **Testa questa policy**, e non accade nulla di pubblico: non viene creato alcun incidente né avviso, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Prima di inviare qualsiasi cosa, la finestra di dialogo nomina il guasto, ogni policy e chi quella policy chiama ora. Per un incidente dichiarato, nomina anche la regola e per quanto tempo l'avviso resta aperto prima: l'esercitazione testa subito le policy dell'incidente, senza quell'attesa.
+
+Un'esercitazione chiama il primo livello di ogni policy. In **Altri campi**, attiva **Percorri ogni livello di escalation** per chiamare a turno i livelli di ogni policy, a non più di 2 minuti l'uno dall'altro, finché qualcuno non riconosce: la finestra di dialogo elenca allora ogni livello che ogni policy raggiunge, e quanto costa al massimo il percorso. Quando nessuno ai primi livelli è raggiungibile ma un livello successivo sì, la riga sotto l'elenco offre **Percorri ogni livello di escalation** con un clic.
 
 **Avvia esercitazione** resta disattivato finché una di quelle policy è una che non puoi testare, perché non puoi modificarla, o finché nessuna delle persone che chiamano può essere raggiunta. Ogni policy di un'esercitazione conta come un test a sé: una policy testata negli ultimi 5 minuti blocca tutta l'esercitazione, e un'esercitazione di tre policy occupa tre dei 20 test all'ora del progetto.
+
+Chiusa la finestra di dialogo, **Ultima esercitazione** sulla scheda dice quale guasto ha provato l'ultima esercitazione del monitor, quando e da chi è stata avviata, e quanti dei suoi test sono stati riconosciuti. **Mostra dettagli** elenca il test di ogni policy: se è stato riconosciuto, da chi, con quale mezzo e in quanto tempo. Ogni test resta nei log di esecuzione della sua policy, segnato come esercitazione del monitor. I risultati di un'esercitazione li vede chi può leggere il monitor e ognuno di quei log di esecuzione.
 
 ## Log di esecuzione
 

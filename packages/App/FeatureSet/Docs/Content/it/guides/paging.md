@@ -67,7 +67,7 @@ In **Invia una chiamata di test**, fai clic su **Testa questa policy**. Scegli u
 
 ### Riconoscere la chiamata di test
 
-Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. L'app mostra che la chiamata è arrivata, ma non può riconoscere un test. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
+Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. Nell'app OneUptime On-Call, nelle versioni successive alla 1.6.0, puoi riconoscerla anche dalla sua notifica push. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
 :::
 
 ## Controllare che funzioni

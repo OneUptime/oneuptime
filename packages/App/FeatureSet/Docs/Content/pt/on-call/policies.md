@@ -107,9 +107,13 @@ Quem é acionado confirma o teste por qualquer uma das suas mensagens: o link de
 
 ### Fazer um simulado em um monitor
 
-**Fazer um simulado**, no cartão **Quando cair** de um monitor, ensaia uma das suas falhas: um incidente ou alerta que um dos seus critérios abre. Ele testa cada política de plantão que essa falha acionaria, cada uma como **Testar esta política** a testa, e nada público acontece: nenhum incidente ou alerta é criado, e nenhuma página de status, nenhum assinante e nenhum canal é avisado. Antes de enviar qualquer coisa, a caixa de diálogo nomeia a falha, cada política e quem essa política aciona agora.
+**Fazer um simulado**, no cartão **Quando cair** de um monitor, ensaia uma das suas falhas: um incidente ou alerta que um dos seus critérios abre, ou o incidente que uma regra de incidente de alertas declara a partir desse alerta. Ele testa cada política de plantão que essa falha acionaria, cada uma como **Testar esta política** a testa, e nada público acontece: nenhum incidente ou alerta é criado, e nenhuma página de status, nenhum assinante e nenhum canal é avisado. Antes de enviar qualquer coisa, a caixa de diálogo nomeia a falha, cada política e quem essa política aciona agora. Para um incidente declarado, ela nomeia também a regra e quanto tempo o alerta fica aberto antes: o simulado testa as políticas do incidente na hora, sem essa espera.
+
+Um simulado aciona o primeiro nível de cada política. Em **Mais campos**, ative **Percorrer todos os níveis de escalonamento** para acionar os níveis de cada política por vez, com no máximo 2 minutos de intervalo, até que alguém confirme: a caixa de diálogo lista então cada nível que cada política alcança e quanto o percurso custa no máximo. Quando ninguém nos primeiros níveis pode ser alcançado, mas um nível seguinte pode, a linha abaixo da lista oferece **Percorrer todos os níveis de escalonamento** com um clique.
 
 **Iniciar simulado** fica desativado enquanto uma dessas políticas for uma que você não pode testar, porque não pode editá-la, ou enquanto ninguém que elas acionam puder ser alcançado. Cada política de um simulado conta como um teste próprio: uma política testada nos últimos 5 minutos impede todo o simulado, e um simulado de três políticas ocupa três dos 20 testes por hora do projeto.
+
+Depois que a caixa de diálogo é fechada, **Último simulado** no cartão diz qual falha o último simulado do monitor ensaiou, quando e por quem foi iniciado e quantos dos seus testes foram confirmados. **Mostrar detalhes** lista o teste de cada política: se foi confirmado, por quem, por qual meio e com que rapidez. Cada teste fica nos registros de execução da sua política, marcado como simulado do monitor. Os resultados de um simulado aparecem para quem pode ler o monitor e cada um desses registros de execução.
 
 ## Registros de execução
 

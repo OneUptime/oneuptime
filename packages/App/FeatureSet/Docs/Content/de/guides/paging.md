@@ -67,7 +67,7 @@ Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**. W
 
 ### Die Test-Alarmierung bestätigen
 
-Öffnen Sie den Link in der SMS oder der E-Mail und bestätigen Sie die Alarmierung dort, oder drücken Sie während des Anrufs die 1. Die App zeigt, dass die Alarmierung angekommen ist, kann einen Test aber nicht bestätigen. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**.
+Öffnen Sie den Link in der SMS oder der E-Mail und bestätigen Sie die Alarmierung dort, oder drücken Sie während des Anrufs die 1. In der App OneUptime On-Call können Sie sie in Versionen neuer als 1.6.0 auch über ihre Push-Benachrichtigung bestätigen. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**.
 :::
 
 ## Prüfen, ob es funktioniert hat

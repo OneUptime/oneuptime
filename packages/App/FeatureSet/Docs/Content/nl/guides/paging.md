@@ -67,7 +67,7 @@ Klik onder **Een testoproep sturen** op **Dit beleid testen**. Kies een **Ernst*
 
 ### De testoproep bevestigen
 
-Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens het telefoongesprek op 1. De app laat zien dat de oproep is aangekomen, maar kan een test niet bevestigen. Klik daarna in het dialoogvenster op **Klaar** en op **Doorgaan**.
+Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens het telefoongesprek op 1. In de OneUptime On-Call-app kunt u de oproep in versies nieuwer dan 1.6.0 ook via de pushmelding bevestigen. Klik daarna in het dialoogvenster op **Klaar** en op **Doorgaan**.
 :::
 
 ## Controleren of het gelukt is

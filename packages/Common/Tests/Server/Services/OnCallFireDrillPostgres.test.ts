@@ -15,8 +15,10 @@ jest.mock("../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
 
 import Entities from "../../../Models/DatabaseModels/Index";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import { AddOnCallFireDrillResultsIndexAndKey1809183110000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183110000-AddOnCallFireDrillResultsIndexAndKey";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallFireDrillHistoryService from "../../../Server/Services/OnCallFireDrillHistoryService";
 import OnCallFireDrillService from "../../../Server/Services/OnCallFireDrillService";
 import OnCallTestPageService, {
   OnCallTestPageLimitKey,
@@ -29,16 +31,23 @@ import {
   WhoIsToldPolicy,
   WhoIsToldResult,
 } from "../../../Types/Monitor/WhoIsTold";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  OnCallFireDrillRecord,
   OnCallFireDrillStarted,
   getOnCallFireDrillEventKey,
 } from "../../../Types/OnCallDutyPolicy/OnCallFireDrill";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   OnCallTestPageKind,
   OnCallTestPageRecordKind,
+  OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import Permission, { UserPermission } from "../../../Types/Permission";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
+import UserType from "../../../Types/UserType";
 import {
   afterAll,
   afterEach,
@@ -49,7 +58,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource } from "typeorm";
+import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * A MONITOR'S FIRE DRILL (#7012), ON POSTGRES: what it writes, and what it
@@ -92,7 +101,11 @@ const describePostgres: typeof describe.skip =
     ? describe
     : describe.skip;
 
-// What the drill reads and writes, and the records it must never write.
+/*
+ * What the drill reads and writes, and the records it must never write -
+ * and what reading its last drill back reads (#9386): the monitor, who
+ * started it, and the messages its tests were acknowledged from.
+ */
 const TABLES: Array<string> = [
   "OnCallDutyPolicy",
   "IncidentSeverity",
@@ -100,6 +113,9 @@ const TABLES: Array<string> = [
   "OnCallDutyPolicyExecutionLog",
   "Incident",
   "Alert",
+  "Monitor",
+  "User",
+  "UserOnCallLogTimeline",
 ];
 
 interface Seeded {
@@ -127,6 +143,18 @@ interface RunRow {
   triggeredByIncidentEpisodeId: string | null;
   triggeredByAlertEpisodeId: string | null;
   triggeredByUserId: string | null;
+}
+
+// What a run keeps of the fire drill it is part of (#9386).
+interface KeptRow {
+  _id: string;
+  onCallDutyPolicyId: string;
+  testPageFireDrillId: string | null;
+  testPageFireDrillMonitorId: string | null;
+  testPageFireDrillFailure: unknown;
+  testPageWalksEscalation: boolean;
+  testPageRecordKind: string | null;
+  testPageSeverityId: string | null;
 }
 
 const OFFLINE_KEY: string = getOnCallFireDrillEventKey({
@@ -280,12 +308,32 @@ describePostgres("a monitor's fire drill, against a migrated Postgres", () => {
       ],
     );
 
+    // The monitor drilled, and who drills it.
+    await database.query(
+      `INSERT INTO "${schema}"."Monitor" ("_id", "version", "projectId", "name", "slug", "monitorType", "currentMonitorStatusId") VALUES ($1, 1, $2, 'API', $3, 'Manual', $4)`,
+      [
+        seeded.monitorId.toString(),
+        seeded.projectId.toString(),
+        `monitor-${seeded.monitorId.toString()}`,
+        id(),
+      ],
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."User" ("_id", "version", "email", "slug", "name") VALUES ($1, 1, $2, $3, 'Ana Lopez')`,
+      [
+        seeded.userId.toString(),
+        `ana-${seeded.userId.toString()}@example.com`,
+        `user-${seeded.userId.toString()}`,
+      ],
+    );
+
     return seeded;
   }
 
   async function drill(
     seeded: Seeded,
     eventKey: string,
+    walksEscalation?: boolean | undefined,
   ): Promise<OnCallFireDrillStarted> {
     return await OnCallFireDrillService.start({
       projectId: seeded.projectId,
@@ -293,9 +341,18 @@ describePostgres("a monitor's fire drill, against a migrated Postgres", () => {
       sentByUserId: seeded.userId,
       props: { userId: seeded.userId, tenantId: seeded.projectId },
       eventKey: eventKey,
+      walksEscalation: walksEscalation,
       // Who may test each policy is the API's to ask (OnCallTestPageAPI).
       assertMayTestPolicy: async (): Promise<void> => {},
     });
+  }
+
+  // What each run of the project keeps of its fire drill (#9386).
+  async function keptOf(projectId: ObjectID): Promise<Array<KeptRow>> {
+    return (await database.query(
+      `SELECT "_id", "onCallDutyPolicyId", "testPageFireDrillId", "testPageFireDrillMonitorId", "testPageFireDrillFailure", "testPageWalksEscalation", "testPageRecordKind", "testPageSeverityId" FROM "${schema}"."OnCallDutyPolicyExecutionLog" WHERE "projectId" = $1 ORDER BY "createdAt", "_id"`,
+      [projectId.toString()],
+    )) as Array<KeptRow>;
   }
 
   async function runs(projectId?: ObjectID): Promise<Array<RunRow>> {
@@ -562,5 +619,448 @@ describePostgres("a monitor's fire drill, against a migrated Postgres", () => {
 
     expect(await runs()).toEqual([]);
     expect(claimed).toEqual([]);
+  });
+
+  /*
+   * #9386: each policy's test is kept with its drill - one id on every run
+   * of it - the monitor and the failure, written to the migrated columns
+   * and read back as written (the failure's jsonb included).
+   */
+  test("each test of a drill is kept with the drill, the monitor and the failure it rehearsed", async () => {
+    const seeded: Seeded = await seed();
+    told = whoIsTold(seeded, {
+      offline: [
+        policy(seeded.primaryId, "Primary"),
+        policy(seeded.platformId, "Platform"),
+      ],
+    });
+
+    const started: OnCallFireDrillStarted = await drill(seeded, OFFLINE_KEY);
+    const kept: Array<KeptRow> = await keptOf(seeded.projectId);
+
+    expect(kept).toHaveLength(2);
+
+    for (const row of kept) {
+      expect({
+        drill: row.testPageFireDrillId,
+        monitor: row.testPageFireDrillMonitorId,
+        failure: row.testPageFireDrillFailure,
+        walks: row.testPageWalksEscalation,
+      }).toEqual({
+        drill: started.fireDrillId,
+        monitor: seeded.monitorId.toString(),
+        failure: { criteriaName: "Offline" },
+        walks: false,
+      });
+    }
+  });
+
+  // #9385: a walk is kept on each policy's run, as a walked test of it is.
+  test("a drill that walks every level writes each policy's test as a walk", async () => {
+    const seeded: Seeded = await seed();
+    told = whoIsTold(seeded, {
+      offline: [
+        policy(seeded.primaryId, "Primary"),
+        policy(seeded.platformId, "Platform"),
+      ],
+    });
+
+    await drill(seeded, OFFLINE_KEY, true);
+
+    expect(
+      (await keptOf(seeded.projectId)).map((row: KeptRow): boolean => {
+        return row.testPageWalksEscalation;
+      }),
+    ).toEqual([true, true]);
+    // Still one claim, for both policies' windows.
+    expect(claimed).toEqual([[seeded.primaryId, seeded.platformId]]);
+  });
+
+  /*
+   * #9397: the incident an alert incident rule declares from the slow
+   * alert, which pages nobody itself: its policy is tested at the
+   * incident's kind and severity, and how long the alert waits is kept.
+   */
+  test("the incident an alert incident rule declares is tested at the incident's kind and severity, and its wait is kept", async () => {
+    const seeded: Seeded = await seed();
+    const answer: WhoIsToldResult = whoIsTold(seeded, {
+      offline: [],
+      slow: [],
+    });
+
+    answer.criteria[1]!.events[0]!.declares = {
+      rule: { id: "alert-incident-rule-1", name: "Escalate slow alerts" },
+      waitInMinutes: 30,
+      incident: event({
+        id: "",
+        severityId: seeded.criticalId,
+        severityName: "Critical",
+        title: "API is slow (declared)",
+        policies: [policy(seeded.platformId, "Platform")],
+      }),
+    };
+    told = answer;
+
+    await drill(
+      seeded,
+      getOnCallFireDrillEventKey({
+        criteriaId: "criteria-slow",
+        recordKind: OnCallTestPageRecordKind.Incident,
+        templateId: "template-slow",
+        index: 0,
+        isDeclared: true,
+      }),
+    );
+
+    const kept: Array<KeptRow> = await keptOf(seeded.projectId);
+
+    expect(kept).toEqual([
+      expect.objectContaining({
+        onCallDutyPolicyId: seeded.platformId,
+        testPageRecordKind: OnCallTestPageRecordKind.Incident,
+        testPageSeverityId: seeded.criticalId,
+        testPageFireDrillFailure: {
+          criteriaName: "Slow",
+          declaredAfterMinutes: 30,
+        },
+      }),
+    ]);
+    // A drill of the incident creates no incident, and no alert.
+    expect(await countOf("Incident")).toBe(0);
+    expect(await countOf("Alert")).toBe(0);
+  });
+
+  // A run of the project, acknowledged by the person seeded, from an SMS.
+  async function acknowledgeBySms(data: {
+    seeded: Seeded;
+    runId: string;
+    afterSeconds: number;
+  }): Promise<void> {
+    const sentAt: Date = new Date(Date.now() - 60 * 1000);
+    const answeredAt: Date = new Date(
+      sentAt.getTime() + data.afterSeconds * 1000,
+    );
+
+    await database.query(
+      `UPDATE "${schema}"."OnCallDutyPolicyExecutionLog" SET "acknowledgedAt" = $1, "acknowledgedByUserId" = $2 WHERE "_id" = $3`,
+      [answeredAt, data.seeded.userId.toString(), data.runId],
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."UserOnCallLogTimeline" ("_id", "version", "userId", "projectId", "userNotificationLogId", "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyExecutionLogTimelineId", "userNotificationEventType", "statusMessage", "status", "isAcknowledged", "acknowledgedAt", "userSmsId", "createdAt") VALUES ($1, 1, $2, $3, $4, $5, $6, $7, 'Test page acknowledged.', 'Sent', true, $8, $9, $10)`,
+      [
+        ObjectID.generate().toString(),
+        data.seeded.userId.toString(),
+        data.seeded.projectId.toString(),
+        ObjectID.generate().toString(),
+        data.runId,
+        ObjectID.generate().toString(),
+        UserNotificationEventType.TestPage,
+        answeredAt,
+        ObjectID.generate().toString(),
+        sentAt,
+      ],
+    );
+  }
+
+  /*
+   * #9386: the monitor's last drill, read back from the migrated tables as
+   * the card reads it - the latest drill's tests only, by the index on the
+   * monitor, in the order they were started; who started it; the failure;
+   * and each test as it stands, acknowledged ones by whom, by what and how
+   * fast.
+   */
+  test("the monitor's last drill reads back: only its latest drill's tests, with who started it, the failure and each test as it stands", async () => {
+    const seeded: Seeded = await seed();
+    told = whoIsTold(seeded, {
+      offline: [
+        policy(seeded.primaryId, "Primary"),
+        policy(seeded.platformId, "Platform"),
+      ],
+      slow: [policy(seeded.platformId, "Platform")],
+    });
+
+    await drill(seeded, OFFLINE_KEY);
+    // A moment later, another drill of another failure.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 20);
+    });
+    const latest: OnCallFireDrillStarted = await drill(seeded, SLOW_KEY, true);
+
+    await acknowledgeBySms({
+      seeded: seeded,
+      runId: latest.runs[0]!.executionLogId,
+      afterSeconds: 14,
+    });
+
+    const record: OnCallFireDrillRecord | null =
+      await OnCallFireDrillHistoryService.getLast({
+        projectId: seeded.projectId,
+        monitorId: seeded.monitorId,
+        props: { isRoot: true },
+      });
+
+    expect(record).not.toBeNull();
+    expect({
+      fireDrillId: record!.fireDrillId,
+      monitorId: record!.monitorId,
+      startedByName: record!.startedByName,
+      failure: record!.failure,
+      walksEscalation: record!.walksEscalation,
+    }).toEqual({
+      fireDrillId: latest.fireDrillId,
+      monitorId: seeded.monitorId.toString(),
+      startedByName: "Ana Lopez",
+      failure: {
+        criteriaName: "Slow",
+        recordKind: OnCallTestPageRecordKind.Alert,
+        severityName: "Warning",
+      },
+      walksEscalation: true,
+    });
+    expect(record!.runs).toEqual([
+      expect.objectContaining({
+        executionLogId: latest.runs[0]!.executionLogId,
+        policyId: seeded.platformId,
+        policyName: "Platform",
+        status: OnCallTestPageStatus.Acknowledged,
+        acknowledgedByName: "Ana Lopez",
+        acknowledgedChannel: OnCallPageChannel.SMS,
+        acknowledgedAfterSeconds: 14,
+      }),
+    ]);
+  });
+
+  test("a monitor never drilled has no last drill", async () => {
+    const seeded: Seeded = await seed();
+
+    expect(
+      await OnCallFireDrillHistoryService.getLast({
+        projectId: seeded.projectId,
+        monitorId: seeded.monitorId,
+        props: { isRoot: true },
+      }),
+    ).toBeNull();
+  });
+
+  /*
+   * WHO MAY READ A DRILL'S RESULTS (#9386): somebody who may read the
+   * monitor and every one of its tests as an execution log - asked by the
+   * real permission rules, on the migrated tables.
+   */
+  describe("who may read a drill's results", () => {
+    function propsOf(
+      seeded: Seeded,
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      return {
+        userId: seeded.userId,
+        tenantId: seeded.projectId,
+        currentPlan: PlanType.Scale,
+        userType: UserType.User,
+        userGlobalAccessPermission: {
+          _type: "UserGlobalAccessPermission",
+          projectIds: [seeded.projectId],
+          globalPermissions: [Permission.User, Permission.CurrentUser],
+        },
+        userTenantAccessPermission: {
+          [seeded.projectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: seeded.projectId,
+            permissions: permissions.map(
+              (permission: Permission): UserPermission => {
+                return {
+                  _type: "UserPermission",
+                  permission: permission,
+                  labelIds: [],
+                  isBlockPermission: false,
+                };
+              },
+            ),
+          },
+        },
+      };
+    }
+
+    async function drilled(): Promise<Seeded> {
+      const seeded: Seeded = await seed();
+      told = whoIsTold(seeded, {
+        offline: [
+          policy(seeded.primaryId, "Primary"),
+          policy(seeded.platformId, "Platform"),
+        ],
+      });
+
+      await drill(seeded, OFFLINE_KEY);
+
+      return seeded;
+    }
+
+    async function lastAs(
+      seeded: Seeded,
+      permissions: Array<Permission>,
+    ): Promise<OnCallFireDrillRecord | null> {
+      return await OnCallFireDrillHistoryService.getLast({
+        projectId: seeded.projectId,
+        monitorId: seeded.monitorId,
+        props: propsOf(seeded, permissions),
+      });
+    }
+
+    test("a Viewer of the project - the monitor and the execution logs - reads it", async () => {
+      const seeded: Seeded = await drilled();
+      const record: OnCallFireDrillRecord | null = await lastAs(seeded, [
+        Permission.Viewer,
+      ]);
+
+      expect(record?.runs).toHaveLength(2);
+    });
+
+    test("one who may read the monitor and the policies' execution logs, each by its own role, reads it", async () => {
+      const seeded: Seeded = await drilled();
+
+      expect(
+        (
+          await lastAs(seeded, [
+            Permission.MonitorViewer,
+            Permission.OnCallViewer,
+          ])
+        )?.runs,
+      ).toHaveLength(2);
+    });
+
+    /*
+     * An execution log is read through its policy (@CanAccessIfCanReadOn):
+     * the logs' own permission, without the policies', reads none of them -
+     * so no drill of them either.
+     */
+    test("the execution logs' own permission without the policies' reads no test: no drill", async () => {
+      const seeded: Seeded = await drilled();
+
+      expect(
+        await lastAs(seeded, [
+          Permission.MonitorViewer,
+          Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+        ]),
+      ).toBeNull();
+    });
+
+    test("one who may read the monitor but not the execution logs is told of no drill", async () => {
+      const seeded: Seeded = await drilled();
+
+      expect(await lastAs(seeded, [Permission.MonitorViewer])).toBeNull();
+    });
+
+    test("one who may read the execution logs but not the monitor is refused", async () => {
+      const seeded: Seeded = await drilled();
+
+      await expect(
+        lastAs(seeded, [Permission.ReadProjectOnCallDutyPolicyExecutionLog]),
+      ).rejects.toThrow();
+    });
+  });
+
+  /*
+   * THE MIGRATION ON REAL TABLES (#9386): the columns are on the migrated
+   * table, nullable; the index and the key AddOnCallFireDrillResultsIndexAndKey
+   * builds online are there as TypeORM names them; and, run on the copies,
+   * the key keeps a drill's tests when their monitor is deleted, its
+   * reference cleared - and running it again changes nothing.
+   */
+  describe("the migration", () => {
+    test("the migrated table has the three nullable columns, the partial index and the SET NULL key, validated", async () => {
+      const columns: Array<{
+        column_name: string;
+        data_type: string;
+        is_nullable: string;
+      }> = await database.query(
+        `SELECT column_name, data_type, is_nullable FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'OnCallDutyPolicyExecutionLog'
+            AND column_name LIKE 'testPageFireDrill%' ORDER BY column_name`,
+      );
+
+      expect(columns).toEqual([
+        {
+          column_name: "testPageFireDrillFailure",
+          data_type: "jsonb",
+          is_nullable: "YES",
+        },
+        {
+          column_name: "testPageFireDrillId",
+          data_type: "uuid",
+          is_nullable: "YES",
+        },
+        {
+          column_name: "testPageFireDrillMonitorId",
+          data_type: "uuid",
+          is_nullable: "YES",
+        },
+      ]);
+
+      const indexes: Array<{ indexdef: string }> = await database.query(
+        `SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'IDX_4820183028729f3fceae04dafd'`,
+      );
+
+      expect(indexes).toHaveLength(1);
+      expect(indexes[0]!.indexdef).toContain(
+        `("testPageFireDrillMonitorId", "createdAt") WHERE ("testPageFireDrillMonitorId" IS NOT NULL)`,
+      );
+
+      const keys: Array<{ on_delete: string; validated: boolean }> =
+        await database.query(
+          `SELECT confdeltype AS on_delete, convalidated AS validated FROM pg_constraint
+            WHERE conname = 'FK_d75b2b6de2c8cf161836d749833' AND conrelid = 'public."OnCallDutyPolicyExecutionLog"'::regclass`,
+        );
+
+      expect(keys).toEqual([{ on_delete: "n", validated: true }]);
+    });
+
+    test("run on the copies, its key keeps a drill's tests when their monitor is deleted, and a second run changes nothing", async () => {
+      const seeded: Seeded = await seed();
+      told = whoIsTold(seeded, {
+        offline: [policy(seeded.primaryId, "Primary")],
+      });
+
+      await drill(seeded, OFFLINE_KEY);
+
+      const queryRunner: QueryRunner = database.createQueryRunner();
+      const migration: AddOnCallFireDrillResultsIndexAndKey1809183110000 =
+        new AddOnCallFireDrillResultsIndexAndKey1809183110000();
+
+      try {
+        await migration.up(queryRunner);
+        // Safe to run again: built already, validated already.
+        await migration.up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+
+      const keys: Array<{ on_delete: string; validated: boolean }> =
+        await database.query(
+          `SELECT confdeltype AS on_delete, convalidated AS validated FROM pg_constraint
+            WHERE conname = 'FK_d75b2b6de2c8cf161836d749833' AND conrelid = to_regclass($1)`,
+          [`"${schema}"."OnCallDutyPolicyExecutionLog"`],
+        );
+
+      expect(keys).toEqual([{ on_delete: "n", validated: true }]);
+
+      await database.query(
+        `DELETE FROM "${schema}"."Monitor" WHERE "_id" = $1`,
+        [seeded.monitorId.toString()],
+      );
+
+      const kept: Array<KeptRow> = await keptOf(seeded.projectId);
+
+      expect(kept).toHaveLength(1);
+      expect(kept[0]!.testPageFireDrillMonitorId).toBeNull();
+      // Still a fire drill's test: its drill and its failure stay.
+      expect(kept[0]!.testPageFireDrillId).not.toBeNull();
+      expect(kept[0]!.testPageFireDrillFailure).toEqual({
+        criteriaName: "Offline",
+      });
+
+      await database.query(
+        `ALTER TABLE "${schema}"."OnCallDutyPolicyExecutionLog" DROP CONSTRAINT "FK_d75b2b6de2c8cf161836d749833"`,
+      );
+    });
   });
 });

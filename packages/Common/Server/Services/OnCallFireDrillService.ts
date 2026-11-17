@@ -1,7 +1,9 @@
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
 import BaseService from "./BaseService";
-import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyExecutionLogService, {
+  OnCallFireDrillOfRun,
+} from "./OnCallDutyPolicyExecutionLogService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE,
   OnCallTestPageLimitKey,
@@ -20,6 +22,7 @@ import {
   ON_CALL_FIRE_DRILL_NOTHING_TO_PAGE_MESSAGE,
   OnCallFireDrillEvent,
   OnCallFireDrillFailure,
+  OnCallFireDrillFailureRecord,
   OnCallFireDrillPolicy,
   OnCallFireDrillPreview,
   OnCallFireDrillRun,
@@ -32,6 +35,7 @@ import {
   OnCallTestPageCost,
   OnCallTestPageKind,
   OnCallTestPagePreview,
+  OnCallTestPagePreviewLevel,
   OnCallTestPagePreviewPerson,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 
@@ -56,6 +60,13 @@ import {
  * test each policy the API asks as the policy's own test asks it, and how
  * often is limited by the same windows, claimed for every policy at once
  * (OnCallTestPageService.claimLimitsOfEach).
+ *
+ * A drill pages each policy's first level, or walks every level of each
+ * (#9385) as a walked test of the policy does; its preview reads both, as
+ * the policy's own test's preview does. It may rehearse the incident an
+ * alert incident rule declares from an alert (#9397), which When this goes
+ * down shows under the alert. Each test is kept with the drill, the monitor
+ * and the failure (#9386), which OnCallFireDrillHistoryService reads back.
  */
 
 // Whether the caller may test a policy, as its own test asks (the API's).
@@ -97,9 +108,10 @@ export class OnCallFireDrillService extends BaseService {
   /*
    * WHAT A DRILL WILL DO, before it starts: the monitor's failures to pick
    * from, and for the one picked (`eventKey`, or the first), each policy it
-   * pages - with who that policy's first level pages now and how, read as
-   * the policy's own test reads it, for each policy the caller may test -
-   * and what the whole drill costs.
+   * pages - with who that policy's first level pages now and how, and the
+   * levels after it a walk reaches (#9385), read as the policy's own test
+   * reads them, for each policy the caller may test - and what the whole
+   * drill costs: its first levels, and at most when it walks every level.
    */
   @CaptureSpan()
   public async getPreview(data: {
@@ -132,6 +144,8 @@ export class OnCallFireDrillService extends BaseService {
     const severityId: ObjectID = readSeverityId(failure.event);
     const policies: Array<OnCallFireDrillPolicy> = [];
     const people: Array<OnCallTestPagePreviewPerson> = [];
+    // Who a walk of every level reaches: each first level, and each level after it.
+    const walkPeople: Array<OnCallTestPagePreviewPerson> = [];
 
     for (const policy of failure.event.policies) {
       const policyId: ObjectID = new ObjectID(policy.id);
@@ -147,6 +161,7 @@ export class OnCallFireDrillService extends BaseService {
         continue;
       }
 
+      // Its first level, and the levels a walk of them reaches (#9385).
       const preview: OnCallTestPagePreview =
         await OnCallTestPageService.getPreview({
           projectId: data.projectId,
@@ -154,11 +169,17 @@ export class OnCallFireDrillService extends BaseService {
           recordKind: failure.event.kind,
           severityId: severityId,
           policyId: policyId,
-          // A drill pages each policy's first level only.
-          readsWalk: false,
         });
 
       people.push(...preview.people);
+      walkPeople.push(
+        ...preview.people,
+        ...(preview.walkLevels || []).flatMap(
+          (level: OnCallTestPagePreviewLevel) => {
+            return level.people;
+          },
+        ),
+      );
 
       policies.push({
         policyId: policy.id,
@@ -170,12 +191,13 @@ export class OnCallFireDrillService extends BaseService {
 
     /*
      * Every policy's first level is paged by a run of its own: a person two
-     * policies page is paged twice, and counted twice.
+     * policies page is paged twice, and counted twice - and so is each level
+     * a walk reaches, at most.
      */
-    const [cost]: Array<OnCallTestPageCost> =
+    const [cost, walkCost]: Array<OnCallTestPageCost> =
       await OnCallTestPageService.getCosts({
         projectId: data.projectId,
-        peopleOfEach: [people],
+        peopleOfEach: [people, walkPeople],
       });
 
     return {
@@ -185,16 +207,20 @@ export class OnCallFireDrillService extends BaseService {
       eventKey: failure.key,
       policies: policies,
       cost: cost!,
+      walkCost: walkCost!,
     };
   }
 
   /*
    * STARTS A DRILL: one test of each policy the failure pages now - read
    * afresh, never from the dialog's copy - at the failure's kind and
-   * severity, each paging its first level. Every policy must be one the
-   * caller may test (`assertMayTestPolicy`, which throws), and the limits of
-   * every one of them are claimed before anything is sent, all or nothing.
-   * Returns each policy's run, to read its result by.
+   * severity, each paging its first level, or walking every level when
+   * asked to (#9385). Every policy must be one the caller may test
+   * (`assertMayTestPolicy`, which throws), and the limits of every one of
+   * them are claimed before anything is sent, all or nothing - a walk is
+   * still one test of each policy. Each test is kept with the drill, the
+   * monitor and the failure (#9386). Returns the drill, and each policy's
+   * run to read its result by.
    */
   @CaptureSpan()
   public async start(data: {
@@ -203,6 +229,7 @@ export class OnCallFireDrillService extends BaseService {
     sentByUserId: ObjectID;
     props: DatabaseCommonInteractionProps;
     eventKey: string;
+    walksEscalation?: boolean | undefined;
     assertMayTestPolicy: (policyId: ObjectID) => Promise<void>;
   }): Promise<OnCallFireDrillStarted> {
     const read: {
@@ -262,6 +289,13 @@ export class OnCallFireDrillService extends BaseService {
 
     const runs: Array<OnCallFireDrillRun> = [];
 
+    // The drill each policy's test is kept with (#9386).
+    const fireDrill: OnCallFireDrillOfRun = {
+      fireDrillId: ObjectID.generate(),
+      monitorId: data.monitorId,
+      failure: getOnCallFireDrillFailureRecord(failure),
+    };
+
     for (const policy of policies) {
       const executionLogId: ObjectID =
         await OnCallDutyPolicyExecutionLogService.startPolicyTest({
@@ -269,8 +303,9 @@ export class OnCallFireDrillService extends BaseService {
           onCallDutyPolicyId: new ObjectID(policy.id),
           recordKind: failure.event.kind,
           severityId: severityId,
-          walksEscalation: false,
+          walksEscalation: data.walksEscalation === true,
           startedByUserId: data.sentByUserId,
+          fireDrill: fireDrill,
         });
 
       OnCallTestPageEvents.onTestPageSent({
@@ -288,19 +323,45 @@ export class OnCallFireDrillService extends BaseService {
       });
     }
 
-    return { runs: runs };
+    return { fireDrillId: fireDrill.fireDrillId.toString(), runs: runs };
   }
 }
 
 // A failure, as the dialog offers it.
 function toDrillEvent(failure: OnCallFireDrillFailure): OnCallFireDrillEvent {
-  return {
+  const event: OnCallFireDrillEvent = {
     key: failure.key,
     criteriaName: failure.criteria.name,
     recordKind: failure.event.kind,
     severityName: failure.event.severityName,
     title: failure.event.title,
     policyCount: failure.event.policies.length,
+  };
+
+  // The incident an alert incident rule declares, its rule as the reader may read it (#9397).
+  if (failure.declaration) {
+    event.declaredBy = {
+      ruleName: failure.declaration.rule.name,
+      waitInMinutes: failure.declaration.waitInMinutes,
+    };
+  }
+
+  return event;
+}
+
+/*
+ * What a drill keeps of the failure it rehearsed, on each of its tests
+ * (#9386): the criteria's name as it is now, and for a declared incident
+ * how long its alert stays open first.
+ */
+export function getOnCallFireDrillFailureRecord(
+  failure: Pick<OnCallFireDrillFailure, "criteria" | "declaration">,
+): OnCallFireDrillFailureRecord {
+  return {
+    criteriaName: failure.criteria.name,
+    ...(failure.declaration
+      ? { declaredAfterMinutes: failure.declaration.waitInMinutes }
+      : {}),
   };
 }
 

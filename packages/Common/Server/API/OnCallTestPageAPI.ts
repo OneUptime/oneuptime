@@ -1,6 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import OnCallDutyPolicyService from "../Services/OnCallDutyPolicyService";
 import { OnCallDirectPageRun } from "../Services/OnCallDutyPolicyExecutionLogService";
+import OnCallFireDrillHistoryService from "../Services/OnCallFireDrillHistoryService";
 import OnCallFireDrillService from "../Services/OnCallFireDrillService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE,
@@ -24,6 +25,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
   ON_CALL_FIRE_DRILL_NOT_ALLOWED_MESSAGE,
+  OnCallFireDrillLast,
   OnCallFireDrillPreview,
   OnCallFireDrillStarted,
 } from "../../Types/OnCallDutyPolicy/OnCallFireDrill";
@@ -48,6 +50,8 @@ import {
  *   POST /on-call-test-page/fire-drill/preview  what a monitor's fire drill
  *                                        pages (#7012)
  *   POST /on-call-test-page/fire-drill/start    run it: a test of each policy
+ *   GET  /on-call-test-page/fire-drill/last/:monitorId  how its last drill
+ *                                        went (#9386)
  *
  * Every one asks the test-send rule's first two steps (TestSendAccess
  * .getCaller): a signed-in member of the project, as a person - a test is
@@ -413,6 +417,8 @@ router.post(
           sentByUserId: caller.userId,
           props: caller.props,
           eventKey: eventKey,
+          // Each policy's test walks every level only when asked with true (#9385).
+          walksEscalation: body?.["walksEscalation"] === true,
           assertMayTestPolicy: async (policyId: ObjectID): Promise<void> => {
             if (!(await mayTestPolicy({ req: req, policyId: policyId }))) {
               throw new NotAuthorizedException(
@@ -426,6 +432,48 @@ router.post(
         req,
         res,
         started as unknown as JSONObject,
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * A MONITOR'S LAST FIRE DRILL (#9386, OnCallFireDrillHistoryService): when
+ * it ran, who ran it, the failure it rehearsed and what became of each
+ * policy's test - for its When this goes down card. For a member of the
+ * project, as its other reads are, who may read the monitor (else: not
+ * found) and every one of the drill's tests in its policy's execution logs
+ * (else: none). { fireDrill } - null with none to read.
+ */
+router.get(
+  `${ON_CALL_TEST_PAGE_API_PATH}/fire-drill/last/:monitorId`,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+
+      const last: OnCallFireDrillLast = {
+        fireDrill: await OnCallFireDrillHistoryService.getLast({
+          projectId: projectId,
+          monitorId: readObjectId(req.params["monitorId"], "monitorId"),
+          props: props,
+        }),
+      };
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        last as unknown as JSONObject,
       );
     } catch (err) {
       next(err);
