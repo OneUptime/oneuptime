@@ -71,6 +71,7 @@ import CodeTaskListRows, {
   CodeTaskRepliesRead,
 } from "../AI/CodeTask/CodeTaskListRows";
 import CodeTaskRuns from "../AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../AI/CodeTask/CodeTaskThread";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
   getRepositoryFullName,
@@ -648,11 +649,36 @@ export default class DeclaredCodeChanges {
       }
     }
 
-    const taskIds: Array<ObjectID> = Array.from(latestBySequence.values()).map(
-      (task: AIRun): ObjectID => {
-        return task.id!;
+    /*
+     * A step's task is read as its own page reads it, for this reader: one
+     * a reply carried a private incident or alert into, which they do not
+     * see, is there - the step says so, and offers no second one - and
+     * nothing of it is read or sent: not how it stands, not its repository,
+     * not its pull request, not its id (CodeTaskThread.findTasksHiddenFrom).
+     */
+    const hiddenTaskIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom(
+      {
+        projectId: data.tenantId,
+        taskIds: Array.from(latestBySequence.values()).map(
+          (task: AIRun): ObjectID => {
+            return task.id!;
+          },
+        ),
+        reader: data.props,
       },
     );
+
+    const isHidden: (task: AIRun) => boolean = (task: AIRun): boolean => {
+      return hiddenTaskIds.has((task.id?.toString() || "").toLowerCase());
+    };
+
+    const taskIds: Array<ObjectID> = Array.from(latestBySequence.values())
+      .filter((task: AIRun): boolean => {
+        return !isHidden(task);
+      })
+      .map((task: AIRun): ObjectID => {
+        return task.id!;
+      });
 
     /*
      * Each step's task as it stands: its newest turn and the pull request
@@ -688,6 +714,16 @@ export default class DeclaredCodeChanges {
     const changes: Array<DeclaredCodeChangeJSON> = [];
 
     for (const [sequence, task] of latestBySequence) {
+      if (isHidden(task)) {
+        changes.push({
+          sequence,
+          taskId: "",
+          repositoryName: "",
+          state: DeclaredCodeChangeState.Hidden,
+        });
+        continue;
+      }
+
       const key: string = CodeTaskListRows.key(task.id!);
       const latest: AIRun = replies.get(key)?.newest || task;
       // The newest open one any turn opened, else the newest.

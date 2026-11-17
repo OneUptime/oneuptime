@@ -2,6 +2,8 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -58,8 +60,15 @@ function run(id: ObjectID, taskType: CodeFixTaskType): JSONObject {
   };
 }
 
+const PROJECT_ID: ObjectID = ObjectID.generate();
+const READER: DatabaseCommonInteractionProps = {
+  userId: ObjectID.generate(),
+  tenantId: PROJECT_ID,
+};
+
 let sent: Array<JSONObject>;
 let findPullRequests: SpyInstance<typeof AIAgentTaskPullRequestService.findBy>;
+let hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
 
 async function getTasks(): Promise<Array<JSONObject>> {
   const req: ExpressRequest = {
@@ -91,10 +100,15 @@ describe("GET get-ai-agent-task: the production verdict of a fix", () => {
     sent = [];
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockResolvedValue({ userId: ObjectID.generate() });
-    jest
-      .spyOn(TelemetryExceptionService, "findOneById")
-      .mockResolvedValue({ _id: EXCEPTION_ID.toString() } as never);
+      .mockResolvedValue(READER);
+    jest.spyOn(TelemetryExceptionService, "findOneById").mockResolvedValue({
+      _id: EXCEPTION_ID.toString(),
+      projectId: PROJECT_ID,
+    } as never);
+    // The reader may read both tasks, unless a test says otherwise.
+    hiddenFrom = jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>());
     jest
       .spyOn(AIRunService, "getLatestCodeFixRunPerTaskType")
       .mockResolvedValue([
@@ -169,6 +183,54 @@ describe("GET get-ai-agent-task: the production verdict of a fix", () => {
     expect(query["productionStatus"]).toBeDefined();
     expect(call["sort"]).toEqual({ productionStatusAt: "DESC" });
     expect(call["props"]).toEqual({ isRoot: true });
+  });
+
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * caller may not open, is read as its own page reads it: the panel learns
+   * its type - the exception's fix is there - and nothing of how it stands:
+   * no id, state, words, time, verdict, pull request or link.
+   */
+  test("a task hidden from the caller: its type, and nothing of it", async () => {
+    hiddenFrom.mockResolvedValue(
+      new Set<string>([FIX_RUN_ID.toString().toLowerCase()]),
+    );
+
+    const tasks: Array<JSONObject> = await getTasks();
+
+    expect(tasks[0]).toEqual({
+      taskType: CodeFixTaskType.FixException,
+      isHidden: true,
+    });
+    expect(JSON.stringify(sent[0])).not.toContain(FIX_RUN_ID.toString());
+    expect(JSON.stringify(sent[0])).not.toContain("pull/482");
+    // The other task is the caller's to read, as before.
+    expect(tasks[1]).toEqual(
+      expect.objectContaining({
+        _id: TEST_RUN_ID.toString(),
+        status: AIRunStatus.Completed,
+        taskType: CodeFixTaskType.WriteRegressionTest,
+      }),
+    );
+    // Asked of these runs, for the caller, in the exception's project.
+    expect(hiddenFrom).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [FIX_RUN_ID, TEST_RUN_ID],
+      reader: READER,
+    });
+    // No verdict is read for a hidden task.
+    const query: JSONObject = (
+      findPullRequests.mock.calls[0]![0] as unknown as JSONObject
+    )["query"] as JSONObject;
+    expect(JSON.stringify(query["aiRunId"])).not.toContain(
+      FIX_RUN_ID.toString(),
+    );
+    // Nor whether it is at work.
+    expect(sent[0]!["hasActiveTask"]).toBe(false);
+    expect(sent[0]!["aiAgentTask"]).toEqual({
+      taskType: CodeFixTaskType.FixException,
+      isHidden: true,
+    });
   });
 
   test("a verdict that cannot be read costs its line, not the panel", async () => {

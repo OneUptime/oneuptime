@@ -193,6 +193,7 @@ describe("POST /ai-investigation/code-fix-suggestion", () => {
     expect(spies.suggestion).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       incidentId: INCIDENT_ID,
+      reader: expect.objectContaining({ userId: USER_ID }),
     });
   });
 
@@ -204,8 +205,30 @@ describe("POST /ai-investigation/code-fix-suggestion", () => {
     expect(spies.suggestion).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       alertId: ALERT_ID,
+      reader: expect.objectContaining({ userId: USER_ID }),
     });
     expect(spies.readIncident).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The fix itself is read as its task's page reads it, for the person who
+   * asks, inside the project they asked in: never as OneUptime, never
+   * across projects.
+   */
+  test("the fix is read for the reader, pinned to the project they asked in", async () => {
+    const spies: Spies = install();
+
+    await call({ subjectType: "incident", subjectId: INCIDENT_ID.toString() });
+
+    const reader: DatabaseCommonInteractionProps = (
+      spies.suggestion.mock.calls[0]![0] as {
+        reader: DatabaseCommonInteractionProps;
+      }
+    ).reader;
+    expect(reader.userId).toBe(USER_ID);
+    expect(reader.tenantId).toEqual(PROJECT_ID);
+    expect(reader.isRoot).toBeUndefined();
+    expect(reader.isMultiTenantRequest).toBe(false);
   });
 
   test("the record is read as the reader, pinned to the project they asked in", async () => {
