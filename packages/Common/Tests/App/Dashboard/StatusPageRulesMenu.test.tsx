@@ -157,7 +157,6 @@ describe("a status page's Rules section: where it is and what it holds", () => {
       "Resources",
       "Rules",
       "Subscribers",
-      "Notification Logs",
       "Branding",
       "Security",
       "AI",
@@ -304,9 +303,9 @@ describe("a status page's Rules section: folded by default", () => {
 
   test.each([
     {
-      entry: "Email Subscribers",
+      entry: "Subscribers",
       section: "Subscribers",
-      page: PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS,
+      page: PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS,
     },
     {
       entry: "Branding",

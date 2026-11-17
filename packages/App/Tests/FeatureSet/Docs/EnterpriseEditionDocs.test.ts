@@ -1580,7 +1580,8 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
    * with a note dating single sign-on in the Enterprise Edition to 14.0.10 and
    * earlier. The checks that run in every language rely only on what every
    * translation keeps as it is: version numbers, the setting's name, feature
-   * names and code spans.
+   * names and code spans. The section is found by its versions: the newer
+   * 14 -> 15 section comes before it, newest first.
    */
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "%s puts single sign-on in the Community image in the 13 → 14 notes",
@@ -1590,15 +1591,14 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         "installation/upgrading",
       ).split("\n");
       const headingIndex: number = lines.findIndex((line: string) => {
-        return (
-          line.startsWith("## ") && VERSION_SECTION_HEADING_PATTERN.test(line)
-        );
-      });
-      const hop: RegExpMatchArray | null = lines[headingIndex]!.match(
-        VERSION_SECTION_HEADING_PATTERN,
-      );
+        const hop: RegExpMatchArray | null = line.startsWith("## ")
+          ? line.match(VERSION_SECTION_HEADING_PATTERN)
+          : null;
 
-      expect([Number(hop![1]), Number(hop![2])]).toEqual([13, 14]);
+        return hop !== null && Number(hop[1]) === 13 && Number(hop[2]) === 14;
+      });
+
+      expect(headingIndex).toBeGreaterThan(0);
 
       const sectionLines: Array<string> = [];
 

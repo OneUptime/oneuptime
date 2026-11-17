@@ -43,7 +43,7 @@ Die Schalter bestimmen, wie sich Besucher selbst anmelden können; eine Anmeldun
 
 In OneUptime Cloud steht neben einem Schalter, den Ihr Tarif nicht enthält, der Name des Tarifs: **Growth** für **SMS** und **Abonnentenseite anzeigen**, **Scale** für **Slack**, **Microsoft Teams** und **Webhook**. Einen Kanal auszuschalten funktioniert in jedem Tarif, sodass sich ein Kanal, den eine Testphase eingeschaltet hat, immer wieder ausschalten lässt; der Schalter sagt das darunter.
 
-Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die der Abonnent nie sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
+Die Abonnenten aller Kanäle stehen auf einer Seite, **Abonnenten**, im Abschnitt **Abonnenten** des Seitenmenüs der Statusseite. Sie hat einen Tab für jeden Kanal (**E-Mail**, **SMS**, **Slack**, **Microsoft Teams** und **Webhook**), und jeder Tab zeigt, wie viele Abonnenten der Kanal hat. Jeder Tab ist die Liste seines Kanals (**E-Mail-Abonnenten**, **SMS-Abonnenten** und so weiter). Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die der Abonnent nie sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen. Der geöffnete Tab steht in der Adresse der Seite (`{id}/subscribers?channel=sms`), und die Adressen der früheren Seiten pro Kanal, etwa `{id}/email-subscribers`, öffnen den Tab ihres Kanals.
 
 **Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
@@ -281,7 +281,7 @@ Benutzerdefinierte Vorfallfelder mit eingeschaltetem **In Abonnentenbenachrichti
 
 Der Eintrag **Abonnentenbenachrichtigung gesendet** im Vorfall-Feed listet unter **Custom fields sent** die Werte auf, die jeder Versand in eine Nachricht gesetzt hat. Abonnenten stehen meist außerhalb Ihres Teams, also schalten Sie die Einstellung nur für Felder ein, die man ihnen bedenkenlos zeigen kann.
 
-Der Abschnitt **Benachrichtigungsprotokolle** im Seitenmenü der Statusseite (`{id}/notification-logs`) ist der Ort, an dem Sie nachsehen, was die Seite tatsächlich verschickt hat.
+**Benachrichtigungsprotokolle** im Abschnitt **Abonnenten** des Seitenmenüs der Statusseite (`{id}/notification-logs`) ist der Ort, an dem Sie nachsehen, was die Seite tatsächlich verschickt hat.
 
 ### Vorfall-Episoden
 

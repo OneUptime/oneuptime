@@ -495,18 +495,14 @@ describe("one place for each branding setting", () => {
 
   /*
    * Files that read a branding column to say what it is, never to set it:
-   * each subscriber list names the page's default language, which every
-   * subscriber without a language of their own is written in ("Page
-   * default (Deutsch)", SubscriberLanguageColumn). Each is checked to read
-   * the column and to give it no form field.
+   * the subscriber list (one for every channel since #9125) names the
+   * page's default language, which every subscriber without a language of
+   * their own is written in ("Page default (Deutsch)",
+   * SubscriberLanguageColumn). Each is checked to read the column and to
+   * give it no form field.
    */
   const READ_TO_NAME_IT: Record<string, Array<string>> = {
-    defaultLanguage: [
-      "Pages/StatusPages/View/EmailSubscribers.tsx",
-      "Pages/StatusPages/View/MicrosoftTeamsSubscribers.tsx",
-      "Pages/StatusPages/View/SMSSubscribers.tsx",
-      "Pages/StatusPages/View/SlackSubscribers.tsx",
-    ],
+    defaultLanguage: ["Components/StatusPage/StatusPageSubscriberList.tsx"],
   };
 
   const statusPageSources: Array<string> = [

@@ -102,19 +102,18 @@ const ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON: string =
  * nothing. Its own tests hold that answer to the columns.
  */
 export const SWITCHES_OFF_THEIR_COLUMN_DEFAULT: Array<ListedSwitch> = [
-  ...[
-    ["SMSSubscribers.tsx", "SMS"],
-    ["SlackSubscribers.tsx", "Slack"],
-    ["MicrosoftTeamsSubscribers.tsx", "Microsoft Teams"],
-    ["WebhookSubscribers.tsx", "Webhook"],
-  ].map(([file, kind]: Array<string>): ListedSwitch => {
-    return {
-      file: `${DASHBOARD}/Pages/StatusPages/View/${file}`,
-      form: `ModelTable: Status Page > ${kind} Subscribers`,
-      key: "sendYouHaveSubscribedMessage",
-      reason: ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON,
-    };
-  }),
+  /*
+   * Every channel's subscriber list is this one component since #9125
+   * (SMS, Slack, Microsoft Teams and webhook ask; email asks When you add
+   * them instead). Its table is named per channel (SubscriberListChannels),
+   * so the scanner numbers it.
+   */
+  {
+    file: `${DASHBOARD}/Components/StatusPage/StatusPageSubscriberList.tsx`,
+    form: "ModelTable #1",
+    key: "sendYouHaveSubscribedMessage",
+    reason: ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON,
+  },
   {
     file: `${DASHBOARD}/Pages/NetworkDevice/Discovery.tsx`,
     form: "ModelTable: Network Device Discovery Scans",

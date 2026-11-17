@@ -238,51 +238,73 @@ describe("SubscriberStatusPill", () => {
 });
 
 describe("the lists that show it", () => {
-  const VIEW_DIRECTORY: string = path.join(
+  /*
+   * Every channel's list is one component since #9125
+   * (StatusPageSubscriberList), configured per channel
+   * (SubscriberListChannels): email and SMS read their Status with the
+   * pill, each saying how its link reaches them.
+   */
+  const COMPONENT_DIRECTORY: string = path.join(
     __dirname,
-    "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View",
+    "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage",
   );
+
+  const read: (file: string) => string = (file: string): string => {
+    return fs
+      .readFileSync(path.join(COMPONENT_DIRECTORY, file), "utf8")
+      .replace(/\s+/g, " ");
+  };
 
   test.each([
-    [
-      "EmailSubscribers.tsx",
-      "SubscriberFormCopy.awaitingConfirmationDescription",
-    ],
-    [
-      "SMSSubscribers.tsx",
-      "SubscriberFormCopy.awaitingTextConfirmationDescription",
-    ],
+    ["StatusPageSubscriberChannel.Email", "awaitingConfirmationDescription"],
+    ["StatusPageSubscriberChannel.SMS", "awaitingTextConfirmationDescription"],
   ])(
     "%s draws its Status with the pill, saying how the link reaches them",
-    (file: string, description: string) => {
-      const code: string = fs
-        .readFileSync(path.join(VIEW_DIRECTORY, file), "utf8")
-        .replace(/\s+/g, " ");
+    (channel: string, description: string) => {
+      const channels: string = read("SubscriberListChannels.ts");
+      const start: number = channels.indexOf(`[${channel}]: {`);
+      expect(start).toBeGreaterThan(-1);
 
-      expect(code).toContain(
-        `<SubscriberStatusPill subscriber={item} awaitingConfirmationDescription={ ${description} } />`,
+      const definition: string = channels.slice(
+        start,
+        channels.indexOf("writeBulkEntry", start),
       );
-      // Created At, which the Status reads, is one of the list's columns.
-      expect(code).toContain("field: { createdAt: true, }");
 
-      /*
-       * And it is read whatever columns the viewer shows: a list selects
-       * the columns it draws and its selectMoreFields, and a viewer may
-       * switch Subscribed At off (ColumnPreference) - without Created At,
-       * every subscriber waiting for a link that still works would read
-       * as Link Expired.
-       */
-      const selectStart: number = code.indexOf("selectMoreFields={{");
-      expect(selectStart).toBeGreaterThan(-1);
-
-      const selectMoreFields: string = code.slice(
-        selectStart,
-        code.indexOf("}}", selectStart),
+      expect(definition).toContain(
+        "statusKind: SubscriberStatusKind.ConfirmationLink,",
       );
-      expect(selectMoreFields).toContain("isSubscriptionConfirmed: true,");
-      expect(selectMoreFields).toContain("createdAt: true,");
-      // The pill decides alone: no list keeps an Awaiting Confirmation of its own.
-      expect(code).not.toContain('text={"Awaiting Confirmation"}');
+      expect(definition).toContain(
+        `awaitingConfirmationDescription: SubscriberFormCopy.${description},`,
+      );
     },
   );
+
+  test("the list draws the pill for them, and reads Created At whatever the viewer shows", () => {
+    const code: string = read("StatusPageSubscriberList.tsx");
+
+    expect(code).toContain(
+      "if (channel.statusKind === SubscriberStatusKind.ConfirmationLink) { return ( <SubscriberStatusPill subscriber={item} awaitingConfirmationDescription={",
+    );
+    // Created At, which the Status reads, is one of the list's columns.
+    expect(code).toContain("field: { createdAt: true, }");
+
+    /*
+     * And it is read whatever columns the viewer shows: a list selects the
+     * columns it draws and its selectMoreFields, and a viewer may switch
+     * Subscribed At off (ColumnPreference) - without Created At, every
+     * subscriber waiting for a link that still works would read as Link
+     * Expired.
+     */
+    const selectStart: number = code.indexOf("selectMoreFields={{");
+    expect(selectStart).toBeGreaterThan(-1);
+
+    const selectMoreFields: string = code.slice(
+      selectStart,
+      code.indexOf("}}", selectStart),
+    );
+    expect(selectMoreFields).toContain("isSubscriptionConfirmed: true,");
+    expect(selectMoreFields).toContain("createdAt: true,");
+    // The pill decides alone: no list keeps an Awaiting Confirmation of its own.
+    expect(code).not.toContain('text={"Awaiting Confirmation"}');
+  });
 });

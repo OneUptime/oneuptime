@@ -43,7 +43,7 @@ Bryterne bestemmer hvordan besøkende kan melde seg på selv, og statussiden avv
 
 På OneUptime Cloud står abonnementets navn ved en bryter som abonnementet ditt ikke inkluderer: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**. Å slå av en kanal fungerer på alle abonnementer, så en kanal som en prøveperiode slo på, kan alltid slås av igjen; bryteren sier det under seg.
 
-Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som abonnenten aldri ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen.
+Abonnentene for alle kanaler er på én side, **Abonnenter**, i seksjonen **Abonnenter** i statussidens sidemeny. Den har en fane for hver kanal (**E-post**, **SMS**, **Slack**, **Microsoft Teams** og **Webhook**), og hver fane viser hvor mange abonnenter kanalen har. Hver fane er kanalens liste (**E-postabonnenter**, **SMS-abonnenter** og så videre). Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som abonnenten aldri ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen. Den åpne fanen står i sidens adresse (`{id}/subscribers?channel=sms`), og adressene til de gamle sidene for hver kanal, for eksempel `{id}/email-subscribers`, åpner kanalens fane.
 
 **Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
@@ -281,7 +281,7 @@ Egendefinerte hendelsesfelt med **Ta med i abonnentvarslinger** på (under **Hen
 
 Oppføringen **Abonnentvarsling sendt** i hendelsesfeeden viser under **Custom fields sent** verdiene hver utsending la inn i en melding. Abonnenter er som regel utenfor teamet ditt, så slå bare på innstillingen for felt som trygt kan deles med dem.
 
-Seksjonen **Varslingslogger** i statussidens sidemeny (`{id}/notification-logs`) er der du går når du må se hva siden faktisk har sendt.
+**Varslingslogger**, i seksjonen **Abonnenter** i statussidens sidemeny (`{id}/notification-logs`), er der du går når du må se hva siden faktisk har sendt.
 
 ### Hendelsesepisoder
 

@@ -114,23 +114,23 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
     "This project's invoices, as they are issued. Download one for your records, or pay one that is still open.",
   ],
   [
-    "Pages/StatusPages/View/EmailSubscribers.tsx",
+    "Components/StatusPage/SubscriberListChannels.ts",
     "People who get this status page's updates by email. Visitors subscribe on the status page, or you can add them here.",
   ],
   [
-    "Pages/StatusPages/View/SMSSubscribers.tsx",
+    "Components/StatusPage/SubscriberListChannels.ts",
     "Phone numbers that get this status page's updates by text message. Visitors subscribe on the status page, or you can add them here.",
   ],
   [
-    "Pages/StatusPages/View/SlackSubscribers.tsx",
+    "Components/StatusPage/SubscriberListChannels.ts",
     "Slack channels that get this status page's updates. Visitors subscribe on the status page, or you can add them here.",
   ],
   [
-    "Pages/StatusPages/View/MicrosoftTeamsSubscribers.tsx",
+    "Components/StatusPage/SubscriberListChannels.ts",
     "Microsoft Teams channels that get this status page's updates. Visitors subscribe on the status page, or you can add them here.",
   ],
   [
-    "Pages/StatusPages/View/WebhookSubscribers.tsx",
+    "Components/StatusPage/SubscriberListChannels.ts",
     "URLs that get each of this status page's updates as a JSON POST request, for your own tools. Visitors subscribe on the status page, or you can add them here.",
   ],
   [

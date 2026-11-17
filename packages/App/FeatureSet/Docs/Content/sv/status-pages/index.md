@@ -86,22 +86,21 @@ Därefter, ungefär i ordning efter nytta:
 
 ## Var allt finns
 
-När du har öppnat en statussida är dess egen vänstermeny indelad i tio sektioner. Använd den som karta för resten av den här delen av dokumentationen.
+När du har öppnat en statussida är dess egen vänstermeny indelad i nio sektioner. Använd den som karta för resten av den här delen av dokumentationen.
 
 | Sektion | Vad den innehåller |
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
 | **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger). |
 | **Regler** | **Monitorregler**: regler som lägger till varje monitor som matchar på sidan, nu och senare. |
-| **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
-| **Aviseringsloggar** | **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
+| **Prenumeranter** | **Prenumeranter** (en enda sida, med en flik för varje kanal: E-post, SMS, Slack, Microsoft Teams och Webhook), **Prenumerantinställningar**, **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
 | **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter**: sidan som kod. |
 | **Avancerad** | **Inbäddad status**, **Rapporter**, **Anpassade fält**, **Avancerade inställningar**, **Granskningsloggar**, **Ta bort statussida**. |
 
-Bara **Grundläggande** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Avancerade inställningar** eller **E-postprenumeranter**.
+Bara **Grundläggande** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Avancerade inställningar** eller **Prenumeranter**.
 
 Två egenheter i namnen som är bra att känna till innan du letar:
 

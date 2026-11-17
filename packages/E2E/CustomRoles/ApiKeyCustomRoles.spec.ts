@@ -833,7 +833,20 @@ test.describe("Create API Key", () => {
     await lead.click();
     await submitDialog(page);
 
-    // The key first, then the role given to it; then its page opens.
+    /*
+     * The key first, then the role given to it; then the key is shown once
+     * (it is stored as its hash, #8902), and Done, the dialog's only way
+     * out, opens its page.
+     */
+    const shownOnce: Locator = dialog(page).filter({
+      has: page.getByTestId("api-key-shown-once"),
+    });
+    await expect(shownOnce.getByTestId("api-key-shown-once-value")).toHaveText(
+      /\S/,
+    );
+    await expect(page).toHaveURL(/\/settings\/api-keys$/);
+    await shownOnce.getByRole("button", { name: "Done" }).click();
+    await expect(shownOnce).toHaveCount(0);
     await expectPath(page, KEY_PAGE_PATH);
     const keys: Array<Record<string, unknown>> = await createsOf(
       page,

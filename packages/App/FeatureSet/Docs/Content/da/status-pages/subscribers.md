@@ -43,7 +43,7 @@ Kontakterne bestemmer, hvordan besøgende kan tilmelde sig selv, og statussiden 
 
 På OneUptime Cloud står abonnementets navn ved en kontakt, som dit abonnement ikke omfatter: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**. At slå en kanal fra virker på alle abonnementer, så en kanal, som en prøveperiode slog til, altid kan slås fra igen; kontakten siger det under sig.
 
-Hver kanal har også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der, du ser, hvem der er tilmeldt, tilføjer nogen manuelt med **Tilføj abonnent** eller efterlader dig selv en **Intern note** (`internalNote`) om en bestemt abonnent, som abonnenten aldrig ser. Så længe en kanal er slået fra, siger toppen af dens liste det, med kanalens kontakt lige der, så du kan slå den til uden at forlade listen.
+Alle kanalers abonnenter er på én side, **Abonnenter**, i sektionen **Abonnenter** i statussidens sidemenu. Den har en fane for hver kanal (**E-mail**, **SMS**, **Slack**, **Microsoft Teams** og **Webhook**), og hver fane viser, hvor mange abonnenter kanalen har. Hver fane er kanalens liste (**E-mail-abonnenter**, **SMS-abonnenter** og så videre). Det er der, du ser, hvem der er tilmeldt, tilføjer nogen manuelt med **Tilføj abonnent** eller efterlader dig selv en **Intern note** (`internalNote`) om en bestemt abonnent, som abonnenten aldrig ser. Så længe en kanal er slået fra, siger toppen af dens liste det, med kanalens kontakt lige der, så du kan slå den til uden at forlade listen. Den åbne fane står i sidens adresse (`{id}/subscribers?channel=sms`), og adresserne på de gamle sider for hver kanal, for eksempel `{id}/email-subscribers`, åbner deres kanals fane.
 
 **Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationsbjælke vises kun, når **Vis abonnentside** er slået til, *og* mindst én kanal er slået til. Hvis du slår **E-mail** til, men lader **Vis abonnentside** være slået fra, har besøgende ingen mulighed for at nå formularen.
 
@@ -281,7 +281,7 @@ Brugerdefinerede hændelsesfelter med **Medtag i abonnentnotifikationer** slået
 
 Posten **Abonnentnotifikation sendt** i hændelsesfeedet viser under **Custom fields sent** de værdier, hver afsendelse satte ind i en besked. Abonnenter er som regel uden for dit team, så slå kun indstillingen til for felter, der trygt kan deles med dem.
 
-Sektionen **Notifikationslogs** i statussidens sidemenu (`{id}/notification-logs`) er der, du går hen, når du skal se, hvad siden faktisk har sendt.
+**Notifikationslogs** i sektionen **Abonnenter** i statussidens sidemenu (`{id}/notification-logs`) er der, du går hen, når du skal se, hvad siden faktisk har sendt.
 
 ### Hændelsesepisoder
 

@@ -86,22 +86,21 @@ A continuación, más o menos por orden de utilidad:
 
 ## Dónde vive cada cosa
 
-Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en diez secciones. Úsalo como mapa para el resto de esta parte de la documentación.
+Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en nueve secciones. Úsalo como mapa para el resto de esta parte de la documentación.
 
 | Sección | Qué contiene |
 | --- | --- |
 | **Básico** | **Vista general**, **Anuncios**, **Propietarios**. |
 | **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha). |
 | **Reglas** | **Reglas de monitores**: reglas que añaden a la página cada monitor que coincida, ahora y más adelante. |
-| **Suscriptores** | **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams**, **Suscriptores de webhook**, **Ajustes de suscriptores**. |
-| **Registros de notificación** | **Registros de notificación**: lo que se envió a los suscriptores. |
+| **Suscriptores** | **Suscriptores** (una sola página, con una pestaña para cada canal: Correo electrónico, SMS, Slack, Microsoft Teams y Webhook), **Ajustes de suscriptores**, **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
 | **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA**: la página como código. |
 | **Avanzado** | **Estado incrustado**, **Informes**, **Campos personalizados**, **Ajustes avanzados**, **Registros de auditoría**, **Eliminar página de estado**. |
 
-Solo **Básico** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes avanzados** o **Suscriptores por correo electrónico**.
+Solo **Básico** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes avanzados** o **Suscriptores**.
 
 Dos peculiaridades de nombres que conviene conocer antes de buscar:
 

@@ -86,22 +86,21 @@ Ensuite, à peu près par ordre d'utilité :
 
 ## Où se trouve chaque chose
 
-Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en dix sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
+Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en neuf sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
 
 | Section | Ce qu'elle contient |
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Annonces**, **Propriétaires**. |
 | **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite. |
 | **Règles** | **Règles de moniteurs** — des règles qui ajoutent à la page chaque moniteur correspondant, maintenant et plus tard. |
-| **Abonnés** | **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams**, **Abonnés au webhook**, **Paramètres des abonnés**. |
-| **Journaux de notification** | **Journaux de notification** — ce qui a été envoyé aux abonnés. |
+| **Abonnés** | **Abonnés** (une seule page, avec un onglet par canal : E-mail, SMS, Slack, Microsoft Teams et Webhook), **Paramètres des abonnés**, **Journaux de notification** — ce qui a été envoyé aux abonnés. |
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |
 | **Sécurité** | **Accès** (qui peut voir la page), **Utilisateurs privés**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
 | **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** — la page en tant que code. |
 | **Avancé** | **Statut intégré**, **Rapports**, **Champs personnalisés**, **Paramètres avancés**, **Journaux d'audit**, **Supprimer la page de statut**. |
 
-Seules **Basique** et **Ressources**, ce que la page montre, sont ouvertes au départ. Toutes les autres sections sont repliées au départ, comme les sections peu utilisées de chaque menu de OneUptime : cliquez sur le titre d'une section pour afficher ses pages. Une section s'ouvre d'elle-même dès que vous êtes sur l'une de ses pages, comme **Paramètres avancés** ou **Abonnés e-mail**.
+Seules **Basique** et **Ressources**, ce que la page montre, sont ouvertes au départ. Toutes les autres sections sont repliées au départ, comme les sections peu utilisées de chaque menu de OneUptime : cliquez sur le titre d'une section pour afficher ses pages. Une section s'ouvre d'elle-même dès que vous êtes sur l'une de ses pages, comme **Paramètres avancés** ou **Abonnés**.
 
 Deux particularités de nommage à connaître avant de chercher :
 
