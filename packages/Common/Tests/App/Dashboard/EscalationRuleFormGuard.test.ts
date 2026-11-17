@@ -10,6 +10,15 @@ import {
   countFieldRows,
   scanFormFiles,
 } from "../../Helpers/FormStepsScan";
+import {
+  ESCALATION_RULE_NOTIFY_FIELD_KEY,
+  ESCALATION_RULE_PAGED_AFTER_KEY,
+  getEscalationRuleFormFields,
+  readPagedAfterInMinutes,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleForm";
+import OnCallDutyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import Field from "../../../UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 
 /*
  * "Adding an escalation rule is one short step: who to notify, and how long
@@ -25,7 +34,9 @@ import {
  *     teams and users lists itself;
  *   - the escalation page's add and edit dialogs have no steps and at most
  *     three rows: Notify, the wait, and one folded Advanced section holding
- *     the name and the description.
+ *     the name and the description. The wait is "Escalate after", or - on a
+ *     new rule after the first - "Paged after", when the new level is paged,
+ *     saved as the wait of the level before it (#7373).
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.
@@ -146,6 +157,77 @@ describe("the escalation responder detector", () => {
   });
 });
 
+/*
+ * The two waits a dialog asks, by the key the helper writes them under: a
+ * rule's own "Escalate after", or a new rule's "Paged after" (#7373), as the
+ * scan reads the helper (ESCALATION_RULE_PAGED_AFTER_KEY, a computed key,
+ * reported as written).
+ */
+const WAIT_KEYS: Array<string> = [
+  "escalateAfterInMinutes",
+  "ESCALATION_RULE_PAGED_AFTER_KEY",
+];
+
+type RuleField = Field<OnCallDutyEscalationRule>;
+
+function fieldKey(field: RuleField): string {
+  return Object.keys(field.field || {})[0] || "";
+}
+
+describe("the wait each dialog asks (#7373)", () => {
+  const BACKUP: { name: string; escalateAfterInMinutes: number } = {
+    name: "Backup",
+    escalateAfterInMinutes: 10,
+  };
+
+  test("a new rule after the first asks when it is paged, from the level before's wait, never sent with the rule", () => {
+    const fields: Array<RuleField> =
+      getEscalationRuleFormFields<OnCallDutyEscalationRule>({
+        level: 3,
+        previousLevel: BACKUP,
+      });
+
+    expect(fields.map(fieldKey)).toEqual([
+      ESCALATION_RULE_NOTIFY_FIELD_KEY,
+      ESCALATION_RULE_PAGED_AFTER_KEY,
+      "name",
+      "description",
+    ]);
+
+    const pagedAfter: RuleField = fields[1]!;
+
+    expect(pagedAfter.title).toBe("Paged after (in minutes)");
+    expect(pagedAfter.defaultValue).toBe(10);
+    expect(pagedAfter.formOnly).toBe(true);
+    expect(pagedAfter.fieldType).toBe(FormFieldSchemaType.Number);
+    expect(pagedAfter.collapsibleSection).toBeUndefined();
+  });
+
+  test("the first rule, an edit, and a new rule nobody may save on the level before ask Escalate after", () => {
+    for (const options of [
+      { level: 1 },
+      { level: 2, isEditing: true, previousLevel: BACKUP },
+      { level: 3 },
+    ]) {
+      const fields: Array<RuleField> =
+        getEscalationRuleFormFields<OnCallDutyEscalationRule>(options);
+
+      expect(fieldKey(fields[1]!)).toBe("escalateAfterInMinutes");
+      expect(fields[1]!.title).toBe("Escalate after (in minutes)");
+    }
+  });
+
+  test("an answer is read as whole minutes, or as none", () => {
+    expect(readPagedAfterInMinutes({ pagedAfterInMinutes: 5 })).toBe(5);
+    expect(readPagedAfterInMinutes({ pagedAfterInMinutes: "15" })).toBe(15);
+    expect(readPagedAfterInMinutes({ pagedAfterInMinutes: 0 })).toBe(0);
+    expect(readPagedAfterInMinutes({ pagedAfterInMinutes: -1 })).toBeNull();
+    expect(readPagedAfterInMinutes({ pagedAfterInMinutes: "" })).toBeNull();
+    expect(readPagedAfterInMinutes({})).toBeNull();
+    expect(readPagedAfterInMinutes(null)).toBeNull();
+  });
+});
+
 describe("the project's forms", () => {
   const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
     (root: string): Array<string> => {
@@ -231,7 +313,8 @@ describe("the project's forms", () => {
 
       expect(notify.title).toBe("Notify");
       expect(notify.collapsibleSection).toBeUndefined();
-      expect(wait.key).toBe("escalateAfterInMinutes");
+      // Either wait, as the scan reads the helper's choice (#7373).
+      expect(WAIT_KEYS).toContain(wait.key);
       expect(wait.collapsibleSection).toBeUndefined();
 
       // The name and the description, folded together.
