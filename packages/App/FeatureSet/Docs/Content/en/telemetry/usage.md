@@ -96,7 +96,7 @@ Usage is kept for 120 days unless you change it, with billing on or off. This is
 :::steps
 ### Open Data Retention
 
-In the Admin Dashboard, go to **Settings → Data Retention**.
+In the Admin Dashboard, go to **Settings → Server → Data Retention**.
 
 ### Set the number of days
 

@@ -40,7 +40,7 @@ flowchart LR
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
 | **Auditlogs** | **Auditlogs**, **Indstillinger**, **Eksport** | [Auditlogs](/docs/configuration/audit-logs), [Eksport af auditlog](/docs/configuration/audit-log-export) |
-| **Farezone** | **Farezone** | [Slet projektet](#slet-projektet) |
+| **Farezone** | **Slet projekt** | [Slet projektet](#slet-projektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** findes kun i OneUptime Cloud: en selvhostet installation har ingen fakturering.
 
@@ -113,7 +113,7 @@ At slette et projekt sletter alt i det, for alle medlemmer: monitorer, hændelse
 :::steps
 ### Åbn farezonen
 
-Gå til **Projektindstillinger → Farezone**.
+Gå til **Projektindstillinger → Farezone → Slet projekt**.
 
 ### Klik på Slet Projekt
 

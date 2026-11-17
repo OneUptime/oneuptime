@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Ingestiebudgetten openen
 
-Ga in het Admin Dashboard naar **Instellingen → Telemetrie → Ingestiebudgetten**. **Telemetrie** staat in het zijmenu eerst ingeklapt: klik erop om het te openen.
+Ga in het Admin Dashboard naar **Instellingen → Server → Ingestiebudgetten**. **Server** staat in het zijmenu eerst ingeklapt: klik erop om het te openen.
 
 ### De dagbudgetten instellen
 

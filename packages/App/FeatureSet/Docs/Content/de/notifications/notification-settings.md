@@ -64,7 +64,7 @@ Der Tab **Bereitschaft** handelt von Ihnen, nicht von Datensätzen, die Ihnen ge
 
 - **Ihr Bereitschaftsdienst beginnt**, **Sie sind als Nächstes im Bereitschaftsdienst** und **Ihr Bereitschaftsdienst endet** folgen Ihren Diensten in den Bereitschaftsplänen, in denen Sie sind.
 - **Zur Bereitschaftsdienst-Richtlinie hinzugefügt** und **Aus Bereitschaftsrichtlinie entfernt** sagen Ihnen, wann eine Bereitschaftsrichtlinie beginnt oder aufhört, Sie zu nennen.
-- **Bevor meine Bereitschaftsschicht beginnt** sendet Erinnerungen zu den Zeiten, die Sie unter **Benutzereinstellungen → Kalender → Kalender-Feed** wählen, und **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** sagt Ihnen, wann jemand anderes eine Schicht übernimmt, an die Sie erinnert wurden. Siehe [Kalender-Feeds](/docs/on-call/calendar-feeds#erinnerungen-und-neuzuweisungs-hinweise).
+- **Bevor meine Bereitschaftsschicht beginnt** sendet Erinnerungen zu den Zeiten, die Sie unter **Benutzereinstellungen → Profil und Kalender → Kalender-Feed** wählen, und **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** sagt Ihnen, wann jemand anderes eine Schicht übernimmt, an die Sie erinnert wurden. Siehe [Kalender-Feeds](/docs/on-call/calendar-feeds#erinnerungen-und-neuzuweisungs-hinweise).
 - **Verpasster Anruf**, auf der Karte **Richtlinien für eingehende Anrufe**, sagt den Eigentümern einer Richtlinie für eingehende Anrufe, dass ein Anrufer niemanden erreicht hat. Siehe [Richtlinie für eingehende Anrufe](/docs/on-call/incoming-call-policy#verpasste-anrufe).
 
 ## Sicherheitsfälle

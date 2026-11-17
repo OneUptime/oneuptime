@@ -675,8 +675,11 @@ describe("DashboardCommandPalette finds every page the menus link to", () => {
     expect(
       screen.getByTestId("command-palette-section-actions"),
     ).toContainElement(screen.getByTestId(action));
-    // The page itself is offered too, after the action.
-    expect(optionTestIds()).toContain(
+    /*
+     * The page is named Delete Project too (#9134), so the action stands in
+     * for it: one row, not two that open one place.
+     */
+    expect(optionTestIds()).not.toContain(
       pageOptionTestId(PageMap.SETTINGS_DANGERZONE),
     );
 

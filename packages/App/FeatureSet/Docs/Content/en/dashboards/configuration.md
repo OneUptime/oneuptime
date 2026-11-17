@@ -96,7 +96,7 @@ Archiving is the reversible alternative to deleting: reach for it first when you
 
 ## Deleting a dashboard
 
-Open the dashboard's **Delete** page. Deleting can't be undone: the dashboard, its widgets and variables, and any custom domains attached to it are removed. Your telemetry is not touched.
+Open the dashboard's **Delete Dashboard** page. Deleting can't be undone: the dashboard, its widgets and variables, and any custom domains attached to it are removed. Your telemetry is not touched.
 
 If the dashboard is public on a custom domain, the address stops answering as soon as you delete it. To keep serving the address, add the domain to another dashboard after deleting this one: a domain belongs to one dashboard at a time.
 

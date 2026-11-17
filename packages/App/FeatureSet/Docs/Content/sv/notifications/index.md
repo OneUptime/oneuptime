@@ -45,10 +45,8 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 | --- | --- |
 | **Kom igång** | **Checklista för konfiguration**: det som återstår att ställa in, i den ordning som spelar roll |
 | **Larm och aviseringar** | **Aviseringsmetoder**, **Så når man mig**, **Aviseringsinställningar** och **E-postinställningar**, där du bestämmer hur många e-postmeddelanden dina uppdateringar blir |
-| **Jourloggar** | **Jourloggar**: varje gång du larmades i det här projektet, och vad som skickades |
-| **Inkommande samtalspolicy** | **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
-| **Kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar |
-| **Profil** | **Anpassade fält**: uppgifter som ditt projekt ber sina medlemmar om |
+| **Jourlarm och samtal** | **Jourloggar**: varje gång du larmades i det här projektet, och vad som skickades; **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
+| **Profil och kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar; **Anpassade fält**: uppgifter som ditt projekt ber sina medlemmar om |
 | **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
 
 **Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost.
@@ -112,7 +110,7 @@ Det som ändras är OneUptimes egna ord: ämnesrader, rubriker, knappar och meni
 ## Felsökning
 
 :::details Jag hade jour, men inget nådde mig
-Öppna **Användarinställningar → Jourloggar**. Ingen rad för incidenten betyder att dess jourpolicy aldrig larmade dig: kontrollera dess eskaleringsregler och vem som hade jour. För en rad med statusen **Fel** berättar **Visa statusmeddelande** varför, till exempel en kanal som projektet har stängt av. Kontrollera sedan att dina metoder är verifierade och att **Your setup checklist** inte har något kvar under **So we can reach you**.
+Öppna **Användarinställningar → Jourlarm och samtal → Jourloggar**. Ingen rad för incidenten betyder att dess jourpolicy aldrig larmade dig: kontrollera dess eskaleringsregler och vem som hade jour. För en rad med statusen **Fel** berättar **Visa statusmeddelande** varför, till exempel en kanal som projektet har stängt av. Kontrollera sedan att dina metoder är verifierade och att **Your setup checklist** inte har något kvar under **So we can reach you**.
 :::
 
 :::details Jag får e-post om saker som jag aldrig har bett om

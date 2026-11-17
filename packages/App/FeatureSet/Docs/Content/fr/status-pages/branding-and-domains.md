@@ -286,7 +286,7 @@ Sa boîte de dialogue, **Reissue SSL Certificate for this Status Page**, demande
 
 L'action n'apparaît pas sur un domaine qui utilise un certificat que vous avez téléversé : il n'y a pas de certificat Let's Encrypt à réémettre ; téléversez-en un nouveau en modifiant le domaine. Elle n'apparaît pas non plus avant que le premier certificat du domaine soit commandé, ce qui se fait de lui-même une fois son enregistrement CNAME vérifié.
 
-Le même bouton, avec la même limite de 24 heures, existe sur les domaines personnalisés des tableaux de bord, sous **Tableaux de bord → votre tableau de bord → Image de marque → Domaines personnalisés**, qui fonctionnent comme les domaines personnalisés des pages de statut : voir [Partage et tableaux de bord publics](/docs/dashboards/sharing#domaines-personnalisés).
+Le même bouton, avec la même limite de 24 heures, existe sur les domaines personnalisés des tableaux de bord, sous **Tableaux de bord → votre tableau de bord → Lien public → Domaines personnalisés**, qui fonctionnent comme les domaines personnalisés des pages de statut : voir [Partage et tableaux de bord publics](/docs/dashboards/sharing#domaines-personnalisés).
 
 ### Lire la colonne Statut du domaine
 

@@ -90,19 +90,6 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Owners">
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
       {/*
        * How the runbook runs, set up once and revisited rarely: its schedule
        * and webhook (Triggers), the values only its steps use (Variables),
@@ -151,6 +138,20 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        {/*
+         * Who owns the runbook, with the other pages that change it. It was a
+         * section of its own, under a heading of its own name (#9134).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOK_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
         <SideMenuItem
           link={{
             title: "Audit Logs",

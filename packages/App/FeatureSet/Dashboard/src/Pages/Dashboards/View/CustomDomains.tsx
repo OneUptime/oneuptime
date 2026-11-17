@@ -1,14 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
 import { DASHBOARD_CUSTOM_DOMAINS } from "../../../Components/CustomDomain/CustomDomainKinds";
 import CustomDomainsTable from "../../../Components/CustomDomain/CustomDomainsTable";
+import DashboardPublicOnlySettings from "../../../Components/Dashboard/Branding/DashboardPublicOnlySettings";
+import { DashboardPublicOnlyPage } from "../../../Components/Dashboard/Branding/DashboardPublicOnlyCopy";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * Dashboards -> a dashboard -> Branding -> Custom Domains: serve the
- * dashboard on your own domain. The same table as a status page's Custom
- * Domains page (CustomDomainsTable): add the domain on one page, add the
+ * Dashboards -> a dashboard -> Public Link -> Custom Domains: serve the
+ * dashboard's public link on your own domain. The page says first when the
+ * dashboard is not shared publicly (DashboardPublicOnlySettings). The same
+ * table as a status page's Custom Domains page (CustomDomainsTable): add
+ * the domain on one page, add the
  * record from DNS Setup - Check now orders the free certificate the moment
  * the record is found - and there is no "Order Free SSL" button to find.
  */
@@ -18,11 +22,16 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
-    <CustomDomainsTable
-      kind={DASHBOARD_CUSTOM_DOMAINS}
-      parentId={modelId}
-      currentProject={props.currentProject}
-    />
+    <DashboardPublicOnlySettings
+      dashboardId={modelId}
+      page={DashboardPublicOnlyPage.CustomDomains}
+    >
+      <CustomDomainsTable
+        kind={DASHBOARD_CUSTOM_DOMAINS}
+        parentId={modelId}
+        currentProject={props.currentProject}
+      />
+    </DashboardPublicOnlySettings>
   );
 };
 

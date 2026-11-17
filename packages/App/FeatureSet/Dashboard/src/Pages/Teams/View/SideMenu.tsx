@@ -81,6 +81,24 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Lock,
         },
+        /*
+         * Which rules the members must meet, and who does. It was a
+         * section of its own, under a heading of its own name (#9134).
+         */
+        ...(isComplianceEnterpriseEligible
+          ? [
+              {
+                link: {
+                  title: "Compliance",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.TEAM_VIEW_COMPLIANCE] as Route,
+                    { modelId: props.modelId },
+                  ),
+                },
+                icon: IconProp.ShieldCheck,
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -99,24 +117,6 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
-
-  if (isComplianceEnterpriseEligible) {
-    sections.push({
-      title: "Compliance",
-      items: [
-        {
-          link: {
-            title: "Compliance",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAM_VIEW_COMPLIANCE] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.ShieldCheck,
-        },
-      ],
-    });
-  }
 
   sections.push({
     title: "Settings",

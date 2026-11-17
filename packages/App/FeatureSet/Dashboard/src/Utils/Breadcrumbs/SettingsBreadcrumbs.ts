@@ -166,7 +166,7 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
       "Project",
       "Settings",
-      "Danger Zone",
+      "Delete Project",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS, [
       "Project",

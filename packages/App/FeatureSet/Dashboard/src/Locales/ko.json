@@ -9615,7 +9615,7 @@
   "Delete Fleet": "플릿 삭제",
   "Delete Item": "항목 삭제",
   "Delete Notification Rule": "알림 규칙 삭제",
-  "Delete Project": "Delete Project",
+  "Delete Project": "프로젝트 삭제",
   "Delete Queue": "큐 삭제",
   "Delete Rule": "규칙 삭제",
   "Delete SLO": "SLO 삭제",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "어떤 상태 페이지에도 표시되지 않음",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하고 구독자에게 알립니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Show event on these status pages": "이 상태 페이지에 이벤트 표시",
-  "This event will not appear on any status page.": "이 이벤트는 어떤 상태 페이지에도 표시되지 않습니다."
+  "This event will not appear on any status page.": "이 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Change sharing": "공유 설정 변경",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "이 대시보드는 이 프로젝트의 구성원만 볼 수 있으므로, 공개 링크로 공유하기 전까지는 이 설정이 적용되지 않습니다.",
+  "Profile & Calendar": "프로필 및 캘린더",
+  "Public Link": "공개 링크",
+  "Ready for when the dashboard has a public link.": "대시보드에 공개 링크가 생길 때를 위해 준비해 둡니다.",
+  "Set Up Before Sharing Publicly": "공개 공유 전에 설정",
+  "The public link's title, description, logos, theme and favicon.": "공개 링크의 제목, 설명, 로고, 테마, 파비콘.",
+  "Your own domains for the public link.": "공개 링크용 자체 도메인.",
+  "Paging & Calls": "호출 및 수신 통화"
 }

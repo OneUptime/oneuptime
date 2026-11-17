@@ -155,6 +155,12 @@ interface ResourceSettingsCase {
   listPath?: string | undefined;
   getBreadcrumbs: (path: string) => Array<Link> | undefined;
   breadcrumbTitles: Array<string>;
+  /*
+   * The menu section the Settings entry sits in: Advanced, beside Owners
+   * and Audit Logs, where it was the only entry of a Settings section
+   * (#9134); a queue's Settings section holds more than Settings.
+   */
+  menuSection: string;
 }
 
 const RESOURCES: Array<ResourceSettingsCase> = [
@@ -174,6 +180,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
       "View Application",
       "Settings",
     ],
+    menuSection: "Advanced",
   },
   // One CloudResource table, two products: its environments...
   {
@@ -193,6 +200,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
       "View Environment",
       "Settings",
     ],
+    menuSection: "Advanced",
   },
   // ...and the resources in its cloud accounts.
   {
@@ -207,6 +215,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     listPath: "cloud/resources",
     getBreadcrumbs: getCloudBreadcrumbs,
     breadcrumbTitles: ["Project", "Cloud", "View Resource", "Settings"],
+    menuSection: "Advanced",
   },
   {
     name: "Serverless function",
@@ -224,6 +233,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
       "View Function",
       "Settings",
     ],
+    menuSection: "Advanced",
   },
   {
     name: "Database",
@@ -236,6 +246,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     productPath: "databases",
     getBreadcrumbs: getDatabaseBreadcrumbs,
     breadcrumbTitles: ["Project", "Databases", "View Database", "Settings"],
+    menuSection: "Advanced",
   },
   {
     name: "Queue",
@@ -248,6 +259,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     productPath: "queues",
     getBreadcrumbs: getMessageQueueBreadcrumbs,
     breadcrumbTitles: ["Project", "Queues", "View Queue", "Settings"],
+    menuSection: "Settings",
   },
 ];
 
@@ -374,14 +386,16 @@ describe.each(RESOURCES)("$name Settings", (resource: ResourceSettingsCase) => {
     await renderMenu(<resource.SideMenu modelId={MODEL_ID} />);
 
     expect(
-      linksIn("Settings").filter((link: { title: string }): boolean => {
-        return link.title === "Settings";
-      }),
+      linksIn(resource.menuSection).filter(
+        (link: { title: string }): boolean => {
+          return link.title === "Settings";
+        },
+      ),
     ).toEqual([{ title: "Settings", href: settingsPath }]);
     expect(screen.getByRole("link", { name: "Settings" })).toHaveClass(
       "bg-indigo-50",
     );
-    expect(isExpanded("Settings")).toBe(true);
+    expect(isExpanded(resource.menuSection)).toBe(true);
     expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
       "href",
       resourceRoute(resource.overviewKey),
@@ -433,7 +447,11 @@ test("RUM keeps application Settings separate from Session Replay policy", async
 
   await renderMenu(<RumSideMenu modelId={MODEL_ID} />);
 
-  expect(linksIn("Settings")).toEqual([
+  expect(
+    linksIn("Advanced").filter((link: { title: string }): boolean => {
+      return link.title === "Settings";
+    }),
+  ).toEqual([
     {
       title: "Settings",
       href: resourceRoute(PageMap.RUM_APPLICATION_VIEW_SETTINGS),

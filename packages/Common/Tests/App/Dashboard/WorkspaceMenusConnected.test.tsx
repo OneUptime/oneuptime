@@ -538,10 +538,8 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
   const SECTIONS_WITHOUT_WORKSPACE: Array<string> = [
     "Get Started",
     "Alerts & Notifications",
-    "On-Call Logs",
-    "Incoming Call Policy",
-    "Calendar",
-    "Profile",
+    "Paging & Calls",
+    "Profile & Calendar",
   ];
 
   test("nothing connected: no Workspace section", async () => {

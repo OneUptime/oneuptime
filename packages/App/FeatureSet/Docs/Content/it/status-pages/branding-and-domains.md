@@ -286,7 +286,7 @@ La sua finestra di dialogo, **Reissue SSL Certificate for this Status Page**, ch
 
 L'azione non compare su un dominio che usa un certificato caricato da voi: non c'è un certificato Let's Encrypt da riemettere, quindi caricatene uno nuovo modificando il dominio. Non compare nemmeno prima che venga ordinato il primo certificato del dominio, cosa che avviene da sola non appena il suo record CNAME è verificato.
 
-Lo stesso pulsante, con lo stesso limite di 24 ore, si trova sui domini personalizzati delle dashboard, in **Dashboard → la vostra dashboard → Branding → Domini personalizzati**, che funzionano come i domini personalizzati delle pagine di stato: vedete [Condivisione e dashboard pubbliche](/docs/dashboards/sharing#domini-personalizzati).
+Lo stesso pulsante, con lo stesso limite di 24 ore, si trova sui domini personalizzati delle dashboard, in **Dashboard → la vostra dashboard → Link pubblico → Domini personalizzati**, che funzionano come i domini personalizzati delle pagine di stato: vedete [Condivisione e dashboard pubbliche](/docs/dashboards/sharing#domini-personalizzati).
 
 ### Leggere la colonna Stato del dominio
 

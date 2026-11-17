@@ -77,7 +77,7 @@ Les remplacements qui se chevauchaient avant cette règle restent tels quels. Le
 ## Autres façons d'en ajouter un
 
 - Depuis un planning : sur la page **Couches** d'un planning, dépliez une couche et cliquez sur **Passer son tour jusqu'au…** à côté d'une personne. Le même formulaire s'ouvre, avec elle absente et la rotation qui remplace, comme remplacement global. Voir [Quand quelqu'un est absent](/docs/on-call/schedules#quand-quelquun-est-absent).
-- Depuis vos permanences à venir : **Trouver un remplaçant** sur l'une de vos permanences, sous **Paramètres utilisateur → Calendrier → Flux de calendrier**, ouvre le formulaire avec vous absent pour les horaires de cette permanence, si bien qu'il ne reste que **Qui remplace ?**. Voir [Permanences à venir et remplacement](/docs/on-call/calendar-feeds#permanences-à-venir-et-remplacement).
+- Depuis vos permanences à venir : **Trouver un remplaçant** sur l'une de vos permanences, sous **Paramètres utilisateur → Profil et calendrier → Flux de calendrier**, ouvre le formulaire avec vous absent pour les horaires de cette permanence, si bien qu'il ne reste que **Qui remplace ?**. Voir [Permanences à venir et remplacement](/docs/on-call/calendar-feeds#permanences-à-venir-et-remplacement).
 
 Quand quelqu'un quitte le projet, chaque remplacement qui le nomme et qui n'est pas encore terminé est supprimé, d'un côté comme de l'autre.
 

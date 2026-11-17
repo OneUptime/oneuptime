@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Slet flåde",
   "Delete Item": "Slet element",
   "Delete Notification Rule": "Slet notifikationsregel",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Slet projekt",
   "Delete Queue": "Slet kø",
   "Delete Rule": "Slet regel",
   "Delete SLO": "Slet SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Vises ikke på nogen statusside",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider viser denne begivenhed og underretter deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside.",
   "Show event on these status pages": "Vis begivenhed på disse statussider",
-  "This event will not appear on any status page.": "Denne begivenhed vises ikke på nogen statusside."
+  "This event will not appear on any status page.": "Denne begivenhed vises ikke på nogen statusside.",
+  "Change sharing": "Skift deling",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Kun personer i dette projekt kan se dette dashboard, så disse indstillinger gør intet, før du deler det med et offentligt link.",
+  "Profile & Calendar": "Profil og kalender",
+  "Public Link": "Offentligt link",
+  "Ready for when the dashboard has a public link.": "Klar til, når dashboardet får et offentligt link.",
+  "Set Up Before Sharing Publicly": "Opsæt før offentlig deling",
+  "The public link's title, description, logos, theme and favicon.": "Det offentlige links titel, beskrivelse, logoer, tema og favicon.",
+  "Your own domains for the public link.": "Dine egne domæner til det offentlige link.",
+  "Paging & Calls": "Tilkaldelser og opkald"
 }

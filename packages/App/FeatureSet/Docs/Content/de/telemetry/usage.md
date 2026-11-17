@@ -96,7 +96,7 @@ Die Nutzung wird 120 Tage aufbewahrt, sofern Sie das nicht ändern, mit oder ohn
 :::steps
 ### Datenaufbewahrung öffnen
 
-Gehen Sie im Admin Dashboard zu **Einstellungen → Datenaufbewahrung**.
+Gehen Sie im Admin Dashboard zu **Einstellungen → Server → Datenaufbewahrung**.
 
 ### Die Anzahl der Tage festlegen
 

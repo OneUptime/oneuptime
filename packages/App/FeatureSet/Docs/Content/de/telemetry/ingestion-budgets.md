@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Ingestion-Budgets öffnen
 
-Gehen Sie im Admin Dashboard zu **Einstellungen → Telemetrie → Ingestion-Budgets**. **Telemetrie** ist im Seitenmenü anfangs eingeklappt: Klicken Sie darauf, um es zu öffnen.
+Gehen Sie im Admin Dashboard zu **Einstellungen → Server → Ingestion-Budgets**. **Server** ist im Seitenmenü anfangs eingeklappt: Klicken Sie darauf, um es zu öffnen.
 
 ### Die Tagesbudgets festlegen
 

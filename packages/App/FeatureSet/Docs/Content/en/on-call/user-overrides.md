@@ -77,7 +77,7 @@ Overrides that overlapped before this rule are left as they are. Both are marked
 ## Other ways to add one
 
 - From a schedule: on a schedule's **Layers** page, expand a layer and click **Skip until…** beside a person. It opens the same form with them away and the rotation covering, as a global override. See [When someone is away](/docs/on-call/schedules#when-someone-is-away).
-- From your upcoming shifts: **Get cover** on one of your shifts, under **User Settings → Calendar → Calendar Feed**, opens the form with you away for that shift's times, so all that is left is **Who covers?**. See [Upcoming shifts and cover](/docs/on-call/calendar-feeds#upcoming-shifts-and-cover).
+- From your upcoming shifts: **Get cover** on one of your shifts, under **User Settings → Profile & Calendar → Calendar Feed**, opens the form with you away for that shift's times, so all that is left is **Who covers?**. See [Upcoming shifts and cover](/docs/on-call/calendar-feeds#upcoming-shifts-and-cover).
 
 When someone leaves the project, every override that names them and has not ended yet is deleted, on either side.
 

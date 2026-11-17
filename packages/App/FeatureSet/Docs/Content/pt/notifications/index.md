@@ -45,10 +45,8 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 | --- | --- |
 | **Primeiros passos** | **Lista de configuração**: o que falta configurar, na ordem que importa |
 | **Alertas e notificações** | **Métodos de notificação**, **Como me contatar**, **Configurações de notificação** e **Preferências de e-mail**, que define quantos e-mails as suas novidades somam |
-| **Registros de plantão** | **Registros de plantão**: cada vez que você foi acionado neste projeto, e o que foi enviado |
-| **Política de chamadas recebidas** | **Números de telefone recebidos**: o número em que uma política de chamadas recebidas liga para você |
-| **Calendário** | **Feed de calendário**: os seus turnos no seu app de calendário, e lembretes antes de começarem |
-| **Perfil** | **Campos personalizados**: dados que o seu projeto pede aos membros |
+| **Acionamentos e chamadas** | **Registros de plantão**: cada vez que você foi acionado neste projeto, e o que foi enviado; **Números de telefone recebidos**: o número em que uma política de chamadas recebidas liga para você |
+| **Perfil e calendário** | **Feed de calendário**: os seus turnos no seu app de calendário, e lembretes antes de começarem; **Campos personalizados**: dados que o seu projeto pede aos membros |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**: a sua própria conta, em cada espaço de trabalho que o projeto conectou |
 
 **Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost.
@@ -112,7 +110,7 @@ O que muda são as palavras do OneUptime: assuntos, títulos, botões e frases, 
 ## Solução de problemas
 
 :::details Eu estava de plantão, mas nada chegou até mim
-Abra **Configurações do usuário → Registros de plantão**. Nenhuma linha para o incidente significa que a política de plantão dele nunca acionou você: verifique as regras de escalonamento dela e quem estava de plantão. Em uma linha com o status **Erro**, **Ver mensagem de status** diz por quê, por exemplo um canal que o projeto desativou. Depois confira se os seus métodos estão verificados e se **Your setup checklist** não tem nada pendente em **So we can reach you**.
+Abra **Configurações do usuário → Acionamentos e chamadas → Registros de plantão**. Nenhuma linha para o incidente significa que a política de plantão dele nunca acionou você: verifique as regras de escalonamento dela e quem estava de plantão. Em uma linha com o status **Erro**, **Ver mensagem de status** diz por quê, por exemplo um canal que o projeto desativou. Depois confira se os seus métodos estão verificados e se **Your setup checklist** não tem nada pendente em **So we can reach you**.
 :::
 
 :::details Recebo e-mails sobre registros que nunca pedi

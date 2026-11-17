@@ -84,11 +84,8 @@ const NOTIFICATIONS: string = "sideMenu.settingsNotifications";
 
 // The sections below Notifications, which start folded on every page but their own.
 const FOLDED_SECTIONS: ReadonlyArray<string> = [
-  "sideMenu.settingsMonitoring",
-  "sideMenu.settingsRunbooks",
-  "sideMenu.settingsDataRetention",
-  "sideMenu.settingsAi",
-  "sideMenu.settingsApiIntegrations",
+  "sideMenu.settingsSharedWithProjects",
+  "sideMenu.settingsServer",
 ];
 
 function settingsRoute(pageMapKey: string): string {
@@ -296,9 +293,9 @@ describe("a page the plugin adds opens the section its entry is in", () => {
     const links: Array<MenuLink> = linksIn(NOTIFICATIONS);
 
     expect(expandedSections()).toEqual([BASIC, NOTIFICATIONS]);
-    expect(activeLinkTitles()).toEqual(["Push Notifications"]);
+    expect(activeLinkTitles()).toEqual(["sideMenu.settingsPushNotifications"]);
     expect(links[links.length - 2]).toEqual({
-      title: "Push Notifications",
+      title: "sideMenu.settingsPushNotifications",
       href: "/admin/settings/push-notifications",
     });
     expect(links[links.length - 1]).toEqual({

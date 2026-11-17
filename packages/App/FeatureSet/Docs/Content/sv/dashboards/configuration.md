@@ -96,7 +96,7 @@ Arkivering är det omkastbara alternativet till borttagning: ta till det först 
 
 ## Ta bort en instrumentpanel
 
-Öppna instrumentpanelens sida **Ta bort**. Borttagning kan inte ångras: instrumentpanelen, dess widgetar och variabler och alla anpassade domäner som är kopplade till den tas bort. Din telemetri påverkas inte.
+Öppna instrumentpanelens sida **Ta bort instrumentpanel**. Borttagning kan inte ångras: instrumentpanelen, dess widgetar och variabler och alla anpassade domäner som är kopplade till den tas bort. Din telemetri påverkas inte.
 
 Om instrumentpanelen är offentlig på en anpassad domän slutar adressen att svara så snart du tar bort den. För att fortsätta leverera adressen lägger du till domänen på en annan instrumentpanel efter att du har tagit bort den här: en domän tillhör en instrumentpanel åt gången.
 

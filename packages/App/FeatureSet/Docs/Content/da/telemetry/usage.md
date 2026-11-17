@@ -96,7 +96,7 @@ Forbrug opbevares i 120 dage, medmindre du ændrer det, med fakturering slået t
 :::steps
 ### Åbn Dataopbevaring
 
-Gå til **Indstillinger → Dataopbevaring** i Admin Dashboard.
+Gå til **Indstillinger → Server → Dataopbevaring** i Admin Dashboard.
 
 ### Angiv antallet af dage
 

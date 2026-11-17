@@ -347,17 +347,23 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
       ],
     },
+    /*
+     * The page holds one thing, deleting the project, so its entry says so,
+     * as Delete Account does under your profile's Danger Zone. It said
+     * "Danger Zone" under a heading of the same name (#9134); Search still
+     * finds it by that name.
+     */
     {
       title: "Danger Zone",
       items: [
         {
           link: {
-            title: "Danger Zone",
+            title: "Delete Project",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
             ),
           },
-          icon: IconProp.Error,
+          icon: IconProp.Trash,
           className: "danger-on-hover",
         },
       ],

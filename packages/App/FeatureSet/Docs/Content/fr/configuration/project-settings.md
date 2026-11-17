@@ -40,7 +40,7 @@ flowchart LR
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
 | **Journaux d'audit** | **Journaux d'audit**, **Paramètres**, **Export** | [Journaux d'audit](/docs/configuration/audit-logs), [Export du journal d'audit](/docs/configuration/audit-log-export) |
-| **Zone de danger** | **Zone de danger** | [Supprimer le projet](#supprimer-le-projet) |
+| **Zone de danger** | **Supprimer le projet** | [Supprimer le projet](#supprimer-le-projet) |
 
 **Facturation et factures** et **Crédits IA** n'existent que sur OneUptime Cloud : une installation auto-hébergée n'a pas de facturation.
 
@@ -113,7 +113,7 @@ Supprimer un projet supprime tout ce qu'il contient, pour chaque membre : ses mo
 :::steps
 ### Ouvrir la zone de danger
 
-Allez dans **Paramètres du projet → Zone de danger**.
+Allez dans **Paramètres du projet → Zone de danger → Supprimer le projet**.
 
 ### Cliquer sur Supprimer le projet
 

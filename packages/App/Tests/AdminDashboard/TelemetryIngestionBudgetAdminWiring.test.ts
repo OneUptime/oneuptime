@@ -116,7 +116,7 @@ const LANGUAGES: ReadonlyArray<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 const NESTED_KEYS: ReadonlyArray<string> = [
   "breadcrumbs.ingestionBudgets",
   "sideMenu.ingestionBudgets",
-  "sideMenu.settingsTelemetry",
+  "sideMenu.settingsServer",
   "sideMenu.settingsIngestionBudgets",
   "pages.settings.ingestionBudgets.dailyCardTitle",
   "pages.settings.ingestionBudgets.dailyCardDescription",
@@ -205,21 +205,27 @@ describe("the Admin Dashboard's ingestion budget pages", () => {
     );
   });
 
-  test("Settings has a Telemetry section, folded like its neighbours, with Ingestion Budgets in it", () => {
+  /*
+   * A Telemetry section held Ingestion Budgets alone until #9134; it is in
+   * Server now, with the server's other limits.
+   */
+  test("Settings has a Server section, folded like its neighbours, with Ingestion Budgets in it", () => {
     const menu: string = compact(read("Pages", "Settings", "SideMenu.tsx"));
-    const section: string = menu.slice(
-      menu.indexOf(compact('title={t("sideMenu.settingsTelemetry")}')),
+    const fromSection: string = menu.slice(
+      menu.indexOf(compact('title={t("sideMenu.settingsServer")}')),
+    );
+    const section: string = fromSection.slice(
+      0,
+      fromSection.indexOf("</SideMenuSection>"),
     );
 
     // The section's own attributes: its title, said translated (#8225), and its fold.
     expect(section.slice(0, 120)).toContain("isTitleTranslated={true}");
     expect(section.slice(0, 120)).toContain("defaultCollapsed={true}");
-    expect(section.slice(0, 400)).toContain(
+    expect(section).toContain(
       compact('title: t("sideMenu.settingsIngestionBudgets")'),
     );
-    expect(section.slice(0, 400)).toContain(
-      "RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]",
-    );
+    expect(section).toContain("RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS]");
   });
 
   test("a project's Ingestion Budgets is in its side menu's Basic section, after Telemetry Usage", () => {

@@ -172,12 +172,8 @@ describe("Admin Settings: only Basic starts open", () => {
     expect(sectionStates()).toEqual([
       { title: "Basic", expanded: true },
       { title: "Notifications", expanded: false },
-      { title: "Monitoring", expanded: false },
-      { title: "Runbooks", expanded: false },
-      { title: "Data Retention", expanded: false },
-      { title: "Telemetry", expanded: false },
-      { title: "AI", expanded: false },
-      { title: "API and Integrations", expanded: false },
+      { title: "Shared with All Projects", expanded: false },
+      { title: "Server", expanded: false },
     ]);
     expect(sectionBody("Notifications")).toHaveClass(
       "max-h-0",
@@ -194,12 +190,8 @@ describe("Admin Settings: only Basic starts open", () => {
     expect(sectionStates()).toEqual([
       { title: "«Basic»", expanded: true },
       { title: "«Notifications»", expanded: false },
-      { title: "«Monitoring»", expanded: false },
-      { title: "«Runbooks»", expanded: false },
-      { title: "«Data Retention»", expanded: false },
-      { title: "«Telemetry»", expanded: false },
-      { title: "«AI»", expanded: false },
-      { title: "«API and Integrations»", expanded: false },
+      { title: "«Shared with All Projects»", expanded: false },
+      { title: "«Server»", expanded: false },
     ]);
   });
 
@@ -210,15 +202,25 @@ describe("Admin Settings: only Basic starts open", () => {
       "Notifications",
       "Push Notifications",
     ],
-    [PageMap.SETTINGS_LLM_PROVIDERS, "AI", "Global LLM Providers"],
-    [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
+    [
+      PageMap.SETTINGS_LLM_PROVIDERS,
+      "Shared with All Projects",
+      "Global LLM Providers",
+    ],
+    [
+      PageMap.SETTINGS_GLOBAL_RUNNERS,
+      "Shared with All Projects",
+      "Global Runners",
+    ],
+    [PageMap.SETTINGS_PROBES, "Shared with All Projects", "Global Probes"],
+    [PageMap.SETTINGS_DATA_RETENTION, "Server", "Data Retention"],
     // Single sign-on, under Basic: no folded "Authentication" section of its own.
     [PageMap.SETTINGS_SSO, "Basic", "Single Sign-On"],
     // The products every project on the server offers (#6815), under Basic.
     [PageMap.SETTINGS_PRODUCTS, "Basic", "Products"],
-    [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
+    [PageMap.SETTINGS_API_KEY, "Server", "API Key"],
     // Every project's default telemetry ingestion budgets (#5917).
-    [PageMap.SETTINGS_INGESTION_BUDGETS, "Telemetry", "Ingestion Budgets"],
+    [PageMap.SETTINGS_INGESTION_BUDGETS, "Server", "Ingestion Budgets"],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {

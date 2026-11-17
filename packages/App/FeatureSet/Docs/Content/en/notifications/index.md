@@ -45,10 +45,8 @@ Open **User Settings**, on the right of the bar under the top bar. Its side menu
 | --- | --- |
 | **Get Started** | **Setup Checklist**: what is left to set up, in the order it matters |
 | **Alerts & Notifications** | **Notification Methods**, **How to Reach Me**, **Notification Settings** and **Email Preferences**, which sets how many emails your updates add up to |
-| **On-Call Logs** | **On-Call Logs**: every time you were paged in this project, and what was sent |
-| **Incoming Call Policy** | **Incoming Phone Numbers**: the number an incoming call policy rings you on |
-| **Calendar** | **Calendar Feed**: your shifts in your calendar app, and reminders before they start |
-| **Profile** | **Custom Fields**: details your project asks its members for |
+| **Paging & Calls** | **On-Call Logs**: every time you were paged in this project, and what was sent; **Incoming Phone Numbers**: the number an incoming call policy rings you on |
+| **Profile & Calendar** | **Calendar Feed**: your shifts in your calendar app, and reminders before they start; **Custom Fields**: details your project asks its members for |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: your own account, in each workspace the project has connected |
 
 **Get Started** and **Alerts & Notifications** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** shows only when the project has connected Slack, Microsoft Teams or Mattermost.
@@ -112,7 +110,7 @@ OneUptime's own words change: subjects, headings, buttons and sentences, and the
 ## Troubleshooting
 
 :::details I was on call, but nothing reached me
-Open **User Settings → On-Call Logs**. No row for the incident means its on-call policy never paged you: check its escalation rules and who was on call. For a row whose status is **Error**, **View Status Message** says why, such as a channel the project turned off. Then check that your methods are verified, and that **Your setup checklist** has nothing left under **So we can reach you**.
+Open **User Settings → Paging & Calls → On-Call Logs**. No row for the incident means its on-call policy never paged you: check its escalation rules and who was on call. For a row whose status is **Error**, **View Status Message** says why, such as a channel the project turned off. Then check that your methods are verified, and that **Your setup checklist** has nothing left under **So we can reach you**.
 :::
 
 :::details I get emails about records I never asked about

@@ -211,7 +211,7 @@ describe("project Settings: only Basic starts open", () => {
     [PageMap.SETTINGS_IMPORT_FROM_TOOL, "Advanced", "Import from another tool"],
     [PageMap.SETTINGS_SSO, "Security", "SSO"],
     [PageMap.SETTINGS_AUDIT_LOGS, "Audit Logs", "Audit Logs"],
-    [PageMap.SETTINGS_DANGERZONE, "Danger Zone", "Danger Zone"],
+    [PageMap.SETTINGS_DANGERZONE, "Danger Zone", "Delete Project"],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {
@@ -397,10 +397,8 @@ describe("User Settings: the checklist and how you are reached start open", () =
     expect(sectionStates()).toEqual([
       { title: "Get Started", expanded: true },
       { title: "Alerts & Notifications", expanded: true },
-      { title: "On-Call Logs", expanded: false },
-      { title: "Incoming Call Policy", expanded: false },
-      { title: "Calendar", expanded: false },
-      { title: "Profile", expanded: false },
+      { title: "Paging & Calls", expanded: false },
+      { title: "Profile & Calendar", expanded: false },
       { title: "Workspace", expanded: false },
     ]);
   });
@@ -411,7 +409,7 @@ describe("User Settings: the checklist and how you are reached start open", () =
 
     expect(sectionTitlesInOrder()).not.toContain("Workspace");
     expect(sectionTitlesInOrder()[sectionTitlesInOrder().length - 1]).toBe(
-      "Profile",
+      "Profile & Calendar",
     );
   });
 
@@ -450,19 +448,27 @@ describe("User Settings: the checklist and how you are reached start open", () =
 
     expect(activeLinkTitles()).toEqual(["How to Reach Me"]);
     expect(isExpanded("Alerts & Notifications")).toBe(true);
-    expect(isExpanded("On-Call Logs")).toBe(false);
+    expect(isExpanded("Paging & Calls")).toBe(false);
   });
 
   test.each([
-    [PageMap.USER_SETTINGS_ON_CALL_LOGS, "On-Call Logs", "On-Call Logs"],
+    [PageMap.USER_SETTINGS_ON_CALL_LOGS, "Paging & Calls", "On-Call Logs"],
     [
       PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,
-      "Incoming Call Policy",
+      "Paging & Calls",
       "Incoming Phone Numbers",
     ],
-    [PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED, "Calendar", "Calendar Feed"],
+    [
+      PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED,
+      "Profile & Calendar",
+      "Calendar Feed",
+    ],
     [PageMap.USER_SETTINGS_SLACK_INTEGRATION, "Workspace", "Slack"],
-    [PageMap.USER_SETTINGS_CUSTOM_FIELDS, "Profile", "Custom Fields"],
+    [
+      PageMap.USER_SETTINGS_CUSTOM_FIELDS,
+      "Profile & Calendar",
+      "Custom Fields",
+    ],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {
@@ -475,12 +481,50 @@ describe("User Settings: the checklist and how you are reached start open", () =
   );
 
   // A single on-call log's timeline is not in the menu; its log list is.
-  test("a timeline under On-Call Logs opens On-Call Logs", async () => {
+  test("a timeline under On-Call Logs opens Paging & Calls", async () => {
     goTo(viewRoute(PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE));
     await renderMenu(<UserSettingsSideMenu />);
 
-    expect(isExpanded("On-Call Logs")).toBe(true);
-    expect(isExpanded("Calendar")).toBe(false);
+    expect(isExpanded("Paging & Calls")).toBe(true);
+    expect(isExpanded("Profile & Calendar")).toBe(false);
+  });
+
+  /*
+   * Four of its sections held one page each, and "On-Call Logs" sat under a
+   * heading of its own name (#9134). They are two sections of related pages.
+   */
+  test("Paging & Calls and Profile & Calendar each hold their pages", async () => {
+    await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_SETUP);
+
+    expect(linksIn("Paging & Calls")).toEqual([
+      {
+        title: "On-Call Logs",
+        href: routeFor(PageMap.USER_SETTINGS_ON_CALL_LOGS),
+      },
+      {
+        title: "Incoming Phone Numbers",
+        href: routeFor(PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS),
+      },
+    ]);
+    expect(linksIn("Profile & Calendar")).toEqual([
+      {
+        title: "Calendar Feed",
+        href: routeFor(PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED),
+      },
+      {
+        title: "Custom Fields",
+        href: routeFor(PageMap.USER_SETTINGS_CUSTOM_FIELDS),
+      },
+    ]);
+
+    for (const gone of [
+      "On-Call Logs",
+      "Incoming Call Policy",
+      "Calendar",
+      "Profile",
+    ]) {
+      expect(sectionTitlesInOrder()).not.toContain(gone);
+    }
   });
 });
 

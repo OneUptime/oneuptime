@@ -286,7 +286,7 @@ Ihr Dialog, **SSL-Zertifikat für diese Statusseite neu ausstellen**, bittet Let
 
 Die Aktion erscheint nicht bei einer Domain mit einem hochgeladenen Zertifikat: Es gibt kein Let's-Encrypt-Zertifikat neu auszustellen; laden Sie stattdessen ein neues hoch, indem Sie die Domain bearbeiten. Sie erscheint auch nicht, bevor das erste Zertifikat der Domain bestellt ist, was von selbst geschieht, sobald ihr CNAME-Eintrag verifiziert ist.
 
-Dieselbe Schaltfläche, mit derselben 24-Stunden-Grenze, gibt es bei den eigenen Domains von Dashboards unter **Dashboards → Ihr Dashboard → Branding → Benutzerdefinierte Domains**, die genauso funktionieren wie die eigenen Domains von Statusseiten: siehe [Teilen & öffentliche Dashboards](/docs/dashboards/sharing#eigene-domains).
+Dieselbe Schaltfläche, mit derselben 24-Stunden-Grenze, gibt es bei den eigenen Domains von Dashboards unter **Dashboards → Ihr Dashboard → Öffentlicher Link → Benutzerdefinierte Domains**, die genauso funktionieren wie die eigenen Domains von Statusseiten: siehe [Teilen & öffentliche Dashboards](/docs/dashboards/sharing#eigene-domains).
 
 ### Die Spalte Status der Domain lesen
 

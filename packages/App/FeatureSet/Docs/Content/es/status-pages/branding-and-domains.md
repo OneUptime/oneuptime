@@ -286,7 +286,7 @@ Su cuadro de diálogo, **Volver a emitir el certificado SSL de esta página de e
 
 La acción no aparece en un dominio que usa un certificado que subiste tú: no hay certificado de Let's Encrypt que volver a emitir, así que sube uno nuevo editando el dominio. Tampoco aparece antes de que se pida el primer certificado del dominio, cosa que ocurre sola en cuanto se verifica su registro CNAME.
 
-El mismo botón, con el mismo límite de 24 horas, está en los dominios personalizados de los paneles, en **Paneles → tu panel → Marca → Dominios personalizados**, que funcionan igual que los dominios personalizados de las páginas de estado: consulta [Compartir y paneles públicos](/docs/dashboards/sharing#dominios-personalizados).
+El mismo botón, con el mismo límite de 24 horas, está en los dominios personalizados de los paneles, en **Paneles → tu panel → Enlace público → Dominios personalizados**, que funcionan igual que los dominios personalizados de las páginas de estado: consulta [Compartir y paneles públicos](/docs/dashboards/sharing#dominios-personalizados).
 
 ### Leer la columna Estado del dominio
 

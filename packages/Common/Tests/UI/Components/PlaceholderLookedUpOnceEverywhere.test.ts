@@ -1420,17 +1420,18 @@ describe("every page heading, side menu title, tooltip and metric card title wri
     ).toBeGreaterThanOrEqual(27);
     expect(
       handedIn(ADMIN, ["<SideMenuSection title>"]).length,
-    ).toBeGreaterThanOrEqual(16);
+      // Settings' six one-page sections are two since #9134.
+    ).toBeGreaterThanOrEqual(12);
     expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
 
-    // Settings' menu: its 13 entries. The Subscribe menu: its five.
+    // Settings' menu: its 14 entries (Push Notifications too, #9134). The Subscribe menu: its five.
     expect(
       sitesIn(
         "App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu.tsx",
       ).filter((site: PlaceholderSite): boolean => {
         return site.handedTo === MENU_LINK_TITLE && site.isSaidTranslated;
       }).length,
-    ).toBe(13);
+    ).toBe(14);
     expect(
       sitesIn("App/FeatureSet/StatusPage/src/Pages/Subscribe/SideMenu.tsx").map(
         (site: PlaceholderSite) => {

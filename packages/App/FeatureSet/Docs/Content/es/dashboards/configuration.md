@@ -96,7 +96,7 @@ Archivar es la alternativa reversible a eliminar: recurre primero a ella cuando 
 
 ## Eliminar un panel
 
-Abre la página **Eliminar** del panel. Eliminar no se puede deshacer: se quitan el panel, sus widgets y variables, y todos los dominios personalizados asociados a él. Tu telemetría no se toca.
+Abre la página **Eliminar panel** del panel. Eliminar no se puede deshacer: se quitan el panel, sus widgets y variables, y todos los dominios personalizados asociados a él. Tu telemetría no se toca.
 
 Si el panel es público en un dominio personalizado, la dirección deja de responder en cuanto lo eliminas. Para seguir sirviendo la dirección, añade el dominio a otro panel después de eliminar este: un dominio pertenece a un solo panel a la vez.
 

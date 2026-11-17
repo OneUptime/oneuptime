@@ -82,7 +82,7 @@ El almacenamiento crece **de forma lineal con la retención**: una ventana de 90
 
 PostgreSQL guarda tu configuración y tu estado operativo, no la telemetría, así que crece despacio y se mantiene pequeño junto a ClickHouse. Incluso las instalaciones grandes suelen quedarse en decenas de GB. El volumen predeterminado de **25 Gi** basta para instalaciones pequeñas; prevé 50–100 GB para las más grandes, con margen para el historial de incidentes y alertas.
 
-Los incidentes y las alertas resueltos se quedan hasta que cada proyecto elige cuánto tiempo conservarlos. Para someter todos los proyectos a un límite, fija **Conservar como máximo** en **Admin Dashboard → Ajustes → Retención de datos**: consulta [Un límite para todo el servidor](/docs/incidents/settings#un-límite-para-todo-el-servidor).
+Los incidentes y las alertas resueltos se quedan hasta que cada proyecto elige cuánto tiempo conservarlos. Para someter todos los proyectos a un límite, fija **Conservar como máximo** en **Admin Dashboard → Ajustes → Servidor → Retención de datos**: consulta [Un límite para todo el servidor](/docs/incidents/settings#un-límite-para-todo-el-servidor).
 
 Con muchas réplicas de app, workers y sondas, las conexiones a la base de datos pueden agotarse antes que el almacenamiento. Cada pod abre hasta 50 conexiones de forma predeterminada, y el PostgreSQL incluido admite 500. Justo para esto, el chart incluye un pooler de conexiones **PgBouncer** opcional (`pgbouncer.enabled`): actívalo en instalaciones con muchas réplicas.
 

@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت این رویداد را نمایش می‌دهند و به مشترکان خود اطلاع می‌دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
   "Show event on these status pages": "نمایش رویداد در این صفحات وضعیت",
-  "This event will not appear on any status page.": "این رویداد در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود."
+  "This event will not appear on any status page.": "این رویداد در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
+  "Change sharing": "تغییر اشتراک‌گذاری",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "فقط افراد این پروژه می‌توانند این داشبورد را ببینند، پس تا وقتی آن را با یک پیوند عمومی به اشتراک نگذارید، این تنظیمات کاری نمی‌کنند.",
+  "Profile & Calendar": "پروفایل و تقویم",
+  "Public Link": "پیوند عمومی",
+  "Ready for when the dashboard has a public link.": "آماده برای وقتی که داشبورد پیوند عمومی داشته باشد.",
+  "Set Up Before Sharing Publicly": "پیش از اشتراک‌گذاری عمومی راه‌اندازی کنید",
+  "The public link's title, description, logos, theme and favicon.": "عنوان، توضیح، لوگوها، پوسته و فاوآیکن پیوند عمومی.",
+  "Your own domains for the public link.": "دامنه‌های خودتان برای پیوند عمومی.",
+  "Paging & Calls": "فراخوانی و تماس‌ها"
 }

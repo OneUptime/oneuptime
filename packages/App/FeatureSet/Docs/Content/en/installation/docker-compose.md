@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details The bundled probe shows Disconnected after you moved the ingress port
-The Admin Dashboard lists the probe under **Settings > Monitoring > Global Probes**. It reaches OneUptime at `GLOBAL_PROBE_1_ONEUPTIME_URL`, which is `http://localhost` (port 80) by default. `npm start` moves it to the ingress's port while it points at `localhost`. If you set it to another address, or started OneUptime with the Docker CLI, set it to the ingress's new port, for example `http://localhost:8080`, and restart OneUptime.
+The Admin Dashboard lists the probe under **Settings > Shared with All Projects > Global Probes**. It reaches OneUptime at `GLOBAL_PROBE_1_ONEUPTIME_URL`, which is `http://localhost` (port 80) by default. `npm start` moves it to the ingress's port while it points at `localhost`. If you set it to another address, or started OneUptime with the Docker CLI, set it to the ingress's new port, for example `http://localhost:8080`, and restart OneUptime.
 :::
 
 ## Next steps

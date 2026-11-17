@@ -40,7 +40,7 @@ flowchart LR
 | **Security** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Billing and Invoices** | **Billing**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
 | **Audit Logs** | **Audit Logs**, **Settings**, **Export** | [Audit Logs](/docs/configuration/audit-logs), [Audit Log Export](/docs/configuration/audit-log-export) |
-| **Danger Zone** | **Danger Zone** | [Delete the project](#delete-the-project) |
+| **Danger Zone** | **Delete Project** | [Delete the project](#delete-the-project) |
 
 **Billing and Invoices** and **AI Credits** are on OneUptime Cloud only: a self-hosted installation has no billing.
 
@@ -113,7 +113,7 @@ Deleting a project deletes everything in it, for every member: its monitors, inc
 :::steps
 ### Open the Danger Zone
 
-Go to **Project Settings → Danger Zone**.
+Go to **Project Settings → Danger Zone → Delete Project**.
 
 ### Click Delete Project
 
