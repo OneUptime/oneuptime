@@ -7736,10 +7736,17 @@ test.describe("detection rules and threat intel", () => {
     await expect(page.getByTestId("detection-rule-type")).toHaveCount(
       await page.locator("table tbody tr").count(),
     );
-    // Hovering a kind says what it means.
-    await expect(
-      rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
-    ).toHaveAttribute("title", /match in order/);
+    /*
+     * Hovering a kind says what it means: the kind is the shared Pill
+     * (88536f777a1), whose hover tip is a tooltip, not a title.
+     */
+    await rowNamed(page, SEQUENCE_RULE)
+      .getByTestId("detection-rule-type")
+      .hover();
+    await expect(page.getByRole("tooltip")).toContainText(/match in order/);
+    // It goes with the pointer, and covers nothing after.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
 
     // A project with rules opens on them: the how-it-works card is its title row.
     await expect(page.getByTestId("how-it-works-toggle")).toHaveAttribute(
