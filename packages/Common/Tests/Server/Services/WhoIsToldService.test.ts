@@ -145,6 +145,7 @@ import {
   WhoIsToldPolicy,
   WhoIsToldResult,
   WhoIsToldServerChannel,
+  getWhoIsToldBreaksForReader,
 } from "../../../Types/Monitor/WhoIsTold";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -3221,6 +3222,184 @@ describe("WhoIsToldService", () => {
       ).toEqual([]);
       expect(ruleReads.incident).not.toHaveBeenCalled();
       expect(ProjectService.findOneById).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A PRIVATE RECORD, FOR THE WHOLE PROJECT AT ONCE (#9370): what makes it
+     * private is read once, and its owners - who may read it - are worked
+     * out as the card works them out, no other record's. So Setup health
+     * tells each reader the breaks their own card tells them: none of a
+     * private record that is not theirs to see. Primary has no escalation
+     * rules here: a break of whatever pages it.
+     */
+    describe("a private record (#9370)", () => {
+      const ME: string = CALLER.userId!.toString();
+
+      function asAdmin(): DatabaseCommonInteractionProps {
+        return {
+          ...CALLER,
+          userType: UserType.User,
+          userTenantAccessPermission: {
+            [PROJECT_ID.toString()]: {
+              _type: "UserTenantAccessPermission",
+              projectId: PROJECT_ID,
+              permissions: [
+                {
+                  _type: "UserPermission",
+                  permission: Permission.ProjectAdmin,
+                  labelIds: [],
+                  isBlockPermission: false,
+                } as UserPermission,
+              ],
+            },
+          } as never,
+        };
+      }
+
+      async function projectChain(): Promise<WhoIsToldResult> {
+        const [result]: Array<WhoIsToldResult> =
+          await WhoIsToldService.resolveProject({
+            projectId: PROJECT_ID,
+            monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+          });
+
+        return result!;
+      }
+
+      // The breaks Setup health lists for this reader, from the project's chain.
+      async function listedFor(
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Array<WhoIsToldBreakKind>> {
+        const chain: WhoIsToldResult = await projectChain();
+
+        return getWhoIsToldBreaksForReader({
+          result: chain,
+          isHidden: await WhoIsToldService.readHiddenFromCaller({
+            props: props,
+            results: [chain],
+          }),
+        }).map((brk: WhoIsToldBreak): WhoIsToldBreakKind => {
+          return brk.kind;
+        });
+      }
+
+      // The breaks this reader's card says.
+      async function onTheCardOf(
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Array<WhoIsToldBreakKind>> {
+        WhoIsToldService.clearCache();
+
+        return kinds(
+          await WhoIsToldService.getForMonitor({
+            projectId: PROJECT_ID,
+            monitorId: MONITOR_ID,
+            props: props,
+          }),
+        );
+      }
+
+      beforeEach(() => {
+        stubRuleReads();
+        world.levels[PRIMARY] = { targets: [], notPaged: [], levelCount: 0 };
+      });
+
+      test("its owners are worked out, as the card works them out; a public record's are not", async () => {
+        world.projectMemberIds = [...world.projectMemberIds, ME];
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true, ownerUserIds: ids([ME]) }),
+        );
+
+        const event: WhoIsToldEvent = firstEvent(await projectChain());
+
+        expect(event.isPrivate).toBe(true);
+        expect(event.ownerIds).toEqual({ userIds: [ME], teamIds: [] });
+
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ ownerUserIds: ids([ME]) }),
+        );
+
+        expect(firstEvent(await projectChain()).ownerIds).toEqual({
+          userIds: [],
+          teamIds: [],
+        });
+      });
+
+      test("a privacy rule makes it private for the whole project too: the rules are read once", async () => {
+        const rule: IncidentPrivacyRule = withId(
+          new IncidentPrivacyRule(),
+          "68101111-0000-4000-8000-0000000000f7",
+        );
+        rule.name = "Checkout is private";
+        rule.projectId = PROJECT_ID;
+        rule.incidentTitlePattern = "Checkout";
+        world.incidentPrivacyRules = [rule];
+
+        const read: SpyInstance<typeof IncidentPrivacyRuleService.findBy> =
+          jest.spyOn(IncidentPrivacyRuleService, "findBy");
+        read.mockClear();
+
+        const event: WhoIsToldEvent = firstEvent(await projectChain());
+
+        expect(event.isPrivate).toBe(true);
+        expect(event.privacyRules).toEqual([
+          {
+            id: "68101111-0000-4000-8000-0000000000f7",
+            name: "Checkout is private",
+          },
+        ]);
+        expect(read).toHaveBeenCalledTimes(1);
+      });
+
+      test("each reader's list says what their card says: nothing of a private record not theirs", async () => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true }),
+        );
+
+        expect(await onTheCardOf(CALLER)).not.toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+        expect(await listedFor(CALLER)).toEqual(await onTheCardOf(CALLER));
+
+        expect(await onTheCardOf(asAdmin())).toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+        expect(await listedFor(asAdmin())).toEqual(
+          await onTheCardOf(asAdmin()),
+        );
+      });
+
+      test("an owner an owner rule adds reads it, on the card and in the list: the owner rules are read for it", async () => {
+        world.projectMemberIds = [...world.projectMemberIds, ME];
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true }),
+        );
+        world.incidentOwnerRules = [
+          incidentOwnerRule({
+            id: OWNER_RULE,
+            name: "Checkout monitors",
+            userIds: [ME],
+          }),
+        ];
+
+        expect(await onTheCardOf(CALLER)).toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+        expect(await listedFor(CALLER)).toEqual(await onTheCardOf(CALLER));
+        expect(firstEvent(await projectChain()).ownerIds?.userIds).toContain(
+          ME,
+        );
+      });
+
+      test("a public record's breaks are every reader's, as on the card", async () => {
+        expect(await listedFor(CALLER)).toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+        expect(await listedFor(CALLER)).toEqual(await onTheCardOf(CALLER));
+        // With nothing private, no owner rule is read for the project.
+        (IncidentOwnerRuleService.findBy as unknown as jest.Mock).mockClear();
+        await projectChain();
+        expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
+      });
     });
   });
 

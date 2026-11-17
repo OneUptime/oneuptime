@@ -145,6 +145,7 @@ import {
   getChannelsSwitchedOff,
   getWhoIsToldBreaks,
   getWhoIsToldPersonReach,
+  isWhoIsToldEventHidden,
   redactWhoIsTold,
 } from "../../Types/Monitor/WhoIsTold";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
@@ -223,15 +224,29 @@ interface ProjectContext {
    * a monitor that pages nobody is sent to the on-call guided setup (#7369).
    */
   projectHasOnCallPolicies: boolean;
-  // The project's enabled owner rules, as the engines read them.
+  /*
+   * The project's enabled owner rules, as the engines read them. Empty for
+   * breaks only, which works out no record's owners but a private one's
+   * (ownerRulesForPrivateRecords).
+   */
   incidentOwnerRules: Array<IncidentOwnerRule>;
   alertOwnerRules: Array<AlertOwnerRule>;
+  /*
+   * For breaks only: the owner rules, read the first time a private
+   * record's owners are worked out, once a project (getOwnerRulesOf). Who
+   * may read a private record decides whose breaks it raises (#9370), and
+   * its owners are who may.
+   */
+  ownerRulesForPrivateRecords: {
+    incident: Promise<Array<IncidentOwnerRule>> | null;
+    alert: Promise<Array<AlertOwnerRule>> | null;
+  };
   /*
    * Its enabled privacy, label and alert incident rules, as the engines
    * read them (#7212, #7213, #7216): what a new incident or alert is made
    * private by, labelled with before its on-call rules match, and declared
-   * an incident from. No privacy rule is read for breaks only: privacy
-   * changes nobody who is paged.
+   * an incident from. Privacy is read for breaks only too: a private record
+   * that is not a reader's to see raises no break of theirs (#9370).
    */
   incidentPrivacyRules: Array<IncidentPrivacyRule>;
   alertPrivacyRules: Array<AlertPrivacyRule>;
@@ -286,7 +301,8 @@ interface ProjectContext {
   /*
    * Only the breaks are wanted (resolveProject): who is emailed as owners
    * and the status pages an incident shows on are not read, as no break
-   * depends on them.
+   * depends on them - but for a private record, whose owners decide who
+   * may read it, and so whose breaks it raises (#9370).
    */
   isForBreaksOnly: boolean;
 }
@@ -969,7 +985,6 @@ export class WhoIsToldService {
     const alertIncidentRuleIds: Set<string> = new Set<string>();
     const statusPageIds: Set<string> = new Set<string>();
     const monitorGroupIds: Set<string> = new Set<string>();
-    const privateOwnerTeamIds: Set<string> = new Set<string>();
 
     for (const event of getAllEvents(result)) {
       const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
@@ -1012,12 +1027,6 @@ export class WhoIsToldService {
 
         for (const group of page.groups || []) {
           monitorGroupIds.add(group.id);
-        }
-      }
-
-      if (event.isPrivate) {
-        for (const teamId of event.ownerIds?.teamIds || []) {
-          privateOwnerTeamIds.add(teamId);
         }
       }
     }
@@ -1204,10 +1213,11 @@ export class WhoIsToldService {
       },
     });
 
-    const memberOfTeamIds: Set<string> = await this.readCallerAcceptedTeamIds({
-      props: props,
-      teamIds: privateOwnerTeamIds,
-    });
+    const canReadPrivateEvent: (event: WhoIsToldEvent) => boolean =
+      await this.readPrivateEventReader({
+        props: props,
+        results: [result],
+      });
 
     return redactWhoIsTold({
       result: result,
@@ -1231,14 +1241,66 @@ export class WhoIsToldService {
         ...readableAlertLabelRules,
       ]),
       readableAlertIncidentRuleIds: readableAlertIncidentRules,
-      canReadPrivateEvent: (event: WhoIsToldEvent): boolean => {
-        return canReadPrivateRecord({
-          props: props,
-          ownerIds: event.ownerIds,
-          memberOfTeamIds: memberOfTeamIds,
-        });
-      },
+      canReadPrivateEvent: canReadPrivateEvent,
     });
+  }
+
+  /*
+   * WHICH PRIVATE RECORDS OF THESE ANSWERS THE CALLER COULD READ once they
+   * exist (#7213), by the private-record rule (canReadPrivateRecord) on the
+   * owners the resolver worked out: the owner teams whose invitation they
+   * have accepted are read once for all of them, and not at all when there
+   * is no private record, or they see every one. A monitor's card
+   * (getForCaller) and Setup health (readHiddenFromCaller, #9370) ask it the
+   * same way.
+   */
+  private static async readPrivateEventReader(data: {
+    props: DatabaseCommonInteractionProps;
+    results: ReadonlyArray<WhoIsToldResult>;
+  }): Promise<(event: WhoIsToldEvent) => boolean> {
+    const privateOwnerTeamIds: Set<string> = new Set<string>();
+
+    for (const result of data.results) {
+      for (const event of getAllEvents(result)) {
+        if (event.isPrivate) {
+          for (const teamId of event.ownerIds?.teamIds || []) {
+            privateOwnerTeamIds.add(teamId);
+          }
+        }
+      }
+    }
+
+    const memberOfTeamIds: Set<string> = await this.readCallerAcceptedTeamIds({
+      props: data.props,
+      teamIds: privateOwnerTeamIds,
+    });
+
+    return (event: WhoIsToldEvent): boolean => {
+      return canReadPrivateRecord({
+        props: data.props,
+        ownerIds: event.ownerIds,
+        memberOfTeamIds: memberOfTeamIds,
+      });
+    };
+  }
+
+  /*
+   * THE RECORDS THESE CHAINS WOULD OPEN THAT ARE HIDDEN FROM THE CALLER
+   * (#7213): private, and not theirs to see once they exist - as each
+   * monitor's card hides them from the same caller. Setup health lists no
+   * finding such a record alone raises (#9370): the chains come from
+   * resolveProject, which works out every private record's owners.
+   */
+  public static async readHiddenFromCaller(data: {
+    props: DatabaseCommonInteractionProps;
+    results: ReadonlyArray<WhoIsToldResult>;
+  }): Promise<(event: WhoIsToldEvent) => boolean> {
+    const canReadPrivateEvent: (event: WhoIsToldEvent) => boolean =
+      await this.readPrivateEventReader(data);
+
+    return (event: WhoIsToldEvent): boolean => {
+      return isWhoIsToldEventHidden(event, canReadPrivateEvent);
+    };
   }
 
   /*
@@ -1389,6 +1451,14 @@ export class WhoIsToldService {
    * (names, a network device's owners, owner rules) and the status pages
    * are not read: no break depends on them.
    *
+   * A PRIVATE RECORD (#9370): the privacy rules are read once, and what
+   * they make private is said, as on the card. A private record's owners
+   * are worked out as the card works them out - its owner rules read the
+   * first time one needs them - for they are who may read it, and a reader
+   * who may not is told none of the breaks it raises
+   * (readHiddenFromCaller). So only a project's private records read
+   * anything more, and only for their owners.
+   *
    * Not cached: its reader keeps its own answer (SetupHealthService).
    */
   @CaptureSpan()
@@ -1486,8 +1556,9 @@ export class WhoIsToldService {
       policyNames: policies.names,
       projectHasOnCallPolicies: policies.hasPolicyInService,
       /*
-       * Owners are not worked out for breaks only (getUnreadOwners), so the
-       * owner rules are not read then.
+       * Owners are not worked out for breaks only (getUnreadOwners) but a
+       * private record's, so the owner rules are read then only when one
+       * needs them (ownerRulesForPrivateRecords).
        */
       incidentOwnerRules: data.isForBreaksOnly
         ? []
@@ -1495,14 +1566,12 @@ export class WhoIsToldService {
       alertOwnerRules: data.isForBreaksOnly
         ? []
         : await AlertOwnerRuleEngineService.getEnabledRules(data.projectId),
-      incidentPrivacyRules: data.isForBreaksOnly
-        ? []
-        : await IncidentPrivacyRuleEngineService.getEnabledRules(
-            data.projectId,
-          ),
-      alertPrivacyRules: data.isForBreaksOnly
-        ? []
-        : await AlertPrivacyRuleEngineService.getEnabledRules(data.projectId),
+      ownerRulesForPrivateRecords: { incident: null, alert: null },
+      incidentPrivacyRules:
+        await IncidentPrivacyRuleEngineService.getEnabledRules(data.projectId),
+      alertPrivacyRules: await AlertPrivacyRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
       // Labels change which on-call rules page, so breaks need them too.
       incidentLabelRules: await IncidentLabelRuleEngineService.getEnabledRules(
         data.projectId,
@@ -1812,10 +1881,22 @@ export class WhoIsToldService {
 
     let ownerPlan: OwnerRulePlan<IncidentOwnerRule> | null = null;
 
-    if (context.incidentOwnerRules.length > 0) {
+    const ownerRules: Array<IncidentOwnerRule> =
+      await this.getIncidentOwnerRules({
+        context: context,
+        isPrivate: incident.isPrivate === true,
+      });
+
+    if (ownerRules.length > 0) {
+      await this.attachResourcesForPrivateOwners({
+        context: context,
+        record: incident,
+        ownerRules: ownerRules,
+      });
+
       ownerPlan = await IncidentOwnerRuleEngineService.planRules({
         incident: incident,
-        rules: context.incidentOwnerRules,
+        rules: ownerRules,
         allowOwnerNotification: true,
         monitorCache: context.monitorCache,
         pendingOwners: this.getPendingOwners(context),
@@ -1856,6 +1937,7 @@ export class WhoIsToldService {
       withDeviceOwners: data.withDeviceOwners,
       monitorStepId: data.monitorStepId,
       ownerRuleAdditions: getOwnerRuleAdditions(ownerPlan),
+      isPrivate: isPrivate,
       rules: paging.rules,
       // A private incident, or one kept off status pages, shows on none.
       statusPages:
@@ -1930,10 +2012,21 @@ export class WhoIsToldService {
 
     let ownerPlan: OwnerRulePlan<AlertOwnerRule> | null = null;
 
-    if (context.alertOwnerRules.length > 0) {
+    const ownerRules: Array<AlertOwnerRule> = await this.getAlertOwnerRules({
+      context: context,
+      isPrivate: alert.isPrivate === true,
+    });
+
+    if (ownerRules.length > 0) {
+      await this.attachResourcesForPrivateOwners({
+        context: context,
+        record: alert,
+        ownerRules: ownerRules,
+      });
+
       ownerPlan = await AlertOwnerRuleEngineService.planRules({
         alert: alert,
-        rules: context.alertOwnerRules,
+        rules: ownerRules,
         allowOwnerNotification: true,
         monitorCache: context.monitorCache,
         pendingOwners: this.getPendingOwners(context),
@@ -1977,6 +2070,7 @@ export class WhoIsToldService {
         withDeviceOwners: true,
         monitorStepId: data.monitorStepId,
         ownerRuleAdditions: getOwnerRuleAdditions(ownerPlan),
+        isPrivate: isPrivate,
         rules: paging.rules,
         statusPages: [],
       }),
@@ -2372,6 +2466,83 @@ export class WhoIsToldService {
     }
   }
 
+  /*
+   * The owner rules a new incident's create runs (planRules): the project's.
+   * For breaks only, a private incident's alone - its owners are who may
+   * read it, and so whose breaks it raises (#9370) - read the first time
+   * one needs them, once a project; none for any other.
+   */
+  private static async getIncidentOwnerRules(data: {
+    context: ResolveContext;
+    isPrivate: boolean;
+  }): Promise<Array<IncidentOwnerRule>> {
+    if (!data.context.isForBreaksOnly) {
+      return data.context.incidentOwnerRules;
+    }
+
+    if (!data.isPrivate) {
+      return [];
+    }
+
+    const held: ProjectContext["ownerRulesForPrivateRecords"] =
+      data.context.ownerRulesForPrivateRecords;
+
+    if (!held.incident) {
+      held.incident = IncidentOwnerRuleEngineService.getEnabledRules(
+        data.context.projectId,
+      );
+    }
+
+    return await held.incident;
+  }
+
+  // The same of a new alert, by the alert owner rules.
+  private static async getAlertOwnerRules(data: {
+    context: ResolveContext;
+    isPrivate: boolean;
+  }): Promise<Array<AlertOwnerRule>> {
+    if (!data.context.isForBreaksOnly) {
+      return data.context.alertOwnerRules;
+    }
+
+    if (!data.isPrivate) {
+      return [];
+    }
+
+    const held: ProjectContext["ownerRulesForPrivateRecords"] =
+      data.context.ownerRulesForPrivateRecords;
+
+    if (!held.alert) {
+      held.alert = AlertOwnerRuleEngineService.getEnabledRules(
+        data.context.projectId,
+      );
+    }
+
+    return await held.alert;
+  }
+
+  /*
+   * For breaks only, what a private record is about, when its owner rules
+   * inherit owners from it: the resources were not read for the record
+   * before its privacy was known (attachResources merges them by id, so
+   * they are never attached twice). Otherwise they were, as needed.
+   */
+  private static async attachResourcesForPrivateOwners(data: {
+    context: ResolveContext;
+    record: Incident | Alert;
+    ownerRules: ReadonlyArray<unknown>;
+  }): Promise<void> {
+    if (!data.context.isForBreaksOnly) {
+      return;
+    }
+
+    await this.attachResources({
+      context: data.context,
+      record: data.record,
+      needsResources: inheritsFromResources(data.ownerRules),
+    });
+  }
+
   private static toLabels(ids: Array<ObjectID> | undefined): Array<Label> {
     return (ids || [])
       .filter((id: ObjectID): boolean => {
@@ -2397,6 +2568,8 @@ export class WhoIsToldService {
     withDeviceOwners: boolean;
     monitorStepId: string;
     ownerRuleAdditions: OwnerRuleAdditions;
+    // Private, by its criteria or a privacy rule: its owners are who may read it.
+    isPrivate: boolean;
     rules: Array<IncidentOnCallRule | AlertOnCallRule>;
     statusPages: Array<WhoIsToldStatusPage>;
   }): Promise<WhoIsToldEvent> {
@@ -2477,21 +2650,25 @@ export class WhoIsToldService {
 
     /*
      * For breaks only (resolveProject) who is emailed as an owner is not
-     * read - nor whether they are in the project - and no owner rule is.
+     * read - nor whether they are in the project - and no owner rule is:
+     * but for a private record, whose owners are who may read it, and so
+     * whose breaks it raises (#9370). Those are worked out as the card
+     * works them out.
      */
-    const owners: EventOwners = data.context.isForBreaksOnly
-      ? {
-          owners: this.getUnreadOwners({ namedOwners: data.namedOwners }),
-          ownerRules: [],
-          ownerIds: { userIds: [], teamIds: [] },
-        }
-      : await this.getEventOwners({
-          context: data.context,
-          namedOwners: data.namedOwners,
-          withDeviceOwners: data.withDeviceOwners,
-          monitorStepId: data.monitorStepId,
-          ownerRuleAdditions: data.ownerRuleAdditions,
-        });
+    const owners: EventOwners =
+      data.context.isForBreaksOnly && !data.isPrivate
+        ? {
+            owners: this.getUnreadOwners({ namedOwners: data.namedOwners }),
+            ownerRules: [],
+            ownerIds: { userIds: [], teamIds: [] },
+          }
+        : await this.getEventOwners({
+            context: data.context,
+            namedOwners: data.namedOwners,
+            withDeviceOwners: data.withDeviceOwners,
+            monitorStepId: data.monitorStepId,
+            ownerRuleAdditions: data.ownerRuleAdditions,
+          });
 
     return {
       kind: data.kind,

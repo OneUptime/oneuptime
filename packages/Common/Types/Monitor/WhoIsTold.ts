@@ -852,8 +852,8 @@ function getChannelsInUse(
  * An owner no Created email reaches (WhoIsToldOwners.notReached, #7572) is
  * no break: the email still goes out, to the owners it reaches or to the
  * Project Owners, so nothing stops who is told - and Setup health, which
- * lists every break this finds, reads no owners. The card says it with
- * who is emailed.
+ * lists every break this finds, reads no owners but a private record's
+ * (who may read it, #9370). The card says it with who is emailed.
  */
 export function getWhoIsToldBreaks(data: {
   criteria: ReadonlyArray<WhoIsToldCriteria>;
@@ -1275,6 +1275,66 @@ export function getWhoIsToldOwnersAsTold(data: {
   };
 }
 
+/*
+ * Whether a record the criteria would open is hidden from a reader (#7213):
+ * it is private, and not theirs to see once it exists (canReadPrivateEvent:
+ * one of its owners, in a team of them, or a Project Owner or Project
+ * Admin). Without canReadPrivateEvent no private record is theirs. The card
+ * (redactWhoIsTold) and Setup health (#9370) ask it the same way.
+ */
+export function isWhoIsToldEventHidden(
+  event: WhoIsToldEvent,
+  canReadPrivateEvent?: ((event: WhoIsToldEvent) => boolean) | undefined,
+): boolean {
+  return (
+    event.isPrivate === true &&
+    !(canReadPrivateEvent ? canReadPrivateEvent(event) : false)
+  );
+}
+
+/*
+ * A CHAIN'S BREAKS AS ONE READER IS TOLD THEM: worked out again without the
+ * records hidden from them - a private record that is not theirs raises no
+ * break of theirs (#7213) - from the resolver's own facts
+ * (WhoIsToldProjectFacts); the resolver's own breaks when it kept none.
+ * What a monitor's card says (redactWhoIsTold), and what Setup health lists
+ * for the same reader (#9370), so the two never disagree.
+ */
+export function getWhoIsToldBreaksForReader(data: {
+  result: Pick<WhoIsToldResult, "criteria" | "channels" | "breaks" | "facts">;
+  isHidden: (event: WhoIsToldEvent) => boolean;
+}): Array<WhoIsToldBreak> {
+  const facts: WhoIsToldProjectFacts | undefined = data.result.facts;
+
+  if (!facts) {
+    return data.result.breaks;
+  }
+
+  return getWhoIsToldBreaks({
+    criteria: data.result.criteria,
+    channels: data.result.channels,
+    projectHasIncidentOnCallRules: facts.projectHasIncidentOnCallRules,
+    projectHasAlertOnCallRules: facts.projectHasAlertOnCallRules,
+    projectHasOnCallPolicies: facts.projectHasOnCallPolicies,
+    isHidden: data.isHidden,
+  });
+}
+
+// Whether any record a chain would open is hidden from the reader.
+export function hasWhoIsToldHiddenEvent(
+  result: Pick<WhoIsToldResult, "criteria">,
+  isHidden: (event: WhoIsToldEvent) => boolean,
+): boolean {
+  return result.criteria.some((item: WhoIsToldCriteria): boolean => {
+    return item.events.some((event: WhoIsToldEvent): boolean => {
+      return (
+        isHidden(event) ||
+        Boolean(event.declares && isHidden(event.declares.incident))
+      );
+    });
+  });
+}
+
 // A rule or status page as it is, when the caller may read it; else nameless.
 function withNameIfReadable<T extends { id: string; name: string }>(
   item: T,
@@ -1370,10 +1430,7 @@ export function redactWhoIsTold(data: {
   const isHidden: (event: WhoIsToldEvent) => boolean = (
     event: WhoIsToldEvent,
   ): boolean => {
-    return (
-      event.isPrivate === true &&
-      !(data.canReadPrivateEvent ? data.canReadPrivateEvent(event) : false)
-    );
+    return isWhoIsToldEventHidden(event, data.canReadPrivateEvent);
   };
 
   const redactPolicy: (policy: WhoIsToldPolicy) => WhoIsToldPolicy = (
@@ -1509,16 +1566,10 @@ export function redactWhoIsTold(data: {
    */
   const { facts, ...result } = data.result;
 
-  const breaks: Array<WhoIsToldBreak> = facts
-    ? getWhoIsToldBreaks({
-        criteria: data.result.criteria,
-        channels: data.result.channels,
-        projectHasIncidentOnCallRules: facts.projectHasIncidentOnCallRules,
-        projectHasAlertOnCallRules: facts.projectHasAlertOnCallRules,
-        projectHasOnCallPolicies: facts.projectHasOnCallPolicies,
-        isHidden: isHidden,
-      })
-    : data.result.breaks;
+  const breaks: Array<WhoIsToldBreak> = getWhoIsToldBreaksForReader({
+    result: { ...result, facts: facts },
+    isHidden: isHidden,
+  });
 
   return {
     ...result,

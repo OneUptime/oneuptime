@@ -10,6 +10,8 @@ import {
   WhoIsToldPolicy,
   WhoIsToldResult,
   WhoIsToldServerChannel,
+  getWhoIsToldBreaksForReader,
+  hasWhoIsToldHiddenEvent,
 } from "../Monitor/WhoIsTold";
 import {
   OnCallPageChannel,
@@ -755,6 +757,57 @@ export function getChainFindings(
   }
 
   return findings;
+}
+
+/*
+ * THE FACTS AS ONE READER'S CARDS TELL THEM (#9370). A private incident or
+ * alert a monitor would open that is not the reader's to see once it
+ * exists (#7213) raises no break on that monitor's card for them - nothing
+ * of whom it tells - so it raises no finding here either: each chain with
+ * such a record has its breaks worked out again without it, as the card
+ * works them out (getWhoIsToldBreaksForReader). A policy's or a person's
+ * break that some other record raises stays, about that record's monitor
+ * alone. The chains themselves are kept whole, so a policy a private
+ * record's criteria names is still run by something (getPolicyNotRunFindings).
+ * The same facts when nothing is hidden from the reader.
+ */
+export function getSetupHealthFactsForReader(
+  facts: SetupHealthFacts,
+  isHidden: (event: WhoIsToldEvent) => boolean,
+): SetupHealthFacts {
+  if (
+    !facts.chains.some((chain: WhoIsToldResult): boolean => {
+      return hasWhoIsToldHiddenEvent(chain, isHidden);
+    })
+  ) {
+    return facts;
+  }
+
+  return {
+    ...facts,
+    chains: facts.chains.map((chain: WhoIsToldResult): WhoIsToldResult => {
+      if (!hasWhoIsToldHiddenEvent(chain, isHidden)) {
+        return chain;
+      }
+
+      return {
+        ...chain,
+        breaks: getWhoIsToldBreaksForReader({
+          result: chain,
+          isHidden: isHidden,
+        }),
+      };
+    }),
+  };
+}
+
+// Whether some chain would open a private incident or alert.
+export function hasSetupHealthPrivateEvent(facts: SetupHealthFacts): boolean {
+  return facts.chains.some((chain: WhoIsToldResult): boolean => {
+    return hasWhoIsToldHiddenEvent(chain, (event: WhoIsToldEvent): boolean => {
+      return event.isPrivate === true;
+    });
+  });
 }
 
 function getBreakFinding(data: {
