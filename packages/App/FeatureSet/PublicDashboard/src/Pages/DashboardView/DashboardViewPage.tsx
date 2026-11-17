@@ -45,6 +45,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import PoweredByFooter from "../../Components/PoweredByFooter";
 import ThemeMenu from "../../Components/ThemeMenu";
 import LogoPlate from "../../Components/LogoPlate";
+import DashboardDescription from "../../Components/DashboardDescription";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -394,10 +395,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                 <h1 className="line-clamp-2 break-words text-lg font-semibold text-gray-900 sm:line-clamp-1">
                   {dashboardName}
                 </h1>
+                {/*
+                 * Two lines, and Show more when it holds more: cut to one
+                 * line, a phone had no way to read the rest.
+                 */}
                 {pageDescription && (
-                  <p className="text-sm text-gray-500 truncate">
-                    {pageDescription}
-                  </p>
+                  <DashboardDescription text={pageDescription} />
                 )}
               </div>
             </div>
