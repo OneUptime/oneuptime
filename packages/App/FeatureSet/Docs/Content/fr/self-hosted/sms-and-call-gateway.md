@@ -30,7 +30,7 @@ La passerelle remplace le compte Twilio propre au serveur pour tout ce qui passe
 1. Dans l'Admin Dashboard, allez dans **Paramètres > Appel et SMS** et cliquez sur **Edit Provider** sur la carte **SMS and Call Provider**.
 2. Choisissez **Your own gateway** et saisissez la **Gateway URL**. La passerelle peut se trouver sur votre réseau privé.
 3. Enregistrez. OneUptime crée un secret de signature pour vous. Copiez-le depuis la carte dans votre passerelle.
-4. Cliquez sur **Send Test**. Votre passerelle doit répondre avec un statut 2xx et ne rien envoyer.
+4. Cliquez sur **Vérifier la passerelle**. Votre passerelle doit répondre avec un statut 2xx et ne rien envoyer.
 :::
 
 Pour remplacer le secret, videz **Secret de signature** sous **Plus de champs** et enregistrez : OneUptime en crée un nouveau. Pour revenir à Twilio, choisissez **Twilio** et enregistrez.
@@ -116,7 +116,7 @@ Le journal des SMS ou des appels, et pour une alerte d'astreinte le journal d'as
 
 ## Requêtes de test
 
-**Envoyer un test** envoie une requête avec `event` à `test`, et `to`, `project` et `actions` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
+**Vérifier la passerelle** envoie une requête avec `event` à `test`, et `to`, `project` et `actions` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
 
 ## Étapes suivantes
 

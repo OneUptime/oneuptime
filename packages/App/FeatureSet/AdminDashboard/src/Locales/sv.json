@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Den här servern kan inte skicka e-post än. Ange lösenordet här, eller lämna fältet tomt för att få en länk som du skickar själv.",
   "This server cannot send email yet. Set up email under Settings > Emails.": "Den här servern kan inte skicka e-post än. Konfigurera e-post under Inställningar > E-postmeddelanden.",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Den här servern kan inte skicka e-post än, så ingen länk för återställning av lösenord skickades. Konfigurera e-post under Inställningar > E-postmeddelanden, eller ange lösenordet själv.",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Den här användaren har redan ett lösenord, så det finns ingen länk för att ange lösenord att kopiera. Skicka i stället en länk för återställning från användarens sida Autentisering."
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Den här användaren har redan ett lösenord, så det finns ingen länk för att ange lösenord att kopiera. Skicka i stället en länk för återställning från användarens sida Autentisering.",
+  "How to back up with Docker Compose": "Så säkerhetskopierar du med Docker Compose",
+  "How to back up on Kubernetes": "Så säkerhetskopierar du på Kubernetes",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "Inaktuell: den senaste säkerhetskopian blev klar {{time}}, för mer än en vecka sedan.",
+  "Backed up with npm run backup.": "Säkerhetskopieras med npm run backup.",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup slutförde ingen säkerhetskopia. Kör det på servern för att se varför.",
+  "Send test push": "Skicka test-push",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "Test-pushen togs emot för {{to}}. Om den inte visas, titta i aviseringsinställningarna på den telefonen eller webbläsaren.",
+  "None of your devices took the test push: {{reason}}": "Ingen av dina enheter tog emot test-pushen: {{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "Push-aviseringar är avstängda under Inställningar > Push-aviseringar.",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "Du har ingen telefon eller webbläsare registrerad för push-aviseringar. Registrera en under Användarinställningar > Aviseringsmetoder i Dashboard.",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "Dina webbläsare kan inte få push från den här servern: den har inga VAPID-nycklar. Ange VAPID_PUBLIC_KEY och VAPID_PRIVATE_KEY, eller registrera en telefon med appen OneUptime On-Call.",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "En testavisering går till de telefoner och webbläsare som du har registrerat för push-aviseringar, och till ingen annan.",
+  "Test push notifications": "Testa push-aviseringar",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Skicka en test-push till dina egna telefoner och webbläsare för att se att push-aviseringar når fram.",
+  "Check Gateway": "Kontrollera gateway",
+  "Checking your gateway…": "Kontrollerar din gateway…",
+  "Your gateway answered the test request.": "Din gateway svarade på testbegäran."
 }

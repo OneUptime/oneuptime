@@ -51,15 +51,28 @@ export function deploymentNameFromPodName(podName: string): string | null {
   return match && match[1] ? match[1] : null;
 }
 
+/*
+ * Whether this process runs in a Kubernetes pod: the chart's downward API
+ * says so (POD_NAME), or the API server's address every pod is handed
+ * does. The server setup checklist reads it too, for how the server was
+ * installed (ServerSetup/ServerInstallKind).
+ */
+export function isRunningInKubernetes(
+  env: Dictionary<string | undefined>,
+): boolean {
+  return (
+    Boolean(value(env["POD_NAME"])) ||
+    Boolean(value(env["KUBERNETES_SERVICE_HOST"]))
+  );
+}
+
 export function getKubernetesResourceAttributes(
   input: KubernetesResourceInput,
 ): Dictionary<string> {
   const env: Dictionary<string | undefined> = input.env;
   const explicitPodName: string | null = value(env["POD_NAME"]);
-  const inKubernetes: boolean =
-    Boolean(explicitPodName) || Boolean(value(env["KUBERNETES_SERVICE_HOST"]));
 
-  if (!inKubernetes) {
+  if (!isRunningInKubernetes(env)) {
     return {};
   }
 

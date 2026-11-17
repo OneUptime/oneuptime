@@ -413,6 +413,8 @@ npm run backup
 
 Chiede la tua password di sudo e scrive `Backups/db-<day of the month>.backup`, così i backup giornalieri sostituiscono quelli di un mese prima. Eseguilo almeno una volta al giorno.
 
+Ogni esecuzione dice a OneUptime com'è andata: Configurazione del server, nell'Admin Dashboard, mostra quando è terminato l'ultimo backup, e lo segnala quando un backup è fallito o l'ultimo ha più di una settimana. Un'esecuzione il cui dump è fallito lo dice e termina con un errore, così un job cron se ne accorge.
+
 ### Copia i backup fuori dal server
 
 Un backup sullo stesso disco del database non sopravvive alla perdita di quel disco.

@@ -56717,5 +56717,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "Подтверждено проверок пока: {{acknowledged}} из {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Подтверждено проверок пока: {{acknowledged}} из {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Подтверждено проверок: {{acknowledged}} из {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "Подтверждено проверок: {{acknowledged}} из {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "Подтверждено проверок: {{acknowledged}} из {{count}}.",
+  "Backup Script Last Run": "Последний запуск скрипта резервного копирования"
 }

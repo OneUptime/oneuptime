@@ -30,7 +30,7 @@ De gateway neemt de plaats in van het eigen Twilio-account van de server, voor a
 1. Ga in het Admin Dashboard naar **Instellingen > Oproep en sms** en klik op **Edit Provider** op de kaart **SMS and Call Provider**.
 2. Kies **Your own gateway** en voer de **Gateway URL** in. De gateway mag in uw privénetwerk staan.
 3. Sla op. OneUptime maakt een ondertekeningsgeheim voor u. Kopieer het van de kaart naar uw gateway.
-4. Klik op **Send Test**. Uw gateway hoort te antwoorden met een 2xx-status en niets te versturen.
+4. Klik op **Gateway controleren**. Uw gateway hoort te antwoorden met een 2xx-status en niets te versturen.
 :::
 
 Om het geheim te vervangen, maakt u **Ondertekeningsgeheim** onder **Meer velden** leeg en slaat u op: OneUptime maakt een nieuw geheim. Om terug te gaan naar Twilio, kiest u **Twilio** en slaat u op.
@@ -116,7 +116,7 @@ In het sms- of oproeplogboek, en bij een dienstmelding in het bereikbaarheidslog
 
 ## Testverzoeken
 
-**Test verzenden** verstuurt een verzoek met `event` op `test`, en `to`, `project` en `actions` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
+**Gateway controleren** verstuurt een verzoek met `event` op `test`, en `to`, `project` en `actions` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
 
 ## Volgende stappen
 

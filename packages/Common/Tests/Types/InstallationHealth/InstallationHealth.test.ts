@@ -423,8 +423,9 @@ describe("the server setup checklist, in its own words", () => {
     );
     expect(email.fix).toBe(INSTALLATION_HEALTH_SETUP_FIX);
     expect(email.adminPath).toBe("/admin/settings/smtp");
+    // The Self-Hosting Guide's HTTPS step, for either install (#7073).
     expect(findings[1]!.guidePath).toBe(
-      "/docs/installation/docker-compose#set-up-https",
+      "/docs/installation/self-hosting-guide#turn-on-https",
     );
   });
 

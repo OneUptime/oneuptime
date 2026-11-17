@@ -120,6 +120,10 @@ Device connectivity is a separate requirement. iOS devices need APNs access, typ
 
 For mobile pushes, OneUptime also reads Expo's delivery receipt about 15 minutes after each push: a push that never reached the device then shows as not delivered in the push log and, for an on-call page, on the on-call timeline.
 
+## Sending a Test Push
+
+A master admin can check push from the server's side: **Send test push**, in **Admin Dashboard > Settings > Push Notifications**, pushes a test to the phones and browsers they registered, and to nobody else. When nothing can go out, it says why: push is turned off, nothing is registered, or the server has no VAPID keys for a browser.
+
 ## Turning Push Off for the Whole Server
 
 If nothing may leave your network through Expo, the push relay or a browser's push service, a master admin can turn push off in **Admin Dashboard > Settings > Push Notifications**: turn **Send push notifications** off and confirm.

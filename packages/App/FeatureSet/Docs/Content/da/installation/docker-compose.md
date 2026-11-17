@@ -413,6 +413,8 @@ npm run backup
 
 Det beder om din sudo-adgangskode og skriver `Backups/db-<day of the month>.backup`, så daglige backups erstatter dem fra en måned tidligere. Kør det mindst én gang om dagen.
 
+Hver kørsel fortæller OneUptime, hvordan det gik, så Serveropsætning i Admin Dashboard viser, hvornår den seneste backup blev færdig, og siger til, når en backup mislykkedes, eller den seneste er mere end en uge gammel. En kørsel, hvis dump mislykkedes, siger det og slutter med en fejl, så et cron-job kan se det.
+
 ### Kopiér backupperne væk fra serveren
 
 En backup på samme disk som databasen overlever ikke, at den disk går tabt.

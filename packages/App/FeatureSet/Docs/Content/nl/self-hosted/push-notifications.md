@@ -120,6 +120,10 @@ De connectiviteit van apparaten is een aparte vereiste. iOS-apparaten hebben toe
 
 Bij mobiele pushes leest OneUptime ook het afleverbewijs van Expo, ongeveer 15 minuten na elke push: een push die het apparaat nooit heeft bereikt, staat dan als niet afgeleverd in het pushlog en, bij een dienstmelding, op de tijdlijn van de dienst.
 
+## Een testpush versturen
+
+Een hoofdbeheerder kan push aan de kant van de server controleren: **Testpush versturen**, in **Admin Dashboard > Instellingen > Pushmeldingen**, stuurt een testpush naar de telefoons en browsers die die beheerder heeft geregistreerd, en naar niemand anders. Kan er niets uit, dan zegt het waarom: push staat uit, er is niets geregistreerd, of de server heeft geen VAPID-sleutels voor een browser.
+
 ## Push uitzetten voor de hele server
 
 Als er niets via Expo, de push-relay of de pushdienst van een browser uw netwerk mag verlaten, kan een hoofdbeheerder push uitzetten in **Admin Dashboard > Instellingen > Pushmeldingen**: zet **Send push notifications** uit en bevestig.

@@ -7,10 +7,19 @@ import {
   getPushNotificationsSwitchDescription,
   PUSH_NOTIFICATIONS_SWITCH_TEST_ID,
 } from "./PushNotificationsCopy";
+import ServerTestCard, {
+  SERVER_TEST_CARD_COPY,
+} from "../../../Components/ServerSetup/ServerTestCard";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import { ServerSetupCheckId } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import Page from "Common/UI/Components/Page/Page";
+import {
+  useServerSetupChecklist,
+  UseServerSetupChecklistResult,
+} from "Common/UI/Utils/ServerSetupChecklist";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -30,9 +39,16 @@ import { useTranslation } from "react-i18next";
  * (PushNotificationsCopy).
  *
  * GlobalConfig is one row, with the zero id.
+ *
+ * It starts, as Settings > Emails and Settings > Call and SMS do, with where
+ * push stands and "Send test push" (#7028): a test to the admin's own
+ * phones and browsers, which says plainly when push is off, when they have
+ * nothing registered, and when the server has no VAPID keys for a browser.
  */
 const SettingsPushNotifications: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  // Where push stands, for the test card.
+  const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
 
   return (
     <Page
@@ -60,6 +76,14 @@ const SettingsPushNotifications: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      <ServerTestCard
+        check={ServerSetupCheckId.BrowserPush}
+        title={t(SERVER_TEST_CARD_COPY.pushTitle)}
+        description={t(SERVER_TEST_CARD_COPY.pushDescription)}
+        channels={[ServerSendingChannel.Push]}
+        checklist={checklist}
+      />
+
       <ModelSwitchCard<GlobalConfig>
         modelType={GlobalConfig}
         modelId={ObjectID.getZeroObjectID()}

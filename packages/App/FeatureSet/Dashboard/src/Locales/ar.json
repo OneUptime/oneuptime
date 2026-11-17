@@ -56717,5 +56717,6 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far.": "الاختبارات التي أُقرّ بها حتى الآن: {{acknowledged}} من {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "الاختبارات التي أُقرّ بها حتى الآن: {{acknowledged}} من {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "الاختبارات التي أُقرّ بها: {{acknowledged}} من {{count}}.",
-  "{{acknowledged}} of {{count}} tests acknowledged._one": "الاختبارات التي أُقرّ بها: {{acknowledged}} من {{count}}."
+  "{{acknowledged}} of {{count}} tests acknowledged._one": "الاختبارات التي أُقرّ بها: {{acknowledged}} من {{count}}.",
+  "Backup Script Last Run": "آخر تشغيل للنص البرمجي للنسخ الاحتياطي"
 }
