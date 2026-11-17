@@ -316,9 +316,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.TableCells}
         />
 
+        {/* Settings, as other records' menus say (it was Advanced Settings until #9130). */}
         <SideMenuItem
           link={{
-            // "Settings", as other records' menus say (#9130).
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route,

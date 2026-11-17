@@ -592,7 +592,7 @@ describe("other resource pages that fold a section of their own", () => {
     await renderMenu(<StatusPageSideMenu modelId={new ObjectID(MODEL_ID)} />);
 
     expect(sectionStates()).toEqual([
-      { title: "Basic", expanded: true },
+      { title: "Overview", expanded: true },
       { title: "Resources", expanded: true },
       { title: "Rules", expanded: false },
       { title: "Subscribers", expanded: false },

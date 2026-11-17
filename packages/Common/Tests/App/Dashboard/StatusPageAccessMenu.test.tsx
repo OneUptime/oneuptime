@@ -154,7 +154,12 @@ describe("the Single Sign-On page's breadcrumbs", () => {
       (links || []).map((link: Link): string => {
         return link.title;
       }),
-    ).toEqual(["Project", "Status Pages", "View Status Page", "Single Sign-On"]);
+    ).toEqual([
+      "Project",
+      "Status Pages",
+      "View Status Page",
+      "Single Sign-On",
+    ]);
   });
 });
 

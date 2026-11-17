@@ -100,7 +100,9 @@ and phone summary: change the suite in the same pull request as the menu.
   How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
   sections. A status page's subscribers are one Subscribers page with a tab per channel (Email, SMS,
   Slack, Microsoft Teams, Webhook), where they were five pages, and the old addresses open their tab
-  (#9125). Enforced by
+  (#9125). Its sign-on providers are one Single Sign-On page with a SAML and an OIDC tab, where "SSO"
+  and "OIDC" were two entries with the same icon, and the old OIDC address opens its tab (#9130).
+  Enforced by
   [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts) and
   [StatusPageSubscribersOnePageGuard](../../packages/App/Tests/Dashboard/StatusPageSubscribersOnePageGuard.test.ts).
 - **Red is for what broke, never for a choice.** A state someone chose (a monitor they disabled, a
@@ -167,6 +169,14 @@ next, and how to change it last.
   it, with the set ones as chips ("Custom Roles: 2"), and a link to a card (`#custom-roles`) opens the
   fold at that card. Enforced by
   [MoreSettingsFoldsGuard](../../packages/Common/Tests/App/Dashboard/MoreSettingsFoldsGuard.test.ts).
+- **A setting that does nothing yet says so where it is set,** with the way to what would make it
+  count. A public status page lets every visitor in, so its private users, single sign-on and SCIM
+  do nothing there, and none of their pages said so: a person could add a SAML provider to a public
+  page and wait for a sign-in page that never came (#9130). While the page is public, each of those
+  pages opens on one notice, "This status page is public, so these settings do nothing until you
+  make it private.", with Change access, and folds its settings under it, still there to set up
+  before the page goes private. Enforced by
+  [StatusPagePrivateOnlySettingsGuard](../../packages/App/Tests/Dashboard/StatusPagePrivateOnlySettingsGuard.test.ts).
 - **A setting that is a switch saves when it is flipped.** A card whose Edit dialog held only switches
   becomes the switches themselves, which save and say "Saved". Enforced by
   [OneSwitchCardsGuard](../../packages/Common/Tests/UI/Components/Forms/OneSwitchCardsGuard.test.ts)
