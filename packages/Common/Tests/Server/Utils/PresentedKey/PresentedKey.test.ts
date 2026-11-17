@@ -216,53 +216,31 @@ describe("a key kept only as its hash (a SCIM bearer token)", () => {
     expect(PresentedKey.isStoredHash(null)).toBe(false);
   });
 
-  test("matches the token it hashes, and no other", () => {
-    const stored: string = PresentedKey.toStoredHash(TOKEN);
-
-    expect(
-      PresentedKey.matchesStoredHash({ presented: TOKEN, stored: stored }),
-    ).toBe(true);
-    expect(
-      PresentedKey.matchesStoredHash({
-        presented: "b".repeat(64),
-        stored: stored,
-      }),
-    ).toBe(false);
-  });
-
-  test("is not a token: presenting the hash itself matches nothing", () => {
-    const stored: string = PresentedKey.toStoredHash(TOKEN);
-
-    expect(
-      PresentedKey.matchesStoredHash({ presented: stored, stored: stored }),
-    ).toBe(false);
-  });
-
-  test("a token stored as written before, not hashed yet, still matches as written", () => {
-    expect(
-      PresentedKey.matchesStoredHash({ presented: TOKEN, stored: TOKEN }),
-    ).toBe(true);
-    expect(
-      PresentedKey.matchesStoredHash({
-        presented: "b".repeat(64),
-        stored: TOKEN,
-      }),
-    ).toBe(false);
-  });
-
-  test("no token matches nothing", () => {
-    expect(PresentedKey.matchesStoredHash({ presented: "", stored: "" })).toBe(
-      false,
+  /*
+   * A request's token is matched by its stored hash in the query itself
+   * (SCIMAuthorization.findConnection): the same token always gives the
+   * same stored value, and another token another.
+   */
+  test("is the same for the same token, and another for another token", () => {
+    expect(PresentedKey.toStoredHash(TOKEN)).toBe(
+      PresentedKey.toStoredHash(TOKEN),
     );
-    expect(
-      PresentedKey.matchesStoredHash({
-        presented: null,
-        stored: PresentedKey.toStoredHash(TOKEN),
-      }),
-    ).toBe(false);
-    expect(
-      PresentedKey.matchesStoredHash({ presented: TOKEN, stored: null }),
-    ).toBe(false);
+    expect(PresentedKey.toStoredHash("b".repeat(64))).not.toBe(
+      PresentedKey.toStoredHash(TOKEN),
+    );
+    // Exactly as written: a token is compared as it was made.
+    expect(PresentedKey.toStoredHash(TOKEN.toUpperCase())).not.toBe(
+      PresentedKey.toStoredHash(TOKEN),
+    );
+  });
+
+  test("is not a token: the hash presented as a token hashes to another value", () => {
+    const stored: string = PresentedKey.toStoredHash(TOKEN);
+
+    expect(PresentedKey.toStoredHash(stored)).not.toBe(stored);
+    expect(PresentedKey.isStoredHash(PresentedKey.toStoredHash(stored))).toBe(
+      true,
+    );
   });
 });
 

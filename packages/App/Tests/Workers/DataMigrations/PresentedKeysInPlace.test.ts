@@ -267,7 +267,7 @@ describe("protect", () => {
     expect(table.rows[0]!["incomingRequestSecretKeyHash"]).toBe(hashOf(KEY));
   });
 
-  test("hashes a SCIM bearer token stored as written, which keeps matching the token", async () => {
+  test("hashes a SCIM bearer token stored as written, as the lookup by its hash finds it", async () => {
     const table: KeyTable = scimTokens([{ _id: id(1), bearerToken: TOKEN }]);
 
     await PresentedKeysInPlace.protect({
@@ -277,10 +277,9 @@ describe("protect", () => {
 
     const stored: string = table.rows[0]!["bearerToken"] as string;
 
+    // What SCIMAuthorization.findConnection queries the token by.
     expect(stored).toBe(PresentedKey.toStoredHash(TOKEN));
-    expect(
-      PresentedKey.matchesStoredHash({ presented: TOKEN, stored: stored }),
-    ).toBe(true);
+    expect(PresentedKey.isStoredHash(stored)).toBe(true);
   });
 
   test("a second run reads nothing and writes nothing", async () => {

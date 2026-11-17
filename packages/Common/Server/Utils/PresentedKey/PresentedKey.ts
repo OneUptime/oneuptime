@@ -136,32 +136,4 @@ export default class PresentedKey {
   public static isStoredHash(value: string | null | undefined): boolean {
     return STORED_HASH_PATTERN.test(value || "");
   }
-
-  /*
-   * Whether a key a request presents is the key kept as its hash - or, for
-   * a key stored as written before it was kept hashed and not hashed yet,
-   * the key itself. In constant time either way (matches). Never throws.
-   */
-  public static matchesStoredHash(data: {
-    presented: string | null | undefined;
-    stored: string | null | undefined;
-  }): boolean {
-    const presented: string =
-      typeof data.presented === "string" ? data.presented : "";
-    const stored: string = typeof data.stored === "string" ? data.stored : "";
-
-    if (PresentedKey.isStoredHash(stored)) {
-      return PresentedKey.matches({
-        presented: presented ? PresentedKey.toStoredHash(presented) : null,
-        stored: stored,
-        columnType: TableColumnType.HashedString,
-      });
-    }
-
-    return PresentedKey.matches({
-      presented: presented,
-      stored: stored,
-      columnType: TableColumnType.HashedString,
-    });
-  }
 }

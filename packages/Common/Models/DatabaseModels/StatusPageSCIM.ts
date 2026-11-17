@@ -285,8 +285,8 @@ export default class StatusPageSCIM extends BaseModel {
    * identity provider: the create that makes the connection answers it
    * once, and Reset Bearer Token makes a new one. A token stored as written
    * before is hashed in place by the PresentedKeys:ProtectAtRest job, and
-   * keeps working throughout (SCIMAuthorization,
-   * PresentedKey.matchesStoredHash).
+   * keeps working throughout: a request's token is matched by its hash, in
+   * the query, and as written until then (SCIMAuthorization.findConnection).
    */
   @ColumnAccessControl({
     create: [
