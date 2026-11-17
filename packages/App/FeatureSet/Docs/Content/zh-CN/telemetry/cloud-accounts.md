@@ -197,6 +197,8 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 除非你在 **项目** 中列出一些项目，否则组织的连接最多读取其 50 个项目。
 
+OneUptime 会列出每个项目中的 Compute Engine 实例、VPC 网络、子网和防火墙规则、负载均衡器及其转发规则和后端服务、Cloud Storage 存储桶、GKE 集群、Cloud SQL、Memorystore 和 Spanner 实例、Cloud Run 服务、Cloud Functions，以及 Pub/Sub 主题和订阅，并附上它们的标签、区域和可用区。它还会记录它们之间的连接：实例所在的子网和网络以及适用于它的防火墙规则、每个负载均衡器把流量发往何处，以及每个 GKE 集群的网络和节点虚拟机。Cloud Asset API 未开启的项目仍会连接，并显示一条警告，给出开启它的命令：`gcloud services enable cloudasset.googleapis.com`。
+
 Google Cloud 没有提供项目成本的 API：OneUptime 从你的结算账户导出到 BigQuery 的数据中读取成本，只要你在 **账单导出表** 中填入它的表即可。[云成本与节省](/docs/telemetry/cloud-costs#google-cloud) 说明了具体做法。
 
 ## 数据安全

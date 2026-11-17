@@ -106,6 +106,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On call.",
     "Its owners.",
     "Your chat tools.",
+    // The lead of the Who Was Told card's line (#7075).
+    "Who was told.",
   ],
   [ALERT_STATES]: [
     "Backwards moves are refused",

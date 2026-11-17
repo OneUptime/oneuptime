@@ -4456,6 +4456,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UsedByPostgres.test.ts --forceExit
 
+      # #7075: who was told about an incident or an alert, read as each kind
+      # of reader through the real services on clones of the migrated
+      # records, runs, steps and logs: a private record's answer only by its
+      # owning team's members, its named owners, Project Owners and Project
+      # Admins - not found by another member, a pending invitee, the person
+      # paged, an API key or a workflow step; a public one by every member
+      # who reads logs; and someone who may read the record but not its logs
+      # or runs is told how many, never what.
+      - name: Test who was told on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_WAS_TOLD_TESTS: "true"
+          WHO_WAS_TOLD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_WAS_TOLD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_WAS_TOLD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoWasToldReadPostgres.test.ts --forceExit
+
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and
       # an AI rule's runbooks, repositories and MCP servers) through the

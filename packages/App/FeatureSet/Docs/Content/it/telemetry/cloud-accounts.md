@@ -197,6 +197,8 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 La connessione di un'organizzazione legge fino a 50 dei suoi progetti, a meno che tu non ne elenchi alcuni in **Progetti**.
 
+In ogni progetto, OneUptime elenca le istanze Compute Engine, le reti VPC, le subnet e le regole firewall, i bilanciatori di carico con le loro regole di forwarding e i servizi di backend, i bucket Cloud Storage, i cluster GKE, le istanze Cloud SQL, Memorystore e Spanner, i servizi Cloud Run, Cloud Functions e gli argomenti e le sottoscrizioni Pub/Sub, con le loro etichette, regioni e zone. Registra anche come sono collegati: la subnet e la rete in cui gira un'istanza e le regole firewall che le si applicano, dove ogni bilanciatore di carico invia il traffico, e la rete e le VM dei nodi di ogni cluster GKE. Un progetto con la Cloud Asset API disattivata viene comunque collegato, con un avviso che indica il comando per attivarla: `gcloud services enable cloudasset.googleapis.com`.
+
 Google Cloud non ha un'API per i costi di un progetto: OneUptime li legge dall'esportazione del tuo account di fatturazione verso BigQuery, non appena ne indichi la tabella in **Tabella dell'esportazione della fatturazione**. [Costi e risparmi del cloud](/docs/telemetry/cloud-costs#google-cloud) mostra come.
 
 ## Sicurezza dei dati
