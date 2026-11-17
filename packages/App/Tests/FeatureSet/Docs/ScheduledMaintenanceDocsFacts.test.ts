@@ -415,6 +415,9 @@ const LIST_TABLE: string = readDashboardSource(
 const CREATE_PAGE: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/Create.tsx",
 );
+const STATUS_PAGES_FIELD_COPY: string = readDashboardSource(
+  "Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts",
+);
 const FORM_MODULE: string = readDashboardSource(
   "Components/ScheduledMaintenance/ScheduledMaintenanceForm.ts",
 );
@@ -2099,6 +2102,18 @@ describe("the create form", () => {
           ),
         );
         expect(step).toBe("Maintenance Details");
+        continue;
+      }
+
+      // Defined once, for Create, the event's Edit and the templates (#9131).
+      if (field === "Show event on these status pages") {
+        expect(CREATE_PAGE).toMatch(
+          /getMaintenanceStatusPagesFormField<ScheduledMaintenance>\(\{\s*stepId: "resources-affected",/,
+        );
+        expect(STATUS_PAGES_FIELD_COPY).toContain(
+          'pickerTitle: translationKey("Show event on these status pages")',
+        );
+        expect(step).toBe("Resources Affected");
         continue;
       }
 
@@ -4176,9 +4191,9 @@ describe("the readers", () => {
       "resources-affected",
     );
     expect(stepOf(fieldObject(CREATE_PAGE, "Title"))).toBe("event");
-    expect(
-      fieldObject(CREATE_PAGE, "Show event on these status pages"),
-    ).toContain('title: "Show event on these status pages ",');
+    expect(STATUS_PAGES_FIELD_COPY).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("read the seeded states with their colours", () => {

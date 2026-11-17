@@ -340,10 +340,24 @@ function resourceTypesOf(field: string, source: string): Array<string> {
 }
 
 // The order the form's keyed fields are written in.
+/*
+ * Where a field is asked: its own object, or - for the status pages, one
+ * field the event's forms and its templates' share (#9131) - the call that
+ * draws it.
+ */
+const SHARED_FIELD_CALLS: Record<string, string> = {
+  statusPages: "getMaintenanceStatusPagesFormField<ScheduledMaintenance>({",
+};
+
 function fieldOrder(source: string, keys: Array<string>): Array<string> {
   return keys
     .map((key: string): { key: string; at: number } => {
-      return { key: key, at: source.indexOf(`field: { ${key}: true, }`) };
+      const shared: string | undefined = SHARED_FIELD_CALLS[key];
+
+      return {
+        key: key,
+        at: source.indexOf(shared || `field: { ${key}: true, }`),
+      };
     })
     .filter((entry: { at: number }): boolean => {
       return entry.at >= 0;
@@ -683,10 +697,18 @@ describe("Create Scheduled Maintenance Event's Resources Affected step", () => {
   });
 
   test("the status page suggestions still read the monitors the first picker writes", () => {
-    const pages: string = objectAround(source, "field: { statusPages: true, }");
+    // Create hands the shared field no record to read them from...
+    expect(source).toContain(
+      'getMaintenanceStatusPagesFormField<ScheduledMaintenance>({ stepId: "resources-affected", }),',
+    );
 
-    expect(pages).toContain(
-      "getStatusPageSuggestionsFooter<ScheduledMaintenance>({ eventType: StatusPageEventType.ScheduledEvent, })",
+    // ...so its suggestions read the form's own monitors.
+    expect(
+      dense(
+        "Components/ScheduledMaintenance/MaintenanceStatusPagesFormField.tsx",
+      ),
+    ).toContain(
+      "getFooterElement: getStatusPageSuggestionsFooter<TEntity>({ eventType: StatusPageEventType.ScheduledEvent, monitorsOf: options.monitorsOf, }),",
     );
   });
 });

@@ -4533,7 +4533,6 @@
   "Select Status Page": "Seleccionar página de estado",
   "Select Status Pages": "Seleccionar páginas de estado",
   "Select status pages to show this announcement on": "Seleccionar páginas de estado en las que mostrar este anuncio",
-  "Select status pages to show this event on": "Seleccionar páginas de estado en las que mostrar este evento",
   "Select Team": "Seleccionar equipo",
   "Select Teams": "Seleccionar equipos",
   "Select telemetry services to scope this monitor.": "Selecciona los servicios de telemetría a los que acotar este monitor.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Mostrar etiquetas de episodios",
   "Show Episodes": "Mostrar episodios",
   "Show Episodes on Status Page": "Mostrar episodios en la página de estado",
-  "Show event on these status pages ": "Mostrar evento en estas páginas de estado ",
   "Show ID and Key": "Mostrar ID y clave",
   "Show Incident History (in days)": "Mostrar historial de incidentes (en días)",
   "Show Incident Labels": "Mostrar etiquetas de incidentes",
@@ -13360,7 +13358,6 @@
   "No status": "Sin estado",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "Aún no hay historial de estados. La cronología se completa a medida que el resumen de salud del sitio registra cambios.",
   "No status pages selected for this announcement.": "No hay páginas de estado seleccionadas para este anuncio.",
-  "No status pages selected for this maintenance event.": "No hay páginas de estado seleccionadas para este evento de mantenimiento.",
   "No status recorded yet.": "Aún no se ha registrado ningún estado.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Aún no se han informado volúmenes de almacenamiento. Asegúrate de que el agente de Proxmox está enviando métricas.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "Todavía no se han seleccionado zonas horarias para los suscriptores. De forma predeterminada, los suscriptores recibirán notificaciones con las horas en las zonas horarias GMT, EST, PST, IST y ACT.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "Esta página de estado es pública, así que estos ajustes no tienen efecto hasta que la hagas privada.",
   "Title and Search Engine Description": "Título y descripción para buscadores",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Los visitantes leen esto en la parte superior de tu página de estado, por ejemplo qué cubre y dónde obtener soporte.",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Lo primero que leen los visitantes, en la parte superior de tu página de estado, antes que todo lo demás. Admite Markdown."
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Lo primero que leen los visitantes, en la parte superior de tu página de estado, antes que todo lo demás. Admite Markdown.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Los eventos de esta plantilla solo se muestran en estas páginas de estado y solo notifican a sus suscriptores. Sin ninguna seleccionada, no se muestran en ninguna página de estado.",
+  "Events from this template will not appear on any status page.": "Los eventos de esta plantilla no aparecerán en ninguna página de estado.",
+  "Not shown on any status page": "No se muestra en ninguna página de estado",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Solo estas páginas de estado muestran este evento y notifican a sus suscriptores. A diferencia de un incidente, un evento sin ninguna seleccionada no se muestra en ninguna.",
+  "Show event on these status pages": "Mostrar evento en estas páginas de estado",
+  "This event will not appear on any status page.": "Este evento no aparecerá en ninguna página de estado."
 }

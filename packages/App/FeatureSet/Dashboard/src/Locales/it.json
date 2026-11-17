@@ -4533,7 +4533,6 @@
   "Select Status Page": "Seleziona pagina di stato",
   "Select Status Pages": "Seleziona pagine di stato",
   "Select status pages to show this announcement on": "Seleziona le pagine di stato su cui mostrare questo annuncio",
-  "Select status pages to show this event on": "Seleziona le pagine di stato su cui mostrare questo evento",
   "Select Team": "Seleziona team",
   "Select Teams": "Seleziona team",
   "Select telemetry services to scope this monitor.": "Seleziona i servizi di telemetria per delimitare l'ambito di questo monitor.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Mostra etichette degli episodi",
   "Show Episodes": "Mostra episodi",
   "Show Episodes on Status Page": "Mostra episodi sulla pagina di stato",
-  "Show event on these status pages ": "Mostra evento su queste pagine di stato ",
   "Show ID and Key": "Mostra ID e chiave",
   "Show Incident History (in days)": "Mostra cronologia incidenti (in giorni)",
   "Show Incident Labels": "Mostra etichette degli incidenti",
@@ -13360,7 +13358,6 @@
   "No status": "Nessuno stato",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "Nessuna pagina di stato selezionata per questo evento di manutenzione.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Nessuno storage ancora segnalato. Assicurati che l'agente Proxmox stia inviando le metriche.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "Questa pagina di stato è pubblica, quindi queste impostazioni non hanno effetto finché non la rendi privata.",
   "Title and Search Engine Description": "Titolo e descrizione per i motori di ricerca",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "I visitatori leggono questo testo in cima alla tua pagina di stato, ad esempio cosa copre e dove trovare supporto.",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Ciò che i visitatori leggono per primo, in cima alla tua pagina di stato, prima di tutto il resto. Markdown è supportato."
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Ciò che i visitatori leggono per primo, in cima alla tua pagina di stato, prima di tutto il resto. Markdown è supportato.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Gli eventi di questo modello compaiono solo su queste pagine di stato e notificano solo i loro iscritti. Senza alcuna selezione, non compaiono su nessuna pagina di stato.",
+  "Events from this template will not appear on any status page.": "Gli eventi di questo modello non compariranno su nessuna pagina di stato.",
+  "Not shown on any status page": "Non mostrato su nessuna pagina di stato",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Solo queste pagine di stato mostrano questo evento e notificano i loro iscritti. A differenza di un incidente, un evento senza pagine scelte non compare su nessuna.",
+  "Show event on these status pages": "Mostra evento su queste pagine di stato",
+  "This event will not appear on any status page.": "Questo evento non comparirà su nessuna pagina di stato."
 }

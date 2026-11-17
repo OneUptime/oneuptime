@@ -50,7 +50,7 @@ Velg statussidene under **Vis hendelse på disse statussidene**. **Varslinger ti
 Klikk på **Neste** for å se gjennomgangen, sjekk den, og klikk deretter på **Opprett vedlikeholdshendelse**. Hendelsens egen side åpnes.
 :::
 
-Ingenting sendes før du velger en statusside: en hendelse som ikke vises på noen statusside, gir ingen abonnent beskjed.
+Ingenting sendes før du velger en statusside: en hendelse som ikke vises på noen statusside, gir ingen abonnent beskjed. I motsetning til en hendelse når en vedlikeholdshendelse aldri av seg selv statussidene som viser monitorene dens: uten valg står det «Vises ikke på noen statusside» i feltet, og gjennomgangen advarer «Denne vedlikeholdshendelsen vises ikke på noen statusside.» med de foreslåtte sidene ett klikk unna.
 
 ## Feltene i skjemaet
 

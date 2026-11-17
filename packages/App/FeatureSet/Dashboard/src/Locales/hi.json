@@ -4533,7 +4533,6 @@
   "Select Status Page": "स्थिति पृष्ठ चुनें",
   "Select Status Pages": "स्थिति पृष्ठ चुनें",
   "Select status pages to show this announcement on": "इस घोषणा को दिखाने के लिए स्थिति पृष्ठ चुनें",
-  "Select status pages to show this event on": "इस इवेंट को दिखाने के लिए स्थिति पृष्ठ चुनें",
   "Select Team": "टीम चुनें",
   "Select Teams": "टीमें चुनें",
   "Select telemetry services to scope this monitor.": "इस मॉनिटर का दायरा निर्धारित करने के लिए टेलीमेट्री सेवाएं चुनें।",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "एपिसोड लेबल दिखाएं",
   "Show Episodes": "एपिसोड दिखाएं",
   "Show Episodes on Status Page": "स्थिति पृष्ठ पर एपिसोड दिखाएं",
-  "Show event on these status pages ": "इन स्थिति पृष्ठों पर इवेंट दिखाएं ",
   "Show ID and Key": "आईडी और कुंजी दिखाएँ",
   "Show Incident History (in days)": "घटना इतिहास दिखाएं (दिनों में)",
   "Show Incident Labels": "घटना लेबल दिखाएं",
@@ -13360,7 +13358,6 @@
   "No status": "कोई स्थिति नहीं",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "इस रखरखाव इवेंट के लिए कोई स्थिति पृष्ठ नहीं चुना गया।",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "अभी तक कोई स्टोरेज नहीं आया है। सुनिश्चित करें कि Proxmox एजेंट मेट्रिक्स भेज रहा है।",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "यह स्टेटस पेज सार्वजनिक है, इसलिए जब तक आप इसे निजी नहीं बनाते, ये सेटिंग्स कुछ नहीं करतीं।",
   "Title and Search Engine Description": "शीर्षक और सर्च इंजन विवरण",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "विज़िटर इसे आपके स्टेटस पेज के ऊपर पढ़ते हैं, जैसे यह किन चीज़ों को कवर करता है और सहायता कहाँ मिलेगी।",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "विज़िटर सबसे पहले यही पढ़ते हैं, आपके स्टेटस पेज के सबसे ऊपर, बाकी सब से पहले। Markdown समर्थित है।"
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "विज़िटर सबसे पहले यही पढ़ते हैं, आपके स्टेटस पेज के सबसे ऊपर, बाकी सब से पहले। Markdown समर्थित है।",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "इस टेम्पलेट से बने इवेंट केवल इन स्थिति पृष्ठों पर दिखते हैं और केवल इनके सब्सक्राइबर को सूचित करते हैं। कुछ न चुनने पर वे किसी भी स्थिति पृष्ठ पर नहीं दिखते।",
+  "Events from this template will not appear on any status page.": "इस टेम्पलेट से बने इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखेंगे।",
+  "Not shown on any status page": "किसी भी स्थिति पृष्ठ पर नहीं दिखाया गया",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "केवल ये स्थिति पृष्ठ यह इवेंट दिखाते हैं और अपने सब्सक्राइबर को सूचित करते हैं। किसी घटना के विपरीत, बिना चुने पृष्ठों वाला इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखता।",
+  "Show event on these status pages": "इन स्थिति पृष्ठों पर इवेंट दिखाएं",
+  "This event will not appear on any status page.": "यह इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखेगा।"
 }

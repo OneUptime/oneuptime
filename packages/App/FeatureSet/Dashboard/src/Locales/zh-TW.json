@@ -4533,7 +4533,6 @@
   "Select Status Page": "選擇狀態頁面",
   "Select Status Pages": "選擇狀態頁面",
   "Select status pages to show this announcement on": "選擇要顯示此公告的狀態頁面",
-  "Select status pages to show this event on": "選擇要顯示此事件的狀態頁面",
   "Select Team": "選擇團隊",
   "Select Teams": "選擇團隊",
   "Select telemetry services to scope this monitor.": "選擇遙測服務以限定此監測器的範圍。",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "顯示片段標籤",
   "Show Episodes": "顯示片段",
   "Show Episodes on Status Page": "在狀態頁面上顯示片段",
-  "Show event on these status pages ": "在這些狀態頁面上顯示事件 ",
   "Show ID and Key": "顯示 ID 和金鑰",
   "Show Incident History (in days)": "顯示事件歷史記錄（天數）",
   "Show Incident Labels": "顯示事件標籤",
@@ -13360,7 +13358,6 @@
   "No status": "無狀態",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "此維護事件未選擇狀態頁面。",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "尚未回報任何儲存空間。請確認 Proxmox 代理程式正在傳送指標。",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "此狀態頁是公開的，因此在你將其設為私人之前，這些設定不會有任何作用。",
   "Title and Search Engine Description": "標題和搜尋引擎描述",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "訪客會在狀態頁頂端讀到這段文字，例如它涵蓋的範圍以及取得支援的管道。",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "訪客最先讀到的內容，顯示在狀態頁頂端，位於所有其他內容之上。支援 Markdown。"
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "訪客最先讀到的內容，顯示在狀態頁頂端，位於所有其他內容之上。支援 Markdown。",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "以此範本建立的維護事件只會顯示在這些狀態頁面上，且只通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
+  "Events from this template will not appear on any status page.": "以此範本建立的維護事件不會顯示在任何狀態頁面上。",
+  "Not shown on any status page": "不在任何狀態頁面上顯示",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面會顯示此維護事件並通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
+  "Show event on these status pages": "在這些狀態頁面上顯示事件",
+  "This event will not appear on any status page.": "此維護事件不會顯示在任何狀態頁面上。"
 }

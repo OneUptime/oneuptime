@@ -4533,7 +4533,6 @@
   "Select Status Page": "Selecteer statuspagina",
   "Select Status Pages": "Selecteer statuspagina's",
   "Select status pages to show this announcement on": "Selecteer statuspagina's om deze aankondiging op te tonen",
-  "Select status pages to show this event on": "Selecteer statuspagina's om deze gebeurtenis op te tonen",
   "Select Team": "Selecteer team",
   "Select Teams": "Selecteer teams",
   "Select telemetry services to scope this monitor.": "Selecteer telemetrieservices om deze monitor af te bakenen.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Episodelabels weergeven",
   "Show Episodes": "Episoden weergeven",
   "Show Episodes on Status Page": "Episoden weergeven op statuspagina",
-  "Show event on these status pages ": "Gebeurtenis weergeven op deze statuspagina's ",
   "Show ID and Key": "ID en sleutel tonen",
   "Show Incident History (in days)": "Incidentgeschiedenis weergeven (in dagen)",
   "Show Incident Labels": "Incidentlabels weergeven",
@@ -13360,7 +13358,6 @@
   "No status": "Geen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "Geen statuspagina's geselecteerd voor deze onderhoudsgebeurtenis.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Nog geen opslag gemeld. Zorg ervoor dat de Proxmox-agent metrieken verzendt.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "Deze statuspagina is openbaar, dus deze instellingen doen niets totdat u haar privé maakt.",
   "Title and Search Engine Description": "Titel en zoekmachinebeschrijving",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Bezoekers lezen dit bovenaan uw statuspagina, bijvoorbeeld wat de pagina dekt en waar ze ondersteuning krijgen.",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Wat bezoekers als eerste lezen, bovenaan uw statuspagina, boven al het andere. Markdown wordt ondersteund."
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Wat bezoekers als eerste lezen, bovenaan uw statuspagina, boven al het andere. Markdown wordt ondersteund.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Gebeurtenissen uit dit sjabloon verschijnen alleen op deze statuspagina's en informeren alleen hun abonnees. Zonder keuze verschijnen ze op geen enkele statuspagina.",
+  "Events from this template will not appear on any status page.": "Gebeurtenissen uit dit sjabloon verschijnen op geen enkele statuspagina.",
+  "Not shown on any status page": "Op geen enkele statuspagina weergegeven",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's tonen deze gebeurtenis en informeren hun abonnees. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina.",
+  "Show event on these status pages": "Gebeurtenis weergeven op deze statuspagina's",
+  "This event will not appear on any status page.": "Deze gebeurtenis verschijnt op geen enkele statuspagina."
 }

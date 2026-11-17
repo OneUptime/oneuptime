@@ -4533,7 +4533,6 @@
   "Select Status Page": "انتخاب صفحه وضعیت",
   "Select Status Pages": "انتخاب صفحات وضعیت",
   "Select status pages to show this announcement on": "صفحات وضعیتی را انتخاب کنید که این اطلاعیه روی آن‌ها نمایش داده شود",
-  "Select status pages to show this event on": "صفحات وضعیتی را انتخاب کنید که این رویداد روی آن‌ها نمایش داده شود",
   "Select Team": "انتخاب تیم",
   "Select Teams": "انتخاب تیم‌ها",
   "Select telemetry services to scope this monitor.": "سرویس‌های تله‌متری را برای محدود کردن دامنه این مانیتور انتخاب کنید.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "نمایش برچسب‌های اپیزود",
   "Show Episodes": "نمایش اپیزودها",
   "Show Episodes on Status Page": "نمایش اپیزودها در صفحه وضعیت",
-  "Show event on these status pages ": "نمایش رویداد در این صفحات وضعیت ",
   "Show ID and Key": "نمایش شناسه و کلید",
   "Show Incident History (in days)": "نمایش تاریخچه حوادث (به روز)",
   "Show Incident Labels": "نمایش برچسب‌های حادثه",
@@ -13360,7 +13358,6 @@
   "No status": "بدون وضعیت",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "هنوز سابقه وضعیتی نیست. با ثبت تغییرها در تجمیع سلامت سایت، خط زمانی پر می‌شود.",
   "No status pages selected for this announcement.": "هیچ صفحه وضعیتی برای این اطلاعیه انتخاب نشده است.",
-  "No status pages selected for this maintenance event.": "هیچ صفحه وضعیتی برای این رویداد تعمیر و نگهداری انتخاب نشده است.",
   "No status recorded yet.": "هنوز هیچ وضعیتی ثبت نشده است.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "هنوز هیچ ذخیره‌سازی‌ای گزارش نشده است. مطمئن شوید عامل Proxmox متریک‌ها را می‌فرستد.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "هنوز هیچ منطقه زمانی مشترکی انتخاب نشده است. مشترکان به‌طور پیش‌فرض اعلان‌ها را با زمان‌هایی در منطقه‌های زمانی GMT، EST، PST، IST و ACT دریافت می‌کنند.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "این صفحه وضعیت عمومی است، پس تا وقتی آن را خصوصی نکنید این تنظیمات هیچ اثری ندارند.",
   "Title and Search Engine Description": "عنوان و توضیحات موتور جستجو",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "بازدیدکنندگان این را بالای صفحه وضعیت شما می‌خوانند، مثلاً اینکه چه چیزهایی را پوشش می‌دهد و از کجا پشتیبانی بگیرند.",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "آنچه بازدیدکنندگان اول می‌خوانند، بالای صفحه وضعیت شما و پیش از همه چیز. از Markdown پشتیبانی می‌شود."
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "آنچه بازدیدکنندگان اول می‌خوانند، بالای صفحه وضعیت شما و پیش از همه چیز. از Markdown پشتیبانی می‌شود.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "رویدادهای این الگو فقط در این صفحات وضعیت نمایش داده می‌شوند و فقط به مشترکان آن‌ها اطلاع می‌دهند. اگر هیچ صفحه‌ای انتخاب نشود، در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
+  "Events from this template will not appear on any status page.": "رویدادهای این الگو در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شوند.",
+  "Not shown on any status page": "در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "فقط این صفحات وضعیت این رویداد را نمایش می‌دهند و به مشترکان خود اطلاع می‌دهند. برخلاف حادثه، رویدادی که هیچ صفحه‌ای برایش انتخاب نشده در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود.",
+  "Show event on these status pages": "نمایش رویداد در این صفحات وضعیت",
+  "This event will not appear on any status page.": "این رویداد در هیچ صفحهٔ وضعیتی نمایش داده نمی‌شود."
 }

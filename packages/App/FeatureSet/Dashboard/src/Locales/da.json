@@ -4533,7 +4533,6 @@
   "Select Status Page": "Vælg statusside",
   "Select Status Pages": "Vælg statussider",
   "Select status pages to show this announcement on": "Vælg statussider, som denne meddelelse skal vises på",
-  "Select status pages to show this event on": "Vælg statussider, som denne hændelse skal vises på",
   "Select Team": "Vælg team",
   "Select Teams": "Vælg team",
   "Select telemetry services to scope this monitor.": "Vælg telemetritjenester til at afgrænse denne monitor.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Vis episodeetiketter",
   "Show Episodes": "Vis episoder",
   "Show Episodes on Status Page": "Vis episoder på statusside",
-  "Show event on these status pages ": "Vis begivenhed på disse statussider ",
   "Show ID and Key": "Vis ID og nøgle",
   "Show Incident History (in days)": "Vis hændelseshistorik (i dage)",
   "Show Incident Labels": "Vis hændelsesetiketter",
@@ -13360,7 +13358,6 @@
   "No status": "Ingen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "Ingen statussider valgt til denne vedligeholdelseshændelse.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Ingen lagerpladser rapporteret endnu. Sørg for, at Proxmox-agenten sender metrikker.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56495,5 +56492,11 @@
   "This status page is public, so these settings do nothing until you make it private.": "Denne statusside er offentlig, så disse indstillinger gør intet, før du gør den privat.",
   "Title and Search Engine Description": "Titel og søgemaskinebeskrivelse",
   "Visitors read this at the top of your status page, such as what it covers and where to get support.": "Besøgende læser dette øverst på din statusside, fx hvad den dækker, og hvor man får support.",
-  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Det, besøgende læser først, øverst på din statusside, over alt andet. Markdown understøttes."
+  "What visitors read first, at the top of your status page, above everything else. Markdown is supported.": "Det, besøgende læser først, øverst på din statusside, over alt andet. Markdown understøttes.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Begivenheder fra denne skabelon vises kun på disse statussider og underretter kun deres abonnenter. Uden valg vises de ikke på nogen statusside.",
+  "Events from this template will not appear on any status page.": "Begivenheder fra denne skabelon vises ikke på nogen statusside.",
+  "Not shown on any status page": "Vises ikke på nogen statusside",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider viser denne begivenhed og underretter deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside.",
+  "Show event on these status pages": "Vis begivenhed på disse statussider",
+  "This event will not appear on any status page.": "Denne begivenhed vises ikke på nogen statusside."
 }

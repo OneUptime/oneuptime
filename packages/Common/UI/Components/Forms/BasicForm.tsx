@@ -1792,6 +1792,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               formValues={refCurrentValue.current}
                               formFields={formFields}
                               formSteps={formSteps || undefined}
+                              setFieldValue={(
+                                field: Field<T>,
+                                value: JSONValue,
+                              ): void => {
+                                setFieldValueFromFooter(
+                                  field,
+                                  getFieldName(field),
+                                  value,
+                                );
+                              }}
                             />
                           ) : (
                             /*

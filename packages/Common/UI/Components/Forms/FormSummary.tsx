@@ -2,6 +2,7 @@ import React, { ReactElement } from "react";
 import Detail from "../Detail/Detail";
 import FormValues from "./Types/FormValues";
 import GenericObject from "../../../Types/GenericObject";
+import { JSONValue } from "../../../Types/JSON";
 import Fields from "./Types/Fields";
 import FormFieldSchemaTypeUtil from "./Utils/FormFieldSchemaTypeUtil";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
@@ -375,6 +376,12 @@ export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
   formSteps: FormStep<T>[] | undefined;
+  /*
+   * Sets a field's value as its footer would (FieldFooterProps), for a
+   * field's review row that offers a one-click fix. Left out, review rows
+   * are handed nothing to set it with.
+   */
+  setFieldValue?: ((field: Field<T>, value: JSONValue) => void) | undefined;
 }
 
 const FormSummary: <T extends GenericObject>(
@@ -383,6 +390,36 @@ const FormSummary: <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { formValues, formFields } = props;
+
+  // A field's own review row, handed what it can do to its field.
+  const getFieldSummaryElement: (
+    field: Field<T>,
+  ) => SummaryElementFn<T> | undefined = (
+    field: Field<T>,
+  ): SummaryElementFn<T> | undefined => {
+    const getSummaryElement: Field<T>["getSummaryElement"] =
+      field.getSummaryElement;
+
+    if (!getSummaryElement) {
+      return undefined;
+    }
+
+    const setFieldValue: ComponentProps<T>["setFieldValue"] =
+      props.setFieldValue;
+
+    return (item: FormValues<T>): ReactElement | undefined => {
+      return getSummaryElement(
+        item,
+        setFieldValue
+          ? {
+              setValue: (value: JSONValue): void => {
+                setFieldValue(field, value);
+              },
+            }
+          : undefined,
+      );
+    };
+  };
 
   const getDetailForFormFields: <T extends GenericObject>(
     formValues: FormValues<T>,
@@ -410,7 +447,7 @@ const FormSummary: <T extends GenericObject>(
                       field.fieldType || FormFieldSchemaType.Text,
                     ),
                 description: field.description || "",
-                getElement: (field.getSummaryElement ||
+                getElement: (getFieldSummaryElement(field as Field<any>) ||
                   defaultSummaryElement) as any,
                 /*
                  * A dropdown's form value is only the chosen ID. The options
