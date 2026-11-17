@@ -209,19 +209,24 @@ describe("an API key's expiry", () => {
 
 describe("Admin Dashboard", () => {
   test("Settings > API Key says what the master key reaches, and what turning it off does", () => {
-    const page: string = read(
+    /*
+     * The page is MasterApiKeyCard since the key is stored hashed (#7901),
+     * and its words are in MasterApiKeyCopy, whitespace-squashed here so
+     * prettier re-wrapping a call cannot fail this.
+     */
+    const copy: string = read(
       ADMIN,
       "Pages",
       "Settings",
       "APIKey",
-      "Index.tsx",
-    );
+      "MasterApiKeyCopy.ts",
+    ).replace(/\s+/g, " ");
 
-    expect(page).toContain(
-      'description: "Has root access to every project on this server."',
+    expect(copy).toContain(
+      'cardDescription: translationKey( "Has root access to every project on this server.", )',
     );
-    expect(page).toContain(
-      'description: "While it is off, every request with the key fails."',
+    expect(copy).toContain(
+      'switchOff: translationKey( "While it is off, every request with the key fails.", )',
     );
   });
 
@@ -415,8 +420,8 @@ describe("a team's and an API key's Add dialogs say what their button said", () 
 
 describe("the Admin Dashboard's settings dialogs are titled like their buttons", () => {
   const PAGES: Array<Array<string>> = [
+    // Not API Key: since #7901 it has no Edit dialog, only Create and Reset.
     ["Email", "Index.tsx"],
-    ["APIKey", "Index.tsx"],
     ["CallSMS", "Index.tsx"],
     ["DataRetention", "Index.tsx"],
     ["WhatsApp", "Index.tsx"],
