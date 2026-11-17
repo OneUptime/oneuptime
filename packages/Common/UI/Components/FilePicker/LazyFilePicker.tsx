@@ -126,7 +126,7 @@ export const FilePickerPlaceholder: FunctionComponent<
               className="flex w-full justify-center rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
             >
               <div className="flex w-full flex-col items-center justify-center space-y-3 text-center">
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   {translator.translatePlural(
                     FILE_PICKER_FULL_NOTE,
                     layout.maxFiles || 0,
@@ -151,7 +151,7 @@ export const FilePickerPlaceholder: FunctionComponent<
                   ) : (
                     <div className={`h-12 w-12 ${BOX_CLASS_NAME}`} />
                   )}
-                  <div className="flex flex-col items-center text-sm text-gray-400 space-y-1">
+                  <div className="flex flex-col items-center text-sm text-gray-500 space-y-1">
                     <span
                       className={`relative inline-flex items-center gap-1.5 font-medium ${
                         layout.isCompactPrompt ? "px-2 py-1" : "px-4 py-2"

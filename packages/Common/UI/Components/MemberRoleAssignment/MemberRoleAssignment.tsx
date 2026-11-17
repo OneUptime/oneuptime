@@ -861,7 +861,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                     {/* Members List */}
                     <div className="px-4 py-2 bg-white">
                       {members.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic py-2">
+                        <p className="text-sm text-gray-500 italic py-2">
                           {translator.translateText("Not assigned")}
                         </p>
                       ) : (

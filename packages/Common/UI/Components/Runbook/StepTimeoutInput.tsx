@@ -132,7 +132,7 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
         className="block text-xs font-medium text-gray-700 mb-1.5"
       >
         {translator.translateText(props.label)}
-        <span className="ml-2 text-[10px] font-normal text-gray-400">
+        <span className="ml-2 text-xs font-normal text-gray-500">
           {translator.translateText("seconds")}
         </span>
       </label>

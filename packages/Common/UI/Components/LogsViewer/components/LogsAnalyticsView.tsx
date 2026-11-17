@@ -311,7 +311,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-400">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-500">
         {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
@@ -339,7 +339,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
       </div>
       {entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
-          <span className="text-[11px] font-medium text-gray-400">
+          <span className="text-[11px] font-medium text-gray-500">
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
@@ -707,7 +707,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   ): ReactElement => {
     return (
       <div className="flex items-center">
-        <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+        <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-500">
           {label}
         </span>
         <div className="relative flex items-center">
@@ -853,7 +853,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
     return (
       <span
-        className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
+        className="ml-auto shrink-0 whitespace-nowrap text-xs text-gray-500"
         data-testid={LOGS_ANALYTICS_ZOOM_HINT_TEST_ID}
       >
         {translator.translateText(
@@ -1181,7 +1181,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 key={index}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
               >
-                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-300">
+                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-500">
                   {index + 1}
                 </span>
                 <div
@@ -1211,7 +1211,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {item.count.toLocaleString(getReaderNumberLocale())}
                   </span>
-                  <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-400">
+                  <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-500">
                     {sharePercent}%
                   </span>
                 </div>
@@ -1253,7 +1253,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           >
             <thead>
               <tr className="border-b border-gray-200/80 bg-gray-50/80">
-                <th className="w-10 px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <th className="w-10 px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   #
                 </th>
                 {groupKeys.map((key: string, keyIndex: number) => {
@@ -1268,7 +1268,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   return (
                     <ResizableHeaderCell
                       key={key}
-                      className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                       resize={resizableColumns.getResize(
                         `group:${key}`,
                         label,
@@ -1282,7 +1282,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   );
                 })}
                 <ResizableHeaderCell
-                  className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+                  className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500"
                   resize={resizableColumns.getResize(
                     "count",
                     translator.translateText("Count") || "Count",
@@ -1308,7 +1308,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     key={index}
                     className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300">
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">
                       {index + 1}
                     </td>
                     {groupKeys.map((key: string) => {
@@ -1366,7 +1366,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
           />
         </svg>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-500">
           {translator.translateText("No data available for the selected query")}
         </p>
       </div>

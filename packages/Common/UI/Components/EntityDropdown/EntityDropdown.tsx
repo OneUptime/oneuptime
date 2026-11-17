@@ -1976,12 +1976,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
                 {translator.translateText("Labels")}
                 {selectedLabelIds.length > 0 && (
-                  <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
+                  <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-700">
                     {selectedLabelIds.length}
                   </span>
                 )}
               </button>
-              <span className="ml-auto pr-1 text-[11px] text-gray-400">
+              <span className="ml-auto pr-1 text-[11px] text-gray-500">
                 {translator.translateText(
                   activeTab === "options"
                     ? "Pick individually"
@@ -2291,7 +2291,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                             </span>
                           </button>
                           {preview !== undefined && (
-                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                               {preview.length}
                               {preview.length >= LABEL_PREVIEW_LIMIT ? "+" : ""}
                             </span>

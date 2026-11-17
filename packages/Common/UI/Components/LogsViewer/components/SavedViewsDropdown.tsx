@@ -174,7 +174,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         <span className="max-w-40 truncate">
           {selectedView?.name || translator.translateText("Saved Views")}
         </span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
         </span>
       </button>
@@ -235,13 +235,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
           {/* View list */}
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-gray-400">
+              <div className="px-3 py-6 text-center text-xs text-gray-500">
                 {translator.translateText("No saved views yet.")}
               </div>
             )}
 
             {props.savedViews.length > 0 && visible.views.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-gray-400">
+              <div className="px-3 py-6 text-center text-xs text-gray-500">
                 {translator.translateText("No matches found")}
               </div>
             )}
@@ -306,7 +306,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                       {view.name}
                     </span>
                     {view.isDefault && (
-                      <span className="shrink-0 text-[10px] text-gray-400">
+                      <span className="shrink-0 text-xs text-gray-500">
                         {translator.translateText("default")}
                       </span>
                     )}

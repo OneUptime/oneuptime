@@ -2377,7 +2377,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         }
         rightElement={
           action.shortcut ? (
-            <span className="ml-3 text-xs font-normal text-gray-400">
+            <span className="ml-3 text-xs font-normal text-gray-500">
               {action.shortcut}
             </span>
           ) : undefined

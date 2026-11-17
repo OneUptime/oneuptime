@@ -5863,7 +5863,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       />
                       <span className="flex-1 truncate">{label.name}</span>
                       {isActive && (
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
                           ↵
                         </span>
                       )}

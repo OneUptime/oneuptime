@@ -369,8 +369,8 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                      * stand out over the real counts beside it.
                      */
                     isZeroCount || isExcluded
-                    ? "text-gray-400 opacity-60"
-                    : "text-gray-400"
+                    ? "text-gray-500 opacity-60"
+                    : "text-gray-500"
             }${countVisibility}`}
             title={isShortened ? exactCount : undefined}
             data-testid={FACET_VALUE_COUNT_TEST_ID}

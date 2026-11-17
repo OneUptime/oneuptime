@@ -625,7 +625,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
         {shortcutKey && (
           <div className="ms-2">
-            <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
+            <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-500">
               {shortcutKey}
             </kbd>
           </div>

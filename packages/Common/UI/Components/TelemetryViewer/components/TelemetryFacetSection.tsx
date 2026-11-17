@@ -311,7 +311,7 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
           })}
 
           {displayedValues.length === 0 && !props.isCountStopped && (
-            <p className="px-1.5 py-2 text-[11px] text-gray-400">
+            <p className="px-1.5 py-2 text-[11px] text-gray-500">
               {getFacetEmptyStateText({
                 searchText: searchText,
                 emptyStateText: props.emptyStateText,

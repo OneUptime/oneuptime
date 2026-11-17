@@ -419,7 +419,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
             />
           ) : (
             <p
-              className="truncate text-sm text-gray-400"
+              className="truncate text-sm text-gray-500"
               data-testid="status-page-resource-row-same-name"
             >
               {/*
