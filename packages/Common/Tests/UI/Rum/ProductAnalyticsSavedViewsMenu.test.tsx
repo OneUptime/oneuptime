@@ -32,6 +32,7 @@ import {
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import { SavedViewOption } from "../../../UI/Components/TelemetryViewer/types";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -509,7 +510,8 @@ describe("the menu on the toolbar", () => {
 
   /*
    * It stands in the card's header beside the time range, at the time
-   * range's header size - 38px, 42px on a phone - where a chip stood 30px.
+   * range's header size - 38px at every width, as a card header's buttons
+   * are (#9128) - where a chip stood 30px.
    */
   test("its trigger is as tall as the header's time range beside it", async () => {
     renderMenu();
@@ -518,8 +520,13 @@ describe("the menu on the toolbar", () => {
       expect(trigger()).toHaveTextContent("Saved funnels3");
     });
 
-    expect(trigger()).toHaveClass("px-3", "py-2.5", "md:py-2", "text-sm");
-    expect(trigger()).not.toHaveClass("py-1.5", "text-xs");
+    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual(["py-2"]);
+    expect(trigger()).toHaveClass(
+      "px-3",
+      ...TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" "),
+      "text-sm",
+    );
+    expect(trigger()).not.toHaveClass("py-1.5", "py-2.5", "text-xs");
   });
 
   test("reads the list again as it opens, so one saved in another tab is in it", async () => {

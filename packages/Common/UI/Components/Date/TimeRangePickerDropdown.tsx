@@ -61,7 +61,7 @@ export interface TimeRangePickerMoments {
  *
  * Compact is the small chip an explorer's toolbar and an overview page's
  * header hold, beside other chips of its size. Header is as tall as a card
- * header's buttons - 42px on a phone, 38px from md up - for a table that
+ * header's buttons - 38px at every width - for a table that
  * keeps its time range in its header, beside its search and its ⋯: there a
  * chip sat a size smaller than everything around it.
  */

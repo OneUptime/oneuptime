@@ -237,7 +237,8 @@ test.describe("the session list's header", () => {
     await openList(page);
     await settleHeader(page);
 
-    await expectOneHeight(controls(page), 42);
+    // 38px, as at 1280: a button is text-sm on a phone too (#9128).
+    await expectOneHeight(controls(page), 38);
 
     const card: Box = await box(listCard(page).first());
     const search: Box = await box(page.getByTestId("session-search-slot"));

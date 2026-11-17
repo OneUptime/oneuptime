@@ -148,9 +148,9 @@ async function open(
  * (tailwind.js), so an element whose classes carry a transition animates
  * into its styles on first paint: the table's search box (transition-all)
  * grows its padding in over 200 ms, and a box read meanwhile is short - the
- * phone's 42px search slot once read 41. Boxes are read once every finite
- * animation has run its course. The product's stylesheet is built ahead of
- * time, so nothing animates there on first paint.
+ * phone's search slot once read a pixel under its height. Boxes are read
+ * once every finite animation has run its course. The product's stylesheet
+ * is built ahead of time, so nothing animates there on first paint.
  */
 async function finishFirstPaintTransitions(page: Page): Promise<void> {
   await page.evaluate(async (): Promise<void> => {
@@ -592,7 +592,8 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
       .boundingBox())!;
     expect(search.y).toBeGreaterThanOrEqual(bottomOf(boxes.title) - 1);
     expect(Math.abs(search.x - boxes.title.x)).toBeLessThanOrEqual(1);
-    expect(Math.round(search.height)).toBe(42);
+    // As tall as the header's buttons, 38px on a phone too (#9128).
+    expect(Math.round(search.height)).toBe(38);
     // Nothing hangs past the header into the chips.
     expect(boxes.body!.y).toBeGreaterThanOrEqual(
       bottomOf(boxes.actions!) - TOLERANCE,

@@ -1552,7 +1552,8 @@ test.describe("an incident's State Timeline", () => {
   /*
    * "There are buttons which do not match the sizes" - the switch stood
    * 32px beside the 38px Create State Change and ⋯ in the card's header,
-   * in both views. It is their height now: 38px, and 42px on a phone.
+   * in both views. It is their height now: 38px, on a phone too, where a
+   * button's words are text-sm since every button became one frame (#9128).
    */
   test("the Timeline | Table switch is as tall as the buttons beside it, in both views and on a phone", async ({
     page,
@@ -1588,13 +1589,13 @@ test.describe("an incident's State Timeline", () => {
     expect(await heightsInHeader()).toEqual([38, 38, 38]);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    expect(await heightsInHeader()).toEqual([42, 42, 42]);
+    expect(await heightsInHeader()).toEqual([38, 38, 38]);
 
     await page.getByTestId("status-timeline-view-table").click();
     await expect(
       page.getByTestId("status-timeline-view-table"),
     ).toHaveAttribute("aria-pressed", "true");
-    expect(await heightsInHeader()).toEqual([42, 42, 42]);
+    expect(await heightsInHeader()).toEqual([38, 38, 38]);
 
     await page.setViewportSize({ width: 1280, height: 900 });
     expect(await heightsInHeader()).toEqual([38, 38, 38]);
