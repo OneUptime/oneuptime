@@ -81,11 +81,11 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 - **Bygger** — lerretet der du designer arbeidsflyten, med bryteren **Aktivert** øverst.
 - **Arbeidsflytvariabler** — verdier som bare gjelder denne ene arbeidsflyten.
 - **Logger → Kjøringer** — hver kjøring av denne arbeidsflyten, med detaljer.
-- **Eiere** — personene og teamene som er ansvarlige for arbeidsflyten.
 - **Utvikler** — hvordan du administrerer denne arbeidsflyten med Terraform, API-et eller en AI-assistent.
 - **Innstillinger** — dupliser, eksporter og arkiver.
+- **Eiere** — personene og teamene som er ansvarlige for arbeidsflyten.
 
-**Innstillinger** ligger i menyens del **Avansert** sammen med **Revisjonslogger** og **Slett arbeidsflyt**. **Avansert** og **Utvikler** starter sammenfoldet, i denne menyen og i alle andre, slik at sidene du bruker hver dag, kommer først. Klikk på navnet til en del for å vise sidene i den. Den folder seg ut av seg selv når du er på en av dem.
+**Innstillinger** og **Eiere** ligger i menyens del **Avansert** sammen med **Revisjonslogger** og **Slett arbeidsflyt**. **Avansert** og **Utvikler** starter sammenfoldet, i denne menyen og i alle andre, slik at sidene du bruker hver dag, kommer først. Klikk på navnet til en del for å vise sidene i den. Den folder seg ut av seg selv når du er på en av dem.
 
 ## Bygg din første arbeidsflyt
 

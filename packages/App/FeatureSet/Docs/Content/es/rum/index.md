@@ -36,7 +36,7 @@ Abre **Productos → Recursos → Monitoreo de usuarios reales**. **Todas las ap
 - **Ajustes**: **Reglas del propietario**, **Reglas de etiquetas** y el interruptor **Reproducción de sesiones** de todo el proyecto.
 - **Avanzado**: **Archivado**, las aplicaciones que archivaste.
 
-El menú lateral de una aplicación agrupa sus páginas así; **Ajustes**, **Desarrolladores** y **Avanzado** empiezan plegadas:
+El menú lateral de una aplicación agrupa sus páginas así; **Desarrolladores** y **Avanzado** empiezan plegadas:
 
 | Sección | Páginas |
 | --- | --- |
@@ -44,9 +44,8 @@ El menú lateral de una aplicación agrupa sus páginas así; **Ajustes**, **Des
 | **Observabilidad** | **Métricas**, **Registros**, **Trazas**, **Clientes** |
 | **Analítica de producto** | **Usuarios**, **Sesiones**, **Eventos**, **Embudos**, **Retención de usuarios**, **Flujos de usuarios**, **Ajustes de analítica** |
 | **Reproducción de sesiones** | **Reproducción de sesiones**, **Usuarios de la reproducción**, **Salud**, **Política de reproducción**, **Señales de frustración**, **Registro de acceso a las reproducciones**, **Documentación** |
-| **Ajustes** | **Ajustes** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA** |
-| **Avanzado** | **Registros de auditoría**, **Eliminar aplicación** |
+| **Avanzado** | **Ajustes**, **Registros de auditoría**, **Eliminar aplicación** |
 
 ## Cómo reconoce OneUptime el RUM
 

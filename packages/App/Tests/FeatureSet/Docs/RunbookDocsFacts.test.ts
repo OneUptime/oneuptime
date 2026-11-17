@@ -2753,13 +2753,16 @@ describe("a runbook's own side menu", () => {
     expect(viewMenu).toEqual([
       { title: "Basic", items: ["Overview", "Steps"] },
       { title: "Logs", items: ["Executions"] },
-      { title: "Owners", items: ["Owners"] },
       { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
       {
         title: "Developer",
         items: ["Terraform", "API", "CLI", "AI Assistants"],
       },
-      { title: "Advanced", items: ["Audit Logs", "Delete Runbook"] },
+      // Owners joined Advanced when its one-entry section went (#9218).
+      {
+        title: "Advanced",
+        items: ["Owners", "Audit Logs", "Delete Runbook"],
+      },
     ]);
   });
 
