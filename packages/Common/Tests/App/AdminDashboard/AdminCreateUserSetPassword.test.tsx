@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { MemoryRouter } from "react-router-dom";
 import fs from "fs";
 import path from "path";
@@ -246,7 +247,7 @@ const createUser: (data: {
 };
 
 describe("Admin > Users > Create User", () => {
-  let toastSuccess: jest.SpiedFunction<typeof Toast.success>;
+  let toastSuccess: SpyInstance<typeof Toast.success>;
 
   beforeEach(() => {
     capturedTableProps = null;
