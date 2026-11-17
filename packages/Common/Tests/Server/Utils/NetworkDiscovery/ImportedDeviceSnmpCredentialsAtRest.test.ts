@@ -39,6 +39,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A DEVICE IMPORTED FROM A DISCOVERY SCAN IS CREATED WITH THE CREDENTIALS
@@ -409,7 +410,7 @@ describe.each(STORED)(
       jest
         .spyOn(engine as never, "recordDiscoveredDetails")
         .mockResolvedValue(undefined as never);
-      const stamp: jest.SpiedFunction<() => Promise<void>> = jest
+      const stamp: SpyInstance<() => Promise<void>> = jest
         .spyOn(engine as never, "stampScan")
         .mockResolvedValue(undefined as never) as never;
 

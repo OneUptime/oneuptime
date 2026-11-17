@@ -39,7 +39,9 @@ import ts from "typescript";
  * written over by a send that finished late. The one other write - the
  * settling, once, of the notifications left Sending before the stuck check
  * existed (issue #7085) - is the stuck check's own, over Sending only, in
- * its statement.
+ * its statement. A data migration writes a line's words once, and never a
+ * status: MaskWebhookAddressesInLogs, which reads "Sending webhook." where
+ * a page's webhook line named its address (issue #9013).
  *
  * Read with the TypeScript parser, so a new channel, a handler written
  * inline again, or a write of a notification by id fails here rather than
@@ -856,6 +858,13 @@ describe("nothing else writes a notification's status (issue #7082)", () => {
     "packages/Common/Server/Utils/OnCall/OnCallNotificationStatus.ts";
   const SETTLE_MODULE: string =
     "packages/Common/Server/Utils/OnCall/OnCallStuckNotifications.ts";
+  /*
+   * The data migration that masks the webhook addresses the logs kept
+   * (issue #9013): a page's "Sending webhook to <address>." line reads
+   * "Sending webhook." - its words, never its status.
+   */
+  const MASK_MODULE: string =
+    "packages/App/FeatureSet/Workers/DataMigrations/MaskWebhookAddressesInLogs.ts";
 
   // Every source file of the server that names the service.
   const files: Array<string> = [
@@ -893,7 +902,7 @@ describe("nothing else writes a notification's status (issue #7082)", () => {
     ]);
   });
 
-  test("only the settling of the notifications left Sending before the stuck check writes to the table itself", () => {
+  test("only the settling of the notifications left Sending before the stuck check, and the masking of the addresses they named, write to the table itself", () => {
     const repositories: Array<string> = [];
 
     for (const file of files) {
@@ -913,7 +922,44 @@ describe("nothing else writes a notification's status (issue #7082)", () => {
       repositories.map((where: string) => {
         return where.split(":")[0];
       }),
-    ).toEqual([SETTLE_MODULE]);
+    ).toEqual([SETTLE_MODULE, MASK_MODULE]);
+  });
+
+  /*
+   * Its one statement on the table, as written: the line's words alone, and
+   * only where they still name an address, so a send's result written
+   * meanwhile - which writes words of its own - is left as it is.
+   */
+  test("the masking of the addresses writes a line's words alone, never a status", () => {
+    const source: ts.SourceFile = parseAt(
+      path.join(REPOSITORY_ROOT, MASK_MODULE),
+    );
+    const statements: Array<string> = [];
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        (ts.isStringLiteral(node) ||
+          ts.isNoSubstitutionTemplateLiteral(node)) &&
+        node.text.includes('"UserOnCallLogTimeline"')
+      ) {
+        statements.push(node.text);
+      }
+
+      if (
+        ts.isTemplateExpression(node) &&
+        node.getText().includes('"UserOnCallLogTimeline"')
+      ) {
+        statements.push(node.getText());
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    expect(statements).toEqual([
+      'UPDATE "UserOnCallLogTimeline" SET "statusMessage" = $1 WHERE "statusMessage" ~ $2',
+    ]);
   });
 
   test("the service itself writes no notification of its own, and nor does its API", () => {

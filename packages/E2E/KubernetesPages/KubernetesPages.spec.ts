@@ -230,6 +230,16 @@ function heroId(kind: string): string {
 }
 
 /*
+ * The facts in a part's hero, in order. Each is the shared Pill since
+ * 88536f777a1 (they were hand-drawn chips, found by their data-key), and
+ * only the hero's tags, which a Kubernetes part has none of, are pills
+ * with a test id of their own.
+ */
+function heroChips(hero: Locator, kind: string): Locator {
+  return hero.getByTestId(`${heroId(kind)}-chips`).getByTestId("pill");
+}
+
+/*
  * A hero's status pill, as it reads: its label, without the description it
  * carries for screen readers.
  */
@@ -535,11 +545,14 @@ test.describe("a Deployment's page", () => {
         .getByTestId("kubernetes-deployment-hero-location")
         .getByRole("link", { name: "shop" }),
     ).toHaveAttribute("href", `${CLUSTER_PATH}/namespaces/shop`);
-    await expect(
-      hero
-        .getByTestId("kubernetes-deployment-hero-chips")
-        .locator("[data-key]"),
-    ).toHaveText(["3 replicas", "3 pods"]);
+    await expect(heroChips(hero, "Deployment")).toHaveText([
+      "3 replicas",
+      "3 pods",
+    ]);
+    // Facts, not states: each reads in the Pill's neutral tone.
+    for (const chip of await heroChips(hero, "Deployment").all()) {
+      await expect(chip).toHaveAttribute("data-tone", "neutral");
+    }
     await expect(
       hero.getByTestId("kubernetes-deployment-hero-last-report"),
     ).toHaveText("Last reported 1 minute ago");
@@ -733,11 +746,10 @@ test.describe("a Deployment's page", () => {
     );
     expect(await statusLabel(status)).toBe("Available");
     await expect(status).toHaveAttribute("data-tone", "positive");
-    await expect(
-      hero
-        .getByTestId("kubernetes-deployment-hero-chips")
-        .locator("[data-key]"),
-    ).toHaveText(["2 replicas", "2 pods"]);
+    await expect(heroChips(hero, "Deployment")).toHaveText([
+      "2 replicas",
+      "2 pods",
+    ]);
     // Nothing on it needs a look, and nothing is open on it.
     await expect(
       page.getByTestId("kubernetes-deployment-alerts-turn-on"),
@@ -836,9 +848,11 @@ test.describe("a pod's page", () => {
       "href",
       partPath("nodes", NODE_A),
     );
-    await expect(
-      hero.getByTestId("kubernetes-pod-hero-chips").locator("[data-key]"),
-    ).toHaveText(["0/1 container ready", "14 restarts", "QoS Burstable"]);
+    await expect(heroChips(hero, "Pod")).toHaveText([
+      "0/1 container ready",
+      "14 restarts",
+      "QoS Burstable",
+    ]);
 
     const card: Locator = page.getByTestId("kubernetes-pod-attention");
     expect(await attentionRows(card)).toEqual([
@@ -988,9 +1002,7 @@ test.describe("a node's page", () => {
     await expect(hero.getByTestId("kubernetes-node-hero-location")).toHaveText(
       "Node of cluster EKS Production (eu-west-1)",
     );
-    await expect(
-      hero.getByTestId("kubernetes-node-hero-chips").locator("[data-key]"),
-    ).toHaveText([
+    await expect(heroChips(hero, "Node")).toHaveText([
       "1 pod",
       "4 cores",
       "15.33 GB memory",
@@ -1144,9 +1156,10 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     expect(
       await statusLabel(hero.getByTestId("kubernetes-daemonset-hero-status")),
     ).toBe("Ready on 3 of 4 nodes");
-    await expect(
-      hero.getByTestId("kubernetes-daemonset-hero-chips").locator("[data-key]"),
-    ).toHaveText(["Runs on 4 nodes", "4 pods"]);
+    await expect(heroChips(hero, "DaemonSet")).toHaveText([
+      "Runs on 4 nodes",
+      "4 pods",
+    ]);
     const card: Locator = page.getByTestId("kubernetes-daemonset-attention");
     expect(await attentionRows(card)).toEqual([
       { key: "DaemonSet:kube-system/fluent-bit", severity: "warning" },
@@ -1176,9 +1189,10 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     expect(await statusLabel(status)).toBe("Last run failed");
     // Amber, as its row in Needs attention: a warning, not an outage.
     await expect(status).toHaveAttribute("data-tone", "warning");
-    await expect(
-      hero.getByTestId("kubernetes-cronjob-hero-chips").locator("[data-key]"),
-    ).toHaveText(["Schedule 0 2 * * *", "2 runs kept"]);
+    await expect(heroChips(hero, "CronJob")).toHaveText([
+      "Schedule 0 2 * * *",
+      "2 runs kept",
+    ]);
 
     const card: Locator = page.getByTestId("kubernetes-cronjob-attention");
     expect(await attentionRows(card)).toEqual([
@@ -1244,9 +1258,7 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     await expect(
       location.getByRole("link", { name: "CronJob nightly-report" }),
     ).toHaveAttribute("href", partPath("cronjobs", "nightly-report", "shop"));
-    await expect(
-      hero.getByTestId("kubernetes-job-hero-chips").locator("[data-key]"),
-    ).toHaveText(["3 pods failed"]);
+    await expect(heroChips(hero, "Job")).toHaveText(["3 pods failed"]);
     await expect(
       page.getByTestId("kubernetes-job-attention-reason"),
     ).toHaveText(["Failed", "BackoffLimitExceeded"]);

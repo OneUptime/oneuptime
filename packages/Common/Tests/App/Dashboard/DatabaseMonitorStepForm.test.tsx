@@ -78,8 +78,11 @@ describe("DatabaseMonitorStepForm - Host and Port", () => {
     expect(row.children[0]).toHaveClass("sm:col-span-3");
     expect(row.children[1]).toContainElement(view.getByPlaceholderText("5432"));
     for (const cell of Array.from(row.children)) {
-      expect(cell.querySelectorAll("label")).toHaveLength(1);
-      expect(cell.querySelectorAll(".text-gray-500")).toHaveLength(0);
+      const labels: NodeListOf<HTMLLabelElement> =
+        cell.querySelectorAll("label");
+      expect(labels).toHaveLength(1);
+      // No line of help: the only words in the cell are its label's.
+      expect(cell.textContent).toBe(labels[0]!.textContent);
     }
   });
 });
