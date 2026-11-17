@@ -195,7 +195,7 @@ export const ON_CALL_SETUP_COPY: {
 } = {
   pageTitle: translationKey("Page the right person when something breaks"),
   pageDescription: translationKey(
-    "Guided setup: how you are reached, who else is on call, what happens if nobody answers, and a test page, on this page.",
+    "Guided setup: how you are reached, who is paged first, what happens if nobody answers, and a test page, on this page.",
   ),
   /*
    * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the

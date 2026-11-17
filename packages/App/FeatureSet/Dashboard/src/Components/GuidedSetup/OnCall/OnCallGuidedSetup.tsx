@@ -1658,7 +1658,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       <Input
         id="on-call-setup-invite-email"
         value={inviteEmail}
-        placeholder="teammate@company.com"
+        placeholder="member@company.com"
         inputMode="email"
         readsLeftToRight={true}
         autoComplete="email"

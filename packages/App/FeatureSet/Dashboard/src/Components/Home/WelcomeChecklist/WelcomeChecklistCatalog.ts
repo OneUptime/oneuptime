@@ -425,7 +425,7 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,
     /*
-     * The guided setup (#6805): how you are reached, who else is on call,
+     * The guided setup (#6805): how you are reached, who is paged first,
      * what if nobody answers and a test page, on one page. It says what is
      * next itself, so the step has no landing line.
      */

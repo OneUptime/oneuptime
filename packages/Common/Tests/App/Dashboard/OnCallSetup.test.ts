@@ -1022,8 +1022,11 @@ describe("the order a page reaches each person (#7154)", () => {
   test.each(["de", "fa", "ja"])(
     "%s says it in its own words, with nothing left in English",
     (language: string) => {
+      const table: Record<string, string> = readLocale(language);
       const translator: Translator = createTranslator(
-        readLocale(language),
+        (key: string): string | undefined => {
+          return table[key];
+        },
         language,
       );
       const text: string = describeReachOrder(translator, [
@@ -1034,7 +1037,11 @@ describe("the order a page reaches each person (#7154)", () => {
       expect(text).not.toContain("at once");
       expect(text).not.toContain("then");
       expect(text).not.toContain("after");
-      expect(text).toContain("SMS");
+      expect(text).not.toContain("minute");
+      expect(text).not.toContain("hone call");
+      // The language's own name for each method, in its own order of words.
+      expect(text).toContain(table["Phone call"]!.slice(1));
+      expect(text).toContain(table["SMS"]!);
     },
   );
 
