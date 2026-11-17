@@ -69,6 +69,8 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -1881,21 +1883,21 @@ const KubernetesClusterOverview: FunctionComponent<
       availabilityPct === null ? (
         <Fragment />
       ) : (
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
-            availabilityPct >= 99
-              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-              : availabilityPct >= 90
-                ? "bg-amber-50 text-amber-700 ring-amber-200"
-                : "bg-red-50 text-red-700 ring-red-200"
-          }`}
-        >
-          {translator.translateTemplate("{{percent}}% uptime", {
+        <Pill
+          text={translator.translateTemplate("{{percent}}% uptime", {
             percent: figureInSentence(availabilityPct, {
               decimals: availabilityPct >= 99.95 ? 1 : 2,
             }),
           })}
-        </span>
+          isUserContent={true}
+          tone={
+            availabilityPct >= 99
+              ? PillTone.Success
+              : availabilityPct >= 90
+                ? PillTone.Warning
+                : PillTone.Danger
+          }
+        />
       );
 
     return (
@@ -2292,18 +2294,13 @@ const KubernetesClusterOverview: FunctionComponent<
                     idx: number,
                   ): ReactElement => {
                     return (
-                      <span
+                      <Pill
                         key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
-                        <Icon
-                          icon={chip.icon}
-                          className="h-3 w-3 text-gray-500"
-                        />
-                        <span className="font-medium">
-                          {translator.translateText(chip.label)}
-                        </span>
-                      </span>
+                        text={chip.label}
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={chip.icon}
+                      />
                     );
                   },
                 )}

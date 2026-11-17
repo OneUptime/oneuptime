@@ -39,7 +39,7 @@ Reglene er forskjellige i hvordan flere treff avgjøres:
 - **Eierregler**, **Etikettregler** og **Runbook-regler** virker alle når de matcher. Eiere og etiketter som flere regler legger til, legges til én gang.
 - **Påminnelsesregler** sjekkes fra toppen av listen og nedover, og det første treffet vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 
-En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel. Eier-, etikett- og runbook-regler virker på hendelser som opprettes etter at du har lagret dem. For å bruke en eier- eller etikettregel på hendelsene du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now).
+En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en grå **Deaktivert** for hver regel. Eier-, etikett- og runbook-regler virker på hendelser som opprettes etter at du har lagret dem. For å bruke en eier- eller etikettregel på hendelsene du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now).
 
 ## Eier- og etikettregler
 

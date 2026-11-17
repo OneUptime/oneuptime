@@ -22,6 +22,8 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -1164,25 +1166,16 @@ const OpenStackCloudOverview: FunctionComponent<
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1">
-                <span
-                  data-testid="openstack-overview-connection"
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                    isConnected
-                      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                      : "bg-amber-50 text-amber-700 ring-amber-200"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-1.5 w-1.5 rounded-full ${
-                      isConnected ? "bg-emerald-500" : "bg-amber-500"
-                    }`}
-                  />
-                  {getResourceConnectionLabel({
+                <Pill
+                  text={getResourceConnectionLabel({
                     translator: translator,
                     isConnected: isConnected,
                     status: status,
                   })}
-                </span>
+                  isUserContent={true}
+                  tone={isConnected ? PillTone.Success : PillTone.Warning}
+                  dataTestId="openstack-overview-connection"
+                />
                 <InfoTooltip
                   label="Data status"
                   text={OPENSTACK_METRIC_DESCRIPTIONS.dataStatus}

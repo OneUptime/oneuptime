@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -16,7 +17,7 @@ import {
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Gray500, Yellow } from "Common/Types/BrandColors";
 import {
   CustomElementProps,
   FormFieldCollapsibleSection,
@@ -360,11 +361,7 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: AutoRemediationRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

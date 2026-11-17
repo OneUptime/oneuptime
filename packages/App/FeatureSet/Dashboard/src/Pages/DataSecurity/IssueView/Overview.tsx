@@ -76,6 +76,8 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -538,16 +540,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           <div className="flex flex-wrap items-center gap-2">
             <SeverityPill severity={issue.severity} />
             <IssueStatusPill status={issue.status} />
-            <span
-              className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-gray-700"
-              title={translator.translateText(
-                "From 0 to 100: severity, exposure, records held, recent activity and production.",
-              )}
-            >
-              {translator.translateTemplate(RISK_SCORE_BADGE, {
+            <Pill
+              text={translator.translateTemplate(RISK_SCORE_BADGE, {
                 score: translator.formatNumber(issue.riskScore || 0),
               })}
-            </span>
+              isUserContent={true}
+              tone={PillTone.Neutral}
+              isDotHidden={true}
+              tooltip="From 0 to 100: severity, exposure, records held, recent activity and production."
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">

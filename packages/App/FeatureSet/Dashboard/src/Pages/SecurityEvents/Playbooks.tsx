@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../PageComponentProps";
 import SecurityPlaybookTemplatePicker, {
   getPlaybookViewRoute,
@@ -14,7 +15,6 @@ import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCase
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
@@ -28,7 +28,6 @@ import {
   SwitchActionsResult,
   useSwitchActions,
 } from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -282,12 +281,8 @@ const SecurityPlaybooksPage: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: SecurityPlaybook): ReactElement => {
-              // As every list of the Dashboard draws a switch: Enabled green, Disabled red.
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
+              // As every list of the Dashboard draws a switch: Enabled green, Disabled grey (EnabledPill).
+              return <EnabledPill isEnabled={item.isEnabled} />;
             },
           },
           {

@@ -149,7 +149,7 @@ Ce cycle — ajouter, relier, configurer, exécuter, lire le journal — est la 
 
 Les nouveaux flux de travail démarrent désactivés, tout comme les flux de travail que vous dupliquez ou importez. La désactivation met en pause le déclencheur du flux de travail : rien ne le lance de lui-même, mais vous pouvez toujours le tester. Tant qu'un flux de travail est désactivé, le Constructeur l'indique au-dessus du canevas, avec un bouton **Activer le flux de travail**.
 
-L'interrupteur **Activé** se trouve en haut du **Constructeur**, à côté de **Ajouter un composant** et de **Exécuter le flux de travail**. Il figure aussi sur la page **Vue d'ensemble** du flux de travail, dont la carte **Détails du flux de travail** montre l'état actuel par une pastille verte **Activé** ou rouge **Désactivé** : cliquez sur **Modifier le flux de travail** et ouvrez **Plus de champs**. Seules les personnes qui peuvent modifier le flux de travail peuvent l'activer ou le désactiver ; les autres voient l'interrupteur grisé.
+L'interrupteur **Activé** se trouve en haut du **Constructeur**, à côté de **Ajouter un composant** et de **Exécuter le flux de travail**. Il figure aussi sur la page **Vue d'ensemble** du flux de travail, dont la carte **Détails du flux de travail** montre l'état actuel par une pastille verte **Activé** ou grise **Désactivé** : cliquez sur **Modifier le flux de travail** et ouvrez **Plus de champs**. Seules les personnes qui peuvent modifier le flux de travail peuvent l'activer ou le désactiver ; les autres voient l'interrupteur grisé.
 
 Tant qu'un flux de travail est désactivé, ce qui le lance décide s'il s'exécute :
 

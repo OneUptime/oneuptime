@@ -1,6 +1,7 @@
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import EnterpriseLicenseUsageUtil, {
   EnterpriseLicenseInstanceUsage,
 } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
@@ -374,13 +375,12 @@ export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string = translationKey(
 
 // Beside the license type in the list, for a license with the switch on.
 export const WhiteLabelBadge: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
   return (
-    <span
-      className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-200"
-      data-testid="license-white-label-badge"
-    >
-      {translator.translateText("White-label")}
-    </span>
+    <Pill
+      text="White-label"
+      tone={PillTone.Info}
+      isDotHidden={true}
+      dataTestId="license-white-label-badge"
+    />
   );
 };

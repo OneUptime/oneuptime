@@ -149,7 +149,7 @@ Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du
 
 Nye arbejdsgange starter deaktiveret, og det samme gør enhver arbejdsgang, du duplikerer eller importerer. Slået fra er arbejdsgangens trigger sat på pause, så intet starter den af sig selv, men du kan stadig teste den. Mens en arbejdsgang er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
 
-Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på arbejdsgangens side **Oversigt**, hvis kort **Arbejdsgangsdetaljer** viser den aktuelle tilstand som en grøn pille **Aktiveret** eller en rød pille **Deaktiveret**: klik på **Rediger arbejdsgang**, og åbn **Flere felter**. Kun personer, der må redigere arbejdsgangen, kan slå den til eller fra; alle andre ser kontakten nedtonet.
+Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på arbejdsgangens side **Oversigt**, hvis kort **Arbejdsgangsdetaljer** viser den aktuelle tilstand som en grøn pille **Aktiveret** eller en grå pille **Deaktiveret**: klik på **Rediger arbejdsgang**, og åbn **Flere felter**. Kun personer, der må redigere arbejdsgangen, kan slå den til eller fra; alle andre ser kontakten nedtonet.
 
 Mens en arbejdsgang er slået fra, afgør det, der starter den, om den kører:
 

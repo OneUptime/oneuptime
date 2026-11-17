@@ -58,7 +58,7 @@ Reglerna skiljer sig åt i hur flera matchningar avgörs:
 - **Grupperingsregler**, **Incidentregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 - **Jourregler**, **Ägarregler**, **Etikettregler**, **Sekretessregler** och **Runbook-regler** verkar alla när de matchar. Jourpolicyer, ägare och etiketter som flera regler lägger till läggs till en gång.
 
-**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Larmregler**, för larm, och **Episodregler**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
+**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Larmregler**, för larm, och **Episodregler**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en grå **Inaktiverad** för varje regel.
 
 De flesta regler verkar på larm och episoder som skapas efter att du har sparat dem. För att tillämpa en ägar-, etikett- eller sekretessregel på dem som du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Påminnelseregler är undantaget: När du sparar en matchas varje öppet larm på nytt.
 

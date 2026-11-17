@@ -56,6 +56,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
@@ -660,12 +662,12 @@ const DataStoreOverview: FunctionComponent<
               <div className="flex flex-wrap gap-1.5">
                 {categories.map((category: DataCategory): ReactElement => {
                   return (
-                    <span
+                    <Pill
                       key={category}
-                      className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700"
-                    >
-                      {translator.translateText(category)}
-                    </span>
+                      text={category}
+                      tone={PillTone.Info}
+                      isDotHidden={true}
+                    />
                   );
                 })}
               </div>

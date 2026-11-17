@@ -5,7 +5,7 @@ import TelemetryExceptionActivityService, {
 import { TelemetryExceptionActivityType } from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import Crypto from "Common/Utils/Crypto";
+import { fingerprintSha256 } from "./FingerprintHash";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import logger from "Common/Server/Utils/Logger";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
@@ -190,7 +190,7 @@ export default class ExceptionUtil {
    * new exception is grouped by; see assignGroupFingerprints.
    */
   public static getFingerprintV2(data: ExceptionFingerprintInput): string {
-    return Crypto.getSha256Hash(
+    return fingerprintSha256(
       getExceptionGroupingText({
         projectId: data.projectId?.toString() || "",
         primaryEntityId: data.primaryEntityId?.toString() || "",
@@ -390,7 +390,7 @@ export default class ExceptionUtil {
     const normalizedStackTrace: string =
       ExceptionUtil.normalizeForFingerprint(stackTrace);
 
-    const hash: string = Crypto.getSha256Hash(
+    const hash: string = fingerprintSha256(
       projectId +
         primaryEntityId +
         normalizedMessage +

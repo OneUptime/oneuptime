@@ -37,6 +37,7 @@ type SubmitCall = {
   rows: Array<JSONObject>;
   dedupToken: string;
   clickhouseSettings: ClickHouseSettings | undefined;
+  due: boolean | undefined;
 };
 
 function makeDeps(data?: {
@@ -59,6 +60,7 @@ function makeDeps(data?: {
       options: {
         dedupToken: string;
         clickhouseSettings?: ClickHouseSettings | undefined;
+        due?: boolean | undefined;
       },
     ): Promise<FanInSubmitResult> => {
       calls.push({
@@ -66,6 +68,7 @@ function makeDeps(data?: {
         rows,
         dedupToken: options.dedupToken,
         clickhouseSettings: options.clickhouseSettings,
+        due: options.due,
       });
       return { flushed: data?.flushed ?? Promise.resolve() };
     },
@@ -174,6 +177,20 @@ describe("handleWriterInsert", () => {
     expect(calls[0]!.tableName).toBe("LogTable");
     expect(calls[0]!.dedupToken).toBe("job-1:LogTable:0");
     expect(calls[0]!.clickhouseSettings).toEqual({ async_insert: 1 });
+  });
+
+  /*
+   * A worker's fan-in writer gathered these rows, and its jobs wait on the
+   * answer holding their worker slots: the writer pod inserts them as soon
+   * as an insert slot is free rather than waiting out its own window too
+   * (#6086). With its token the request is inserted on its own anyway.
+   */
+  test("the rows are due at once: no second window on the writer pod", async () => {
+    const { deps, calls } = makeDeps();
+    await handleWriterInsert(validBody(), deps);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.due).toBe(true);
   });
 
   test("empty rows short-circuit to 200 without submitting", async () => {

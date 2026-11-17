@@ -204,15 +204,10 @@ describe("the rule conditions builder in the dark theme", () => {
         "text-gray-900",
         "text-gray-600",
         "hover:text-gray-900",
-        // "If", and the And / Or words on later rows.
-        "text-gray-700",
-        "bg-blue-50",
-        "text-blue-700",
-        "border-blue-200",
-        "bg-amber-50",
-        "text-amber-700",
-        "border-amber-200",
-        // Hints and problems.
+        /*
+         * The And / Or words on later rows are Pills, painted by their tone.
+         * Hints and problems.
+         */
         "text-gray-500",
         "text-red-600",
       ]),
