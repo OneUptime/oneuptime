@@ -88,7 +88,8 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
                               "Connected ({{count}})",
                               { count: String(count) },
                             )
-                          : translator.translateText("Connected")
+                          : (translator.translateText("Connected") ??
+                            "Connected")
                       }
                       isUserContent={true}
                       tone={PillTone.Success}
