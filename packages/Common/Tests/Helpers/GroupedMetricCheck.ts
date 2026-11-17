@@ -105,7 +105,7 @@ export function groupedMetricCheck(input: {
     startAndEndDate: {
       startValue: new Date(Date.UTC(2026, 10, 17, 10, 0)),
       endValue: new Date(Date.UTC(2026, 10, 17, 10, 5)),
-    } as MetricMonitorResponse["startAndEndDate"],
+    } as NonNullable<MetricMonitorResponse["startAndEndDate"]>,
     metricResult: metricResult,
     metricResultArrivals: metricResult.map(() => {
       return null;
