@@ -1894,6 +1894,21 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       PAAS,
       C.Containers,
     ),
+    // Azure lists a subnet inside its virtual network (#9375).
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/virtualNetworks/subnets",
+      "Virtual Network Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/networkSecurityGroups",
+      "Network Security Group",
+      IAAS,
+      C.Networking,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",
@@ -2128,17 +2143,11 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "AWS::SecretsManager::Secret",
       translationKey("Secret"),
     ),
-    // Azure: what a virtual machine or an app runs in and behind.
-    namedOnly(
-      CloudProvider.Azure,
-      "Microsoft.Network/virtualNetworks/subnets",
-      translationKey("Subnet"),
-    ),
-    namedOnly(
-      CloudProvider.Azure,
-      "Microsoft.Network/networkSecurityGroups",
-      translationKey("Network Security Group"),
-    ),
+    /*
+     * Azure: what a virtual machine or an app runs behind and as. Its
+     * subnets and network security groups are listed
+     * (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.Azure,
       "Microsoft.Network/applicationSecurityGroups",

@@ -12,6 +12,7 @@ import {
   AZURE_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
+  isInventoryOnlyCloudResourceType,
 } from "../../../../Types/Cloud/CloudResourceCatalog";
 import {
   AZURE_SECRET_EXPIRES_AT_KEY,
@@ -92,8 +93,11 @@ import AzureArm, {
   AzureSubscription,
 } from "./AzureArm";
 import {
+  AZURE_INVENTORY_ONLY_QUERY_TYPES,
+  AZURE_SUBNET_TYPE,
   buildAzureInventoryItems,
   buildAzureInventoryQuery,
+  buildAzureSubnetQuery,
 } from "./AzureInventory";
 import { readAzureActivityEvent } from "./AzureChanges";
 import {
@@ -472,8 +476,15 @@ export default class AzureCloudConnector implements CloudConnector {
     resource: AzureResource,
     subscriptionId: string,
   ): AzureResourceToRead | null {
-    // Only the types OneUptime knows: not every NIC, alert rule and extension.
-    if (!getCloudResourceTypeDescriptor(CloudProvider.Azure, resource.type)) {
+    /*
+     * Only the types OneUptime reads metrics of: not every NIC, alert rule
+     * and extension, nor a network security group, which publishes none
+     * and is listed by the inventory alone (#9375).
+     */
+    if (
+      !getCloudResourceTypeDescriptor(CloudProvider.Azure, resource.type) ||
+      isInventoryOnlyCloudResourceType(CloudProvider.Azure, resource.type)
+    ) {
       return null;
     }
 
@@ -1270,16 +1281,55 @@ export default class AzureCloudConnector implements CloudConnector {
           })
         : { rows: [], complete: true };
 
-    // Read together: a VM runs where its interfaces do, a pool's balancer sends to them.
-    const items: Array<CloudInventoryItem> = buildAzureInventoryItems(
-      listing.rows,
-    );
+    /*
+     * The subnets, out of their virtual networks (#9375). A query that
+     * fails leaves them unlisted - never taken for gone - and the rest of
+     * the inventory as it is.
+     */
+    let subnets: { rows: Array<JSONObject>; complete: boolean } = {
+      rows: [],
+      complete: subscriptionIds.length === 0,
+    };
+    const subnetWarnings: Array<string> = [];
 
-    const knownTypes: Array<string> = AZURE_RESOURCE_TYPES.map(
-      (descriptor: CloudResourceTypeDescriptor): string => {
-        return descriptor.type;
-      },
-    );
+    if (subscriptionIds.length > 0) {
+      try {
+        subnets = await arm.queryResourceGraph({
+          subscriptionIds,
+          query: buildAzureSubnetQuery(),
+        });
+      } catch (error) {
+        if (
+          error instanceof CloudReadBudgetSpent ||
+          (error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Authentication)
+        ) {
+          throw error;
+        }
+
+        subnetWarnings.push(
+          `Could not list the subnets: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    // Read together: a VM runs where its interfaces do, a pool's balancer sends to them.
+    const items: Array<CloudInventoryItem> = buildAzureInventoryItems([
+      ...listing.rows,
+      ...subnets.rows,
+    ]);
+
+    const knownTypes: Array<string> = [
+      ...AZURE_RESOURCE_TYPES.map(
+        (descriptor: CloudResourceTypeDescriptor): string => {
+          return descriptor.type;
+        },
+      ),
+      ...AZURE_INVENTORY_ONLY_QUERY_TYPES,
+      ...(subnets.complete ? [AZURE_SUBNET_TYPE] : []),
+    ];
 
     return {
       accounts: subscriptionIds.map((subscriptionId: string) => {
@@ -1305,6 +1355,7 @@ export default class AzureCloudConnector implements CloudConnector {
           : [
               "The subscriptions have more resources than one inventory lists: the rest are listed next time.",
             ]),
+        ...subnetWarnings,
       ],
       complete: listing.complete,
     };
