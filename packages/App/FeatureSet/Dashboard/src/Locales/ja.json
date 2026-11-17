@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "このオーバーライドは1分以内に終わるため、終了するものは残っていません。",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "このオーバーライドはまだ始まっていないため、終了するものはありません。取りやめるには削除してください。",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "スキップを{{until}}ではなく今終了します。その後、{{away}}は再びローテーションで自分の番を担当します。",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}}による{{away}}の代理を{{until}}ではなく今終了します。その後、アラートは再び{{away}}に届きます。"
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}}による{{away}}の代理を{{until}}ではなく今終了します。その後、アラートは再び{{away}}に届きます。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "このプロジェクトで送信された Slack、Microsoft Teams、Mattermost のメッセージ。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "この {{itemName}} について送信された Slack、Microsoft Teams、Mattermost のメッセージ。",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "このテストでは、ルールの Microsoft Teams チームに {{channel}} のような実際のチャネルも作成され、チームの全員に表示されます。終わったら Microsoft Teams で削除してください。",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "このテストでは、{{channel}} のような実際の {{workspace}} チャネルも作成され、テストを実行したユーザーが招待されます。終わったら {{workspace}} でアーカイブしてください。",
+  "{{team}} (typed name)": "{{team}}（入力された名前）"
 }

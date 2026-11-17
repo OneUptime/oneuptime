@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "Esta substituição termina ainda neste minuto, então não há mais nada a encerrar.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Esta substituição ainda não começou, então não há nada a encerrar. Para cancelá-la, exclua-a.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} deixa de ser pulado agora, em vez de em {{until}}. A partir daí, volta a assumir seus turnos na rotação.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deixa de cobrir {{away}} agora em vez de em {{until}}. A partir daí, os alertas voltam a acionar {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deixa de cobrir {{away}} agora em vez de em {{until}}. A partir daí, os alertas voltam a acionar {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Mensagens do Slack, Microsoft Teams e Mattermost enviadas para este projeto.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Mensagens do Slack, Microsoft Teams e Mattermost enviadas para este item ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Este teste também cria um canal real na equipe do Microsoft Teams da regra, como {{channel}}, que todos na equipe podem ver. Exclua-o no Microsoft Teams quando terminar.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Este teste também cria um canal real do {{workspace}}, como {{channel}}, e convida você para ele. Arquive-o no {{workspace}} quando terminar.",
+  "{{team}} (typed name)": "{{team}} (nome digitado)"
 }

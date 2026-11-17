@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "Deze vervanging eindigt binnen de minuut, er valt dus niets meer te beëindigen.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Deze vervanging is nog niet begonnen, er valt dus niets te beëindigen. Verwijder hem om hem te schrappen.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} wordt nu niet meer overgeslagen, in plaats van pas op {{until}}. Daarna zijn de beurten in de rotatie weer van hen.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} vervangt {{away}} nu niet meer, in plaats van pas op {{until}}. Daarna gaan meldingen weer naar {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} vervangt {{away}} nu niet meer, in plaats van pas op {{until}}. Daarna gaan meldingen weer naar {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Slack-, Microsoft Teams- en Mattermost-berichten voor dit project.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- en Mattermost-berichten voor dit item ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Deze test maakt ook een echt kanaal aan in het Microsoft Teams-team van de regel, zoals {{channel}}, dat iedereen in het team kan zien. Verwijder het in Microsoft Teams als u klaar bent.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Deze test maakt ook een echt {{workspace}}-kanaal aan, zoals {{channel}}, en nodigt u daarin uit. Archiveer het in {{workspace}} als u klaar bent.",
+  "{{team}} (typed name)": "{{team}} (getypte naam)"
 }
