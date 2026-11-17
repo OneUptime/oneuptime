@@ -215,7 +215,7 @@ describe("buildSloMetricQueryConfigs", () => {
       expect({
         ...queryConfig.metricAliasData,
         description: withPlainSpaces(
-          queryConfig.metricAliasData.description || "",
+          queryConfig.metricAliasData?.description || "",
         ),
       }).toEqual({
         metricVariable: metricType,
