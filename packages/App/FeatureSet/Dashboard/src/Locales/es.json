@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Ahora no coincide con ninguna política.",
   "Matches {{count}} policies now: {{names}}.": "Coincide ahora con {{count}} políticas: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Coincide ahora con {{count}} política: {{names}}.",
-  "Use On-Call Policy instead": "Usar «Política de guardia» en su lugar"
+  "Use On-Call Policy instead": "Usar «Política de guardia» en su lugar",
+  "Drop one CSV file at a time.": "Suelta un solo archivo CSV cada vez.",
+  "Drop the CSV file to upload it": "Suelta el archivo CSV para subirlo",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} no es un archivo CSV. Elige o suelta un archivo que termine en .csv."
 }

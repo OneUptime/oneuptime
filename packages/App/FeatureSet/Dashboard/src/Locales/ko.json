@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "현재 일치하는 정책이 없습니다.",
   "Matches {{count}} policies now: {{names}}.": "현재 정책 {{count}}개와 일치합니다: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "현재 정책 {{count}}개와 일치합니다: {{names}}.",
-  "Use On-Call Policy instead": "대신 “온콜 정책” 사용"
+  "Use On-Call Policy instead": "대신 “온콜 정책” 사용",
+  "Drop one CSV file at a time.": "CSV 파일은 한 번에 하나씩 놓으세요.",
+  "Drop the CSV file to upload it": "CSV 파일을 놓아 업로드하세요",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}}은(는) CSV 파일이 아닙니다. .csv로 끝나는 파일을 선택하거나 끌어다 놓으세요."
 }

@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Matcher nu ingen politik.",
   "Matches {{count}} policies now: {{names}}.": "Matcher nu {{count}} politikker: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Matcher nu {{count}} politik: {{names}}.",
-  "Use On-Call Policy instead": "Brug »Vagtpolitik« i stedet"
+  "Use On-Call Policy instead": "Brug »Vagtpolitik« i stedet",
+  "Drop one CSV file at a time.": "Slip én CSV-fil ad gangen.",
+  "Drop the CSV file to upload it": "Slip CSV-filen for at uploade den",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} er ikke en CSV-fil. Vælg eller slip en fil, der ender på .csv."
 }

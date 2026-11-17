@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Trifft jetzt auf keine Richtlinie zu.",
   "Matches {{count}} policies now: {{names}}.": "Trifft jetzt auf {{count}} Richtlinien zu: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Trifft jetzt auf {{count}} Richtlinie zu: {{names}}.",
-  "Use On-Call Policy instead": "Stattdessen „Bereitschaftsrichtlinie“ verwenden"
+  "Use On-Call Policy instead": "Stattdessen „Bereitschaftsrichtlinie“ verwenden",
+  "Drop one CSV file at a time.": "Legen Sie jeweils nur eine CSV-Datei ab.",
+  "Drop the CSV file to upload it": "CSV-Datei hier ablegen, um sie hochzuladen",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} ist keine CSV-Datei. Wählen Sie eine Datei mit der Endung .csv oder legen Sie sie hier ab."
 }

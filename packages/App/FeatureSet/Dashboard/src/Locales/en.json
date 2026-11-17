@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Matches no policy now.",
   "Matches {{count}} policies now: {{names}}.": "Matches {{count}} policies now: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Matches {{count}} policy now: {{names}}.",
-  "Use On-Call Policy instead": "Use On-Call Policy instead"
+  "Use On-Call Policy instead": "Use On-Call Policy instead",
+  "Drop one CSV file at a time.": "Drop one CSV file at a time.",
+  "Drop the CSV file to upload it": "Drop the CSV file to upload it",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv."
 }

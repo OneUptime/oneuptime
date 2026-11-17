@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Komt nu met geen enkel beleid overeen.",
   "Matches {{count}} policies now: {{names}}.": "Komt nu overeen met {{count}} beleidsregels: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Komt nu overeen met {{count}} beleidsregel: {{names}}.",
-  "Use On-Call Policy instead": "Gebruik in plaats daarvan “Bereikbaarheidsbeleid”"
+  "Use On-Call Policy instead": "Gebruik in plaats daarvan “Bereikbaarheidsbeleid”",
+  "Drop one CSV file at a time.": "Sleep één CSV-bestand tegelijk.",
+  "Drop the CSV file to upload it": "Zet het CSV-bestand hier neer om het te uploaden",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} is geen CSV-bestand. Kies of sleep een bestand dat eindigt op .csv."
 }

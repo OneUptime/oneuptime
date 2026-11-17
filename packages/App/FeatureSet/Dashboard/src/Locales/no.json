@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Samsvarer nå ikke med noen policy.",
   "Matches {{count}} policies now: {{names}}.": "Samsvarer nå med {{count}} policyer: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Samsvarer nå med {{count}} policy: {{names}}.",
-  "Use On-Call Policy instead": "Bruk «Vaktpolicy» i stedet"
+  "Use On-Call Policy instead": "Bruk «Vaktpolicy» i stedet",
+  "Drop one CSV file at a time.": "Slipp én CSV-fil om gangen.",
+  "Drop the CSV file to upload it": "Slipp CSV-filen for å laste den opp",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} er ikke en CSV-fil. Velg eller slipp en fil som slutter på .csv."
 }

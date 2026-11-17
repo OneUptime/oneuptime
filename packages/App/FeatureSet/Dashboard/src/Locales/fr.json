@@ -56533,5 +56533,8 @@
   "Matches no policy now.": "Ne correspond actuellement à aucune politique.",
   "Matches {{count}} policies now: {{names}}.": "Correspond actuellement à {{count}} politiques : {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Correspond actuellement à {{count}} politique : {{names}}.",
-  "Use On-Call Policy instead": "Utiliser « Politique d'astreinte » à la place"
+  "Use On-Call Policy instead": "Utiliser « Politique d'astreinte » à la place",
+  "Drop one CSV file at a time.": "Déposez un seul fichier CSV à la fois.",
+  "Drop the CSV file to upload it": "Déposez le fichier CSV pour le téléverser",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} n’est pas un fichier CSV. Choisissez ou déposez un fichier se terminant par .csv."
 }
