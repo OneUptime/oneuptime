@@ -5,9 +5,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Lists that keep themselves current, in real Chromium, against the offline
- * fixture (ModelTables/Fixture): the real Incidents and Alerts lists, and a
- * fake live connection the suite speaks for (window.__fixture.announce is
- * the server announcing a created, changed or deleted record).
+ * fixture (ModelTables/Fixture): the real Incidents, Alerts and Monitors
+ * lists, and a fake live connection the suite speaks for
+ * (window.__fixture.announce is the server announcing a created, changed or
+ * deleted record).
  *
  * Someone who keeps the Incidents or Alerts list open - on a second screen,
  * during an outage - used to see the rows of the moment the page loaded,
@@ -584,21 +585,42 @@ test.describe("other lists", () => {
     );
   });
 
-  test("the Monitors list listens for nothing: monitors do not announce their changes", async ({
+  /*
+   * A monitor changes on its own - its status moves, its probes disconnect
+   * - and announces it (#6918), so the Monitors list follows as the
+   * Incidents list does.
+   */
+  test("the Monitors list listens for the project's created, changed and deleted monitors, and reads again when one changes", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, MONITORS);
 
-    expect(
-      (await fixture(page)).liveSubscriptions.filter(
-        (subscription: LiveSubscription): boolean => {
-          return (
-            !subscription.isStopped && subscription.tableName === "Monitor"
-          );
-        },
-      ),
-    ).toEqual([]);
+    const live: Array<string> = (await fixture(page)).liveSubscriptions
+      .filter((subscription: LiveSubscription): boolean => {
+        return !subscription.isStopped && subscription.tableName === "Monitor";
+      })
+      .map((subscription: LiveSubscription): string => {
+        return `${subscription.eventType} ${subscription.tenantId}`;
+      });
+
+    expect(live).toEqual([
+      `Create ${PROJECT}`,
+      `Update ${PROJECT}`,
+      `Delete ${PROJECT}`,
+    ]);
+
+    const readsBefore: number = await reads(page, "Monitor");
+
+    await announce(page, "Monitor", "Update");
+
+    await expect
+      .poll(() => {
+        return reads(page, "Monitor");
+      })
+      .toBe(readsBefore + 1);
+    // Still on the list: nothing was opened or reloaded.
+    expect(new URL(page.url()).pathname).toBe(MONITORS);
   });
 });

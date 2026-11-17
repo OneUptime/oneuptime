@@ -570,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Ciò che è stato inviato supera i 50 MB che OneUptime accetta in una richiesta.",
   "Try again with less at once, such as a smaller file.": "Riprova inviando meno dati alla volta, ad esempio un file più piccolo.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Se l'ha rifiutato un proxy davanti a OneUptime, porta il limite di dimensione delle richieste di quel proxy a 50 MB, quanto accetta OneUptime stesso (in nginx, client_max_body_size 50M).",
+  "Dismiss": "Nascondi",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Questo modulo non è disponibile. Potrebbe essere stato disattivato oppure il link potrebbe non essere più valido.",
   "This form can only be opened from an allowed network.": "Questo modulo può essere aperto solo da una rete consentita.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Troppe segnalazioni dalla tua rete. Attendi qualche minuto e riprova.",
@@ -646,6 +647,5 @@
     "note": "Nota",
     "tip": "Suggerimento",
     "warning": "Avviso"
-  },
-  "Dismiss": "Nascondi"
+  }
 }

@@ -10,6 +10,7 @@ import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A runbook's side menu in a browser, around the real pages, against the
@@ -599,8 +600,9 @@ test.describe("the Overview says what starts the runbook", () => {
       .locator("p[data-testid]")
       .allTextContents();
 
+    // The count is held to its unit, as a page's English writes it (#8770).
     expect(lines).toEqual([
-      "Runs every 15 minutes · UTC",
+      `Runs every ${withUnit(15, "minutes")} · UTC`,
       "Runs when its webhook URL is called.",
     ]);
     await expect(summary(page)).not.toContainText("http");

@@ -570,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "जो भेजा गया, वह उस 50 MB से बड़ा है जितना OneUptime एक अनुरोध में स्वीकार करता है।",
   "Try again with less at once, such as a smaller file.": "एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "अगर OneUptime के आगे लगे किसी प्रॉक्सी ने इसे अस्वीकार किया, तो उस प्रॉक्सी की अनुरोध आकार सीमा बढ़ाकर 50 MB कर दें, जितना OneUptime ख़ुद स्वीकार करता है (nginx में, client_max_body_size 50M)।",
+  "Dismiss": "छिपाएं",
   "This form is not available. It may have been turned off, or the link may be out of date.": "यह फ़ॉर्म उपलब्ध नहीं है। हो सकता है इसे बंद कर दिया गया हो, या लिंक पुराना हो गया हो।",
   "This form can only be opened from an allowed network.": "यह फ़ॉर्म केवल अनुमत नेटवर्क से ही खोला जा सकता है।",
   "Too many submissions from your network. Please wait a few minutes and try again.": "आपके नेटवर्क से बहुत अधिक सबमिशन हुए हैं। कृपया कुछ मिनट प्रतीक्षा करें और फिर से कोशिश करें।",
@@ -646,6 +647,5 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  },
-  "Dismiss": "छिपाएं"
+  }
 }

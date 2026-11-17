@@ -50,6 +50,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
 import ExecutionPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
@@ -762,26 +763,31 @@ if (target && window.location.pathname !== target) {
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
- * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters). Beside
+ * it, as there, the corner where the Dashboard says a change worked
+ * (ToastRegion): Save Steps says "Changes saved" in it (#9120).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
-    <Routes>
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/:id/steps"
-        element={
-          <Shell component={StepsPage} trail="Database failover / Steps" />
-        }
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/:id/executions/:subModelId"
-        element={
-          <Shell
-            component={ExecutionPage}
-            trail="Database failover / Executions / Run"
-          />
-        }
-      />
-    </Routes>
-  </BrowserRouter>,
+  <>
+    <BrowserRouter useTransitions={false}>
+      <Routes>
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/:id/steps"
+          element={
+            <Shell component={StepsPage} trail="Database failover / Steps" />
+          }
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/:id/executions/:subModelId"
+          element={
+            <Shell
+              component={ExecutionPage}
+              trail="Database failover / Executions / Run"
+            />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+    <ToastRegion />
+  </>,
 );
