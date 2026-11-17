@@ -2161,8 +2161,7 @@ describe("Riskiest Entities, by risk score", () => {
   function kindsAndLevelsOf(card: HTMLElement): Array<[string, string]> {
     return rowsOf(card).map((row: HTMLElement): [string, string] => {
       return [
-        (row.querySelector(".text-\\[11px\\]") as HTMLElement)
-          .textContent as string,
+        within(row).getByTestId("ranked-bar-hint").textContent as string,
         within(row).getByTestId(ENTITY_RISK_TEST_IDS.levelPill)
           .textContent as string,
       ];
@@ -2204,7 +2203,9 @@ describe("Riskiest Entities, by risk score", () => {
       entities: [{ value: "odd-entity", type: null, score: 60 }],
     });
 
-    expect(rowsOf(card)[0]!.querySelector(".text-\\[11px\\]")).toBeNull();
+    expect(
+      within(rowsOf(card)[0]!).queryByTestId("ranked-bar-hint"),
+    ).toBeNull();
     expect(
       within(rowsOf(card)[0]!).getByTestId(ENTITY_RISK_TEST_IDS.levelPill),
     ).toHaveTextContent("Medium");
