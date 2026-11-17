@@ -216,6 +216,7 @@ describe("<Badge /> counts in the Pill's tones", () => {
     [BadgeType.WARNING, PillTone.Warning],
     [BadgeType.SUCCESS, PillTone.Success],
     [BadgeType.NEUTRAL, PillTone.Neutral],
+    [BadgeType.PAUSED, PillTone.Paused],
   ])("badge type %s is the %s tone", (type: BadgeType, tone: PillTone) => {
     expect(BADGE_TONES[type]).toBe(tone);
     render(<Badge id="count" badgeCount={3} badgeType={type} />);

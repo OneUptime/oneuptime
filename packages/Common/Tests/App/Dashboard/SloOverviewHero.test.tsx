@@ -54,6 +54,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
+import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -180,6 +181,21 @@ const getFactValues: FactValuesFunction = (): Array<string> => {
     });
 };
 
+/*
+ * The pill the verdict is drawn in, whose data-tone says what it means: a
+ * test reads that tone, never the classes the Pill paints it with, which
+ * broke these tests when status badges became Pills (#9255).
+ */
+function statusPillOf(text: string): HTMLElement {
+  const pill: HTMLElement | null = screen
+    .getByText(text, { exact: true })
+    .closest("[data-testid=pill]");
+
+  expect(pill).not.toBeNull();
+
+  return pill as HTMLElement;
+}
+
 describe("SloOverviewHero", () => {
   test("a healthy SLO leads with its verdict and the facts behind the numbers", () => {
     renderHero({});
@@ -213,27 +229,28 @@ describe("SloOverviewHero", () => {
     {
       status: SloStatus.Healthy,
       headline: "Within error budget",
-      tone: "text-emerald-800",
+      tone: PillTone.Success,
     },
     {
       status: SloStatus.AtRisk,
       headline: "Error budget running low",
-      tone: "text-amber-800",
+      tone: PillTone.Warning,
     },
     {
       status: SloStatus.BudgetExhausted,
       headline: "Error budget exhausted",
-      tone: "text-red-800",
+      tone: PillTone.Danger,
     },
     {
       status: SloStatus.Misconfigured,
       headline: "Cannot be evaluated",
-      tone: "text-gray-700",
+      tone: PillTone.Neutral,
     },
     {
       status: SloStatus.Paused,
       headline: "Measurement paused",
-      tone: "text-gray-700",
+      // Someone paused it: a choice, grey, never a fault.
+      tone: PillTone.Paused,
     },
   ])(
     "renders $status with a matching headline and soft status badge",
@@ -244,14 +261,14 @@ describe("SloOverviewHero", () => {
     }: {
       status: SloStatus;
       headline: string;
-      tone: string;
+      tone: PillTone;
     }) => {
       renderHero({ slo: buildSlo({ sloStatus: status }) });
 
       expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
         headline,
       );
-      expect(screen.getByText(status)).toHaveClass("bg-gradient-to-r", tone);
+      expect(statusPillOf(status)).toHaveAttribute("data-tone", tone);
       expect(screen.queryByRole("img")).toBeNull();
     },
   );
@@ -367,8 +384,10 @@ describe("SloOverviewHero", () => {
       expect(screen.getByTestId("slo-overview-headline")).toHaveTextContent(
         `${status} — not being measured`,
       );
-      expect(screen.getByText(status, { exact: true })).toHaveClass(
-        "text-gray-700",
+      // Switched off on purpose: grey with a hollow dot, never a fault.
+      expect(statusPillOf(status)).toHaveAttribute(
+        "data-tone",
+        PillTone.Paused,
       );
       expect(screen.queryByText("Healthy", { exact: true })).toBeNull();
       expect(screen.queryByText("Within error budget")).toBeNull();

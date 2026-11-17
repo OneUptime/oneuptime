@@ -114,7 +114,17 @@ const STATUS_PRESENTATIONS: Record<SloStatus, StatusPresentation> = {
   [SloStatus.Paused]: {
     ...NEUTRAL_STATUS,
     icon: IconProp.PauseCircle,
+    badgeType: StatusBadgeType.Paused,
   },
+};
+
+/*
+ * Someone chose to stop measuring it (Disabled, Archived): grey with a
+ * hollow dot, a light that is off, never a fault (#9255).
+ */
+const SWITCHED_OFF_STATUS: StatusPresentation = {
+  ...NEUTRAL_STATUS,
+  badgeType: StatusBadgeType.Paused,
 };
 
 // Keep the verdict separate from the supporting facts so both are easy to scan.
@@ -218,9 +228,9 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
       : slo.sloStatus || "Not evaluated yet";
 
   const statusPresentation: StatusPresentation = slo.isArchived
-    ? { ...NEUTRAL_STATUS, icon: IconProp.Archive }
+    ? { ...SWITCHED_OFF_STATUS, icon: IconProp.Archive }
     : slo.isEnabled === false
-      ? { ...NEUTRAL_STATUS, icon: IconProp.PauseCircle }
+      ? { ...SWITCHED_OFF_STATUS, icon: IconProp.PauseCircle }
       : (slo.sloStatus && STATUS_PRESENTATIONS[slo.sloStatus]) ||
         NEUTRAL_STATUS;
 
