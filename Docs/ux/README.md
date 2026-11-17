@@ -292,7 +292,8 @@ work out, starts from a default for everything else, and folds what most people 
   be set has no clear control (`isClearable={false}`). A choice that can be empty, such as "All
   devices" or "None", is the placeholder, and clearing the picker picks it. A `<label htmlFor>`
   names the picker through `inputId`. The `DropdownChoices` helpers build a fixed list's options.
-  The pickers not moved yet are listed, with the reason, in the guard, and #9310 tracks them.
+  A picker in a bar of small controls, such as a list's rows per page or a query builder's fields,
+  is `isCompact`: 28px tall, 44px under a finger, and otherwise the same picker (#9310).
   Enforced by
   [RawSelectGuard](../../packages/Common/Tests/UI/Components/RawSelectGuard.test.ts).
 - **One color picker:** named swatches first, a custom color for an exact code. Enforced by

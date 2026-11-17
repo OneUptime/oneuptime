@@ -1,4 +1,10 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import {
+  dropdownControl,
+  dropdownIn,
+  pickDropdownOption,
+  shownDropdownValue,
+} from "../SuiteHelpers/Dropdowns";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -347,8 +353,8 @@ test.describe("Create a workflow", () => {
     ).toBeVisible();
     // A search looks through every template.
     await expect(
-      dialog.getByTestId("workflow-template-view-select"),
-    ).toHaveValue("all");
+      shownDropdownValue(dialog.getByTestId("workflow-template-view-select")),
+    ).toHaveText("All templates");
 
     await page.keyboard.press("Enter");
 
@@ -423,9 +429,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Jira");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Jira",
+    );
 
     const listbox: Locator = dialog.getByRole("listbox");
 
@@ -460,9 +468,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("On-Call");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "On-Call",
+    );
 
     const row: Locator = templateRow(
       dialog,
@@ -605,9 +615,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Jira");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Jira",
+    );
     await templateRow(
       dialog,
       "Add Jira comments to the incident as private notes",
@@ -707,9 +719,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Zabbix");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Zabbix",
+    );
 
     const listbox: Locator = dialog.getByRole("listbox");
 
@@ -754,9 +768,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Zabbix");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Zabbix",
+    );
 
     const row: Locator = templateRow(
       dialog,
@@ -886,9 +902,11 @@ test.describe("Create a workflow", () => {
       "bbcfce79a2d95037502f7e9a534906d3466c9a1484beb6ea0f4e7be28e8b8ce2";
     const dialog: Locator = await openDialog(page);
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Zabbix");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Zabbix",
+    );
     await templateRow(
       dialog,
       "Acknowledge or close the Zabbix problem with the alert",
@@ -1120,9 +1138,11 @@ test.describe("Create a workflow", () => {
   }) => {
     const dialog: Locator = await openDialog(page, "&dir=rtl");
 
-    await dialog
-      .getByTestId("workflow-template-view-select")
-      .selectOption("Zabbix");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("workflow-template-view-select")),
+      "Zabbix",
+    );
 
     const row: Locator = templateRow(
       dialog,
@@ -1207,7 +1227,7 @@ test.describe("Create a workflow", () => {
       dialog,
       dialog.getByTestId("workflow-start-from-scratch"),
       dialog.getByRole("combobox", { name: "Search templates…" }),
-      dialog.getByTestId("workflow-template-view-select"),
+      dropdownControl(dialog.getByTestId("workflow-template-view-select")),
       templateRow(dialog, SLACK_TEMPLATE_NAME),
       dialog.getByTestId("workflow-template-details-trigger").first(),
     ];

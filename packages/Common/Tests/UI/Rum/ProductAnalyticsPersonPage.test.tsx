@@ -59,6 +59,42 @@ import RumApplicationProductAnalyticsPerson, {
   buildProductAnalyticsBackRoute,
   parseProductAnalyticsPersonPath,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsPerson";
+import {
+  chooseDropdownOption,
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled), and the page sizes its menu lists.
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
+
+const listRowsPerPage: (container?: HTMLElement) => Array<string> = (
+  container?: HTMLElement,
+): Array<string> => {
+  openDropdown(rowsPerPage(container));
+  const names: Array<string> = screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(rowsPerPage(container));
+
+  return names;
+};
 
 const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -496,22 +532,12 @@ describe("ProductAnalyticsPerson", () => {
       expect(sessionRows()).toHaveLength(2);
     });
 
-    const select: HTMLSelectElement = screen.getByTestId(
-      "pagination-items-on-page-select",
-    ) as HTMLSelectElement;
-
-    expect(
-      Array.from(select.querySelectorAll("option")).map(
-        (option: HTMLOptionElement): number => {
-          return Number(option.value);
-        },
-      ),
-    ).toEqual([10, 20, 25, 50, 100]);
-    expect(select.value).toBe(
+    expect(listRowsPerPage().map(Number)).toEqual([10, 20, 25, 50, 100]);
+    expect(getShownDropdownValue(rowsPerPage())).toBe(
       String(PRODUCT_ANALYTICS_PERSON_SESSIONS_PAGE_SIZE),
     );
 
-    fireEvent.change(select, { target: { value: "25" } });
+    chooseDropdownOption(rowsPerPage(), "25");
 
     await waitFor(() => {
       expect(requests()).toHaveLength(2);

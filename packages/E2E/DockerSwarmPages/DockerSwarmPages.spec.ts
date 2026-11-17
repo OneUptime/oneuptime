@@ -5,6 +5,7 @@ import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { dropdownControlOf } from "../SuiteHelpers/Dropdowns";
 
 /*
  * A Docker Swarm cluster's pages on a phone, in a browser, against the
@@ -856,7 +857,9 @@ test.describe("the Overview's name on a phone", () => {
     const topRow: Locator = page.getByTestId("resource-hero-top-row");
     return {
       name: topRow.getByRole("heading", { name: CLUSTER_NAME }),
-      refresh: topRow.getByRole("combobox", { name: "Auto-refresh" }),
+      refresh: dropdownControlOf(
+        topRow.getByRole("combobox", { name: "Auto-refresh" }),
+      ),
     };
   }
 
@@ -1297,7 +1300,9 @@ test.describe("the Overview hero's description", () => {
       );
       // At the row's end, as a card's header keeps its buttons.
       const refresh: Box = await boxOf(
-        controls.getByRole("combobox", { name: "Auto-refresh" }),
+        dropdownControlOf(
+          controls.getByRole("combobox", { name: "Auto-refresh" }),
+        ),
       );
       expect(
         rowBox.x + rowBox.width - (refresh.x + refresh.width),
@@ -1356,7 +1361,9 @@ test.describe("the Overview hero's description", () => {
       controls.getByRole("button", { name: "Refresh" }),
     );
     const select: Box = await boxOf(
-      controls.getByRole("combobox", { name: "Auto-refresh" }),
+      dropdownControlOf(
+        controls.getByRole("combobox", { name: "Auto-refresh" }),
+      ),
     );
 
     // The row's end is its left: the controls run to it, as they run right.

@@ -192,6 +192,23 @@ import {
   SavedViewScopeKind,
   buildSavedViewScope,
 } from "../../../Utils/Telemetry/SavedViewScope";
+import { chooseDropdownOption } from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -749,10 +766,7 @@ describe("a real change reads the list once", () => {
   test("a new page size: one request, from page 1", async () => {
     await openAt("?range=Past%201%20Hour&page=2");
 
-    fireEvent.change(
-      within(footer()).getByTestId("pagination-items-on-page-select"),
-      { target: { value: "250" } },
-    );
+    chooseDropdownOption(rowsPerPage(footer()), "250");
     await settle();
 
     expect(listCalls()).toHaveLength(2);
@@ -990,10 +1004,7 @@ describe("live mode", () => {
     expect(listCalls()).toHaveLength(2);
 
     jest.setSystemTime(new Date(NOW.getTime() + 5 * 60 * 1000));
-    fireEvent.change(
-      within(footer()).getByTestId("pagination-items-on-page-select"),
-      { target: { value: "250" } },
-    );
+    chooseDropdownOption(rowsPerPage(footer()), "250");
     await settle();
 
     expect(listCalls()).toHaveLength(3);

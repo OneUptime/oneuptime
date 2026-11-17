@@ -18,7 +18,7 @@ import {
   nextButton,
   nextPage,
   numberedNames,
-  pageSizeSelect,
+  pageSizeShown,
   pagingSummary,
 } from "./TablePagingHarness";
 
@@ -256,7 +256,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
   test("shows 25 rows a page, and the last page's footer counts on from 25", async () => {
     await renderList();
 
-    expect(pageSizeSelect()).toHaveValue("25");
+    expect(pageSizeShown()).toBe("25");
     expect(visibleNames()).toEqual(list.names.slice(0, 25));
     expect(pagingSummary()).toBe(`Showing 1-25 of 30 ${list.noun}`);
 
@@ -272,7 +272,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     await renderList();
 
     // Not "3": the picker offers page sizes, not the number of rows.
-    expect(pageSizeSelect()).toHaveValue("25");
+    expect(pageSizeShown()).toBe("25");
     expect(visibleNames()).toEqual(list.names.slice(0, 3));
     expect(pagingSummary()).toBe(`Showing 1-3 of 3 ${list.noun}`);
     expect(nextButton()).toBeDisabled();
@@ -283,13 +283,13 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     await choosePageSize(10);
 
     // It used to snap straight back to the number of rows.
-    expect(pageSizeSelect()).toHaveValue("10");
+    expect(pageSizeShown()).toBe("10");
     expect(visibleNames()).toEqual(list.names.slice(0, 10));
     expect(pagingSummary()).toBe(`Showing 1-10 of 30 ${list.noun}`);
 
     await choosePageSize(50);
 
-    expect(pageSizeSelect()).toHaveValue("50");
+    expect(pageSizeShown()).toBe("50");
     expect(visibleNames()).toEqual(list.names);
     expect(pagingSummary()).toBe(`Showing 1-30 of 30 ${list.noun}`);
     expect(nextButton()).toBeDisabled();
@@ -343,7 +343,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     list.serve(list.names.slice(0, 15));
     await clickCardRefresh();
 
-    expect(pageSizeSelect()).toHaveValue("10");
+    expect(pageSizeShown()).toBe("10");
     expect(visibleNames()).toEqual(list.names.slice(10, 15));
     expect(pagingSummary()).toBe(`Showing 11-15 of 15 ${list.noun}`);
     expect(nextButton()).toBeDisabled();

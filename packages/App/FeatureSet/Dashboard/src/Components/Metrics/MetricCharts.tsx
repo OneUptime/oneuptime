@@ -75,6 +75,15 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IconProp from "Common/Types/Icon/IconProp";
 import HintChip from "./HintChip";
@@ -1210,6 +1219,36 @@ function renderSeriesControls(input: {
           return a - b;
         });
 
+  // The pickers' choices, in the reader's language.
+  const sortOptions: Array<DropdownOption> = SERIES_SORT_OPTIONS.map(
+    (option: SeriesSortOption): DropdownOption => {
+      return getTranslatedDropdownOption(
+        option.key,
+        translator.translateTemplate("Sort: {{label}}", {
+          label: translatableTerm(option.label),
+        }),
+      );
+    },
+  );
+  const topNOptions: Array<DropdownOption> = [
+    ...topNChoices.map((choice: number): DropdownOption => {
+      return getTranslatedDropdownOption(
+        String(choice),
+        translator.translateTemplate("Top {{count}}", {
+          count: choice,
+        }),
+      );
+    }),
+    ...(topNSelectValue === "all"
+      ? [
+          getTranslatedDropdownOption(
+            "all",
+            translator.translateText("All series") || "All series",
+          ),
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-2">
       {/*
@@ -1317,27 +1356,28 @@ function renderSeriesControls(input: {
             <label htmlFor={`series-sort-${chartId}`} className="sr-only">
               {translator.translateText("Sort series by")}
             </label>
-            <select
-              id={`series-sort-${chartId}`}
-              value={sortBy}
-              title={translator.translateText("Sort the node list by")}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-                updateControls(chartId, {
-                  sortBy: e.target.value as SeriesSortBy,
-                });
-              }}
-              className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            >
-              {SERIES_SORT_OPTIONS.map((option: SeriesSortOption) => {
-                return (
-                  <option key={option.key} value={option.key}>
-                    {translator.translateTemplate("Sort: {{label}}", {
-                      label: translatableTerm(option.label),
-                    })}
-                  </option>
-                );
-              })}
-            </select>
+            <div title={translator.translateText("Sort the node list by")}>
+              <Dropdown
+                inputId={`series-sort-${chartId}`}
+                className="relative w-40 max-w-full overflow-visible"
+                isCompact={true}
+                options={sortOptions}
+                value={findDropdownOption(sortOptions, sortBy)}
+                // The series are always in some order.
+                isClearable={false}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const picked: string | null = readPickedDropdownValue(next);
+
+                  if (picked !== null && picked !== sortBy) {
+                    updateControls(chartId, {
+                      sortBy: picked as SeriesSortBy,
+                    });
+                  }
+                }}
+              />
+            </div>
             {onTopNChange &&
             (needsTopN ||
               isShowAllActive ||
@@ -1346,35 +1386,41 @@ function renderSeriesControls(input: {
                 <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
                   {translator.translateText("Number of series to show")}
                 </label>
-                <select
-                  id={`series-top-n-${chartId}`}
-                  value={topNSelectValue}
+                <div
                   title={translator.translateText(
                     "How many series to fetch and plot",
                   )}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-                    if (e.target.value === "all") {
-                      return;
-                    }
-                    onTopNChange(Number(e.target.value));
-                  }}
-                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 >
-                  {topNChoices.map((choice: number) => {
-                    return (
-                      <option key={choice} value={String(choice)}>
-                        {translator.translateTemplate("Top {{count}}", {
-                          count: choice,
-                        })}
-                      </option>
-                    );
-                  })}
-                  {topNSelectValue === "all" ? (
-                    <option value="all">
-                      {translator.translateText("All series")}
-                    </option>
-                  ) : null}
-                </select>
+                  <Dropdown
+                    inputId={`series-top-n-${chartId}`}
+                    className="relative w-32 max-w-full overflow-visible"
+                    isCompact={true}
+                    options={topNOptions}
+                    value={findDropdownOption(topNOptions, topNSelectValue)}
+                    // A chart always plots some number of series.
+                    isClearable={false}
+                    onChange={(
+                      next: DropdownValue | Array<DropdownValue> | null,
+                    ): void => {
+                      const picked: string | null =
+                        readPickedDropdownValue(next);
+
+                      /*
+                       * "All series" is shown only while every series is
+                       * plotted, and picking it again changes nothing.
+                       */
+                      if (
+                        picked === null ||
+                        picked === "all" ||
+                        picked === topNSelectValue
+                      ) {
+                        return;
+                      }
+
+                      onTopNChange(Number(picked));
+                    }}
+                  />
+                </div>
               </>
             ) : null}
             {needsTopN || isShowAllActive ? (

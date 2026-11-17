@@ -9,6 +9,10 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -624,13 +628,29 @@ describe("LogsAnalyticsView entity group-by", () => {
     );
   };
 
+  // The names the query builder lists these choices by.
+  const OPTION_NAMES: Record<string, string> = {
+    toplist: "Top List",
+    table: "Table",
+    primaryEntityId: "Service",
+  };
+
+  // Picks `value` in the query builder's picker that shows `currentLabel`.
   const pickSelect: (currentLabel: string, value: string) => void = (
     currentLabel: string,
     value: string,
   ): void => {
-    fireEvent.change(screen.getByDisplayValue(currentLabel), {
-      target: { value },
-    });
+    const combobox: HTMLElement | undefined = screen
+      .getAllByRole("combobox")
+      .find((candidate: HTMLElement): boolean => {
+        return getShownDropdownValue(candidate) === currentLabel;
+      });
+
+    if (!combobox) {
+      throw new Error(`No picker shows ${currentLabel}`);
+    }
+
+    chooseDropdownOption(combobox, OPTION_NAMES[value]!);
   };
 
   test("the top list names entity values and leaves unresolved ids readable", async () => {

@@ -7,14 +7,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -229,15 +224,24 @@ const installAnalyticsApi: () => void = (): void => {
 
 type SelectChartFunction = (chartType: string) => void;
 
+// The names the Chart picker lists each chart by.
+const CHART_NAMES: Record<string, string> = {
+  toplist: "Top List",
+  table: "Table",
+};
+
 const selectChart: SelectChartFunction = (chartType: string): void => {
-  // Controls in order: Chart, Measure, Split by, …
-  const selects: Array<HTMLElement> = screen.getAllByRole("combobox");
-  fireEvent.change(selects[0]!, { target: { value: chartType } });
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Chart" }),
+    CHART_NAMES[chartType]!,
+  );
 };
 
 const splitByService: () => void = (): void => {
-  const selects: Array<HTMLElement> = screen.getAllByRole("combobox");
-  fireEvent.change(selects[2]!, { target: { value: "primaryEntityId" } });
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Split by" }),
+    "Service",
+  );
 };
 
 describe("TracesAnalyticsView keeps same-named entities apart", () => {

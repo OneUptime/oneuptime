@@ -8,6 +8,10 @@ import {
 } from "Common/Utils/Metrics/SpanMetricsCollectorStep";
 import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  listDropdownOptions,
+  shownDropdownPlaceholderOf,
+} from "../SuiteHelpers/Dropdowns";
 
 /*
  * Metrics' AI tab - Metrics → AI → Insights, a finding's page with Fix with
@@ -533,12 +537,14 @@ test.describe("Metrics → AI → Insights", () => {
           ).toContainText(row.kind);
         }
 
-        await expect(
-          page
-            .getByRole("combobox", { name: "Filter by insight type" })
-            .locator("option"),
-        ).toHaveText([
+        // "All types" is the picker's placeholder; the kinds are its choices.
+        const typeFilter: Locator = page.getByRole("combobox", {
+          name: "Filter by insight type",
+        });
+        await expect(shownDropdownPlaceholderOf(typeFilter)).toHaveText(
           "All types",
+        );
+        expect(await listDropdownOptions(page, typeFilter)).toEqual([
           "High Cardinality",
           "Wrong Histogram Buckets",
           "Missing Metrics",

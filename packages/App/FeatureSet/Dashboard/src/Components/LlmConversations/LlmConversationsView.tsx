@@ -7,6 +7,16 @@ import React, {
   useState,
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Route from "Common/Types/API/Route";
@@ -162,6 +172,20 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
 const LlmConversationsView: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const services: LlmServiceNames = useLlmServiceNames();
+  // An app's name, as its team named it.
+  const appOptions: Array<DropdownOption> = services.options.map(
+    (option: LlmServiceOption): DropdownOption => {
+      return getNamedDropdownOption(option.id, option.name);
+    },
+  );
+  const sortOptions: Array<DropdownOption> = LLM_CONVERSATION_SORT_OPTIONS.map(
+    (option: LlmSortOption): DropdownOption => {
+      return getTranslatedDropdownOption(
+        option.sort,
+        translator.translateText(option.label) || option.label,
+      );
+    },
+  );
 
   const [view, setViewState] = useState<LlmConversationListView>(() => {
     return readViewFromUrl();
@@ -581,24 +605,27 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {services.options.length > 0 ? (
-            <select
-              value={view.serviceId}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                setView({ ...view, serviceId: event.target.value, page: 0 });
-              }}
-              aria-label={translator.translateText("App")}
-              className="block rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              data-testid="llm-conversations-app"
-            >
-              <option value="">{translator.translateText("All apps")}</option>
-              {services.options.map((option: LlmServiceOption) => {
-                return (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                );
-              })}
-            </select>
+            <div data-testid="llm-conversations-app">
+              <Dropdown
+                className="relative w-48 max-w-full overflow-visible"
+                ariaLabel={translator.translateText("App")}
+                isAriaLabelTranslated={true}
+                // Every app is the placeholder; clearing the picker returns to it.
+                placeholder={translator.translateText("All apps")}
+                isPlaceholderTranslated={true}
+                options={appOptions}
+                value={findDropdownOption(appOptions, view.serviceId)}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const serviceId: string = readPickedDropdownValue(next) ?? "";
+
+                  if (serviceId !== view.serviceId) {
+                    setView({ ...view, serviceId: serviceId, page: 0 });
+                  }
+                }}
+              />
+            </div>
           ) : (
             <></>
           )}
@@ -678,29 +705,35 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
               );
             })}
           </div>
-          <label className="flex items-center gap-2 text-xs text-gray-500">
-            <span>{translator.translateText("Sort")}</span>
-            <select
-              value={view.sort}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                setView({
-                  ...view,
-                  sort: event.target.value as LlmConversationSort,
-                  page: 0,
-                });
-              }}
-              className="rounded-md border border-gray-300 bg-white py-1.5 pl-2.5 pr-8 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              data-testid="llm-conversations-sort"
-            >
-              {LLM_CONVERSATION_SORT_OPTIONS.map((option: LlmSortOption) => {
-                return (
-                  <option key={option.sort} value={option.sort}>
-                    {translator.translateText(option.label)}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <label htmlFor="llm-conversations-sort-picker">
+              {translator.translateText("Sort")}
+            </label>
+            <div data-testid="llm-conversations-sort">
+              <Dropdown
+                inputId="llm-conversations-sort-picker"
+                className="relative w-44 max-w-full overflow-visible"
+                isCompact={true}
+                options={sortOptions}
+                value={findDropdownOption(sortOptions, view.sort)}
+                // A list is always in some order.
+                isClearable={false}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const picked: string | null = readPickedDropdownValue(next);
+
+                  if (picked !== null && picked !== view.sort) {
+                    setView({
+                      ...view,
+                      sort: picked as LlmConversationSort,
+                      page: 0,
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         {renderList()}

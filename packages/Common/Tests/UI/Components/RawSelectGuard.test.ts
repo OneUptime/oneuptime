@@ -17,8 +17,9 @@ import {
  * dark look - `px-2 py-1.5 text-xs` on the topology maps, `py-1.5 pl-2 pr-8`
  * in RUM User Flows, borderless grey text in every footer - so no two
  * pickers on a page looked alike, and none looked like the Dropdown beside
- * them (#9194, #9294). The Dropdown has one height, one focus ring, one menu,
- * a search, a keyboard and a dark theme everywhere; `isClearable={false}`
+ * them (#9194, #9294). The Dropdown has one focus ring, one menu, a search,
+ * a keyboard and a dark theme everywhere, and one height - 40px in a form,
+ * 28px (isCompact) in a bar of small controls; `isClearable={false}`
  * keeps a value that must always be set, `inputId` lets a <label htmlFor>
  * name it, and the DropdownChoices helpers build a fixed list's options.
  *
@@ -36,60 +37,17 @@ const REPOSITORY_ROOT: string = path.resolve(
   "..",
 );
 
-const NOT_MOVED_YET: string =
-  "Not moved onto the shared Dropdown yet (#9310): it was outside #9294's list.";
-
+/*
+ * Empty: the last 21 raw selects moved onto the shared Dropdown in #9310, a
+ * list's rows per page and a query builder's fields among them, compact
+ * (isCompact) where they sit in a bar of small controls. A file that must
+ * keep a native <select> - for something only the browser's own does -
+ * lists here how many it holds and why.
+ */
 export const RAW_SELECT_EXCEPTIONS: Record<
   string,
   { count: number; reason: string }
-> = {
-  "packages/Common/UI/Components/Dashboard/DashboardVariableControl.tsx": {
-    count: 1,
-    reason: NOT_MOVED_YET,
-  },
-  "packages/Common/UI/Components/LogsViewer/components/LogsAnalyticsView.tsx": {
-    count: 1,
-    reason: NOT_MOVED_YET,
-  },
-  "packages/Common/UI/Components/Pagination/Pagination.tsx": {
-    count: 1,
-    reason: NOT_MOVED_YET,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/TelemetryResource/AutoRefreshControl.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfileTypeSelector.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationsView.tsx":
-    { count: 2, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts.tsx": {
-    count: 2,
-    reason: NOT_MOVED_YET,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TracesViewer.tsx": {
-    count: 1,
-    reason: NOT_MOVED_YET,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TracesAnalyticsView.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/TemplatePicker/TemplatePicker.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/AIInsights/InsightFilterBar.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/Incident/SubscriberNotificationPreviewModal.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/InvestigationDrawer.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineToolbar.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectModal.tsx":
-    { count: 2, reason: NOT_MOVED_YET },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectionEditModal.tsx":
-    { count: 1, reason: NOT_MOVED_YET },
-  "ee/AdminDashboard/Health/QueryConsole.tsx": {
-    count: 2,
-    reason: NOT_MOVED_YET,
-  },
-};
+> = {};
 
 export interface RawSelect {
   file: string;
