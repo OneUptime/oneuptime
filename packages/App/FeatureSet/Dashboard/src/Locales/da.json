@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Dette tjek var for stort til at blive gemt i sin helhed, så det er blevet afkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}. Mailserveren svarede: {{reason}}",
-  "See email logs": "Se e-maillogge"
+  "See email logs": "Se e-maillogge",
+  "OneUptime is added to your Zoom account": "OneUptime er føjet til din Zoom-konto",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for at starte dette projekts opkald i Zoom."
 }

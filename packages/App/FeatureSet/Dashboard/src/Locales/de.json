@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Diese Prüfung war zu groß, um sie vollständig zu speichern, daher wurde sie gekürzt.",
   "No email has gone out through this server's email settings since {{time}}.": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet. Der Mailserver meldete: {{reason}}",
-  "See email logs": "E-Mail-Protokolle ansehen"
+  "See email logs": "E-Mail-Protokolle ansehen",
+  "OneUptime is added to your Zoom account": "OneUptime wurde Ihrem Zoom-Konto hinzugefügt",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}, um die Anrufe dieses Projekts in Zoom zu starten."
 }

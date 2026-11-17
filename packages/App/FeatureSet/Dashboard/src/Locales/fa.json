@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "این بررسی برای نگه‌داشتن کامل بیش از حد بزرگ بود، بنابراین کوتاه شد.",
   "No email has gone out through this server's email settings since {{time}}.": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است. پاسخ سرور ایمیل: {{reason}}",
-  "See email logs": "مشاهده گزارش‌های ایمیل"
+  "See email logs": "مشاهده گزارش‌های ایمیل",
+  "OneUptime is added to your Zoom account": "OneUptime به حساب Zoom شما اضافه شد",
+  "{{connectZoom}} to start this project's calls in Zoom.": "برای شروع تماس‌های این پروژه در Zoom، {{connectZoom}}."
 }

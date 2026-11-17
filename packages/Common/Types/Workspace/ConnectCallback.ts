@@ -125,11 +125,19 @@ export enum ConnectProviderNotice {
    * ours. Nothing was connected; the page offers to connect the installation.
    */
   GitHubInstalled = "github-installed",
+  /*
+   * Zoom: OneUptime was added to a Zoom account from Zoom itself - the
+   * authorization link the Zoom App Marketplace gives - so Zoom sent the
+   * browser back with no state of ours. Nothing was connected; the Video
+   * Calls page offers to connect Zoom.
+   */
+  ZoomAdded = "zoom-added",
 }
 
 // The provider each notice belongs to: a page shows only its own.
 const PROVIDER_OF_NOTICE: Record<ConnectProviderNotice, ConnectProvider> = {
   [ConnectProviderNotice.GitHubInstalled]: ConnectProvider.GitHub,
+  [ConnectProviderNotice.ZoomAdded]: ConnectProvider.Zoom,
 };
 
 /*

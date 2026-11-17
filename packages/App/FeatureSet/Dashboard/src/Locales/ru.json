@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена.",
   "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
-  "See email logs": "Журнал писем"
+  "See email logs": "Журнал писем",
+  "OneUptime is added to your Zoom account": "OneUptime добавлен в вашу учётную запись Zoom",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}, чтобы начинать звонки этого проекта в Zoom."
 }

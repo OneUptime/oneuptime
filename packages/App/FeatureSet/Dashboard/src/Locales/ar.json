@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "كان هذا الفحص أكبر من أن يُحفظ كاملًا، لذا اختُصر.",
   "No email has gone out through this server's email settings since {{time}}.": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}. ردّ خادم البريد: {{reason}}",
-  "See email logs": "عرض سجلات البريد"
+  "See email logs": "عرض سجلات البريد",
+  "OneUptime is added to your Zoom account": "تمت إضافة OneUptime إلى حسابك على Zoom",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} لبدء مكالمات هذا المشروع في Zoom."
 }

@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。郵件伺服器回應：{{reason}}",
-  "See email logs": "查看郵件記錄"
+  "See email logs": "查看郵件記錄",
+  "OneUptime is added to your Zoom account": "OneUptime 已新增至您的 Zoom 帳戶",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}，在 Zoom 中發起此專案的通話。"
 }

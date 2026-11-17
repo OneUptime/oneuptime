@@ -56518,5 +56518,7 @@
   "This check was too large to keep in full, so it was trimmed.": "このチェックは大きすぎて全体を保存できなかったため、一部を切り詰めました。",
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。メールサーバーの応答: {{reason}}",
-  "See email logs": "メールログを見る"
+  "See email logs": "メールログを見る",
+  "OneUptime is added to your Zoom account": "OneUptime が Zoom アカウントに追加されました",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}して、このプロジェクトの通話を Zoom で開始できるようにしてください。"
 }
