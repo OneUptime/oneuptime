@@ -3008,6 +3008,34 @@ describe("the service's pure helpers", () => {
     ).toBe(false);
   });
 
+  test("a responder missing the phone method their project asks for, as Readiness answers it (#7449)", () => {
+    const missing: UserReadiness = readinessUser(
+      ANA,
+      "Ana",
+      ReadinessStatus.Ready,
+      ["Email"],
+    );
+    missing.isMissingPhoneMethod = true;
+
+    expect(toResponderFact(missing)).toEqual({
+      userId: ANA,
+      name: "Ana",
+      isNotReachable: false,
+      reason: SetupHealthResponderReason.NoVerifiedMethod,
+      isMissingPhoneMethod: true,
+    });
+
+    // Readiness's answer is read, never worked out again: no flag, no finding.
+    const asked: UserReadiness = readinessUser(
+      ANA,
+      "Ana",
+      ReadinessStatus.Ready,
+      ["Email"],
+    );
+
+    expect("isMissingPhoneMethod" in toResponderFact(asked)).toBe(false);
+  });
+
   test("why nobody is on call in a schedule, from its coverage", () => {
     const shift: OnCallShift = {
       userId: ANA,

@@ -95,6 +95,11 @@ export enum SetupHealthCheck {
   ServerCannotSend = "server_cannot_send",
   // From the chains' owners no Created email reaches (#9371).
   OwnerNotEmailed = "owner_not_emailed",
+  /*
+   * Somebody on a policy with no verified phone method while the project
+   * asks people on call for one (#7449): from Readiness's answer.
+   */
+  ResponderHasNoPhone = "responder_has_no_phone",
   // The project's other records.
   PolicyNotRun = "policy_not_run",
   ScheduleHasNobodyOnCall = "schedule_has_nobody_on_call",
@@ -122,6 +127,7 @@ export const SETUP_HEALTH_CHECK_ORDER: ReadonlyArray<SetupHealthCheck> = [
   SetupHealthCheck.PolicyHasNoEscalationRules,
   SetupHealthCheck.PolicyReachesNobody,
   SetupHealthCheck.ResponderCannotBePaged,
+  SetupHealthCheck.ResponderHasNoPhone,
   SetupHealthCheck.MonitorPagesNobody,
   SetupHealthCheck.MonitorTellsNobody,
   SetupHealthCheck.OwnerNotEmailed,
@@ -334,6 +340,7 @@ export const SETUP_HEALTH_WORDS: Readonly<{
   policyHasNoEscalationRules: string;
   policyReachesNobody: string;
   responderCannotBePaged: Readonly<Record<SetupHealthResponderReason, string>>;
+  responderHasNoPhone: string;
   channelOff: string;
   noBalance: string;
   serverCannotSend: Readonly<Record<WhoIsToldServerChannel, string>>;
@@ -390,6 +397,9 @@ export const SETUP_HEALTH_WORDS: Readonly<{
       "{{name}} opted out of some pages an on-call policy sends them.",
     ),
   },
+  responderHasNoPhone: translationKey(
+    "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.",
+  ),
   channelOff: translationKey(
     "{{channel}} is off in this project, so pages that use it are not sent.",
   ),
@@ -587,6 +597,11 @@ export interface SetupHealthResponderFact {
   isNotReachable: boolean;
   // Why, when Readiness says: not a member, invitation not accepted.
   reason: SetupHealthResponderReason;
+  /*
+   * No verified phone method while the project asks people on call for one
+   * (Readiness's isMissingPhoneMethod, #7449).
+   */
+  isMissingPhoneMethod?: boolean | undefined;
 }
 
 export interface SetupHealthScheduleFact {
@@ -1288,6 +1303,35 @@ export function getResponderFindings(
     });
 }
 
+/*
+ * The people on a policy with no verified phone method while their project
+ * asks everyone on call for one (#7449), as Readiness answers it - never
+ * worked out a second time. Somebody nothing reaches is already a finding
+ * of their own (getResponderFindings), which says more.
+ */
+export function getResponderPhoneFindings(
+  facts: SetupHealthFacts,
+): Array<SetupHealthFinding> {
+  return facts.responders
+    .filter((responder: SetupHealthResponderFact): boolean => {
+      return Boolean(responder.isMissingPhoneMethod) && !responder.isNotReachable;
+    })
+    .map((responder: SetupHealthResponderFact): SetupHealthFinding => {
+      return makeSetupHealthFinding({
+        check: SetupHealthCheck.ResponderHasNoPhone,
+        level: SetupHealthLevel.WorthFixing,
+        record: {
+          kind: SetupHealthRecordKind.User,
+          id: responder.userId,
+          name: responder.name,
+        },
+        fix: SetupHealthFix.OnCallReadiness,
+        words: SETUP_HEALTH_WORDS.responderHasNoPhone,
+        values: { name: responder.name || "Someone" },
+      });
+    });
+}
+
 // The ids of the policies a monitor's criteria names for what it opens.
 function getPolicyIdsNamedByCriteria(
   chains: ReadonlyArray<WhoIsToldResult>,
@@ -1908,6 +1952,7 @@ export const SETUP_HEALTH_RULES: ReadonlyArray<
     );
   },
   getResponderFindings,
+  getResponderPhoneFindings,
   getServerFindings,
   getOwnerNotEmailedFindings,
   getPolicyNotRunFindings,
