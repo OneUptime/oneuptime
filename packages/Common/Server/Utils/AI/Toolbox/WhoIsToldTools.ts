@@ -6,7 +6,12 @@ import { JSONObject } from "../../../../Types/JSON";
 import {
   WhoIsToldBreak,
   WhoIsToldCriteria,
+  WhoIsToldDeclaration,
   WhoIsToldEvent,
+  WhoIsToldMonitorGroup,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
@@ -232,23 +237,145 @@ function describePolicy(policy: WhoIsToldPolicy): string {
   }`;
 }
 
-function describeEvent(event: WhoIsToldEvent): Array<string> {
+/*
+ * Rules by name - privacy, label or alert incident rules - as the card
+ * lists them; one the person may not read keeps its place without its name.
+ */
+function describeRules(rules: Array<WhoIsToldRule>, what: string): string {
+  return rules
+    .map((rule: WhoIsToldRule): string => {
+      return rule.name ? `"${rule.name}"` : `${what} the person may not read`;
+    })
+    .join(", ");
+}
+
+/*
+ * An owner the Created email never reaches (#7572), why, and what named
+ * them, as the card's "Owners who aren't emailed" says: a person who is
+ * not a member is never named, nor another project's team.
+ */
+const OWNER_PROBLEM_WORDS: Readonly<Record<WhoIsToldOwnerProblem, string>> = {
+  [WhoIsToldOwnerProblem.NotInProject]:
+    "a person who is not a member of the project",
+  [WhoIsToldOwnerProblem.TeamHasNobodyInProject]:
+    "has nobody in it who is a member of the project",
+  [WhoIsToldOwnerProblem.TeamOfAnotherProject]: "a team of another project",
+};
+
+function describeOwnerNotReached(owner: WhoIsToldOwnerNotReached): string {
+  const who: string =
+    owner.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject
+      ? `team ${owner.name ? `"${owner.name}"` : "(no name)"}, which ${
+          OWNER_PROBLEM_WORDS[owner.problem]
+        }`
+      : OWNER_PROBLEM_WORDS[owner.problem];
+
+  switch (owner.addedBy) {
+    case WhoIsToldOwnerAddedBy.Criteria:
+      return `${who} (named by the criteria)`;
+    case WhoIsToldOwnerAddedBy.NetworkDevice:
+      return `${who} (an owner of the network device the monitor watches)`;
+    case WhoIsToldOwnerAddedBy.OwnerRule:
+      return `${who} (added by ${
+        owner.rule?.name
+          ? `owner rule "${owner.rule.name}"`
+          : "an owner rule the person may not read"
+      })`;
+  }
+
+  return who;
+}
+
+// "a" or "an", by what opens.
+function opensWords(event: WhoIsToldEvent): string {
+  return event.kind === "Alert" ? "an alert" : "an incident";
+}
+
+function describeStatusPage(page: WhoIsToldStatusPage): string {
+  const name: string = page.name
+    ? `"${page.name}"`
+    : "a status page the person may not read";
+  const groups: Array<WhoIsToldMonitorGroup> = page.groups || [];
+
+  if (groups.length === 0) {
+    return name;
+  }
+
+  // The monitor group the page shows it through: the one to edit (#7214).
+  return `${name} (through monitor group ${groups
+    .map((group: WhoIsToldMonitorGroup): string => {
+      return group.name
+        ? `"${group.name}"`
+        : "a monitor group the person may not read";
+    })
+    .join(", ")})`;
+}
+
+function describeEvent(
+  event: WhoIsToldEvent,
+  indent: string = "",
+): Array<string> {
+  /*
+   * A private record the person could not read once it exists (#7213): what
+   * opens, and that it is private - nothing of whom it tells, as the card.
+   */
+  if (event.isHidden) {
+    const rules: Array<WhoIsToldRule> = event.privacyRules || [];
+
+    return [
+      `${indent}  - opens ${opensWords(event)} (${event.severityName}) that is private and not the person's to see, so who it tells is not shown to them${
+        rules.length > 0
+          ? `; made private by ${describeRules(rules, "a privacy rule")}`
+          : ""
+      }`,
+    ];
+  }
+
   const lines: Array<string> = [
-    `  - opens ${event.kind === "Alert" ? "an alert" : "an incident"} (${event.severityName}); emails ${describeOwners(event.owners)}`,
+    `${indent}  - opens ${opensWords(event)} (${event.severityName}); emails ${describeOwners(event.owners)}`,
   ];
+
+  if (event.owners.notReached && event.owners.notReached.length > 0) {
+    lines.push(
+      `${indent}    - not emailed, as no Created email can reach them: ${event.owners.notReached
+        .map(describeOwnerNotReached)
+        .join("; ")}`,
+    );
+  }
 
   if (event.ownerRules.length > 0) {
     lines.push(
-      `    - owner rules that add its owners: ${describeOwnerRules(event.ownerRules)}`,
+      `${indent}    - owner rules that add its owners: ${describeOwnerRules(event.ownerRules)}`,
+    );
+  }
+
+  if (event.isPrivate) {
+    const rules: Array<WhoIsToldRule> = event.privacyRules || [];
+
+    lines.push(
+      `${indent}    - is private (${
+        rules.length > 0
+          ? `made private by ${describeRules(rules, "a privacy rule")}`
+          : "the criteria makes it private"
+      }): it shows on no status page and tells no subscriber, and only its owners, Project Owners and Project Admins can see it`,
+    );
+  }
+
+  // Label rules run before on-call rules: their labels decide which page it (#7212).
+  if (event.labelRules && event.labelRules.length > 0) {
+    lines.push(
+      `${indent}    - label rules whose labels decide which on-call rules page it: ${describeRules(event.labelRules, "a label rule")}`,
     );
   }
 
   if (event.policies.length === 0) {
-    lines.push("    - pages nobody: no on-call rule runs a policy for it");
+    lines.push(
+      `${indent}    - pages nobody: no on-call rule runs a policy for it`,
+    );
   }
 
   for (const policy of event.policies) {
-    lines.push(`    - pages ${describePolicy(policy)}`);
+    lines.push(`${indent}    - pages ${describePolicy(policy)}`);
   }
 
   /*
@@ -257,14 +384,29 @@ function describeEvent(event: WhoIsToldEvent): Array<string> {
    */
   if (event.statusPages.length > 0) {
     lines.push(
-      `    - shows on status pages: ${event.statusPages
-        .map((page: WhoIsToldStatusPage): string => {
-          return page.name
-            ? `"${page.name}"`
-            : "a status page the person may not read";
-        })
+      `${indent}    - shows on status pages: ${event.statusPages
+        .map(describeStatusPage)
         .join(", ")}`,
     );
+  }
+
+  // The incident an alert incident rule declares from it (#7216), said as any incident.
+  if (event.declares) {
+    const declaration: WhoIsToldDeclaration = event.declares;
+    const rule: string = declaration.rule.name
+      ? `alert incident rule "${declaration.rule.name}"`
+      : "an alert incident rule the person may not read";
+    const when: string =
+      declaration.waitInMinutes > 0
+        ? `once it has stayed open ${declaration.waitInMinutes} minute${
+            declaration.waitInMinutes === 1 ? "" : "s"
+          }`
+        : "right away";
+
+    lines.push(
+      `${indent}    - ${rule} turns it into an incident ${when}, which:`,
+    );
+    lines.push(...describeEvent(declaration.incident, `${indent}    `));
   }
 
   return lines;

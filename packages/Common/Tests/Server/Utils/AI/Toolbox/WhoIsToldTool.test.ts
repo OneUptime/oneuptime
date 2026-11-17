@@ -14,7 +14,11 @@ import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
 import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import {
   WhoIsToldBreakKind,
+  WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPersonProblem,
@@ -717,6 +721,182 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
   });
 });
 
+/*
+ * WHAT THE CARD NOW SAYS, ASK AI SAYS TOO: a private record and whether it
+ * is the person's to see (#7213), the label rules that change who is paged
+ * (#7212), the monitor group a status page shows it through (#7214), the
+ * incident an alert's incident rule declares (#7216), and the owners no
+ * Created email reaches (#7572).
+ */
+describe("describeWhoIsToldForModel: privacy, label and incident rules, groups and owners not emailed", () => {
+  const OWNERS: WhoIsToldOwners = {
+    source: WhoIsToldOwnersSource.ProjectOwners,
+    userNames: ["Me Myself"],
+    teamNames: [],
+  };
+
+  function withEvent(event: Partial<WhoIsToldEvent>): WhoIsToldResult {
+    const result: WhoIsToldResult = opening(OWNERS);
+    result.criteria[0]!.events[0] = {
+      ...result.criteria[0]!.events[0]!,
+      ...event,
+    };
+    return result;
+  }
+
+  test("a private record the person may not see: what opens and that it is private, nothing of whom it tells", () => {
+    const lines: Array<string> = linesOf(
+      redactWhoIsTold({
+        result: withEvent({
+          isPrivate: true,
+          privacyRules: [
+            { id: "pr1", name: "Payments are private" },
+            { id: "pr2", name: "Secret rule" },
+          ],
+          ownerRules: [{ id: "o1", name: "Payments owners" }],
+        }),
+        readablePolicyIds: new Set<string>(),
+        readableRuleIds: new Set<string>(),
+        readableOwnerRuleIds: new Set<string>(["o1"]),
+        readableStatusPageIds: new Set<string>(),
+        readablePrivacyRuleIds: new Set<string>(["pr1"]),
+      }),
+    );
+
+    expect(lines).toContain(
+      '  - opens an incident (Critical Incident) that is private and not the person\'s to see, so who it tells is not shown to them; made private by "Payments are private", a privacy rule the person may not read',
+    );
+    expect(lines.join("\n")).not.toContain("Payments owners");
+    expect(lines.join("\n")).not.toContain("Me Myself)");
+    expect(lines.join("\n")).not.toContain("Secret rule");
+  });
+
+  test("a private record the person may see says so, and why it is on no status page", () => {
+    expect(
+      linesOf(
+        withEvent({
+          isPrivate: true,
+          privacyRules: [{ id: "pr1", name: "Payments are private" }],
+        }),
+      ),
+    ).toContain(
+      '    - is private (made private by "Payments are private"): it shows on no status page and tells no subscriber, and only its owners, Project Owners and Project Admins can see it',
+    );
+    expect(linesOf(withEvent({ isPrivate: true, privacyRules: [] }))).toContain(
+      "    - is private (the criteria makes it private): it shows on no status page and tells no subscriber, and only its owners, Project Owners and Project Admins can see it",
+    );
+  });
+
+  test("the label rules whose labels decide which on-call rules page it", () => {
+    expect(
+      linesOf(
+        withEvent({
+          labelRules: [
+            { id: "l1", name: "Tag payments" },
+            { id: "l2", name: "" },
+          ],
+        }),
+      ),
+    ).toContain(
+      '    - label rules whose labels decide which on-call rules page it: "Tag payments", a label rule the person may not read',
+    );
+  });
+
+  test("the monitor group a status page shows the monitor through, by name as the person may read it", () => {
+    expect(
+      linesOf(
+        withEvent({
+          statusPages: [
+            {
+              id: "s1",
+              name: "Acme Status",
+              groups: [
+                { id: "g1", name: "Checkout" },
+                { id: "g2", name: "" },
+              ],
+            },
+            { id: "s2", name: "Ops Status", groups: [] },
+          ],
+        }),
+      ),
+    ).toContain(
+      '    - shows on status pages: "Acme Status" (through monitor group "Checkout", a monitor group the person may not read), "Ops Status"',
+    );
+  });
+
+  test("the incident an alert incident rule declares is said as any incident, under the alert", () => {
+    const lines: Array<string> = linesOf(
+      withEvent({
+        kind: OnCallTestPageRecordKind.Alert,
+        severityName: "Warning",
+        declares: {
+          rule: { id: "ai1", name: "Lasting alerts" },
+          waitInMinutes: 15,
+          incident: {
+            kind: OnCallTestPageRecordKind.Incident,
+            title: "example.com is offline",
+            severityName: "Critical Incident",
+            owners: OWNERS,
+            ownerRules: [],
+            rules: [],
+            policies: [],
+            statusPages: [{ id: "s1", name: "Acme Status" }],
+          },
+        },
+      }),
+    );
+
+    const at: number = lines.indexOf(
+      '    - alert incident rule "Lasting alerts" turns it into an incident once it has stayed open 15 minutes, which:',
+    );
+
+    expect(at).toBeGreaterThan(0);
+    expect(lines.slice(at + 1)).toEqual([
+      "      - opens an incident (Critical Incident); emails the Project Owners (Me Myself)",
+      "        - pages nobody: no on-call rule runs a policy for it",
+      '        - shows on status pages: "Acme Status"',
+      "Nothing breaks the chain.",
+    ]);
+  });
+
+  test("owners no Created email reaches, why, and what named them - never a person who is not a member by name", () => {
+    expect(
+      linesOf(
+        withEvent({
+          owners: {
+            ...OWNERS,
+            notReached: [
+              {
+                kind: WhoIsToldOwnerKind.User,
+                id: "u9",
+                name: "",
+                problem: WhoIsToldOwnerProblem.NotInProject,
+                addedBy: WhoIsToldOwnerAddedBy.Criteria,
+              },
+              {
+                kind: WhoIsToldOwnerKind.Team,
+                id: "t1",
+                name: "Night Shift",
+                problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+                addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                rule: { id: "o1", name: "Payments owners" },
+              },
+              {
+                kind: WhoIsToldOwnerKind.Team,
+                id: "t2",
+                name: "",
+                problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+                addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+              },
+            ],
+          },
+        }),
+      ),
+    ).toContain(
+      '    - not emailed, as no Created email can reach them: a person who is not a member of the project (named by the criteria); team "Night Shift", which has nobody in it who is a member of the project (added by owner rule "Payments owners"); a team of another project (an owner of the network device the monitor watches)',
+    );
+  });
+});
 describe("who_is_told", () => {
   test("is a read the toolbox offers in every mode, Read-only included", () => {
     expect(WhoIsToldTool.isMutation).toBeFalsy();
