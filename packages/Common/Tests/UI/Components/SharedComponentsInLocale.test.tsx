@@ -159,7 +159,9 @@ describe("text props", () => {
       </>,
     );
 
-    expect(screen.getByTestId("pill")).toHaveTextContent("Betriebsbereit");
+    expect(screen.getAllByTestId("pill")[0]).toHaveTextContent(
+      "Betriebsbereit",
+    );
     expect(screen.getByText("Aktiv")).toBeInTheDocument();
     expect(screen.getByText("Duplizieren")).toBeInTheDocument();
   });
@@ -173,7 +175,7 @@ describe("text props", () => {
       </>,
     );
 
-    expect(screen.getByTestId("pill")).toHaveTextContent("payments-api");
+    expect(screen.getAllByTestId("pill")[0]).toHaveTextContent("payments-api");
     expect(screen.getByText("Degraded")).toBeInTheDocument();
   });
 
@@ -193,15 +195,16 @@ describe("text props", () => {
       </>,
     );
 
-    const [translated, typed] = screen.getAllByTestId("status-badge-text");
+    const [translated, typed] = screen.getAllByTestId("pill-text");
 
     expect(translated).toHaveTextContent("Aktiv");
     expect(translated).not.toHaveAttribute("dir");
     expect(typed).toHaveTextContent("Degraded");
-    expect(typed).toHaveAttribute("dir", "auto");
+    // English words on a German page read as the page does: no dir of their own.
+    expect(typed).not.toHaveAttribute("dir");
     // One line, ending in "..." where the box it is in ends.
     expect(typed).toHaveClass("truncate", "min-w-0");
-    expect(typed!.parentElement).toHaveClass("whitespace-nowrap", "max-w-full");
+    expect(typed!.parentElement).toHaveClass("min-w-0", "max-w-full");
   });
 });
 
