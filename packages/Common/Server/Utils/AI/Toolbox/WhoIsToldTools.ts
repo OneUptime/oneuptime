@@ -447,6 +447,22 @@ function describeEvent(
       : `${indent}    - no on-call rule matches`,
   );
 
+  /*
+   * An alert on-call rule with an Alert Owner condition matches on who owns
+   * the alert (#9407): the owners that make it match, as the card says.
+   */
+  for (const match of event.ownerMatches || []) {
+    const rule: WhoIsToldRule = event.rules.find(
+      (item: WhoIsToldRule): boolean => {
+        return item.id === match.ruleId;
+      },
+    ) || { id: match.ruleId, name: "" };
+
+    lines.push(
+      `${indent}    - on-call rule ${describeOnCallRule(rule)} matches because its Alert Owner condition picks owners of it: ${match.ownerNames.join(", ")}`,
+    );
+  }
+
   if (event.policies.length === 0) {
     lines.push(
       `${indent}    - pages nobody: no on-call rule runs a policy for it`,

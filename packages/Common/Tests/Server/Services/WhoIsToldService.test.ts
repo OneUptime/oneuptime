@@ -3117,8 +3117,9 @@ describe("WhoIsToldService", () => {
       expect(kinds(results[1]!)).toContain(WhoIsToldBreakKind.NobodyPaged);
     });
 
-    test("only the breaks' worth is read: owners go unnamed and no status page is listed", async () => {
+    test("only what Setup health needs is read: owners as ids, unnamed, and no status page", async () => {
       stubRuleReads();
+      jest.spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForDevices");
 
       const [result]: Array<WhoIsToldResult> =
         await WhoIsToldService.resolveProject({
@@ -3133,16 +3134,23 @@ describe("WhoIsToldService", () => {
       });
       expect(firstEvent(result!).ownerRules).toEqual([]);
       /*
-       * No owner rule, network device, project membership or status page is
-       * read for breaks only.
+       * The owner rules are read once for the project (#9407, #9371); a
+       * project whose monitors watch no device and name nobody reads no
+       * device's owners and nobody's membership. No name, Project Owner or
+       * status page is read for Setup health.
        */
-      expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
-      expect(AlertOwnerRuleService.findBy).not.toHaveBeenCalled();
+      expect(IncidentOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
+      expect(AlertOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
       expect(TeamMemberService.findBy).not.toHaveBeenCalled();
       expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
       expect(
         NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor,
       ).not.toHaveBeenCalled();
+      expect(
+        NetworkDeviceOwnerUserService.getDeviceOwnersForDevices,
+      ).not.toHaveBeenCalled();
+      expect(UserService.findBy).not.toHaveBeenCalled();
+      expect(ProjectService.getOwners).not.toHaveBeenCalled();
       expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
       expect(firstEvent(result!).statusPages).toEqual([]);
       expect(
@@ -3154,7 +3162,7 @@ describe("WhoIsToldService", () => {
       ).toBeUndefined();
     });
 
-    test("owners the criteria names are said to be named, without reading them", async () => {
+    test("owners the criteria names are worked out for every monitor from one read of each kind, unnamed", async () => {
       stubRuleReads();
       world.monitorSteps = stepsOf([
         offlineCriteria({
@@ -3164,25 +3172,52 @@ describe("WhoIsToldService", () => {
               title: "Down",
               description: "",
               incidentSeverityId: new ObjectID(CRITICAL),
-              ownerTeamIds: [ObjectID.generate()],
+              ownerTeamIds: [new ObjectID(PLATFORM_TEAM)],
+              ownerUserIds: [new ObjectID(CARA)],
             },
           ],
         }),
       ]);
 
-      const [result]: Array<WhoIsToldResult> =
+      const monitors: Array<Monitor> = [];
+
+      for (let index: number = 0; index < 20; index++) {
+        monitors.push(
+          projectMonitor(
+            `68101111-0000-4000-8000-${(2000 + index)
+              .toString()
+              .padStart(12, "0")}`,
+            `Monitor ${index}`,
+          ),
+        );
+      }
+
+      const results: Array<WhoIsToldResult> =
         await WhoIsToldService.resolveProject({
           projectId: PROJECT_ID,
-          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+          monitors: monitors,
         });
 
-      expect(firstEvent(result!).owners.source).toBe(
-        WhoIsToldOwnersSource.Named,
+      for (const result of results) {
+        expect(firstEvent(result).owners).toEqual({
+          source: WhoIsToldOwnersSource.Named,
+          userNames: [],
+          teamNames: [],
+        });
+        expect(firstEvent(result).ownerIds).toEqual({
+          userIds: [CARA],
+          teamIds: [PLATFORM_TEAM],
+        });
+      }
+
+      // Whether the team is the project's, has anybody in it, and who is a member: once each.
+      expect(TeamService.findBy).toHaveBeenCalledTimes(1);
+      expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
+      expect(TeamMemberService.getProjectMemberUserIds).toHaveBeenCalledTimes(
+        1,
       );
-      expect(TeamService.findBy).not.toHaveBeenCalled();
-      // Nor whether the team has anybody in the project (#7211).
-      expect(TeamMemberService.findBy).not.toHaveBeenCalled();
-      expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
+      // Nobody's name is read: Setup health names nobody it reaches.
+      expect(UserService.findBy).not.toHaveBeenCalled();
     });
 
     test("the project's Readiness gives every responder's verified methods up front", async () => {
@@ -3303,7 +3338,7 @@ describe("WhoIsToldService", () => {
         world.levels[PRIMARY] = { targets: [], notPaged: [], levelCount: 0 };
       });
 
-      test("its owners are worked out, as the card works them out; a public record's are not", async () => {
+      test("its owners are worked out, as the card works them out - and a public record's too (#9407)", async () => {
         world.projectMemberIds = [...world.projectMemberIds, ME];
         world.monitorSteps = opensIncidents(
           incidentTemplate({ isPrivate: true, ownerUserIds: ids([ME]) }),
@@ -3318,8 +3353,9 @@ describe("WhoIsToldService", () => {
           incidentTemplate({ ownerUserIds: ids([ME]) }),
         );
 
+        // An alert on-call rule may match on them, and Setup health lists who isn't emailed.
         expect(firstEvent(await projectChain()).ownerIds).toEqual({
-          userIds: [],
+          userIds: [ME],
           teamIds: [],
         });
       });
@@ -3395,10 +3431,10 @@ describe("WhoIsToldService", () => {
           WhoIsToldBreakKind.PolicyHasNoLevels,
         );
         expect(await listedFor(CALLER)).toEqual(await onTheCardOf(CALLER));
-        // With nothing private, no owner rule is read for the project.
+        // The owner rules are read once for the project, private record or not.
         (IncidentOwnerRuleService.findBy as unknown as jest.Mock).mockClear();
         await projectChain();
-        expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
+        expect(IncidentOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
       });
     });
   });
