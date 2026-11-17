@@ -31,7 +31,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { Slate500 } from "Common/Types/BrandColors";
 import Input from "Common/UI/Components/Input/Input";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Button, {
@@ -1955,7 +1954,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
            * already announces the load, so this copy stays silent.
            */}
           <div aria-hidden="true">
-            <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
+            <Loader loaderType={LoaderType.Bar} size={180} />
           </div>
           <p className="text-sm text-gray-500">{t("Correlating events…")}</p>
         </div>

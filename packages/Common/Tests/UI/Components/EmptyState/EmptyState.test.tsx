@@ -265,16 +265,21 @@ describe("EmptyState", () => {
     });
 
     test.each([
-      [EmptyStateSize.Inline, ["px-4", "py-6"]],
+      [EmptyStateSize.Inline, ["px-4", "py-8"]],
       [EmptyStateSize.Card, ["px-4", "py-12", "sm:py-16"]],
       [EmptyStateSize.Page, ["px-4", "py-16", "sm:py-24"]],
-    ])("draws the %s preset's padding", (size: EmptyStateSize, classes: Array<string>) => {
-      const element: Element = renderSized(size);
+    ])(
+      "draws the %s preset's padding",
+      (size: EmptyStateSize, classes: Array<string>) => {
+        const element: Element = renderSized(size);
 
-      expect(element).toHaveAttribute("data-size", size);
-      expect(element).toHaveClass(...classes);
-      expect(element.className).toContain(EMPTY_STATE_PADDING_CLASS_NAMES[size]);
-    });
+        expect(element).toHaveAttribute("data-size", size);
+        expect(element).toHaveClass(...classes);
+        expect(element.className).toContain(
+          EMPTY_STATE_PADDING_CLASS_NAMES[size],
+        );
+      },
+    );
 
     test("each preset is roomier than the one before it, and none reaches the old 13rem", () => {
       const topPadding: (size: EmptyStateSize) => number = (

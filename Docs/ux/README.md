@@ -493,6 +493,31 @@ work out, starts from a default for everything else, and folds what most people 
 - **A suggestion shows only when it applies,** decided by one helper per kind in
   `Common/Utils/Suggestions`, never in a page. Enforced by
   [SuggestionRulesGuard](../../packages/Common/Tests/App/Dashboard/SuggestionRulesGuard.test.ts).
+- **An empty state takes the room of where it sits, from a preset.** `EmptyState` takes `size`:
+  `EmptyStateSize.Inline` in a panel, a form's step or a short list inside a card, `Card` (the
+  default) for a card's or a list's body, `Page` for a page with nothing else on it. It used to pad
+  itself by 13rem above and below, so in a card on a 390px phone "No X yet" began a quarter of the
+  way down the screen; pages then passed a dozen paddings of their own, and two wrapped it in
+  negative margins to take the room back (#9135). Never hand it a padding or pull it back with a
+  margin: pick the preset. Enforced by
+  [EmptyStateSizeGuard](../../packages/Common/Tests/UI/Components/EmptyState/EmptyStateSizeGuard.test.ts).
+
+### Loading
+
+- **Nothing jumps when content arrives.** A page's content area loads as a card-shaped skeleton
+  where its first card will be (`PageSkeleton`, drawn by `Page` and every `ModelPage`); a table
+  draws its rows' skeleton, a list its items', a detail card its fields'. A page used to draw a
+  thin bar 208px down an empty area and a card one of three bars in two greys at three heights, so
+  the page moved under the reader as each card filled in (#9135). A bar that is still drawn is the
+  shared one, `LOADER_COLOR` (gray-500), centred in `LOADER_BOX_CLASS_NAME`, a box as tall as an
+  empty card: `PageLoader` and `ComponentLoader` draw it, so a card that loads into "No X yet"
+  keeps its height. No screen pushes its content 13rem down (`mt-52`, `pt-52`). A bar for an action
+  in progress (a test being sent) is drawn in the action's colour, listed in the guard with its
+  reason. Enforced by
+  [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts).
+- **A new card that loads its own data draws the shape it will have.** Prefer the shared
+  components (a table, a list, a detail card), which already do; a card drawn by hand reserves its
+  height with a `Skeleton` of its content's size. Not enforced: use judgement.
 
 ## Dialogs and confirmations
 

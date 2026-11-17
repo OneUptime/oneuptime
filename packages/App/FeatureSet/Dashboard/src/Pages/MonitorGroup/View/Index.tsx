@@ -30,7 +30,9 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
-import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";

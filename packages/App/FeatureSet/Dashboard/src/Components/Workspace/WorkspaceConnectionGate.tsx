@@ -10,7 +10,9 @@ import {
 import Route from "Common/Types/API/Route";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";

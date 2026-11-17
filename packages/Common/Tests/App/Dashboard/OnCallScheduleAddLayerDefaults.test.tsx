@@ -204,6 +204,7 @@ describe("a schedule with no layers", () => {
     const state: HTMLElement = card.querySelector("#no-layers") as HTMLElement;
 
     expect(state.className.split(" ")).toContain("py-8");
+    expect(state).toHaveAttribute("data-size", "inline");
     expect(state.className).not.toContain("pt-52");
 
     const add: HTMLElement = screen.getByRole("button", { name: "Add Layer" });

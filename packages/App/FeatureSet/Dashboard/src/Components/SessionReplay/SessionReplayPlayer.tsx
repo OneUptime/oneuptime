@@ -14,7 +14,9 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import Icon from "Common/UI/Components/Icon/Icon";

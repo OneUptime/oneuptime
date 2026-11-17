@@ -30,7 +30,7 @@ export enum EmptyStateSize {
 export const EMPTY_STATE_PADDING_CLASS_NAMES: Readonly<
   Record<EmptyStateSize, string>
 > = {
-  [EmptyStateSize.Inline]: "px-4 py-6",
+  [EmptyStateSize.Inline]: "px-4 py-8",
   [EmptyStateSize.Card]: "px-4 py-12 sm:py-16",
   [EmptyStateSize.Page]: "px-4 py-16 sm:py-24",
 };
