@@ -31,8 +31,15 @@ import ts from "typescript";
  *   - "This is the timeline and feed": the feeds' old filler;
  *   - "Manage ... here.": a sentence that only says the page is for
  *     managing what it shows;
- *   - "Basic information about this X." / "Overview of this X.": a details
- *     card's title already says that. Such a card needs no description.
+ *   - "Basic information about this X." / "Overview of this X." / "Details
+ *     about this X.": a details card's title already says that. Such a
+ *     card needs no description.
+ *
+ * The Admin Dashboard words its pages through nested locale keys
+ * (`t("pages.users.listDescription")`), so its sentences are not in its
+ * source: "Here is a list of users in OneUptime." sat in its locale, out of
+ * this guard's sight, until #9044. Every string in the Admin Dashboard's
+ * English locale is read too, as a written one is.
  *
  * A string that has to keep such an opener goes in ALLOWED, with the reason.
  * Say what the list or card is for instead: what the items are, what they
@@ -84,12 +91,23 @@ const OPENERS: Array<Opener> = [
     pattern: /^Manage\b[\s\S]*\bhere\.?$/i,
   },
   {
-    name: "Basic information about this / Overview of this",
-    pattern: /^(?:Basic\s+information\s+about|Overview\s+of)\s+this\b/i,
+    name: "Basic information about this / Overview of this / Details about this",
+    pattern:
+      /^(?:Basic\s+information\s+about|Overview\s+of|Details\s+about)\s+this\b/i,
   },
 ];
 
 const WHITESPACE: RegExp = /\s+/g;
+
+const ADMIN_ENGLISH_LOCALE: string = path.join(
+  PACKAGES_DIR,
+  "App",
+  "FeatureSet",
+  "AdminDashboard",
+  "src",
+  "Locales",
+  "en.json",
+);
 
 interface AllowedString {
   // Relative to the repository root, with forward slashes.
@@ -264,6 +282,34 @@ const FOUND: Array<FoundString> = SOURCE_FILES.flatMap(
   },
 );
 
+// Every string in a locale, with its key path ("pages.users.listDescription").
+function readLocaleStrings(
+  value: unknown,
+  keyPath: string,
+  into: Array<{ key: string; text: string }>,
+): void {
+  if (typeof value === "string") {
+    into.push({ key: keyPath, text: value });
+    return;
+  }
+
+  if (value && typeof value === "object") {
+    for (const [key, child] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      readLocaleStrings(child, keyPath ? `${keyPath}.${key}` : key, into);
+    }
+  }
+}
+
+const ADMIN_LOCALE_STRINGS: Array<{ key: string; text: string }> = [];
+
+readLocaleStrings(
+  JSON.parse(fs.readFileSync(ADMIN_ENGLISH_LOCALE, "utf8")) as unknown,
+  "",
+  ADMIN_LOCALE_STRINGS,
+);
+
 function describeFound(found: FoundString): string {
   return `${found.file}:${found.line} (${found.opener}) "${found.text}"`;
 }
@@ -287,6 +333,7 @@ describe("the openers this guard refuses", () => {
     "Manage your incident settings here.",
     "Basic information about this pipeline.",
     "Overview of this Docker host.",
+    "Details about this team.",
     "Manage team members from your identity provider or disable Push Groups in Settings > SCIM to make changes here.",
     "  Here is a description that a long JSX line wrapped.  ",
   ])("refuses %j", (sentence: string) => {
@@ -366,6 +413,28 @@ describe("card descriptions say what each list or card is for", () => {
         return relative(file).startsWith("packages/Common/UI/");
       }),
     ).toBe(true);
+  });
+
+  test("the guard reads the Admin Dashboard's English locale", () => {
+    // Its pages are worded through keys: the sentences live here.
+    expect(ADMIN_LOCALE_STRINGS.length).toBeGreaterThan(2000);
+    expect(
+      ADMIN_LOCALE_STRINGS.some((entry: { key: string }): boolean => {
+        return entry.key === "pages.users.listDescription";
+      }),
+    ).toBe(true);
+  });
+
+  test("no Admin Dashboard locale string opens with a boilerplate opener", () => {
+    const unexpected: Array<string> = ADMIN_LOCALE_STRINGS.filter(
+      (entry: { text: string }): boolean => {
+        return findOpener(entry.text) !== undefined;
+      },
+    ).map((entry: { key: string; text: string }): string => {
+      return `AdminDashboard en.json ${entry.key} (${findOpener(entry.text)}) "${entry.text}"`;
+    });
+
+    expect(unexpected).toEqual([]);
   });
 
   test("no string opens with a boilerplate opener", () => {
