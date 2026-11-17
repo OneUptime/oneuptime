@@ -347,17 +347,18 @@ const problemsWith: (
       );
     }
   } else {
-    // Wrapped: the lines balanced, the first measured from the icon.
-    const widths: Array<number> = option.lines.map(
-      (line: Rect, index: number): number => {
-        if (index > 0) {
-          return widthOf(line);
-        }
-        return rtl
-          ? option.icon.right - line.left
-          : line.right - option.icon.left;
-      },
-    );
+    /*
+     * Wrapped: the words' lines balanced. The icon's place before the first
+     * word is held above, to the pixel; here only the words are measured.
+     * Measured from the icon, the first line also carried its fixed 28px,
+     * which the 14px words every button has had since #9128 made a larger
+     * share of it: Hindi "Google Workspace से साइन इन करें" at 320px, split
+     * as evenly as its words allow (the name and से, then साइन इन करें), read
+     * 161 / 79px.
+     */
+    const widths: Array<number> = option.lines.map((line: Rect): number => {
+      return widthOf(line);
+    });
     const balance: number = Math.min(...widths) / Math.max(...widths);
     if (balance < 0.5) {
       problems.push(
