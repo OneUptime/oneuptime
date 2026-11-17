@@ -40,7 +40,7 @@ flowchart LR
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |
 | **감사 로그** | **감사 로그**, **설정**, **내보내기** | [감사 로그](/docs/configuration/audit-logs), [감사 로그 내보내기](/docs/configuration/audit-log-export) |
-| **위험 영역** | **위험 영역** | [프로젝트 삭제](#프로젝트-삭제) |
+| **위험 영역** | **프로젝트 삭제** | [프로젝트 삭제](#프로젝트-삭제) |
 
 **결제 및 청구서**와 **AI 크레딧**은 OneUptime Cloud에만 있습니다. 자체 호스팅 설치에는 결제가 없습니다.
 
@@ -113,7 +113,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 :::steps
 ### 위험 영역 열기
 
-**프로젝트 설정 → 위험 영역**으로 이동합니다.
+**프로젝트 설정 → 위험 영역 → 프로젝트 삭제**로 이동합니다.
 
 ### 삭제 버튼 클릭
 

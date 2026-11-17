@@ -286,7 +286,7 @@ Dess dialogruta, **Reissue SSL Certificate for this Status Page**, ber Let's Enc
 
 Åtgärden visas inte på en domän som använder ett certifikat som du har laddat upp: det finns inget Let's Encrypt-certifikat att utfärda på nytt, så ladda i stället upp ett nytt genom att redigera domänen. Den visas inte heller innan domänens första certifikat har beställts, vilket sker av sig självt så snart dess CNAME-post är verifierad.
 
-Samma knapp, med samma gräns på 24 timmar, finns på instrumentpanelernas anpassade domäner under **Instrumentpaneler → din instrumentpanel → Varumärke → Anpassade domäner**, som fungerar på samma sätt som statussidornas anpassade domäner: se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing#anpassade-domäner).
+Samma knapp, med samma gräns på 24 timmar, finns på instrumentpanelernas anpassade domäner under **Instrumentpaneler → din instrumentpanel → Offentlig länk → Anpassade domäner**, som fungerar på samma sätt som statussidornas anpassade domäner: se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing#anpassade-domäner).
 
 ### Läsa domänens kolumn Status
 

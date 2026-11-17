@@ -64,7 +64,7 @@ L'onglet **Astreinte** parle de vous, pas des éléments dont vous êtes propri�
 
 - **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte** et **Vous quittez l'astreinte** suivent vos tours dans les plannings d'astreinte dont vous faites partie.
 - **Ajouté à la politique d'astreinte** et **Retiré de la politique d'astreinte** vous disent quand une politique d'astreinte commence ou cesse de vous nommer.
-- **Avant le début de ma permanence d'astreinte** envoie des rappels aux moments que vous choisissez dans **Paramètres utilisateur → Calendrier → Flux de calendrier**, et **Ma prochaine permanence d'astreinte est réattribuée** vous dit quand quelqu'un d'autre couvre une permanence dont vous aviez reçu un rappel. Voir [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation).
+- **Avant le début de ma permanence d'astreinte** envoie des rappels aux moments que vous choisissez dans **Paramètres utilisateur → Profil et calendrier → Flux de calendrier**, et **Ma prochaine permanence d'astreinte est réattribuée** vous dit quand quelqu'un d'autre couvre une permanence dont vous aviez reçu un rappel. Voir [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation).
 - **Appel manqué**, dans la carte **Politiques d'appels entrants**, dit aux propriétaires d'une politique d'appels entrants qu'un appelant n'a joint personne. Voir [Politique d'appels entrants](/docs/on-call/incoming-call-policy#appels-manqués).
 
 ## Dossiers de sécurité

@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Ouvrir les budgets d'ingestion
 
-Dans l'Admin Dashboard, allez dans **Paramètres → Télémétrie → Budgets d'ingestion**. **Télémétrie** est replié au départ dans le menu latéral : cliquez dessus pour l'ouvrir.
+Dans l'Admin Dashboard, allez dans **Paramètres → Serveur → Budgets d'ingestion**. **Serveur** est replié au départ dans le menu latéral : cliquez dessus pour l'ouvrir.
 
 ### Définir les budgets quotidiens
 

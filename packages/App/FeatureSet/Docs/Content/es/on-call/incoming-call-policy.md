@@ -154,7 +154,7 @@ Para liberar un número, haz clic en **Liberar número** junto a él y confirma 
 Una regla hace sonar a una persona en el número que verificó para llamadas entrantes en este proyecto, y se salta a quien no tenga ninguno. Cada persona añade el suyo:
 
 :::steps
-1. Abre **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**. **Política de llamadas entrantes** es una sección del menú lateral que empieza plegada.
+1. Abre **Ajustes de usuario** > **Avisos de guardia y llamadas** > **Números de teléfono entrantes**. **Avisos de guardia y llamadas** es una sección del menú lateral que empieza plegada.
 2. En la tarjeta **Números de teléfono para enrutamiento de llamadas entrantes**, haz clic en **Añadir Número de teléfono para enrutamiento de llamadas entrantes** y escribe el número con su prefijo de país, por ejemplo `+15551234567`.
 3. Escribe el código de 6 dígitos que OneUptime le envía por SMS en **Código de verificación** y haz clic en **Verificar**. **Enviar un código nuevo** envía otro.
 :::
@@ -260,7 +260,7 @@ Una regla creada mediante la API sin `escalateAfterSeconds` suena durante 20 seg
 :::
 
 :::details La llamada se contesta, pero no suena a nadie
-El registro de llamadas dice **Fallido**. Comprueba que **Contestar llamadas** está activado en los **Ajustes** de la política, que la programación de guardia de cada regla tiene a alguien de guardia ahora mismo y que las personas a las que hacen sonar las reglas tienen un número verificado en **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**, en este proyecto. Las reglas solo hacen sonar a miembros del proyecto.
+El registro de llamadas dice **Fallido**. Comprueba que **Contestar llamadas** está activado en los **Ajustes** de la política, que la programación de guardia de cada regla tiene a alguien de guardia ahora mismo y que las personas a las que hacen sonar las reglas tienen un número verificado en **Ajustes de usuario** > **Avisos de guardia y llamadas** > **Números de teléfono entrantes**, en este proyecto. Las reglas solo hacen sonar a miembros del proyecto.
 :::
 
 :::details Las llamadas acaban en el buzón de voz

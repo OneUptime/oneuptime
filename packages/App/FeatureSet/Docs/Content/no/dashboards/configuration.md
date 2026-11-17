@@ -96,7 +96,7 @@ Arkivering er det reversible alternativet til sletting: bruk det først når du 
 
 ## Slette et dashbord
 
-Åpne dashbordets side **Slett**. Sletting kan ikke angres: dashbordet, widgetene og variablene, og alle egendefinerte domener som er knyttet til det, fjernes. Telemetrien din berøres ikke.
+Åpne dashbordets side **Slett dashbord**. Sletting kan ikke angres: dashbordet, widgetene og variablene, og alle egendefinerte domener som er knyttet til det, fjernes. Telemetrien din berøres ikke.
 
 Hvis dashbordet er offentlig på et egendefinert domene, slutter adressen å svare så snart du sletter det. For å fortsette å servere adressen legger du domenet til et annet dashbord etter at du har slettet dette: et domene hører til ett dashbord om gangen.
 

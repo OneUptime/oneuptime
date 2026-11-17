@@ -45,10 +45,8 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 | --- | --- |
 | **Aan de slag** | **Instellingschecklist**: wat er nog in te stellen is, in de volgorde die telt |
 | **Waarschuwingen & meldingen** | **Meldingsmethoden**, **Hoe ik bereikbaar ben**, **Meldingsinstellingen** en **E-mailvoorkeuren**, waar je bepaalt hoeveel e-mails je nieuws oplevert |
-| **Bereikbaarheidslogboeken** | **Bereikbaarheidslogboeken**: elke keer dat je in dit project werd opgeroepen, en wat er werd verzonden |
-| **Beleid inkomend gesprek** | **Inkomende telefoonnummers**: het nummer waarop een beleid voor inkomende gesprekken je belt |
-| **Agenda** | **Agendafeed**: je diensten in je agenda-app, en herinneringen voordat ze beginnen |
-| **Profiel** | **Aangepaste velden**: gegevens die je project aan zijn leden vraagt |
+| **Oproepen en gesprekken** | **Bereikbaarheidslogboeken**: elke keer dat je in dit project werd opgeroepen, en wat er werd verzonden; **Inkomende telefoonnummers**: het nummer waarop een beleid voor inkomende gesprekken je belt |
+| **Profiel en agenda** | **Agendafeed**: je diensten in je agenda-app, en herinneringen voordat ze beginnen; **Aangepaste velden**: gegevens die je project aan zijn leden vraagt |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: je eigen account, in elke werkruimte die het project heeft gekoppeld |
 
 **Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
@@ -112,7 +110,7 @@ Wat verandert, zijn de woorden van OneUptime: onderwerpen, koppen, knoppen en zi
 ## Probleemoplossing
 
 :::details Ik had dienst, maar niets bereikte me
-Open **Gebruikersinstellingen → Bereikbaarheidslogboeken**. Geen rij voor het incident betekent dat het bereikbaarheidsbeleid je nooit heeft opgeroepen: controleer de escalatieregels ervan en wie er dienst had. Bij een rij met de status **Fout** zegt **Statusbericht bekijken** waarom, bijvoorbeeld een kanaal dat het project heeft uitgezet. Controleer daarna of je methoden geverifieerd zijn en of **Your setup checklist** onder **So we can reach you** niets meer openstaand heeft.
+Open **Gebruikersinstellingen → Oproepen en gesprekken → Bereikbaarheidslogboeken**. Geen rij voor het incident betekent dat het bereikbaarheidsbeleid je nooit heeft opgeroepen: controleer de escalatieregels ervan en wie er dienst had. Bij een rij met de status **Fout** zegt **Statusbericht bekijken** waarom, bijvoorbeeld een kanaal dat het project heeft uitgezet. Controleer daarna of je methoden geverifieerd zijn en of **Your setup checklist** onder **So we can reach you** niets meer openstaand heeft.
 :::
 
 :::details Ik krijg e-mails over items waar ik nooit om heb gevraagd

@@ -2012,7 +2012,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       }),
     ).toBe(true);
     expect(menuSection(sections, "Notifications").items).toContain("Emails");
-    expect(menuSection(sections, "Monitoring").items).toContain(
+    expect(menuSection(sections, "Shared with All Projects").items).toContain(
       "Global Probes",
     );
     expect(readSource("adminAuthentication")).toContain(
@@ -2035,7 +2035,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       "**Let people sign up**",
       "**Let people sign in with an emailed link**",
       "**Settings > Notifications > Emails**",
-      "**Settings > Monitoring > Global Probes**",
+      "**Settings > Shared with All Projects > Global Probes**",
     ]) {
       expect({ words, onPage: page.includes(words) }).toEqual({
         words,

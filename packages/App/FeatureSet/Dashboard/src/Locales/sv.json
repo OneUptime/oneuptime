@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Ta bort flotta",
   "Delete Item": "Ta bort objekt",
   "Delete Notification Rule": "Ta bort aviseringsregel",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Ta bort projekt",
   "Delete Queue": "Ta bort kö",
   "Delete Rule": "Ta bort regel",
   "Delete SLO": "Ta bort SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Visas inte på någon statussida",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor visar den här händelsen och meddelar sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida.",
   "Show event on these status pages": "Visa händelse på dessa statussidor",
-  "This event will not appear on any status page.": "Den här händelsen visas inte på någon statussida."
+  "This event will not appear on any status page.": "Den här händelsen visas inte på någon statussida.",
+  "Change sharing": "Ändra delning",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Bara personer i det här projektet kan se den här instrumentpanelen, så de här inställningarna gör ingenting förrän du delar den med en offentlig länk.",
+  "Profile & Calendar": "Profil och kalender",
+  "Public Link": "Offentlig länk",
+  "Ready for when the dashboard has a public link.": "Redo för när instrumentpanelen får en offentlig länk.",
+  "Set Up Before Sharing Publicly": "Konfigurera innan offentlig delning",
+  "The public link's title, description, logos, theme and favicon.": "Den offentliga länkens titel, beskrivning, logotyper, tema och favicon.",
+  "Your own domains for the public link.": "Dina egna domäner för den offentliga länken.",
+  "Paging & Calls": "Jourlarm och samtal"
 }

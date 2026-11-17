@@ -154,7 +154,7 @@ Pour libérer un numéro, cliquez sur **Libérer le numéro** à côté de lui e
 Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les appels entrants dans ce projet, et ignore quiconque n'en a pas. Chaque personne ajoute le sien :
 
 :::steps
-1. Ouvrez **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**. **Politique d'appels entrants** est une section du menu latéral qui commence repliée.
+1. Ouvrez **Paramètres utilisateur** > **Alertes d'astreinte et appels** > **Numéros de téléphone entrants**. **Alertes d'astreinte et appels** est une section du menu latéral qui commence repliée.
 2. Dans la carte **Numéros de téléphone pour le routage des appels entrants**, cliquez sur **Ajouter : Numéro de téléphone pour le routage des appels entrants** et saisissez le numéro avec son indicatif de pays, par exemple `+15551234567`.
 3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Envoyer un nouveau code** en envoie un autre.
 :::
@@ -260,7 +260,7 @@ Une règle créée via l'API sans `escalateAfterSeconds` sonne pendant 20 second
 :::
 
 :::details L'appel est pris, mais personne ne sonne
-Le journal d'appels indique **Échec**. Vérifiez que **Répondre aux appels** est activé dans les **Paramètres** de la politique, que le planning d'astreinte de chaque règle a quelqu'un d'astreinte en ce moment, et que les personnes que les règles font sonner ont un numéro vérifié sous **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**, dans ce projet. Les règles ne font sonner que des membres du projet.
+Le journal d'appels indique **Échec**. Vérifiez que **Répondre aux appels** est activé dans les **Paramètres** de la politique, que le planning d'astreinte de chaque règle a quelqu'un d'astreinte en ce moment, et que les personnes que les règles font sonner ont un numéro vérifié sous **Paramètres utilisateur** > **Alertes d'astreinte et appels** > **Numéros de téléphone entrants**, dans ce projet. Les règles ne font sonner que des membres du projet.
 :::
 
 :::details Les appels aboutissent sur une messagerie vocale

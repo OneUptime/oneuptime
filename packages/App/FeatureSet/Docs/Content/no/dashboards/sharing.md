@@ -80,7 +80,7 @@ Forespørsler fra en hvilken som helst annen IP avvises med en side med **Access
 
 ## Egendefinerte domener
 
-Som standard serveres et offentlig dashbord på den offentlige lenken, på OneUptimes egen adresse. For å hoste det på ditt eget underdomene, som `dashboard.acme.com`, åpner du **Merkevare → Egendefinerte domener** i dashbordets sidemeny. Det fungerer nøyaktig som siden **Egendefinerte domener** for en statusside.
+Som standard serveres et offentlig dashbord på den offentlige lenken, på OneUptimes egen adresse. For å hoste det på ditt eget underdomene, som `dashboard.acme.com`, åpner du **Offentlig lenke → Egendefinerte domener** i dashbordets sidemeny. Det fungerer nøyaktig som siden **Egendefinerte domener** for en statusside.
 
 Kortet heter **Egendefinerte domener** og sier hva du skal gjøre: pek hvert domenes CNAME-post mot installasjonens CNAME-post for dashbord, så utsteder OneUptime domenets SSL-sertifikat og fornyer det for deg. Tabellen har to kolonner, **Domene** og **Status**.
 

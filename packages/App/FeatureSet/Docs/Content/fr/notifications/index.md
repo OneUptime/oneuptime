@@ -45,10 +45,8 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 | --- | --- |
 | **Premiers pas** | **Liste de configuration** : ce qu'il reste à configurer, dans l'ordre qui compte |
 | **Alertes & notifications** | **Méthodes de notification**, **Comment me joindre**, **Paramètres de notification** et **Préférences e-mail**, qui règle le nombre d'e-mails que représentent vos nouvelles |
-| **Journaux d'astreinte** | **Journaux d'astreinte** : chaque fois que vous avez été alerté dans ce projet, et ce qui a été envoyé |
-| **Politique d'appels entrants** | **Numéros de téléphone entrants** : le numéro auquel une politique d'appels entrants vous appelle |
-| **Calendrier** | **Flux de calendrier** : vos permanences dans votre application de calendrier, et des rappels avant qu'elles commencent |
-| **Profil** | **Champs personnalisés** : les informations que votre projet demande à ses membres |
+| **Alertes d'astreinte et appels** | **Journaux d'astreinte** : chaque fois que vous avez été alerté dans ce projet, et ce qui a été envoyé; **Numéros de téléphone entrants** : le numéro auquel une politique d'appels entrants vous appelle |
+| **Profil et calendrier** | **Flux de calendrier** : vos permanences dans votre application de calendrier, et des rappels avant qu'elles commencent; **Champs personnalisés** : les informations que votre projet demande à ses membres |
 | **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost** : votre propre compte, dans chaque espace de travail que le projet a connecté |
 
 **Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack, Microsoft Teams ou Mattermost.
@@ -112,7 +110,7 @@ Ce qui change, ce sont les mots de OneUptime : objets, titres, boutons et phrase
 ## Dépannage
 
 :::details J'étais d'astreinte, mais rien ne m'est parvenu
-Ouvrez **Paramètres utilisateur → Journaux d'astreinte**. Aucune ligne pour l'incident signifie que sa politique d'astreinte ne vous a jamais alerté : vérifiez ses règles d'escalade et qui était d'astreinte. Pour une ligne au statut **Erreur**, **Voir le message de statut** indique pourquoi, par exemple un canal que le projet a désactivé. Vérifiez ensuite que vos méthodes sont vérifiées et que **Your setup checklist** n'a plus rien en attente sous **So we can reach you**.
+Ouvrez **Paramètres utilisateur → Alertes d'astreinte et appels → Journaux d'astreinte**. Aucune ligne pour l'incident signifie que sa politique d'astreinte ne vous a jamais alerté : vérifiez ses règles d'escalade et qui était d'astreinte. Pour une ligne au statut **Erreur**, **Voir le message de statut** indique pourquoi, par exemple un canal que le projet a désactivé. Vérifiez ensuite que vos méthodes sont vérifiées et que **Your setup checklist** n'a plus rien en attente sous **So we can reach you**.
 :::
 
 :::details Je reçois des e-mails sur des éléments que je n'ai jamais demandés

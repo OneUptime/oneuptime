@@ -286,7 +286,7 @@ Dens dialog, **Reissue SSL Certificate for this Status Page**, beder Let's Encry
 
 Handlingen vises ikke på et domæne, der bruger et certifikat, du har uploadet: der er intet Let's Encrypt-certifikat at genudstede, så upload i stedet et nyt ved at redigere domænet. Den vises heller ikke, før domænets første certifikat er bestilt, hvilket sker af sig selv, så snart dets CNAME-post er bekræftet.
 
-Den samme knap, med den samme grænse på 24 timer, findes på dashboards' brugerdefinerede domæner under **Dashboards → dit dashboard → Branding → Brugerdefinerede domæner**, som fungerer på samme måde som statussiders brugerdefinerede domæner: se [Deling & offentlige dashboards](/docs/dashboards/sharing#brugerdefinerede-domæner).
+Den samme knap, med den samme grænse på 24 timer, findes på dashboards' brugerdefinerede domæner under **Dashboards → dit dashboard → Offentligt link → Brugerdefinerede domæner**, som fungerer på samme måde som statussiders brugerdefinerede domæner: se [Deling & offentlige dashboards](/docs/dashboards/sharing#brugerdefinerede-domæner).
 
 ### Sådan læser du domænets kolonne Status
 

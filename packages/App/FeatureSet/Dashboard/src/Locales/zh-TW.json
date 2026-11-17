@@ -9615,7 +9615,7 @@
   "Delete Fleet": "刪除裝置群",
   "Delete Item": "刪除項目",
   "Delete Notification Rule": "刪除通知規則",
-  "Delete Project": "Delete Project",
+  "Delete Project": "刪除專案",
   "Delete Queue": "刪除佇列",
   "Delete Rule": "刪除規則",
   "Delete SLO": "刪除 SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "不在任何狀態頁面上顯示",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面會顯示此維護事件並通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
   "Show event on these status pages": "在這些狀態頁面上顯示事件",
-  "This event will not appear on any status page.": "此維護事件不會顯示在任何狀態頁面上。"
+  "This event will not appear on any status page.": "此維護事件不會顯示在任何狀態頁面上。",
+  "Change sharing": "變更分享設定",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "只有此專案中的成員可以檢視此儀表板，因此在你透過公開連結分享它之前，這些設定不會生效。",
+  "Profile & Calendar": "個人資料與行事曆",
+  "Public Link": "公開連結",
+  "Ready for when the dashboard has a public link.": "為儀表板擁有公開連結時預先準備。",
+  "Set Up Before Sharing Publicly": "公開分享前先行設定",
+  "The public link's title, description, logos, theme and favicon.": "公開連結的標題、說明、標誌、主題和網站圖示。",
+  "Your own domains for the public link.": "用於公開連結的自有網域。",
+  "Paging & Calls": "呼叫與來電"
 }

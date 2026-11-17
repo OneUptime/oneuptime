@@ -84,11 +84,8 @@ const NOTIFICATIONS: string = "sideMenu.settingsNotifications";
 
 // The sections below Notifications, which start folded on every page but their own.
 const FOLDED_SECTIONS: ReadonlyArray<string> = [
-  "sideMenu.settingsMonitoring",
-  "sideMenu.settingsRunbooks",
-  "sideMenu.settingsDataRetention",
-  "sideMenu.settingsAi",
-  "sideMenu.settingsApiIntegrations",
+  "sideMenu.settingsSharedWithProjects",
+  "sideMenu.settingsServer",
 ];
 
 function settingsRoute(pageMapKey: string): string {

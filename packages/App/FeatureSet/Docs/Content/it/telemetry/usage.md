@@ -96,7 +96,7 @@ L'utilizzo viene conservato per 120 giorni, a meno che non lo cambiate, con la f
 :::steps
 ### Aprire la conservazione dei dati
 
-Nell'Admin Dashboard, andate in **Impostazioni → Conservazione dati**.
+Nell'Admin Dashboard, andate in **Impostazioni → Server → Conservazione dati**.
 
 ### Impostare il numero di giorni
 

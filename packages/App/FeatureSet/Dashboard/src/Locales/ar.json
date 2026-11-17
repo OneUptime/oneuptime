@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "لا يظهر على أي صفحة حالة",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها تعرض هذا الحدث وتُخطر مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة.",
   "Show event on these status pages": "عرض الحدث على صفحات الحالة هذه",
-  "This event will not appear on any status page.": "لن يظهر هذا الحدث على أي صفحة حالة."
+  "This event will not appear on any status page.": "لن يظهر هذا الحدث على أي صفحة حالة.",
+  "Change sharing": "تغيير المشاركة",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "لا يمكن عرض لوحة المعلومات هذه إلا لأعضاء هذا المشروع، لذا لا تؤثر هذه الإعدادات في شيء حتى تشاركها برابط عام.",
+  "Profile & Calendar": "الملف الشخصي والتقويم",
+  "Public Link": "الرابط العام",
+  "Ready for when the dashboard has a public link.": "جاهزة لحين يصبح للوحة المعلومات رابط عام.",
+  "Set Up Before Sharing Publicly": "الإعداد قبل المشاركة العامة",
+  "The public link's title, description, logos, theme and favicon.": "عنوان الرابط العام ووصفه وشعاراته وسمته وأيقونة موقعه.",
+  "Your own domains for the public link.": "نطاقاتك الخاصة للرابط العام.",
+  "Paging & Calls": "الاستدعاء والمكالمات"
 }

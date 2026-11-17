@@ -32,7 +32,7 @@ Fasta tilldelningar — en användare eller ett team som nämns direkt i en rege
 
 | Länk | Vem skapar den | Vad den innehåller | Var |
 | --- | --- | --- | --- |
-| **Personligt flöde** | Varje användare, en per projekt | Dina pass i alla scheman i det projektet, plus de pass där du täcker upp för någon (valfritt) | **Användarinställningar** > **Kalender** > **Kalenderflöde** |
+| **Personligt flöde** | Varje användare, en per projekt | Dina pass i alla scheman i det projektet, plus de pass där du täcker upp för någon (valfritt) | **Användarinställningar** > **Profil och kalender** > **Kalenderflöde** |
 | **Schemaflöde** | Alla som kan redigera schemat; alla som kan läsa det kan kopiera länken | Allas pass i ett schema, med valfria händelser för täckningsluckor | Schemats sida, kortet **Prenumerera på det här schemat** |
 | **Projektflöde** | Alla som kan redigera jourscheman; alla som kan läsa dem kan kopiera länken | Allas pass i alla scheman i projektet, med valfria händelser för täckningsluckor | **Jour** > **Kalenderflöden** |
 
@@ -54,7 +54,7 @@ Personliga flöden är per projekt: ett andra projekt får en andra länk och en
 :::steps
 ### Öppna ditt kalenderflöde
 
-Öppna **Användarinställningar** > **Kalender** > **Kalenderflöde** i det projekt vars pass du vill ha. **Kalender** är ett avsnitt i sidomenyn som börjar hopfällt.
+Öppna **Användarinställningar** > **Profil och kalender** > **Kalenderflöde** i det projekt vars pass du vill ha. **Profil och kalender** är ett avsnitt i sidomenyn som börjar hopfällt.
 
 ### Skapa länken
 
@@ -184,7 +184,7 @@ Flödes-URL:er omdirigerar aldrig. De svarar `200` på det schema som når OneUp
 Kalenderappar levererar inte alarm från prenumererade flöden — Google slänger dem, Apple tar bort dem som standard, Outlook plattar till dem — så OneUptime skickar sina egna.
 
 :::steps
-1. Öppna **Användarinställningar** > **Kalender** > **Kalenderflöde**.
+1. Öppna **Användarinställningar** > **Profil och kalender** > **Kalenderflöde**.
 2. Välj på kortet **Påminn mig före pass** hur lång tid i förväg: **1 vecka**, **1 dag**, **1 timme**, **15 min** eller, med **Anpassad**, ett eget värde mellan 15 minuter och 14 dagar. Du kan välja flera samtidigt.
 3. Välj hur påminnelser når dig under **Innan mitt jourpass börjar** på **Användarinställningar** > **Aviseringsinställningar** (fliken Jour). E-post och push är påslagna som standard.
 :::

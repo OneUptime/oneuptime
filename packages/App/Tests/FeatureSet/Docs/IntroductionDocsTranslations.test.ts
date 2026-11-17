@@ -321,7 +321,7 @@ const ESSENTIALS: ReadonlyArray<{ key: string; english: string }> = [
 // The pages and the actions Home's Search section names, by their English titles.
 const SEARCH_PAGES: ReadonlyArray<string> = [
   "API Keys",
-  "Danger Zone",
+  "Delete Project",
   "On-Call Schedules",
   "Incident Severity",
   "Notification Methods",
@@ -356,7 +356,7 @@ const SEARCH_WORDS: ReadonlyArray<string> = [
   "escalation",
   "rota",
   "2fa",
-  "delete project",
+  "danger zone",
   "incident custom fields",
   "incidnet",
 ];

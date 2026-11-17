@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Удалить парк устройств",
   "Delete Item": "Удалить элемент",
   "Delete Notification Rule": "Удалить правило уведомлений",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Удалить проект",
   "Delete Queue": "Удалить очередь",
   "Delete Rule": "Удалить правило",
   "Delete SLO": "Удалить SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Не показывается ни на одной странице статуса",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Только эти страницы статуса показывают это событие и уведомляют своих подписчиков. В отличие от инцидента, событие без выбранных страниц не показывается нигде.",
   "Show event on these status pages": "Показывать событие на этих страницах статуса",
-  "This event will not appear on any status page.": "Это событие не появится ни на одной странице статуса."
+  "This event will not appear on any status page.": "Это событие не появится ни на одной странице статуса.",
+  "Change sharing": "Изменить общий доступ",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Эту панель могут просматривать только участники проекта, поэтому эти настройки ни на что не влияют, пока вы не откроете к ней доступ по публичной ссылке.",
+  "Profile & Calendar": "Профиль и календарь",
+  "Public Link": "Публичная ссылка",
+  "Ready for when the dashboard has a public link.": "Будут готовы к тому моменту, когда у панели появится публичная ссылка.",
+  "Set Up Before Sharing Publicly": "Настроить до публичного доступа",
+  "The public link's title, description, logos, theme and favicon.": "Заголовок, описание, логотипы, тема и значок сайта публичной ссылки.",
+  "Your own domains for the public link.": "Ваши собственные домены для публичной ссылки.",
+  "Paging & Calls": "Вызовы и звонки"
 }

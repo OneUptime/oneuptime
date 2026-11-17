@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Slett flåte",
   "Delete Item": "Slett element",
   "Delete Notification Rule": "Slett varslingsregel",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Slett prosjekt",
   "Delete Queue": "Slett kø",
   "Delete Rule": "Slett regel",
   "Delete SLO": "Slett SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Vises ikke på noen statusside",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bare disse statussidene viser denne vedlikeholdshendelsen og varsler abonnentene sine. I motsetning til en hendelse vises en vedlikeholdshendelse uten valg ikke på noen statusside.",
   "Show event on these status pages": "Vis hendelse på disse statussidene",
-  "This event will not appear on any status page.": "Denne vedlikeholdshendelsen vises ikke på noen statusside."
+  "This event will not appear on any status page.": "Denne vedlikeholdshendelsen vises ikke på noen statusside.",
+  "Change sharing": "Endre deling",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Bare personer i dette prosjektet kan se dette dashbordet, så disse innstillingene gjør ingenting før du deler det med en offentlig lenke.",
+  "Profile & Calendar": "Profil og kalender",
+  "Public Link": "Offentlig lenke",
+  "Ready for when the dashboard has a public link.": "Klar til når dashbordet får en offentlig lenke.",
+  "Set Up Before Sharing Publicly": "Sett opp før offentlig deling",
+  "The public link's title, description, logos, theme and favicon.": "Tittel, beskrivelse, logoer, tema og favicon for den offentlige lenken.",
+  "Your own domains for the public link.": "Dine egne domener for den offentlige lenken.",
+  "Paging & Calls": "Tilkallinger og anrop"
 }

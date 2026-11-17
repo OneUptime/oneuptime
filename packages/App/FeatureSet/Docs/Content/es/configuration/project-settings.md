@@ -40,7 +40,7 @@ flowchart LR
 | **Seguridad** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturación y facturas** | **Facturación**, **Facturas** | [Facturación y uso](/docs/configuration/billing) |
 | **Registros de auditoría** | **Registros de auditoría**, **Ajustes**, **Exportar** | [Registros de auditoría](/docs/configuration/audit-logs), [Exportación del registro de auditoría](/docs/configuration/audit-log-export) |
-| **Zona de peligro** | **Zona de peligro** | [Eliminar el proyecto](#eliminar-el-proyecto) |
+| **Zona de peligro** | **Eliminar proyecto** | [Eliminar el proyecto](#eliminar-el-proyecto) |
 
 **Facturación y facturas** y **Créditos de IA** solo existen en OneUptime Cloud: una instalación autoalojada no tiene facturación.
 
@@ -113,7 +113,7 @@ Eliminar un proyecto elimina todo lo que contiene, para cada miembro: sus monito
 :::steps
 ### Abrir la zona de peligro
 
-Vaya a **Ajustes del proyecto → Zona de peligro**.
+Vaya a **Ajustes del proyecto → Zona de peligro → Eliminar proyecto**.
 
 ### Hacer clic en Eliminar proyecto
 

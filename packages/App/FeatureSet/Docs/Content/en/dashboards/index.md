@@ -59,12 +59,12 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 | **Dashboard** | The dashboard itself. Read it, or edit it from its **⋯** menu. |
 | **Overview** | Its name, description and labels. |
 | **Sharing** | Who can view it, its public link, and an IP allowlist under More settings. |
-| **Owners** | The users and teams who own it. |
 | **Branding** | Page title, description, logo, theme and favicon of the public dashboard. |
 | **Custom Domains** | Host the public dashboard on your own domain. |
 | **Settings** | Duplicate, export, or archive the dashboard. |
+| **Owners** | The users and teams who own it. |
 | **Audit Logs** | Every change made to the dashboard, and who made it. |
-| **Delete** | Delete the dashboard for good. |
+| **Delete Dashboard** | Delete the dashboard for good. |
 
 ## Build your first dashboard
 

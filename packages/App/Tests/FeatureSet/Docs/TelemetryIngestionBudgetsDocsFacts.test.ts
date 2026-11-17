@@ -151,7 +151,7 @@ interface NavGroup {
  * Admin locale words it.
  */
 const ADMIN_LABELS: ReadonlyArray<[string, string]> = [
-  ["Telemetry", "sideMenu.settingsTelemetry"],
+  ["Server", "sideMenu.settingsServer"],
   ["Default Daily Budgets", "pages.settings.ingestionBudgets.dailyCardTitle"],
   [
     "Edit Default Daily Budgets",
@@ -348,25 +348,25 @@ describe("how budgets work", () => {
 });
 
 describe("where budgets are set", () => {
-  test("the instance's are under Settings, in a Telemetry section that starts folded", () => {
+  test("the instance's are under Settings, in a Server section that starts folded", () => {
     expect(adminDashboardLabel("en", "breadcrumbs.settings")).toBe("Settings");
-    expect(adminDashboardLabel("en", "sideMenu.settingsTelemetry")).toBe(
-      "Telemetry",
+    expect(adminDashboardLabel("en", "sideMenu.settingsServer")).toBe(
+      "Server",
     );
     expect(adminDashboardLabel("en", "sideMenu.settingsIngestionBudgets")).toBe(
       "Ingestion Budgets",
     );
 
     const section: string = ADMIN_SETTINGS_MENU.slice(
-      ADMIN_SETTINGS_MENU.indexOf('title={t("sideMenu.settingsTelemetry")}'),
+      ADMIN_SETTINGS_MENU.indexOf('title={t("sideMenu.settingsServer")}'),
     );
     expect(section.slice(0, 200)).toContain("defaultCollapsed={true}");
-    expect(section.slice(0, 600)).toContain(
+    expect(section.slice(0, section.indexOf("</SideMenuSection>"))).toContain(
       't("sideMenu.settingsIngestionBudgets")',
     );
 
     expect(ENGLISH).toContain(
-      "In the Admin Dashboard, go to **Settings → Telemetry → Ingestion Budgets**. **Telemetry** starts collapsed in the side menu: click it to open it.",
+      "In the Admin Dashboard, go to **Settings → Server → Ingestion Budgets**. **Server** starts collapsed in the side menu: click it to open it.",
     );
   });
 

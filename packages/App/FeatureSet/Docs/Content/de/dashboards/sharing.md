@@ -80,7 +80,7 @@ Anfragen von jeder anderen IP werden mit einer Seite **Access Denied** abgewiese
 
 ## Eigene Domains
 
-Standardmäßig wird ein öffentliches Dashboard unter seinem öffentlichen Link bereitgestellt, auf der eigenen Adresse von OneUptime. Um es unter Ihrer eigenen Subdomain wie `dashboard.acme.com` bereitzustellen, öffnen Sie **Branding → Benutzerdefinierte Domains** im Seitenmenü des Dashboards. Es funktioniert genau wie die Seite **Benutzerdefinierte Domains** einer Statusseite.
+Standardmäßig wird ein öffentliches Dashboard unter seinem öffentlichen Link bereitgestellt, auf der eigenen Adresse von OneUptime. Um es unter Ihrer eigenen Subdomain wie `dashboard.acme.com` bereitzustellen, öffnen Sie **Öffentlicher Link → Benutzerdefinierte Domains** im Seitenmenü des Dashboards. Es funktioniert genau wie die Seite **Benutzerdefinierte Domains** einer Statusseite.
 
 Die Karte heißt **Benutzerdefinierte Domains** und sagt, was zu tun ist: Lassen Sie den CNAME-Eintrag jeder Domain auf den Dashboard-CNAME-Eintrag Ihrer Installation zeigen, und OneUptime stellt das SSL-Zertifikat der Domain aus und erneuert es für Sie. Die Tabelle hat zwei Spalten, **Domäne** und **Status**.
 

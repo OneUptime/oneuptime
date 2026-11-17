@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Excluir frota",
   "Delete Item": "Excluir item",
   "Delete Notification Rule": "Excluir regra de notificação",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Excluir projeto",
   "Delete Queue": "Excluir fila",
   "Delete Rule": "Excluir regra",
   "Delete SLO": "Excluir SLO",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Não exibido em nenhuma página de status",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Apenas estas páginas de status exibem este evento e notificam seus assinantes. Ao contrário de um incidente, um evento sem nenhuma selecionada não aparece em nenhuma.",
   "Show event on these status pages": "Mostrar evento nestas páginas de status",
-  "This event will not appear on any status page.": "Este evento não aparecerá em nenhuma página de status."
+  "This event will not appear on any status page.": "Este evento não aparecerá em nenhuma página de status.",
+  "Change sharing": "Alterar o compartilhamento",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Só as pessoas deste projeto podem ver este painel, então estas configurações não fazem nada até você compartilhá-lo com um link público.",
+  "Profile & Calendar": "Perfil e calendário",
+  "Public Link": "Link público",
+  "Ready for when the dashboard has a public link.": "Prontas para quando o painel tiver um link público.",
+  "Set Up Before Sharing Publicly": "Configurar antes de compartilhar publicamente",
+  "The public link's title, description, logos, theme and favicon.": "O título, a descrição, os logotipos, o tema e o favicon do link público.",
+  "Your own domains for the public link.": "Seus próprios domínios para o link público.",
+  "Paging & Calls": "Acionamentos e chamadas"
 }

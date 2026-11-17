@@ -286,7 +286,7 @@ Its dialog, **Reissue SSL Certificate for this Status Page**, asks Let's Encrypt
 
 The action does not appear on a domain using a certificate you uploaded: there is no Let's Encrypt certificate to reissue, so upload a new one by editing the domain instead. It also does not appear before the domain's first certificate is ordered, which happens on its own once its CNAME record is verified.
 
-The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Branding → Custom Domains**, which work the same way as status page custom domains: see [Sharing & Public Dashboards](/docs/dashboards/sharing#custom-domains).
+The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Public Link → Custom Domains**, which work the same way as status page custom domains: see [Sharing & Public Dashboards](/docs/dashboards/sharing#custom-domains).
 
 ### Reading the domain Status column
 

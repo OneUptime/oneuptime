@@ -87,7 +87,7 @@ describe("Home Page & Shortcuts explains Search", () => {
   test("every page it names is one Search offers, under that name", () => {
     for (const title of [
       "API Keys",
-      "Danger Zone",
+      "Delete Project",
       "On-Call Schedules",
       "Incident Severity",
       "Notification Methods",
@@ -116,7 +116,7 @@ describe("Home Page & Shortcuts explains Search", () => {
       ["escalation", "On-Call Policies"],
       ["rota", "On-Call Schedules"],
       ["2fa", "Two-factor authentication"],
-      ["delete project", "Danger Zone"],
+      ["danger zone", "Delete Project"],
     ];
 
     for (const [word, title] of promises) {
@@ -133,7 +133,7 @@ describe("Home Page & Shortcuts explains Search", () => {
     expect(SECTION).toContain("offered only to people allowed to do it");
 
     const action: PageSearchAction | undefined = (
-      findEntry("Danger Zone").page.actions || []
+      findEntry("Delete Project").page.actions || []
     ).find((candidate: PageSearchAction): boolean => {
       return candidate.title === "Delete Project";
     });
