@@ -890,21 +890,50 @@ describe("user settings > notification settings", () => {
       }
     });
 
+    /*
+     * The picker is the shared Dropdown (#9194): its combobox is react-select's
+     * input, the choice it shows is its single value, and its choices are
+     * the options of the menu it opens, drawn over the page.
+     */
+    function pickerIn(row: HTMLElement): HTMLElement {
+      return within(row).getByRole("combobox");
+    }
+
+    function shownPriority(row: HTMLElement): string | null {
+      return row.querySelector(".ou-select__single-value")?.textContent || null;
+    }
+
+    function openPicker(row: HTMLElement): void {
+      fireEvent.keyDown(pickerIn(row), { key: "ArrowDown", code: "ArrowDown" });
+    }
+
+    async function listedPriorities(row: HTMLElement): Promise<Array<string>> {
+      openPicker(row);
+      const options: Array<HTMLElement> = await screen.findAllByRole("option");
+      const names: Array<string> = options.map(
+        (option: HTMLElement): string => {
+          return option.textContent || "";
+        },
+      );
+      fireEvent.keyDown(pickerIn(row), { key: "Escape", code: "Escape" });
+      return names;
+    }
+
+    async function choosePriority(
+      row: HTMLElement,
+      name: string,
+    ): Promise<void> {
+      openPicker(row);
+      fireEvent.click(await screen.findByRole("option", { name }));
+    }
+
     test("only New security case asks for a priority, and it reads High and above until chosen", async () => {
       await openSecurityTab();
 
-      const select: HTMLSelectElement = within(
-        await findEventRow("New security case"),
-      ).getByRole("combobox") as HTMLSelectElement;
+      const row: HTMLElement = await findEventRow("New security case");
 
-      expect(select.value).toBe(
-        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
-      );
-      expect(
-        Array.from(select.options).map((option: HTMLOptionElement) => {
-          return option.textContent;
-        }),
-      ).toEqual([
+      expect(shownPriority(row)).toBe("High and above");
+      expect(await listedPriorities(row)).toEqual([
         "Critical only",
         "High and above",
         "Medium and above",
@@ -918,6 +947,19 @@ describe("user settings > notification settings", () => {
       ).not.toBeInTheDocument();
     });
 
+    test("the picker is the shared Dropdown, named by the words beside it", async () => {
+      await openSecurityTab();
+
+      const row: HTMLElement = await findEventRow("New security case");
+
+      // No hand-drawn select of its own: the shared Dropdown's control.
+      expect(row.querySelector("select")).toBeNull();
+      expect(row.querySelector(".ou-select__control")).not.toBeNull();
+      expect(pickerIn(row)).toHaveAccessibleName("Notify me about");
+      // A priority always notifies: nothing to clear it to.
+      expect(row.querySelector(".ou-select__clear-indicator")).toBeNull();
+    });
+
     test("shows the priority the member chose", async () => {
       openedRow().minimumSecurityCasePriorityId = testPriorityId(
         SecurityCasePriorityLevel.Critical,
@@ -925,13 +967,9 @@ describe("user settings > notification settings", () => {
 
       await openSecurityTab();
 
-      expect(
-        (
-          within(await findEventRow("New security case")).getByRole(
-            "combobox",
-          ) as HTMLSelectElement
-        ).value,
-      ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]);
+      expect(shownPriority(await findEventRow("New security case"))).toBe(
+        "Critical only",
+      );
     });
 
     test("offers the project's own priorities by their names, an archived one only to whoever chose it", async () => {
@@ -949,15 +987,10 @@ describe("user settings > notification settings", () => {
 
       await openSecurityTab();
 
-      const select: HTMLSelectElement = (await within(
-        await findEventRow("New security case"),
-      ).findByRole("combobox")) as HTMLSelectElement;
+      const row: HTMLElement = await findEventRow("New security case");
+      await within(row).findByRole("combobox");
 
-      expect(
-        Array.from(select.options).map((option: HTMLOptionElement) => {
-          return option.textContent;
-        }),
-      ).toEqual([
+      expect(await listedPriorities(row)).toEqual([
         "Emergency only",
         "Sev 1 and above",
         "High and above",
@@ -972,18 +1005,11 @@ describe("user settings > notification settings", () => {
       );
       await openSecurityTab();
 
-      const chosen: HTMLSelectElement = (await within(
-        await findEventRow("New security case"),
-      ).findByRole("combobox")) as HTMLSelectElement;
+      const chosenRow: HTMLElement = await findEventRow("New security case");
+      await within(chosenRow).findByRole("combobox");
 
-      expect(chosen.value).toBe(
-        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
-      );
-      expect(
-        Array.from(chosen.options).map((option: HTMLOptionElement) => {
-          return option.textContent;
-        }),
-      ).toContain("Low and above");
+      expect(shownPriority(chosenRow)).toBe("Low and above");
+      expect(await listedPriorities(chosenRow)).toContain("Low and above");
     });
 
     test("a choice the project no longer has reads as the default", async () => {
@@ -993,13 +1019,9 @@ describe("user settings > notification settings", () => {
 
       await openSecurityTab();
 
-      expect(
-        (
-          within(await findEventRow("New security case")).getByRole(
-            "combobox",
-          ) as HTMLSelectElement
-        ).value,
-      ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]);
+      expect(shownPriority(await findEventRow("New security case"))).toBe(
+        "High and above",
+      );
     });
 
     test("choosing a priority saves it on that row alone", async () => {
@@ -1008,13 +1030,9 @@ describe("user settings > notification settings", () => {
         .mockResolvedValue({} as any);
 
       await openSecurityTab();
-      fireEvent.change(
-        within(await findEventRow("New security case")).getByRole("combobox"),
-        {
-          target: {
-            value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Medium],
-          },
-        },
+      await choosePriority(
+        await findEventRow("New security case"),
+        "Medium and above",
       );
 
       await waitFor(() => {
@@ -1027,13 +1045,23 @@ describe("user settings > notification settings", () => {
       });
       await waitFor(() => {
         expect(
-          (
-            within(
-              screen.getByText("New security case").closest("tr")!,
-            ).getByRole("combobox") as HTMLSelectElement
-          ).value,
-        ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Medium]);
+          shownPriority(screen.getByText("New security case").closest("tr")!),
+        ).toBe("Medium and above");
       });
+    });
+
+    test("choosing the priority already chosen saves nothing", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      await openSecurityTab();
+      await choosePriority(
+        await findEventRow("New security case"),
+        "High and above",
+      );
+
+      expect(updateById).not.toHaveBeenCalled();
     });
 
     test("a failed save puts the choice back and says why", async () => {
@@ -1042,11 +1070,9 @@ describe("user settings > notification settings", () => {
         .mockRejectedValue(new Error("Priority could not be saved"));
 
       await openSecurityTab();
-      fireEvent.change(
-        within(await findEventRow("New security case")).getByRole("combobox"),
-        {
-          target: { value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low] },
-        },
+      await choosePriority(
+        await findEventRow("New security case"),
+        "Low and above",
       );
 
       expect(
@@ -1054,12 +1080,8 @@ describe("user settings > notification settings", () => {
       ).toBeVisible();
       await waitFor(() => {
         expect(
-          (
-            within(
-              screen.getByText("New security case").closest("tr")!,
-            ).getByRole("combobox") as HTMLSelectElement
-          ).value,
-        ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]);
+          shownPriority(screen.getByText("New security case").closest("tr")!),
+        ).toBe("High and above");
       });
     });
 
@@ -1075,13 +1097,9 @@ describe("user settings > notification settings", () => {
         .mockResolvedValue({} as any);
 
       await openSecurityTab();
-      fireEvent.change(
-        within(await findEventRow("New security case")).getByRole("combobox"),
-        {
-          target: {
-            value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
-          },
-        },
+      await choosePriority(
+        await findEventRow("New security case"),
+        "Critical only",
       );
 
       await waitFor(() => {
