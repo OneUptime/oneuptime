@@ -22,7 +22,7 @@ import SsoPage from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/SS
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Status page > "Log in with SSO". It lists the page's SAML and OIDC
+ * Status page > "Sign in with SSO". It lists the page's SAML and OIDC
  * providers, in every edition. A page can have no enabled provider: when BOTH
  * lists come back empty the page says single sign-on is not available for
  * this status page and links back to the password sign-in - and that is the
@@ -260,13 +260,13 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
     const english: Record<string, any> = readLocale("en.json");
 
     expect(english["accounts"]["sso"]["notAvailable"]).toBe(NOT_AVAILABLE);
-    expect(english["accounts"]["sso"]["backToLogin"]).toBe(BACK_TO_SIGN_IN);
+    expect(english["accounts"]["sso"]["backToSignIn"]).toBe(BACK_TO_SIGN_IN);
     // A key missing from en.json would render as the key itself.
     expect(
       screen.queryByText("accounts.sso.notAvailable"),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText("accounts.sso.backToLogin"),
+      screen.queryByText("accounts.sso.backToSignIn"),
     ).not.toBeInTheDocument();
     expect(screen.getByText(BACK_TO_SIGN_IN)).toBeInTheDocument();
   });
@@ -284,7 +284,7 @@ describe("Status page SSO sign-in when no provider can be offered", () => {
     for (const file of locales) {
       const sso: Record<string, unknown> = readLocale(file)["accounts"]["sso"];
 
-      for (const key of ["notAvailable", "backToLogin"]) {
+      for (const key of ["notAvailable", "backToSignIn"]) {
         const value: unknown = sso[key];
 
         expect([file, key, typeof value]).toEqual([file, key, "string"]);

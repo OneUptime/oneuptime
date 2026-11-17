@@ -1,23 +1,33 @@
-import { ERROR_CODE_COLOR } from "../NotFound/NotFound";
+import ErrorPage from "../../Components/ErrorPage";
+import { FORBIDDEN_COPY } from "../../Components/PublicDashboardCopy";
+import PublicDashboardUtil from "../../Utils/PublicDashboard";
 import React, { FunctionComponent, ReactElement } from "react";
 
-// Drawn as the not-found page is (NotFound.tsx).
+/*
+ * The dashboard's IP allowlist does not let this visitor in. It says who
+ * can let them in, and Try again opens the dashboard's own address afresh,
+ * for a visitor who has moved to a network it allows - this page's address
+ * would only draw this page again.
+ */
 const ForbiddenPage: FunctionComponent = (): ReactElement => {
+  // With the link's own theme kept on it, as the app keeps it on every page it loads anew.
+  const dashboardAddress: string = PublicDashboardUtil.withLinkTheme(
+    PublicDashboardUtil.isPreviewPage()
+      ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString() || ""}`
+      : "/",
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold" style={{ color: ERROR_CODE_COLOR }}>
-          403
-        </h1>
-        <h2 className="mt-4 text-xl font-semibold text-gray-700">
-          Access Denied
-        </h2>
-        <p className="mt-2 text-sm text-gray-500">
-          You do not have permission to view this dashboard. Your IP address may
-          be restricted.
-        </p>
-      </div>
-    </div>
+    <ErrorPage
+      code="403"
+      title={FORBIDDEN_COPY.title}
+      description={FORBIDDEN_COPY.description}
+      nextStep={FORBIDDEN_COPY.nextStep}
+      tryAgain={{
+        text: FORBIDDEN_COPY.tryAgain,
+        address: dashboardAddress,
+      }}
+    />
   );
 };
 

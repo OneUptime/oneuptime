@@ -37,7 +37,6 @@
     "announcements": "お知らせ",
     "scheduledEvents": "定期メンテナンス",
     "subscribe": "購読する",
-    "login": "ログイン",
     "logout": "ログアウト"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "パスワード",
       "newPassword": "新しいパスワード",
       "confirmPassword": "パスワードの確認",
-      "login": "ログイン"
+      "signInLink": "ログイン。"
     },
     "login": {
       "welcomeBack": "おかえりなさい！",
-      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "signInPrompt": "{{statusPageName}}を表示するにはログインしてください。",
       "forgotPassword": "パスワードをお忘れですか？",
       "submit": "ログイン",
       "or": "または",
-      "logInWithSso": "SSOでログイン",
+      "signInWithSso": "SSOでログイン",
       "emailSignInLink": "ログインリンクをメールで受け取る"
     },
     "sso": {
       "title": "SSOでログイン",
-      "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
+      "signInPrompt": "{{statusPageName}}を表示するにはログインしてください。",
       "noProviders": "SSOプロバイダーが構成または有効化されていません",
       "notAvailable": "このステータスページではシングルサインオン（SSO）を利用できません。代わりにメールアドレスとパスワードでログインしてください。",
-      "backToLogin": "ログインに戻る",
-      "logInWithPassword": "パスワードでログイン"
+      "backToSignIn": "ログインに戻る",
+      "signInWithPassword": "パスワードでログイン"
     },
     "forgotPassword": {
       "title": "パスワードをお忘れですか",
@@ -339,7 +338,7 @@
       "knowPassword": "パスワードをご存じですか？",
       "successTitle": "パスワードをリセットしました",
       "successDescription": "新しいパスワードでログインしてください。",
-      "loginButton": "ログイン",
+      "signInButton": "ログイン",
       "linkExpiredTitle": "このリセット用リンクは期限切れです",
       "linkExpiredDescription": "リセット用リンクの有効期間は 1 日です。新しいリンクをリクエストすると、メールでお送りします。",
       "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",

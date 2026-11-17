@@ -28,5 +28,13 @@
   "Copied!": "Kopierat!",
   "Copy failed": "Kopieringen misslyckades",
   "Hide": "Dölj",
-  "Dismiss": "Dölj"
+  "Dismiss": "Dölj",
+  "Dashboard Not Found": "Instrumentpanelen hittades inte",
+  "This dashboard does not exist, or it is no longer shared.": "Den här instrumentpanelen finns inte, eller så delas den inte längre.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Kontrollera adressen, eller be personen som delade den med dig om en ny länk.",
+  "Access Denied": "Åtkomst nekad",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Den här instrumentpanelen öppnas bara från de IP-adresser som ägaren tillåter, och din är inte en av dem.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Be instrumentpanelens ägare om åtkomst, eller öppna den från ett nätverk som ägaren tillåter.",
+  "Show more": "Visa mer",
+  "Show less": "Visa mindre"
 }

@@ -37,7 +37,6 @@
     "announcements": "Anuncios",
     "scheduledEvents": "Mantenimiento programado",
     "subscribe": "Suscribirse",
-    "login": "Iniciar sesión",
     "logout": "Cerrar sesión"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Contraseña",
       "newPassword": "Nueva contraseña",
       "confirmPassword": "Confirmar contraseña",
-      "login": "Iniciar sesión"
+      "signInLink": "Iniciar sesión."
     },
     "login": {
       "welcomeBack": "¡Bienvenido de nuevo!",
-      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, inicie sesión para ver {{statusPageName}}.",
       "forgotPassword": "¿Olvidó su contraseña?",
       "submit": "Iniciar sesión",
       "or": "o",
-      "logInWithSso": "Iniciar sesión con SSO",
+      "signInWithSso": "Iniciar sesión con SSO",
       "emailSignInLink": "Enviarme un enlace de inicio de sesión"
     },
     "sso": {
       "title": "Iniciar sesión con SSO",
-      "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, inicie sesión para ver {{statusPageName}}.",
       "noProviders": "No hay proveedores SSO configurados o habilitados",
       "notAvailable": "El inicio de sesión único (SSO) no está disponible para esta página de estado. Inicie sesión con su correo electrónico y contraseña en su lugar.",
-      "backToLogin": "Volver a iniciar sesión",
-      "logInWithPassword": "Iniciar sesión con contraseña"
+      "backToSignIn": "Volver a iniciar sesión",
+      "signInWithPassword": "Iniciar sesión con contraseña"
     },
     "forgotPassword": {
       "title": "Contraseña olvidada",
@@ -339,7 +338,7 @@
       "knowPassword": "¿Conoce su contraseña?",
       "successTitle": "Se ha restablecido tu contraseña",
       "successDescription": "Inicia sesión con tu nueva contraseña.",
-      "loginButton": "Iniciar sesión",
+      "signInButton": "Iniciar sesión",
       "linkExpiredTitle": "Este enlace de restablecimiento ha caducado",
       "linkExpiredDescription": "Los enlaces de restablecimiento sirven durante un día. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
       "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Introduzca la contraseña para ver esta página de estado.",
-      "passwordRequired": "la contraseña es obligatoria.",
+      "passwordRequired": "La contraseña es obligatoria.",
       "passwordLabel": "Contraseña",
       "submit": "Desbloquear página de estado"
     },

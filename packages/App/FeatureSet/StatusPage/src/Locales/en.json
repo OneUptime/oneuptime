@@ -37,7 +37,6 @@
     "announcements": "Announcements",
     "scheduledEvents": "Scheduled Maintenance",
     "subscribe": "Subscribe",
-    "login": "Log In",
     "logout": "Log Out"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Password",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
-      "login": "Log in"
+      "signInLink": "Sign in."
     },
     "login": {
       "welcomeBack": "Welcome back!",
-      "loginPrompt": "Please login to view {{statusPageName}}",
+      "signInPrompt": "Sign in to view {{statusPageName}}.",
       "forgotPassword": "Forgot password?",
-      "submit": "Login",
+      "submit": "Sign In",
       "or": "or",
-      "logInWithSso": "Log in with SSO",
+      "signInWithSso": "Sign in with SSO",
       "emailSignInLink": "Email me a sign-in link"
     },
     "sso": {
-      "title": "Log in with SSO",
-      "loginPrompt": "Please login to view {{statusPageName}}",
+      "title": "Sign in with SSO",
+      "signInPrompt": "Sign in to view {{statusPageName}}.",
       "noProviders": "No SSO Providers Configured or Enabled",
       "notAvailable": "Single sign-on is not available for this status page. Sign in with your email and password instead.",
-      "backToLogin": "Back to sign in",
-      "logInWithPassword": "Log in with password"
+      "backToSignIn": "Back to sign in",
+      "signInWithPassword": "Sign in with password"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -338,8 +337,8 @@
       "submit": "Reset Password",
       "knowPassword": "Know your password?",
       "successTitle": "Your password has been reset",
-      "successDescription": "Log in with your new password.",
-      "loginButton": "Log In",
+      "successDescription": "Sign in with your new password.",
+      "signInButton": "Sign In",
       "linkExpiredTitle": "This reset link has expired",
       "linkExpiredDescription": "Reset links work for one day. Ask for a new link and we will email it to you.",
       "linkInvalidTitle": "This reset link no longer works",
@@ -347,25 +346,25 @@
       "requestNewLinkButton": "Request a New Link"
     },
     "magicLink": {
-      "title": "Log in with a link",
-      "description": "Enter your email address and we'll send you a link that logs you in to {{statusPageName}}. No password needed.",
+      "title": "Sign in with a link",
+      "description": "Enter your email address and we'll send you a link that signs you in to {{statusPageName}}. No password needed.",
       "submit": "Email me a sign-in link",
       "sentTitle": "Check your email",
-      "sent": "If {{email}} can log in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
+      "sent": "If {{email}} can sign in to {{statusPageName}}, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
       "notReceived": "Not in your inbox? Check your spam folder, or ask the status page's team to add you.",
       "sendAnother": "Send another link"
     },
     "magicLinkLogin": {
-      "title": "Log in to {{statusPageName}}",
-      "description": "Use the button below to finish logging in.",
-      "submit": "Log in",
+      "title": "Sign in to {{statusPageName}}",
+      "description": "Use the button below to finish signing in.",
+      "submit": "Sign In",
       "noLink": "This page needs the sign-in link from your email. Open the link again, or ask for a new one.",
-      "turnedOff": "Sign-in links are turned off for this status page. Please log in with your email and password.",
+      "turnedOff": "Sign-in links are turned off for this status page. Sign in with your email and password instead.",
       "requestNewLink": "Email me a new link"
     },
     "masterPassword": {
       "prompt": "Enter the password to view this status page.",
-      "passwordRequired": "password is required.",
+      "passwordRequired": "Password is required.",
       "passwordLabel": "Password",
       "submit": "Unlock Status Page"
     },

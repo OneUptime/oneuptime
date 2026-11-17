@@ -911,7 +911,7 @@
   "No custom metrics have been captured yet. Use oneuptime.captureMetric() in your monitor script to capture custom metrics.": "尚未擷取任何自訂指標。在您的監測器指令碼中使用 oneuptime.captureMetric() 來擷取自訂指標。",
   "Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration.": "eBPF 資料路徑層的封包轉送、捨棄與策略強制執行。涵蓋吞吐量、端點管理與 BPF 程式再生。",
   "Please check this if you do not want to follow redirects.": "如果您不想跟隨重新導向，請勾選此項。",
-  "Please select an SSO provider to log in to this project.": "請選擇 SSO 提供商以登入此專案。",
+  "Choose an SSO provider to sign in to this project.": "選擇一個 SSO 提供商以登入此專案。",
   "Pods with the highest resource utilization in this cluster.": "此叢集中資源使用率最高的 Pod。",
   "Preview the live badge rendering using the current security token.": "使用目前的安全權杖預覽徽章的即時呈現。",
   "Raw stack trace from the exception.": "例外的原始堆疊追蹤。",

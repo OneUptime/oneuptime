@@ -37,7 +37,6 @@
     "announcements": "Annunci",
     "scheduledEvents": "Manutenzione programmata",
     "subscribe": "Iscriviti",
-    "login": "Accedi",
     "logout": "Esci"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Password",
       "newPassword": "Nuova password",
       "confirmPassword": "Conferma password",
-      "login": "Accedi"
+      "signInLink": "Accedi."
     },
     "login": {
       "welcomeBack": "Bentornato!",
-      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "signInPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}.",
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
       "or": "oppure",
-      "logInWithSso": "Accedi con SSO",
+      "signInWithSso": "Accedi con SSO",
       "emailSignInLink": "Inviami un link di accesso"
     },
     "sso": {
       "title": "Accedi con SSO",
-      "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
+      "signInPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}.",
       "noProviders": "Nessun provider SSO configurato o abilitato",
       "notAvailable": "Il Single Sign-On (SSO) non è disponibile per questa pagina di stato. Accedi invece con la tua e-mail e la tua password.",
-      "backToLogin": "Torna all'accesso",
-      "logInWithPassword": "Accedi con la password"
+      "backToSignIn": "Torna all'accesso",
+      "signInWithPassword": "Accedi con la password"
     },
     "forgotPassword": {
       "title": "Password dimenticata",
@@ -339,7 +338,7 @@
       "knowPassword": "Conosci la tua password?",
       "successTitle": "La tua password è stata reimpostata",
       "successDescription": "Accedi con la nuova password.",
-      "loginButton": "Accedi",
+      "signInButton": "Accedi",
       "linkExpiredTitle": "Questo link di reimpostazione è scaduto",
       "linkExpiredDescription": "I link di reimpostazione valgono un giorno. Richiedi un nuovo link e te lo invieremo via email.",
       "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Inserisci la password per vedere questa pagina di stato.",
-      "passwordRequired": "la password è obbligatoria.",
+      "passwordRequired": "La password è obbligatoria.",
       "passwordLabel": "Password",
       "submit": "Sblocca pagina di stato"
     },

@@ -28,5 +28,13 @@
   "Copied!": "Copiato!",
   "Copy failed": "Copia non riuscita",
   "Hide": "Nascondi",
-  "Dismiss": "Nascondi"
+  "Dismiss": "Nascondi",
+  "Dashboard Not Found": "Dashboard non trovata",
+  "This dashboard does not exist, or it is no longer shared.": "Questa dashboard non esiste o non è più condivisa.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Controlla l'indirizzo, oppure chiedi un nuovo link alla persona che l'ha condivisa con te.",
+  "Access Denied": "Accesso negato",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Questa dashboard si apre solo dagli indirizzi IP consentiti dal suo proprietario, e il tuo non è tra questi.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Chiedi l'accesso al proprietario della dashboard, oppure aprila da una rete che consente.",
+  "Show more": "Mostra di più",
+  "Show less": "Mostra meno"
 }
