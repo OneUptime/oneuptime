@@ -580,8 +580,27 @@ describe("A stepped form on a page", () => {
 
     expect(actionButton()).not.toBeInTheDocument();
     expect(nextButton()!.style.width).toBe("100%");
-    // The start margin Button keeps, cleared on either side of the line.
-    expect(nextButton()!.style.marginInlineStart).toBe("0px");
+    expect(nextButton()!.parentElement!.style.width).toBe("100%");
+    /*
+     * Edge to edge, on a page read either way: a Button has no margin of its
+     * own (#9128), so neither Next nor the box it sits in is moved in from
+     * either side - by a class or by a style.
+     */
+    for (const element of [nextButton()!, nextButton()!.parentElement!]) {
+      for (const side of [
+        "marginLeft",
+        "marginRight",
+        "marginInlineStart",
+        "marginInlineEnd",
+      ] as const) {
+        expect([side, element.style[side]]).toEqual([side, ""]);
+      }
+      for (const cssClass of element.className.split(/\s+/u)) {
+        expect(cssClass.split(":").pop()).not.toMatch(
+          /^!?-?(m|mx|ml|mr|ms|me)-/u,
+        );
+      }
+    }
     expect(nextButton()!.className).not.toContain(PRIMARY_CLASS);
 
     await typeInto("Title", "Checkout is down");
