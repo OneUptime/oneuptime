@@ -163,8 +163,6 @@ const DASHBOARD_SRC: string = path.join(
  * takes a resource id gets one.
  */
 const VIEW_MENUS_WITHOUT_DEVELOPER_PAGES: Readonly<Record<string, string>> = {
-  "Pages/AIInsights/View/SideMenu.tsx":
-    "An AI insight is written by OneUptime AI; the API cannot create one, so there is nothing to manage as code.",
   "Pages/DataObservability/TableView/SideMenu.tsx":
     "A table is found by Data Observability's collection of its database, which rewrites its columns, rows and size each time and marks it dropped when it goes, not set up as code; the API and MCP read it as a Data Asset.",
   "Pages/DataObservability/View/SideMenu.tsx":

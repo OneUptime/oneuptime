@@ -269,7 +269,7 @@ Les outils des pages de statut publiques prennent l'ID d'une page de statut (un 
 }
 ```
 
-Les propriétaires d'une page de statut peuvent désactiver l'accès MCP pour cette page : sur la page de statut, ouvrez **MCP** dans la section **IA** de son menu latéral et désactivez **Activer le serveur MCP**. L'interrupteur s'enregistre dès qu'il est basculé. L'accès MCP est activé par défaut. Tant qu'il est désactivé, les quatre outils `get_public_status_page_*` renvoient une erreur pour cette page de statut ; le site web de la page de statut, son flux RSS et son API JSON publique ne sont pas touchés, et les outils de page de statut qui demandent une connexion (`get_status_page`, `list_status_pages`, etc.) continuent de fonctionner pour le projet de la page.
+Les propriétaires d'une page de statut peuvent désactiver l'accès MCP pour cette page : sur la page de statut, ouvrez **MCP** dans la section **Avancé** de son menu latéral et désactivez **Activer le serveur MCP**. L'interrupteur s'enregistre dès qu'il est basculé. L'accès MCP est activé par défaut. Tant qu'il est désactivé, les quatre outils `get_public_status_page_*` renvoient une erreur pour cette page de statut ; le site web de la page de statut, son flux RSS et son API JSON publique ne sont pas touchés, et les outils de page de statut qui demandent une connexion (`get_status_page`, `list_status_pages`, etc.) continuent de fonctionner pour le projet de la page.
 
 ### Se connecter (OAuth 2.1)
 

@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 En hendelse åpnes med tittelen `New Relic: High CPU on checkout-service`, og vaktpolicyene du valgte, varsles. Send den samme forespørselen med `isAcknowledged` satt til `true`, og hendelsen bekreftes. Send den med `state` satt til `CLOSED`, og hendelsen løses.
 
-Test deretter fra New Relic: åpne webhook-meldingen til arbeidsflyten, og klikk på **Send test notification**. For å se at den kom frem åpner du OneUptime-arbeidsflytens **Logger → Kjøringer**.
+Test deretter fra New Relic: åpne webhook-meldingen til arbeidsflyten, og klikk på **Send test notification**. For å se at den kom frem åpner du OneUptime-arbeidsflytens **Kjøringer**.
 
 ## Feilsøking
 
@@ -162,7 +162,7 @@ Test deretter fra New Relic: åpne webhook-meldingen til arbeidsflyten, og klikk
 :::
 
 :::details Arbeidsflyten kjører, men åpner ingenting
-Åpne kjøringen i **Logger → Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **Nei**.
+Åpne kjøringen i **Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **Nei**.
 
 - `New Relic named no issue ID`: behold linjen `"id": {{ json issueId }},` i nyttelasten.
 - `is in no state`: behold linjen `"state": {{ json state }},` i nyttelasten.
@@ -175,7 +175,7 @@ Test deretter fra New Relic: åpne webhook-meldingen til arbeidsflyten, og klikk
 
 :::details Hendelser opprettes, men løses aldri
 - Arbeidsflyten i New Relic må ha **Closed** på under **Notify when**.
-- Åpne kjøringen til lukkingen i **Logger → Kjøringer**: det siste steget sier hvorfor. Lukkingens `id` må være sakens, så behold `"id": {{ json issueId }},` slik det står i nyttelasten.
+- Åpne kjøringen til lukkingen i **Kjøringer**: det siste steget sier hvorfor. Lukkingens `id` må være sakens, så behold `"id": {{ json issueId }},` slik det står i nyttelasten.
 :::
 
 :::details Vakten blir varslet for for mange saker

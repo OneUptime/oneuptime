@@ -21,7 +21,7 @@ flowchart TB
 
 ## The calendar page
 
-Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Maintenance Events** shows the same events as a list.
+Open **Scheduled Maintenance → Maintenance Calendar**, in the **Overview** section of the side menu. **All Maintenance Events** shows the same events as a list.
 
 - The calendar opens on this month, with today marked. **Month**, **Week** and **Day** change how much it shows; move with the arrows and return with **Today**. Times are in your own time zone.
 - Each event is a block in the colour of its state, and the states' colours are named under the calendar. Click an event to open it.

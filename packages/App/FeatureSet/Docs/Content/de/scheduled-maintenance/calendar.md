@@ -21,7 +21,7 @@ flowchart TB
 
 ## Die Kalenderseite
 
-Öffnen Sie **Geplante Wartung → Wartungskalender** im Abschnitt **Kalender** des Seitenmenüs. **Alle Wartungsereignisse** zeigt dieselben Ereignisse als Liste.
+Öffnen Sie **Geplante Wartung → Wartungskalender** im Abschnitt **Übersicht** des Seitenmenüs. **Alle Wartungsereignisse** zeigt dieselben Ereignisse als Liste.
 
 - Der Kalender öffnet mit diesem Monat, der heutige Tag ist markiert. **Monat**, **Woche** und **Tag** ändern, wie viel er zeigt; blättern Sie mit den Pfeilen und kehren Sie mit **Heute** zurück. Die Zeiten stehen in Ihrer eigenen Zeitzone.
 - Jedes Ereignis ist ein Block in der Farbe seines Zustands, und die Farben der Zustände sind unter dem Kalender benannt. Klicken Sie auf ein Ereignis, um es zu öffnen.

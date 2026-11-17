@@ -793,6 +793,22 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A device's SNMP credentials are stored encrypted (#9014): the create's
+   * answer carries them as they were written, as a read of the device gives
+   * them to whom may read them, never the ciphertext stored
+   * (handBackAsGiven).
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    return this.handBackAsGiven(await super.create(createBy), [
+      "snmpCommunityString",
+      "snmpV3Auth",
+      "snmpV3AuthKey",
+      "snmpV3PrivKey",
+    ]);
+  }
+
+  /*
    * The probe is checked by this service's own hooks below with
    * ProbeService.isProbeAttachableToProject: the project's own probes and
    * the global ones, in one answer for an id from another project and one

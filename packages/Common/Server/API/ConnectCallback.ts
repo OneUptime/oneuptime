@@ -114,9 +114,10 @@ export interface ConnectCallbackSpec {
   /*
    * A redirect the provider sends on its own rather than one OneUptime
    * started - GitHub's "Redirect on update" after an installation is changed
-   * on GitHub, or GitHub's redirect after the app was installed from GitHub
-   * itself - which carries no state and asks for nothing: the browser is
-   * sent to the provider's page, with nothing to refuse.
+   * on GitHub, GitHub's redirect after the app was installed from GitHub
+   * itself, or Zoom's after OneUptime was added from the Zoom App
+   * Marketplace - which carries no state and asks for nothing: the browser
+   * is sent to the provider's page, with nothing to refuse.
    */
   isProviderRedirect?: ((req: ExpressRequest) => boolean) | undefined;
   /*

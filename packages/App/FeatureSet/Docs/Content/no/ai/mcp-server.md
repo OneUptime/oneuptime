@@ -269,7 +269,7 @@ Verktøyene for offentlige statussider tar en statussides ID (en UUID) eller dom
 }
 ```
 
-En statussides eiere kan slå av MCP-tilgang for den siden: på statussiden åpner du **MCP** i delen **KI** i sidemenyen og slår av **Aktiver MCP-server**. Bryteren lagres så snart den slås om. MCP-tilgang er på som standard. Mens den er av, returnerer de fire verktøyene `get_public_status_page_*` en feil for den statussiden; statussidens nettsted, RSS-feeden og det offentlige JSON-API-et påvirkes ikke, og statussideverktøyene som krever innlogging (`get_status_page`, `list_status_pages` og så videre), fortsetter å virke for sidens eget prosjekt.
+En statussides eiere kan slå av MCP-tilgang for den siden: på statussiden åpner du **MCP** i delen **Avansert** i sidemenyen og slår av **Aktiver MCP-server**. Bryteren lagres så snart den slås om. MCP-tilgang er på som standard. Mens den er av, returnerer de fire verktøyene `get_public_status_page_*` en feil for den statussiden; statussidens nettsted, RSS-feeden og det offentlige JSON-API-et påvirkes ikke, og statussideverktøyene som krever innlogging (`get_status_page`, `list_status_pages` og så videre), fortsetter å virke for sidens eget prosjekt.
 
 ### Logg inn (OAuth 2.1)
 

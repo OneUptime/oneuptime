@@ -12,8 +12,8 @@ Chaque fois qu'un flux de travail s'exécute, OneUptime enregistre ce qui s'est 
 
 | Page                                                 | Ce que vous voyez                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Flux de travail → Journaux → Exécutions** (menu Flux de travail) | Chaque exécution de chaque flux de travail du projet. Filtrez par nom de flux de travail, statut et date.  |
-| **Flux de travail → Journaux → Exécutions** (menu d'un flux de travail) | Uniquement les exécutions de ce flux de travail. Celle-ci a un filtre **ID d'exécution** au lieu d'un filtre de flux de travail. |
+| **Flux de travail → Exécutions** (menu Flux de travail) | Chaque exécution de chaque flux de travail du projet. Filtrez par nom de flux de travail, statut et date.  |
+| **Flux de travail → Exécutions** (menu d'un flux de travail) | Uniquement les exécutions de ce flux de travail. Celle-ci a un filtre **ID d'exécution** au lieu d'un filtre de flux de travail. |
 | **Une exécution précise**                            | Ouverte avec le bouton **Voir les journaux** sur la ligne d'une exécution — les lignes elles-mêmes ne sont pas cliquables. |
 
 Lancer une exécution depuis le **Constructeur** ouvre la même vue **Exécution du flux de travail**, qui suit déjà l'exécution : vous la regardez se dérouler au lieu de la chercher ensuite.

@@ -130,11 +130,21 @@ export default class WebhookLog extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Where the request went, by its scheme, host and port alone:
+   * https://hooks.slack.com/•••. The rest of a webhook's address is its
+   * credential - a Slack, Microsoft Teams or Discord webhook's secret is in
+   * its path - and a log is read by everyone who reads the notification
+   * logs, so it never keeps it (WebhookAddressMask). The
+   * MaskWebhookAddressesInLogs data migration masks the addresses logged
+   * before.
+   */
   @TableColumn({
     required: true,
     type: TableColumnType.LongText,
     title: "Webhook URL",
-    description: "URL the request was sent to",
+    description:
+      "Where the request was sent: the address's scheme, host and port. The rest of the address is left out, as it can hold the webhook's secret.",
     canReadOnRelationQuery: false,
   })
   @Column({

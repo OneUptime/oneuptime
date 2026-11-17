@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Com o modelo, um incidente abre, com o título `Datadog: High CPU`, e as políticas de plantão que você escolheu são chamadas. Com o monitor, um incidente abre, com o título `[Triggered] High CPU`. Envie a mesma requisição com `transition` em `Recovered` e o incidente é resolvido.
 
-Depois teste a partir do Datadog: abra um monitor que mencione o webhook, clique em **Test Notifications** e envie a notificação **Alert** dele. Para ver que ela chegou, abra **Registros → Execuções** do workflow, ou a linha do tempo do monitor do OneUptime.
+Depois teste a partir do Datadog: abra um monitor que mencione o webhook, clique em **Test Notifications** e envie a notificação **Alert** dele. Para ver que ela chegou, abra **Execuções** do workflow, ou a linha do tempo do monitor do OneUptime.
 
 ## Solução de problemas
 
@@ -211,7 +211,7 @@ Depois teste a partir do Datadog: abra um monitor que mencione o webhook, clique
 :::
 
 :::details O workflow roda, mas não abre nada
-Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
+Abra a execução em **Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
 
 - `Datadog named no alert cycle key`: adicione `"alert_cycle_key": "$ALERT_CYCLE_KEY"` ao payload do webhook no Datadog.
 - `Datadog named no transition`: adicione `"transition": "$ALERT_TRANSITION"` ao payload do webhook no Datadog.
@@ -225,14 +225,14 @@ Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em 
 
 :::details Os incidentes abrem mas nunca são resolvidos
 - O monitor do Datadog também precisa notificar o webhook das recuperações dele. Uma mensagem que menciona o webhook só para os alertas, dentro de uma condição, não envia nenhuma recuperação.
-- Com o modelo, abra a execução da recuperação em **Registros → Execuções**: a última etapa dela diz por quê. O `alert_cycle_key` da recuperação deve ser o do alerta, então mantenha `$ALERT_CYCLE_KEY` como está no payload.
+- Com o modelo, abra a execução da recuperação em **Execuções**: a última etapa dela diz por quê. O `alert_cycle_key` da recuperação deve ser o do alerta, então mantenha `$ALERT_CYCLE_KEY` como está no payload.
 - Com o monitor, o incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**.
 - **Value that means recovered** deve ser exatamente `Recovered`. A comparação diferencia maiúsculas de minúsculas.
 - O `alert_key` da recuperação deve ser o do alerta: mantenha `$ALERT_ID $ALERT_SCOPE` como está no payload.
 :::
 
 :::details Um campo mostra o nome de uma variável, ou nada
-O Datadog só preenche as variáveis que se aplicam ao evento. Envie uma notificação de teste e veja o que chegou: na linha do tempo do monitor, ou para um workflow em **Registros → Execuções**.
+O Datadog só preenche as variáveis que se aplicam ao evento. Envie uma notificação de teste e veja o que chegou: na linha do tempo do monitor, ou para um workflow em **Execuções**.
 :::
 
 :::details Todos os alertas de um monitor se juntam em um incidente

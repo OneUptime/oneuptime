@@ -183,7 +183,7 @@ Twilio läser upp meddelandena med en text-till-tal-röst, så skriv dem som du 
 
 ## Samtalsloggar
 
-Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess sidomeny: **Uppringare**, **Uppringt nummer**, dess **Status**, vem som besvarade det (**Besvarad av**), **Varaktighet** och när det startade (**Startade den**). Klicka på **Visa tidslinje** vid ett samtal för att se dess **Samtalstidslinje**: varje person som ringdes upp, på vilket nummer och hur varje försök slutade.
+Varje samtal visas på policyns sida **Samtalsloggar**, under **Grundläggande** i dess sidomeny: **Uppringare**, **Uppringt nummer**, dess **Status**, vem som besvarade det (**Besvarad av**), **Varaktighet** och när det startade (**Startade den**). Klicka på **Visa tidslinje** vid ett samtal för att se dess **Samtalstidslinje**: varje person som ringdes upp, på vilket nummer och hur varje försök slutade.
 
 | Status | Vad som hände |
 | --- | --- |

@@ -278,7 +278,8 @@ describe("the status page menu, breadcrumbs and links", () => {
 
     const security: string = menu.slice(
       menu.indexOf('<SideMenuSection title="Security">'),
-      menu.indexOf('<SideMenuSection title="AI">'),
+      // The AI section held MCP alone; MCP is in Advanced now (#9216).
+      menu.indexOf("getDeveloperSideMenuSection({"),
     );
 
     const titles: Array<string> = Array.from(

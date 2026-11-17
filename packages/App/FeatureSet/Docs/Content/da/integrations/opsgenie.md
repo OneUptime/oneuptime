@@ -149,7 +149,7 @@ Opsgenie svarer `202`, før den behandler anmodningen, så en anmodning, den sen
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 ## Næste trin

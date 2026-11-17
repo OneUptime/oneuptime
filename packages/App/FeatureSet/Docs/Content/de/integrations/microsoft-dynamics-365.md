@@ -133,7 +133,7 @@ Jeder Workflow behält seine eigene Kopie. Wenn Sie das Client-Secret ersetzen, 
 4. Klicken Sie auf **Arbeitsablauf erstellen**. Jeder Workflow wird ausgeschaltet angelegt: Schalten Sie oben in seinem **Editor** **Aktiviert** ein.
 :::
 
-Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Antworttext** ihres letzten Schritts, `create-case-1`, enthält die `ticketnumber` des neuen Falls, etwa `CAS-01001-X1Y2Z3`.
+Beginnen Sie mit **Create a Dynamics 365 case when an incident is declared**, oder für Warnungen mit **Create a Dynamics 365 case when an alert is created**: Jede andere Vorlage von OneUptime zu Dynamics 365 derselben Art findet den Fall über die Verknüpfung, die diese schreibt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Antworttext** ihres letzten Schritts, `create-case-1`, enthält die `ticketnumber` des neuen Falls, etwa `CAS-01001-X1Y2Z3`.
 
 ### Die Vorlagen von Dynamics 365 zu OneUptime verbinden
 
@@ -181,7 +181,7 @@ Bevor Sie sich auf einen der beiden verlassen:
 
 ### Prüfen, ob es funktioniert
 
-Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Protokolle → Ausführungen** und sehen Sie nach, wie sie geendet hat:
+Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Ausführungen** und sehen Sie nach, wie sie geendet hat:
 
 - **Ausgeführt**: Sie hat ihre Aufgabe erledigt, und ihr letzter Schritt nennt den Fall, den Vorfall oder die Warnung.
 - **Ausgeführt**, mit dem Schritt **Mit JavaScript prüfen** auf **Nein**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Der Fall ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam von der anderen Seite, der Datensatz ist privat, oder der neue Status schließt den Fall nicht.
@@ -297,7 +297,7 @@ Der Geltungsbereich muss Ihre Umgebungs-URL gefolgt von `/.default` sein. Eine f
    }
    ```
 
-5. Schalten Sie **Aktiviert** ein, melden Sie einen Testvorfall und öffnen Sie **Protokolle → Ausführungen**. Der Schritt `create-case` zeigt ein `201` und einen Body mit der neuen `incidentid` und `ticketnumber`.
+5. Schalten Sie **Aktiviert** ein, melden Sie einen Testvorfall und öffnen Sie **Ausführungen**. Der Schritt `create-case` zeigt ein `201` und einen Body mit der neuen `incidentid` und `ticketnumber`.
 :::
 
 Jeder Fall braucht einen Kunden, also ist `customerid` Pflicht. Es kann auf ein Konto oder einen Kontakt zeigen, deshalb schreiben Sie `customerid_account@odata.bind` oder `customerid_contact@odata.bind`, genau so geschrieben. `Prefer: return=representation` macht die Antwort zu einem `201` mit dem Fall selbst, sodass der nächste Baustein `{{local.components.create-case.returnValues.response-body.incidentid}}` lesen kann. Ohne diesen Header antwortet Dynamics 365 mit `204` ohne Body.
@@ -399,7 +399,7 @@ Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je e
 
 ## Fehlerbehebung
 
-Öffnen Sie zuerst den fehlgeschlagenen Schritt in **Protokolle → Ausführungen**. Beide Microsoft-Endpunkte antworten mit einem JSON-Body, der das Problem erklärt, und der API-Baustein behält ihn in `response-body`.
+Öffnen Sie zuerst den fehlgeschlagenen Schritt in **Ausführungen**. Beide Microsoft-Endpunkte antworten mit einem JSON-Body, der das Problem erklärt, und der API-Baustein behält ihn in `response-body`.
 
 :::details 400 mit AADSTS70011, der Geltungsbereich ist ungültig
 Der Geltungsbereich ist nicht Ihre Umgebungs-URL gefolgt von `/.default`. Kopieren Sie die URL aus dem Power Platform Admin Center und lassen Sie jeden abschließenden Schrägstrich und jeden Pfad `/api/data/...` weg.
@@ -434,7 +434,7 @@ Die Dienstschutzgrenzen von Dataverse erlauben etwa 6.000 Anfragen und 20 Minute
 :::
 
 :::details In OneUptime kommt nichts an
-Senden Sie selbst mit `curl` eine Anfrage an die Webhook-URL und suchen Sie sie in **Protokolle → Ausführungen**. Kommt Ihre an und die von Dynamics 365 nicht, suchen Sie weiter vorn: im eigenen Ausführungsverlauf des Flows oder in den fehlgeschlagenen System Jobs eines Dataverse-Webhooks.
+Senden Sie selbst mit `curl` eine Anfrage an die Webhook-URL und suchen Sie sie in **Ausführungen**. Kommt Ihre an und die von Dynamics 365 nicht, suchen Sie weiter vorn: im eigenen Ausführungsverlauf des Flows oder in den fehlgeschlagenen System Jobs eines Dataverse-Webhooks.
 :::
 
 :::details Der Workflow läuft, aber der Vorfall ändert sich nicht

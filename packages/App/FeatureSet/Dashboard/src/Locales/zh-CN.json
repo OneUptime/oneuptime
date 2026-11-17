@@ -56514,6 +56514,7 @@
   "This check was too large to keep in full, so it was trimmed.": "此检查过大，无法完整保存，因此已被截断。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "每个地址只保留协议和主机。其余部分是 Webhook 的密钥。",
   "See email logs": "查看邮件日志",
   "Copy Your Bearer Token": "复制你的 Bearer 令牌",
   "Incoming Email Secret Key Hash": "传入邮件密钥哈希",
@@ -56523,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
   "Webhook Secret Key Hash": "Webhook 密钥哈希",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。"
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。",
+  "OneUptime is added to your Zoom account": "OneUptime 已添加到您的 Zoom 账户",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}，在 Zoom 中发起此项目的通话。"
 }

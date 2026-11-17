@@ -169,7 +169,7 @@ Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de l
 ## Tester le disjoncteur
 
 :::steps
-1. Déclenchez-le à la main. Ouvrez **Alertes**, cliquez sur **Créer une alerte** et créez-en une intitulée `LLM budget exceeded: test`. L'exécution apparaît sous **Flux de travail → Journaux → Exécutions**, et votre endpoint reçoit l'appel.
+1. Déclenchez-le à la main. Ouvrez **Alertes**, cliquez sur **Créer une alerte** et créez-en une intitulée `LLM budget exceeded: test`. L'exécution apparaît sous **Flux de travail → Exécutions**, et votre endpoint reçoit l'appel.
 2. Déclenchez-le pour de vrai. Créez un budget avec une limite minuscule, par exemple `0.01` USD, sur le service d'un agent de test, pointez un moniteur de budget dessus et laissez l'agent tourner : le pourcentage dépasse 100, l'alerte s'ouvre, le flux de travail s'exécute et le disjoncteur saute. Pour l'alerte de boucle, donnez à un agent de test un outil qui échoue toujours.
 3. Déclenchez-le deux fois. Créez à nouveau la même alerte : votre endpoint doit accepter le second déclenchement sans rien changer.
 :::
@@ -201,7 +201,7 @@ La **Plage temporelle** du moniteur est plus courte que les 15 minutes qui sépa
 :::
 
 :::details La requête n'atteint jamais votre endpoint
-Ouvrez l'exécution sous **Flux de travail → Journaux → Exécutions** et l'étape **Appel d'API POST (JSON)** : elle indique pourquoi la requête a échoué. Sur OneUptime Cloud, l'endpoint doit être joignable depuis internet ; une installation auto-hébergée refuse les adresses de réseau privé sauf si un administrateur les autorise.
+Ouvrez l'exécution sous **Flux de travail → Exécutions** et l'étape **Appel d'API POST (JSON)** : elle indique pourquoi la requête a échoué. Sur OneUptime Cloud, l'endpoint doit être joignable depuis internet ; une installation auto-hébergée refuse les adresses de réseau privé sauf si un administrateur les autorise.
 :::
 
 ## Étapes suivantes

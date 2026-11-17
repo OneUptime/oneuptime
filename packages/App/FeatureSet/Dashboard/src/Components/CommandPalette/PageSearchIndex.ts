@@ -1647,6 +1647,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.ShieldCheck,
             keywords: ["can be paged", "coverage", "unreachable responders"],
           },
+          {
+            page: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES,
+            title: "Incoming Call Policies",
+            icon: IconProp.IncomingCall,
+            // Its section until #9216.
+            keywords: [
+              "hotline",
+              "phone number",
+              "call routing",
+              "incoming calls",
+            ],
+          },
         ],
       },
       {
@@ -1679,17 +1691,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Calendar Feeds",
             icon: IconProp.Link,
             keywords: ["ical", "ics", "google calendar", "outlook"],
-          },
-        ],
-      },
-      {
-        title: "Incoming Calls",
-        pages: [
-          {
-            page: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES,
-            title: "Incoming Call Policies",
-            icon: IconProp.IncomingCall,
-            keywords: ["hotline", "phone number", "call routing"],
           },
         ],
       },
@@ -1843,11 +1844,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             // "ongoing events" was its name (#6817).
             keywords: ["maintenance in progress", "ongoing events"],
           },
-        ],
-      },
-      {
-        title: "Calendar",
-        pages: [
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
             title: "Maintenance Calendar",
@@ -4136,11 +4132,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Variable,
             keywords: ["workflow variables", "secrets"],
           },
-        ],
-      },
-      {
-        title: "Logs",
-        pages: [
           {
             page: PageMap.WORKFLOWS_LOGS,
             title: "Runs",

@@ -149,7 +149,7 @@ Opsgenie answers `202` before it processes the request, so a request it refuses 
 :::
 
 :::details The workflow never runs
-Check that it is on: **Enabled**, at the top of its **Builder**. Then open **Logs → Runs**: a run that took the **No** side of the **If / Else** block is an update that was not a resolve.
+Check that it is on: **Enabled**, at the top of its **Builder**. Then open **Runs**: a run that took the **No** side of the **If / Else** block is an update that was not a resolve.
 :::
 
 ## Next steps

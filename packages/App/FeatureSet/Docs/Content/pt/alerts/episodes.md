@@ -179,11 +179,8 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 
 | Seção do menu lateral | Páginas                                                                     |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Visão geral** | **Visão geral**, **Linha do tempo de estado** |
-| **Investigação** | **Descrição**, **Causa raiz**, **Notas de remediação** |
-| **Equipe** | **Proprietários** |
-| **Alertas** | **Alertas de membros** |
-| **Notas** | **Notas privadas** |
+| **Visão geral** | **Visão geral**, **Linha do tempo de estado**, **Alertas de membros**, **Proprietários** |
+| **Investigação** | **Descrição**, **Causa raiz**, **Notas de remediação**, **Notas privadas** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 

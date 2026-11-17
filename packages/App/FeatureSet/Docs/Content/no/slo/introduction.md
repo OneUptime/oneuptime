@@ -174,7 +174,7 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | **Revisjonslogger** | Hvem som har endret SLO-et, reglene og eierne, og når. |
 | **Slett SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
 
-**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler**, **Forbruksrateregler** og **Feilbudsjettpolicy** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
+**Monitorer** ligger i seksjonen **Oversikt**, under **Oversikt**; **Monitorregler**, **Forbruksrateregler** og **Feilbudsjettpolicy** i en seksjon **Regler**; og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. **Regler** og **Administrasjon** starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
 
 Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av sidene hva som er galt, og lenker til siden som løser det: se [Feilsøking](#feilsøking).
 

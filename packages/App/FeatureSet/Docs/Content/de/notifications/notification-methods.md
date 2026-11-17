@@ -169,6 +169,8 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 Ein Webhook braucht keine Verifizierung, daher fügt das Hinzufügen sofort seine Regeln hinzu. Private und interne Adressen werden abgelehnt, es sei denn, der Admin eines selbst gehosteten Servers erlaubt sie: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access#webhooks-und-workflows).
 
+Die Adresse Ihres Webhooks wird verschlüsselt gespeichert, und nur Sie lesen sie wieder: Eine Slack-, Microsoft-Teams- oder Discord-Adresse enthält ein Geheimnis, und wer sie hat, kann an Ihren Endpunkt senden. Ihre Benachrichtigungsregeln nennen den Webhook bei seinem **Name**, und die Webhook-Protokolle des Projekts behalten von der Adresse nur Schema und Host.
+
 ## Einen Kanal für Ihr Projekt einschalten
 
 **SMS**, **Telefonanrufe**, **WhatsApp** und **Telegram** sind in jedem neuen Projekt ausgeschaltet, weil jede Nachricht Geld kostet: In OneUptime Cloud wird sie vom Guthaben des Projekts bezahlt, und SMS und Anrufe laufen stattdessen über das eigene Twilio-Konto des Projekts, wenn sein Standardkonto sie sendet. E-Mail, Push, Slack, Microsoft Teams, Mattermost und Webhooks sind immer eingeschaltet.

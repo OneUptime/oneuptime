@@ -125,11 +125,11 @@ Una **cuenta de servicio** de Atlassian también funciona. Un administrador de l
 :::steps
 1. Abre **Flujos de trabajo → Crear flujo de trabajo**. En **O empieza con una plantilla**, elige **Jira** en la lista de categorías, o escribe `Jira` en **Buscar plantillas…**, y haz clic en la plantilla que quieras. Se abre y muestra lo que hace y los ajustes que pedirá. Haz clic en **Usar esta plantilla**.
 2. **Nombre** se rellena a partir de la plantilla. Cámbialo si quieres.
-3. **Configurar** pide los valores de arriba. Se guardan como variables propias del flujo de trabajo, en **Variables del flujo de trabajo** dentro de su menú. El token de API se guarda como secreto: se oculta en **Registros → Ejecuciones** y solo va en la cabecera `Authorization` de las llamadas a Jira.
+3. **Configurar** pide los valores de arriba. Se guardan como variables propias del flujo de trabajo, en **Variables del flujo de trabajo** dentro de su menú. El token de API se guarda como secreto: se oculta en **Ejecuciones** y solo va en la cabecera `Authorization` de las llamadas a Jira.
 4. Haz clic en **Crear flujo de trabajo**. Todo flujo de trabajo se crea desactivado: activa **Habilitado** en la parte superior de su **Constructor**.
 :::
 
-Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Cuerpo de la respuesta** de su último paso, `create-issue-1`, nombra la nueva incidencia.
+Empieza con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** para las alertas: cada otra plantilla de OneUptime → Jira del mismo tipo encuentra la incidencia por la etiqueta que añade esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Cuerpo de la respuesta** de su último paso, `create-issue-1`, nombra la nueva incidencia.
 
 Cada flujo de trabajo guarda su propia copia de estos valores. Cuando sustituyas el token, actualiza `jiraBasicAuthToken` en **Variables del flujo de trabajo** en cada flujo de trabajo de Jira que lo pidió. Si Jira cambia de dirección, actualiza `jiraSiteUrl` y `jiraBaseUrl` de la misma manera.
 
@@ -180,7 +180,7 @@ Antes de confiar en ello:
 
 ### Comprobar que funciona
 
-Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Registros → Ejecuciones** y mira cómo terminó:
+Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Ejecuciones** y mira cómo terminó:
 
 - **Ejecutado**: hizo su trabajo, y su último paso nombra la incidencia, el incidente o la alerta.
 - **Ejecutado**, con su paso **Comprobar con JavaScript** en **No**: omitió el evento a propósito, y el paso dice por qué: la incidencia no está vinculada a un registro de este tipo, la nota vino de Jira, el registro es privado o el nuevo estado no tiene ningún estado de Jira asignado.
@@ -272,7 +272,7 @@ Las notas privadas y los comentarios de edición se marcan como internos con la 
 
 - **Solo Jira Cloud.** Las plantillas llaman a la API REST v3 de Jira Cloud con autenticación Basic. Data Center no tiene v3 y acepta un token de acceso personal como `Bearer`, así que cada bloque de API necesita los cambios de [Jira Data Center](#jira-data-center): rutas `/rest/api/2/...`, cadenas simples en lugar de cuerpos en Atlassian Document Format, y la cabecera. Los bloques `find-issue-1` son los que más cambian: Data Center no tiene `/search/jql`, así que deben hacer un `POST` a `/rest/api/2/search` en su lugar.
 - **Los incidentes declarados desde Jira son discretos.** Se crean ocultos en tus páginas de estado, sin avisar a los suscriptores de las páginas de estado, porque el texto de una incidencia no se escribió para clientes. Para mostrar uno, activa **Visible en la página de estado** en la página **Ajustes** del incidente (consulta [Mantener un incidente fuera de la página de estado](/docs/incidents/states-and-severities#mantener-un-incidente-fuera-de-la-página-de-estado)), o activa **Mostrar en páginas de estado**, en **Más campos**, en el bloque `incident-from-another-tool-1` de la plantilla.
-- **Los incidentes y alertas privados se quedan en OneUptime.** Las plantillas de OneUptime → Jira los omiten, y cada omisión lo dice en **Registros → Ejecuciones**. Para enviarlos de todos modos, pon `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` en `true`. Hacer privado un registro más adelante detiene la sincronización a partir de ese momento, pero no retira lo que Jira ya tiene. Las plantillas de Jira → OneUptime no lo comprueban, así que los comentarios, las ediciones y los cambios de estado de una incidencia vinculada siguen llegando a un registro privado.
+- **Los incidentes y alertas privados se quedan en OneUptime.** Las plantillas de OneUptime → Jira los omiten, y cada omisión lo dice en **Ejecuciones**. Para enviarlos de todos modos, pon `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` en `true`. Hacer privado un registro más adelante detiene la sincronización a partir de ese momento, pero no retira lo que Jira ya tiene. Las plantillas de Jira → OneUptime no lo comprueban, así que los comentarios, las ediciones y los cambios de estado de una incidencia vinculada siguen llegando a un registro privado.
 - **Nada retrocede.** Reabrir una incidencia de Jira no cambia nada en OneUptime, y un estado de la categoría To Do no corresponde a ningún estado. Consulta [El orden es una restricción real](/docs/incidents/states-and-severities#el-orden-es-una-restricción-real-no-una-preferencia-de-visualización). Las plantillas de transición tampoco mueven nunca una incidencia a una categoría de estado anterior.
 - **Cada alerta recibe una incidencia.** Salvo las alertas privadas, la plantilla de alertas que crea incidencias abre una por cada alerta, incluida cada una que genera un monitor. [Qué cambia para las alertas](#qué-cambia-para-las-alertas) muestra cómo añadir una condición.
 - **Los primeros segundos pueden no encontrar la incidencia.** La búsqueda de Jira se pone al día un momento después de que cambie una incidencia, así que una nota, un cambio de estado o una edición en los primeros segundos tras crearse un registro puede no encontrar la incidencia nueva y terminar con la omisión `No Jira issue is labelled …`. Esa ejecución no se reintenta. Lo mismo ocurre justo después de crearse un registro desde Jira, hasta que se añaden sus etiquetas.
@@ -336,7 +336,7 @@ Los tokens caducan al cabo de un año por defecto y no se renuevan. Para no tene
    }
    ```
 
-4. Activa **Habilitado**, declara un incidente de prueba y abre **Registros → Ejecuciones**. El paso `create-issue` muestra un `201` y un cuerpo con el `id`, la `key` y el `self` de la nueva incidencia.
+4. Activa **Habilitado**, declara un incidente de prueba y abre **Ejecuciones**. El paso `create-issue` muestra un `201` y un cuerpo con el `id`, la `key` y el `self` de la nueva incidencia.
 :::
 
 La descripción parece pesada porque la API v3 de Jira Cloud acepta el texto enriquecido en **Atlassian Document Format**, un árbol de documento en lugar de una cadena. El cuerpo de arriba contiene el documento válido más pequeño: un párrafo con un nodo de texto. Lo mismo vale para `environment` y los campos personalizados de texto de varias líneas. Un bloque posterior lee la nueva clave como `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Actívalo y luego haz que Jira lo llame, desde una regla de automatización o de
 
    Con una etiqueta en lugar de un campo personalizado, envía `"labels": "{{issue.labels}}"` y extrae el ID con un bloque **Ejecutar JavaScript personalizado**.
 
-4. Activa la regla y mueve una incidencia de prueba a Done. Revisa el registro de auditoría de la regla en Jira, y **Registros → Ejecuciones** en OneUptime.
+4. Activa la regla y mueve una incidencia de prueba a Done. Revisa el registro de auditoría de la regla en Jira, y **Ejecuciones** en OneUptime.
 
 Para asegurarte de que una solicitud viene de tu regla, añade una segunda cabecera, `X-OneUptime-Secret`, con un valor que te inventes, y usa en ella la opción **Hide** de la acción. En el flujo de trabajo, pon un bloque **Si / Si no** antes de la actualización: **Valor que comprobar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparación** **es igual a** y **Comparar con** el mismo valor, guardado en una variable global secreta.
 
@@ -513,7 +513,7 @@ Otras diferencias que hay que prever:
 
 ## Solución de problemas
 
-Abre primero el paso que falla en **Registros → Ejecuciones**. Jira responde con un cuerpo JSON que nombra lo que rechazó, y el bloque de API lo guarda en `response-body`.
+Abre primero el paso que falla en **Ejecuciones**. Jira responde con un cuerpo JSON que nombra lo que rechazó, y el bloque de API lo guarda en `response-body`.
 
 :::details 401 Unauthorized
 Vuelve a codificar `email:api_token` con `printf`, no `echo`, y actualiza el token: un salto de línea al final es la causa habitual. Después comprueba que la cuenta del token puede crear incidencias en el proyecto. En Data Center, comprueba que envías `Bearer`, no `Basic`. En la URL de un sitio de Cloud, unas credenciales incorrectas suelen parecerse más al caso siguiente.
@@ -540,7 +540,7 @@ El ID de transición no está abierto desde el estado actual de la incidencia. O
 :::
 
 :::details Jira muestra que la regla o el webhook se ejecutó, pero no llega nada a OneUptime
-Comprueba primero el puerto: Jira solo llama a sus puertos permitidos. Después envía tú mismo una solicitud a la URL del flujo de trabajo con `curl`, y búscala en **Registros → Ejecuciones**. Si la tuya llega y la de Jira no, el problema está del lado de Jira. Si la ejecución está ahí pero rechazada, comprueba que el flujo de trabajo está activado.
+Comprueba primero el puerto: Jira solo llama a sus puertos permitidos. Después envía tú mismo una solicitud a la URL del flujo de trabajo con `curl`, y búscala en **Ejecuciones**. Si la tuya llega y la de Jira no, el problema está del lado de Jira. Si la ejecución está ahí pero rechazada, comprueba que el flujo de trabajo está activado.
 :::
 
 :::details El flujo de trabajo se ejecuta, pero el incidente no cambia

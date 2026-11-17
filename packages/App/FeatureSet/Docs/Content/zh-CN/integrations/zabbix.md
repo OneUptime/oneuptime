@@ -293,7 +293,7 @@ Zabbix 需要三样东西：一个发布到 OneUptime 的媒介类型、一个�
 ## 测试
 
 1. 在 Zabbix 中打开 **Alerts → Media types**，点击 `OneUptime` 旁边的 **Test**。填入你复制的 URL，以及示例值，例如 `event_id` `12345`、`event_name` `Test problem`、`host` `web-1`、`event_nseverity` `4` 和 `event_value` `1`。点击 **Test**：Zabbix 会显示脚本的回应 `OK`，或者脚本抛出的错误。
-2. 在 OneUptime 中打开工作流的 **日志 → 运行记录** 检查这次运行；或者打开监视器，检查是否创建了事件。
+2. 在 OneUptime 中打开工作流的 **运行记录** 检查这次运行；或者打开监视器，检查是否创建了事件。
 3. 用 `event_value` `0` 和相同的 `event_id` 再测试一次。事件会被解决。
 
 然后让一个真实的触发器触发，例如暂时调低某个阈值，观察问题到达。要试试更新，请在 Zabbix 中附上一条消息确认该问题：事件会得到一条私密备注，并被确认。
@@ -320,12 +320,12 @@ Zabbix 以文本形式发送严重程度：`Not classified`、`Information`、`W
 
 :::details 事件被创建但从未被解决
 - 动作需要 **Recovery operations**，否则 Zabbix 永远不会发送恢复。
-- 使用模板时，打开工作流的 **日志 → 运行记录** 中恢复的那次运行：它的最后一步会说明原因。对于没有创建事件的问题，恢复不会改变任何东西。
+- 使用模板时，打开工作流的 **运行记录** 中恢复的那次运行：它的最后一步会说明原因。对于没有创建事件的问题，恢复不会改变任何东西。
 - 使用监视器时，条件中的事件需要启用 **更多字段** 下的 **自动解决事件**。**Field that signals recovery** 必须是 `requestBody.status`，**Value that means recovered** 必须恰好是 `0`。
 :::
 
 :::details Zabbix 中的问题没有被确认或关闭
-在 **日志 → 运行记录** 中打开状态模板的运行：它的最后一步会说明 Zabbix 的回应。
+在 **运行记录** 中打开状态模板的运行：它的最后一步会说明 Zabbix 的回应。
 
 - `Not authorized`：API 令牌错误、已过期或已禁用，或者 Zabbix 早于 6.4（参见 [在 Zabbix 6.0 上](#在-zabbix-60-上)）。
 - `Cannot close problem: trigger does not allow manual closing`：在触发器上打开 **Allow manual close**。模板已经会改为确认这类问题，而不是关闭它们。
@@ -334,7 +334,7 @@ Zabbix 以文本形式发送严重程度：`Not classified`、`Information`、`W
 :::
 
 :::details 事件显示的是引用而不是值
-引用了请求中不存在的字段时，该引用会连同花括号按原样保留，而不会被清空。请检查 Zabbix 是否发送了 `Content-Type: application/json`，以及你使用的字段名（`name`、`host`、`severity`、`status`、`event_id`）是否与脚本的负载一致。对于工作流，请在 **日志 → 运行记录** 中打开这次运行，并与触发器收到的内容进行比较。参见 [陷阱](/docs/workflows/variables#陷阱)。
+引用了请求中不存在的字段时，该引用会连同花括号按原样保留，而不会被清空。请检查 Zabbix 是否发送了 `Content-Type: application/json`，以及你使用的字段名（`name`、`host`、`severity`、`status`、`event_id`）是否与脚本的负载一致。对于工作流，请在 **运行记录** 中打开这次运行，并与触发器收到的内容进行比较。参见 [陷阱](/docs/workflows/variables#陷阱)。
 :::
 
 :::details 每个问题都到达两次

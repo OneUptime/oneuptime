@@ -19,7 +19,9 @@ import { describe, expect, test } from "@jest/globals";
  * password and OAuth client secret, the Slack, Microsoft Teams and
  * Mattermost tokens, the code repositories' webhook secrets and the
  * webhook notification methods' signing secrets stored as written; they
- * are encrypted now (ProjectCredentialsAtRest).
+ * are encrypted now (ProjectCredentialsAtRest). So are, since #9013 and
+ * #9014, the webhook addresses a project stores and its network devices'
+ * and discovery scans' SNMP credentials (WebhookAddressesAndSnmpAtRest).
  *
  * This holds every column of every project's table that the API calls a
  * secret (ModelSchema.isSecretColumn) to being encrypted, hashed, or
@@ -40,31 +42,11 @@ const DELIVERY_REPORT_TOKEN: string =
 const CONFIRMATION_LINK_TOKEN: string =
   "confirms one subscription, only for a day after its link is sent, and confirming only lets the page send to the contact that signed up (#9012)";
 
-// A webhook address, kept as a URL: DatabaseService encrypts text and JSON maps.
-const ADDRESS_KEPT_AS_A_URL: string =
-  "a webhook address, kept as a URL (URL.getDatabaseTransformer), which DatabaseService cannot encrypt yet (#9013)";
-
-// SNMP credentials, some in JSON lists, mirrored between devices and scans.
-const SNMP_CREDENTIAL: string =
-  "an SNMP credential, mirrored between a device and the scan that found it and kept in JSON lists too: encrypted with the rest of the set (#9014)";
-
 const NOT_ENCRYPTED_YET: Readonly<Record<string, string>> = {
   "OpenStackProjectNotice.previewToken": NOT_A_CREDENTIAL,
   "SmsLog.statusCallbackToken": DELIVERY_REPORT_TOKEN,
   "CallLog.statusCallbackToken": DELIVERY_REPORT_TOKEN,
   "StatusPageSubscriber.subscriptionConfirmationToken": CONFIRMATION_LINK_TOKEN,
-  "StatusPageSubscriber.subscriberWebhook": ADDRESS_KEPT_AS_A_URL,
-  "StatusPageSubscriber.slackIncomingWebhookUrl": ADDRESS_KEPT_AS_A_URL,
-  "StatusPageSubscriber.microsoftTeamsIncomingWebhookUrl":
-    ADDRESS_KEPT_AS_A_URL,
-  "NetworkDevice.snmpCommunityString": SNMP_CREDENTIAL,
-  "NetworkDevice.snmpV3Auth": SNMP_CREDENTIAL,
-  "NetworkDevice.snmpV3AuthKey": SNMP_CREDENTIAL,
-  "NetworkDevice.snmpV3PrivKey": SNMP_CREDENTIAL,
-  "NetworkDeviceDiscoveryScan.snmpConfigs": SNMP_CREDENTIAL,
-  "NetworkDeviceDiscoveryScan.snmpCommunityString": SNMP_CREDENTIAL,
-  "NetworkDeviceDiscoveryScan.snmpV3AuthKey": SNMP_CREDENTIAL,
-  "NetworkDeviceDiscoveryScan.snmpV3PrivKey": SNMP_CREDENTIAL,
   // Kept as their hash by StatusPagePrivateUserService, in a text column.
   "StatusPagePrivateUser.resetPasswordToken":
     "stored as the token's hash (StatusPagePrivateUserService), never as the token",
@@ -166,6 +148,35 @@ describe("a project's secrets at rest", () => {
         isKeptAsWritten: !column!.isEncrypted && !column!.isHashed,
       }).toEqual({ name, isKeptAsWritten: true });
       expect(NOT_ENCRYPTED_YET[name]!.length).toBeGreaterThan(20);
+    }
+  });
+
+  test("what #9013 and #9014 encrypted - webhook addresses, SNMP credentials - is not on the list", () => {
+    for (const name of [
+      "StatusPageSubscriber.subscriberWebhook",
+      "StatusPageSubscriber.slackIncomingWebhookUrl",
+      "StatusPageSubscriber.microsoftTeamsIncomingWebhookUrl",
+      "OpenStackProjectNotice.webhookUrl",
+      "UserWebhook.webhookUrl",
+      "NetworkDevice.snmpCommunityString",
+      "NetworkDevice.snmpV3Auth",
+      "NetworkDevice.snmpV3AuthKey",
+      "NetworkDevice.snmpV3PrivKey",
+      "NetworkDeviceDiscoveryScan.snmpConfigs",
+      "NetworkDeviceDiscoveryScan.snmpCommunityString",
+      "NetworkDeviceDiscoveryScan.snmpV3AuthKey",
+      "NetworkDeviceDiscoveryScan.snmpV3PrivKey",
+    ]) {
+      expect({ name, listed: Boolean(NOT_ENCRYPTED_YET[name]) }).toEqual({
+        name,
+        listed: false,
+      });
+      expect({
+        name,
+        isEncrypted: columns.find((column: SecretColumn): boolean => {
+          return column.name === name;
+        })?.isEncrypted,
+      }).toEqual({ name, isEncrypted: true });
     }
   });
 

@@ -169,6 +169,8 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 Een webhook heeft geen verificatie nodig, dus toevoegen voegt meteen de regels ervan toe. Privé- en interne adressen worden geweigerd, tenzij de beheerder van een zelfgehoste server ze toestaat: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access#webhooks-en-workflows).
 
+Het adres van je webhook wordt versleuteld opgeslagen, en alleen jij leest het terug: een Slack-, Microsoft Teams- of Discord-adres bevat een geheim, en iedereen die het heeft kan naar je endpoint posten. Je meldingsregels noemen de webhook bij zijn **Naam**, en de webhooklogboeken van het project bewaren van het adres alleen het schema en de host.
+
 ## Een kanaal aanzetten voor je project
 
 **SMS**, **Telefoonoproepen**, **WhatsApp** en **Telegram** staan in elk nieuw project uit, omdat elk bericht geld kost: in OneUptime Cloud wordt het betaald uit het tegoed van het project, en sms en oproepen lopen in plaats daarvan via het eigen Twilio-account van het project als het standaardaccount ze verstuurt. E-mail, push, Slack, Microsoft Teams, Mattermost en webhooks staan altijd aan.

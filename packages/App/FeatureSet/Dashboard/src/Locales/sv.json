@@ -56514,6 +56514,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Den här kontrollen var för stor för att sparas i sin helhet, så den har kortats ned.",
   "No email has gone out through this server's email settings since {{time}}.": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}. E-postservern svarade: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Bara schemat och värden i varje adress sparas. Resten är webhookens hemlighet.",
   "See email logs": "Visa e-postloggar",
   "Copy Your Bearer Token": "Kopiera din Bearer-token",
   "Incoming Email Secret Key Hash": "Hash för den hemliga nyckeln för inkommande e-post",
@@ -56523,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "Hash för servermonitorns hemliga nyckel",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-token visas bara en gång, när anslutningen läggs till eller när dess token återställs. Om du inte längre har den kan du använda ”Återställ Bearer-token” för att skapa en ny.",
   "Webhook Secret Key Hash": "Hash för den hemliga webhook-nyckeln",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat incident eller ett privat larm som du inte kan öppna har lagts till i den här uppgiften, så dess förlopp och pull request är dolda."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat incident eller ett privat larm som du inte kan öppna har lagts till i den här uppgiften, så dess förlopp och pull request är dolda.",
+  "OneUptime is added to your Zoom account": "OneUptime har lagts till i ditt Zoom-konto",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} för att starta det här projektets samtal i Zoom."
 }

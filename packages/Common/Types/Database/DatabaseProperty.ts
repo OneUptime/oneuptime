@@ -1,6 +1,7 @@
 import NotImplementedException from "../Exception/NotImplementedException";
 import { JSONArray, JSONObject } from "../JSON";
 import SerializableObject from "../SerializableObject";
+import { isEncryptedValue } from "./EncryptedValue";
 import { FindOperator } from "typeorm";
 import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
 
@@ -112,6 +113,34 @@ export default class DatabaseProperty extends SerializableObject {
       },
       from: (value: any) => {
         return this._fromDatabase(value);
+      },
+    };
+  }
+
+  /*
+   * The transformer of a column of this type kept encrypted at rest
+   * (TableColumn `encrypted: true`): a status page subscriber's Slack
+   * webhook, say, whose address is its credential.
+   *
+   * DatabaseService encrypts the text getDatabaseTransformer() writes for
+   * the value, and decrypts the stored text before that transformer reads it
+   * (DatabaseService.encrypt and decryptColumns). So what reaches this
+   * transformer is a ciphertext, handed on untouched both ways: read as a
+   * URL, it would be refused on its way in and taken for a broken address on
+   * its way out. Anything else goes through the type's own transformer, as
+   * on a column that is not encrypted: a value written before the column was
+   * encrypted reads as the value it is, and a query's operator is
+   * transformed as ever.
+   */
+  public static getEncryptedDatabaseTransformer(): ValueTransformer {
+    const transformer: ValueTransformer = this.getDatabaseTransformer();
+
+    return {
+      to: (value: any) => {
+        return isEncryptedValue(value) ? value : transformer.to(value);
+      },
+      from: (value: any) => {
+        return isEncryptedValue(value) ? value : transformer.from(value);
       },
     };
   }

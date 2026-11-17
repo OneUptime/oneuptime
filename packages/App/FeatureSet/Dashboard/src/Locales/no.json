@@ -56514,6 +56514,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Denne kontrollen var for stor til å lagres i sin helhet, så den ble forkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Bare skjemaet og verten i hver adresse lagres. Resten er webhookens hemmelighet.",
   "See email logs": "Se e-postlogger",
   "Copy Your Bearer Token": "Kopier bærertokenet ditt",
   "Incoming Email Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende e-post",
@@ -56523,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "Hash av servermonitorens hemmelige nøkkel",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bærertokenet vises bare én gang, når tilkoblingen legges til eller når tokenet tilbakestilles. Hvis du ikke har det lenger, bruker du «Tilbakestill bærertoken» for å lage et nytt.",
   "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult.",
+  "OneUptime is added to your Zoom account": "OneUptime er lagt til i Zoom-kontoen din",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for å starte samtalene til dette prosjektet i Zoom."
 }

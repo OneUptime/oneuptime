@@ -293,7 +293,7 @@ Pour envoyer certains problèmes au modèle d'incident et d'autres au modèle d'
 ## Le tester
 
 1. Dans Zabbix, ouvrez **Alerts → Media types** et cliquez sur **Test** à côté de `OneUptime`. Saisissez l'URL copiée et des valeurs d'exemple, comme `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` et `event_value` `1`. Cliquez sur **Test** : Zabbix affiche la réponse du script, `OK`, ou l'erreur qu'il a levée.
-2. Dans OneUptime, ouvrez **Journaux → Exécutions** du flux de travail et vérifiez l'exécution, ou ouvrez le moniteur et vérifiez qu'un incident s'est ouvert.
+2. Dans OneUptime, ouvrez **Exécutions** du flux de travail et vérifiez l'exécution, ou ouvrez le moniteur et vérifiez qu'un incident s'est ouvert.
 3. Testez de nouveau avec `event_value` `0` et le même `event_id`. L'incident est résolu.
 
 Laissez ensuite un vrai déclencheur se produire, par exemple en abaissant un seuil un instant, et regardez le problème arriver. Pour essayer une mise à jour, prenez en compte le problème dans Zabbix avec un message : l'incident reçoit une note privée et est pris en compte.
@@ -320,12 +320,12 @@ Ouvrez le type de média et utilisez **Test** : Zabbix affiche le résultat du s
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - L'action a besoin de **Recovery operations**, sinon Zabbix n'envoie jamais le rétablissement.
-- Avec le modèle, ouvrez **Journaux → Exécutions** du flux de travail et l'exécution du rétablissement : sa dernière étape dit pourquoi. Le rétablissement d'un problème qui n'a ouvert aucun incident ne change rien.
+- Avec le modèle, ouvrez **Exécutions** du flux de travail et l'exécution du rétablissement : sa dernière étape dit pourquoi. Le rétablissement d'un problème qui n'a ouvert aucun incident ne change rien.
 - Avec le moniteur, l'incident du critère doit avoir **Résoudre automatiquement l'incident**, sous **Plus de champs**. **Champ qui signale le rétablissement** doit valoir `requestBody.status`, et **Value that means recovered** exactement `0`.
 :::
 
 :::details Le problème Zabbix n'est ni pris en compte ni fermé
-Ouvrez l'exécution du modèle d'état dans **Journaux → Exécutions** : sa dernière étape dit ce que Zabbix a répondu.
+Ouvrez l'exécution du modèle d'état dans **Exécutions** : sa dernière étape dit ce que Zabbix a répondu.
 
 - `Not authorized` : le jeton d'API est faux, expiré ou désactivé, ou Zabbix est antérieur à 6.4 (voir [Sous Zabbix 6.0](#sous-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing` : activez **Allow manual close** sur le déclencheur. Le modèle prend déjà en compte ces problèmes au lieu de les fermer.
@@ -334,7 +334,7 @@ Ouvrez l'exécution du modèle d'état dans **Journaux → Exécutions** : sa de
 :::
 
 :::details L'incident affiche une référence au lieu d'une valeur
-Une référence à un champ que la requête n'a pas est laissée telle qu'elle est écrite, accolades comprises, au lieu d'être vidée. Vérifiez que Zabbix envoie `Content-Type: application/json`, et que les noms de champ que vous utilisez (`name`, `host`, `severity`, `status`, `event_id`) correspondent à la charge utile du script. Pour un flux de travail, ouvrez l'exécution dans **Journaux → Exécutions** et comparez avec ce que le déclencheur a reçu. Voir [Pièges](/docs/workflows/variables#pièges).
+Une référence à un champ que la requête n'a pas est laissée telle qu'elle est écrite, accolades comprises, au lieu d'être vidée. Vérifiez que Zabbix envoie `Content-Type: application/json`, et que les noms de champ que vous utilisez (`name`, `host`, `severity`, `status`, `event_id`) correspondent à la charge utile du script. Pour un flux de travail, ouvrez l'exécution dans **Exécutions** et comparez avec ce que le déclencheur a reçu. Voir [Pièges](/docs/workflows/variables#pièges).
 :::
 
 :::details Chaque problème arrive deux fois

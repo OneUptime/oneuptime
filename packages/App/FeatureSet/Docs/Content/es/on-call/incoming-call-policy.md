@@ -183,7 +183,7 @@ Twilio lee los mensajes con una voz sintética, así que escríbelos como quiera
 
 ## Registros de llamadas
 
-Cada llamada aparece en la página **Registros de llamadas** de la política, en **Registros** en su menú lateral: el **Llamante**, el **Número llamado**, su **Estado**, quién la contestó (**Respondida por**), la **Duración** y cuándo empezó (**Iniciado en**). Haz clic en **Ver cronología** en una llamada para ver su **Cronología de llamadas**: cada persona a la que sonó, en qué número y cómo terminó cada intento.
+Cada llamada aparece en la página **Registros de llamadas** de la política, en **Básico** en su menú lateral: el **Llamante**, el **Número llamado**, su **Estado**, quién la contestó (**Respondida por**), la **Duración** y cuándo empezó (**Iniciado en**). Haz clic en **Ver cronología** en una llamada para ver su **Cronología de llamadas**: cada persona a la que sonó, en qué número y cómo terminó cada intento.
 
 | Estado | Qué pasó |
 | --- | --- |

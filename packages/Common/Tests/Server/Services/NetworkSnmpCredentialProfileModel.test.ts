@@ -420,18 +420,22 @@ describe("the three secret columns are encrypted at rest", () => {
   );
 
   /*
-   * The device's own three columns are NOT encrypted: they predate
-   * encryption at rest, still hold plaintext in a varchar, and bringing them
-   * in line means re-encrypting every existing row in a separate migration.
-   * This pins the gap the model's WHY comment describes; when that migration
-   * lands, this test flips and the comment can go with it.
+   * The device's own three columns are encrypted at rest too, since #9014,
+   * in text columns: the EncryptSnmpCredentials data migration encrypted
+   * the rows that predate it. A profile and the device it is applied to
+   * keep their credentials alike.
    */
   test.each(SECRET_COLUMNS)(
-    "the device's own %s is still plaintext - a separate migration, not this table's job",
+    "the device's own %s is encrypted too, in a text column",
     (columnName: string) => {
-      expect(
-        new NetworkDevice().getTableColumnMetadata(columnName).encrypted,
-      ).toBeFalsy();
+      const metadata: TableColumnMetadata =
+        new NetworkDevice().getTableColumnMetadata(columnName);
+
+      expect(metadata.encrypted).toBe(true);
+      expect(metadata.type).toBe(TableColumnType.VeryLongText);
+      expect(columnArgs(NetworkDevice, columnName)?.options.type).toBe(
+        ColumnType.VeryLongText,
+      );
     },
   );
 });

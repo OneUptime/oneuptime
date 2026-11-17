@@ -499,7 +499,7 @@ Tre åbne upstream-sager former alt dette, og projektet har også [bedt om vedli
 
 ## Bare metal
 
-Hvis din cloud kører Ironic, får den en sektion **Bare Metal** med hver node, Ironic viser legitimationen: hvor den er i Ironics tilstandsmaskine, dens strøm, om nogen har sat den i vedligeholdelse og hvorfor, dens ressourceklasse og hvornår Ironic sidst så den bevæge sig. En cloud uden Ironic har ingen sådan sektion, ingen advarsel om det og ingen linje på nogen side.
+Hvis din cloud kører Ironic, får dens sektion **Beregning** en side **Bare Metal** med hver node, Ironic viser legitimationen: hvor den er i Ironics tilstandsmaskine, dens strøm, om nogen har sat den i vedligeholdelse og hvorfor, dens ressourceklasse og hvornår Ironic sidst så den bevæge sig. En cloud uden Ironic har ingen sådan side, ingen advarsel om det og ingen linje på nogen side.
 
 En node er ikke en hypervisor, selv om Nova og Placement begge lister den som en under dens UUID, så den tælles ikke som et sted at køre en virtuel maskine. Hvor mange noder af hver ressourceklasse der kunne tage en instans, står på siden Bare Metal, for de noder Ironic viser denne legitimation, og på siden [Kapacitet](#kapacitet), for hver node Placement rummer.
 

@@ -56514,6 +56514,7 @@
   "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。郵件伺服器回應：{{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "每個地址只保留協定和主機。其餘部分是 Webhook 的密鑰。",
   "See email logs": "查看郵件記錄",
   "Copy Your Bearer Token": "複製你的 Bearer Token",
   "Incoming Email Secret Key Hash": "傳入電子郵件密鑰雜湊",
@@ -56523,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "伺服器監控密鑰雜湊",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer Token 只會在新增連線或重設其權杖時顯示一次。如果你已不再持有它，請使用「重設 Bearer Token」建立新的權杖。",
   "Webhook Secret Key Hash": "Webhook 密鑰雜湊",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任務中加入了你無法開啟的私人事件或警示，因此其進度與拉取請求已隱藏。"
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任務中加入了你無法開啟的私人事件或警示，因此其進度與拉取請求已隱藏。",
+  "OneUptime is added to your Zoom account": "OneUptime 已新增至您的 Zoom 帳戶",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}，在 Zoom 中發起此專案的通話。"
 }

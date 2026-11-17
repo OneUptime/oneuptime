@@ -70,7 +70,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 
 - **Arbejdsgange** — din liste over arbejdsgange. Opret et nyt, eller åbn et eksisterende.
 - **Globale variabler** — værdier, som alle dine arbejdsgange deler.
-- **Protokoller → Kørsler** — kørselshistorikken for alle arbejdsgange i dit projekt.
+- **Kørsler** — kørselshistorikken for alle arbejdsgange i dit projekt.
 - **Indstillinger → Etiketregler** og **Ejerregler** — sæt automatisk etiketter på nye arbejdsgange, og tildel deres ejere.
 - **Avanceret → Arkiveret** — arbejdsgange, du har arkiveret. De kører aldrig og er udeladt af listen; fjern dem fra arkivet her. Se [Arkiver en arbejdsgang](/docs/workflows/configuration#arkiver-en-arbejdsgang).
 - **Udvikler** — sådan administrerer du arbejdsgange med Terraform, API'et eller en AI-assistent.
@@ -80,7 +80,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 - **Oversigt** — navn, beskrivelse, etiketter og kontakten **Aktiveret**.
 - **Bygger** — lærredet, hvor du designer arbejdsgangen, med kontakten **Aktiveret** øverst.
 - **Arbejdsgangsvariabler** — værdier, der kun gælder denne ene arbejdsgang.
-- **Protokoller → Kørsler** — hver kørsel af denne arbejdsgang, med detaljer.
+- **Kørsler** — hver kørsel af denne arbejdsgang, med detaljer.
 - **Udvikler** — sådan administrerer du denne arbejdsgang med Terraform, API'et eller en AI-assistent.
 - **Indstillinger** — duplikér, eksportér og arkiver.
 - **Ejere** — de personer og teams, der er ansvarlige for arbejdsgangen.

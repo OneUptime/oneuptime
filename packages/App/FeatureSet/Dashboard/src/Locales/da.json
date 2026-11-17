@@ -56514,6 +56514,7 @@
   "This check was too large to keep in full, so it was trimmed.": "Dette tjek var for stort til at blive gemt i sin helhed, så det er blevet afkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}. Mailserveren svarede: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Kun skemaet og værten i hver adresse gemmes. Resten er webhookens hemmelighed.",
   "See email logs": "Se e-maillogge",
   "Copy Your Bearer Token": "Kopiér dit bearer-token",
   "Incoming Email Secret Key Hash": "Hash af den hemmelige nøgle til indgående e-mail",
@@ -56523,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "Hash af servermonitorens hemmelige nøgle",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-tokenet vises kun én gang, når forbindelsen tilføjes, eller når dens token nulstilles. Hvis du ikke længere har det, kan du bruge \"Nulstil bearer-token\" til at lave et nyt.",
   "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Der er tilføjet en privat hændelse eller advarsel, du ikke kan åbne, til denne opgave, så dens fremskridt og pull request er skjult."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Der er tilføjet en privat hændelse eller advarsel, du ikke kan åbne, til denne opgave, så dens fremskridt og pull request er skjult.",
+  "OneUptime is added to your Zoom account": "OneUptime er føjet til din Zoom-konto",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for at starte dette projekts opkald i Zoom."
 }

@@ -293,7 +293,7 @@ Om sommige problemen naar het incidentsjabloon en andere naar het waarschuwingss
 ## Het testen
 
 1. Open in Zabbix **Alerts → Media types** en klik op **Test** naast `OneUptime`. Vul de URL in die je hebt gekopieerd, en voorbeeldwaarden zoals `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` en `event_value` `1`. Klik op **Test**: Zabbix toont het antwoord van het script, `OK`, of de fout die het gaf.
-2. Open in OneUptime **Logboeken → Uitvoeringen** van de workflow en bekijk de uitvoering, of open de monitor en controleer of er een incident is geopend.
+2. Open in OneUptime **Uitvoeringen** van de workflow en bekijk de uitvoering, of open de monitor en controleer of er een incident is geopend.
 3. Test opnieuw met `event_value` `0` en dezelfde `event_id`. Het incident wordt opgelost.
 
 Laat daarna een echte trigger afgaan, bijvoorbeeld door een drempel even te verlagen, en kijk hoe het probleem binnenkomt. Om een update te proberen, bevestig je het probleem in Zabbix met een bericht: het incident krijgt een privénotitie en wordt bevestigd.
@@ -320,12 +320,12 @@ Open het mediatype en gebruik **Test**: Zabbix toont het resultaat van het scrip
 
 :::details Incidenten openen, maar worden nooit opgelost
 - De actie heeft **Recovery operations** nodig, anders stuurt Zabbix het herstel nooit.
-- Open met het sjabloon **Logboeken → Uitvoeringen** van de workflow en de uitvoering van het herstel: de laatste stap ervan zegt waarom. Een herstel van een probleem dat geen incident opende, verandert niets.
+- Open met het sjabloon **Uitvoeringen** van de workflow en de uitvoering van het herstel: de laatste stap ervan zegt waarom. Een herstel van een probleem dat geen incident opende, verandert niets.
 - Met de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**. **Field that signals recovery** moet `requestBody.status` zijn, en **Value that means recovered** precies `0`.
 :::
 
 :::details Het Zabbix-probleem wordt niet bevestigd of gesloten
-Open de uitvoering van het statussjabloon in **Logboeken → Uitvoeringen**: de laatste stap ervan zegt wat Zabbix antwoordde.
+Open de uitvoering van het statussjabloon in **Uitvoeringen**: de laatste stap ervan zegt wat Zabbix antwoordde.
 
 - `Not authorized`: het API-token is onjuist, verlopen of uitgeschakeld, of Zabbix is ouder dan 6.4 (zie [Op Zabbix 6.0](#op-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: zet **Allow manual close** aan op de trigger. Het sjabloon bevestigt zulke problemen al in plaats van ze te sluiten.
@@ -334,7 +334,7 @@ Open de uitvoering van het statussjabloon in **Logboeken → Uitvoeringen**: de 
 :::
 
 :::details Het incident toont een verwijzing in plaats van een waarde
-Een verwijzing naar een veld dat het verzoek niet heeft, blijft staan zoals ze geschreven is, accolades en al, in plaats van te worden leeggemaakt. Controleer of Zabbix `Content-Type: application/json` stuurt en of de veldnamen die je gebruikt (`name`, `host`, `severity`, `status`, `event_id`) overeenkomen met de payload van het script. Open voor een workflow de uitvoering in **Logboeken → Uitvoeringen** en vergelijk met wat de trigger ontving. Zie [Valkuilen](/docs/workflows/variables#valkuilen).
+Een verwijzing naar een veld dat het verzoek niet heeft, blijft staan zoals ze geschreven is, accolades en al, in plaats van te worden leeggemaakt. Controleer of Zabbix `Content-Type: application/json` stuurt en of de veldnamen die je gebruikt (`name`, `host`, `severity`, `status`, `event_id`) overeenkomen met de payload van het script. Open voor een workflow de uitvoering in **Uitvoeringen** en vergelijk met wat de trigger ontving. Zie [Valkuilen](/docs/workflows/variables#valkuilen).
 :::
 
 :::details Elk probleem komt twee keer aan
