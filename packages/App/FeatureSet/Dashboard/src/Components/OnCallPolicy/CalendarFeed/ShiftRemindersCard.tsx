@@ -5,6 +5,7 @@ import {
   formatLeadTime,
   validateCustomLeadMinutes,
 } from "./CalendarFeedUtil";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
@@ -15,7 +16,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -272,7 +272,7 @@ const ShiftRemindersCard: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <DetailListSkeleton fields={2} columns={1} />;
   } else {
     body = (
       <div className="space-y-3">

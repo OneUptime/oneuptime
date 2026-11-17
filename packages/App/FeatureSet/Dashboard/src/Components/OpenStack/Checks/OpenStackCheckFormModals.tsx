@@ -1,9 +1,9 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -112,7 +112,7 @@ export const OpenStackApiCheckFormModal: FunctionComponent<
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
       >
-        <ComponentLoader />
+        <DetailListSkeleton fields={3} columns={1} />
       </Modal>
     );
   }
@@ -206,7 +206,7 @@ export const OpenStackLifecycleCheckFormModal: FunctionComponent<
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
       >
-        <ComponentLoader />
+        <DetailListSkeleton fields={3} columns={1} />
       </Modal>
     );
   }

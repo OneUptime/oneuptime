@@ -1,9 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import { JSONObject } from "../../../Types/JSON";
 import {
   SnmpCredentialCarrier,
+  getLegacySnmpV3Username,
   hasUsableCredentials,
+  readsLegacySnmpV3Auth,
 } from "../../../Utils/NetworkDevice/SnmpCredentialUtil";
 
 /*
@@ -264,5 +267,98 @@ describe("hasUsableCredentials - accepts any row carrying the three fields", () 
     hasUsableCredentials(carrier);
 
     expect(carrier).toEqual(snapshot);
+  });
+});
+
+/*
+ * A DEVICE WHOSE V3 CREDENTIALS ARE ONLY IN ITS LEGACY OBJECT IS WALKED
+ * (#9268).
+ *
+ * Before the snmpV3* columns existed a device kept its v3 credentials in
+ * one JSON object, snmpV3Auth, which the walk still reads where the
+ * columns hold no username (NetworkDeviceHydrationUtil.buildSnmpV3Auth).
+ * The predicate read only the columns, so such a device was pinged and
+ * never walked. Its username counts now - only for v3, only where the
+ * column holds none, and only a username a session could be opened with.
+ */
+describe("hasUsableCredentials - a device's legacy snmpV3Auth object", () => {
+  const LEGACY: JSONObject = {
+    securityLevel: "authPriv",
+    username: "legacy-monitoring",
+    authProtocol: "SHA",
+    authKey: "a legacy auth passphrase",
+    privProtocol: "AES",
+    privKey: "a legacy privacy passphrase",
+  };
+
+  test.each(V3_SPELLINGS)(
+    "version %p with a username only in the legacy object is usable",
+    (version: string) => {
+      expect(
+        hasUsableCredentials({ snmpVersion: version, snmpV3Auth: LEGACY }),
+      ).toBe(true);
+    },
+  );
+
+  test.each(EMPTY_VALUES)(
+    "a column username of %p falls back to the legacy object's",
+    (empty: string | null | undefined) => {
+      const carrier: SnmpCredentialCarrier = {
+        snmpVersion: "V3",
+        snmpV3Username: empty,
+        snmpV3Auth: LEGACY,
+      };
+
+      expect(hasUsableCredentials(carrier)).toBe(true);
+      expect(readsLegacySnmpV3Auth(carrier)).toBe(true);
+    },
+  );
+
+  test("a column username wins over the legacy object, which is then not read", () => {
+    const carrier: SnmpCredentialCarrier = {
+      snmpVersion: "V3",
+      snmpV3Username: "monitoring",
+      snmpV3Auth: LEGACY,
+    };
+
+    expect(hasUsableCredentials(carrier)).toBe(true);
+    expect(readsLegacySnmpV3Auth(carrier)).toBe(false);
+  });
+
+  test.each([
+    ["no object", null],
+    ["an empty object", {}],
+    ["an object with a blank username", { ...LEGACY, username: "   " }],
+    ["an object whose username is not text", { ...LEGACY, username: 42 }],
+    ["text where the object belongs", "legacy-monitoring"],
+  ])("%s is no username at all", (_name: string, legacy: unknown) => {
+    const carrier: SnmpCredentialCarrier = {
+      snmpVersion: "V3",
+      snmpV3Auth: legacy as JSONObject,
+    };
+
+    expect(hasUsableCredentials(carrier)).toBe(false);
+    expect(readsLegacySnmpV3Auth(carrier)).toBe(false);
+    expect(getLegacySnmpV3Username(legacy as JSONObject)).toBeUndefined();
+  });
+
+  test.each([...V1_SPELLINGS, ...V2C_SPELLINGS])(
+    "version %p still needs a community string: the v3 object is not one",
+    (version: string) => {
+      expect(
+        hasUsableCredentials({ snmpVersion: version, snmpV3Auth: LEGACY }),
+      ).toBe(false);
+    },
+  );
+
+  test("a device model carrying only the legacy object is usable", () => {
+    const device: NetworkDevice = new NetworkDevice();
+    device.snmpVersion = "V3";
+    device.snmpV3Auth = LEGACY;
+
+    expect(hasUsableCredentials(device)).toBe(true);
+    expect(getLegacySnmpV3Username(device.snmpV3Auth)).toBe(
+      "legacy-monitoring",
+    );
   });
 });

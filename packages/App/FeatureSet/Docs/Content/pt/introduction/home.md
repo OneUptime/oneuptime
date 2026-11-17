@@ -160,6 +160,7 @@ Pressione **Cmd+K** (Mac) ou **Ctrl+K** (Windows e Linux), ou clique no ícone d
 - **As configurações de uma página**, pelo nome que o cartão ou o botão delas mostra: *Exigir SSO para entrar* encontra SSO, e *Configurações SMTP Personalizadas* encontra Canais de notificação. Digite o nome em inglês ou no seu idioma.
 - **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
 - **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome, e incidentes e alertas também pelo número, como `INC-42`. Cada resultado de incidente ou alerta começa pelo número dele, para que dois com o mesmo título se distingam.
+- **As páginas de um registro**: em uma página de status, *sso* abre a página Login único dela. Em qualquer outro lugar, acrescente o nome do registro ou o tipo dele: *status page sso*, ou *acme subscribers* para os assinantes de uma página de status chamada Acme. Só aparecem os registros que você pode ver, e uma página renomeada ainda é encontrada pelo nome antigo, como *advanced settings*.
 - **A documentação**, em um grupo *Documentação* abaixo de todo o resto: as páginas e seções cujas palavras correspondem ao que você digitou, no seu idioma, mesmo com um erro de digitação. Cada uma abre em uma nova aba, para você não perder seu lugar.
 
 A pesquisa lê o que você digita do jeito que você quer dizer:

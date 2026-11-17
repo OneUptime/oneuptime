@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import EventName from "../../../Utils/EventName";
 import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -19,7 +20,6 @@ import {
 import { NodeDataProp } from "Common/Types/Workflow/Component";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CARD_FRAME_CLASS_NAME } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Dictionary from "Common/Types/Dictionary";
 import { WorkflowLintResult } from "Common/UI/Components/Workflow/GraphLint";
@@ -939,7 +939,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             className={WORKFLOW_CANVAS_LOADING_CLASS_NAME}
             data-testid="workflow-canvas-loading"
           >
-            <ComponentLoader />
+            <ChartSkeleton hasLegend={false} fillsHeight={true} />
           </div>
         ) : (
           <Workflow

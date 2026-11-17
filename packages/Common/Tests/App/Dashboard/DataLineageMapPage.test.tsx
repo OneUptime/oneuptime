@@ -337,7 +337,7 @@ async function renderPage(): Promise<void> {
   );
   await waitFor(() => {
     expect(getLineageMapMock).toHaveBeenCalled();
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("chart-skeleton")).toBeNull();
   });
 }
 

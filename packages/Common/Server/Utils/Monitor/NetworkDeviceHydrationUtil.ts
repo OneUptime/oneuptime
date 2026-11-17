@@ -19,13 +19,14 @@ import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLe
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
-import { JSONObject } from "../../../Types/JSON";
 import IP from "../../../Types/IP/IP";
 import IpCanonicalUtil from "../../../Utils/IpCanonicalUtil";
 import NetworkDeviceOtherAddressesUtil from "../../../Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import {
   SnmpCredentialCarrier,
   hasUsableCredentials,
+  isNonEmptyCredential,
+  readsLegacySnmpV3Auth,
 } from "../../../Utils/NetworkDevice/SnmpCredentialUtil";
 import DnsResolutionCache from "./DnsResolutionCache";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
@@ -105,8 +106,7 @@ export type NetworkDevicePollMode = "ping" | "snmp";
  */
 export interface SnmpConnectionCredentials extends SnmpCredentialCarrier {
   snmpPort?: number | null | undefined;
-  // Only devices have this: the pre-column-flattening v3 JSON blob.
-  snmpV3Auth?: JSONObject | null | undefined;
+  // snmpV3Auth, the pre-column-flattening v3 JSON blob, is the carrier's.
   snmpV3SecurityLevel?: string | null | undefined;
   snmpV3AuthProtocol?: string | null | undefined;
   snmpV3AuthKey?: string | null | undefined;
@@ -736,7 +736,12 @@ export default class NetworkDeviceHydrationUtil {
   private static buildSnmpV3Auth(
     credentials: SnmpConnectionCredentials,
   ): SnmpV3Auth | undefined {
-    if (credentials.snmpV3Username) {
+    /*
+     * The same test hasUsableCredentials makes, so a device whose column
+     * holds only whitespace is walked with the legacy object it was decided
+     * on, not with that whitespace.
+     */
+    if (isNonEmptyCredential(credentials.snmpV3Username)) {
       return {
         securityLevel:
           (credentials.snmpV3SecurityLevel as SnmpSecurityLevel) ||
@@ -758,12 +763,12 @@ export default class NetworkDeviceHydrationUtil {
      * Only devices ever had it — a credential profile is newer than the
      * flattened columns — so this branch is unreachable for a profile
      * carrier, which is exactly why the field is optional on the interface.
+     * hasUsableCredentials counts its username too (#9268), so such a device
+     * is walked with it rather than pinged; the MoveLegacySnmpV3AuthToColumns
+     * data migration moved every one stored before into the columns.
      */
-    const legacy: SnmpV3Auth | undefined = credentials.snmpV3Auth as
-      | SnmpV3Auth
-      | undefined;
-    if (legacy && legacy.username) {
-      return legacy;
+    if (readsLegacySnmpV3Auth(credentials)) {
+      return credentials.snmpV3Auth as unknown as SnmpV3Auth;
     }
 
     return undefined;

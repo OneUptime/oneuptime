@@ -555,7 +555,9 @@ type WaitForSettledFunction = () => Promise<void>;
 const waitForSettled: WaitForSettledFunction = async (): Promise<void> => {
   await waitFor(
     () => {
-      expect(screen.queryAllByTestId("component-loader").length).toBe(0);
+      expect(screen.queryAllByRole("status", { name: "Loading" }).length).toBe(
+        0,
+      );
     },
     /*
      * Longer than the default second: this suite renders hierarchies of

@@ -8,8 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -608,7 +608,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
   const body: ReactElement = ((): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <PageSkeleton />;
     }
 
     if (error) {

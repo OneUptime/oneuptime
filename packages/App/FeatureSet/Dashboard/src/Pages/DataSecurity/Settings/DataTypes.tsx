@@ -1,4 +1,5 @@
 import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageComponentProps from "../../PageComponentProps";
 import {
   ConfidencePill,
@@ -42,7 +43,6 @@ import { CustomDataTypeValidator } from "Common/Utils/DataSecurity/CustomDataTyp
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
@@ -428,7 +428,7 @@ const BuiltInDataTypesCard: FunctionComponent = (): ReactElement => {
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (settingState.isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (settingState.error) {

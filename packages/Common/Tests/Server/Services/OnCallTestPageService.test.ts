@@ -1047,6 +1047,51 @@ describe("who a policy's first level pages right now", () => {
     });
   });
 
+  test("a schedule paged as on call and as next in its rotation: both from one read of its layers (#9316)", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([
+        {
+          onCallDutyPolicyScheduleId: SCHEDULE,
+          onCallDutyPolicySchedule: { name: "Primary rotation" },
+          pageNextInRotation: false,
+        },
+        {
+          onCallDutyPolicyScheduleId: SCHEDULE,
+          onCallDutyPolicySchedule: { name: "Primary rotation" },
+          pageNextInRotation: true,
+        },
+      ] as never);
+    const onCall: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getCurrentOnCallInSchedule")
+      .mockResolvedValue({ userId: CARA } as never);
+    const next: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getNextInRotationInSchedule")
+      .mockResolvedValue({ nextUserId: ANA } as never);
+
+    await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    const onCallReads: unknown = (
+      onCall.mock.calls[0]![1] as { layerReads?: unknown }
+    ).layerReads;
+    const nextReads: unknown = (
+      next.mock.calls[0]![1] as { layerReads?: unknown }
+    ).layerReads;
+
+    expect(onCallReads).toBeInstanceOf(Map);
+    // The same reads: the schedule's layers are read once, for both.
+    expect(nextReads).toBe(onCallReads);
+    expect(onCall.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ onCallDutyPolicyId: POLICY }),
+    );
+    expect(next.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ onCallDutyPolicyId: POLICY }),
+    );
+  });
+
   test("a first level that names nobody says so, as the first", async () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")

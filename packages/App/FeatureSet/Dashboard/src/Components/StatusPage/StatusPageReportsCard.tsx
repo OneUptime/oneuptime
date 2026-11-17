@@ -1,4 +1,5 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
@@ -9,7 +10,6 @@ import StatusPageReportPeriodType from "Common/Types/StatusPage/StatusPageReport
 import { StatusPageReportScheduleWrite } from "Common/Utils/StatusPage/ReportSchedule";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -320,7 +320,7 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !page) {

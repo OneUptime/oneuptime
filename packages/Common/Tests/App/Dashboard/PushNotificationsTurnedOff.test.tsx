@@ -362,7 +362,7 @@ describe("User Settings > Notification Methods", () => {
 
     await renderTabs();
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(tabNames()).toEqual([]);
 
     await act(async () => {

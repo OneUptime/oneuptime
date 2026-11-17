@@ -22,7 +22,7 @@ import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -257,7 +257,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -362,7 +362,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     {
       name: "Overview",
       children: isLoadingRow ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : rowError ? (
         <VMwarePartReadError
           kind={VMwareResourceKind.Datastore}

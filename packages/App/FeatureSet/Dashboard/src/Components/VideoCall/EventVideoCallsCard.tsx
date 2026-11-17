@@ -1,4 +1,5 @@
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -9,7 +10,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -464,7 +464,7 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (!props.hasLoaded && props.calls.length === 0) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={3} />;
   } else if (props.error) {
     body = (
       <ErrorMessage message={props.error} onRefreshClick={props.onRetry} />

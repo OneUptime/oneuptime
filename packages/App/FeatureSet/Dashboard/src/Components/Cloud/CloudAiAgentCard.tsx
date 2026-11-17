@@ -1,4 +1,5 @@
 import CloudAiAgentSetupModal from "./CloudAiAgentSetupModal";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { getCloudAccountAiResourceType } from "./CloudAiAgentSetup";
 import ResourceAiAgentStatusSummaryCard from "../ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import {
@@ -23,7 +24,6 @@ import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiAccessStatus } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -105,7 +105,7 @@ const CloudAiAgentCard: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid={CLOUD_AI_AGENT_CARD_TEST_ID}>
         {read.isLoading ? (
-          <ComponentLoader />
+          <DetailListSkeleton fields={2} columns={1} />
         ) : (
           <div className="flex items-start gap-3">
             <Icon

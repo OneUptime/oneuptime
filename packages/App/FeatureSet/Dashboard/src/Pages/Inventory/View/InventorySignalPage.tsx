@@ -1,11 +1,11 @@
 import useInventoryItem, {
   UseInventoryItemResult,
 } from "../../../Components/Inventory/useInventoryItem";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { buildInventoryEntityKeyDisplays } from "../../../Components/Inventory/InventoryTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../../Utils/LockedEntityKeyChips";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
@@ -63,7 +63,7 @@ const InventorySignalPage: FunctionComponent<ComponentProps> = (
   ]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

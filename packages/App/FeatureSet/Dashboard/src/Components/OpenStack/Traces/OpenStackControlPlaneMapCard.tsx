@@ -1,8 +1,8 @@
 import Span from "Common/Models/AnalyticsModels/Span";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import Service from "Common/Models/DatabaseModels/Service";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { withoutOpenStackCloudName } from "Common/Utils/OpenStack/OpenStackTraces";
@@ -67,7 +67,7 @@ const OpenStackControlPlaneMapCard: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="openstack-control-plane-map">
         {read.isLoading && !read.data ? (
-          <PageLoader isVisible={true} />
+          <ChartSkeleton hasLegend={false} />
         ) : read.error ? (
           <ErrorMessage message={read.error} />
         ) : (

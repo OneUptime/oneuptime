@@ -1,0 +1,8 @@
+# depcheck finds a package used by an import, a require() or a script of
+# package.json (`-r ts-node` there). The sidecar uses ts-node in none of these
+# since its image runs JavaScript (#9226), only where depcheck does not look:
+# the image's build stage runs Common/Server/Utils/TsNode/Precompile.js, which
+# reads from this package's ts-node the options it compiles the sidecar's
+# TypeScript with, and then prunes ts-node from the image (Dockerfile.tpl).
+ignores:
+  - ts-node

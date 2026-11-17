@@ -3,6 +3,7 @@ import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
 import EncryptLetsEncryptKeys from "../../../FeatureSet/Workers/DataMigrations/EncryptLetsEncryptKeys";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -15,19 +16,22 @@ import {
 } from "@jest/globals";
 
 /*
- * EncryptLetsEncryptKeys encrypts the private keys of the free certificates
- * OneUptime orders from Let's Encrypt (AcmeCertificate.certificateKey),
- * stored as plaintext before the column was kept encrypted at rest. Pinned
- * here, with the repository stubbed so the real migrate() runs without
- * Postgres:
+ * The private keys of the free certificates OneUptime orders from Let's
+ * Encrypt (AcmeCertificate.certificateKey), stored as plaintext before the
+ * column was kept encrypted at rest. The upgrade's EncryptLetsEncryptKeys
+ * leaves them as written (#9266), so the ingress of the release before
+ * serves them while the upgrade rolls out, and a day later the
+ * CredentialsAtRest:EncryptInPlace job encrypts them in place. Pinned here,
+ * with the repository stubbed so the real migrate() and the job's real pass
+ * run without Postgres:
  *
  *   1. it is registered in DataMigrations/Index.ts, once, after the custom
  *      domains' keys and before the slot AddAuditLogMcpClientColumns keeps
- *      last;
- *   2. the column is declared encrypted, so what it writes is read back
- *      decrypted, and every later write is encrypted by the service;
- *   3. it encrypts a plaintext key, and the stored value decrypts back to
- *      the key nginx served before;
+ *      last, and the upgrade's run of it changes nothing;
+ *   2. the column is declared encrypted, so what the pass writes is read
+ *      back decrypted, and every later write is encrypted by the service;
+ *   3. the pass encrypts a plaintext key, and the stored value decrypts back
+ *      to the key nginx served before;
  *   4. each write holds to the plaintext it read, so a key renewed meanwhile
  *      is left as its renewal stored it;
  *   5. it leaves an encrypted, empty or null value alone, so a second run
@@ -167,6 +171,16 @@ describe("EncryptLetsEncryptKeys", () => {
     expect(new EncryptLetsEncryptKeys().name).toBe(MIGRATION_NAME);
   });
 
+  test("the upgrade's run changes nothing: the ingress of the release before serves every key as written", async () => {
+    const calls: Array<QueryCall> = stubTable({
+      rows: [{ _id: "certificate-1", certificateKey: CERTIFICATE_KEY }],
+    });
+
+    await new EncryptLetsEncryptKeys().migrate();
+
+    expect(calls).toHaveLength(0);
+  });
+
   test("the column it encrypts is declared encrypted, so it is read back decrypted", () => {
     expect(new AcmeCertificate().getEncryptedColumns().columns).toContain(
       "certificateKey",
@@ -181,7 +195,7 @@ describe("EncryptLetsEncryptKeys", () => {
       ],
     });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const updates: Array<QueryCall> = updateCalls(calls);
 
@@ -214,7 +228,7 @@ describe("EncryptLetsEncryptKeys", () => {
   test("reads only the values that are there and not encrypted yet", async () => {
     const calls: Array<QueryCall> = stubTable({ rows: [] });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const selects: Array<QueryCall> = calls.filter(
       (call: QueryCall): boolean => {
@@ -233,7 +247,7 @@ describe("EncryptLetsEncryptKeys", () => {
       rows: [{ _id: "certificate-1", certificateKey: CERTIFICATE_KEY }],
     });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(
       calls.every((call: QueryCall): boolean => {
@@ -259,7 +273,7 @@ describe("EncryptLetsEncryptKeys", () => {
       ],
     });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(calls)).toHaveLength(0);
   });
@@ -269,7 +283,7 @@ describe("EncryptLetsEncryptKeys", () => {
       rows: [{ _id: "certificate-1", certificateKey: CERTIFICATE_KEY }],
     });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const encrypted: string = (
       updateCalls(first)[0]!.params as Array<string>
@@ -284,7 +298,7 @@ describe("EncryptLetsEncryptKeys", () => {
       rows: [{ _id: "certificate-1", certificateKey: encrypted }],
     });
 
-    await new EncryptLetsEncryptKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(second)).toHaveLength(0);
   });
@@ -298,9 +312,12 @@ describe("EncryptLetsEncryptKeys", () => {
       failUpdateForId: "bad",
     });
 
-    await expect(new EncryptLetsEncryptKeys().migrate()).resolves.toBe(
-      undefined,
-    );
+    // Not done: the job's next run goes on.
+    await expect(
+      encryptInPlaceADayLater(MIGRATION_NAME),
+    ).resolves.toMatchObject({
+      isDone: false,
+    });
 
     expect(
       updateCalls(calls).map((call: QueryCall): string => {
@@ -325,9 +342,12 @@ describe("EncryptLetsEncryptKeys", () => {
   test("a table that cannot be read is logged, and the run ends without a write", async () => {
     const calls: Array<QueryCall> = stubTable({ rows: [], failRead: true });
 
-    await expect(new EncryptLetsEncryptKeys().migrate()).resolves.toBe(
-      undefined,
-    );
+    // Not done: the job's next run goes on.
+    await expect(
+      encryptInPlaceADayLater(MIGRATION_NAME),
+    ).resolves.toMatchObject({
+      isDone: false,
+    });
 
     expect(updateCalls(calls)).toHaveLength(0);
     expect(logger.error).toHaveBeenCalledTimes(1);

@@ -18,6 +18,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import EncryptProjectCredentials from "../../../../FeatureSet/Workers/DataMigrations/EncryptProjectCredentials";
+import { encryptInPlaceADayLater } from "./CredentialsAtRestPass";
+import { expect } from "@jest/globals";
 
 /*
  * A PROJECT'S CREDENTIALS AS THEY WERE STORED BEFORE THEY WERE KEPT
@@ -25,8 +27,10 @@ import EncryptProjectCredentials from "../../../../FeatureSet/Workers/DataMigrat
  *
  * Each table is in memory (InMemoryRepository), behind the service every
  * sender reads it through, so a read decrypts on the way as it does from
- * Postgres. migrateProjectCredentials runs the real EncryptProjectCredentials
- * over the same rows, its SQL answered as Postgres answers it
+ * Postgres. migrateProjectCredentials runs the upgrade over the same rows -
+ * the real EncryptProjectCredentials, which changes nothing (#9266), then
+ * the CredentialsAtRest:EncryptInPlace job's real pass a day later, which
+ * encrypts them - its SQL answered as Postgres answers it
  * (answerEncryptColumnSql).
  */
 
@@ -309,9 +313,11 @@ export function answerEncryptColumnSql(
 }
 
 /*
- * Runs the data migration over the tables. Only while it runs does a
- * repository answer SQL, as Postgres's does: every other read and write goes
- * through the services' find and update, as before.
+ * Runs the upgrade over the tables: the data migration, which leaves every
+ * credential as a server of the release before reads it - held to that
+ * here - and the job's pass a day later, which encrypts them. Only while
+ * they run does a repository answer SQL, as Postgres's does: every other
+ * read and write goes through the services' find and update, as before.
  */
 export async function migrateProjectCredentials(
   tables: ProjectCredentialTables,
@@ -333,7 +339,23 @@ export async function migrateProjectCredentials(
   }
 
   try {
+    const asWritten: string = JSON.stringify(
+      attached.map(([table]: [InMemoryTable, string]) => {
+        return table.rows;
+      }),
+    );
+
     await new EncryptProjectCredentials().migrate();
+
+    expect(
+      JSON.stringify(
+        attached.map(([table]: [InMemoryTable, string]) => {
+          return table.rows;
+        }),
+      ),
+    ).toBe(asWritten);
+
+    await encryptInPlaceADayLater(new EncryptProjectCredentials().name);
   } finally {
     for (const [table] of attached) {
       const repository: Record<string, unknown> =

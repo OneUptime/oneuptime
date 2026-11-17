@@ -110,7 +110,7 @@ describe("the welcome page's pending invitations", () => {
         /useState<number \| null>\(\s*null,?\s*\)/,
       );
       expect(WELCOME_SOURCE).toMatch(
-        /invitationCount === null[\s\S]{0,200}?PageLoader/,
+        /invitationCount === null[\s\S]{0,200}?PageSkeleton/,
       );
     });
 

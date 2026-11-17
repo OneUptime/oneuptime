@@ -4,7 +4,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -20,7 +20,7 @@ const AlertsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   if (!unresolvedStateIds) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

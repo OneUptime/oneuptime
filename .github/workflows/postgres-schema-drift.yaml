@@ -661,7 +661,11 @@ jobs:
       # schedule's row locked, the layers read again under the lock, every
       # change written in one transaction - and a save that waited for
       # another one's lock refused, since the layers changed under it.
-      - name: Test saving a schedule's layers at once on migrated Postgres
+      # And who is on call is worked out from one snapshot of the layers
+      # and their people (#9316): a save committed in the middle of a page,
+      # a level, the roster refresh or the calendar resolver is seen whole
+      # or not at all, and the read takes no lock.
+      - name: Test saving a schedule's layers at once, and reading them in one snapshot, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
         env:
@@ -671,7 +675,9 @@ jobs:
           SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts
+          Tests/Server/Utils/OnCall/ScheduleLayersSnapshotPostgres.test.ts
+          --forceExit
 
       # #7813: a change to a schedule's layers made through the API holds
       # the schedule (rosterRefreshDueAt) until its writes are quiet, and the
@@ -4086,12 +4092,14 @@ jobs:
       # A project's credentials through the upgrade that encrypts them
       # (#8989): on the tables as they were (the SMTP password a varchar(500),
       # the webhook signing secret a varchar(100)), with every credential
-      # stored as written, the schema migration widens the two in place and
-      # EncryptProjectCredentials leaves only ciphertext; every credential
-      # reads as written through the services before, between and after (a
-      # status page's SMTP config through its relation included); a second
-      # run changes nothing, two at once encrypt each value once, and a save
-      # afterwards is stored encrypted. Clones the migrated ProjectSMTPConfig,
+      # stored as written, the schema migration widens the two in place,
+      # EncryptProjectCredentials keeps every value as written (#9266) and
+      # the CredentialsAtRest:EncryptInPlace job's pass a day later leaves
+      # only ciphertext; every credential reads as written through the
+      # services before, between and after (a status page's SMTP config
+      # through its relation included); a second run changes nothing, two at
+      # once encrypt each value once, and a save afterwards is stored
+      # encrypted. Clones the migrated ProjectSMTPConfig,
       # StatusPage, WorkspaceProjectAuthToken, WorkspaceUserAuthToken,
       # UserWebhook and CodeRepository tables into an isolated schema.
       - name: Test project credentials' upgrade to encrypted on migrated Postgres
@@ -4112,9 +4120,11 @@ jobs:
       # notification method's address a varchar(500), a community string a
       # varchar(100)), with every address and credential stored as written,
       # the schema migration widens them in place, EncryptWebhookAddresses
-      # and EncryptSnmpCredentials leave only ciphertext - in a scan's
-      # credential sets, each entry's secret fields alone - and
-      # MaskWebhookAddressesInLogs keeps the logs' addresses by their host;
+      # and EncryptSnmpCredentials keep every value as written (#9266) and
+      # the CredentialsAtRest:EncryptInPlace job's pass a day later leaves
+      # only ciphertext - in a scan's credential sets, each entry's secret
+      # fields alone - and MaskWebhookAddressesInLogs keeps the logs'
+      # addresses by their host;
       # every value reads as written through the services before, between
       # and after; a second run changes nothing, two at once encrypt each
       # value once, and a save afterwards is stored encrypted. Clones the
@@ -4132,6 +4142,30 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
+          --forceExit
+
+      # Microsoft Teams chat ids through the upgrade that keeps them whole
+      # (#9284): on the tables as they were (every id of a message's place a
+      # varchar(100)), with each personal chat kept cut to its first 100
+      # characters, the schema migration widens the columns in place - every
+      # value kept, no row rewritten, the channelId index kept as it is -
+      # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
+      # whole, touching no Slack row, no other project's row and no name; a
+      # second run changes nothing, two at once come to the same, and down()
+      # narrows back without cutting an id. Clones the migrated
+      # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
+      # WorkspaceNotificationLog tables into an isolated schema.
+      - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_TEAMS_CHAT_IDS_TESTS: "true"
+          TEAMS_CHAT_IDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIdsPostgres.test.ts
           --forceExit
 
       # The keys presented to OneUptime through the upgrade that protects them
@@ -4159,6 +4193,36 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/PresentedKeysAtRestPostgres.test.ts
+          --forceExit
+
+      # Every credential the upgrade to 15 used to encrypt in place, through
+      # the upgrade that now leaves it readable by the release before
+      # (#9266): on the migrated tables, with every value stored as written,
+      # the data migrations change nothing - a server of the release before,
+      # reading each column as stored, and one of this release read every
+      # value as written, and a device whose v3 credentials were only in its
+      # legacy object (#9268) is walked by both - and what that server saves
+      # meanwhile stays as written; within the day the
+      # CredentialsAtRest:EncryptInPlace job changes nothing, a day later it
+      # encrypts every value (those saved meanwhile too, the logs' addresses
+      # masked) and records each migration once nothing is left; on an
+      # install that ran the migrations when they still encrypted at once it
+      # encrypts only what is left, every ciphertext byte for byte; two runs
+      # at once encrypt each value once; and a 500-character Twilio token is
+      # kept encrypted in its text column, where its varchar(500) refused the
+      # ciphertext (#9267). Clones the 18 migrated credential and log tables,
+      # and DataMigrations, into an isolated schema.
+      - name: Test credentials kept readable through the upgrade, and encrypted a day later, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_CREDENTIALS_AT_REST_TESTS: "true"
+          CREDENTIALS_AT_REST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CREDENTIALS_AT_REST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CREDENTIALS_AT_REST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/CredentialsAtRestPostgres.test.ts
           --forceExit
 
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is

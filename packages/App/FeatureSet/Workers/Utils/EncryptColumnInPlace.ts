@@ -2,6 +2,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import EncryptedColumnValue from "Common/Server/Utils/Database/EncryptedColumnValue";
 import Encryption from "Common/Server/Utils/Encryption";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 
@@ -10,7 +11,11 @@ export type ModelRepository = ReturnType<
   DatabaseService<BaseModel>["getRepository"]
 >;
 
-// One column of one table whose stored values a data migration encrypts.
+/*
+ * One column of one table whose stored values are encrypted in place: by
+ * the CredentialsAtRest:EncryptInPlace job, a day after the upgrade's data
+ * migration that names it ran (CredentialsAtRest).
+ */
 export interface ColumnToEncrypt {
   // What a row is, for the log: "status page domain".
   kind: string;
@@ -27,6 +32,26 @@ export interface ColumnToEncrypt {
 }
 
 type StoredRow = Record<string, unknown>;
+
+// What one pass over one column did.
+export interface EncryptColumnPass {
+  // Rows that held a value, or a JSON field, stored as written.
+  read: number;
+  // Rows written back encrypted, each held to the value read.
+  written: number;
+  // Rows that could not be written, or pages that could not be read.
+  failed: number;
+  // Whether the pass stopped at its deadline, with rows left to read.
+  isCutShort: boolean;
+}
+
+// What one row came to.
+enum RowOutcome {
+  // Nothing as written: empty, or encrypted already.
+  Skipped = "skipped",
+  Written = "written",
+  Failed = "failed",
+}
 
 /*
  * ENCRYPTS, IN PLACE, THE VALUES A COLUMN HELD BEFORE IT WAS KEPT ENCRYPTED
@@ -48,9 +73,11 @@ type StoredRow = Record<string, unknown>;
  * runner at the same time writes nothing. Run twice, it rewrites nothing:
  * the second run finds no plaintext.
  *
- * Every reader reads the same value before and after: DatabaseService
- * .decrypt hands back a value that is not our ciphertext as it is, and
- * decrypts the rest to the value that was encrypted.
+ * Every reader of this release reads the same value before and after:
+ * DatabaseService.decrypt hands back a value that is not our ciphertext as
+ * it is, and decrypts the rest to the value that was encrypted. A server
+ * of the release before reads the ciphertext as the value, so this runs
+ * only once none can still be running (CredentialsAtRest).
  *
  * One page that cannot be read ends this column's run, and one row that
  * cannot be written costs the others nothing; each says so in the log, with
@@ -72,20 +99,28 @@ export default class EncryptColumnInPlace {
   // Rows read per query: a private key is a few kilobytes.
   public static readonly PAGE_SIZE: number = 100;
 
+  /*
+   * One pass over one column: every value stored as written, encrypted in
+   * place. What it read, wrote and could not write comes back
+   * (EncryptColumnPass). Handed a deadline, it stops between pages once the
+   * deadline has passed, and says so: what is left is read by the next pass,
+   * as an encrypted value is never read again.
+   */
   public static async encrypt(data: {
-    // Who is encrypting, for the log: the data migration's name.
+    // Who is encrypting, for the log: the data migration's name, or the job's.
     migrationName: string;
     target: ColumnToEncrypt;
     pageSize?: number | undefined;
-  }): Promise<void> {
+    deadline?: JobDeadline | undefined;
+  }): Promise<EncryptColumnPass> {
     if (data.target.jsonFields) {
-      await EncryptColumnInPlace.encryptJsonFields({
+      return await EncryptColumnInPlace.encryptJsonFields({
         ...data,
         jsonFields: data.target.jsonFields,
       });
-      return;
     }
 
+    const pass: EncryptColumnPass = EncryptColumnInPlace.newPass();
     const pageSize: number = data.pageSize || EncryptColumnInPlace.PAGE_SIZE;
     const { kind, repository, column } = data.target;
     const tableName: string = repository.metadata.tableName;
@@ -96,6 +131,11 @@ export default class EncryptColumnInPlace {
     let afterId: string | null = null;
 
     for (;;) {
+      if (data.deadline?.hasPassed()) {
+        pass.isCutShort = true;
+        return pass;
+      }
+
       let rows: Array<StoredRow> = [];
 
       try {
@@ -106,33 +146,55 @@ export default class EncryptColumnInPlace {
           afterId === null ? [ciphertextPattern] : [ciphertextPattern, afterId],
         )) as Array<StoredRow>;
       } catch (err) {
+        pass.failed++;
         logger.error(
           `${data.migrationName}: failed to read the ${kind} rows' ${column} to encrypt: ${EncryptColumnInPlace.describeError(err)}`,
         );
-        return;
+        return pass;
       }
 
       for (const row of rows) {
-        await EncryptColumnInPlace.encryptRow({
-          migrationName: data.migrationName,
-          target: data.target,
-          tableName: tableName,
-          row: row,
-        });
+        EncryptColumnInPlace.count(
+          pass,
+          await EncryptColumnInPlace.encryptRow({
+            migrationName: data.migrationName,
+            target: data.target,
+            tableName: tableName,
+            row: row,
+          }),
+        );
       }
 
       if (rows.length < pageSize) {
-        return;
+        return pass;
       }
 
       const lastId: string = String(rows[rows.length - 1]!["_id"]);
 
       // A page that does not move on would be read again for ever.
       if (lastId === afterId) {
-        return;
+        return pass;
       }
 
       afterId = lastId;
+    }
+  }
+
+  private static newPass(): EncryptColumnPass {
+    return { read: 0, written: 0, failed: 0, isCutShort: false };
+  }
+
+  private static count(pass: EncryptColumnPass, outcome: RowOutcome): void {
+    if (outcome === RowOutcome.Skipped) {
+      return;
+    }
+
+    pass.read++;
+
+    if (outcome === RowOutcome.Written) {
+      pass.written++;
+    } else {
+      pass.failed++;
     }
   }
 
@@ -141,7 +203,7 @@ export default class EncryptColumnInPlace {
     target: ColumnToEncrypt;
     tableName: string;
     row: StoredRow;
-  }): Promise<void> {
+  }): Promise<RowOutcome> {
     const { kind, repository, column } = data.target;
     const id: string = String(data.row["_id"]);
     const plaintext: unknown = data.row[column];
@@ -152,7 +214,7 @@ export default class EncryptColumnInPlace {
       Encryption.looksEncrypted(plaintext)
     ) {
       // Empty, or already encrypted by an earlier run: nothing to do.
-      return;
+      return RowOutcome.Skipped;
     }
 
     try {
@@ -162,6 +224,8 @@ export default class EncryptColumnInPlace {
         `UPDATE "${data.tableName}" SET "${column}" = $1 WHERE "_id" = $2 AND "${column}" = $3`,
         [encrypted, id, plaintext],
       );
+
+      return RowOutcome.Written;
     } catch (err) {
       /*
        * One row whose value cannot be encrypted must not cost the others
@@ -171,6 +235,8 @@ export default class EncryptColumnInPlace {
       logger.error(
         `${data.migrationName}: failed to encrypt the ${column} of ${kind} ${id}: ${EncryptColumnInPlace.describeError(err, plaintext)}`,
       );
+
+      return RowOutcome.Failed;
     }
   }
 
@@ -180,7 +246,9 @@ export default class EncryptColumnInPlace {
     target: ColumnToEncrypt;
     jsonFields: ReadonlyArray<string>;
     pageSize?: number | undefined;
-  }): Promise<void> {
+    deadline?: JobDeadline | undefined;
+  }): Promise<EncryptColumnPass> {
+    const pass: EncryptColumnPass = EncryptColumnInPlace.newPass();
     const pageSize: number = data.pageSize || EncryptColumnInPlace.PAGE_SIZE;
     const { kind, repository, column } = data.target;
     const tableName: string = repository.metadata.tableName;
@@ -188,6 +256,11 @@ export default class EncryptColumnInPlace {
     let afterId: string | null = null;
 
     for (;;) {
+      if (data.deadline?.hasPassed()) {
+        pass.isCutShort = true;
+        return pass;
+      }
+
       let rows: Array<StoredRow> = [];
 
       try {
@@ -198,31 +271,35 @@ export default class EncryptColumnInPlace {
           afterId === null ? [] : [afterId],
         )) as Array<StoredRow>;
       } catch (err) {
+        pass.failed++;
         logger.error(
           `${data.migrationName}: failed to read the ${kind} rows' ${column} to encrypt: ${EncryptColumnInPlace.describeError(err)}`,
         );
-        return;
+        return pass;
       }
 
       for (const row of rows) {
-        await EncryptColumnInPlace.encryptJsonRow({
-          migrationName: data.migrationName,
-          target: data.target,
-          jsonFields: data.jsonFields,
-          tableName: tableName,
-          row: row,
-        });
+        EncryptColumnInPlace.count(
+          pass,
+          await EncryptColumnInPlace.encryptJsonRow({
+            migrationName: data.migrationName,
+            target: data.target,
+            jsonFields: data.jsonFields,
+            tableName: tableName,
+            row: row,
+          }),
+        );
       }
 
       if (rows.length < pageSize) {
-        return;
+        return pass;
       }
 
       const lastId: string = String(rows[rows.length - 1]!["_id"]);
 
       // A page that does not move on would be read again for ever.
       if (lastId === afterId) {
-        return;
+        return pass;
       }
 
       afterId = lastId;
@@ -235,7 +312,7 @@ export default class EncryptColumnInPlace {
     jsonFields: ReadonlyArray<string>;
     tableName: string;
     row: StoredRow;
-  }): Promise<void> {
+  }): Promise<RowOutcome> {
     const { kind, column } = data.target;
     const id: string = String(data.row["_id"]);
     const stored: unknown = data.row[column];
@@ -247,7 +324,7 @@ export default class EncryptColumnInPlace {
 
     // Nothing as written: encrypted by an earlier run, or never set.
     if (plaintexts.length === 0) {
-      return;
+      return RowOutcome.Skipped;
     }
 
     try {
@@ -264,11 +341,15 @@ export default class EncryptColumnInPlace {
         `UPDATE "${data.tableName}" SET "${column}" = $1::jsonb WHERE "_id" = $2 AND "${column}" = $3::jsonb`,
         [JSON.stringify(encrypted), id, JSON.stringify(stored)],
       );
+
+      return RowOutcome.Written;
     } catch (err) {
       // As a text column's: this row reads as itself, and the others go on.
       logger.error(
         `${data.migrationName}: failed to encrypt the ${column} of ${kind} ${id}: ${EncryptColumnInPlace.describeError(err, plaintexts)}`,
       );
+
+      return RowOutcome.Failed;
     }
   }
 

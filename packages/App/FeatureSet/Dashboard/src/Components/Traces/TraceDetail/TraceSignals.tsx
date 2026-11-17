@@ -1,4 +1,6 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -17,7 +19,6 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
@@ -802,7 +803,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
             )}
             {logScope === null ? (
               <div className="flex h-32 items-center justify-center">
-                <ComponentLoader />
+                <TableSkeleton rows={3} hasHeader={false} />
               </div>
             ) : logScope === "pods" && podLogQuery ? (
               <DashboardLogsViewer
@@ -844,7 +845,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
-                <ComponentLoader />
+                <ChartSkeleton />
               </div>
             ) : metricsError ? (
               <ErrorMessage message={metricsError} />

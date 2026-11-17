@@ -145,6 +145,11 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
+- **Search finds a record's own pages too.** On a record's page, "sso" opens that status page's Single
+  Sign-On. Anywhere, a page's name with the record's name or its kind ("status page sso", "acme
+  subscribers") offers it for the matching records. A renamed page keeps its old title in
+  `formerTitles`. Add a new page of a record's menu to `RecordPageSearchIndex.ts`. Enforced by
+  [RecordPageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/RecordPageSearchIndexCoversMenus.test.tsx).
 - **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
@@ -597,9 +602,21 @@ work out, starts from a default for everything else, and folds what most people 
   in progress (a test being sent) is drawn in the action's colour, listed in the guard with its
   reason. Enforced by
   [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts).
-- **A new card that loads its own data draws the shape it will have.** Prefer the shared
-  components (a table, a list, a detail card), which already do; a card drawn by hand reserves its
-  height with a `Skeleton` of its content's size. Not enforced: use judgement.
+- **A card that loads its own data draws the shape it will have, not a bar.** Prefer the shared
+  components (a table, a list, a detail card), which already do. A card drawn by hand draws the
+  shared skeleton of its content: `PageSkeleton` for a page's content area (`shape="table"` or
+  `"chart"` when the page opens with one), `TableSkeleton` for rows, `DetailListSkeleton` for names
+  and values, `ChartSkeleton` for a chart (at the chart's height), `StatTilesSkeleton` for a row
+  of figures (in the tiles' own grid), `CardListSkeleton` for a list of cards and
+  `InlineValueSkeleton` for a value inside a field (a row of pills, a name). Each is a busy
+  status named "Loading" that pulses only without reduced motion. `PageLoader` and
+  `ComponentLoader` drew one grey bar whatever the card would show, so a card that loaded into rows
+  or a chart still grew when they arrived (#9220). A spinner that shows an action in progress (a
+  test being run, a record being saved) is not content loading, and is listed in the guard with
+  its reason. Enforced by
+  [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts),
+  which counts the files that still draw a bar (`HandDrawnLoadersBaseline.json`): the count only
+  goes down.
 
 ## Dialogs and confirmations
 

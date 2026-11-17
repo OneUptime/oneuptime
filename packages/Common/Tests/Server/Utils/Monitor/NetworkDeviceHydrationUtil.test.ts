@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import NetworkDeviceHydrationUtil, {
   HydratableMonitor,
+  ResolvedDeviceSnmpCredentials,
   ResolvedSnmpCredentialsForBatch,
   SnmpConnectionCredentials,
 } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
@@ -1180,5 +1181,110 @@ describe("NetworkDeviceHydrationUtil.resolveSnmpCredentials", () => {
      * healthy device gets reported Down.
      */
     expect(hydratedStep(monitor)).toBeUndefined();
+  });
+});
+
+/*
+ * A DEVICE WHOSE V3 CREDENTIALS ARE ONLY IN ITS LEGACY OBJECT IS WALKED WITH
+ * THEM (#9268).
+ *
+ * buildSnmpV3Auth has always fallen back to the deprecated snmpV3Auth object
+ * where the snmpV3* columns hold no username, but the poll decided between
+ * a walk and a ping on the columns alone: such a device came back from
+ * /probe/network-device/list as "ping", and its interfaces, inventory and
+ * health stopped being collected without a word. The decision and the
+ * walk now read the same credentials.
+ */
+describe("a device whose v3 credentials are only in its legacy snmpV3Auth object", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const LEGACY: JSONObject = {
+    securityLevel: SnmpSecurityLevel.AuthPriv,
+    username: "legacy-user",
+    authProtocol: SnmpAuthProtocol.MD5,
+    authKey: "legacy-auth",
+    privProtocol: SnmpPrivProtocol.DES,
+    privKey: "legacy-priv",
+  };
+
+  function legacyDevice(fields?: DeviceFields): NetworkDevice {
+    return resolverDevice({ snmpVersion: "V3", snmpV3Auth: LEGACY, ...fields });
+  }
+
+  test("is walked, not pinged", () => {
+    expect(NetworkDeviceHydrationUtil.resolvePollMode(legacyDevice())).toBe(
+      "snmp",
+    );
+  });
+
+  test("resolves to its own credentials, with no lookup, and is walked with the legacy object", async () => {
+    mockLookups({});
+
+    const device: NetworkDevice = legacyDevice({
+      snmpCredentialProfileId: RESOLVER_PROFILE_ID,
+      siteId: RESOLVER_SITE_ID,
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([device]);
+    const credentials: ResolvedDeviceSnmpCredentials | undefined =
+      resolved.byDeviceId.get(DEVICE_ID);
+
+    expect(credentials?.pollMode).toBe("snmp");
+    expect(credentials?.carrier).toBe(device);
+    expect(NetworkSnmpCredentialProfileService.findBy).not.toHaveBeenCalled();
+    expect(NetworkSiteService.findBy).not.toHaveBeenCalled();
+
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        hostname: device.hostname!,
+        credentials: credentials!.carrier,
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpVersion).toBe(SnmpVersion.V3);
+    expect(config.snmpV3Auth).toEqual(LEGACY);
+  });
+
+  test("a column username of only whitespace is walked with the legacy object, not the whitespace", () => {
+    const device: NetworkDevice = legacyDevice({ snmpV3Username: "   " });
+
+    expect(NetworkDeviceHydrationUtil.resolvePollMode(device)).toBe("snmp");
+    expect(
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        hostname: device.hostname!,
+        credentials: device,
+        oids: [],
+        monitorInterfaces: true,
+      }).snmpV3Auth?.username,
+    ).toBe("legacy-user");
+  });
+
+  test("a monitor test of it is hydrated with the legacy object", async () => {
+    mockDevices([legacyDevice()]);
+    const monitor: HydratableMonitor = buildMonitor();
+
+    await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors([monitor]);
+
+    expect(hydratedStep(monitor)?.snmpV3Auth?.username).toBe("legacy-user");
+  });
+
+  test("a legacy object with no username is still pinged, and walked with nothing", () => {
+    const device: NetworkDevice = legacyDevice({
+      snmpV3Auth: { securityLevel: SnmpSecurityLevel.AuthPriv },
+    });
+
+    expect(NetworkDeviceHydrationUtil.resolvePollMode(device)).toBe("ping");
+  });
+
+  test("a v2c device with a legacy v3 object and no community string is still pinged", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        legacyDevice({ snmpVersion: "V2c" }),
+      ),
+    ).toBe("ping");
   });
 });

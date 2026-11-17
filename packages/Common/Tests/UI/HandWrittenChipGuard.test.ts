@@ -113,15 +113,14 @@ export const HAND_WRITTEN_CHIP_EXCEPTIONS: Record<
     },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules.tsx":
     {
-      count: 3,
+      count: 1,
       reason:
-        "Its Forward icon mirrors on right-to-left pages (isMirroredRightToLeft), which the Pill's icon does not. Two are step connectors with a sentence and a bold duration.",
+        "A step connector whose sentence holds a bold duration, which a Pill's plain text cannot.",
     },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationSummary.tsx":
     {
-      count: 2,
-      reason:
-        "A responder of several parts with a readiness dot, and a step whose Forward icon mirrors on right-to-left pages.",
+      count: 1,
+      reason: "A responder of several parts with a readiness dot.",
     },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ResponderReadinessCard.tsx":
     {

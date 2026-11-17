@@ -81,6 +81,33 @@ import {
   getLayerName,
 } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import WorkspaceUserGroupSync from "../Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
+import ScheduleLayersSnapshot, {
+  ScheduleLayersSnapshotEntry,
+} from "../Utils/OnCall/ScheduleLayersSnapshot";
+
+/*
+ * A schedule's layers and the people in them, as who is on call is worked
+ * out from them (getScheduleLayerProps): read in one snapshot.
+ */
+export interface ScheduleLayerProps {
+  // Highest priority first, each with its people in turn order.
+  layerProps: Array<LayerProps>;
+  projectId: ObjectID | null;
+  // Everybody in a layer, once each, in layer order.
+  scheduleUserIds: Array<ObjectID>;
+}
+
+/*
+ * The reads of schedules' layers that calls working out who is paged at one
+ * go share, by schedule id (lower case): each schedule's layers are read
+ * once, and every call handed the same reads works from that one read. A
+ * level of a run paging a schedule's on-call person and the next in its
+ * rotation, or a roster refresh working out who is on call and since when,
+ * then never works out one from the layers as they were and the other from
+ * the layers as a save left them (#9316). Made new for each go: a read is
+ * kept as long as the map is.
+ */
+export type ScheduleLayerReads = Map<string, Promise<ScheduleLayerProps>>;
 
 /*
  * Who is on call in a schedule at a moment (getCurrentOnCallInSchedule).
@@ -1625,6 +1652,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       nextRosterStartAt: null,
     };
 
+    /*
+     * Who is on call and next, and since when, from one read of the layers:
+     * a save of them landing between two reads would otherwise give the
+     * roster a person from the layers as they were and a start from the
+     * layers as saved (#9316).
+     */
+    const layerReads: ScheduleLayerReads = new Map<
+      string,
+      Promise<ScheduleLayerProps>
+    >();
+
     logger.debug("Fetching events for scheduleId: " + scheduleId.toString(), {
       onCallDutyPolicyScheduleId: scheduleId.toString(),
     } as LogAttributes);
@@ -1633,6 +1671,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         scheduleId: scheduleId,
         getNumberOfEvents: 2,
         onCallDutyPolicyId: options?.onCallDutyPolicyId,
+        layerReads: layerReads,
       });
 
     logger.debug("Events fetched: " + JSON.stringify(events), {
@@ -1706,6 +1745,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             now: OneUptimeDate.getCurrentDate(),
             onCallDutyPolicyId: options?.onCallDutyPolicyId,
             fallbackStart: startTime,
+            layerReads: layerReads,
           });
         } else {
           resultReturn.rosterStartAt = startTime;
@@ -1865,88 +1905,87 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     }
   }
 
-  private async getScheduleLayerProps(data: { scheduleId: ObjectID }): Promise<{
-    layerProps: Array<LayerProps>;
-    projectId: ObjectID | null;
-    scheduleUserIds: Array<ObjectID>;
-  }> {
-    // get schedule layers.
-
-    const scheduleId: ObjectID = data.scheduleId;
-
-    const layers: Array<OnCallDutyPolicyScheduleLayer> =
-      await OnCallDutyPolicyScheduleLayerService.findBy({
-        query: {
-          onCallDutyPolicyScheduleId: scheduleId,
-        },
-        select: {
-          order: true,
-          name: true,
-          description: true,
-          startsAt: true,
-          restrictionTimes: true,
-          rotation: true,
-          onCallDutyPolicyScheduleId: true,
-          projectId: true,
-          handOffTime: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-    const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
-      await OnCallDutyPolicyScheduleLayerUserService.findBy({
-        query: {
-          onCallDutyPolicyScheduleId: scheduleId,
-        },
-        select: {
-          user: true,
-          order: true,
-          onCallDutyPolicyScheduleLayerId: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    /*
-     * The schedule's timezone (if set) is applied to every layer so restriction
-     * wall-clock times resolve in that zone. When null (existing schedules), the
-     * layer engine falls back to server-local time — unchanged legacy behavior.
-     */
-    const schedule: OnCallDutyPolicySchedule | null = await this.findOneById({
-      id: scheduleId,
-      select: {
-        timezone: true,
-      },
-      props: {
-        isRoot: true,
+  /*
+   * The layers of each schedule and the people in them, with the schedule,
+   * read in one statement per batch of schedules (ScheduleLayersSnapshot):
+   * every row as of one moment, so a save of a schedule's layers is seen
+   * whole or not at all - never its layers without its people, or in a new
+   * order with the people they had (#9316). No lock is taken, and nothing
+   * waits for a save under way. By schedule id (lower case); a schedule that
+   * does not exist is not in it. Root read.
+   */
+  @CaptureSpan()
+  public async readLayersOfSchedules(
+    scheduleIds: Array<ObjectID>,
+  ): Promise<Map<string, ScheduleLayersSnapshotEntry>> {
+    return await ScheduleLayersSnapshot.read({
+      scheduleIds: scheduleIds,
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
       },
     });
+  }
 
-    const scheduleTimezone: string | undefined =
-      schedule?.timezone?.toString() || undefined;
+  /*
+   * A schedule's layers and their people, as who is on call is worked out
+   * from them: read in one snapshot (readLayersOfSchedules), in one round
+   * trip. No layers for a schedule that does not exist.
+   *
+   * The schedule's timezone (if set) is applied to every layer so
+   * restriction wall-clock times resolve in that zone. When null (existing
+   * schedules), the layer engine falls back to server-local time - unchanged
+   * legacy behavior.
+   */
+  public async getScheduleLayerProps(data: {
+    scheduleId: ObjectID;
+  }): Promise<ScheduleLayerProps> {
+    const read: Map<string, ScheduleLayersSnapshotEntry> =
+      await this.readLayersOfSchedules([data.scheduleId]);
+
+    const entry: ScheduleLayersSnapshotEntry | undefined = read.get(
+      data.scheduleId.toString().toLowerCase(),
+    );
+
+    if (!entry) {
+      return { layerProps: [], projectId: null, scheduleUserIds: [] };
+    }
 
     const { layerProps, scheduleUserIds } = this.buildLayerPropsFromRows({
-      layers,
-      layerUsers,
-      scheduleTimezone,
+      layers: entry.layers,
+      layerUsers: entry.layerUsers,
+      scheduleTimezone: entry.schedule.timezone?.toString() || undefined,
     });
 
-    const projectId: ObjectID | null = layers[0]?.projectId || null;
+    const projectId: ObjectID | null = entry.layers[0]?.projectId || null;
 
     return { layerProps, projectId, scheduleUserIds };
+  }
+
+  /*
+   * A schedule's layer props, from `layerReads` when the call is one of
+   * several working out who is paged at one go (ScheduleLayerReads): read
+   * once for all of them, by the first that asks.
+   */
+  private async readScheduleLayerProps(
+    scheduleId: ObjectID,
+    layerReads?: ScheduleLayerReads | undefined,
+  ): Promise<ScheduleLayerProps> {
+    if (!layerReads) {
+      return await this.getScheduleLayerProps({ scheduleId: scheduleId });
+    }
+
+    const key: string = scheduleId.toString().toLowerCase();
+    let read: Promise<ScheduleLayerProps> | undefined = layerReads.get(key);
+
+    if (!read) {
+      read = this.getScheduleLayerProps({ scheduleId: scheduleId });
+      layerReads.set(key, read);
+    }
+
+    return await read;
   }
 
   /*
@@ -2113,7 +2152,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
     for (const scheduleId of scheduleIds) {
       const inputs: ScheduleResolutionInputs | undefined = inputsById.get(
-        scheduleId.toString(),
+        scheduleId.toString().toLowerCase(),
       );
 
       if (!inputs) {
@@ -2208,116 +2247,24 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
   }
 
   /*
-   * Everything the resolver needs for a batch of schedules, in four queries.
-   * Schedules that do not exist simply have no entry.
+   * Everything the resolver needs for a batch of schedules: each schedule
+   * with its layers and their people in one snapshot (readLayersOfSchedules)
+   * - so a feed, a reminder or the timeline never resolves half of a save
+   * of a schedule's layers (#9316) - and, alongside it, the policies the
+   * schedules are attached to. Schedules that do not exist simply have no
+   * entry.
    */
   private async loadResolutionInputsForSchedules(
     scheduleIds: Array<ObjectID>,
   ): Promise<Map<string, ScheduleResolutionInputs>> {
-    const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
-      query: {
-        _id: QueryHelper.any(scheduleIds),
-      },
-      select: {
-        _id: true,
-        name: true,
-        timezone: true,
-        projectId: true,
-        shiftConfigVersion: true,
-        createdAt: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const byId: Map<string, ScheduleResolutionInputs> = new Map<
-      string,
-      ScheduleResolutionInputs
-    >();
-
-    for (const schedule of schedules) {
-      if (!schedule.id) {
-        continue;
-      }
-      byId.set(schedule.id.toString(), {
-        schedule,
-        layers: [],
-        layerUsers: [],
-        attachments: [],
-      });
-    }
-
-    if (byId.size === 0) {
-      return byId;
-    }
-
-    const existingIds: Array<ObjectID> = Array.from(byId.keys()).map(
-      (id: string) => {
-        return new ObjectID(id);
-      },
-    );
-
-    const [layers, layerUsers, attachments]: [
-      Array<OnCallDutyPolicyScheduleLayer>,
-      Array<OnCallDutyPolicyScheduleLayerUser>,
+    const [snapshot, attachments]: [
+      Map<string, ScheduleLayersSnapshotEntry>,
       Array<OnCallDutyPolicyEscalationRuleSchedule>,
     ] = await Promise.all([
-      OnCallDutyPolicyScheduleLayerService.findBy({
-        query: {
-          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
-        },
-        select: {
-          _id: true,
-          order: true,
-          name: true,
-          description: true,
-          startsAt: true,
-          restrictionTimes: true,
-          rotation: true,
-          onCallDutyPolicyScheduleId: true,
-          projectId: true,
-          handOffTime: true,
-          updatedAt: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }),
-      OnCallDutyPolicyScheduleLayerUserService.findBy({
-        query: {
-          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
-        },
-        select: {
-          _id: true,
-          user: {
-            _id: true,
-          },
-          userId: true,
-          order: true,
-          onCallDutyPolicyScheduleLayerId: true,
-          onCallDutyPolicyScheduleId: true,
-          updatedAt: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }),
+      this.readLayersOfSchedules(scheduleIds),
       OnCallDutyPolicyEscalationRuleScheduleService.findBy({
         query: {
-          onCallDutyPolicyScheduleId: QueryHelper.any(existingIds),
+          onCallDutyPolicyScheduleId: QueryHelper.any(scheduleIds),
         },
         select: {
           _id: true,
@@ -2344,22 +2291,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       }),
     ]);
 
-    for (const layer of layers) {
-      const entry: ScheduleResolutionInputs | undefined = byId.get(
-        layer.onCallDutyPolicyScheduleId?.toString() || "",
-      );
-      if (entry) {
-        entry.layers.push(layer);
-      }
-    }
+    const byId: Map<string, ScheduleResolutionInputs> = new Map<
+      string,
+      ScheduleResolutionInputs
+    >();
 
-    for (const layerUser of layerUsers) {
-      const entry: ScheduleResolutionInputs | undefined = byId.get(
-        layerUser.onCallDutyPolicyScheduleId?.toString() || "",
-      );
-      if (entry) {
-        entry.layerUsers.push(layerUser);
-      }
+    for (const [scheduleId, entry] of snapshot) {
+      byId.set(scheduleId, {
+        schedule: entry.schedule,
+        layers: entry.layers,
+        layerUsers: entry.layerUsers,
+        attachments: [],
+      });
     }
 
     for (const attachment of attachments) {
@@ -2373,7 +2316,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       }
 
       const entry: ScheduleResolutionInputs | undefined = byId.get(
-        attachment.onCallDutyPolicyScheduleId?.toString() || "",
+        attachment.onCallDutyPolicyScheduleId?.toString().toLowerCase() || "",
       );
       if (entry) {
         entry.attachments.push(attachment);
@@ -3325,10 +3268,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     now: Date;
     onCallDutyPolicyId?: ObjectID | undefined;
     fallbackStart: Date;
+    // The read of the layers who is on call was worked out from.
+    layerReads?: ScheduleLayerReads | undefined;
   }): Promise<Date> {
     try {
       const { layerProps, projectId, scheduleUserIds } =
-        await this.getScheduleLayerProps({ scheduleId: data.scheduleId });
+        await this.readScheduleLayerProps(data.scheduleId, data.layerReads);
 
       if (layerProps.length === 0) {
         return data.fallbackStart;
@@ -3376,18 +3321,23 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
     onCallDutyPolicyId?: ObjectID | undefined;
+    // Shared with the other calls of one go (ScheduleLayerReads).
+    layerReads?: ScheduleLayerReads | undefined;
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
-      "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
+      "getEventByIndexInSchedule called with data: " +
+        JSON.stringify({
+          scheduleId: data.scheduleId,
+          getNumberOfEvents: data.getNumberOfEvents,
+          onCallDutyPolicyId: data.onCallDutyPolicyId,
+        }),
       {
         onCallDutyPolicyScheduleId: data.scheduleId.toString(),
       } as LogAttributes,
     );
 
     const { layerProps, projectId, scheduleUserIds } =
-      await this.getScheduleLayerProps({
-        scheduleId: data.scheduleId,
-      });
+      await this.readScheduleLayerProps(data.scheduleId, data.layerReads);
 
     logger.debug("Layer properties fetched: " + JSON.stringify(layerProps), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
@@ -3482,6 +3432,11 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
    * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
    * as the global ones, as paging through that policy does; without it,
    * only global overrides apply.
+   *
+   * The layers and their people are read in one snapshot: a save of them
+   * landing meanwhile is seen whole or not at all (#9316). Pass
+   * `layerReads` to share that read with the other calls of one go
+   * (ScheduleLayerReads).
    */
   @CaptureSpan()
   public async getCurrentOnCallInSchedule(
@@ -3491,13 +3446,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           onCallDutyPolicyId?: ObjectID | undefined;
           // The moment to answer for; now when left out.
           at?: Date | undefined;
+          layerReads?: ScheduleLayerReads | undefined;
         }
       | undefined,
   ): Promise<CurrentOnCallInSchedule | null> {
     const { layerProps, projectId, scheduleUserIds } =
-      await this.getScheduleLayerProps({
-        scheduleId: scheduleId,
-      });
+      await this.readScheduleLayerProps(scheduleId, options?.layerReads);
 
     if (layerProps.length === 0) {
       return null;
@@ -3563,7 +3517,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
    * rotation has nobody else in it, or everybody else in it is away.
    *
    * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
-   * as the global ones, as paging through that policy does.
+   * as the global ones, as paging through that policy does. Pass
+   * `layerReads` to work it out from the same read of the layers as the
+   * other calls of one go - a level paging the schedule's on-call person
+   * too (ScheduleLayerReads).
    */
   @CaptureSpan()
   public async getNextInRotationInSchedule(
@@ -3573,13 +3530,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           onCallDutyPolicyId?: ObjectID | undefined;
           // The moment to answer for; now when left out.
           at?: Date | undefined;
+          layerReads?: ScheduleLayerReads | undefined;
         }
       | undefined,
   ): Promise<NextInRotationInSchedule | null> {
     const { layerProps, projectId, scheduleUserIds } =
-      await this.getScheduleLayerProps({
-        scheduleId: scheduleId,
-      });
+      await this.readScheduleLayerProps(scheduleId, options?.layerReads);
 
     if (layerProps.length === 0) {
       return null;

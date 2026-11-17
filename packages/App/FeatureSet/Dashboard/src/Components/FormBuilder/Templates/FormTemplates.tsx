@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import FormsCopy from "../FormsCopy";
 import {
   FormQuestionData,
@@ -54,7 +55,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import EmptyState, {
   EmptyStateSize,
@@ -262,7 +262,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     return (
       <Card title="Templates" description={FormsCopy.templatesDescription}>
-        <ComponentLoader />
+        <CardListSkeleton />
       </Card>
     );
   }

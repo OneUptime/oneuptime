@@ -373,7 +373,7 @@ type DiscardEditsFunction = () => Promise<void>;
 
 const discardEdits: DiscardEditsFunction = async (): Promise<void> => {
   await act(async () => {
-    fireEvent.click(screen.getByTitle("Cancel"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   });
   await act(async () => {
     fireEvent.click(screen.getByText("Discard Changes"));
@@ -395,7 +395,7 @@ type CancelUnchangedEditFunction = () => Promise<void>;
 const cancelUnchangedEdit: CancelUnchangedEditFunction =
   async (): Promise<void> => {
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Cancel"));
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     });
     expect(screen.queryByText("Discard Changes")).toBeNull();
     await settle();
@@ -420,7 +420,7 @@ type KeepEditingFunction = () => Promise<void>;
 /** Open the cancel confirmation and then back out of it. */
 const keepEditing: KeepEditingFunction = async (): Promise<void> => {
   await act(async () => {
-    fireEvent.click(screen.getByTitle("Cancel"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   });
   await act(async () => {
     fireEvent.click(screen.getByText("Keep Editing"));

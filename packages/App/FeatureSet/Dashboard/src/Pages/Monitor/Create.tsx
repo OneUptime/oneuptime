@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
@@ -31,7 +32,6 @@ import ObjectID from "Common/Types/ObjectID";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorType, {
@@ -1971,7 +1971,7 @@ const MonitorCreate: FunctionComponent<
       >
         <div>
           {(isLoading || isLoadingProbes || isBinding) && (
-            <PageLoader isVisible={true} />
+            <DetailListSkeleton fields={4} columns={1} />
           )}
           {error && <ErrorMessage message={error} />}
           {!isLoading && !isLoadingProbes && !isBinding && !error && (

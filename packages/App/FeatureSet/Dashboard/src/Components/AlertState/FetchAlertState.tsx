@@ -1,4 +1,5 @@
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -9,7 +10,6 @@ import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import AlertStateElement from "./AlertStateElement";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
@@ -89,7 +89,7 @@ const FetchAlertState: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <InlineValueSkeleton />;
   }
 
   if (!alertState) {

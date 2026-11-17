@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|keyboard
- *     which part to draw (all but charts, states and keyboard when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|skeletons|keyboard
+ *     which part to draw (all but charts, states, skeletons and keyboard when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -49,6 +49,12 @@ import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import SharedPage from "Common/UI/Components/Page/Page";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
@@ -1544,6 +1550,140 @@ function States() {
   );
 }
 
+/*
+ * Content skeletons (#9220): each shared skeleton beside the content it
+ * stands in for, in the same card, so the suite can measure that a card
+ * opens at about the height it ends at, in both themes and on a phone.
+ */
+const SKELETON_ROWS = [
+  ["api-gateway", "Running", "3 of 3", "2 hours ago"],
+  ["checkout", "Running", "2 of 2", "5 hours ago"],
+  ["payments", "Pending", "0 of 1", "1 minute ago"],
+];
+
+function Skeletons() {
+  return (
+    <div className="space-y-6" data-testid="section-skeletons">
+      <div data-testid="skeleton-pair-tiles" className="space-y-4">
+        <div
+          data-testid="skeleton-loaded-tiles"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <InfoCard title="Pods" value="42" />
+          <InfoCard title="Nodes" value="6" />
+          <InfoCard title="Restarts" value="0" />
+          <InfoCard title="Uptime" value="99.98%" />
+        </div>
+        <div data-testid="skeleton-loading-tiles">
+          <StatTilesSkeleton count={4} />
+        </div>
+      </div>
+
+      <div data-testid="skeleton-loaded-details">
+        <Card title="Cluster" description="What the agent reported last.">
+          <Detail
+            item={{
+              name: "production-eu",
+              version: "1.31.2",
+              provider: "EKS",
+              region: "eu-central-1",
+            }}
+            showDetailsInNumberOfColumns={2}
+            fields={[
+              { key: "name", title: "Name", fieldType: FieldType.Text },
+              { key: "version", title: "Version", fieldType: FieldType.Text },
+              { key: "provider", title: "Provider", fieldType: FieldType.Text },
+              { key: "region", title: "Region", fieldType: FieldType.Text },
+            ]}
+          />
+        </Card>
+      </div>
+      <div data-testid="skeleton-loading-details">
+        <Card title="Cluster" description="What the agent reported last.">
+          <DetailListSkeleton fields={4} columns={2} />
+        </Card>
+      </div>
+
+      <div data-testid="skeleton-loaded-table">
+        <Card title="Deployments" description="What runs in this namespace.">
+          <div className="overflow-x-auto">
+            <table className="w-full whitespace-nowrap text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-xs text-gray-500">
+                  <th className="h-10 px-3 text-start font-medium">Name</th>
+                  <th className="h-10 px-3 text-start font-medium">Status</th>
+                  <th className="h-10 px-3 text-start font-medium">Ready</th>
+                  <th className="h-10 px-3 text-start font-medium">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SKELETON_ROWS.map((row) => {
+                  return (
+                    <tr key={row[0]} className="border-b border-gray-100">
+                      {row.map((cell) => {
+                        return (
+                          <td key={cell} className="px-3 py-3 leading-6">
+                            {cell}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+      <div data-testid="skeleton-loading-table">
+        <Card title="Deployments" description="What runs in this namespace.">
+          <TableSkeleton rows={3} columns={4} />
+        </Card>
+      </div>
+
+      <div data-testid="skeleton-loading-chart">
+        <Card title="CPU" description="Across every node, each minute.">
+          <ChartSkeleton />
+        </Card>
+      </div>
+
+      <div data-testid="skeleton-loaded-cards">
+        <Card title="Integrations" description="Where alerts are sent.">
+          <div className="space-y-3">
+            {["Slack", "Microsoft Teams", "PagerDuty"].map((name) => {
+              return (
+                <div
+                  key={name}
+                  className="rounded-lg border border-gray-200 bg-white p-4"
+                >
+                  <div className="flex h-6 items-center text-sm font-medium text-gray-900">
+                    {name}
+                  </div>
+                  <p className="mt-2 text-sm leading-5 text-gray-500">
+                    Sends each new incident.
+                  </p>
+                  <p className="mt-2 text-sm leading-5 text-gray-500">
+                    Connected by Ada.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+      <div data-testid="skeleton-loading-cards">
+        <Card title="Integrations" description="Where alerts are sent.">
+          <CardListSkeleton count={3} lines={2} />
+        </Card>
+      </div>
+
+      <div data-testid="skeleton-loading-page">
+        <PageSkeleton shape="table" />
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1556,9 +1696,10 @@ const SECTIONS = {
   charts: Charts,
   keyboard: Keyboard,
   states: States,
+  skeletons: Skeletons,
 };
 
-const ONLY_WHEN_ASKED_FOR = ["charts", "states", "keyboard"];
+const ONLY_WHEN_ASKED_FOR = ["charts", "states", "skeletons", "keyboard"];
 
 function Gallery() {
   const shown =

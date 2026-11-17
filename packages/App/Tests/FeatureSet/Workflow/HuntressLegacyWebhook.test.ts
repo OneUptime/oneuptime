@@ -221,12 +221,21 @@ describe("POST /api/huntress/webhook/:secretkey", () => {
       // A refused run is logged; that is not under test here.
     });
 
+    /*
+     * The workflow found by the key in the address - by the key's lookup
+     * hash, as the key is kept encrypted (#9012:
+     * WorkflowService.findOneByPresentedKey).
+     */
     jest
-      .spyOn(WorkflowService, "findOneBy")
+      .spyOn(WorkflowService, "findOneByPresentedKey")
       .mockImplementation((async (findBy: {
-        query: JSONObject;
+        column: string;
+        presentedKey: string;
       }): Promise<Workflow | null> => {
-        if (findBy.query["webhookSecretKey"] !== CONNECTION_ID) {
+        if (
+          findBy.column !== "webhookSecretKey" ||
+          findBy.presentedKey !== CONNECTION_ID
+        ) {
           return null;
         }
 

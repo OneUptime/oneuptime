@@ -113,6 +113,8 @@ interface WriteHooks {
     onUpdate: unknown,
     updatedItemIds: Array<ObjectID>,
   ) => Promise<unknown>;
+  // End Now, which ends an override under way at the server's now.
+  endNow: (typeof OnCallDutyPolicyUserOverrideService)["endNow"];
 }
 
 interface Outcome {

@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { SensitivityPill } from "./DataSecurityPills";
 import {
   AccessLevelPill,
@@ -19,7 +20,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -165,7 +165,7 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
         {error ? (
           <ErrorMessage message={error} />
         ) : rows === null ? (
-          <PageLoader isVisible={true} />
+          <TableSkeleton />
         ) : (
           <>
             <LocalTable<DataStoreAccess>

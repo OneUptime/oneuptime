@@ -7,7 +7,7 @@ import useCloudAccounts, {
 } from "../../../../Components/Cloud/UseCloudAccounts";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -28,7 +28,7 @@ const CloudAccountCosts: FunctionComponent<
   const read: CloudAccountsRead = useCloudAccounts(modelId);
 
   if (read.isLoading && read.accounts.length === 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error) {

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
@@ -31,7 +32,7 @@ import PhoneNumberPurchase from "../../../Components/CallSMS/PhoneNumberPurchase
 import ProjectUtil from "Common/UI/Utils/Project";
 import useAsyncEffect from "use-async-effect";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -180,7 +181,7 @@ const IncomingCallPolicyView: FunctionComponent<
   }, [showTwilioConfigModal]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -666,7 +667,7 @@ const IncomingCallPolicyView: FunctionComponent<
             setShowTwilioConfigModal(false);
           }}
         >
-          <PageLoader isVisible={true} />
+          <DetailListSkeleton fields={3} columns={1} />
         </Modal>
       )}
 

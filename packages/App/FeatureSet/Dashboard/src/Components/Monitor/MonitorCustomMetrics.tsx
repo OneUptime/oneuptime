@@ -8,7 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -136,7 +136,7 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
     };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="chart" />;
   }
 
   if (error) {

@@ -10,7 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -53,7 +53,7 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
   }
 
   if (isNotifyingByDefault === null) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   return (

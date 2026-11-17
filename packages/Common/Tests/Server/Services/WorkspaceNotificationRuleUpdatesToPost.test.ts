@@ -791,7 +791,11 @@ describe("saving a rule's updates through the API", () => {
        */
       expect(
         heldRowsRead.mock.calls.filter(
-          (call: Parameters<typeof heldRowsRead>): boolean => {
+          (
+            call: Parameters<
+              typeof WorkspaceNotificationRuleService.findRowsAndHoldUpdateToThem
+            >,
+          ): boolean => {
             return !(
               "notificationRule" in (call[1] as Record<string, unknown>)
             );

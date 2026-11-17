@@ -182,7 +182,7 @@ function deferred<T>(): Deferred<T> {
 async function renderCard(resource: ResourceCase): Promise<void> {
   render(<ArchiveResourceCard {...resource} />);
   await waitFor(() => {
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   });
 }
 
@@ -352,7 +352,7 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
     getItemMock.mockReturnValue(pending.promise);
     render(<ArchiveResourceCard {...resource} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(updateByIdMock).not.toHaveBeenCalled();
@@ -362,7 +362,7 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
       await pending.promise;
     });
 
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Unarchive" })).toBeEnabled();
   });
 
@@ -540,7 +540,7 @@ describe("ArchiveResourceCard copy overrides", () => {
       />,
     );
     await waitFor(() => {
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     });
   }
 
@@ -678,7 +678,7 @@ describe("ArchiveResourceCard onArchiveChange", () => {
       />,
     );
     await waitFor(() => {
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     });
   }
 
