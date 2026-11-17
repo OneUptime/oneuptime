@@ -17,7 +17,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
-import AIRunOutputReadFilter from "../Utils/AI/AIRunOutputReadFilter";
+import AIRunOutputReadFilter, {
+  CARRIED_RECORD_COLUMNS,
+} from "../Utils/AI/AIRunOutputReadFilter";
 import { combineWithPrivacyClause } from "../Utils/PrivacyFilterUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -107,24 +109,33 @@ export class Service extends ProjectReferencesService<Model> {
    * showed - say what the run did. So it is read only by those who may read
    * that run (AIRunOutputReadFilter): a CodeFix run is the project's, and
    * one about a private incident or alert - the fix pull request of its
-   * investigation, the code a fix of its declares - only for those who see
-   * that record; one about a record that is gone only for Project Owners
-   * and Project Admins. In a find, a count, a sort and a filter alike, and
-   * in an update and a delete, which reach only the pull requests their
-   * caller may read. A pull request OneUptime AI opened from a chat names
-   * no run (CodeWriteTools) and is read as before. OneUptime's own reads -
-   * the Code pages' after their own check, the sync of a pull request's
-   * state - are made as OneUptime.
+   * investigation, the code a fix of its declares, a task that carries one -
+   * only for those who see that record; one about a record that is gone
+   * only for Project Owners and Project Admins. In a find, a count, a sort
+   * and a filter alike, and in an update and a delete, which reach only the
+   * pull requests their caller may read.
+   *
+   * A pull request OneUptime AI opened from a chat names no run
+   * (CodeWriteTools): it carries the chat's subject in keys of its own
+   * (#9186), read the same way - one opened from a private incident's or
+   * alert's AI conversation, or from Ask AI asked about one, only for those
+   * who see it - and one from a chat about neither is read as before.
+   * OneUptime's own reads - the Code pages' after their own check, the sync
+   * of a pull request's state - are made as OneUptime.
    */
   public static applyPrivacyFilters<T>(
     query: T,
     props: DatabaseCommonInteractionProps,
   ): T {
-    return AIRunOutputReadFilter.applyToRunKey({
-      query: query,
+    return AIRunOutputReadFilter.applyToCarriedKeys({
+      query: AIRunOutputReadFilter.applyToRunKey({
+        query: query,
+        props: props,
+        modelType: Model,
+        column: PULL_REQUEST_AI_RUN_KEY,
+      }),
       props: props,
       modelType: Model,
-      column: PULL_REQUEST_AI_RUN_KEY,
     });
   }
 
@@ -208,11 +219,11 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The read hook narrows by the run a pull request names. See
-   * DatabaseService.
+   * The read hook narrows by the run a pull request names, and by the
+   * records it carries. See DatabaseService.
    */
   public override getColumnsReadHooksNarrowBy(): Array<string> {
-    return [PULL_REQUEST_AI_RUN_KEY];
+    return [PULL_REQUEST_AI_RUN_KEY, ...CARRIED_RECORD_COLUMNS];
   }
 
   /*

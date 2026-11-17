@@ -66,6 +66,19 @@ import { FindOperator, Raw } from "typeorm";
  * (applyToRunKey: Runner jobs), its pull request (AIAgentTaskPullRequest
  * Service) and the Code pages' own SQL (getRunAboutSql, getReadableRunsSql).
  *
+ * WHAT A RUN CARRIES (#9186). A Code task can hold an incident or an alert
+ * without being a fix of one: a person added it as context to the request
+ * or to a reply, or the task was asked from a postmortem action item and
+ * carries its incident (AI_RUN_CARRIED_KEYS). A task carries what every one
+ * of its turns carries (AIRunService), so a turn is read as its task is.
+ * And a pull request OneUptime AI opened from a chat carries the chat's
+ * subject, in the same keys of its own (AIAgentTaskPullRequestService). A
+ * row is read only by those who see every record it carries, one carrying
+ * a record that is gone only by those who see every private record. These
+ * keys are read here alone: the fix-task triggers, the daily fix-task limit
+ * and the AI logs read the keys above as a fix of the record, and a task
+ * that only carries one is no fix of it.
+ *
  * Written on the key naming the run, as a lookup of that run by its primary
  * key - `key IS NULL OR EXISTS (SELECT 1 FROM "AIRun" ... WHERE _id = key
  * AND ...)` - and of the incident, alert, fix or task it is about by
@@ -121,6 +134,21 @@ export const AI_RUN_PART_KEYS: ReadonlyArray<AIRunPartKey> = [
 // The first run of the Code task a turn is a reply in (CodeTaskRuns).
 export const AI_RUN_TASK_KEY: string = "codeTaskId";
 
+/*
+ * The records a row carries without being a fix of one (#9186), by the key
+ * listing them: a JSON list of ids each, as a Code task can carry several.
+ * An AI run's, and a pull request record's.
+ */
+export interface AIRunCarriedKey {
+  column: string;
+  recordModelType: { new (): BaseModel };
+}
+
+export const AI_RUN_CARRIED_KEYS: ReadonlyArray<AIRunCarriedKey> = [
+  { column: "carriedIncidentIds", recordModelType: Incident },
+  { column: "carriedAlertIds", recordModelType: Alert },
+];
+
 // Every key of a run the rule reads: what a read of the run is narrowed by.
 export const AI_RUN_ABOUT_KEYS: ReadonlyArray<string> = [
   ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey): string => {
@@ -129,8 +157,26 @@ export const AI_RUN_ABOUT_KEYS: ReadonlyArray<string> = [
   ...AI_RUN_PART_KEYS.map((key: AIRunPartKey): string => {
     return key.column;
   }),
+  ...AI_RUN_CARRIED_KEYS.map((key: AIRunCarriedKey): string => {
+    return key.column;
+  }),
   AI_RUN_TASK_KEY,
 ];
+
+// The keys a pull request record's own read is narrowed by: what it carries.
+export const CARRIED_RECORD_COLUMNS: ReadonlyArray<string> =
+  AI_RUN_CARRIED_KEYS.map((key: AIRunCarriedKey): string => {
+    return key.column;
+  });
+
+/*
+ * An id as a carried key lists it: a UUID, matched case-insensitively. An
+ * entry that is not one is cast to no id, so the row naming it is read as
+ * one carrying a record that is gone: only by those who see every private
+ * record. Anchored at the start; its length is checked beside it.
+ */
+const CARRIED_ID_PATTERN: string =
+  "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 /*
  * A condition on one key, written for the key's SQL - a column of an alias,
@@ -229,10 +275,11 @@ export default class AIRunOutputReadFilter {
    * count, a live update), kept to the runs about no private incident or
    * alert the caller does not see: each key the rule reads
    * (AI_RUN_ABOUT_KEYS) names none, or one they see - a record that exists
-   * and is no private one they do not see, a fix whose record they see, a
-   * task about what they see. The caller's own filter on each key stays
-   * beside it. Who may read which kind of run is the caller's
-   * (AIRunPrivacyFilter). As it is for those who see every private record.
+   * and is no private one they do not see, a fix whose record they see,
+   * records carried that they see every one of, a task about what they see.
+   * The caller's own filter on each key stays beside it. Who may read which
+   * kind of run is the caller's (AIRunPrivacyFilter). As it is for those who
+   * see every private record.
    */
   public static applyToRunRow<T>(
     query: T,
@@ -241,8 +288,6 @@ export default class AIRunOutputReadFilter {
     if (shouldBypassRecordPrivacy(props)) {
       return query;
     }
-
-    let filtered: T = query;
 
     const keys: Array<{ column: string; condition: KeyCondition | null }> = [
       ...AI_RUN_RECORD_KEYS.map((key: AIRunRecordKey) => {
@@ -257,26 +302,83 @@ export default class AIRunOutputReadFilter {
           condition: AIRunOutputReadFilter.getPartKeyCondition(key, props),
         };
       }),
+      ...AIRunOutputReadFilter.getCarriedKeyConditions(props),
       {
         column: AI_RUN_TASK_KEY,
         condition: AIRunOutputReadFilter.getTaskKeyCondition(props),
       },
     ];
 
-    for (const key of keys) {
+    return AIRunOutputReadFilter.addConditions({
+      query: query,
+      modelType: AIRun,
+      keys: keys,
+    });
+  }
+
+  /*
+   * A query over rows that carry records in keys of their own - a pull
+   * request record OneUptime AI opened from a chat (#9186) - kept to the rows
+   * carrying none the caller does not see: every record each key lists
+   * exists, and is no private one they do not see. The caller's own filter
+   * on each key stays beside it. As it is for those who see every private
+   * record.
+   */
+  public static applyToCarriedKeys<T>(data: {
+    query: T;
+    props: DatabaseCommonInteractionProps;
+    modelType: { new (): BaseModel };
+  }): T {
+    if (shouldBypassRecordPrivacy(data.props)) {
+      return data.query;
+    }
+
+    return AIRunOutputReadFilter.addConditions({
+      query: data.query,
+      modelType: data.modelType,
+      keys: AIRunOutputReadFilter.getCarriedKeyConditions(data.props),
+    });
+  }
+
+  /*
+   * The same, for a statement written with positional parameters - the Code
+   * pages' count of a repository's open pull requests (CodeTaskStats): the
+   * SQL that keeps the row `alias` to the rows carrying no record the
+   * caller does not see, each value it binds added to `parameters` as `$n`.
+   * Null for those who see every private record.
+   */
+  public static getCarriedRecordsSql(data: {
+    alias: string;
+    props: DatabaseCommonInteractionProps;
+    parameters: Array<unknown>;
+  }): string | null {
+    if (shouldBypassRecordPrivacy(data.props)) {
+      return null;
+    }
+
+    const named: Record<string, unknown> = {};
+    const conditions: Array<string> = [];
+
+    for (const key of AIRunOutputReadFilter.getCarriedKeyConditions(
+      data.props,
+    )) {
       if (!key.condition) {
         continue;
       }
 
-      filtered = AIRunOutputReadFilter.addToColumn({
-        query: filtered,
-        modelType: AIRun,
-        column: key.column,
-        condition: Raw(key.condition.write, key.condition.parameters),
-      });
+      Object.assign(named, key.condition.parameters);
+      conditions.push(key.condition.write(`"${data.alias}"."${key.column}"`));
     }
 
-    return filtered;
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    return AIRunOutputReadFilter.toPositional({
+      sql: `(${conditions.join(" AND ")})`,
+      named: named,
+      parameters: data.parameters,
+    });
   }
 
   /*
@@ -370,7 +472,10 @@ export default class AIRunOutputReadFilter {
     return conditions;
   }
 
-  // The conditions on the run's own keys: its record, and its fix.
+  /*
+   * The conditions on the run's own keys: its record, its fix and the
+   * records it carries.
+   */
   private static writeOwnConditions(data: {
     run: string;
     props: DatabaseCommonInteractionProps;
@@ -394,6 +499,7 @@ export default class AIRunOutputReadFilter {
           condition: AIRunOutputReadFilter.getPartKeyCondition(key, data.props),
         };
       }),
+      ...AIRunOutputReadFilter.getCarriedKeyConditions(data.props),
     ];
 
     for (const key of written) {
@@ -533,6 +639,95 @@ export default class AIRunOutputReadFilter {
         return `(${column} IS NULL OR EXISTS (SELECT 1 FROM "AIRun" "${task}" WHERE "${task}"."_id" = ${column} AND ${conditions.join(" AND ")}))`;
       },
     };
+  }
+
+  // A condition for each key listing the records a row carries.
+  private static getCarriedKeyConditions(
+    props: DatabaseCommonInteractionProps,
+  ): Array<{ column: string; condition: KeyCondition | null }> {
+    return AI_RUN_CARRIED_KEYS.map((key: AIRunCarriedKey) => {
+      return {
+        column: key.column,
+        condition: AIRunOutputReadFilter.getCarriedKeyCondition(key, props),
+      };
+    });
+  }
+
+  /*
+   * A key listing the incidents or alerts a row carries (#9186): no list,
+   * or one whose every entry is a record that exists and is no private one
+   * the caller does not see. Written as what it leaves out - NOT EXISTS an
+   * entry that fails - so each entry is looked up by its primary key, and a
+   * row carrying none costs nothing. An entry that is no id is cast to none
+   * (a CASE, which Postgres evaluates in order, so no cast ever fails a
+   * read) and fails, as a record that is gone does: nothing says any more
+   * whether it was private. Null for those who see every private record.
+   */
+  private static getCarriedKeyCondition(
+    key: AIRunCarriedKey,
+    props: DatabaseCommonInteractionProps,
+  ): KeyCondition | null {
+    const kind: PrivateRecordKind = PrivateRecordPermission.getKind(
+      new key.recordModelType().tableName,
+    )!;
+
+    const notUnseen: FindWhereProperty<any> | undefined =
+      PrivateRecordReadFilter.getOptionalRecordReadRaw({
+        kind: kind,
+        props: props,
+      });
+
+    if (!notUnseen) {
+      return null;
+    }
+
+    const operator: FindOperator<unknown> =
+      notUnseen as unknown as FindOperator<unknown>;
+    const getSql: (alias: string) => string = operator.getSql as (
+      alias: string,
+    ) => string;
+    const random: string = Text.generateRandomText(10);
+    const entry: string = `aiRunCarried${random}`;
+    const id: string = `aiRunCarriedId${random}`;
+    const record: string = `aiRunCarriedRecord${random}`;
+    const carriedId: string = `"${id}"."id"`;
+
+    return {
+      parameters: { ...(operator.objectLiteralParameters || {}) },
+      write: (column: string): string => {
+        const list: string = `CASE WHEN jsonb_typeof(${column}) = 'array' THEN ${column} ELSE CAST('[]' AS jsonb) END`;
+        const asId: string = `CASE WHEN char_length("${entry}"."value") = 36 AND "${entry}"."value" ~* '${CARRIED_ID_PATTERN}' THEN CAST("${entry}"."value" AS uuid) END`;
+
+        return `(${column} IS NULL OR NOT EXISTS (SELECT 1 FROM (SELECT ${asId} AS "id" FROM jsonb_array_elements_text(${list}) AS "${entry}"("value")) AS "${id}" WHERE NOT (${carriedId} IS NOT NULL AND EXISTS (SELECT 1 FROM "${kind.tableName}" "${record}" WHERE "${record}"."_id" = ${carriedId}) AND ${getSql(carriedId)})))`;
+      },
+    };
+  }
+
+  /*
+   * `query`, with each key's condition put on its column beside the
+   * caller's own filter on it.
+   */
+  private static addConditions<T>(data: {
+    query: T;
+    modelType: { new (): BaseModel };
+    keys: Array<{ column: string; condition: KeyCondition | null }>;
+  }): T {
+    let filtered: T = data.query;
+
+    for (const key of data.keys) {
+      if (!key.condition) {
+        continue;
+      }
+
+      filtered = AIRunOutputReadFilter.addToColumn({
+        query: filtered,
+        modelType: data.modelType,
+        column: key.column,
+        condition: Raw(key.condition.write, key.condition.parameters),
+      });
+    }
+
+    return filtered;
   }
 
   // The column of a part's row naming a private record.

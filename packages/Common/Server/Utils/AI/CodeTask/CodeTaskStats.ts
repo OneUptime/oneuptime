@@ -19,8 +19,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * Three grouped reads for every repository on the page at once, as root and
  * pinned to the project - the caller was allowed to read these repositories
  * before their ids got here - and to what the reader may read of them: a
- * task about a private incident or alert they do not see, and its pull
- * requests, count for none of theirs (AIRunOutputReadFilter, #9165). Every
+ * task about or carrying a private incident or alert they do not see, and
+ * its pull requests, count for none of theirs (AIRunOutputReadFilter,
+ * #9165, #9186), nor does a pull request a chat about one opened. Every
  * value is a bound parameter.
  *
  * A pull request's production review is not one of a repository's tasks
@@ -118,13 +119,27 @@ export default class CodeTaskStats {
       repositoryIds,
       PullRequestState.Open,
     ];
-    // A pull request is the reader's when the run that opened it is.
+    /*
+     * A pull request is the reader's when the run that opened it is, and -
+     * one a chat opened - when they may read what it carries (#9186).
+     */
     const pullRequestReadable: string | null =
-      AIRunOutputReadFilter.getReadableRunsSql({
-        key: `"AIAgentTaskPullRequest"."aiRunId"`,
-        props: data.reader,
-        parameters: pullRequestParameters,
-      });
+      [
+        AIRunOutputReadFilter.getReadableRunsSql({
+          key: `"AIAgentTaskPullRequest"."aiRunId"`,
+          props: data.reader,
+          parameters: pullRequestParameters,
+        }),
+        AIRunOutputReadFilter.getCarriedRecordsSql({
+          alias: "AIAgentTaskPullRequest",
+          props: data.reader,
+          parameters: pullRequestParameters,
+        }),
+      ]
+        .filter((condition: string | null): condition is string => {
+          return Boolean(condition);
+        })
+        .join(" AND ") || null;
 
     const [runRows, waitingRows, pullRequestRows]: [
       QueryRows,
