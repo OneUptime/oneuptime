@@ -63,6 +63,15 @@ export interface ComponentProps {
   isTooltipUserContent?: boolean | undefined;
   icon?: IconProp | undefined;
   /*
+   * Whether the icon turns round on a page read right to left (Icon's
+   * isMirroredRightToLeft). Left out, the icons that point along the line
+   * (a chevron, an arrow) do and every other keeps its shape; true turns
+   * one that means "on to what comes next" without being one of them - the
+   * escalation steps' Forward - so it points the way an Arabic or Persian
+   * page's words run; false keeps an arrow that means a fixed side.
+   */
+  isIconMirroredRightToLeft?: boolean | undefined;
+  /*
    * A ring ripples out of the dot, over and over: "this is happening right
    * now". Only while motion is welcome - under prefers-reduced-motion the dot
    * stays still and the text alone says it. Ignored when `icon` replaces the
@@ -192,6 +201,7 @@ const Pill: FunctionComponent<ComponentProps> = (
         {props.icon ? (
           <Icon
             icon={props.icon}
+            isMirroredRightToLeft={props.isIconMirroredRightToLeft}
             thick={ThickProp.Thick}
             className={`h-[1em] w-[1em] flex-shrink-0${
               props.isWrapping ? ` ${WRAPPING_PILL_ICON_CLASS_NAME}` : ""
