@@ -1559,7 +1559,12 @@ describe("Choose which updates a rule posts (#7581)", () => {
     ]);
   });
 
-  test("an on-call policy rule put on Every update is saved without a list, as rules saved before it", async () => {
+  /*
+   * Left out, the server starts a new on-call rule on the key updates, as
+   * the form does (#7971): Every update is saved as null, which asks for
+   * every update and which the server keeps.
+   */
+  test("an on-call policy rule put on Every update is saved with null, so the server keeps every update", async () => {
     const user: UserEvent = await renderForm(
       NotificationRuleEventType.OnCallDutyPolicy,
     );
@@ -1569,7 +1574,10 @@ describe("Choose which updates a rule posts (#7581)", () => {
     await settle();
     await submit(user);
 
-    expect(Object.keys(await createdRule())).not.toContain("updatesToPost");
+    const created: JSONObject = await createdRule();
+
+    expect(Object.keys(created)).toContain("updatesToPost");
+    expect(created["updatesToPost"]).toBeNull();
   });
 
   test("every other new rule still opens on Every update", async () => {

@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "تجزئة المفتاح السري لـ Webhook",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان.",
   "OneUptime is added to your Zoom account": "تمت إضافة OneUptime إلى حسابك على Zoom",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} لبدء مكالمات هذا المشروع في Zoom."
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} لبدء مكالمات هذا المشروع في Zoom.",
+  "Leaves out no policy now.": "لا يستثني أي سياسة الآن.",
+  "Leaves out {{count}} policies now: {{names}}.": "يستثني الآن {{count}} من السياسات: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "يستثني الآن {{count}} سياسة: {{names}}.",
+  "Matches no policy now.": "لا يطابق أي سياسة الآن.",
+  "Matches {{count}} policies now: {{names}}.": "يطابق الآن {{count}} من السياسات: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "يطابق الآن {{count}} سياسة: {{names}}.",
+  "Use On-Call Policy instead": "استخدم «سياسة المناوبة» بدلًا من ذلك"
 }

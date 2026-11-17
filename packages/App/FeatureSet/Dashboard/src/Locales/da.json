@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Der er tilføjet en privat hændelse eller advarsel, du ikke kan åbne, til denne opgave, så dens fremskridt og pull request er skjult.",
   "OneUptime is added to your Zoom account": "OneUptime er føjet til din Zoom-konto",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for at starte dette projekts opkald i Zoom."
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for at starte dette projekts opkald i Zoom.",
+  "Leaves out no policy now.": "Udelader nu ingen politik.",
+  "Leaves out {{count}} policies now: {{names}}.": "Udelader nu {{count}} politikker: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Udelader nu {{count}} politik: {{names}}.",
+  "Matches no policy now.": "Matcher nu ingen politik.",
+  "Matches {{count}} policies now: {{names}}.": "Matcher nu {{count}} politikker: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Matcher nu {{count}} politik: {{names}}.",
+  "Use On-Call Policy instead": "Brug »Vagtpolitik« i stedet"
 }

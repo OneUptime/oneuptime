@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult.",
   "OneUptime is added to your Zoom account": "OneUptime er lagt til i Zoom-kontoen din",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for å starte samtalene til dette prosjektet i Zoom."
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} for å starte samtalene til dette prosjektet i Zoom.",
+  "Leaves out no policy now.": "Utelater nå ingen policy.",
+  "Leaves out {{count}} policies now: {{names}}.": "Utelater nå {{count}} policyer: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Utelater nå {{count}} policy: {{names}}.",
+  "Matches no policy now.": "Samsvarer nå ikke med noen policy.",
+  "Matches {{count}} policies now: {{names}}.": "Samsvarer nå med {{count}} policyer: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Samsvarer nå med {{count}} policy: {{names}}.",
+  "Use On-Call Policy instead": "Bruk «Vaktpolicy» i stedet"
 }

@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Hash de la clave secreta del webhook",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Se añadió a esta tarea un incidente o una alerta privados que no puedes abrir, así que su progreso y su pull request están ocultos.",
   "OneUptime is added to your Zoom account": "OneUptime se añadió a tu cuenta de Zoom",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} para iniciar las llamadas de este proyecto en Zoom."
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} para iniciar las llamadas de este proyecto en Zoom.",
+  "Leaves out no policy now.": "Ahora no deja fuera ninguna política.",
+  "Leaves out {{count}} policies now: {{names}}.": "Deja fuera ahora {{count}} políticas: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Deja fuera ahora {{count}} política: {{names}}.",
+  "Matches no policy now.": "Ahora no coincide con ninguna política.",
+  "Matches {{count}} policies now: {{names}}.": "Coincide ahora con {{count}} políticas: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Coincide ahora con {{count}} política: {{names}}.",
+  "Use On-Call Policy instead": "Usar «Política de guardia» en su lugar"
 }

@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Hash della chiave segreta webhook",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "A questa attività è stato aggiunto un incidente o un avviso privato che non puoi aprire, quindi il suo avanzamento e la sua pull request sono nascosti.",
   "OneUptime is added to your Zoom account": "OneUptime è stato aggiunto al tuo account Zoom",
-  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} per avviare le chiamate di questo progetto in Zoom."
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} per avviare le chiamate di questo progetto in Zoom.",
+  "Leaves out no policy now.": "Ora non esclude nessuna policy.",
+  "Leaves out {{count}} policies now: {{names}}.": "Ora esclude {{count}} policy: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Ora esclude {{count}} policy: {{names}}.",
+  "Matches no policy now.": "Ora non corrisponde a nessuna policy.",
+  "Matches {{count}} policies now: {{names}}.": "Ora corrisponde a {{count}} policy: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Ora corrisponde a {{count}} policy: {{names}}.",
+  "Use On-Call Policy instead": "Usa invece «Policy di reperibilità»"
 }

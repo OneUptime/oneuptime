@@ -56526,5 +56526,12 @@
   "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश",
   "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "इस कार्य में ऐसी निजी घटना या अलर्ट जोड़ा गया है जिसे आप नहीं खोल सकते, इसलिए इसकी प्रगति और पुल रिक्वेस्ट छिपी हुई हैं।",
   "OneUptime is added to your Zoom account": "OneUptime आपके Zoom खाते में जोड़ दिया गया है",
-  "{{connectZoom}} to start this project's calls in Zoom.": "इस प्रोजेक्ट की कॉल Zoom में शुरू करने के लिए {{connectZoom}}।"
+  "{{connectZoom}} to start this project's calls in Zoom.": "इस प्रोजेक्ट की कॉल Zoom में शुरू करने के लिए {{connectZoom}}।",
+  "Leaves out no policy now.": "अभी कोई नीति नहीं छोड़ता।",
+  "Leaves out {{count}} policies now: {{names}}.": "अभी {{count}} नीतियों को छोड़ देता है: {{names}}।",
+  "Leaves out {{count}} policies now: {{names}}._one": "अभी {{count}} नीति को छोड़ देता है: {{names}}।",
+  "Matches no policy now.": "अभी किसी नीति से मेल नहीं खाता।",
+  "Matches {{count}} policies now: {{names}}.": "अभी {{count}} नीतियों से मेल खाता है: {{names}}।",
+  "Matches {{count}} policies now: {{names}}._one": "अभी {{count}} नीति से मेल खाता है: {{names}}।",
+  "Use On-Call Policy instead": "इसके बजाय “ऑन-कॉल नीति” का उपयोग करें"
 }

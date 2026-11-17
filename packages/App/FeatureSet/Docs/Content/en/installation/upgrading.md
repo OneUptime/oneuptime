@@ -304,6 +304,17 @@ alerts.
   reads an encrypted address or credential as a broken one, so its sends and
   polls fail until it is replaced, and what it saves meanwhile is stored as
   written until it is next saved.
+- **A new on-call rule made through the API or with Terraform starts on Key
+  updates only.** A Slack, Microsoft Teams or Mattermost notification rule for
+  on-call policies started on who is on call now and when nobody is only when
+  it was made on its rules page; one made through the API or with Terraform
+  without `updatesToPost` posted every update. Now it starts on
+  `["OnCallNow", "NobodyOnCall"]` there too, and an edit that leaves
+  `updatesToPost` out keeps the updates the rule posts, so a Terraform
+  configuration that never sets it does not turn a rule to every update at
+  its next change. Rules that exist are not changed. To post every update from
+  a new rule, send `"updatesToPost": null`. See
+  [On-call messages](/docs/workspace-connections/slack#on-call-messages).
 :::
 
 ## Upgrading from OneUptime 14 → 15
