@@ -1,6 +1,7 @@
 import Encryption from "Common/Server/Utils/Encryption";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
+import { JSONObject } from "Common/Types/JSON";
 import EncryptColumnInPlace, {
   EncryptColumnPass,
   ModelRepository,
@@ -687,5 +688,69 @@ describe("EncryptColumnInPlace's pass", () => {
       isCutShort: false,
     });
     expect(await Encryption.decrypt(table.rows[2]!.value!)).toBe(keyOf(3));
+  });
+
+  /*
+   * A JSON column's read takes encrypted rows too - only its fields say -
+   * so an install that ran the migration in place reads page after page of
+   * rows with nothing to write: the deadline stops it there all the same.
+   */
+  test("a JSON column's pass stops at the deadline between pages too, though nothing it read was left to write", async () => {
+    const deadline: JobDeadline = new JobDeadline();
+    const rows: Array<{ _id: string; snmpConfigs: Array<JSONObject> }> = [];
+
+    for (let index: number = 1; index <= 3; index++) {
+      rows.push({
+        _id: idOf(index),
+        snmpConfigs: [
+          { communityString: await Encryption.encrypt(`community-${index}`) },
+        ],
+      });
+    }
+
+    const calls: Array<QueryCall> = [];
+    const repository: ModelRepository = {
+      metadata: { tableName: "NetworkDeviceDiscoveryScan" },
+      manager: {
+        query: async (
+          sql: string,
+          params: Array<unknown> = [],
+        ): Promise<unknown> => {
+          calls.push({ sql, params });
+
+          if (!SELECT_START.test(sql)) {
+            throw new Error(`unexpected statement: ${sql}`);
+          }
+
+          const afterId: string | undefined =
+            params.length > 0 ? String(params[0]) : undefined;
+          const limit: number = Number(LIMIT_CLAUSE.exec(sql)?.[1] || "0");
+
+          // The time limit runs out as the first page is read.
+          deadline.end(new Error("the run's time limit"));
+
+          return rows
+            .filter((row: { _id: string }): boolean => {
+              return afterId === undefined || row._id > afterId;
+            })
+            .slice(0, limit);
+        },
+      },
+    } as unknown as ModelRepository;
+
+    expect(
+      await EncryptColumnInPlace.encrypt({
+        migrationName: "TestJob",
+        target: {
+          kind: "network device discovery scan",
+          repository: repository,
+          column: "snmpConfigs",
+          jsonFields: ["communityString"],
+        },
+        pageSize: 2,
+        deadline: deadline,
+      }),
+    ).toEqual({ read: 0, written: 0, failed: 0, isCutShort: true });
+    expect(calls).toHaveLength(1);
   });
 });

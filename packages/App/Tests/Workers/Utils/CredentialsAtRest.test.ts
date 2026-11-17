@@ -7,8 +7,9 @@ import CredentialsAtRest, {
 } from "../../../FeatureSet/Workers/Utils/CredentialsAtRest";
 import DataMigrations from "../../../FeatureSet/Workers/DataMigrations/Index";
 import MaskWebhookAddressesInLogs from "../../../FeatureSet/Workers/DataMigrations/MaskWebhookAddressesInLogs";
-import {
+import EncryptColumnInPlace, {
   ColumnToEncrypt,
+  EncryptColumnPass,
   ModelRepository,
 } from "../../../FeatureSet/Workers/Utils/EncryptColumnInPlace";
 import AllModelTypes from "Common/Models/DatabaseModels/Index";
@@ -53,10 +54,12 @@ import {
  *   - on an install that ran the migration when it still encrypted at once,
  *     its pass comes at once and encrypts only what is left: no ciphertext
  *     is encrypted twice;
- *   - a value it cannot write, a page it cannot read, a run's deadline:
- *     nothing recorded, and the next run goes on;
+ *   - a value it cannot write, a page it cannot read, a run's deadline
+ *     (before a group's pass, or before a column of it is read): nothing
+ *     recorded, and the next run goes on;
  *   - its groups are every data migration that encrypted in place, each
- *     column of them one its model keeps encrypted;
+ *     one's pass over every column of its migration, and each column one
+ *     its model keeps encrypted;
  *   - the job is registered, every 15 minutes and at startup.
  */
 
@@ -90,6 +93,8 @@ interface Table {
   rows: Array<Row>;
   statements: Array<{ sql: string; params: Array<unknown> }>;
   failWriteFor: Set<string>;
+  // Whether a page's read fails, as a lost connection's would.
+  failRead: boolean;
   // Run when a page has been read, before its rows are written.
   afterRead: (() => void) | null;
   repository: ModelRepository;
@@ -111,6 +116,7 @@ function makeTable(rows: Array<Row>): Table {
     }),
     statements: [],
     failWriteFor: new Set<string>(),
+    failRead: false,
     afterRead: null,
     repository: undefined as unknown as ModelRepository,
   };
@@ -125,6 +131,10 @@ function makeTable(rows: Array<Row>): Table {
     table.statements.push({ sql: sql, params: [...params] });
 
     if (SELECT_START.test(sql)) {
+      if (table.failRead) {
+        throw new Error("the connection was lost");
+      }
+
       const prefix: string = String(params[0]).replace(/%$/, "");
       const afterId: string | undefined =
         params.length > 1 ? String(params[1]) : undefined;
@@ -370,6 +380,31 @@ describe("a run, for one data migration's credentials", () => {
     );
   });
 
+  test("a page it cannot read is not recorded as protected, though it read no value", async () => {
+    recorded.set(MIGRATION, UPGRADED_AT);
+    const table: Table = makeTable([{ _id: idOf(1), secret: secretOf(1) }]);
+    table.failRead = true;
+
+    for (let run: number = 0; run < 2; run++) {
+      expect(await runAt(table, A_DAY_LATER)).toBe(
+        CredentialsAtRestOutcome.NotDoneYet,
+      );
+    }
+
+    expect(recorded.has(getProtectedMarkerName(MIGRATION))).toBe(false);
+    expect(table.rows[0]!.secret).toBe(secretOf(1));
+
+    table.failRead = false;
+
+    expect(await runAt(table, A_DAY_LATER)).toBe(
+      CredentialsAtRestOutcome.NotDoneYet,
+    );
+    expect(Encryption.looksEncrypted(table.rows[0]!.secret!)).toBe(true);
+    expect(await runAt(table, A_DAY_LATER)).toBe(
+      CredentialsAtRestOutcome.Protected,
+    );
+  });
+
   test("a run whose deadline has passed changes nothing and records nothing", async () => {
     recorded.set(MIGRATION, UPGRADED_AT);
     const table: Table = makeTable([{ _id: idOf(1), secret: secretOf(1) }]);
@@ -382,6 +417,86 @@ describe("a run, for one data migration's credentials", () => {
     );
     expect(table.statements).toHaveLength(0);
     expect(recorded.has(getProtectedMarkerName(MIGRATION))).toBe(false);
+  });
+
+  test("a run whose deadline has passed starts no group's pass, whatever the pass would make of it", async () => {
+    recorded.set(MIGRATION, UPGRADED_AT);
+    const deadline: JobDeadline = new JobDeadline();
+    const pass: jest.Mock<CredentialsAtRestGroup["pass"]> = jest.fn<
+      CredentialsAtRestGroup["pass"]
+    >(async () => {
+      return { isDone: true, written: 0 };
+    });
+
+    deadline.end(new Error("the run's time limit"));
+
+    expect(
+      await CredentialsAtRest.runGroup({
+        runner: runner,
+        now: A_DAY_LATER,
+        deadline: deadline,
+        group: {
+          migrationName: MIGRATION,
+          description: "some credentials",
+          pass: pass,
+        },
+      }),
+    ).toBe(CredentialsAtRestOutcome.NotDoneYet);
+    expect(pass).not.toHaveBeenCalled();
+    expect(recorded.has(getProtectedMarkerName(MIGRATION))).toBe(false);
+  });
+
+  test("a deadline that passes before a column is read leaves the group not done, though no column read held a value", async () => {
+    recorded.set(MIGRATION, UPGRADED_AT);
+    // The first column holds only a ciphertext: its read finds nothing.
+    const first: Table = makeTable([
+      { _id: idOf(1), secret: await Encryption.encrypt(secretOf(1)) },
+    ]);
+    // The second still holds a value as written.
+    const second: Table = makeTable([{ _id: idOf(2), secret: secretOf(2) }]);
+    const deadline: JobDeadline = new JobDeadline();
+
+    // The time limit runs out as the first column's page is read.
+    first.afterRead = (): void => {
+      deadline.end(new Error("the run's time limit"));
+    };
+
+    const group: CredentialsAtRestGroup = CredentialsAtRest.columnsGroup({
+      migrationName: MIGRATION,
+      description: "some credentials",
+      getTargets: (): Array<ColumnToEncrypt> => {
+        return [
+          { kind: "credential", repository: first.repository, column: COLUMN },
+          {
+            kind: "credential",
+            repository: second.repository,
+            column: COLUMN,
+          },
+        ];
+      },
+    });
+
+    expect(
+      await CredentialsAtRest.runGroup({
+        runner: runner,
+        now: A_DAY_LATER,
+        deadline: deadline,
+        group: group,
+      }),
+    ).toBe(CredentialsAtRestOutcome.NotDoneYet);
+    expect(recorded.has(getProtectedMarkerName(MIGRATION))).toBe(false);
+    expect(second.statements).toHaveLength(0);
+    expect(second.rows[0]!.secret).toBe(secretOf(2));
+
+    // The next run, with time to go, reads the second column.
+    expect(
+      await CredentialsAtRest.runGroup({
+        runner: runner,
+        now: A_DAY_LATER,
+        group: group,
+      }),
+    ).toBe(CredentialsAtRestOutcome.NotDoneYet);
+    expect(Encryption.looksEncrypted(second.rows[0]!.secret!)).toBe(true);
   });
 
   test("a pass cut short by the deadline is not done: what it wrote stays, the next run goes on", async () => {
@@ -554,7 +669,8 @@ describe("the groups", () => {
     }
   });
 
-  test("every column one encrypts is one its model keeps encrypted, a JSON one by its model's fields", () => {
+  // Each service's repository, as a table name and a query that finds nothing.
+  function mockRepositories(): void {
     jest
       .spyOn(DatabaseService.prototype, "getRepository")
       .mockImplementation(function (this: DatabaseService<DatabaseBaseModel>) {
@@ -567,6 +683,61 @@ describe("the groups", () => {
           },
         } as never;
       });
+  }
+
+  function columnsOf(targets: Array<ColumnToEncrypt>): Array<string> {
+    return targets.map((target: ColumnToEncrypt): string => {
+      return `${
+        (target.repository as unknown as { metadata: { tableName: string } })
+          .metadata.tableName
+      }.${target.column}${target.jsonFields ? ` (${target.jsonFields.join(", ")})` : ""}`;
+    });
+  }
+
+  test("each one's pass goes over every column its data migration names, in order", async () => {
+    mockRepositories();
+
+    let passed: Array<ColumnToEncrypt> = [];
+
+    jest
+      .spyOn(EncryptColumnInPlace, "encrypt")
+      .mockImplementation(async (data: { target: ColumnToEncrypt }) => {
+        passed.push(data.target);
+        return {
+          read: 0,
+          written: 0,
+          failed: 0,
+          isCutShort: false,
+        } as EncryptColumnPass;
+      });
+
+    for (const group of groups) {
+      if (group.migrationName === "MaskWebhookAddressesInLogs") {
+        continue;
+      }
+
+      const migration: { getTargets: () => Array<ColumnToEncrypt> } =
+        DataMigrations.find((candidate: { name: string }): boolean => {
+          return candidate.name === group.migrationName;
+        })!.constructor as unknown as {
+          getTargets: () => Array<ColumnToEncrypt>;
+        };
+
+      passed = [];
+
+      expect(await group.pass({ startedAt: UPGRADED_AT })).toEqual({
+        isDone: true,
+        written: 0,
+      });
+      expect([group.migrationName, columnsOf(passed)]).toEqual([
+        group.migrationName,
+        columnsOf(migration.getTargets()),
+      ]);
+    }
+  });
+
+  test("every column one encrypts is one its model keeps encrypted, a JSON one by its model's fields", () => {
+    mockRepositories();
 
     const modelsByTable: Map<string, DatabaseBaseModel> = new Map();
 
