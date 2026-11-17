@@ -375,6 +375,7 @@ const AlertPrivacyRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Alert Privacy Rules"
         tabs={[
           {
             name: "Alert Rules",

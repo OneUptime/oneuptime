@@ -377,6 +377,7 @@ const IncidentPrivacyRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Incident Privacy Rules"
         tabs={[
           {
             name: "Incident Rules",

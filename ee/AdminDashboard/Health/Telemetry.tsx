@@ -36,6 +36,7 @@ const HealthTelemetryContent: FunctionComponent = (): ReactElement => {
 
   return (
     <Tabs
+      label="Telemetry"
       tabs={tabs}
       onTabChange={() => {
         // Each tab owns its own loading; nothing to coordinate here.

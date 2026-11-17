@@ -500,7 +500,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Node" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

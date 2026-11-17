@@ -300,6 +300,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                   description={t("subscribe.sms.description")}
                 >
                   <Tabs
+                    label={t("subscribe.sms.title")}
                     tabs={[
                       {
                         name: t("subscribe.newSubscription"),

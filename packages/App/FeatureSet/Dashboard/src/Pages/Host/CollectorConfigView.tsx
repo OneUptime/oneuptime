@@ -632,7 +632,12 @@ const CollectorConfigView: FunctionComponent<
        * The tab row wraps on a phone, so Versions is never out of sight
        * past the edge of the screen.
        */}
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs
+        label="Collector Config"
+        tabs={tabs}
+        wrap={true}
+        onTabChange={() => {}}
+      />
 
       <ModelDelete
         modelType={HostCollectorConfig}

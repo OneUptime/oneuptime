@@ -110,6 +110,7 @@ const StatusPageSingleSignOn: FunctionComponent<PageComponentProps> = (
     >
       <div data-testid={STATUS_PAGE_SINGLE_SIGN_ON_TABS_TEST_ID}>
         <Tabs
+          label="SSO"
           tabs={tabs}
           initialTabName={
             STATUS_PAGE_SINGLE_SIGN_ON_TAB_NAMES[requestedProtocol]

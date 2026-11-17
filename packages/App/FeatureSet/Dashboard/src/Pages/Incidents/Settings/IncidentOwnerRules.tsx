@@ -420,6 +420,7 @@ const IncidentOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Incident Owner Rules"
         tabs={[
           {
             name: "Incident Rules",

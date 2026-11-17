@@ -96,6 +96,7 @@ const MonitorMetrics: FunctionComponent<
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       <Tabs
+        label="Metrics"
         tabs={tabs}
         onTabChange={(tab: Tab) => {
           setCurrentTab(tab);

@@ -465,6 +465,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
        * the edge of the screen.
        */}
       <Tabs
+        label="Host"
         key={tabsKey}
         tabs={tabs}
         initialTabName={initialTabName}

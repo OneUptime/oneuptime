@@ -391,7 +391,7 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="DeploymentConfig" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterDeploymentConfigDetail;

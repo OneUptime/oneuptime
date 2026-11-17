@@ -73,6 +73,7 @@ const InfrastructureMonitorSetup: FunctionComponent<ComponentProps> = (
       >
         <div data-testid="infrastructure-monitor-more-fields">
           <Tabs
+            label="Metric"
             tabs={tabs}
             onTabChange={() => {}}
             wrap={true}
