@@ -9,6 +9,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import { CARRIED_RECORD_COLUMNS } from "../../../Server/Utils/AI/AIRunOutputReadFilter";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -72,6 +73,10 @@ function sqlOf(condition: unknown): string {
 const THROUGH_THE_RUN: RegExp =
   /^\(COLUMN IS NULL OR EXISTS \(SELECT 1 FROM "AIRun" "(aiRun\w+)" WHERE "\1"\."_id" = COLUMN AND /;
 
+// What a pull request a chat opened carries, entry by entry (#9186).
+const WHAT_IT_CARRIES: RegExp =
+  /^\(COLUMN IS NULL OR NOT EXISTS \(SELECT 1 FROM \(SELECT CASE WHEN /;
+
 interface Hooks {
   onBeforeUpdate: (
     updateBy: UpdateBy<AIAgentTaskPullRequest>,
@@ -110,9 +115,14 @@ describe("changing and deleting a pull request", () => {
     >;
 
     expect(Object.keys(query).sort()).toEqual(
-      ["_id", PULL_REQUEST_AI_RUN_KEY].sort(),
+      ["_id", PULL_REQUEST_AI_RUN_KEY, ...CARRIED_RECORD_COLUMNS].sort(),
     );
     expect(sqlOf(query[PULL_REQUEST_AI_RUN_KEY])).toMatch(THROUGH_THE_RUN);
+
+    // And only those whose chat's subject they may read (#9186).
+    for (const column of CARRIED_RECORD_COLUMNS) {
+      expect(sqlOf(query[column])).toMatch(WHAT_IT_CARRIES);
+    }
   });
 
   test("a person's delete reaches only those too", async () => {
@@ -122,13 +132,16 @@ describe("changing and deleting a pull request", () => {
         props: MEMBER,
       } as unknown as DeleteBy<AIAgentTaskPullRequest>);
 
-    expect(
-      sqlOf(
-        (deleted.deleteBy.query as Record<string, unknown>)[
-          PULL_REQUEST_AI_RUN_KEY
-        ],
-      ),
-    ).toMatch(THROUGH_THE_RUN);
+    const query: Record<string, unknown> = deleted.deleteBy.query as Record<
+      string,
+      unknown
+    >;
+
+    expect(sqlOf(query[PULL_REQUEST_AI_RUN_KEY])).toMatch(THROUGH_THE_RUN);
+
+    for (const column of CARRIED_RECORD_COLUMNS) {
+      expect(sqlOf(query[column])).toMatch(WHAT_IT_CARRIES);
+    }
   });
 
   test("OneUptime's own update and delete are not narrowed", async () => {
