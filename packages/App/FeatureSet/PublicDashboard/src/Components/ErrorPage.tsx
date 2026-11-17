@@ -5,7 +5,8 @@ import {
   ERROR_PAGE_TRY_AGAIN_TEST_ID,
 } from "./PublicDashboardCopy";
 import React, { FunctionComponent, ReactElement } from "react";
-import { useTranslation } from "react-i18next";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * On the page's own ground (the body's), the darkest tone on the dark page.
@@ -47,7 +48,7 @@ export interface ComponentProps {
 const ErrorPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8">
@@ -63,19 +64,19 @@ const ErrorPage: FunctionComponent<ComponentProps> = (
           className="mt-4 text-xl font-semibold text-gray-700"
           data-testid={ERROR_PAGE_TITLE_TEST_ID}
         >
-          {t(props.title)}
+          {translator.translateText(props.title)}
         </h1>
         <p
           className="mt-2 text-balance text-sm text-gray-500"
           data-testid={ERROR_PAGE_DESCRIPTION_TEST_ID}
         >
-          {t(props.description)}
+          {translator.translateText(props.description)}
         </p>
         <p
           className="mt-2 text-balance text-sm text-gray-500"
           data-testid={ERROR_PAGE_NEXT_STEP_TEST_ID}
         >
-          {t(props.nextStep)}
+          {translator.translateText(props.nextStep)}
         </p>
         {props.tryAgain ? (
           <div className="mt-6">
@@ -84,7 +85,7 @@ const ErrorPage: FunctionComponent<ComponentProps> = (
               className={BUTTON_CLASS_NAME}
               data-testid={ERROR_PAGE_TRY_AGAIN_TEST_ID}
             >
-              {t(props.tryAgain.text)}
+              {translator.translateText(props.tryAgain.text)}
             </a>
           </div>
         ) : (

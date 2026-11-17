@@ -202,7 +202,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
 
               if (tableCount === 0) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("No tables")}
                   </span>
                 );
@@ -236,7 +236,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
 
               if (oidCount === 0) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("No OIDs yet")}
                   </span>
                 );

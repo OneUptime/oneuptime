@@ -568,7 +568,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       {arch ? (
                         <>
                           {" "}
-                          <span className="font-mono text-gray-400">
+                          <span className="font-mono text-gray-500">
                             {arch}
                           </span>
                         </>

@@ -528,7 +528,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
                 <ResourceHeroDescription
                   text={cluster.description as string | undefined}
                 />
-                <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
+                <div className="mt-1 text-xs text-gray-500">{lastSeenText}</div>
               </div>
             </div>
             <div

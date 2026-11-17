@@ -251,7 +251,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
                       </span>
                     </>
                   ) : (
-                    <span className="font-normal text-gray-400">
+                    <span className="font-normal text-gray-500">
                       {translator.translateText("No issue")}
                     </span>
                   )}

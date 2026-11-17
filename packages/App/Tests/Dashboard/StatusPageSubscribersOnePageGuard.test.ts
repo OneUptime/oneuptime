@@ -160,8 +160,8 @@ describe("one component draws a channel's list, a tab each on one page", () => {
         );
       })
       .filter((file: string): boolean => {
-        return (/<ModelTable<StatusPageSubscriber>/).test(
-          stripComments(fs.readFileSync(file, "utf8")),
+        return stripComments(fs.readFileSync(file, "utf8")).includes(
+          "<ModelTable<StatusPageSubscriber>",
         );
       })
       .map(relativeToRepo);

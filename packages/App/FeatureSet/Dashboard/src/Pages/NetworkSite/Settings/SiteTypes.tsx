@@ -103,7 +103,7 @@ const NetworkSiteTypesPage: FunctionComponent<
             getElement: (item: NetworkSiteType): ReactElement => {
               if (!item.parentNetworkSiteType?.name) {
                 return (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText("Top level")}
                   </span>
                 );

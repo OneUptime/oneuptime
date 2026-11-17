@@ -576,7 +576,7 @@ describe("the threat intel feeds table says whether each feed works", () => {
     expect(mispPolled!.getAttribute("title")).toBeTruthy();
     expect(mispPolled!.getAttribute("title")).not.toBe("25 minutes ago");
     expect(mispMatched).toHaveTextContent("Never");
-    expect(mispMatched!.className).toContain("text-gray-400");
+    expect(mispMatched!.className).toContain("text-gray-500");
 
     expect(cells("Feodo Tracker botnet C2 servers")[1]).toHaveTextContent(
       "6 hours ago",
@@ -741,7 +741,7 @@ describe("the detection rules table says whether each rule works", () => {
       screen.getByTestId("Account locked out"),
     ).getByTestId("relative-time-cell");
     expect(never).toHaveTextContent("Never");
-    expect(never.className).toContain("text-gray-400");
+    expect(never.className).toContain("text-gray-500");
 
     // Sortable still: the column is the rule's lastMatchAt.
     const lastMatch: CapturedColumn | undefined = table(

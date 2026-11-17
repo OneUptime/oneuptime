@@ -275,7 +275,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
           ): ReactElement => {
             return (
               <div key={i} className="text-xs">
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {translator.translateTemplate(LABEL_WITH_COLON, {
                     label: translatableTerm(field.label),
                   })}{" "}
@@ -345,7 +345,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                   <div className="text-sm font-semibold text-gray-900">
                     {String(jobObject["name"] || "unknown")}
                   </div>
-                  <div className="mt-0.5 font-mono text-xs text-gray-400">
+                  <div className="mt-0.5 font-mono text-xs text-gray-500">
                     #{String(jobObject["id"] || "unknown")}
                   </div>
                 </div>
@@ -356,7 +356,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                       toCount(jobObject["attemptsMade"]),
                     )}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     {getValueOrQuietDash(
                       formatTimestamp(jobObject["finishedAt"]),
                       { isSmall: true },
@@ -758,7 +758,7 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                         {renderQueueStatus(queueObject)}
                       </td>
                       <td
-                        className="py-3 px-4 italic text-gray-400"
+                        className="py-3 px-4 italic text-gray-500"
                         colSpan={7}
                       >
                         {translator.translateText(

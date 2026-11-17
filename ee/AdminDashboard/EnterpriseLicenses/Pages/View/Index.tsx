@@ -508,7 +508,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                         "This license has not reported usage yet.",
                       )}
                 </div>
-                <div className="mt-1 text-xs text-gray-400">
+                <div className="mt-1 text-xs text-gray-500">
                   {translator.translatePlural(
                     {
                       one: "Only instances active within the past {{count}} day are included.",
@@ -687,7 +687,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               getElement: (item: EnterpriseLicenseInstance): ReactElement => {
                 if (!item.oneuptimeVersion) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText("Not reported")}
                     </span>
                   );
@@ -715,7 +715,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                     </span>
                     {!isLatestReleaseKnown ? (
                       <span
-                        className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500"
+                        className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-gray-500"
                         title={
                           translator.translateText(
                             "This installation does not know the latest OneUptime release, so it cannot tell whether this instance is behind.",
@@ -725,7 +725,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                         {translator.translateText("Not compared")}
                       </span>
                     ) : isOutdated ? (
-                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-amber-800">
                         {translator.translateText("Outdated")}
                       </span>
                     ) : (
@@ -753,7 +753,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
 
                 if (emails.length === 0) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Not synced yet")}
                     </span>
                   );
@@ -791,7 +791,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
 
                 if (!lastCommunicatedAt) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Never communicated")}
                     </span>
                   );
@@ -817,7 +817,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                       )}
                     </div>
                     {isInactive ? (
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500">
                         {translator.translateText(
                           "Inactive — not counted towards seats",
                         )}
