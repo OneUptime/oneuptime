@@ -19,7 +19,10 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
-import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import {
+  ServerSendingChannel,
+  ServerSendingFailureScope,
+} from "Common/Types/ServerSending/ServerSendingStatus";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import ServerSendingOutcomes, {
   ServerSendingOutcome,
@@ -279,7 +282,11 @@ describe("the server's own mail server", () => {
 
     expect(sendMail).toHaveBeenCalledTimes(1);
     expect(outcomes).toEqual([
-      { channel: ServerSendingChannel.Email, succeeded: true },
+      {
+        channel: ServerSendingChannel.Email,
+        succeeded: true,
+        recipient: "alice@example.test",
+      },
     ]);
   });
 
@@ -315,7 +322,11 @@ describe("the server's own mail server", () => {
     await MailService.send(message());
 
     expect(outcomes).toEqual([
-      { channel: ServerSendingChannel.Email, succeeded: true },
+      {
+        channel: ServerSendingChannel.Email,
+        succeeded: true,
+        recipient: "alice@example.test",
+      },
     ]);
   });
 
@@ -457,5 +468,133 @@ describe("the server's own settings missing or incomplete", () => {
     );
 
     expect(logRows()).toEqual([]);
+  });
+});
+
+/*
+ * WHOSE FAILURE IT IS (#9217): one recipient's refusal is told as that
+ * recipient's - and still written on the email's log row and the on-call
+ * log - while a failure of the server's settings is the server's.
+ */
+describe("whose failure the server's own mail server says it is", () => {
+  function smtpError(
+    message: string,
+    extra: Record<string, unknown>,
+  ): Error & Record<string, unknown> {
+    return Object.assign(new Error(message), extra);
+  }
+
+  test("the issue: an Amazon SES sandbox refusing one unverified recipient is that recipient's", async () => {
+    const refusal: string =
+      "Message failed: 554 Message rejected: Email address is not verified. The following identities failed the check in region AP-SOUTHEAST-1: alice@example.test";
+
+    sendMail.mockRejectedValue(
+      smtpError(refusal, {
+        code: "EMESSAGE",
+        responseCode: 554,
+        command: "DATA",
+      }),
+    );
+
+    await expect(
+      MailService.send(message(), {
+        projectId: PROJECT_ID,
+        userOnCallLogTimelineId: TIMELINE_ID,
+      }),
+    ).rejects.toThrow("554");
+
+    expect(outcomes).toEqual([
+      {
+        channel: ServerSendingChannel.Email,
+        succeeded: false,
+        reason: refusal,
+        scope: ServerSendingFailureScope.Recipient,
+        recipient: "alice@example.test",
+      },
+    ]);
+
+    // Said where it can be acted on: the email's log row and the on-call log.
+    expect(logRows()[0]).toMatchObject({
+      status: "Error",
+      statusMessage: refusal,
+    });
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+    });
+  });
+
+  test("the sender not verified is the server's", async () => {
+    sendMail.mockRejectedValue(
+      smtpError(
+        "Message failed: 554 Message rejected: Email address is not verified. The following identities failed the check in region US-EAST-1: alerts@example.test",
+        { code: "EMESSAGE", responseCode: 554, command: "DATA" },
+      ),
+    );
+
+    await expect(
+      MailService.send(message(), { projectId: PROJECT_ID }),
+    ).rejects.toThrow("554");
+
+    expect(outcomes[0]).toMatchObject({
+      succeeded: false,
+      scope: ServerSendingFailureScope.Server,
+    });
+  });
+
+  test("a login refused is the server's", async () => {
+    sendMail.mockRejectedValue(
+      smtpError("Invalid login: 535 5.7.8 Authentication failed", {
+        code: "EAUTH",
+        responseCode: 535,
+        command: "AUTH PLAIN",
+      }),
+    );
+
+    await expect(
+      MailService.send(message(), { projectId: PROJECT_ID }),
+    ).rejects.toThrow("535");
+
+    expect(outcomes[0]).toMatchObject({
+      succeeded: false,
+      scope: ServerSendingFailureScope.Server,
+      recipient: "alice@example.test",
+    });
+  });
+
+  test("a mailbox that does not exist, refused at RCPT TO, is that recipient's", async () => {
+    sendMail.mockRejectedValue(
+      smtpError(
+        "Can't send mail - all recipients were rejected: 550 5.1.1 <alice@example.test>: Recipient address rejected: User unknown",
+        { code: "EENVELOPE", responseCode: 550, command: "RCPT TO" },
+      ),
+    );
+
+    await expect(
+      MailService.send(message(), { projectId: PROJECT_ID }),
+    ).rejects.toThrow("550");
+
+    expect(outcomes[0]).toMatchObject({
+      succeeded: false,
+      scope: ServerSendingFailureScope.Recipient,
+      recipient: "alice@example.test",
+    });
+  });
+
+  test("a project's own mail server still says nothing, whoever's it is", async () => {
+    sendMail.mockRejectedValue(
+      smtpError("550 5.1.1 User unknown", {
+        code: "EENVELOPE",
+        command: "RCPT TO",
+      }),
+    );
+
+    await expect(
+      MailService.send(message(), {
+        projectId: PROJECT_ID,
+        emailServer: smtpServer("smtp.project.example.test"),
+      }),
+    ).rejects.toThrow("550");
+
+    expect(outcomes).toEqual([]);
   });
 });

@@ -72,6 +72,7 @@ import NotificationDeliveryMetrics, {
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import EmailSendFailure from "Common/Types/Email/EmailSendFailure";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -1626,6 +1627,13 @@ export default class MailService {
      */
     let hasReachedMailService: boolean = false;
 
+    /*
+     * The address it is sent from, once known: what tells an Amazon SES
+     * "not verified" about the sender apart from one about the recipient
+     * (EmailSendFailure).
+     */
+    let sentFrom: string | undefined = undefined;
+
     if (options && options.projectId) {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
@@ -1799,6 +1807,8 @@ export default class MailService {
           emailLog.fromEmail = sendgridConfig.fromEmail;
         }
 
+        sentFrom = sendgridConfig.fromEmail.toString();
+
         const config: SendGridConfig = sendgridConfig;
 
         hasReachedMailService = true;
@@ -1821,7 +1831,10 @@ export default class MailService {
         dispatch.markSucceeded();
 
         // The server's own email went out (ServerSendingStatus).
-        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Email);
+        await ServerSendingOutcomes.recordSucceeded(
+          ServerSendingChannel.Email,
+          mail.toEmail.toString(),
+        );
 
         await this.recordSent({
           emailLog: emailLog,
@@ -1883,6 +1896,8 @@ export default class MailService {
       }
 
       const emailServer: EmailServer = options.emailServer;
+
+      sentFrom = emailServer.fromEmail?.toString();
       const projectId: ObjectID | undefined = options.projectId;
       const timeout: number | undefined = options.timeout;
 
@@ -1923,7 +1938,10 @@ export default class MailService {
 
       // The server's own email went out (ServerSendingStatus).
       if (providerConfig === NotificationProviderConfig.Global) {
-        await ServerSendingOutcomes.recordSucceeded(ServerSendingChannel.Email);
+        await ServerSendingOutcomes.recordSucceeded(
+          ServerSendingChannel.Email,
+          mail.toEmail.toString(),
+        );
       }
 
       await this.recordSent({
@@ -1962,9 +1980,26 @@ export default class MailService {
         hasReachedMailService &&
         providerConfig === NotificationProviderConfig.Global
       ) {
+        /*
+         * Whose problem it is (#9217): one recipient's - an address that
+         * does not exist, one an Amazon SES sandbox has not verified - is
+         * kept with that recipient, and the server's email is not said to
+         * fail for it; the settings', the connection's or the sender's is.
+         */
+        const recipient: string = mail.toEmail.toString();
+
         await ServerSendingOutcomes.recordFailed(
           ServerSendingChannel.Email,
           statusMessage,
+          {
+            scope: EmailSendFailure.classify(
+              EmailSendFailure.readError(err, {
+                fromEmail: sentFrom,
+                toEmail: recipient,
+              }),
+            ),
+            recipient: recipient,
+          },
         );
       }
 
