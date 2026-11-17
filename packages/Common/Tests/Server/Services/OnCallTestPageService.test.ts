@@ -795,7 +795,30 @@ describe("what a test will send, before it is sent", () => {
     expect(fallbackRead).not.toHaveBeenCalled();
   });
 
-  test("its cost counts the texts and calls it sends", async () => {
+  test("its cost counts the texts and calls it sends - never a call the project switched off, which sends nothing (#7529)", async () => {
+    const preview: OnCallTestPagePreview =
+      await OnCallTestPageService.getPreview({
+        projectId: PROJECT,
+        callerUserId: ANA,
+        recordKind: OnCallTestPageRecordKind.Incident,
+        severityId: SEVERITY,
+      });
+
+    // Calls are off in this project: Ana's call is listed, warned of, and not counted.
+    expect(preview.cost.smsCount).toBe(1);
+    expect(preview.cost.callCount).toBe(0);
+    expect(preview.cost.paidCallCount).toBe(0);
+  });
+
+  test("with calls on, the same call is counted", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+      disableOnCallNotificationFallback: false,
+    } as never);
+
     const preview: OnCallTestPagePreview =
       await OnCallTestPageService.getPreview({
         projectId: PROJECT,
@@ -806,6 +829,59 @@ describe("what a test will send, before it is sent", () => {
 
     expect(preview.cost.smsCount).toBe(1);
     expect(preview.cost.callCount).toBe(1);
+  });
+
+  test("the project's switches are read once for the preview: its cost reads the ones its warnings read", async () => {
+    const projectRead: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    projectRead.mockClear();
+
+    await OnCallTestPageService.getPreview({
+      projectId: PROJECT,
+      callerUserId: ANA,
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityId: SEVERITY,
+    });
+
+    expect(projectRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("a cost asked for on its own reads the project's switches itself", async () => {
+    const [cost]: Array<OnCallTestPagePreview["cost"]> =
+      await OnCallTestPageService.getCosts({
+        projectId: PROJECT,
+        peopleOfEach: [
+          [
+            {
+              userId: ANA.toString(),
+              userName: "Ana Lopez",
+              methods: [
+                {
+                  channel: OnCallPageChannel.Call,
+                  notifyAfterMinutes: 0,
+                  isVerified: true,
+                  canAcknowledge: true,
+                },
+                {
+                  channel: OnCallPageChannel.SMS,
+                  notifyAfterMinutes: 0,
+                  isVerified: true,
+                  canAcknowledge: true,
+                },
+              ],
+              hasNoRule: false,
+              isOptedOut: false,
+              warnings: [],
+            },
+          ],
+        ],
+      });
+
+    expect(cost!.callCount).toBe(0);
+    expect(cost!.smsCount).toBe(1);
   });
 });
 
@@ -1643,7 +1719,7 @@ describe("the result's words, from the records", () => {
     ).toBe(OnCallTestPageStepStatus.Paged);
   });
 
-  test("a push can't be acknowledged from, and a skipped message says where it is fixed", () => {
+  test("a push can be acknowledged from - the On-Call app's Acknowledge test page (#7014) - and a skipped message says where it is fixed", () => {
     const push: UserOnCallLogTimeline = {
       id: new ObjectID("7e5ae000-0000-4000-8000-000000000501"),
       userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000502"),
@@ -1657,7 +1733,7 @@ describe("the result's words, from the records", () => {
     expect(toDelivery({ delivery: push, isDelivered: false })).toMatchObject({
       channel: OnCallPageChannel.Push,
       address: "Pixel",
-      canAcknowledge: false,
+      canAcknowledge: true,
       fix: OnCallTestPageFix.NotificationMethods,
       sentAt: "2026-11-11T09:00:00.000Z",
       // Its line as a code (#7260): a phone's app, not a browser.

@@ -26,6 +26,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import { OnCallTestPageAnswer } from "../../../Server/Utils/OnCall/OnCallTestPageAcknowledge";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -391,6 +392,141 @@ describe("GET /result/:executionLogId", () => {
       props: props,
     });
     expect(sent).toEqual({ executionLogId: RUN.toString() });
+  });
+});
+
+/*
+ * A test page answered from the On-Call app (#7014): the push's message,
+ * named in the path, answered for the signed-in person in their project -
+ * never for anybody the request names.
+ */
+describe("the On-Call app's Acknowledge test page", () => {
+  const MESSAGE: ObjectID = new ObjectID(
+    "7e5af000-0000-4000-8000-000000000071",
+  );
+
+  test.each([
+    ["GET", "/acknowledge/:userOnCallLogTimelineId"],
+    ["POST", "/acknowledge/:userOnCallLogTimelineId"],
+  ])(
+    "%s %s runs behind the user middleware",
+    (method: string, path: string) => {
+      const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+        method,
+        `${ON_CALL_TEST_PAGE_API_PATH}${path}`,
+      );
+
+      expect(route.middleware).toBe(UserMiddleware.getUserMiddleware);
+    },
+  );
+
+  test("POST acknowledges the caller's own message, in the caller's project, and says what it did", async () => {
+    const acknowledge: jest.SpyInstance = jest
+      .spyOn(OnCallTestPageService, "acknowledgeOwnTestPage")
+      .mockResolvedValue(OnCallTestPageAnswer.Acknowledged as never);
+
+    const { thrown, sent } = await call(
+      "POST",
+      "/acknowledge/:userOnCallLogTimelineId",
+      {
+        params: { userOnCallLogTimelineId: MESSAGE.toString() },
+        // A body that names another person or project is not read.
+        body: { userId: BOB.toString(), projectId: OTHER_PROJECT.toString() },
+      },
+    );
+
+    expect(thrown).toBeUndefined();
+    expect(getCaller).toHaveBeenCalledTimes(1);
+    expect(acknowledge).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      userId: ANA,
+      userOnCallLogTimelineId: MESSAGE,
+    });
+    expect(sent).toEqual({ answer: OnCallTestPageAnswer.Acknowledged });
+  });
+
+  test("POST by a caller the test-send rule refuses - a read-only key, no person - acknowledges nothing", async () => {
+    const acknowledge: jest.SpyInstance = jest
+      .spyOn(OnCallTestPageService, "acknowledgeOwnTestPage")
+      .mockResolvedValue(OnCallTestPageAnswer.Acknowledged as never);
+    getCaller.mockRejectedValue(
+      new NotAuthorizedException(
+        ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+      ) as never,
+    );
+
+    const { thrown } = await call(
+      "POST",
+      "/acknowledge/:userOnCallLogTimelineId",
+      { params: { userOnCallLogTimelineId: MESSAGE.toString() } },
+    );
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(acknowledge).not.toHaveBeenCalled();
+  });
+
+  test("POST of a message that is not an id is refused before anything is read", async () => {
+    const acknowledge: jest.SpyInstance = jest.spyOn(
+      OnCallTestPageService,
+      "acknowledgeOwnTestPage",
+    );
+
+    const { thrown } = await call(
+      "POST",
+      "/acknowledge/:userOnCallLogTimelineId",
+      { params: { userOnCallLogTimelineId: "1 OR 1=1" } },
+    );
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect(acknowledge).not.toHaveBeenCalled();
+  });
+
+  test("GET says whether the caller acknowledged it, with the caller's own ids", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue({ userId: ANA, tenantId: PROJECT } as never);
+    jest
+      .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+      .mockReturnValue(PROJECT);
+    const isAnswered: jest.SpyInstance = jest
+      .spyOn(OnCallTestPageService, "isOwnTestPageAnswered")
+      .mockResolvedValue(true as never);
+
+    const { thrown, sent } = await call(
+      "GET",
+      "/acknowledge/:userOnCallLogTimelineId",
+      { params: { userOnCallLogTimelineId: MESSAGE.toString() } },
+    );
+
+    expect(thrown).toBeUndefined();
+    expect(isAnswered).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      userId: ANA,
+      userOnCallLogTimelineId: MESSAGE,
+    });
+    expect(sent).toEqual({ isAcknowledged: true });
+  });
+
+  test("GET by a project key, with no person, reads nothing", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue({ tenantId: PROJECT } as never);
+    jest
+      .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+      .mockReturnValue(PROJECT);
+    const isAnswered: jest.SpyInstance = jest.spyOn(
+      OnCallTestPageService,
+      "isOwnTestPageAnswered",
+    );
+
+    const { thrown } = await call(
+      "GET",
+      "/acknowledge/:userOnCallLogTimelineId",
+      { params: { userOnCallLogTimelineId: MESSAGE.toString() } },
+    );
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect(isAnswered).not.toHaveBeenCalled();
   });
 });
 

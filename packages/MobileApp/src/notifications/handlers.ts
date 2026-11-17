@@ -8,12 +8,16 @@ import {
   getDashboardPageOnServer,
   opensInBrowser,
 } from "./browserDestinations";
-import { getPushPageActionKind } from "./categories";
+import {
+  getPushPageActionKind,
+  isAcknowledgeTestPageAction,
+} from "./categories";
 import {
   isPushPageActionRequest,
   type PushPageActionKind,
   type PushPageActionRequest,
 } from "../oncall/pushPageAction";
+import { TEST_PAGE_ENTITY_TYPE } from "../oncall/testPage";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -39,6 +43,8 @@ interface NotificationData {
   projectId?: string;
   // Acknowledge, Escalate or I've seen it, tapped under a page's push (categories.ts).
   pushAction?: PushPageActionRequest;
+  // Acknowledge test page, tapped under a test page's push: the tap's id.
+  testPageAction?: string;
   [key: string]: any;
 }
 
@@ -74,6 +80,9 @@ function tabRouteForEntityType(entityType: string): string | null {
       return "Inbox";
     case "monitor":
       return "Monitors";
+    // A test page's own screen (oncall/testPage.ts) is On-Call's.
+    case TEST_PAGE_ENTITY_TYPE:
+      return "OnCall";
     default:
       return null;
   }
@@ -181,6 +190,26 @@ function executeNavigation(data: NotificationData): void {
         screen: "MonitorDetail",
         initial: false,
         params: { monitorId: entityId, projectId },
+      });
+      break;
+    case TEST_PAGE_ENTITY_TYPE:
+      /*
+       * A test page (oncall/testPage.ts): about no record. Its id is the
+       * push's own message, which the screen acknowledges it from - once,
+       * when the push was answered with "Acknowledge test page", by that
+       * tap's id. Only a test page's own action ever does: a page's
+       * Acknowledge never reaches here.
+       */
+      navigationRef.navigate("OnCall", {
+        screen: "TestPage",
+        initial: false,
+        params: {
+          messageId: entityId,
+          projectId,
+          ...(typeof data.testPageAction === "string" && data.testPageAction
+            ? { acknowledgeRequestId: data.testPageAction }
+            : {}),
+        },
       });
       break;
     case "scheduled-maintenance":
@@ -354,11 +383,39 @@ export function handleNotificationResponse(
     ...((response.notification.request.content.data as NotificationData) || {}),
   };
   delete data.pushAction;
+  delete data.testPageAction;
+  const isTestPage: boolean = data.entityType === TEST_PAGE_ENTITY_TYPE;
+
+  if (isAcknowledgeTestPageAction(response.actionIdentifier)) {
+    /*
+     * "Acknowledge test page" under a test page's push: its screen opens
+     * and acknowledges it once. Under anything else - which no server
+     * sends - it is a plain tap: a test page's action never acknowledges a
+     * record.
+     */
+    if (!isTestPage) {
+      navigateToEntity(data);
+      return;
+    }
+
+    void dismissAnsweredPage(response.notification.request.identifier);
+    navigateToEntity({
+      ...data,
+      testPageAction: `${response.notification.request.identifier}:${response.actionIdentifier}`,
+    });
+    return;
+  }
+
   const actionKind: PushPageActionKind | null = getPushPageActionKind(
     response.actionIdentifier,
   );
 
-  if (actionKind) {
+  /*
+   * A page's Acknowledge, Escalate or I've seen it on a test page's push -
+   * which no server sends - is a plain tap: the test page's screen opens,
+   * and acknowledges nothing until the reader says so.
+   */
+  if (actionKind && !isTestPage) {
     /*
      * Acknowledge or Escalate under a responder's page's push, or I've seen
      * it under an observer's: the record opens, and its screen does the

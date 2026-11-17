@@ -215,6 +215,10 @@ jest.mock("../screens/OnCallCalendarFeedScreen", () => {
   return mockScreenStub("screen-on-call-calendar-feed");
 });
 
+jest.mock("../screens/TestPageScreen", () => {
+  return mockScreenStub("screen-test-page");
+});
+
 jest.mock("../screens/SettingsScreen", () => {
   return mockScreenStub("screen-settings-list");
 });
@@ -441,6 +445,17 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     testID: "screen-on-call-calendar-feed",
     title: "Calendar Feed",
     keepsIosLargeTitle: true,
+  },
+
+  /*
+   * A test page's own screen (#7014), where its push lands: a sheet, as the
+   * override forms are, so it keeps the compact header.
+   */
+  TestPage: {
+    testID: "screen-test-page",
+    params: { messageId: "message-1", projectId: "project-1" },
+    title: "Test Page",
+    keepsIosLargeTitle: false,
   },
 };
 

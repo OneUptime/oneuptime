@@ -46,6 +46,11 @@ import { toDelivery } from "../../../../Server/Services/OnCallTestPageService";
 import Phone from "../../../../Types/Phone";
 import PushDeviceType from "../../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../../Types/PushNotification/PushNotificationMessage";
+import {
+  ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+  ON_CALL_PAGE_PUSH_CATEGORY,
+  ON_CALL_TEST_PAGE_PUSH_CATEGORY,
+} from "../../../../Types/PushNotification/PushNotificationCategory";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import { WhatsAppTemplateIds } from "../../../../Types/WhatsApp/WhatsAppTemplates";
@@ -803,7 +808,7 @@ describe("call", () => {
 });
 
 describe("push", () => {
-  test("TEST first, with no page buttons, opening the page that acknowledges it", async () => {
+  test("TEST first, with the test page's own button and none of a page's, opening the page that acknowledges it", async () => {
     await deliver({
       pushNotificationLevel: PushNotificationLevel.Standard,
       userPush: {
@@ -827,8 +832,25 @@ describe("push", () => {
       "Nothing is wrong. This tests how Acme pages you for an incident of severity Critical.",
     );
     expect(request.message.url).toBe(ACK_PAGE_URL);
-    // The On-Call app's Acknowledge acknowledges a record: a test has none.
-    expect(request.message.categoryId).toBeUndefined();
+    expect(request.message.clickAction).toBe(ACK_PAGE_URL);
+    /*
+     * The On-Call app draws Acknowledge test page under it (#7014): its own
+     * category, never a real page's, whose Acknowledge acknowledges a
+     * record - and a test has none.
+     */
+    expect(request.message.categoryId).toBe(ON_CALL_TEST_PAGE_PUSH_CATEGORY);
+    expect(request.message.categoryId).not.toBe(ON_CALL_PAGE_PUSH_CATEGORY);
+    expect(request.message.categoryId).not.toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
+    // About no record: the message's own row, which the app acknowledges it from.
+    expect(request.message.data).toEqual({
+      type: "test-page",
+      entityType: "test-page",
+      entityId: createdRows[0]!.id!.toString(),
+      projectId: PROJECT_ID.toString(),
+      url: ACK_PAGE_URL,
+    });
     expect(request.devices[0]!.token).toBe("token");
     expect(String(sendOptions["userOnCallLogTimelineId"])).toBe(
       createdRows[0]!.id!.toString(),
