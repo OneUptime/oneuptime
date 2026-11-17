@@ -225,12 +225,35 @@ describe("GET get-ai-agent-task: the production verdict of a fix", () => {
     expect(JSON.stringify(query["aiRunId"])).not.toContain(
       FIX_RUN_ID.toString(),
     );
-    // Nor whether it is at work.
-    expect(sent[0]!["hasActiveTask"]).toBe(false);
     expect(sent[0]!["aiAgentTask"]).toEqual({
       taskType: CodeFixTaskType.FixException,
       isHidden: true,
     });
+  });
+
+  test("a hidden task at work is not said to be: the legacy answer keeps it too", async () => {
+    (
+      AIRunService.getLatestCodeFixRunPerTaskType as jest.Mock
+    ).mockResolvedValue([
+      { ...run(FIX_RUN_ID, CodeFixTaskType.FixException), status: "Running" },
+      run(TEST_RUN_ID, CodeFixTaskType.WriteRegressionTest),
+    ] as never);
+    hiddenFrom.mockResolvedValue(
+      new Set<string>([FIX_RUN_ID.toString().toLowerCase()]),
+    );
+
+    await getTasks();
+
+    expect(sent[0]!["hasActiveTask"]).toBe(false);
+    expect(JSON.stringify(sent[0])).not.toContain("Running");
+
+    // The same task, not hidden, is at work.
+    sent = [];
+    hiddenFrom.mockResolvedValue(new Set<string>());
+
+    await getTasks();
+
+    expect(sent[0]!["hasActiveTask"]).toBe(true);
   });
 
   test("a verdict that cannot be read costs its line, not the panel", async () => {
