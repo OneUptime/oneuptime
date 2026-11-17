@@ -64,6 +64,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+// The project's people (#7036) are not what this file is about.
+jest.mock("../../../UI/Utils/ProjectMemberSearch", () => {
+  return {
+    __esModule: true,
+    default: {
+      search: (): Promise<Array<unknown>> => {
+        return Promise.resolve([]);
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     __esModule: true,

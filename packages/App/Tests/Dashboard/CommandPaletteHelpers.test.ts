@@ -6,6 +6,7 @@ import {
   buildGlossaryTermDescriptors,
   buildNavigationCommandDescriptors,
   buildProjectSwitchDescriptors,
+  canSearchMembers,
   canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
@@ -651,6 +652,82 @@ describe("the lists' create forms in Search (#7035)", () => {
       // Title Case, the verb first, as a button says it (Docs/ux/README.md#tone-capitals-and-buttons).
       expect(action.title).toMatch(/^(Create|Invite) [A-Z]/);
     }
+  });
+});
+
+/*
+ * The project's people in Search (#7036): only for someone who may see them
+ * as the Users page lists them, by the rule the server holds the search to.
+ */
+describe("canSearchMembers", () => {
+  test.each([
+    [Permission.ProjectOwner],
+    [Permission.ProjectAdmin],
+    [Permission.ProjectMember],
+    [Permission.Viewer],
+    [Permission.ReadProjectTeam],
+    // What every member of a project holds, whatever their role.
+    [Permission.ProjectUser],
+  ])("someone holding %p may", (permission: Permission) => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([permission]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    [[Permission.ReadService]],
+    [[Permission.CreateProjectIncident, Permission.ReadService]],
+    // Their own memberships only: never the project's people.
+    [[Permission.CurrentUser]],
+  ])("someone holding only %p may not", (permissions: Array<Permission>) => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions(permissions),
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("a team's block on what would let them takes it away", () => {
+    expect(
+      canSearchMembers({
+        held: {
+          ...HeldPermissionsUtil.fromPermissions([Permission.ReadProjectTeam]),
+          blocked: [Permission.ReadProjectTeam],
+        },
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("a master admin may; a snapshot not read yet leaves it to the server", () => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([Permission.ReadService]),
+        isMasterAdmin: true,
+      }),
+    ).toBe(true);
+    expect(canSearchMembers({ held: null, isMasterAdmin: false })).toBe(true);
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("the rule is the user column's own read, which leaves out the reader's own memberships", () => {
+    const userColumnReaders: Array<Permission> =
+      new TeamMember().getColumnAccessControlFor("user")?.read || [];
+
+    expect(userColumnReaders).toContain(Permission.ReadProjectTeam);
+    expect(userColumnReaders).not.toContain(Permission.CurrentUser);
+    expect(new TeamMember().getReadPermissions()).toContain(
+      Permission.CurrentUser,
+    );
   });
 });
 

@@ -830,6 +830,42 @@ export function canSearchRecordsOf(data: {
 }
 
 /*
+ * Whether Search looks for the project's people (#7036): only for someone
+ * who may see them as the Users page lists them - the project's memberships
+ * read with each one's user, which needs one of the user column's read
+ * permissions and no team's block on them (the server's own check,
+ * Server/Utils/Team/ProjectMemberSearch, holds anyone else to a refusal). A
+ * master admin sees everyone. A snapshot that holds nothing at all leaves it
+ * to the server, as canSearchRecordsOf does.
+ */
+export function canSearchMembers(data: {
+  // What the user holds, blocks included (PermissionGate.getHeldPermissions).
+  held: HeldPermissions | null;
+  isMasterAdmin: boolean;
+}): boolean {
+  if (data.isMasterAdmin || !data.held || data.held.allowed.length === 0) {
+    return true;
+  }
+
+  const membership: TeamMember = new TeamMember();
+
+  return (
+    canSearchRecordsOf({
+      model: membership,
+      held: data.held,
+      isMasterAdmin: data.isMasterAdmin,
+    }) &&
+    HeldPermissionsUtil.holdsColumnPermission(data.held, {
+      isOperationalResource: membership.isOperationalResource,
+      operation: "read",
+      tablePermissions: membership.getReadPermissions() || [],
+      columnPermissions:
+        membership.getColumnAccessControlFor("user")?.read || [],
+    })
+  );
+}
+
+/*
  * The same rule for the actions the page index offers: Delete Project needs
  * the project's delete permission (Project Owner or Delete Project), or a
  * master admin. A missing permission snapshot hides it.

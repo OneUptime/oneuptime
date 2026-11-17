@@ -19,6 +19,7 @@ import {
   buildPageSearchCommandDescriptors,
   buildProjectSwitchDescriptors,
   canDeleteProject,
+  canSearchMembers,
   canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
@@ -104,6 +105,8 @@ import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
+import ProjectMemberSearch from "Common/UI/Utils/ProjectMemberSearch";
+import { ProjectMemberSearchMatch } from "Common/Types/Team/ProjectMemberSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
 import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
@@ -163,6 +166,8 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  *    on-call policies, and (#6816) services, hosts, on-call schedules,
  *    scheduled maintenance, dashboards, workflows, runbooks and teams - each
  *    kind only where the person may read it,
+ *  - the project's people, by name or email (#7036), each opening their page
+ *    under Users - only for someone who may see them there,
  *  - the person's other projects ("Switch to Acme Staging"),
  *  - How OneUptime works, the Glossary and its terms (#6936),
  *  - "Ask AI: ..." for a question nothing else answers.
@@ -305,6 +310,54 @@ function createEntitySearchProvider<
         // Per-provider isolation: a failed search shows nothing, never an error.
         return [];
       }
+    },
+  };
+}
+
+/*
+ * Search's Users group (#7036): the project's people whose name or email
+ * holds what was typed, as the server finds them for this reader
+ * (ProjectMemberSearch), each opening their page under Users. A person reads
+ * as the Users page shows them: their name, and their email under it - or
+ * their email alone while they have no name. A search that fails or is
+ * refused shows nothing, never an error.
+ */
+export function createMemberSearchProvider(data: {
+  sectionTitle: string;
+  onNavigate: () => void;
+}): PaletteSearchProvider {
+  return {
+    id: "members",
+    title: data.sectionTitle,
+    search: async (searchText: string): Promise<Array<PaletteSearchResult>> => {
+      let members: Array<ProjectMemberSearchMatch> = [];
+
+      try {
+        members = await ProjectMemberSearch.search(searchText);
+      } catch {
+        return [];
+      }
+
+      return members.map(
+        (member: ProjectMemberSearchMatch): PaletteSearchResult => {
+          return {
+            id: `members-${member.userId}`,
+            title: member.name || member.email || "",
+            description: member.name && member.email ? member.email : undefined,
+            icon: IconProp.User,
+            iconColor: "blue",
+            onSelect: () => {
+              data.onNavigate();
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.USER_VIEW] as Route,
+                  { modelId: new ObjectID(member.userId) },
+                ),
+              );
+            },
+          };
+        },
+      );
     },
   };
 }
@@ -1182,6 +1235,24 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           onNavigate: closePalette,
         });
       });
+
+      /*
+       * --- the project's people (#7036), after the kinds of record ------
+       * Only for someone who may see them on the Users page; the server
+       * holds anyone else to a refusal too.
+       */
+      if (
+        !offProducts.includes(ProductKey.Users) &&
+        canSearchMembers({ held: heldPermissions, isMasterAdmin })
+      ) {
+        searchProviders = [
+          ...(searchProviders || []),
+          createMemberSearchProvider({
+            sectionTitle: translator.translateText("Users") || "Users",
+            onNavigate: closePalette,
+          }),
+        ];
+      }
 
       /*
        * --- a record's pages (#9204): "status page sso" ------------------
