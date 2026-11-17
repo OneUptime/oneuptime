@@ -1,8 +1,23 @@
 # Production Readiness Checklist
 
-Work through this list to make your OneUptime installation production-ready.
+Work through this page to make a OneUptime install on Kubernetes ready for real
+traffic. It has three parts, and most installs need only the first.
 
-## Reach people
+| Part | Who needs it |
+| --- | --- |
+| [1. Before you go live](#1-before-you-go-live) | Every install. |
+| [2. Stay up through failures](#2-stay-up-through-failures) | Installs that must keep working while a node is drained, the cluster is upgraded or a database fails. |
+| [3. Scale up](#3-scale-up) | Large installs, once they show one of the signs listed there. Skip it until then. |
+
+The settings on this page go in your `values.yaml`. Apply a change with:
+
+```console
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+## 1. Before you go live
+
+### Reach people
 
 A new server cannot email or page anyone until you set it up. Sign in as the
 first account (the master admin) and open `https://<host>/admin/setup`, the
@@ -17,224 +32,314 @@ with a test for each:
   **Make test call**, or choose **Use email and push only**.
 - [ ] **Choose who can sign up**: turn off **Let people sign up** under
   **Settings > Authentication** once your team has its accounts.
-- [ ] **Serve OneUptime over HTTPS** and set `httpProtocol: https`.
+- [ ] **Serve OneUptime over HTTPS.** Point your domain at the cluster and let
+  the chart get a free Let's Encrypt certificate, which needs ports 80 and 443
+  open to the internet:
+
+  ```yaml
+  host: oneuptime.example.com
+  httpProtocol: https
+  ssl:
+    provision: true # leave this off when your own ingress or load balancer ends TLS
+  ```
 
 The [Self-Hosting Guide](https://oneuptime.com/docs/installation/self-hosting-guide)
 goes through the same steps in order, from installing the chart to a test page.
 
-## Pin versions
+### Keep your keys and passwords
 
-- [ ] **Pin the OneUptime version.** This prevents breaking changes from
-  affecting your install. Check the latest version on the
-  [releases page](https://github.com/OneUptime/oneuptime/releases), then pin it:
+The chart makes OneUptime's keys and the database passwords on the first
+`helm install`, and keeps them on every `helm upgrade`. Set them yourself, so
+that nothing can replace them, and keep a copy outside the cluster.
+
+- [ ] **Set the keys and passwords in your values:**
+
+  ```yaml
+  oneuptimeSecret: <random string>
+  encryptionSecret: <random string>
+  probes:
+    one:
+      key: <random string>
+  postgresql:
+    auth:
+      postgresPassword: <random string>
+  clickhouse:
+    auth:
+      password: <random string>
+  valkey:
+    auth:
+      password: <random string>
+  ```
+
+  **New install:** make each one with `openssl rand -hex 32` before the first
+  `helm install`.
+
+  **Already installed:** copy the values the chart made instead of making new
+  ones. A new `encryptionSecret` cannot read what the old one encrypted, a new
+  PostgreSQL password locks OneUptime out of its database, and a new probe key
+  registers a new probe and leaves your monitors on the old one. Print them
+  with:
+
+  ```bash
+  for name in secrets postgresql clickhouse valkey; do
+    kubectl get secret "my-oneuptime-$name" \
+      -o go-template='{{range $k, $v := .data}}{{$k}}: {{$v | base64decode}}{{"\n"}}{{end}}'
+  done
+  ```
+
+  | Printed as | Set it as |
+  | --- | --- |
+  | `oneuptime-secret` | `oneuptimeSecret` |
+  | `encryption-secret` | `encryptionSecret` |
+  | `register-probe-key` | `registerProbeKey` |
+  | `probe-<name>` | `probes.<name>.key` |
+  | `global-runner-key` | `globalRunner.key` |
+  | `postgres-password` | `postgresql.auth.postgresPassword` |
+  | `admin-password` | `clickhouse.auth.password` |
+  | `valkey-password` | `valkey.auth.password` |
+
+- [ ] **Deploy with Argo CD, Flux, or anything else built on `helm template`?**
+  Then the step above is required: `helm template` makes new random values on
+  every sync. Set `globalRunner.key` too. See
+  [Probe and Runner identity keys](configuration.md#probe-and-runner-identity-keys).
+- [ ] **Keep your values in Git?** Keep the keys in Secrets you manage instead
+  of in the file: `externalSecrets`, `probes.<name>.existingSecret`,
+  `globalRunner.existingSecret`, `clickhouse.auth.existingSecret`,
+  `valkey.auth.existingSecret`, and for web push `vapid.existingSecret.name`.
+  See [Application secrets](configuration.md#application-secrets) and
+  [Web push notifications](configuration.md#web-push-notifications).
+
+### Pin versions
+
+So that an upgrade happens only when you choose it:
+
+- [ ] **Pin the OneUptime version.** The default tag, `release`, follows every
+  release: any pod that restarts can come back on a newer version. Pick the
+  newest version on the
+  [releases page](https://github.com/OneUptime/oneuptime/releases):
 
   ```yaml
   image:
-    tag: <specific-version>
+    tag: <version>
   ```
 
-- [ ] **Pin PostgreSQL, Valkey, and ClickHouse versions too.** Find the running
-  version by describing a pod:
-
-  ```console
-  kubectl describe pod <pod-name>
-  # e.g.
-  kubectl describe pod my-oneuptime-postgresql-0
-  ```
-
-  Then pin them:
+- [ ] **Pin PostgreSQL to the major version it runs now.** Its default tag is
+  `latest`, and a new major version of PostgreSQL cannot start on the old
+  one's data. Find the version with
+  `kubectl exec my-oneuptime-postgresql-0 -- postgres --version`, then pin it:
 
   ```yaml
   postgresql:
     image:
-      tag: <specific-version>
-  valkey:
-    image:
-      tag: <specific-version>
-  clickhouse:
-    image:
-      tag: <specific-version>
+      tag: "<major version>" # such as "17"
   ```
 
-## Data durability
+  With the CloudNativePG operator, pin `postgresOperator.cnpg.imageName`
+  instead. ClickHouse and Valkey need nothing: the chart pins their versions
+  itself (`clickhouse.image.tag`, `valkey.image.tag`).
 
-- [ ] **Enable PVC backups.** This is outside the scope of this chart — refer to
-  your cloud provider's documentation on enabling backups for persistent volumes.
+### Back up your data
 
-- [ ] **Use database high availability.** For production, run PostgreSQL and
-  ClickHouse under their bundled operators instead of the single, standalone
-  built-ins. Set `postgresOperator.cnpg.enabled: true` (CloudNativePG — streaming
-  replication and automatic failover) and `clickhouseOperator.altinity.enabled:
-  true` (Altinity — replication, sharding, and declarative lifecycle management).
-  See [Operator-managed PostgreSQL](databases.md#operator-managed-high-availability)
-  and [Operator-managed ClickHouse](databases.md#operator-managed-high-availability-1)
-  for full configuration. Enabling an operator bootstraps a fresh, empty
-  cluster — if you already run a standalone database, follow the migration
-  runbooks ([PostgreSQL](../../../Docs/MigratePostgresStandaloneToOperator.md),
-  [ClickHouse](../../../Docs/MigrateClickhouseStandaloneToOperator.md)) to move
-  your data first.
+- [ ] **Back up PostgreSQL and ClickHouse to storage outside the cluster.** On
+  the Enterprise Edition, turn on scheduled backups in the Admin Dashboard: see
+  [Backups](https://oneuptime.com/docs/installation/backups). Otherwise, use
+  your cloud provider's backups of the persistent volumes, or the CloudNativePG
+  operator's [volume snapshot backups](databases.md#operator-managed-high-availability).
+  Keep your keys (above) with the backups: what OneUptime encrypted cannot be
+  read with a different `encryptionSecret`.
 
-## Background jobs & scaling
+### Stay current
 
-- [ ] **Enable the dedicated worker deployment** so background jobs (telemetry
-  ingestion, notifications, incident/alert processing, workflows) run in their
-  own pods instead of competing with API requests on the shared event loop. Set
-  `worker.enabled: true` — the `app` pods then stop consuming queues and the
-  worker drains them. The worker becomes REQUIRED for all background work, so
-  keep `worker.keda.minReplicas >= 1`, and set
-  `app.keda.targetCPUUtilizationPercentage` (with `app.resources.requests.cpu`)
-  so the API tier still autoscales once its queue-size trigger is disabled.
+- [ ] **Update OneUptime at least once a week.** We release updates every day.
+  Read the [release notes](https://github.com/OneUptime/oneuptime/releases) and
+  the [upgrade notes](upgrade-notes.md), set `image.tag` to the new version,
+  then:
 
-- [ ] **Size the Postgres connections.** Every `app`, `worker` and `nginx` pod
-  opens up to `DATABASE_MAX_OPEN_CONNECTIONS` connections (50 by default; set
-  `deployment.databaseMaxOpenConnections`, or `<service>.databaseMaxOpenConnections`
-  for one service). Keep the sum over every replica - at the most each
-  autoscaler allows - below PostgreSQL's `max_connections` (the chart's own
-  PostgreSQL ships 500), or put PgBouncer in front (below). Inside a pod,
-  background work gets bounded shares of that pool, so sign-ins and dashboards
-  always find a connection however busy the jobs and probes are: probe
-  scheduling (every request a probe makes for work - monitors, network
-  devices, discovery scans, VMware and OpenStack collections and the rest -
-  and their pending counts) runs at most a fifth of the pool at once,
-  half of that for one probe (`app.probeSchedulingMaxConcurrentRequests`), and
-  the queue jobs an `app` pod runs while `worker.enabled` is false hold at most
-  the pool less a fifth kept for requests and less probe scheduling's share
-  (`app.databaseMaxQueueJobConnections`) - 10 and 30 of 50, leaving 10 that
-  only requests use. A probe answered busy claims nothing and asks again at
-  its next tick. If the app logs say probe scheduling is at its limit, or
-  queue jobs fail with "timeout exceeded when trying to connect ...
-  DATABASE_MAX_QUEUE_JOB_CONNECTIONS", the database is slower than the load:
-  on a large install enable the worker deployment above (worker pods serve no
-  requests, so their jobs keep the whole pool), and raise the pool together
-  with `max_connections`. See **How a pod shares its connections** in
-  [Postgres.md](../../../Docs/Postgres.md).
+  ```console
+  helm repo update
+  helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+  ```
 
-- [ ] **Decide where KEDA comes from before the first install.** `keda.enabled`
-  renders the chart's `ScaledObject`s; `keda.install` decides whether the chart
-  also installs the operator, and follows `keda.enabled` unless you set it. On a
-  cluster where a platform team already runs KEDA, set `keda.install: false` —
-  installing a second operator collides on cluster-scoped objects the existing
-  release owns. On a cluster with no KEDA, the first install needs one extra
-  bootstrap pass, because the bundled operator's CRDs have to reach the cluster
-  before the `ScaledObject`s can. Both paths are in
-  [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md).
+- [ ] **After each upgrade, check that the database migrations finished.** They
+  run in a Job. New pods wait, unready, until the migrations they need are
+  done, while the old pods keep serving:
 
-- [ ] **Size ClickHouse insert concurrency when scaling telemetry ingest
-  workers.** Every telemetry-ingesting pod runs a fan-in writer that batches
-  all telemetry ClickHouse inserts into a handful of large INSERTs, so worker
-  replicas are safe to scale horizontally — ClickHouse sees a few big inserts
-  per pod instead of one per request. The knob that matters fleet-wide is
-  `worker.telemetryFanInMaxConcurrentInserts` (default 4): total ClickHouse
-  insert concurrency = worker replicas ×
-  `TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS`. Keep that product under roughly
-  60% of ClickHouse `max_concurrent_queries` (default 100) so reads and
-  background merges still get query slots — e.g. at the defaults, stay at or
-  below ~15 telemetry-ingesting replicas, or lower the per-pod insert cap as
-  you add replicas. Batch size and flush latency are tunable via
-  `worker.telemetryFanInMaxBatchRows` / `worker.telemetryFanInMaxWaitMs`, and
-  the per-pod ClickHouse pools via `worker.clickhouseMaxOpenConnections` /
-  `worker.clickhouseIngestMaxOpenConnections` (the same keys exist under
-  `app:` for setups that run ingestion on the app pods). Telemetry inserts
-  are fire-and-forget async inserts by default (ClickHouse owns flushing;
-  a ClickHouse crash between buffer-accept and flush can lose that buffer) —
-  set `telemetryWaitForAsyncInsert: true` if you want every ack to wait for
-  the durable flush instead, and account for each in-flight insert then
-  holding a ClickHouse query slot until its buffer flushes.
+  ```console
+  kubectl get jobs -l app.kubernetes.io/component=migrate
+  ```
 
-- [ ] **Enable the telemetry-writer tier before the worker fleet outgrows the
-  sizing rule above.** With `telemetryWriter.enabled: true`, worker and app
-  pods stop inserting telemetry into ClickHouse themselves and ship their
-  batched inserts (cluster-key authenticated HTTP, idempotent retries,
-  end-to-end acks) to a dedicated fixed-size deployment that owns
-  all telemetry insert concurrency. ClickHouse then sees
-  `telemetryWriter.replicaCount × telemetryWriter.telemetryFanInMaxConcurrentInserts`
-  concurrent inserts — a constant — so worker replicas can autoscale WITHOUT
-  limit; the replicas × inserts rule above moves from the (elastic) worker
-  fleet to the (fixed) writer tier. Size the writer tier against ClickHouse
-  capacity: keep its product under ~60% of `max_concurrent_queries`, and
-  never autoscale it on queue depth — when it saturates it sheds load with
-  429, workers back off and retry, and the backlog collects in the BullMQ
-  queue where the worker KEDA scaler (not ClickHouse) absorbs it. Two
-  opt-in autoscalers exist for the tier itself, both bounded by
-  `maxReplicas` (keep `maxReplicas × telemetryFanInMaxConcurrentInserts`
-  inside the ClickHouse budget): `telemetryWriter.autoscaling` (plain
-  CPU/memory HPA; requires `telemetryWriter.resources.requests`) and
-  `telemetryWriter.keda` (scales on the tier-wide shed rate — sustained
-  429s while ClickHouse is healthy are the honest "tier too small" signal,
-  exported at `/metrics/telemetry-writer-shed-rate` from a Valkey-backed
-  counter). Writer-pod memory
-  is bounded by `telemetryWriter.maxInflightRequests`; raise pod resources
-  together with it. If individual telemetry rows are very large (multi-KB log
-  bodies), lower `worker.telemetryFanInMaxBatchRows` so a shipped batch stays
-  well under the 50 MB internal request-body limit.
+  New pods that restart every 15 minutes mean the Job has not finished: read
+  its logs with `kubectl logs -l app.kubernetes.io/component=migrate`. See
+  [New pods and pending schema migrations](../../../Docs/Postgres.md#new-pods-and-pending-schema-migrations).
 
-- [ ] **Put PgBouncer in front of PostgreSQL** if you autoscale workers (KEDA) or
-  use a connection-limited managed/external PostgreSQL — it keeps a connection
-  storm (for example, many worker pods booting at once) from exhausting the
-  database. Set `pgbouncer.enabled: true`. It runs in `transaction` pool mode by
-  default (the largest connection reduction), which is safe because migrations
-  run in a dedicated Job (`migrate.enabled`, on by default) instead of on the
-  pooled pods. Keep `pgbouncer.defaultPoolSize` and `pgbouncer.maxDbConnections`
-  below your PostgreSQL `max_connections`. For an external/managed PostgreSQL,
-  point `externalPostgres.host`/`.port` at the database and enable the pooler —
-  or point them at your provider's own pooled endpoint (RDS Proxy, Neon
-  `-pooler`, Supabase Supavisor) instead. See **Connection pooling with
-  PgBouncer** in [Postgres.md](../../../Docs/Postgres.md).
+## 2. Stay up through failures
 
-- [ ] **Confirm the database migration Job is healthy.** With `migrate.enabled:
-  true` (the default), schema and data migrations run once per release in a
-  dedicated Job rather than on every pod. By default it runs **asynchronously**
-  (`migrate.hook: false`) so `helm` never blocks on it, and each new pod waits
-  at boot, unready, until the schema migrations its code needs are applied
-  (`migrate.runtimeWaitTimeoutSeconds`, 15 minutes) while the old pods keep
-  serving — so keep your migrations backward-compatible. A brand-new install
-  works the same way: the pods wait for the Job to create the schema. Set
-  `migrate.hook: true` to make `helm upgrade` itself wait for the Job (with a
-  `--timeout` sized for your migrations). For a fleet of more than three
-  replicas, consider `deployment.updateStrategy.rollingUpdate.maxUnavailable: 0`
-  so the rollout does not take old pods away while the new ones wait. Pods
-  restarting every 15 minutes during a deploy mean the Job has not finished:
-  check it with `kubectl get jobs -l app.kubernetes.io/component=migrate` and
-  its logs. See **New pods and pending schema migrations** in
-  [Postgres.md](../../../Docs/Postgres.md).
+The chart runs one copy of each service and each database. Draining a node or
+upgrading the cluster stops a service until its pod starts again elsewhere, and
+a database that fails stops OneUptime until the database is back.
 
-## Availability
+- [ ] **Run two or more copies of `nginx` and `app`** (and `worker`, if you
+  turned it on), **and turn on Pod Disruption Budgets**, so a node drain or a
+  cluster upgrade never takes every copy down at once:
 
-- [ ] **Enable Pod Disruption Budgets** for the stateless tier and scale those
-  services to more than one replica. PDBs (`podDisruptionBudget.enabled: true`,
-  off by default; defaults to `maxUnavailable: 1` once enabled) stop a node drain
-  or cluster upgrade from evicting every replica of a service at once. They only
-  help once a service runs multiple replicas, so set `<service>.replicaCount > 1`
-  (or enable `autoscaling` / KEDA with `minReplicas >= 2`) for the services you
-  need to stay available — e.g. `nginx` (ingress) and `app` (API). The
-  single-replica databases are intentionally excluded; for database HA use the
-  bundled operators (above).
-- [ ] **Check that each service's replicas run on different nodes.**
-  `deployment.spreadReplicasAcrossNodes` (on by default) strongly prefers a
-  different node for each replica, but it is a preference: give the cluster at
-  least two nodes with room, and after a rollout check with `kubectl get pods
-  -o wide` that no service has every replica on one node. On a multi-zone
-  cluster, add a zone rule through `topologySpreadConstraints` — see
+  ```yaml
+  nginx:
+    replicaCount: 2
+  app:
+    replicaCount: 2
+  podDisruptionBudget:
+    enabled: true # at most one pod of each service down at a time
+  ```
+
+  With autoscaling or KEDA on a service, set its `minReplicas` to 2 instead.
+  More than three copies of a service? Also set
+  `deployment.updateStrategy.rollingUpdate.maxUnavailable: 0`, so an upgrade
+  keeps the old pods serving while the new ones wait for the database
+  migrations.
+
+- [ ] **Check that the copies run on different nodes.** The chart asks
+  Kubernetes to spread them (`deployment.spreadReplicasAcrossNodes`, on by
+  default), but only as a preference. Give the cluster at least two nodes with
+  room, and after a rollout check with `kubectl get pods -o wide` that no
+  service has every copy on one node. On a cluster across zones, add a zone
+  rule: see
   [Spreading replicas across nodes](configuration.md#spreading-replicas-across-nodes).
 
-## Secrets
+- [ ] **Run PostgreSQL and ClickHouse with replicas and automatic failover**,
+  under the operators the chart bundles, instead of the single built-in
+  databases:
 
-- [ ] **Use static database passwords** for Valkey, ClickHouse, and PostgreSQL.
-- [ ] **Set `oneuptimeSecret` and `encryptionSecret`** (or configure the
-  `externalSecrets` section) to long random strings. Use a password generator.
-- [ ] **Set `probes.<key>.key`** to a long random string to secure your probes.
-- [ ] **Pin probe and Runner identity keys** if you deploy with Argo CD, Flux, or
-  anything else built on `helm template`. Set `probes.<key>.key` / `globalRunner.key`,
-  or point `probes.<key>.existingSecret` / `globalRunner.existingSecret` at Secrets
-  you manage. A chart-generated identity key is re-randomised on every render, which
-  silently re-registers the probe and leaves its monitors pointing at an orphan. See
-  [Configuration](configuration.md#probe-and-runner-identity-keys).
-- [ ] **Keep the VAPID private key in a Secret you manage** if you use web push
-  and keep your values in Git: point `vapid.existingSecret.name` at it instead
-  of setting `vapid.privateKey`. See
-  [Configuration](configuration.md#web-push-notifications).
+  ```yaml
+  postgresOperator:
+    cnpg:
+      enabled: true
+      instances: 3 # one primary and two standbys
+  clickhouseOperator:
+    altinity:
+      enabled: true
+      cluster:
+        replicasCount: 2 # two copies of the data
+  ```
 
-## Stay current
+  Read [Operator-managed PostgreSQL](databases.md#operator-managed-high-availability)
+  and [Operator-managed ClickHouse](databases.md#operator-managed-high-availability-1)
+  before you turn them on. An operator starts a new, empty database, so an
+  install that already has data moves it first with the runbooks
+  ([PostgreSQL](../../../Docs/MigratePostgresStandaloneToOperator.md),
+  [ClickHouse](../../../Docs/MigrateClickhouseStandaloneToOperator.md)), and
+  the first install of CloudNativePG needs
+  [its CRDs in place first](../../../Docs/Postgres.md#first-install-with-the-operator-enabled-crds-must-exist-first).
 
-- [ ] **Update OneUptime regularly.** We release updates every day; we recommend
-  updating at least once a week for production installs.
+## 3. Scale up
+
+Skip this part until your install shows one of these signs:
+
+| You see | Do this |
+| --- | --- |
+| Sign-ins and dashboards slow down while telemetry or other background work is busy | [Run background jobs in their own pods](#run-background-jobs-in-their-own-pods) |
+| The app logs `Probe scheduling is at its limit`, or queue jobs fail with `timeout exceeded when trying to connect` | [Run background jobs in their own pods](#run-background-jobs-in-their-own-pods), then [size the Postgres connections](#size-the-postgres-connections) |
+| PostgreSQL refuses connections with `sorry, too many clients already` | [Size the Postgres connections](#size-the-postgres-connections) |
+| You want pods to scale with the work waiting for them | [Autoscale with KEDA](#autoscale-with-keda) |
+| ClickHouse refuses queries with `TOO_MANY_SIMULTANEOUS_QUERIES` | [Keep ClickHouse inserts in budget](#keep-clickhouse-inserts-in-budget) |
+
+### Run background jobs in their own pods
+
+By default the `app` pods serve requests and also run the background jobs:
+telemetry ingestion, notifications, incident and alert processing, and
+workflows. Give the jobs pods of their own, so they never slow down requests:
+
+```yaml
+worker:
+  enabled: true
+```
+
+The `app` pods then stop running jobs, and the worker runs all of them, so
+never let it scale to zero. With KEDA, keep `worker.keda.minReplicas` at 1 or
+more, and give the `app` pods a CPU target
+(`app.keda.targetCPUUtilizationPercentage`, with `app.resources.requests.cpu`):
+they no longer scale on the queue.
+
+### Size the Postgres connections
+
+Every `app`, `worker`, `nginx` and telemetry writer pod opens up to 50
+connections to PostgreSQL (`deployment.databaseMaxOpenConnections`). Add that
+up over every pod, at the most each autoscaler allows, and keep the total below
+PostgreSQL's `max_connections`: 500 for the chart's own PostgreSQL, which ten
+pods already reach. When it does not fit:
+
+- **Put PgBouncer in front of PostgreSQL.** Do this once you autoscale workers,
+  or with a managed PostgreSQL that limits connections, so many pods starting
+  at once cannot use up the database:
+
+  ```yaml
+  pgbouncer:
+    enabled: true
+  ```
+
+  Keep `pgbouncer.defaultPoolSize` and `pgbouncer.maxDbConnections` below
+  PostgreSQL's `max_connections`. With a managed PostgreSQL, you can point
+  `externalPostgres.host` at your provider's pooled endpoint (RDS Proxy, Neon
+  `-pooler`, Supabase Supavisor) instead.
+- **Or raise `max_connections`**: see
+  [Increasing max_connections](../../../Docs/Postgres.md#increasing-max_connections-for-postgres).
+
+If the app logs `Probe scheduling is at its limit`, or queue jobs fail with
+`timeout exceeded when trying to connect`, the database is slower than the
+load. Run background jobs in their own pods (above): worker pods serve no
+requests, so their jobs keep the whole pool. Then raise the pool together with
+`max_connections`. How a pod shares its pool between requests, jobs and probes:
+[How a pod shares its connections](../../../Docs/Postgres.md#how-a-pod-shares-its-connections).
+PgBouncer's pool modes and TLS:
+[Connection pooling with PgBouncer](../../../Docs/Postgres.md#connection-pooling-with-pgbouncer-optional).
+
+### Autoscale with KEDA
+
+KEDA scales pods on the work waiting for them: the `app` and `worker` pods on
+the queue of background jobs, and each probe on the checks it has waiting. Turn
+it on, and opt each service in:
+
+```yaml
+keda:
+  enabled: true
+worker:
+  keda:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10 # count these when you size the Postgres connections
+```
+
+Decide where KEDA comes from before the first install that turns it on:
+
+- **Your cluster already runs KEDA:** also set `keda.install: false`. A second
+  KEDA collides with the one your platform team runs.
+- **It does not:** the chart installs KEDA, but the first install needs one
+  extra pass to put KEDA's CRDs in place first.
+
+Both, step by step:
+[KEDA Ops](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md).
+
+### Keep ClickHouse inserts in budget
+
+Every pod that ingests telemetry (the `worker` pods, or the `app` pods while
+`worker.enabled` is false) sends ClickHouse at most 4 inserts at once
+(`worker.telemetryFanInMaxConcurrentInserts`), so ClickHouse sees *pods × 4*.
+Keep that under about 60% of ClickHouse's `max_concurrent_queries`, so reads
+and merges still get a turn. The chart's own ClickHouse allows 10000. A
+ClickHouse of your own that allows 100 fits about 15 such pods.
+
+To grow past that, lower `telemetryFanInMaxConcurrentInserts` as you add pods,
+or turn on the telemetry writer tier: a fixed-size deployment that makes the
+telemetry inserts for every other pod, so ClickHouse sees the same number of
+inserts however many workers run:
+
+```yaml
+telemetryWriter:
+  enabled: true
+  replicaCount: 2 # ClickHouse then sees at most 2 × 4 inserts at once
+```
+
+Size the writer tier to what ClickHouse can take, with the same 60% rule, and
+never scale it on the queue: when it is full it answers 429, the workers retry,
+and the backlog waits in the queue. Batch sizes, the tier's own autoscaling and
+memory, and how durable an insert is:
+[Sizing ClickHouse inserts](configuration.md#sizing-clickhouse-inserts).

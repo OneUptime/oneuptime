@@ -26,6 +26,7 @@ import {
   chooseDropdownOption,
   clearDropdown,
   closeDropdown,
+  getShownDropdownPlaceholder,
   getShownDropdownValue,
   listDropdownOptions,
   openDropdown,
@@ -173,12 +174,14 @@ describe.each([false, true])(
   (isPublic: boolean) => {
     test("shows names with leading zeroes and sends stable label IDs without a labels request", () => {
       const state: SelectorState = renderSelector(isPublic, labelVariable());
-      expect(screen.getByRole("option", { name: "0660" })).toHaveValue(FIRST);
-      fireEvent.change(screen.getByRole("combobox", { name: "Unit" }), {
-        target: { value: FIRST },
-      });
+      chooseDropdownOption(
+        screen.getByRole("combobox", { name: "Unit" }),
+        "0660",
+      );
       expect(state.variable.selectedValue).toBe(FIRST);
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(FIRST);
+      expect(
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("0660");
       expect(getListMock).not.toHaveBeenCalled();
       expect(telemetryMock).not.toHaveBeenCalled();
       expect(publicPostMock).not.toHaveBeenCalled();
@@ -192,10 +195,12 @@ describe.each([false, true])(
       const select: HTMLElement = screen.getByRole("combobox", {
         name: "Unit",
       });
-      expect(select).toHaveValue(FIRST);
-      fireEvent.change(select, { target: { value: "" } });
+      expect(getShownDropdownValue(select)).toBe("0660");
+      // "All" is the placeholder: clearing the picker picks it.
+      clearDropdown(select);
       expect(state.variable.selectedValue).toBe("");
-      expect(select).toHaveValue("");
+      expect(getShownDropdownValue(select)).toBeNull();
+      expect(getShownDropdownPlaceholder(select)).toBe("All");
     });
 
     test("multiple choices and Clear update selectedValues and remove stale scalar state", () => {
@@ -225,11 +230,8 @@ describe.each([false, true])(
     test("a deleted or disallowed selected ID is visibly unavailable instead of appearing as All", () => {
       renderSelector(isPublic, labelVariable({ selectedValue: "missing" }));
       expect(
-        screen.getByRole("option", { name: "Unavailable label" }),
-      ).toHaveValue("missing");
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(
-        "missing",
-      );
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("Unavailable label");
     });
 
     test("limits explicit multi-selection to 100 labels", () => {
@@ -425,7 +427,9 @@ describe("Project Labels variable authoring", () => {
         );
       cleanup();
       renderSelector(isPublic, restored!);
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(FIRST);
+      expect(
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("0660");
       expect(DashboardVariableInterpolation.resolveValue(restored!)).toEqual({
         scalar: FIRST,
       });

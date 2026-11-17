@@ -83,6 +83,27 @@ jest.mock(
   },
 );
 
+/*
+ * Who is told, as each monitor's "When this goes down" reads it (#7164):
+ * WhoIsToldService's answer, by monitor id. Unread (rejected) until a test
+ * hands one, so the summary says what the counts say.
+ */
+const getForMonitor: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getForMonitor: (...args: Array<unknown>) => {
+          return getForMonitor(...args);
+        },
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation",
   () => {
@@ -217,9 +238,21 @@ import TelemetryGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Compo
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import { TELEMETRY_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetup";
 import { getTelemetryRecommendations } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi";
+import { getTelemetryWhoIsToldWords } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetryWhoIsTold";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { MonitorRecommendation } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  WhoIsToldBreakKind,
+  WhoIsToldEvent,
+  WhoIsToldFix,
+  WhoIsToldOwnersSource,
+  WhoIsToldResult,
+  makeWhoIsToldBreak,
+} from "../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -335,6 +368,7 @@ beforeEach(() => {
     mayAddEscalationRules: true,
     mayAddRules: true,
   });
+  getForMonitor.mockRejectedValue(new Error("Not read in this test."));
 });
 
 afterEach(() => {
@@ -344,6 +378,7 @@ afterEach(() => {
     mock.mockReset();
   }
   loadWhoIsToldFacts.mockReset();
+  getForMonitor.mockReset();
   sendMock.mockReset();
   window.localStorage.clear();
 });
@@ -679,6 +714,314 @@ describe("the summary", () => {
 
     expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
     expect(stepState("send")).toBe("open");
+  });
+});
+
+/*
+ * WHO IS TOLD, READ FROM THE RECORDS (#7164): the summary asks
+ * WhoIsToldService about each monitor the setup made, and says its answer
+ * in the words the monitor's "When this goes down" card says it, with each
+ * break named once and the page that puts it right - never only the counts.
+ */
+
+// What WhoIsToldService answers for a telemetry monitor that opens an alert.
+const alertAnswer: (data: {
+  monitorId: string;
+  owners?: Array<string>;
+  pages?: string | undefined;
+}) => WhoIsToldResult = (data: {
+  monitorId: string;
+  owners?: Array<string>;
+  pages?: string | undefined;
+}): WhoIsToldResult => {
+  const event: WhoIsToldEvent = {
+    kind: OnCallTestPageRecordKind.Alert,
+    title: "checkout is failing",
+    severityName: "High",
+    owners: {
+      source: WhoIsToldOwnersSource.ProjectOwners,
+      userNames: data.owners || ["Ana Lopez"],
+      teamNames: [],
+    },
+    ownerRules: [],
+    rules: [],
+    policies: data.pages
+      ? [
+          {
+            id: "p1",
+            name: "Default",
+            isHidden: false,
+            isNamedByCriteria: false,
+            ruleIds: ["r1"],
+            levelCount: 1,
+            people: [
+              {
+                userId: "u9",
+                name: data.pages,
+                channels: [OnCallPageChannel.SMS],
+                isFallback: false,
+                isReachable: true,
+              },
+            ],
+            notPaged: [],
+          },
+        ]
+      : [],
+    statusPages: [],
+  };
+
+  return {
+    monitorId: data.monitorId,
+    monitorName: `checkout ${data.monitorId}`,
+    checkedAt: "2026-11-17T10:00:00.000Z",
+    criteria: [{ id: "c1", name: "Errors", events: [event] }],
+    channels: {
+      isBillingEnabled: false,
+      isSmsOn: true,
+      isCallOn: true,
+      isWhatsAppOn: true,
+      isTelegramOn: true,
+      hasOwnTwilioForSms: false,
+      hasOwnTwilioForCalls: false,
+      serverCanSendEmail: true,
+      serverCanSendSms: true,
+      serverCanCall: true,
+    },
+    breaks: data.pages
+      ? []
+      : [
+          makeWhoIsToldBreak({
+            kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+            fix: WhoIsToldFix.AlertOnCallRules,
+            recordKind: OnCallTestPageRecordKind.Alert,
+          }),
+        ],
+  };
+};
+
+const answerFor: (
+  answers: Record<string, WhoIsToldResult | Error>,
+) => (...args: Array<unknown>) => Promise<WhoIsToldResult> = (
+  answers: Record<string, WhoIsToldResult | Error>,
+): ((...args: Array<unknown>) => Promise<WhoIsToldResult>) => {
+  return async (...args: Array<unknown>): Promise<WhoIsToldResult> => {
+    const id: string = (
+      args[0] as { monitorId: ObjectID }
+    ).monitorId.toString();
+    const answer: WhoIsToldResult | Error | undefined = answers[id];
+
+    if (!answer || answer instanceof Error) {
+      throw answer || new Error("No such monitor.");
+    }
+
+    return answer;
+  };
+};
+
+const whoIsToldRow: () => HTMLElement = (): HTMLElement => {
+  return screen.getByTestId("guided-setup-summary-who-is-told");
+};
+
+describe("the summary: who is told, from the records", () => {
+  test("asks WhoIsToldService about every monitor the setup made, and says their shared answer once, in the card's words", async () => {
+    getForMonitor.mockImplementation(
+      answerFor({
+        "mon-1": alertAnswer({ monitorId: "mon-1" }),
+        "mon-2": alertAnswer({ monitorId: "mon-2" }),
+      }),
+    );
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1,mon-2" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who-is-told-words"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      getForMonitor.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as { monitorId: ObjectID }).monitorId.toString();
+      }),
+    ).toEqual(["mon-1", "mon-2"]);
+
+    const lines: Array<HTMLElement> = screen.getAllByTestId(
+      "guided-setup-who-is-told-line",
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent(
+      "OneUptime opens an alert (High). It emails the Project Owners (Ana Lopez). Nobody is paged.",
+    );
+    // Told alike: no monitor is named in the sentence's place.
+    expect(lines[0]).not.toHaveTextContent("checkout mon-1");
+    // Nor the counts' sentence, which said less.
+    expect(whoIsToldRow()).not.toHaveTextContent(
+      TELEMETRY_SETUP_COPY.whoOwners,
+    );
+  });
+
+  test("names the break a telemetry monitor's alert meets - only incidents have on-call rules - once, with Set Up Paging", async () => {
+    getForMonitor.mockImplementation(
+      answerFor({
+        "mon-1": alertAnswer({ monitorId: "mon-1" }),
+        "mon-2": alertAnswer({ monitorId: "mon-2" }),
+        "mon-3": alertAnswer({ monitorId: "mon-3" }),
+      }),
+    );
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1,mon-2,mon-3" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("guided-setup-who-is-told-break"),
+      ).toHaveLength(1);
+    });
+
+    const brk: HTMLElement = screen.getByTestId(
+      "guided-setup-who-is-told-break",
+    );
+    expect(brk).toHaveAttribute(
+      "data-kind",
+      WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+    );
+    expect(brk).toHaveTextContent(
+      "Nobody is paged for this monitor's alerts: only incidents have on-call rules.",
+    );
+    expect(
+      screen.getByTestId("guided-setup-who-is-told-fix"),
+    ).toHaveTextContent("Set Up Paging");
+    expect(screen.getByTestId("guided-setup-who-is-told-fix")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/alerts/settings/on-call-rules`,
+    );
+  });
+
+  test("monitors told otherwise are each named over their own answer", async () => {
+    getForMonitor.mockImplementation(
+      answerFor({
+        "mon-1": alertAnswer({ monitorId: "mon-1", pages: "Ben Ito" }),
+        "mon-2": alertAnswer({ monitorId: "mon-2" }),
+      }),
+    );
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1,mon-2" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("guided-setup-who-is-told-line"),
+      ).toHaveLength(2);
+    });
+
+    const lines: Array<HTMLElement> = screen.getAllByTestId(
+      "guided-setup-who-is-told-line",
+    );
+    expect(lines[0]).toHaveTextContent("checkout mon-1");
+    expect(lines[0]).toHaveTextContent("It pages Ben Ito through Default.");
+    expect(lines[1]).toHaveTextContent("checkout mon-2");
+    expect(lines[1]).toHaveTextContent("Nobody is paged.");
+  });
+
+  test("a monitor that can't be read leaves the others' answer standing", async () => {
+    getForMonitor.mockImplementation(
+      answerFor({
+        "mon-1": new Error("Monitor not found."),
+        "mon-2": alertAnswer({ monitorId: "mon-2" }),
+      }),
+    );
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1,mon-2" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-who-is-told-line"),
+      ).toHaveTextContent("It emails the Project Owners (Ana Lopez).");
+    });
+    expect(
+      screen.queryByTestId("guided-setup-summary-who-is-told-fallback"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("when no monitor's answer can be read, the counts' sentence is said, as before", async () => {
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who-is-told-fallback"),
+      ).toHaveTextContent(TELEMETRY_SETUP_COPY.whoOwners);
+    });
+  });
+
+  test("a setup that made no monitor (Not now) asks nothing, and says the counts' sentence", async () => {
+    keepRun({ serviceId: "svc-new", alertSkipped: true });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who-is-told-fallback"),
+      ).toHaveTextContent(TELEMETRY_SETUP_COPY.whoOwners);
+    });
+    expect(getForMonitor).not.toHaveBeenCalled();
+  });
+
+  test("while the answers come, the row keeps the line's room with a skeleton", async () => {
+    let answer: (result: WhoIsToldResult) => void = (): void => {};
+    getForMonitor.mockImplementation((() => {
+      return new Promise<WhoIsToldResult>(
+        (resolve: (result: WhoIsToldResult) => void) => {
+          answer = resolve;
+        },
+      );
+    }) as unknown as (...args: Array<unknown>) => unknown);
+    keepRun({ serviceId: "svc-new", monitorIds: "mon-1" });
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("guided-setup-summary-who-is-told-loading"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      answer(alertAnswer({ monitorId: "mon-1" }));
+    });
+
+    expect(
+      screen.queryByTestId("guided-setup-summary-who-is-told-loading"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("guided-setup-who-is-told-line"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("getTelemetryWhoIsToldWords", () => {
+  const english: Translator = createTranslator(undefined, "en");
+
+  test("no answer says nothing, for the summary to fall back on the counts", () => {
+    expect(
+      getTelemetryWhoIsToldWords({ answers: [], translator: english }),
+    ).toEqual({ lines: [], breaks: [] });
+  });
+
+  test("a break several monitors meet is said once, from the first monitor met", () => {
+    const words: ReturnType<typeof getTelemetryWhoIsToldWords> =
+      getTelemetryWhoIsToldWords({
+        answers: ["mon-1", "mon-2"].map((id: string) => {
+          return {
+            monitorId: id,
+            monitorName: `checkout ${id}`,
+            result: alertAnswer({ monitorId: id }),
+          };
+        }),
+        translator: english,
+      });
+
+    expect(words.lines).toEqual([
+      {
+        text: "OneUptime opens an alert (High). It emails the Project Owners (Ana Lopez). Nobody is paged.",
+      },
+    ]);
+    expect(words.breaks).toHaveLength(1);
+    expect(words.breaks[0]!.monitorId).toBe("mon-1");
   });
 });
 

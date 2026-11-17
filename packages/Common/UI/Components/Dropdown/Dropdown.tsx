@@ -5,6 +5,7 @@ import Pill from "../Pill/Pill";
 import { PillTone } from "../Pill/PillTone";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
+import { passEscapeOn } from "./DropdownEscape";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
@@ -161,6 +162,13 @@ export function getDropdownOptionText(
 }
 
 export { DROPDOWN_MENU_Z_INDEX };
+
+/*
+ * A compact picker's height (isCompact): a bar's 28px, and 44px under a
+ * finger, WCAG 2.2's comfortable target.
+ */
+export const DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME: string =
+  "!min-h-[28px] [@media(pointer:coarse)]:!min-h-11";
 
 /*
  * What the open menu says when it has nothing to list, in the reader's
@@ -327,6 +335,15 @@ export interface ComponentProps {
    * list stays open, at the same place, for the next one.
    */
   closeMenuOnSelect?: boolean | undefined;
+  /*
+   * The picker of a bar of small controls - a list's rows per page, a
+   * chart's sort, a query builder's field - 28px tall with the bar's small
+   * words, where a 40px field stood taller than every control beside it.
+   * The border, focus ring, menu, search, keyboard and dark look are every
+   * other picker's; under a finger it is 44px tall, as the bar's buttons
+   * are (#9136). Off unless set: a form's field keeps its 40px.
+   */
+  isCompact?: boolean | undefined;
 }
 
 // Whether text names an option of the list, as a typed value would.
@@ -875,6 +892,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // A compact picker's pick is in its bar's small words too (isCompact).
+  const getCompactLabelClassName: (className: string) => string = (
+    className: string,
+  ): string => {
+    return props.isCompact
+      ? className.replace("text-sm", "text-xs")
+      : className;
+  };
+
   const formatDropdownOptionLabel: (
     option: DropdownOption,
     meta: FormatOptionLabelMeta<DropdownOption>,
@@ -915,15 +941,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           <div className="flex min-w-0 max-w-full items-center gap-2">
             {renderOptionColorIndicator(option.color)}
             <span
-              className={
+              className={getCompactLabelClassName(
                 option.isNotFound
                   ? NOT_FOUND_VALUE_LABEL_CLASS_NAME
                   : props.isMultiSelect
                     ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
                     : props.wrapsPickedValue
                       ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
-                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
-              }
+                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
+              )}
               dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
               data-not-found={option.isNotFound ? "true" : undefined}
@@ -1198,6 +1224,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     },
   };
 
+  // A compact picker's words and chevron are the small ones of its bar.
+  const textSizeClassName: string = props.isCompact ? "text-xs" : "text-sm";
+  const indicatorPadding: number = props.isCompact ? 4 : 8;
+
   return (
     <div
       id={props.id}
@@ -1248,10 +1278,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
              * as any other until someone tried it.
              */
             const classes: Array<string> = [
-              "!min-h-[40px] !rounded-lg !border !shadow-sm !transition-all !duration-150",
+              props.isCompact
+                ? DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME
+                : "!min-h-[40px]",
+              "!rounded-lg !border !shadow-sm !transition-all !duration-150",
               state.isFocused
                 ? "!border-indigo-400 !ring-2 !ring-indigo-100"
-                : "!border-gray-300 hover:!border-indigo-300",
+                : state.isDisabled
+                  ? "!border-gray-300"
+                  : "!border-gray-300 hover:!border-indigo-300",
               state.isDisabled
                 ? "!bg-gray-100 !text-gray-400"
                 : "!bg-white !cursor-pointer",
@@ -1264,22 +1299,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             return classes.join(" ");
           },
           valueContainer: () => {
-            return "!gap-2 !px-2";
+            return props.isCompact ? "!gap-2 !px-2 !py-0" : "!gap-2 !px-2";
           },
           placeholder: () => {
-            return "text-sm text-gray-400";
+            return `${textSizeClassName} text-gray-400`;
           },
           input: () => {
-            return "text-sm text-gray-900";
+            return `${textSizeClassName} text-gray-900`;
           },
           singleValue: () => {
-            return "text-sm text-gray-900 font-medium";
+            return `${textSizeClassName} text-gray-900 font-medium`;
           },
           indicatorsContainer: () => {
             return "!gap-1 !px-1";
           },
-          dropdownIndicator: () => {
-            return "text-gray-500 transition-colors duration-150 hover:text-indigo-400";
+          // A locked picker's chevron never lights up: nothing can open it.
+          dropdownIndicator: (state: { isDisabled: boolean }) => {
+            return state.isDisabled
+              ? "text-gray-500"
+              : "text-gray-500 transition-colors duration-150 hover:text-indigo-400";
           },
           clearIndicator: () => {
             return "text-gray-400 transition-colors duration-150 hover:text-red-500";
@@ -1341,7 +1379,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ): CSSObjectWithLabel => {
             return {
               ...provided,
-              padding: 8,
+              padding: indicatorPadding,
             };
           },
           clearIndicator: (
@@ -1349,8 +1387,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ): CSSObjectWithLabel => {
             return {
               ...provided,
-              padding: 8,
+              padding: indicatorPadding,
             };
+          },
+          // A compact picker's search line takes no room of its own.
+          input: (provided: CSSObjectWithLabel): CSSObjectWithLabel => {
+            return props.isCompact
+              ? { ...provided, margin: 0, paddingTop: 0, paddingBottom: 0 }
+              : provided;
           },
           indicatorSeparator: (): CSSObjectWithLabel => {
             return {
@@ -1455,6 +1499,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         isLoading={Boolean(props.isLoading)}
         closeMenuOnSelect={props.closeMenuOnSelect ?? true}
         {...menuMessageProps}
+        onKeyDown={(event: React.KeyboardEvent<HTMLElement>): void => {
+          /*
+           * With its menu closed, Escape is not the picker's: the dialog
+           * around it closes, as it did for a raw <select> (DropdownEscape).
+           */
+          if (
+            event.key === "Escape" &&
+            (event.target as HTMLElement).getAttribute("aria-expanded") !==
+              "true"
+          ) {
+            passEscapeOn(event.nativeEvent);
+          }
+        }}
         onMenuOpen={() => {
           props.onMenuOpen?.();
         }}

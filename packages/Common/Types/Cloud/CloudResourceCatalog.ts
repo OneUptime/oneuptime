@@ -1861,9 +1861,10 @@ export const GCP_MONITORED_RESOURCE_RULES: ReadonlyArray<GcpMonitoredResourceRul
  * ---- Listed only ---------------------------------------------------------
  *
  * Types a cloud connection's inventory lists (CloudInventory) that publish
- * no metrics of their own - the networks other resources run in, which an
- * account's topology draws them inside. No metric rule finds them, so they
- * are kept apart from the lists above, which every rule is held to.
+ * no metrics of their own - the networks and subnets other resources run
+ * in, which an account's topology draws them inside, and the firewall rules
+ * that guard them. No metric rule finds them, so they are kept apart from
+ * the lists above, which every rule is held to.
  */
 export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
   [
@@ -1874,6 +1875,53 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       "VPC Network",
       IAAS,
       C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Subnetwork",
+      "VPC Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Firewall",
+      "VPC Firewall Rule",
+      IAAS,
+      C.Networking,
+    ),
+    // A load balancer's pieces that publish no metrics of their own.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/ForwardingRule",
+      "Forwarding Rule",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendService",
+      "Backend Service",
+      IAAS,
+      C.Networking,
+    ),
+    // A URL map whose load balancer's metrics OneUptime does not read yet.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/UrlMap",
+      "URL Map",
+      IAAS,
+      C.Networking,
+    ) /*
+     * A GKE cluster: its Kubernetes metrics are the Kubernetes product's
+     * (no k8s_ rule above), so the cluster is listed only.
+     */,
+    descriptorOf(
+      CloudProvider.GCP,
+      "container.googleapis.com/Cluster",
+      "GKE Cluster",
+      PAAS,
+      C.Containers,
     ),
   ];
 
@@ -2098,17 +2146,10 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "Microsoft.Compute/snapshots",
       translationKey("Disk Snapshot"),
     ),
-    // Google Cloud: what an instance runs in, and what guards and runs it.
-    namedOnly(
-      CloudProvider.GCP,
-      "compute.googleapis.com/Subnetwork",
-      translationKey("Subnet"),
-    ),
-    namedOnly(
-      CloudProvider.GCP,
-      "compute.googleapis.com/Firewall",
-      translationKey("Firewall Rule"),
-    ),
+    /*
+     * Google Cloud: what an instance is reached at and runs as. Its subnets
+     * and firewall rules are listed (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.GCP,
       "compute.googleapis.com/Address",
@@ -2123,6 +2164,22 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       CloudProvider.GCP,
       "compute.googleapis.com/InstanceGroup",
       translationKey("Instance Group"),
+    ),
+    // What a load balancer's backend services and addresses send to.
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/NetworkEndpointGroup",
+      translationKey("Network Endpoint Group"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendBucket",
+      translationKey("Backend Bucket"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/TargetPool",
+      translationKey("Target Pool"),
     ),
     namedOnly(
       CloudProvider.GCP,

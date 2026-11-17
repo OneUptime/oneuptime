@@ -197,6 +197,8 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 **プロジェクト** にいくつか指定しない限り、組織の接続はその組織のプロジェクトを最大 50 個まで読み取ります。
 
+OneUptime は各プロジェクトの Compute Engine インスタンス、VPC ネットワーク、サブネットとファイアウォール ルール、転送ルールとバックエンド サービスを含むロードバランサ、Cloud Storage バケット、GKE クラスタ、Cloud SQL・Memorystore・Spanner のインスタンス、Cloud Run サービス、Cloud Functions、Pub/Sub のトピックとサブスクリプションを、ラベル、リージョン、ゾーンとともに一覧にします。それらのつながりも記録します。インスタンスが動くサブネットとネットワークと、それに適用されるファイアウォール ルール、各ロードバランサがトラフィックを送る先、各 GKE クラスタのネットワークとノード VM です。Cloud Asset API がオフのプロジェクトも接続され、オンにするコマンドを示す警告が出ます: `gcloud services enable cloudasset.googleapis.com`。
+
 Google Cloud にはプロジェクトのコストを返す API がありません。OneUptime は請求先アカウントの BigQuery へのエクスポートからコストを読み取ります。そのテーブルを **課金エクスポートのテーブル** に指定すれば読み取りが始まります。手順は [クラウドのコストと節約](/docs/telemetry/cloud-costs#google-cloud) を参照してください。
 
 ## データセキュリティ

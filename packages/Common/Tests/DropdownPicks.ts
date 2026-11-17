@@ -71,7 +71,7 @@ export async function listDropdownOptions(
 // Opens the menu and picks the option named `name`.
 export async function pickDropdownOption(
   combobox: HTMLElement,
-  name: string | RegExp,
+  name: string | RegExp | ((accessibleName: string) => boolean),
 ): Promise<void> {
   openDropdown(combobox);
   fireEvent.click(await screen.findByRole("option", { name }));
@@ -111,4 +111,21 @@ export function clearDropdown(combobox: HTMLElement): void {
   }
 
   fireEvent.mouseDown(clear, { button: 0 });
+}
+
+/*
+ * The names of the options the menu lists, read at once (inside the same
+ * act), for a test that cannot wait: opened, read and closed again. An
+ * empty menu reads as an empty list.
+ */
+export function readDropdownOptions(combobox: HTMLElement): Array<string> {
+  openDropdown(combobox);
+  const names: Array<string> = screen
+    .queryAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(combobox);
+
+  return names;
 }

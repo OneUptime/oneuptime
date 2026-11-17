@@ -7,6 +7,7 @@ import {
   MAX_DISCOVERY_READER_NAME_LENGTH,
   NETWORK_DEVICE_DISCOVERED_FIELDS,
   NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS,
+  NETWORK_DEVICE_DISCOVERED_LIST_FIELDS,
   NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS,
   NetworkDeviceDiscoveredDetails,
   NetworkDeviceDiscoveredField,
@@ -14,6 +15,7 @@ import {
   NetworkDeviceDiscoveryReader,
   NetworkDeviceDiscoveryReaderType,
   NetworkDeviceOtherMachineSighting,
+  buildDiscoveredListEntries,
   buildDiscoveredValue,
   buildDiscoverySighting,
   buildOtherMachineSighting,
@@ -61,6 +63,12 @@ const PROBE: NetworkDeviceDiscoveryReader = {
   name: "Frankfurt probe",
 };
 
+const LIST_ROW: NetworkDeviceDiscoveryReader = {
+  type: NetworkDeviceDiscoveryReaderType.DiscoveredDevice,
+  id: "40000000-0000-4000-8000-000000000001",
+  name: "PROFUSION-733451",
+};
+
 const READ_AT: string = "2026-10-23T09:00:00.000Z";
 
 function readerFor(
@@ -71,6 +79,8 @@ function readerFor(
       return ROUTER;
     case NetworkDeviceDiscoveryReaderType.Probe:
       return PROBE;
+    case NetworkDeviceDiscoveryReaderType.DiscoveredDevice:
+      return LIST_ROW;
     default:
       return SCAN;
   }
@@ -94,6 +104,8 @@ const SAMPLE: Readonly<Record<NetworkDeviceDiscoveredField, string>> = {
   [NetworkDeviceDiscoveredField.SerialNumber]: "FOC1932X0K1",
   [NetworkDeviceDiscoveredField.FirmwareVersion]: "15.2(7r)E",
   [NetworkDeviceDiscoveredField.SoftwareVersion]: "15.2(7)E2",
+  [NetworkDeviceDiscoveredField.Vendor]: "Sunnovo International",
+  [NetworkDeviceDiscoveredField.ClientName]: "kitchen-display-04",
 };
 
 function entryOf(
@@ -115,7 +127,7 @@ function entryOf(
 }
 
 describe("the fields, and how each one is read", () => {
-  test("fifteen fields, the five of the SNMP system group first", () => {
+  test("seventeen fields, the five of the SNMP system group first and the list's two last", () => {
     expect([...NETWORK_DEVICE_DISCOVERED_FIELDS]).toEqual([
       "sysName",
       "sysDescr",
@@ -132,15 +144,20 @@ describe("the fields, and how each one is read", () => {
       "serialNumber",
       "firmwareVersion",
       "softwareVersion",
+      "vendor",
+      "clientName",
     ]);
     expect([...NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS]).toEqual(
       NETWORK_DEVICE_DISCOVERED_FIELDS.slice(0, 5),
+    );
+    expect([...NETWORK_DEVICE_DISCOVERED_LIST_FIELDS]).toEqual(
+      NETWORK_DEVICE_DISCOVERED_FIELDS.slice(15),
     );
   });
 
   test("what a host says about its hardware is apart from the system group, whose missing fields are empty", () => {
     expect([...NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS]).toEqual(
-      NETWORK_DEVICE_DISCOVERED_FIELDS.slice(10),
+      NETWORK_DEVICE_DISCOVERED_FIELDS.slice(10, 15),
     );
 
     for (const field of NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS) {
@@ -164,6 +181,16 @@ describe("the fields, and how each one is read", () => {
     [NetworkDeviceDiscoveredField.SerialNumber, "snmp", "discoveryScan"],
     [NetworkDeviceDiscoveredField.FirmwareVersion, "snmp", "discoveryScan"],
     [NetworkDeviceDiscoveredField.SoftwareVersion, "snmp", "discoveryScan"],
+    [
+      NetworkDeviceDiscoveredField.Vendor,
+      "discoveredDeviceList",
+      "discoveredDevice",
+    ],
+    [
+      NetworkDeviceDiscoveredField.ClientName,
+      "discoveredDeviceList",
+      "discoveredDevice",
+    ],
   ])(
     "%s is read by %s, by a %s",
     (
@@ -191,7 +218,7 @@ describe("the fields, and how each one is read", () => {
     expect(DISCOVERED_DETAILS_OTHER_MACHINE_KEY).toBe("otherMachine");
 
     for (const other of [
-      "vendor",
+      "hardwareVendor",
       "hardwareRevision",
       "__proto__",
       "constructor",
@@ -429,6 +456,8 @@ describe("normalizeDiscoveredValue", () => {
       serialNumber: 100,
       firmwareVersion: 100,
       softwareVersion: 100,
+      vendor: 100,
+      clientName: 100,
     });
   });
 });
@@ -977,5 +1006,89 @@ describe("the MAC of a device's own port", () => {
         ownMacAddress: { ...entry, readBy: SCAN },
       }).values.ownMacAddress,
     ).toBeUndefined();
+  });
+});
+
+describe("buildDiscoveredListEntries (issue #9305)", () => {
+  test("a row of the Discovered Devices list gives its maker and client name, read by the row", () => {
+    expect(
+      buildDiscoveredListEntries({
+        reading: {
+          endpointId: LIST_ROW.id,
+          name: "PROFUSION-733451",
+          vendor: " Sunnovo International ",
+          clientName: "kitchen-display-04",
+        },
+        readAt: READ_AT,
+      }),
+    ).toEqual({
+      vendor: {
+        value: "Sunnovo International",
+        method: "discoveredDeviceList",
+        readBy: LIST_ROW,
+        readAt: READ_AT,
+      },
+      clientName: {
+        value: "kitchen-display-04",
+        method: "discoveredDeviceList",
+        readBy: LIST_ROW,
+        readAt: READ_AT,
+      },
+    });
+  });
+
+  test("only what the row has a usable value for", () => {
+    expect(
+      buildDiscoveredListEntries({
+        reading: { endpointId: LIST_ROW.id, vendor: "  ", clientName: "" },
+        readAt: READ_AT,
+      }),
+    ).toEqual({});
+    expect(
+      Object.keys(
+        buildDiscoveredListEntries({
+          reading: { endpointId: LIST_ROW.id, vendor: "Ingenico" },
+          readAt: READ_AT,
+        }),
+      ),
+    ).toEqual(["vendor"]);
+  });
+
+  test("nothing without the row it was read from, or a time", () => {
+    expect(
+      buildDiscoveredListEntries({
+        reading: { endpointId: "", vendor: "Ingenico" },
+        readAt: READ_AT,
+      }),
+    ).toEqual({});
+    expect(
+      buildDiscoveredListEntries({
+        reading: { endpointId: LIST_ROW.id, vendor: "Ingenico" },
+        readAt: "not a time",
+      }),
+    ).toEqual({});
+  });
+
+  test("a stored list entry survives the reader, and one claiming another reader does not", () => {
+    const entries: Record<string, unknown> = buildDiscoveredListEntries({
+      reading: {
+        endpointId: LIST_ROW.id,
+        name: "PROFUSION-733451",
+        vendor: "Sunnovo International",
+      },
+      readAt: READ_AT,
+    });
+
+    expect(sanitizeDiscoveredDetailsOnWrite(entries)).toEqual(entries);
+    expect(
+      sanitizeDiscoveredDetailsOnWrite({
+        vendor: {
+          value: "Sunnovo International",
+          method: "discoveredDeviceList",
+          readBy: SCAN,
+          readAt: READ_AT,
+        },
+      }),
+    ).toBeNull();
   });
 });

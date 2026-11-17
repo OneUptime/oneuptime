@@ -18,7 +18,7 @@ import {
   nextButton,
   nextPage,
   numberedNames,
-  pageSizeSelect,
+  pageSizeShown,
   pagingSummary,
 } from "./TablePagingHarness";
 
@@ -274,7 +274,7 @@ describe.each(PAGES)("paging through the $title page", (page: LogPage) => {
     expect(visibleMessages()).toEqual(THIRTY.slice(25));
     // Not "Showing 6-10 of 30": the five rows here are 26 to 30.
     expect(pagingSummary()).toBe(`Showing 26-30 of 30 ${page.noun}`);
-    expect(pageSizeSelect()).toHaveValue("25");
+    expect(pageSizeShown()).toBe("25");
     expect(nextButton()).toBeDisabled();
   });
 
@@ -282,7 +282,7 @@ describe.each(PAGES)("paging through the $title page", (page: LogPage) => {
     await renderPage();
     await choosePageSize(50);
 
-    expect(pageSizeSelect()).toHaveValue("50");
+    expect(pageSizeShown()).toBe("50");
     // All thirty on one page, not the 25 the page opened with.
     expect(visibleMessages()).toEqual(THIRTY);
     expect(pagingSummary()).toBe(`Showing 1-30 of 30 ${page.noun}`);
@@ -337,7 +337,7 @@ describe.each(PAGES)("paging through the $title page", (page: LogPage) => {
     serve(THIRTY.slice(0, 15));
     await clickCardRefresh();
 
-    expect(pageSizeSelect()).toHaveValue("10");
+    expect(pageSizeShown()).toBe("10");
     expect(visibleMessages()).toEqual(THIRTY.slice(10, 15));
     expect(pagingSummary()).toBe(`Showing 11-15 of 15 ${page.noun}`);
     expect(nextButton()).toBeDisabled();

@@ -676,17 +676,26 @@ function recordsWord(kind: OnCallTestPageRecordKind | undefined): string {
   return kind === OnCallTestPageRecordKind.Alert ? "alerts" : "incidents";
 }
 
-// What a person's problem means, in a clause.
-const PERSON_PROBLEM_CLAUSES: Readonly<Record<WhoIsToldPersonProblem, string>> =
-  {
-    [WhoIsToldPersonProblem.OptedOut]: "opted out of pages of this severity",
-    [WhoIsToldPersonProblem.NoRuleNoFallback]:
-      "has no on-call rule for this severity, and this project does not fall back to verified methods",
-    [WhoIsToldPersonProblem.NoVerifiedMethod]:
-      "has no verified notification method",
-    [WhoIsToldPersonProblem.ChannelsOff]:
-      "is reached only by channels switched off in this project",
-  };
+/*
+ * WHY A PERSON CAN'T BE PAGED, in a clause after their name: "Ana Lopez has
+ * no verified notification method". The words the monitor's "When this goes
+ * down" card says it in (the Dashboard's WhoIsToldWords, "{{name}} has no
+ * verified notification method."), so the server's break sentence, Ask AI's
+ * who_is_told (#7525) and the card say each reason alike -
+ * MonitorWhoIsToldAskAiAgreement holds the three to it. A Record, so a new
+ * problem does not compile until it is worded here.
+ */
+export const WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES: Readonly<
+  Record<WhoIsToldPersonProblem, string>
+> = {
+  [WhoIsToldPersonProblem.OptedOut]: "opted out of pages of this severity",
+  [WhoIsToldPersonProblem.NoRuleNoFallback]:
+    "has no on-call rule for this severity, and this project doesn't fall back to verified methods",
+  [WhoIsToldPersonProblem.NoVerifiedMethod]:
+    "has no verified notification method",
+  [WhoIsToldPersonProblem.ChannelsOff]:
+    "is reached only by channels that are off in this project",
+};
 
 /*
  * A break's sentence, from what it is about. A name the caller may not read
@@ -715,7 +724,7 @@ export function getWhoIsToldBreakMessage(
       return `${policy} reaches nobody right now: its first escalation rule has nobody on call. Add people to it, or put someone on its schedule.`;
     case WhoIsToldBreakKind.PersonUnreachable:
       return `${brk.userName || "Someone this policy pages"} ${
-        PERSON_PROBLEM_CLAUSES[
+        WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES[
           brk.problem || WhoIsToldPersonProblem.NoVerifiedMethod
         ]
       }, so a page won't reach them.`;

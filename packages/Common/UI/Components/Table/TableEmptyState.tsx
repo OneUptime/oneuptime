@@ -260,7 +260,12 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
                    * does not read as the way forward the note under it says
                    * it is not.
                    */
-                  className={`${isLink ? "text-sm font-medium" : ""}${
+                  /*
+                   * A boxed button has no width of its own (#9100's
+                   * BOXED_BUTTON_CLASS_NAME): it fills its phone-wide
+                   * wrapper here, and is as wide as its words from sm up.
+                   */
+                  className={`${isLink ? "text-sm font-medium" : "w-full sm:w-auto"}${
                     action.isLoading ? " cursor-wait [&_svg]:animate-spin" : ""
                   }`}
                   disabled={action.disabled}

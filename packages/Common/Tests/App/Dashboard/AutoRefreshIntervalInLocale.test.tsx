@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
+import { readDropdownOptions } from "../../DropdownPicks";
 import { I18nextProvider } from "react-i18next";
 import { ObjectType } from "../../../Types/JSON";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -225,11 +226,11 @@ const drawControl: (language: string) => Array<string> = (
     </I18nextProvider>,
   );
 
-  return Array.from(
-    (screen.getByRole("combobox") as HTMLSelectElement).options,
-  ).map((option: HTMLOptionElement): string => {
-    return withoutIsolateMarks(option.textContent || "");
-  });
+  return readDropdownOptions(screen.getByRole("combobox")).map(
+    (option: string): string => {
+      return withoutIsolateMarks(option);
+    },
+  );
 };
 
 describe("the resource pages' auto-refresh picker", () => {

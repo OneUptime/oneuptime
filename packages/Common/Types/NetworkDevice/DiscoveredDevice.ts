@@ -79,8 +79,121 @@ export const MAX_DISCOVERED_DEVICE_SEARCH_LENGTH: number = 100;
 // Words of a search, each of which must match: more are ignored.
 export const MAX_DISCOVERED_DEVICE_SEARCH_WORDS: number = 6;
 
+/*
+ * THE LIST'S FILTERS (OneUptime issue #9304): the chips over the table, the
+ * same ones the Devices list draws (the facet bar), each a column and how to
+ * compare it. Every filter must hold, and the search too. The operators are
+ * the chips' own words, so the Dashboard sends a chip as it stands.
+ */
+export enum DiscoveredDeviceFilterField {
+  // The name the list shows: its classification, hostname, address or MAC.
+  Name = "name",
+  IpAddress = "ipAddress",
+  MacAddress = "macAddress",
+  Vendor = "vendor",
+  Hostname = "hostname",
+  Site = "site",
+  // What saw it: a walked switch or router, or a network controller.
+  Source = "source",
+  LastSeen = "lastSeen",
+}
+
+export enum DiscoveredDeviceFilterOperator {
+  Is = "is",
+  IsNot = "is_not",
+  Contains = "contains",
+  NotContains = "not_contains",
+  StartsWith = "starts_with",
+  EndsWith = "ends_with",
+  IsEmpty = "is_empty",
+  IsNotEmpty = "is_not_empty",
+  Before = "before",
+  After = "after",
+  Between = "between",
+}
+
+// The values of the Source filter.
+export enum DiscoveredDeviceSource {
+  Walk = "walk",
+  Controller = "controller",
+}
+
+export const DISCOVERED_DEVICE_TEXT_FILTER_FIELDS: ReadonlyArray<DiscoveredDeviceFilterField> =
+  [
+    DiscoveredDeviceFilterField.Name,
+    DiscoveredDeviceFilterField.IpAddress,
+    DiscoveredDeviceFilterField.MacAddress,
+    DiscoveredDeviceFilterField.Vendor,
+    DiscoveredDeviceFilterField.Hostname,
+  ];
+
+// What each field may be compared by.
+export const DISCOVERED_DEVICE_FILTER_OPERATORS: Readonly<
+  Record<
+    DiscoveredDeviceFilterField,
+    ReadonlyArray<DiscoveredDeviceFilterOperator>
+  >
+> = {
+  [DiscoveredDeviceFilterField.Name]: textOperators(),
+  [DiscoveredDeviceFilterField.IpAddress]: textOperators(),
+  [DiscoveredDeviceFilterField.MacAddress]: textOperators(),
+  [DiscoveredDeviceFilterField.Vendor]: textOperators(),
+  [DiscoveredDeviceFilterField.Hostname]: textOperators(),
+  [DiscoveredDeviceFilterField.Site]: [
+    DiscoveredDeviceFilterOperator.Is,
+    DiscoveredDeviceFilterOperator.IsNot,
+    DiscoveredDeviceFilterOperator.IsEmpty,
+    DiscoveredDeviceFilterOperator.IsNotEmpty,
+  ],
+  [DiscoveredDeviceFilterField.Source]: [DiscoveredDeviceFilterOperator.Is],
+  [DiscoveredDeviceFilterField.LastSeen]: [
+    DiscoveredDeviceFilterOperator.Before,
+    DiscoveredDeviceFilterOperator.After,
+    DiscoveredDeviceFilterOperator.Between,
+  ],
+};
+
+function textOperators(): ReadonlyArray<DiscoveredDeviceFilterOperator> {
+  return [
+    DiscoveredDeviceFilterOperator.Is,
+    DiscoveredDeviceFilterOperator.IsNot,
+    DiscoveredDeviceFilterOperator.Contains,
+    DiscoveredDeviceFilterOperator.NotContains,
+    DiscoveredDeviceFilterOperator.StartsWith,
+    DiscoveredDeviceFilterOperator.EndsWith,
+    DiscoveredDeviceFilterOperator.IsEmpty,
+    DiscoveredDeviceFilterOperator.IsNotEmpty,
+  ];
+}
+
+export interface DiscoveredDeviceFilter {
+  field: DiscoveredDeviceFilterField;
+  operator: DiscoveredDeviceFilterOperator;
+  /*
+   * One typed value for a text field; site ids for Site; sources for
+   * Source; one instant for Before and After, two for Between. None for Is
+   * empty and Is not empty.
+   */
+  values: Array<string>;
+}
+
+// The most filters one list request carries, and values one filter.
+export const MAX_DISCOVERED_DEVICE_FILTERS: number = 20;
+export const MAX_DISCOVERED_DEVICE_FILTER_VALUES: number = 100;
+
+export function isEmptinessOperator(
+  operator: DiscoveredDeviceFilterOperator,
+): boolean {
+  return (
+    operator === DiscoveredDeviceFilterOperator.IsEmpty ||
+    operator === DiscoveredDeviceFilterOperator.IsNotEmpty
+  );
+}
+
 export interface DiscoveredDeviceListRequest {
   search: string;
+  // Left out when none: every filter must hold.
+  filters?: Array<DiscoveredDeviceFilter> | undefined;
   show: DiscoveredDeviceShow;
   // One site's devices only (the site's own page).
   siteId?: string | undefined;
@@ -259,6 +372,14 @@ export function readDiscoveredDeviceListRequest(
     request.show = show as DiscoveredDeviceShow;
   }
 
+  const filters: Array<DiscoveredDeviceFilter> = readDiscoveredDeviceFilters(
+    body["filters"],
+  );
+
+  if (filters.length > 0) {
+    request.filters = filters;
+  }
+
   const siteId: unknown = body["siteId"];
 
   if (siteId !== undefined && siteId !== null && siteId !== "") {
@@ -314,6 +435,169 @@ export function readDiscoveredDeviceListRequest(
   });
 
   return request;
+}
+
+const FILTER_REFUSAL: string =
+  "One of the filters cannot be used. Clear it and pick it again.";
+
+/*
+ * The list's filters as a body carries them, checked: a field and an
+ * operator it may be compared by, with the values that operator needs. A
+ * filter with nothing to compare against yet (a chip whose value is still
+ * being typed) is left out; anything else that is wrong is refused.
+ */
+export function readDiscoveredDeviceFilters(
+  value: unknown,
+): Array<DiscoveredDeviceFilter> {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadDataException(FILTER_REFUSAL);
+  }
+
+  if (value.length > MAX_DISCOVERED_DEVICE_FILTERS) {
+    throw new BadDataException(
+      `Filter by at most ${MAX_DISCOVERED_DEVICE_FILTERS} things at a time.`,
+    );
+  }
+
+  const filters: Array<DiscoveredDeviceFilter> = [];
+
+  for (const item of value) {
+    const raw: Record<string, unknown> = record(item);
+    const field: unknown = raw["field"];
+    const operator: unknown = raw["operator"];
+
+    if (
+      typeof field !== "string" ||
+      !Object.values(DiscoveredDeviceFilterField).includes(
+        field as DiscoveredDeviceFilterField,
+      )
+    ) {
+      throw new BadDataException(FILTER_REFUSAL);
+    }
+
+    const allowed: ReadonlyArray<DiscoveredDeviceFilterOperator> =
+      DISCOVERED_DEVICE_FILTER_OPERATORS[field as DiscoveredDeviceFilterField];
+
+    if (
+      typeof operator !== "string" ||
+      !allowed.includes(operator as DiscoveredDeviceFilterOperator)
+    ) {
+      throw new BadDataException(FILTER_REFUSAL);
+    }
+
+    const rawValues: unknown = raw["values"] ?? [];
+
+    if (
+      !Array.isArray(rawValues) ||
+      rawValues.length > MAX_DISCOVERED_DEVICE_FILTER_VALUES
+    ) {
+      throw new BadDataException(FILTER_REFUSAL);
+    }
+
+    const values: Array<string> = [];
+
+    for (const each of rawValues) {
+      if (typeof each !== "string") {
+        throw new BadDataException(FILTER_REFUSAL);
+      }
+
+      const text: string = each.trim();
+
+      if (text.length > MAX_DISCOVERED_DEVICE_SEARCH_LENGTH) {
+        throw new BadDataException(
+          `Filter for at most ${MAX_DISCOVERED_DEVICE_SEARCH_LENGTH} characters.`,
+        );
+      }
+
+      if (text) {
+        values.push(text);
+      }
+    }
+
+    const filter: DiscoveredDeviceFilter | null = checkFilterValues({
+      field: field as DiscoveredDeviceFilterField,
+      operator: operator as DiscoveredDeviceFilterOperator,
+      values: values,
+    });
+
+    if (filter) {
+      filters.push(filter);
+    }
+  }
+
+  return filters;
+}
+
+// The values a filter needs, or null for a filter with none yet.
+function checkFilterValues(
+  filter: DiscoveredDeviceFilter,
+): DiscoveredDeviceFilter | null {
+  if (isEmptinessOperator(filter.operator)) {
+    return { ...filter, values: [] };
+  }
+
+  if (filter.values.length === 0) {
+    return null;
+  }
+
+  switch (filter.field) {
+    case DiscoveredDeviceFilterField.Site:
+      for (const id of filter.values) {
+        if (!ObjectID.isValidUUID(id)) {
+          throw new BadDataException("This site was not found.");
+        }
+      }
+      return {
+        ...filter,
+        values: Array.from(
+          new Set<string>(
+            filter.values.map((id: string): string => {
+              return id.toLowerCase();
+            }),
+          ),
+        ),
+      };
+    case DiscoveredDeviceFilterField.Source:
+      for (const source of filter.values) {
+        if (
+          !Object.values(DiscoveredDeviceSource).includes(
+            source as DiscoveredDeviceSource,
+          )
+        ) {
+          throw new BadDataException(FILTER_REFUSAL);
+        }
+      }
+      return { ...filter, values: Array.from(new Set(filter.values)) };
+    case DiscoveredDeviceFilterField.LastSeen: {
+      const needed: number =
+        filter.operator === DiscoveredDeviceFilterOperator.Between ? 2 : 1;
+
+      if (filter.values.length < needed) {
+        return null;
+      }
+
+      const instants: Array<string> = [];
+
+      for (const text of filter.values.slice(0, needed)) {
+        const time: number = new Date(text).getTime();
+
+        if (Number.isNaN(time)) {
+          throw new BadDataException("Pick a date to filter by.");
+        }
+
+        instants.push(new Date(time).toISOString());
+      }
+
+      return { ...filter, values: instants };
+    }
+    default:
+      // A text field compares against the one value typed.
+      return { ...filter, values: [filter.values[0]!] };
+  }
 }
 
 /*
@@ -610,6 +894,11 @@ export interface DiscoveredDeviceImportFacts {
    * what a naming rule's Vendor condition and {vendor} read (issue #6619).
    */
   vendor?: string | undefined;
+  /*
+   * What its network controller calls it (the row's hostname), kept on the
+   * device as what discovery knows it by (issue #9305).
+   */
+  hostname?: string | undefined;
 }
 
 export function readDiscoveredDeviceImportFacts(
@@ -631,6 +920,7 @@ export function readDiscoveredDeviceImportFacts(
   const siteId: string | undefined = optionalText(facts["siteId"]);
   const probeId: string | undefined = optionalText(facts["probeId"]);
   const vendor: string | undefined = optionalText(facts["vendor"]);
+  const hostname: string | undefined = optionalText(facts["hostname"]);
 
   if (siteId && ObjectID.isValidUUID(siteId)) {
     read.siteId = siteId;
@@ -642,6 +932,10 @@ export function readDiscoveredDeviceImportFacts(
 
   if (vendor) {
     read.vendor = vendor;
+  }
+
+  if (hostname) {
+    read.hostname = hostname;
   }
 
   return read;

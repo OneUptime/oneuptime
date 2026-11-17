@@ -63,6 +63,16 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import {
+  INSIGHT_SEEN_WITHIN_OPTIONS,
+  INSIGHT_SORT_OPTIONS,
+  InsightSeenWithinValue,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AIInsights/InsightListOrdering";
+import {
+  clearDropdown,
+  getShownDropdownValue,
+  pickDropdownOption,
+} from "../../DropdownPicks";
 import AIInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/Insights";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
@@ -114,24 +124,63 @@ function lastListRequest(): ListRequest {
   return listRequests[listRequests.length - 1]!;
 }
 
-function sortSelect(): HTMLSelectElement {
+/*
+ * The order and when-seen pickers are the shared Dropdown (#9310): picked by
+ * their choices' words, and read back as the value those words stand for.
+ * "Seen any time" narrows nothing, so it is the placeholder, and clearing
+ * the picker picks it.
+ */
+const CHOICES: Array<{ label: string; value: string }> = [
+  ...INSIGHT_SORT_OPTIONS,
+  ...INSIGHT_SEEN_WITHIN_OPTIONS,
+];
+
+function sortSelect(): HTMLElement {
   return screen.getByRole("combobox", {
     name: "Sort insights",
-  }) as HTMLSelectElement;
+  });
 }
 
-function seenSelect(): HTMLSelectElement {
+function seenSelect(): HTMLElement {
   return screen.getByRole("combobox", {
     name: "Filter by when last seen",
-  }) as HTMLSelectElement;
+  });
 }
 
-async function choose(select: HTMLSelectElement, value: string): Promise<void> {
+// The words as a person reads them: a number set apart, a no-break space.
+function plain(text: string): string {
+  return text.replace(/[\u2066-\u2069]/g, "").replace(/\u00a0/g, " ");
+}
+
+// The value the picker holds, read from the words it shows.
+function valueOf(select: HTMLElement): string | undefined {
+  const shown: string | null = getShownDropdownValue(select);
+
+  if (shown === null) {
+    return InsightSeenWithinValue.AnyTime;
+  }
+
+  return CHOICES.find((choice: { label: string }): boolean => {
+    return choice.label === plain(shown);
+  })?.value;
+}
+
+async function choose(select: HTMLElement, value: string): Promise<void> {
   const before: number = listRequests.length;
 
-  await act(async () => {
-    fireEvent.change(select, { target: { value: value } });
-  });
+  if (value === InsightSeenWithinValue.AnyTime) {
+    await act(async () => {
+      clearDropdown(select);
+    });
+  } else {
+    const label: string = CHOICES.find((choice: { value: string }): boolean => {
+      return choice.value === value;
+    })!.label;
+
+    await pickDropdownOption(select, (name: string): boolean => {
+      return plain(name) === label;
+    });
+  }
 
   await waitFor(() => {
     return expect(listRequests.length).toBeGreaterThan(before);
@@ -175,8 +224,8 @@ describe("AI insights list — order and time range", () => {
       _id: SortOrder.Descending,
     });
     expect(lastListRequest().query["lastSeenAt"]).toBeUndefined();
-    expect(sortSelect().value).toBe("lastSeen");
-    expect(seenSelect().value).toBe("All");
+    expect(valueOf(sortSelect())).toBe("lastSeen");
+    expect(valueOf(seenSelect())).toBe("All");
     // The defaults keep the URL clean.
     expect(urlParam("sort")).toBeNull();
     expect(urlParam("seen")).toBeNull();
@@ -271,8 +320,8 @@ describe("AI insights list — order and time range", () => {
       lastSeenAt: SortOrder.Descending,
       _id: SortOrder.Descending,
     });
-    expect(seenSelect().value).toBe("All");
-    expect(sortSelect().value).toBe("detections");
+    expect(valueOf(seenSelect())).toBe("All");
+    expect(valueOf(sortSelect())).toBe("detections");
     expect(urlParam("seen")).toBeNull();
     expect(urlParam("sort")).toBe("detections");
   });
@@ -287,8 +336,8 @@ describe("AI insights list — order and time range", () => {
       _id: SortOrder.Descending,
     });
     expect(lastSeenFloor(listRequests[0]!.query)).not.toBeNull();
-    expect(sortSelect().value).toBe("firstSeen");
-    expect(seenSelect().value).toBe("1h");
+    expect(valueOf(sortSelect())).toBe("firstSeen");
+    expect(valueOf(seenSelect())).toBe("1h");
   });
 
   test("values a link does not know are ignored rather than sent", async () => {
@@ -311,10 +360,13 @@ describe("AI insights list — order and time range", () => {
     await renderPage();
     await choose(sortSelect(), "detections");
 
+    const loadMore: HTMLElement = await screen.findByRole("button", {
+      name: "Load More",
+    });
     const before: number = listRequests.length;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Load More" }));
+      fireEvent.click(loadMore);
     });
 
     await waitFor(() => {

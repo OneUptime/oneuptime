@@ -197,6 +197,8 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 **프로젝트**에 몇 개를 지정하지 않으면 조직 연결은 조직의 프로젝트를 최대 50개까지 읽습니다.
 
+OneUptime은 각 프로젝트의 Compute Engine 인스턴스, VPC 네트워크, 서브넷과 방화벽 규칙, 전달 규칙과 백엔드 서비스를 포함한 부하 분산기, Cloud Storage 버킷, GKE 클러스터, Cloud SQL·Memorystore·Spanner 인스턴스, Cloud Run 서비스, Cloud Functions, Pub/Sub 주제와 구독을 라벨, 리전, 영역과 함께 나열합니다. 이들이 어떻게 연결되는지도 기록합니다. 인스턴스가 실행되는 서브넷과 네트워크 및 적용되는 방화벽 규칙, 각 부하 분산기가 트래픽을 보내는 곳, 각 GKE 클러스터의 네트워크와 노드 VM입니다. Cloud Asset API가 꺼진 프로젝트도 연결되며, 이를 켜는 명령을 알려 주는 경고가 표시됩니다: `gcloud services enable cloudasset.googleapis.com`.
+
 Google Cloud에는 프로젝트 비용을 알려 주는 API가 없습니다. OneUptime은 결제 계정의 BigQuery 내보내기에서 비용을 읽으며, 그 테이블을 **결제 내보내기 테이블**에 지정하면 읽기가 시작됩니다. 방법은 [클라우드 비용과 절감](/docs/telemetry/cloud-costs#google-cloud)에서 확인하세요.
 
 ## 데이터 보안

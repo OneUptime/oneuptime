@@ -20,6 +20,7 @@ import {
   joinMonitorIds,
   splitMonitorIds,
 } from "./TelemetrySetup";
+import TelemetryWhoIsTold from "./TelemetryWhoIsTold";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
@@ -760,10 +761,18 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
             {translator.translateText(TELEMETRY_SETUP_COPY.summaryWhoIsTold)}
           </dt>
           <dd className="mt-1 text-sm text-gray-700 sm:col-span-3 sm:mt-0">
-            {describeWhoIsToldAboutAlerts({
-              translator: translator,
-              mode: whoMode,
-            })}
+            {/*
+             * Read from the monitors the setup made, as their own "When
+             * this goes down" says it (#7164); the counts' sentence when
+             * there is no monitor, or none could be read.
+             */}
+            <TelemetryWhoIsTold
+              monitors={monitors}
+              fallback={describeWhoIsToldAboutAlerts({
+                translator: translator,
+                mode: whoMode,
+              })}
+            />
           </dd>
         </div>
       </dl>

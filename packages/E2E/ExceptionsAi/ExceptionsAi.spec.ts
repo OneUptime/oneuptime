@@ -3,6 +3,10 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  listDropdownOptions,
+  shownDropdownPlaceholderOf,
+} from "../SuiteHelpers/Dropdowns";
 
 /*
  * Exceptions' AI tab - Exceptions → AI → Insights, a finding's page with Fix
@@ -505,12 +509,14 @@ test.describe("Exceptions → AI → Insights", () => {
           ).toContainText(row.kind);
         }
 
-        await expect(
-          page
-            .getByRole("combobox", { name: "Filter by insight type" })
-            .locator("option"),
-        ).toHaveText([
+        // "All types" is the picker's placeholder; the kinds are its choices.
+        const typeFilter: Locator = page.getByRole("combobox", {
+          name: "Filter by insight type",
+        });
+        await expect(shownDropdownPlaceholderOf(typeFilter)).toHaveText(
           "All types",
+        );
+        expect(await listDropdownOptions(page, typeFilter)).toEqual([
           "New Exception",
           "Exception Spike",
           "Missing Stack Trace",

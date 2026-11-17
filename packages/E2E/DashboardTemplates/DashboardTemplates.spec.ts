@@ -2,6 +2,13 @@ import { expect, Locator, Page, TestInfo, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dropdownControl,
+  dropdownIn,
+  listDropdownOptions,
+  pickDropdownOption,
+  shownDropdownValue,
+} from "../SuiteHelpers/Dropdowns";
 
 /*
  * Create a dashboard, in a real browser, with the real template catalog,
@@ -607,9 +614,11 @@ test.describe("Create a dashboard", () => {
     await screenshot(page, `dashboard-search-miss-${widthName(page)}-light`);
 
     await search.fill("ceph");
-    await dialog
-      .getByTestId("dashboard-template-view-select")
-      .selectOption("Incident Response");
+    await pickDropdownOption(
+      page,
+      dropdownIn(dialog.getByTestId("dashboard-template-view-select")),
+      "Incident Response",
+    );
 
     await expect(
       dialog.getByTestId("dashboard-template-search-everywhere"),
@@ -629,11 +638,11 @@ test.describe("Create a dashboard", () => {
     page: Page;
   }) => {
     const dialog: Locator = await openDashboardDialog(page);
-    const select: Locator = dialog.getByTestId(
-      "dashboard-template-view-select",
+    const select: Locator = dropdownIn(
+      dialog.getByTestId("dashboard-template-view-select"),
     );
 
-    await expect(select.locator("option")).toHaveText([
+    expect(await listDropdownOptions(page, select)).toEqual([
       "Recommended",
       "Monitoring & APM",
       "Incident Response",
@@ -641,10 +650,10 @@ test.describe("Create a dashboard", () => {
       "All templates",
     ]);
 
-    await select.selectOption("Infrastructure");
+    await pickDropdownOption(page, select, "Infrastructure");
     await expect(templateRows(dialog)).toHaveCount(10);
 
-    await select.selectOption("all");
+    await pickDropdownOption(page, select, "All templates");
     await expect(templateRows(dialog)).toHaveCount(TEMPLATES.length);
     await expect(dialog.getByRole("listbox").getByRole("group")).toHaveCount(3);
   });
@@ -655,11 +664,11 @@ test.describe("Create a dashboard", () => {
     page: Page;
   }) => {
     const dialog: Locator = await openDashboardDialog(page);
-    const select: Locator = dialog.getByTestId(
-      "dashboard-template-view-select",
+    const select: Locator = dropdownIn(
+      dialog.getByTestId("dashboard-template-view-select"),
     );
 
-    await select.selectOption("Infrastructure");
+    await pickDropdownOption(page, select, "Infrastructure");
     await templateRow(dialog, "Proxmox Dashboard").dblclick();
     await expect(dialog.getByTestId("dashboard-name-input")).toHaveValue(
       "Proxmox Dashboard",
@@ -667,7 +676,9 @@ test.describe("Create a dashboard", () => {
 
     await dialog.getByTestId("dashboard-wizard-back").click();
 
-    await expect(select).toHaveValue("Infrastructure");
+    await expect(
+      shownDropdownValue(dialog.getByTestId("dashboard-template-view-select")),
+    ).toHaveText("Infrastructure");
     await expect(templateRow(dialog, "Proxmox Dashboard")).toHaveAttribute(
       "aria-selected",
       "true",
@@ -880,7 +891,7 @@ test.describe("Create a dashboard", () => {
       dialog,
       dialog.getByTestId("dashboard-start-from-scratch"),
       dialog.getByRole("combobox", { name: "Search templates…" }),
-      dialog.getByTestId("dashboard-template-view-select"),
+      dropdownControl(dialog.getByTestId("dashboard-template-view-select")),
       templateRow(dialog, "Kubernetes Dashboard"),
       dialog.getByTestId("dashboard-template-details-widget").first(),
     ]) {
@@ -911,9 +922,12 @@ test.describe("Create a dashboard", () => {
     await expect(
       dialog.getByTestId("dashboard-start-from-scratch"),
     ).toContainText("Ohne Vorlage beginnen");
-    await expect(
-      dialog.getByTestId("dashboard-template-view-select").locator("option"),
-    ).toHaveText([
+    expect(
+      await listDropdownOptions(
+        page,
+        dropdownIn(dialog.getByTestId("dashboard-template-view-select")),
+      ),
+    ).toEqual([
       "Empfohlen",
       "Überwachung & APM",
       "Reaktion auf Vorfälle",
@@ -1054,7 +1068,7 @@ test.describe("Create a dashboard, beside Create a workflow", () => {
       dialog.getByTestId(`${prefix}-template-search`),
     );
     const select: Box = await boxOf(
-      dialog.getByTestId(`${prefix}-template-view-select`),
+      dropdownControl(dialog.getByTestId(`${prefix}-template-view-select`)),
     );
     const heading: Box = await boxOf(
       dialog.getByRole("heading", { name: "Or start from a template" }),
@@ -1089,10 +1103,18 @@ test.describe("Create a dashboard, beside Create a workflow", () => {
     expect(dashboardMeasures.dialogWidth).toBe(workflowMeasures.dialogWidth);
     expect(dashboardMeasures.rowHeight).toBe(workflowMeasures.rowHeight);
     expect(dashboardMeasures.searchHeight).toBe(workflowMeasures.searchHeight);
-    expect(dashboardMeasures.selectHeight).toBe(workflowMeasures.selectHeight);
-    expect(dashboardMeasures.headingToList).toBe(
-      workflowMeasures.headingToList,
-    );
+    /*
+     * The category picker is the shared Dropdown in both: its box lands on
+     * a fraction of a pixel, so the two may round a pixel apart.
+     */
+    expect(
+      Math.abs(dashboardMeasures.selectHeight - workflowMeasures.selectHeight),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(
+        dashboardMeasures.headingToList - workflowMeasures.headingToList,
+      ),
+    ).toBeLessThanOrEqual(1);
 
     // The card's line is the dialog's own, so it may wrap differently on a phone.
     if ((page.viewportSize()?.width || 0) >= 640) {

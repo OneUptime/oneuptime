@@ -242,10 +242,12 @@ export default class DiscoveredDevices {
     const countsStatement: DiscoveredDeviceStatement = buildCountsStatement({
       scope: scope,
       search: data.request.search,
+      filters: data.request.filters,
     });
     const rowsStatement: DiscoveredDeviceStatement = buildRowsStatement({
       scope: scope,
       search: data.request.search,
+      filters: data.request.filters,
       show: data.request.show,
       sort: data.request.sort,
       sortOrder: data.request.sortOrder,
@@ -319,10 +321,12 @@ export default class DiscoveredDevices {
     const countsStatement: DiscoveredDeviceStatement = buildCountsStatement({
       scope: scope,
       search: data.request.search,
+      filters: data.request.filters,
     });
     const idsStatement: DiscoveredDeviceStatement = buildIdsStatement({
       scope: scope,
       search: data.request.search,
+      filters: data.request.filters,
       show: data.request.show,
       sort: data.request.sort,
       sortOrder: data.request.sortOrder,

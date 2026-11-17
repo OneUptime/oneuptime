@@ -18,6 +18,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
@@ -851,9 +852,10 @@ describe("the row's menu", () => {
     fireEvent.change(screen.getByTestId("meraki-edit-name"), {
       target: { value: "Stores" },
     });
-    fireEvent.change(screen.getByTestId("meraki-edit-interval"), {
-      target: { value: "30" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("meraki-edit-interval")).getByRole("combobox"),
+      /30/,
+    );
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
     await flush();
 
