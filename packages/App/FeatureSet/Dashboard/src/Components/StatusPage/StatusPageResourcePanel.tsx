@@ -1502,7 +1502,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   type GetEmptyStateFunction = () => ReactElement;
 
   /*
-   * Written out rather than handed to EmptyState, which pads itself by 13rem
+   * Written out rather than handed to EmptyState, which padded itself by 13rem
    * top and bottom for a page it owns the whole of. Inside a pane it left a
    * hole the height of a screen, and the page had been pulling it back with
    * negative margins deeper than the padding it was cancelling.

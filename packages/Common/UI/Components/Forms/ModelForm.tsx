@@ -60,7 +60,8 @@ import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
-import { Black, VeryLightGray } from "../../../Types/BrandColors";
+import { Black } from "../../../Types/BrandColors";
+import { LOADER_COLOR } from "../Loader/LoaderLayout";
 import Color from "../../../Types/Color";
 import { clearBlankColumnValues } from "../../../Types/Database/BlankColumnValue";
 import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
@@ -1837,7 +1838,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) {
     return (
       <div className="row flex justify-center mt-20 mb-20">
-        <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
+        <Loader loaderType={LoaderType.Bar} color={LOADER_COLOR} size={200} />
       </div>
     );
   }

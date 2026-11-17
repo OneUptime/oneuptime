@@ -738,7 +738,6 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             }
             title={copy.title}
             description={copy.description}
-            paddingClassName="pt-16 pb-16"
             footer={
               props.sealedReason && props.absence.kind !== "recording-lost" ? (
                 <p

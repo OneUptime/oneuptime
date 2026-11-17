@@ -72,9 +72,6 @@ export const PLAYLIST_PLAYER_TRIES_AGAIN: string = translationKey(
   "The player tries again in a minute.",
 );
 
-// A message's room: the whole width, centred in the stage by its wrapper.
-const PLAYER_MESSAGE_PADDING: string = "w-full py-12";
-
 export interface ComponentProps {
   playlistId: ObjectID;
   // Leaves the player: back to the playlist's page.
@@ -310,7 +307,6 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           icon={IconProp.QueueList}
           title="Nothing to show yet"
           description="This playlist has no dashboards you can see. Add dashboards to it, and they show here."
-          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="Open playlist"
@@ -330,7 +326,6 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           icon={IconProp.QueueList}
           title="Playlist not found"
           description="This playlist was deleted, or you do not have access to it."
-          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="All playlists"
@@ -363,7 +358,6 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
                 ])
               : "Something went wrong. The player tries again in a minute."
           }
-          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="Try again"

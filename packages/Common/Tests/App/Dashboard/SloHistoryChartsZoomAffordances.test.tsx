@@ -477,8 +477,8 @@ describe("Error Budget History's empty cards take the reset double-click without
 
     for (const empty of screen.getAllByTestId("empty-state")) {
       expect(empty.parentElement).toHaveClass("select-none");
-      // Still fitted into the card the established way.
-      expect(empty.parentElement).toHaveClass("-my-16");
+      // A card's own empty state, not pulled back with a negative margin (#9135).
+      expect(empty.parentElement).not.toHaveClass("-my-16");
     }
   });
 
@@ -491,7 +491,7 @@ describe("Error Budget History's empty cards take the reset double-click without
 
     for (const empty of screen.getAllByTestId("empty-state")) {
       expect(empty.parentElement).not.toHaveClass("select-none");
-      expect(empty.parentElement).toHaveClass("-my-16");
+      expect(empty.parentElement).not.toHaveClass("-my-16");
     }
   });
 });

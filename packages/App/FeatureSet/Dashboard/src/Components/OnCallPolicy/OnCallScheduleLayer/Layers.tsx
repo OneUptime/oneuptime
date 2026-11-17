@@ -72,7 +72,9 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -1434,7 +1436,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             title={"Build your on-call rotation"}
             description={"Add a layer to say who is on call, and when."}
             icon={IconProp.SquareStack}
-            paddingClassName="py-8"
+            size={EmptyStateSize.Inline}
           />
         </Card>
       </div>

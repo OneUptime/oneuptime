@@ -36,7 +36,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -529,7 +531,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           id="compliance-members-empty"
           icon={IconProp.UserGroup}
           iconClassName="mx-auto h-10 w-10 text-gray-400"
-          paddingClassName="py-10"
+          size={EmptyStateSize.Inline}
           title="No members on this team yet"
           description={
             /*

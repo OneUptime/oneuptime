@@ -294,7 +294,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       {announcements.length === 0 ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="announcements-empty-state"
           title={translator.translatePlural(
             HISTORY_WINDOW_WORDS.noAnnouncements,

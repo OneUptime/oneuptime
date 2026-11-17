@@ -466,7 +466,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
       )}
       {!hasEvents ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id={"incidents-empty-state"}
           title={translator.translatePlural(
             HISTORY_WINDOW_WORDS.noIncidents,

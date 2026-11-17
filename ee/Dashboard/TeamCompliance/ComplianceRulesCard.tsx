@@ -37,7 +37,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -928,7 +930,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             id="compliance-rules-empty-state"
             icon={IconProp.ShieldCheck}
             iconClassName="mx-auto h-10 w-10 text-gray-400"
-            paddingClassName="py-8"
+            size={EmptyStateSize.Inline}
             title="No compliance rules yet"
             description={
               canCreate
