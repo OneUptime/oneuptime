@@ -28,9 +28,48 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getDashboardVariableTypeName } from "./DashboardVariableTypeNames";
+
+/*
+ * A Project Labels variable's default: one of its allowed labels, drawn as
+ * the label is named. A default no longer among them is kept, named
+ * "Unavailable label", so it can be seen and changed.
+ */
+export function getDefaultLabelOptions(
+  variable: DashboardVariable,
+  translator: Translator,
+): Array<DropdownOption> {
+  const labelOptions: Array<DashboardVariableOption> =
+    variable.labelOptions || [];
+  const isDefaultGone: boolean = Boolean(
+    variable.defaultValue &&
+      !labelOptions.some((option: DashboardVariableOption): boolean => {
+        return option.value === variable.defaultValue;
+      }),
+  );
+
+  return [
+    ...(isDefaultGone && variable.defaultValue
+      ? [
+          getTranslatedDropdownOption(
+            variable.defaultValue,
+            translator.translateText("Unavailable label"),
+          ),
+        ]
+      : []),
+    ...labelOptions.map((option: DashboardVariableOption): DropdownOption => {
+      return getNamedDropdownOption(option.value, option.label);
+    }),
+  ];
+}
 
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
@@ -236,39 +275,28 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
            * stored value is kept so unticking the box restores it.
            */}
           {variable.type === DashboardVariableType.ProjectLabel ? (
-            <select
-              aria-label={translator.translateText("Default label")}
-              className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 disabled:bg-gray-50"
-              value={variable.defaultValue || ""}
+            <Dropdown
+              className="relative w-full overflow-visible"
+              options={getDefaultLabelOptions(variable, translator)}
+              value={findDropdownOption(
+                getDefaultLabelOptions(variable, translator),
+                variable.defaultValue,
+              )}
+              // Cleared, the variable starts on every label: "All".
+              placeholder={translator.translateText("All")}
+              isPlaceholderTranslated={true}
+              ariaLabel={translator.translateText("Default label")}
+              isAriaLabelTranslated={true}
               disabled={Boolean(variable.isMultiSelect)}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                return props.onChange({
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                props.onChange({
                   ...variable,
-                  defaultValue: e.target.value,
+                  defaultValue: readPickedDropdownValue(next) || "",
                 });
               }}
-            >
-              <option value="">{translator.translateText("All")}</option>
-              {variable.defaultValue &&
-                !variable.labelOptions?.some(
-                  (option: DashboardVariableOption) => {
-                    return option.value === variable.defaultValue;
-                  },
-                ) && (
-                  <option value={variable.defaultValue}>
-                    {translator.translateText("Unavailable label")}
-                  </option>
-                )}
-              {(variable.labelOptions || []).map(
-                (option: DashboardVariableOption) => {
-                  return (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  );
-                },
-              )}
-            </select>
+            />
           ) : (
             <input
               type="text"

@@ -9,6 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { pickDropdownOption } from "../SuiteHelpers/Dropdowns";
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -295,9 +296,11 @@ test("service map connection labels stay legible in the dark theme", async ({
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openView(page, "Service Map", "theme=dark");
-  await page
-    .getByRole("combobox", { name: "Connection labels" })
-    .selectOption("latency");
+  await pickDropdownOption(
+    page,
+    page.getByRole("combobox", { name: "Connection labels" }),
+    "Average latency",
+  );
 
   const labels: ReturnType<Page["locator"]> = page.locator(
     ".react-flow__edge-text",
@@ -655,7 +658,11 @@ test("infrastructure draws the traffic between the pods on a node, with its metr
   );
   await screenshot(page, "aks-node-map-traffic-synthetic");
 
-  await page.getByLabel("Line labels").selectOption("errors");
+  await pickDropdownOption(
+    page,
+    page.getByRole("combobox", { name: "Line labels" }),
+    "Error rate",
+  );
   await expect(
     page.locator(
       '.react-flow__edge[aria-label^="wb-ims-backend → wb-ims-integration-edh:"]',
@@ -1472,13 +1479,13 @@ test("hovering lines, opening a card and changing line labels never hide a drawn
     "combobox",
     { name: "Connection labels" },
   );
-  await connectionLabels.selectOption("calls");
+  await pickDropdownOption(page, connectionLabels, "Request rate");
   await expect(labels).toHaveCount(LARGE_SERVICE_MAP_LINES);
-  await connectionLabels.selectOption("errors");
+  await pickDropdownOption(page, connectionLabels, "Error rate");
   await expect(labels.first()).toContainText("errors");
-  await connectionLabels.selectOption("latency");
+  await pickDropdownOption(page, connectionLabels, "Average latency");
   await expect(labels.first()).toContainText("ms");
-  await connectionLabels.selectOption("none");
+  await pickDropdownOption(page, connectionLabels, "On hover");
   await expect(labels).toHaveCount(0);
 
   const after: ServiceMapCanvasState = await settledServiceMap(page);

@@ -1231,8 +1231,8 @@ test.describe("what a dark page draws quietly", () => {
       .locator("footer")
       .evaluate((footer: Element): { picker: number; contact: number } => {
         const picker: Element = footer.querySelector(
-          "#accounts-language-switcher",
-        )!.parentElement!;
+          '[data-testid="language-picker"]',
+        )!;
         const icon: DOMRect = picker.firstElementChild!.getBoundingClientRect();
         const select: DOMRect =
           picker.lastElementChild!.getBoundingClientRect();
