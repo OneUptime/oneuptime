@@ -108,12 +108,8 @@ function readAdminLocale(language: string): Locale {
 const SETTINGS_SECTIONS: Array<string> = [
   "basic",
   "settingsNotifications",
-  "settingsMonitoring",
-  "settingsRunbooks",
-  "settingsDataRetention",
-  "settingsTelemetry",
-  "settingsAi",
-  "settingsApiIntegrations",
+  "settingsSharedWithProjects",
+  "settingsServer",
 ];
 const SETTINGS_ENTRIES: Array<string> = [
   "settingsAuthentication",
@@ -123,13 +119,12 @@ const SETTINGS_ENTRIES: Array<string> = [
   "settingsCallSms",
   "settingsWhatsapp",
   "settingsTelegram",
-  // English, for the menu to look up once.
-  "Push Notifications",
+  "settingsPushNotifications",
   "settingsGlobalProbes",
   "settingsGlobalRunners",
+  "settingsGlobalLlmProviders",
   "settingsDataRetention",
   "settingsIngestionBudgets",
-  "settingsGlobalLlmProviders",
   "settingsApiKey",
 ];
 

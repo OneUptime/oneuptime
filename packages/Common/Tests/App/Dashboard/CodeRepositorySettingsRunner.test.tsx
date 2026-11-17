@@ -4,7 +4,7 @@ import "@testing-library/jest-dom";
  * the global jest.SpiedFunction annotations here do not accept.
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -23,7 +23,9 @@ import React, { ReactElement } from "react";
  *   - the card says what the repository runs on
  *     (CodeRepositoryRunnerValueView, from the Runner choices the page
  *     read once for the card and for More settings' folded header), under
- *     its own title alone;
+ *     its own title alone - with when GitLab last refused to make the
+ *     short-lived token a fix pushes with (mintedTokenRefusedAt), which the
+ *     card reads and hands to the picker of its Edit too;
  *   - a Runner's page lists the repositories that pick it in its Runner
  *     Details, where the "Runs AI Code Fixes" switch was, each linked to
  *     the repository's settings at its Runner (#runner: More settings, where
@@ -120,6 +122,8 @@ refuseRequestsTo(["/code-task/repository/*", "/ai-chat/providers"]);
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000003";
 const RUNNER_ID: string = "aaaaaaaa-0000-4000-8000-000000000021";
 const REPOSITORY_ID: string = "eeeeeeee-0000-4000-8000-000000000021";
+// When GitLab last refused to make a fix's short-lived token.
+const REFUSED_AT: Date = new Date("2026-11-16T10:00:00.000Z");
 
 type FormField = ModelField<CodeRepository>;
 
@@ -130,13 +134,18 @@ interface DetailField {
   getElement?: ((item: CodeRepository) => ReactElement) | undefined;
 }
 
+// The Runner card, each time the settings page drew it.
+function runnerCards(): Array<Record<string, unknown>> {
+  return mockDetails.filter((props: Record<string, unknown>): boolean => {
+    return props["name"] === "Repository > Runner";
+  });
+}
+
 // The Runner card, as the settings page drew it.
 function page(): Record<string, unknown> {
   render(<CodeRepositorySettings {...({} as unknown as PageComponentProps)} />);
 
-  return mockDetails.filter((props: Record<string, unknown>): boolean => {
-    return props["name"] === "Repository > Runner";
-  })[0]!;
+  return runnerCards()[0]!;
 }
 
 beforeEach(() => {
@@ -366,26 +375,87 @@ describe("a repository's settings: its Runner", () => {
     expect(Object.keys(element.props).sort()).toEqual([
       "choices",
       "isGlobalRunnerPicked",
+      "mintedTokenRefusedAt",
       "provider",
       "runnerId",
     ]);
     expect(element.props.choices).toBeNull();
     // Where it is hosted, for the line under Global Runner.
     expect(element.props.provider).toBe(CodeRepositoryType.GitHub);
+    // GitLab never refused it a short-lived token: nothing to say of one.
+    expect(element.props.mintedTokenRefusedAt).toBeUndefined();
 
     // Whether it picked the Global Runner itself reaches the value too.
     const global: CodeRepository = new CodeRepository();
     global.isGlobalRunnerPicked = true;
 
     expect(runner!.getElement!(global).props.isGlobalRunnerPicked).toBe(true);
+
+    /*
+     * And when GitLab last refused to make the short-lived token a fix
+     * pushes with: the line under Global Runner says so.
+     */
+    const refused: CodeRepository = new CodeRepository();
+    refused.isGlobalRunnerPicked = true;
+    refused.mintedTokenRefusedAt = REFUSED_AT;
+
+    expect(runner!.getElement!(refused).props.mintedTokenRefusedAt).toBe(
+      REFUSED_AT,
+    );
   });
 
-  test("the card reads whether the repository picked the Global Runner itself", () => {
+  test("the card reads whether the repository picked the Global Runner itself, and when GitLab last refused its short-lived token", () => {
     const detail: { selectMoreFields?: Record<string, boolean> } = page()[
       "modelDetailProps"
     ] as { selectMoreFields?: Record<string, boolean> };
 
-    expect(detail.selectMoreFields).toEqual({ isGlobalRunnerPicked: true });
+    expect(detail.selectMoreFields).toEqual({
+      isGlobalRunnerPicked: true,
+      mintedTokenRefusedAt: true,
+    });
+  });
+
+  test("the refusal the card read reaches the picker of its Edit, for the line under the Global Runner", () => {
+    // The picker of the card's Edit, as the page last drew the card.
+    const picker: () => ReactElement = (): ReactElement => {
+      const fields: Array<FormField> = runnerCards()[runnerCards().length - 1]![
+        "formFields"
+      ] as Array<FormField>;
+      const choice: FormField = fields.find((field: FormField) => {
+        return (
+          field.overrideFieldKey === CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY
+        );
+      })!;
+
+      return choice.getCustomElement!(
+        { isGlobalRunnerPicked: true } as FormValues<CodeRepository>,
+        { onChange: (): void => {} } as unknown as CustomElementProps,
+      ) as ReactElement;
+    };
+
+    const detail: { onItemLoaded: (item: CodeRepository) => void } = page()[
+      "modelDetailProps"
+    ] as { onItemLoaded: (item: CodeRepository) => void };
+
+    // Until the card has read the repository: no refusal.
+    expect(picker().props.mintedTokenRefusedAt).toBeNull();
+
+    const refused: CodeRepository = new CodeRepository();
+    refused.isGlobalRunnerPicked = true;
+    refused.mintedTokenRefusedAt = REFUSED_AT;
+
+    act(() => {
+      detail.onItemLoaded(refused);
+    });
+
+    expect(picker().props.mintedTokenRefusedAt).toBe(REFUSED_AT);
+
+    // Read again once GitLab made one: no refusal again.
+    act(() => {
+      detail.onItemLoaded(new CodeRepository());
+    });
+
+    expect(picker().props.mintedTokenRefusedAt).toBeNull();
   });
 });
 

@@ -596,9 +596,9 @@ describe("the application's own signals on a row (issue #6443)", () => {
       "session-row-more-own-signals",
     );
 
-    expect(name.parentElement!.className).toContain("amber");
+    expect(name.parentElement!).toHaveAttribute("data-tone", "warning");
     expect(more).toHaveTextContent("+1");
-    expect(more.firstElementChild!.className).toContain("amber");
+    expect(more.firstElementChild!).toHaveAttribute("data-tone", "warning");
   });
 
   it("splits the badge into the name and how many more, whose words are the badge's text", () => {
@@ -655,15 +655,18 @@ describe("the application's own signals on a row (issue #6443)", () => {
 
     const [row] = await waitForRows(1);
     const link: HTMLElement = within(row!).getByTitle(longName);
-    const text: HTMLElement = within(link).getByTestId("status-badge-text");
+    const text: HTMLElement = within(link).getByTestId("pill-text");
     const badge: HTMLElement = text.parentElement as HTMLElement;
     const box: HTMLElement = badge.parentElement as HTMLElement;
 
     expect(text).toHaveTextContent(longName);
     expect(text).toHaveClass("min-w-0", "truncate");
-    // An English name on a Persian page ends in "..." at its own end.
-    expect(text).toHaveAttribute("dir", "auto");
-    expect(badge).toHaveClass("whitespace-nowrap", "min-w-0", "max-w-full");
+    /*
+     * An English name on an English page reads as the page does; on a
+     * Persian one the Pill gives it a dir of its own (LineDirection).
+     */
+    expect(text).not.toHaveAttribute("dir");
+    expect(badge).toHaveClass("min-w-0", "max-w-full");
     expect(box).toHaveClass(
       "grid",
       "grid-cols-1",
@@ -714,7 +717,7 @@ describe("the application's own signals on a row (issue #6443)", () => {
     const badge: HTMLElement = within(row!).getByText("Plan cancelled")
       .parentElement as HTMLElement;
 
-    expect(badge.className).toContain("gray");
+    expect(badge).toHaveAttribute("data-tone", "neutral");
     expect(badge.className).not.toContain("amber");
   });
 });
@@ -2929,14 +2932,20 @@ describe("SessionReplayTable honesty", () => {
     expect(screen.getByTestId("list-error-retry")).toBeInTheDocument();
     /*
      * Retry starts where the error's words do: Button's own left margin
-     * (md:ml-3, a dialog footer's) drew it 12px to their right.
+     * (md:ml-3, a dialog footer's) drew it 12px to their right. Neither the
+     * row nor the button carries a margin now.
      */
-    expect(screen.getByTestId("list-error-retry").parentElement).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    );
+    expect(
+      screen.getByTestId("list-error-retry").parentElement.className,
+    ).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    // Nor does the button inside it: a Button has no margin of its own (#9128).
+    for (const button of Array.from(
+      screen
+        .getByTestId("list-error-retry")
+        .parentElement.querySelectorAll("button"),
+    )) {
+      expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    }
   });
 
   it("an empty page under a filter is filters-match-nothing with chips", async () => {

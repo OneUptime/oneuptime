@@ -61,6 +61,23 @@ const mockRecorder: Recorder = (kind: string) => {
   };
 };
 
+/*
+ * The page asks whether the dashboard is shared publicly, to say so when it
+ * is not (DashboardPublicOnlySettings, #9134). Here it is public, so the
+ * page's settings are drawn as they are.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Branding/useDashboardIsPublic",
+  () => {
+    return {
+      __esModule: true,
+      default: (): boolean => {
+        return true;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return { __esModule: true, default: mockRecorder("card-model-detail") };
 });

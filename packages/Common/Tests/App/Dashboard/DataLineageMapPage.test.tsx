@@ -331,6 +331,8 @@ async function renderPage(): Promise<void> {
   render(
     <DataObservabilityLineageMapPage
       pageRoute={new Route("/dashboard/lineage")}
+      currentProject={null}
+      hasPaymentMethod={true}
     />,
   );
   await waitFor(() => {

@@ -46,10 +46,12 @@ describe("Network Site Type settings use parent relationships", () => {
    * around it in GitHub issue #3744.
    */
   test("the help presents parent types as guidance, not a placement rule", () => {
-    expect(source).toContain("Choose the type directly above this one");
+    // As the help words it since its lead-then-topics rewrite (69826bf18c0).
+    expect(source).toContain("Choose the type right above this one");
     expect(source).toContain(
-      "this relationship decides which parent sites are suggested first",
+      "its type's parent decides which sites are suggested first",
     );
+    expect(source).toContain("It guides without dictating");
     expect(source).not.toContain(
       "this relationship determines which parent sites are valid",
     );

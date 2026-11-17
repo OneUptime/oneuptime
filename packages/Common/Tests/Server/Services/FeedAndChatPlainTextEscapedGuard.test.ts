@@ -219,6 +219,11 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     inFunction: "buildErasedSessionTraceIdStatement",
     reason: "A ClickHouse statement, not Markdown.",
   },
+  {
+    file: "packages/Common/Server/Services/MonitorStatusTimelineService.ts",
+    inFunction: "getDailyUptimeAggregateSql",
+    reason: "A Postgres statement, not Markdown.",
+  },
 ];
 
 export interface GuardFinding {

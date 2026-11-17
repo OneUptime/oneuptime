@@ -11,7 +11,7 @@ import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
-import { VeryLightGray } from "../../../Types/BrandColors";
+import { LOADER_COLOR } from "../Loader/LoaderLayout";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { wasPressConsumedByAnAnchoredPopup } from "../../Types/LayeredDismissal";
@@ -863,7 +863,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                     <div className="modal-body flex justify-center py-16">
                       <Loader
                         loaderType={LoaderType.Bar}
-                        color={VeryLightGray}
+                        color={LOADER_COLOR}
                         size={200}
                       />
                     </div>

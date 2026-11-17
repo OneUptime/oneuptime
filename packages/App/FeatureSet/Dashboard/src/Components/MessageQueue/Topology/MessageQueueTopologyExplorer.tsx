@@ -1,3 +1,4 @@
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Route from "Common/Types/API/Route";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -1311,13 +1312,12 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                   )}
                 </p>
                 {isFiltering ? (
-                  <button
-                    type="button"
-                    className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  <Button
+                    title="Clear filters"
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    className="mt-5"
                     onClick={resetFilters}
-                  >
-                    {t("Clear filters")}
-                  </button>
+                  />
                 ) : (
                   <></>
                 )}

@@ -30,6 +30,7 @@ import {
 } from "./IngestionKeyForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
 import Dropdown, {
   DropdownOption,
@@ -489,16 +490,14 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   "Create an ingestion key to authenticate your telemetry data.",
                 )}
           </p>
-          <button
-            type="button"
+          <Button
+            title="Create Ingestion Key"
+            icon={IconProp.Add}
+            buttonStyle={ButtonStyleType.PRIMARY}
             onClick={() => {
               setShowCreateModal(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <Icon icon={IconProp.Add} className="w-4 h-4" />
-            {translator.translateText("Create Ingestion Key")}
-          </button>
+          />
         </div>
       );
     }

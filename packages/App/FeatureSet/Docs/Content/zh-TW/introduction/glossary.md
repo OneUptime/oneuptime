@@ -302,6 +302,12 @@ OneUptime 的 SIEM：來自你的日誌、安全工具以及你傳送的其他�
 
 參閱 [追蹤瀏覽器](/docs/telemetry/traces-explorer)。
 
+### 跨度
+
+請求中的一個步驟：服務回應的請求、它對另一個服務的呼叫或一次資料庫查詢，帶有開始時間、耗時以及是否失敗。跨度巢狀在啟動它的跨度之內，一個請求的所有跨度組成它的追蹤。
+
+參閱 [追蹤瀏覽器](/docs/telemetry/traces-explorer#追蹤和-span)。
+
 ### 效能剖析
 
 你的應用程式如何逐一函式地使用 CPU 時間和記憶體，由推送到 OneUptime 的 Pyroscope 相容 API 的效能剖析器傳送。

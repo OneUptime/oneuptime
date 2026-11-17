@@ -145,11 +145,10 @@ export const SNMP_WALK_RESULT_SUMMARY_CLASS_NAME: string =
  * The actions: Download, and Continue walking when there is more. On a
  * phone, one a line and each as wide as the card, as a phone's buttons
  * are; from sm up side by side, each its own width, at the summary's end
- * or under it. The gap spaces them, so Button's own dialog-footer margin
- * (md:ml-3) is cleared.
+ * or under it. The gap spaces them.
  */
 export const SNMP_WALK_RESULT_ACTIONS_CLASS_NAME: string =
-  "grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:flex-wrap sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>button]:sm:w-auto";
+  "grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:flex-wrap sm:items-center";
 
 /*
  * The Download menu's trigger: a small bordered button, as Continue
@@ -842,7 +841,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
-          <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+          <div>
             <Button
               title="Walk"
               icon={IconProp.Play}
@@ -1054,7 +1053,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
           </div>
         ) : (
           <>
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+            <div>
               <Button
                 title="Continue walking"
                 icon={IconProp.ChevronDown}

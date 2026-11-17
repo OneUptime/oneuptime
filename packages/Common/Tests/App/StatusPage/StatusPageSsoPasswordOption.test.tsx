@@ -33,13 +33,13 @@ import SsoPage, {
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Status page > "Log in with SSO", while it lists the page's providers.
+ * Status page > "Sign in with SSO", while it lists the page's providers.
  *
- * The sign-in page offers single sign-on under "or" (Log in with SSO), but
+ * The sign-in page offers single sign-on under "or" (Sign in with SSO), but
  * the SSO page had no way back: a visitor who opened it by mistake, or whose
  * provider was not the one they sign in with, had to edit the address. Now,
  * under the providers, it offers the password form the way the sign-in page
- * offers SSO - "or", then an outlined "Log in with password" button with a
+ * offers SSO - "or", then an outlined "Sign in with password" button with a
  * lock - except on a page that requires SSO, where a password cannot sign
  * anyone in (the sign-in page sends them straight back here), and on a page
  * with no provider to list, which says so with its own link back.
@@ -113,7 +113,7 @@ const ENTRA: ProviderRow = {
   name: "Entra ID",
 };
 
-const LOG_IN_WITH_PASSWORD: string = "Log in with password";
+const SIGN_IN_WITH_PASSWORD: string = "Sign in with password";
 
 let samlProviders: Array<ProviderRow> | Error = [];
 let oidcProviders: Array<ProviderRow> | Error = [];
@@ -211,7 +211,7 @@ describe("Status page SSO page: the way back to the password form", () => {
     jest.restoreAllMocks();
   });
 
-  test("under the providers: 'or', then 'Log in with password', a link to the page's sign-in", async () => {
+  test("under the providers: 'or', then 'Sign in with password', a link to the page's sign-in", async () => {
     await renderPage();
 
     const okta: HTMLElement = await screen.findByText("Okta");
@@ -224,10 +224,10 @@ describe("Status page SSO page: the way back to the password form", () => {
     expect(comesAfter(passwordOption(), divider)).toBe(true);
     expect(passwordOption().tagName).toBe("A");
     expect(passwordOption()).toHaveAttribute("href", "/login");
-    expect(passwordOption()).toHaveAccessibleName(LOG_IN_WITH_PASSWORD);
+    expect(passwordOption()).toHaveAccessibleName(SIGN_IN_WITH_PASSWORD);
   });
 
-  test("it is drawn like the sign-in page's Log in with SSO: a full-width outlined button with a lock", async () => {
+  test("it is drawn like the sign-in page's Sign in with SSO: a full-width outlined button with a lock", async () => {
     await renderPage();
 
     for (const name of getSignInOptionClassName("ready").split(" ")) {
@@ -343,7 +343,7 @@ describe("Status page SSO page: the way back to the password form", () => {
    * The SAML and OpenID Connect providers are one list: neither draws a
    * frame of its own (padding, a margin under it, a scroll box), so a page
    * with both showed two lists far apart, and the cards sat a frame's
-   * padding in from Log in with password.
+   * padding in from Sign in with password.
    */
   test("the SAML and OpenID Connect providers read as one list, with no frame of either's", async () => {
     await renderPage();
@@ -366,7 +366,7 @@ describe("Status page SSO page: the way back to the password form", () => {
 
   /*
    * A provider is chosen from the keyboard too: it was a box only a mouse
-   * could click, and Tab went past every provider to Log in with password.
+   * could click, and Tab went past every provider to Sign in with password.
    */
   test("each provider is a button the keyboard reaches and Enter chooses", async () => {
     await renderPage();
@@ -397,8 +397,8 @@ describe("Status page SSO page: the way back to the password form", () => {
   test("the words come from the locale, translated in all 16 other languages", () => {
     const english: Record<string, any> = readLocale("en.json");
 
-    expect(english["accounts"]["sso"]["logInWithPassword"]).toBe(
-      LOG_IN_WITH_PASSWORD,
+    expect(english["accounts"]["sso"]["signInWithPassword"]).toBe(
+      SIGN_IN_WITH_PASSWORD,
     );
 
     const locales: Array<string> = fs
@@ -411,11 +411,11 @@ describe("Status page SSO page: the way back to the password form", () => {
 
     for (const file of locales) {
       const locale: Record<string, any> = readLocale(file);
-      const value: unknown = locale["accounts"]["sso"]["logInWithPassword"];
+      const value: unknown = locale["accounts"]["sso"]["signInWithPassword"];
 
       expect([file, typeof value]).toEqual([file, "string"]);
       expect((value as string).trim()).not.toBe("");
-      expect([file, value]).not.toEqual([file, LOG_IN_WITH_PASSWORD]);
+      expect([file, value]).not.toEqual([file, SIGN_IN_WITH_PASSWORD]);
       // One line, like the sign-in page's other ways in.
       expect([file, (value as string).includes("\n")]).toEqual([file, false]);
       // The same "or" as the sign-in page's divider, in every language.

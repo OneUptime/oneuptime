@@ -1324,7 +1324,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
                   },
                 )}
               </span>
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+              <div>
                 <Button
                   title={translator.translateTemplate(
                     "Keep the first {{count}}",
@@ -1395,7 +1395,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
                 }}
               />
             </div>
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+            <div>
               <Button
                 title="Walk"
                 icon={IconProp.Play}
@@ -1718,7 +1718,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
             </p>
           </div>
           {hasRows ? (
-            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>button]:sm:w-auto">
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-none sm:items-center">
               <Button
                 title="Download CSV"
                 icon={IconProp.Download}

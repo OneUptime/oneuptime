@@ -671,12 +671,13 @@ describe("the result", () => {
 });
 
 /*
- * Where the button sits. NORMAL Buttons carry md:ml-3, a dialog footer's
- * gap, from md up; the box round this one took it back with a bare -ml-3,
- * which on a phone - where the button has no margin - pulled it 12px past
- * the left edge of everything else on Create Monitor's criteria step (and
- * of the card header it sits in on the criteria page). Read the way the
- * cascade does (ResponsiveSpacing): jsdom has no stylesheet.
+ * Where the button sits. NORMAL Buttons once carried md:ml-3, a dialog
+ * footer's gap, from md up; the box round this one took it back with a bare
+ * -ml-3, which on a phone - where the button had no margin - pulled it 12px
+ * past the left edge of everything else on Create Monitor's criteria step
+ * (and of the card header it sits in on the criteria page). No Button
+ * carries a margin now (#9128), and the box takes nothing back. Read the
+ * way the cascade does (ResponsiveSpacing): jsdom has no stylesheet.
  */
 describe("where the button sits", () => {
   function margins(width: number): { box: BoxSpacing; button: BoxSpacing } {
@@ -699,7 +700,7 @@ describe("where the button sits", () => {
     }
   });
 
-  test("from md up, the box takes back the button's own margin, as before", () => {
+  test("from md up too, neither the button nor its box carries a margin", () => {
     renderForm();
 
     for (const width of [768, 1024, 1280]) {
@@ -707,9 +708,9 @@ describe("where the button sits", () => {
 
       expect([width, button.left, box.left + button.left, box.right]).toEqual([
         width,
-        12,
         0,
-        8,
+        0,
+        0,
       ]);
     }
   });

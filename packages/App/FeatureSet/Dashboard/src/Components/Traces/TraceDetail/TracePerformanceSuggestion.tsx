@@ -348,7 +348,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
             disabled={!pickedRepository}
             dataTestId="trace-fix-performance"
             // Under the pick, where the eye goes next.
-            className="self-start whitespace-nowrap md:!ml-0"
+            className="self-start whitespace-nowrap"
             onClick={() => {
               if (pickedRepository) {
                 props.onFix(pickedRepository.id);
@@ -368,7 +368,6 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
         isLoading={props.isCreating}
         tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
         dataTestId="trace-fix-performance"
-        className="md:!ml-0"
         onClick={() => {
           props.onFix();
         }}

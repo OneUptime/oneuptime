@@ -272,7 +272,6 @@ const SecurityEntityRiskPage: FunctionComponent<
             <Button
               title={RISK_CASES_OFF_ACTION}
               buttonStyle={ButtonStyleType.NORMAL}
-              className="!ml-0"
               onClick={() => {
                 Navigation.navigate(
                   routeTo(PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING),

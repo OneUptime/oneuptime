@@ -198,7 +198,10 @@ describe("reading what a worker asks to be opened", () => {
         title: "fix",
       });
     }).toThrow(
-      new BadDataException("headRefName is not a branch name Git takes"),
+      // A sentence that says what to send (the ErrorMessagesGuard rule).
+      new BadDataException(
+        'The headRefName is not a branch name Git takes. Send one without spaces, ".." or the characters Git refuses.',
+      ),
     );
   });
 

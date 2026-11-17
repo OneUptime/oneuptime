@@ -40,7 +40,7 @@ flowchart LR
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
-| **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
+| **Zona de perigo** | **Excluir projeto** | [Excluir o projeto](#excluir-o-projeto) |
 
 **Cobrança e faturas** e **Créditos de IA** só existem no OneUptime Cloud: uma instalação auto-hospedada não tem cobrança.
 
@@ -113,7 +113,7 @@ Excluir um projeto exclui tudo o que há nele, para todos os membros: monitores,
 :::steps
 ### Abrir a zona de perigo
 
-Acesse **Configurações do projeto → Zona de perigo**.
+Acesse **Configurações do projeto → Zona de perigo → Excluir projeto**.
 
 ### Clicar em Excluir: Projeto
 

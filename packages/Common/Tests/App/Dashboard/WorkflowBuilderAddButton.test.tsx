@@ -669,9 +669,9 @@ describe("the Builder's add button: the page's primary button until the workflow
         addButton(),
         screen.getByTestId("run-workflow-button"),
       ]) {
-        // The button's md:ml-3 is there, and the inline margin overrides it.
-        expect(classesOf(button)).toContain("md:ml-3");
-        expect(button.style.marginInlineStart).toBe("0px");
+        // A Button has no margin of its own (#9128): the row's gap spaces them.
+        expect(button.className).not.toMatch(/(^|\s)(sm:|md:)?!?m[ls]-/u);
+        expect(button.style.marginInlineStart).toBe("");
       }
 
       cleanup();

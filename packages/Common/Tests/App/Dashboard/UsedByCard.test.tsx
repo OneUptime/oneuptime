@@ -417,7 +417,7 @@ describe("the card", () => {
 
     const link: HTMLElement = within(pages).getByText("Public status");
     expect(link.closest("a")?.getAttribute("href")).toBe(
-      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id).toString(),
+      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id)?.toString(),
     );
 
     // Three rows or fewer, all shown: nothing more to see.

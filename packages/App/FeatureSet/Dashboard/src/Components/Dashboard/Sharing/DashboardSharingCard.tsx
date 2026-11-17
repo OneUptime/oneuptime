@@ -355,7 +355,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
             />
             <p>{translate(DashboardSharingCopy.lockedWithoutPassword)}</p>
           </div>
-          <div className="[&_button]:ml-0 [&_button]:md:ml-0">
+          <div>
             <Button
               title={DashboardSharingCopy.setPassword}
               buttonStyle={ButtonStyleType.PRIMARY}
@@ -376,7 +376,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="[&_button]:ml-0 [&_button]:md:ml-0">
+      <div>
         <Button
           title={DashboardSharingCopy.changePassword}
           buttonStyle={ButtonStyleType.NORMAL}

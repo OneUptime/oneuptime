@@ -132,7 +132,7 @@ const LANGUAGES: ReadonlyArray<string> = fs
   .sort();
 
 describe("the menus the paths are held to, read from their sources", () => {
-  test("User Settings: where you are notified is open, Calendar and Workspace start folded", () => {
+  test("User Settings: where you are notified is open, Profile & Calendar and Workspace start folded", () => {
     const sections: Array<SettingsMenuSection> = MENUS.userSettings.sections;
 
     expect(
@@ -142,10 +142,8 @@ describe("the menus the paths are held to, read from their sources", () => {
     ).toEqual([
       "Get Started",
       "Alerts & Notifications",
-      "On-Call Logs",
-      "Incoming Call Policy",
-      "Calendar",
-      "Profile",
+      "Paging & Calls",
+      "Profile & Calendar",
       "Workspace",
     ]);
 
@@ -156,7 +154,8 @@ describe("the menus the paths are held to, read from their sources", () => {
 
     expect(notifications.folded).toBe(false);
     expect(notifications.items).toContain("Notification Settings");
-    expect(section(sections, "Calendar").folded).toBe(true);
+    expect(section(sections, "Profile & Calendar").folded).toBe(true);
+    expect(section(sections, "Paging & Calls").folded).toBe(true);
 
     const workspace: SettingsMenuSection = section(sections, "Workspace");
 
@@ -239,12 +238,12 @@ describe("a written path, as a reader follows it", () => {
     [
       "a page of a folded section, without the section",
       "Pick the times under User Settings → Calendar Feed.",
-      'names "Calendar Feed" without "Calendar"',
+      'names "Calendar Feed" without "Profile & Calendar"',
     ],
     [
       "the same, with the arrow a path in Arabic or Persian points on with",
       "Pick the times under User Settings ← Calendar Feed.",
-      'names "Calendar Feed" without "Calendar"',
+      'names "Calendar Feed" without "Profile & Calendar"',
     ],
     [
       "the channel note's old pointer",
@@ -293,16 +292,16 @@ describe("a written path, as a reader follows it", () => {
       [["User Settings", "Workspace", "Slack"]],
     ],
     [
-      "Pick the times on **User Settings → Calendar → Calendar Feed**.",
-      [["User Settings", "Calendar", "Calendar Feed"]],
+      "Pick the times on **User Settings → Profile & Calendar → Calendar Feed**.",
+      [["User Settings", "Profile & Calendar", "Calendar Feed"]],
     ],
     [
-      "Pick the times on **User Settings ← Calendar ← Calendar Feed**.",
-      [["User Settings", "Calendar", "Calendar Feed"]],
+      "Pick the times on **User Settings ← Profile & Calendar ← Calendar Feed**.",
+      [["User Settings", "Profile & Calendar", "Calendar Feed"]],
     ],
     [
-      "Every page you get is listed under User Settings → On-Call Logs.",
-      [["User Settings", "On-Call Logs"]],
+      "Every page you get is listed under User Settings → Paging & Calls → On-Call Logs.",
+      [["User Settings", "Paging & Calls", "On-Call Logs"]],
     ],
     [
       "Ask them to add a rule in User Settings &gt; How to Reach Me, or remove them.",

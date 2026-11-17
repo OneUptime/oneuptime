@@ -37,7 +37,6 @@
     "announcements": "Ankündigungen",
     "scheduledEvents": "Geplante Wartung",
     "subscribe": "Abonnieren",
-    "login": "Anmelden",
     "logout": "Abmelden"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Passwort",
       "newPassword": "Neues Passwort",
       "confirmPassword": "Passwort bestätigen",
-      "login": "Anmelden"
+      "signInLink": "Anmelden."
     },
     "login": {
       "welcomeBack": "Willkommen zurück!",
-      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "signInPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen.",
       "forgotPassword": "Passwort vergessen?",
       "submit": "Anmelden",
       "or": "oder",
-      "logInWithSso": "Mit SSO anmelden",
+      "signInWithSso": "Mit SSO anmelden",
       "emailSignInLink": "Anmeldelink per E-Mail senden"
     },
     "sso": {
       "title": "Mit SSO anmelden",
-      "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
+      "signInPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen.",
       "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert",
       "notAvailable": "Single Sign-On (SSO) ist für diese Statusseite nicht verfügbar. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
-      "backToLogin": "Zurück zur Anmeldung",
-      "logInWithPassword": "Mit Passwort anmelden"
+      "backToSignIn": "Zurück zur Anmeldung",
+      "signInWithPassword": "Mit Passwort anmelden"
     },
     "forgotPassword": {
       "title": "Passwort vergessen",
@@ -339,7 +338,7 @@
       "knowPassword": "Kennen Sie Ihr Passwort?",
       "successTitle": "Ihr Passwort wurde zurückgesetzt",
       "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
-      "loginButton": "Anmelden",
+      "signInButton": "Anmelden",
       "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
       "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
       "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",

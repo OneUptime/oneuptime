@@ -1032,9 +1032,10 @@ test.describe("SLOs", () => {
       )
       .toContain("months=3");
 
-    await expect(
-      page.getByRole("radio", { name: "3 months" }),
-    ).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("radio", { name: "3 months" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 
   test("should save an edit made from the overview details card", async () => {
@@ -1469,6 +1470,17 @@ test.describe("SLOs", () => {
     await modal.waitFor({ state: "visible", timeout: 30000 });
     await page.getByTestId("modal-footer-submit-button").click();
 
+    /*
+     * The delete says so in the corner, naming the SLO (ModelDelete, #9120).
+     * Read right away: the toast goes after a few seconds unless the pointer
+     * rests on it.
+     */
+    await expect(
+      page
+        .getByTestId("toast-title")
+        .filter({ hasText: `${ctx.sloName} deleted` }),
+    ).toBeVisible({ timeout: 30000 });
+
     // Deleting navigates back to the list.
     await page.waitForURL(new RegExp(`/dashboard/${ctx.projectId}/slos/?$`), {
       timeout: 60000,
@@ -1477,11 +1489,14 @@ test.describe("SLOs", () => {
 
     /*
      * Wait for the table to render its empty state before asserting the row is
-     * gone, so a still-loading table cannot make this pass vacuously.
+     * gone, so a still-loading table cannot make this pass vacuously. The
+     * toast may still name the SLO, so the rows are what must not.
      */
     await expect(page.getByText(/No SLOs yet/i).first()).toBeVisible({
       timeout: 60000,
     });
-    await expect(page.getByText(ctx.sloName)).toHaveCount(0);
+    await expect(
+      page.getByRole("row").filter({ hasText: ctx.sloName }),
+    ).toHaveCount(0);
   });
 });

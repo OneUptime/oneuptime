@@ -387,7 +387,7 @@ describe("the Status Pages Overview: creating a status page", () => {
     createForm.indexOf("export const getStatusPageDetailsFormFields"),
   );
 
-  it("asks only for a Name, at least two characters, with Description and Labels under More fields", () => {
+  it("asks only for a Name, at least two characters, with Internal Description and Labels under More fields", () => {
     expect(list).toContain("return getStatusPageCreateFormFields();");
     expect(list).toContain("formFields={createFormFields}");
     expect(
@@ -396,23 +396,23 @@ describe("the Status Pages Overview: creating a status page", () => {
           return match[1] as string;
         },
       ),
-    ).toEqual(["Name", "Description"]);
+    ).toEqual(["Name", "Internal Description"]);
     expect(formFields).toMatch(
       /title: "Name",[\s\S]*?required: true,[\s\S]*?minLength: 2,/,
     );
     // Only the name is asked: the description and the labels fold.
     expect(formFields).toMatch(
-      /title: "Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
+      /title: "Internal Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
     );
     expect(formFields).toMatch(
       /getLabelsFormField<StatusPage>\(\{\s*collapsibleSection: moreFields,\s*\}\)/,
     );
     expect(formFields).toContain("getAdvancedFormSection<StatusPage>()");
     expect(page).toContain(
-      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.",
+      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Internal Description** and **Labels** are optional, under **More fields**.",
     );
     expect(page).toContain(
-      "A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**.",
+      "A new status page only asks for its **Name**; **Internal Description** and **Labels** wait under **More fields**.",
     );
   });
 
@@ -578,9 +578,9 @@ describe("the Status Pages Overview: where everything lives", () => {
         .map((section: MenuSection): string => {
           return section.title;
         }),
-    ).toEqual(["Basic", "Resources"]);
+    ).toEqual(["Overview", "Resources"]);
     expect(where).toContain(
-      "Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed",
+      "Only **Overview** and **Resources**, what the page shows, start open. Every other section starts collapsed",
     );
   });
 
@@ -815,10 +815,20 @@ describe("the Status Pages Overview: how incidents, maintenance and announcement
       }
     }
 
-    // Where an event names them: the create form's own field.
+    /*
+     * Where an event names them: the create form's field, defined once for
+     * the event's forms and its templates' (#9131).
+     */
     expect(
       readSource(`${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`),
-    ).toContain('title: "Show event on these status pages ",');
+    ).toContain("getMaintenanceStatusPagesFormField<ScheduledMaintenance>({");
+    expect(
+      readSource(
+        `${DASHBOARD}/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts`,
+      ),
+    ).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("says incidents come through the monitors, and events and announcements through the pages they name", () => {

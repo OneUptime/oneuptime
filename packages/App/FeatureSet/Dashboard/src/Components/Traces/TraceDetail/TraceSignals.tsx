@@ -984,7 +984,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                                 {sampledValues}
                                 {series.points.length >
                                   MAX_SAMPLED_METRIC_VALUES && (
-                                  <span className="ml-1 text-gray-400">
+                                  <span className="ml-1 text-gray-500">
                                     {translator.translateTemplate(
                                       "(of {{count}})",
                                       {

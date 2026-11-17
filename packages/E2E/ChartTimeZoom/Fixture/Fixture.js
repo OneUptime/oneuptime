@@ -981,6 +981,19 @@ NODES.forEach((node, index) => {
   series("k8s.node.memory.usage", nodeAttributes, (time) => {
     return Math.round(wave(time, node.memory));
   });
+  /*
+   * The Overview's Memory (#9113): the working set - usage less the page
+   * cache the kernel frees - as a share of the memory Kubernetes can hand
+   * out, the node's allocatable 16 GiB.
+   */
+  series("k8s.node.memory.working_set", nodeAttributes, (time) => {
+    return Math.round(
+      wave(time, { ...node.memory, base: node.memory.base * 0.7 }),
+    );
+  });
+  series("k8s.node.allocatable_memory", nodeAttributes, () => {
+    return node.memoryBytes;
+  });
   series("k8s.node.filesystem.usage", nodeAttributes, (time) => {
     return Math.round(filesystemUsed(time));
   });
@@ -1310,8 +1323,10 @@ const MODELLED_METRICS = new Set(
  */
 const METRIC_UNITS = {
   "k8s.node.allocatable_cpu": "{cpu}",
+  "k8s.node.allocatable_memory": "By",
   "k8s.node.cpu.utilization": "{cpu}",
   "k8s.node.memory.usage": "By",
+  "k8s.node.memory.working_set": "By",
   "k8s.node.filesystem.usage": "By",
   "k8s.node.filesystem.available": "By",
   "k8s.node.network.io": "By",

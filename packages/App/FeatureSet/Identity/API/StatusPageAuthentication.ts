@@ -1131,7 +1131,7 @@ router.post(
         MailService.sendMail(
           {
             toEmail: privateUser.email,
-            subject: "Log in to " + statusPageName,
+            subject: "Sign in to " + statusPageName,
             isSubjectLiteral: true,
             templateType: EmailTemplateType.StatusPageMagicLink,
             vars: {

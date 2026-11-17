@@ -2,6 +2,7 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I1
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { pairedLines } from "./DocsLinePairing";
 
 /*
  * AN ALERT IS NOT A NOTIFICATION (#8686).
@@ -234,16 +235,16 @@ function docsLinesSayingNotification(
       continue;
     }
 
-    koreanPage(page).forEach((line: string, index: number) => {
+    for (const paired of pairedLines(english, koreanPage(page))) {
       if (
-        namesOnlyAnAlert(english[index] || "") &&
+        namesOnlyAnAlert(paired.english) &&
         saysNotification(
-          prose(withoutDrawnLabels(line, english[index] || "", drawn)),
+          prose(withoutDrawnLabels(paired.text, paired.english, drawn)),
         )
       ) {
-        found.push(`${page}:${index + 1}`);
+        found.push(`${page}:${paired.line + 1}`);
       }
-    });
+    }
   }
 
   return found;
@@ -630,14 +631,14 @@ describe("Norwegian says an alert varsel and a notification varsling", () => {
         continue;
       }
 
-      readDocsLines("no", page)!.forEach((line: string, index: number) => {
+      for (const paired of pairedLines(english, readDocsLines("no", page)!)) {
         if (
-          namesOnlyANotification(english[index] || "") &&
-          NORWEGIAN_ALERT_NOUN.test(prose(line))
+          namesOnlyANotification(paired.english) &&
+          NORWEGIAN_ALERT_NOUN.test(prose(paired.text))
         ) {
-          found.push(`${page}:${index + 1}`);
+          found.push(`${page}:${paired.line + 1}`);
         }
-      });
+      }
     }
 
     expect(found).toEqual([]);

@@ -610,7 +610,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     const { taskType, presentation, task, state } = data;
 
     return (
-      <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+      <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
         {state.canViewTask && task && (
           <Button
             title="View task"

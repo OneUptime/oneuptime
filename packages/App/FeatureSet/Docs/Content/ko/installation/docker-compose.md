@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details ingress 포트를 옮긴 뒤 함께 제공되는 프로브가 연결 끊김으로 표시됨
-Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이 값이 `localhost`를 가리키는 동안에는 `npm start`가 ingress의 포트로 옮겨 줍니다. 다른 주소로 설정했거나 Docker CLI로 OneUptime을 시작했다면, 이 값을 ingress의 새 포트(예: `http://localhost:8080`)로 설정한 뒤 OneUptime을 다시 시작하세요.
+Admin Dashboard는 **설정 > 모든 프로젝트와 공유 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이 값이 `localhost`를 가리키는 동안에는 `npm start`가 ingress의 포트로 옮겨 줍니다. 다른 주소로 설정했거나 Docker CLI로 OneUptime을 시작했다면, 이 값을 ingress의 새 포트(예: `http://localhost:8080`)로 설정한 뒤 OneUptime을 다시 시작하세요.
 :::
 
 ## 다음 단계

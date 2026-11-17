@@ -1154,7 +1154,7 @@ describe("Scheduled maintenance overview page", () => {
      * page; the first two, then "+N more". An event on none says so.
      */
     const STATUS_PAGE_CASES: Array<[Array<string>, Array<string>, string]> = [
-      [[], [], "None"],
+      [[], [], "Not shown on any status page"],
       [["Only page"], ["Only page"], ""],
       [["A", "B", "C"], ["A", "B"], "+1 more"],
       [["A", "B", "C", "D", "E"], ["A", "B"], "+3 more"],
@@ -1181,7 +1181,9 @@ describe("Scheduled maintenance overview page", () => {
               return child.textContent || "";
             })
             .filter((text: string): boolean => {
-              return !text.startsWith("+") && text !== "None";
+              return (
+                !text.startsWith("+") && text !== "Not shown on any status page"
+              );
             }),
         ).toEqual(shown);
         if (rest) {
@@ -1194,7 +1196,7 @@ describe("Scheduled maintenance overview page", () => {
             return name.trim();
           }).length === 0
         ) {
-          expect(list).toHaveTextContent(/^None$/);
+          expect(list).toHaveTextContent(/^Not shown on any status page$/);
           expect(list).toHaveClass("text-gray-500");
         }
       },

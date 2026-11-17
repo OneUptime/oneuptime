@@ -447,7 +447,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
             dataTestId="multi-snmp-walk-row-collect"
-            className="!ml-0 !w-auto whitespace-nowrap !text-sm"
+            className="whitespace-nowrap !text-sm"
             isLoading={isCollecting}
             disabled={Boolean(props.collectingOid) && !isCollecting}
             tooltip="Collect this OID on every poll of the devices that answer it, so it is charted and can be alerted on."
@@ -751,7 +751,7 @@ const MultiDeviceSnmpWalkResults: FunctionComponent<ComponentProps> = (
             isTitleTranslated={true}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
-            className="!ml-0 !w-auto !text-sm"
+            className="!text-sm"
             dataTestId="multi-snmp-walk-show-more"
             onClick={() => {
               setShownCount((count: number) => {

@@ -82,7 +82,7 @@ Lagringen växer **linjärt med lagringstiden**: ett fönster på 90 dagar kosta
 
 PostgreSQL lagrar din konfiguration och ditt driftstillstånd, inte telemetri, så det växer långsamt och förblir litet bredvid ClickHouse. Även stora installationer ligger oftast på några tiotal GB. Standardvolymen på **25 Gi** räcker för små installationer; planera 50–100 GB för större, med utrymme för historiken över incidenter och larm.
 
-Lösta incidenter och larm finns kvar tills varje projekt väljer hur länge de ska sparas. För att hålla alla projekt inom en gräns ställer du in **Behåll i högst** under **Admin Dashboard → Inställningar → Databevarande**: se [En gräns för hela servern](/docs/incidents/settings#en-gräns-för-hela-servern).
+Lösta incidenter och larm finns kvar tills varje projekt väljer hur länge de ska sparas. För att hålla alla projekt inom en gräns ställer du in **Behåll i högst** under **Admin Dashboard → Inställningar → Server → Databevarande**: se [En gräns för hela servern](/docs/incidents/settings#en-gräns-för-hela-servern).
 
 Med många repliker av app, workers och sonder kan databasanslutningarna ta slut före lagringen. Varje podd öppnar som standard upp till 50 anslutningar, och den medföljande PostgreSQL tillåter 500. Just därför innehåller charten en valfri connection pooler, **PgBouncer** (`pgbouncer.enabled`): slå på den för installationer med många repliker.
 

@@ -514,6 +514,16 @@ API.get = async (options) => {
   if (url.includes("/used-by/")) {
     return { data: usedByNothing(url) };
   }
+  /*
+   * The status page's own setup health, the line at the top of its page
+   * (SetupHealthRecordFindings, #7297): GET /setup-health/record, answered
+   * as the server answers for a page with nothing to fix - no findings.
+   */
+  if (url.includes("/setup-health/record")) {
+    return {
+      data: { findings: [], checkedAt: new Date().toISOString() },
+    };
+  }
   window.__fixture.unmodelled.push(`API.get ${url}`);
   return { data: { data: [], count: 0 } };
 };

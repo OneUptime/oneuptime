@@ -1189,9 +1189,9 @@ describe("Security Events > Entity Risk", () => {
     const button: HTMLElement = within(result).getByRole("button", {
       name: "Open in Correlate",
     });
-    expect(button.className.split(" ")).toEqual(
-      expect.arrayContaining(["!ml-0", "sm:!w-auto"]),
-    );
+    // No margin and no width of its own (#9128): it starts where the result does.
+    expect(button.className).not.toMatch(/(^|\s)(sm:|md:)?!?m[ls]-/u);
+    expect(button).not.toHaveClass("w-full");
     // At the result's end: after what was found, the last of it.
     expect(result.lastElementChild).toBe(button);
     expect(
@@ -1199,10 +1199,10 @@ describe("Security Events > Entity Risk", () => {
         .getByTestId(ENTITY_LOOKUP_TEST_IDS.facts)
         .compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    // Look Up keeps no dialog footer's margin either.
-    expect(
-      screen.getByRole("button", { name: "Look Up" }).className.split(" "),
-    ).toEqual(expect.arrayContaining(["!ml-0", "sm:!w-auto"]));
+    // Look Up has no margin or width of its own either.
+    const lookUp: HTMLElement = screen.getByRole("button", { name: "Look Up" });
+    expect(lookUp.className).not.toMatch(/(^|\s)(sm:|md:)?!?m[ls]-/u);
+    expect(lookUp).not.toHaveClass("w-full");
   });
 
   test("Enter looks up too, and a value no event names says it was not seen", async () => {

@@ -18,17 +18,17 @@ Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den b�
 
 | Side | Hva du angir der |
 | ---- | ------------------ |
-| **Merkevare** | Logo og forsidebilde, temaet (lyst, mørkt eller slik hver besøkendes enhet er innstilt), sidetittel og -beskrivelse, favicon, topptekstlenker, beskrivelsen av oversiktssiden, opphavsrettslinjen og bunntekstlenker. Sammenslått under **Flere innstillinger**: historikkdiagrammets farger, språk og indeksering i søkemotorer. |
+| **Merkevare** | Logo og forsidebilde, temaet (lyst, mørkt eller slik hver besøkendes enhet er innstilt), topptekstlenker, introteksten, opphavsrettslinjen og bunntekstlenker. Sammenslått under **Flere innstillinger**: sidetittelen og søkemotorbeskrivelsen, faviconet, historikkdiagrammets farger, språk og indeksering i søkemotorer. |
 | **Egendefinerte domener** | Ditt eget domene, DNS-posten og det gratis SSL-sertifikatet. |
 | **HTML, CSS og JavaScript** | Topptekst-HTML, bunntekst-HTML, egendefinert CSS, egendefinert JavaScript. |
 
-Tre ting som ligner merkevare, ligger i stedet under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), fordi de avgjør hva siden viser, og ikke hvordan den ser ut: den samlede oppetidsprosenten, hvilke monitorstatuser som teller mot oppetiden, og linjen «Powered by OneUptime». De to første er rader på kortet **Hva statussiden din viser** der, og linjen har sitt eget kort rett under, sammenfoldet under **Flere innstillinger**.
+Tre ting som ligner merkevare, ligger i stedet under **Statussider → siden din → Avansert → Innstillinger** (`{id}/settings`), fordi de avgjør hva siden viser, og ikke hvordan den ser ut: den samlede oppetidsprosenten, hvilke monitorstatuser som teller mot oppetiden, og linjen «Powered by OneUptime». De to første er rader på kortet **Hva statussiden din viser** der, og linjen har sitt eget kort rett under, sammenfoldet under **Flere innstillinger**.
 
 Merkevaren var tidligere delt på separate skjermer for **Grunnleggende merkevare**, **Topptekst**, **Bunntekst**, **Oversiktsside** og **Språk**. De gamle adressene deres (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` og `{id}/languages`) åpner nå siden **Merkevare**, så gamle bokmerker og lenker virker fortsatt.
 
 ## Siden Merkevare
 
-**Statussider → siden din → Merkevare → Merkevare** (`{id}/branding`). Hvert kort lagres for seg. Etter logoen, temaet, tittelen og faviconet følger kortene statussiden din fra topp til bunn: lenkene i toppteksten, teksten øverst i oversikten og deretter bunnteksten. Det få endrer, ligger sammenslått under **Flere innstillinger** nederst.
+**Statussider → siden din → Merkevare → Merkevare** (`{id}/branding`). Hvert kort lagres for seg. Etter logoen og temaet følger kortene statussiden din fra topp til bunn: lenkene i toppteksten, introteksten øverst i oversikten og deretter bunnteksten. Det få endrer, ligger sammenslått under **Flere innstillinger** nederst: tittelen og søkemotorbeskrivelsen, faviconet, historikkdiagrammets farger, språkene og indeksering i søkemotorer.
 
 ### Logo og forsidebilde
 
@@ -65,18 +65,25 @@ Temaet ligger i sidens HTML, så siden tegnes i det fra starten: en mørk side b
 
 Den egendefinerte CSS-en og HTML-en din gjelder i begge temaene; [Egendefinert HTML, CSS og JavaScript](#egendefinert-html-css-og-javascript) forteller hvordan du styler det mørke.
 
-### Tittel, beskrivelse og favicon
-
-- **Tittel og beskrivelse**: sidens navn i nettleserfanen og i e-poster til abonnenter, og beskrivelsen søkemotorer viser. **Rediger** åpner **Sidetittel** (plassholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
-- **Favicon**: **Rediger favikon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
-
 ### Topptekstlenker
 
 Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som nettstedet ditt, dokumentasjonen din eller en kundestøtteportal. Hver lenke har en **Tittel** og en **Lenke** (en URL, plassholder `https://link.com`), og du endrer rekkefølgen ved å dra. Uten lenker sier tabellen hva de er til, med **Legg til Topptekstlenke** under.
 
-### Beskrivelse av oversiktssiden
+### Introtekst
 
-**Beskrivelse av oversiktsside** er det første på statussidens oversikt, over kunngjøringene, den samlede statusen og ressursene dine. **Rediger beskrivelse** åpner et markdown-felt. Bruk det til en setning med kontekst: hva siden dekker, og hvor man får hjelp. Et bilde du legger i det, vises til alle som besøker siden.
+**Introtekst** er det første besøkende leser på statussidens oversikt, over kunngjøringene, den samlede statusen og ressursene dine. **Rediger introtekst** åpner et markdown-felt. Den het tidligere **Beskrivelse av oversiktsside**. Bruk den til en setning med kontekst: hva siden dekker, og hvor man får hjelp. Et bilde du legger i den, vises til alle som besøker siden.
+
+### Tre beskrivelser, tre lesere
+
+En statusside har tre beskrivelser, hver oppkalt etter hvem som leser den:
+
+| Felt | Hvor det angis | Hvem som leser det |
+| --- | --- | --- |
+| **Intern beskrivelse** | Kortet **Detaljer for statusside** på sidens **Oversikt** | Bare teamet ditt. Besøkende ser den aldri. |
+| **Søkemotorbeskrivelse** | **Tittel og søkemotorbeskrivelse**, under **Flere innstillinger** på **Merkevare** | Søkemotorer og forhåndsvisninger av lenker. |
+| **Introtekst** | **Introtekst** på **Merkevare** | Besøkende, øverst på statussiden. |
+
+For å endre hva besøkende leser på siden, rediger **Introtekst**.
 
 ### Bunntekst
 
@@ -87,7 +94,12 @@ Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, 
 
 ### Flere innstillinger
 
-Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi få noen gang endrer det som står der. Sammenslått nevner overskriften de fire seksjonene (**Standard stolpefarge**, **Regler for stolpefarger**, **Språk** og **Indeksering i søkemotorer**) og viser hver av dem som avviker fra det en ny statusside starter med: en annen standard stolpefarge enn den grønne alle sider starter med, andre regler for stolpefarger enn de anbefalte, et annet standardspråk enn engelsk, en kortere liste over språk eller indeksering i søkemotorer slått av. Klikk på den for å åpne den: det er ett kort med seksjonene under hverandre, hver med egen tittel, atskilt med skillelinjer.
+Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi få noen gang endrer det som står der. Sammenslått nevner overskriften de fire første seksjonene (**Tittel og søkemotorbeskrivelse**, **Favicon**, **Standard stolpefarge** og **Regler for stolpefarger**), deretter hvor mange flere det er (**Språk** og **Indeksering i søkemotorer**), og viser hver av dem som avviker fra det en ny statusside starter med: en sidetittel eller søkemotorbeskrivelse, et favicon, en annen standard stolpefarge enn den grønne alle sider starter med, andre regler for stolpefarger enn de anbefalte, et annet standardspråk enn engelsk, en kortere liste over språk eller indeksering i søkemotorer slått av. Klikk på den for å åpne den: det er ett kort med seksjonene under hverandre, hver med egen tittel, atskilt med skillelinjer.
+
+**Tittel og søkemotorbeskrivelse, og favicon.** De angis én gang, om i det hele tatt, og ingen av dem er det besøkende leser på siden: det er **Introtekst**.
+
+- **Tittel og søkemotorbeskrivelse**: sidens navn i nettleserfanen og i e-poster til abonnenter, og beskrivelsen søkemotorer viser. **Rediger** åpner **Sidetittel** (plassholder `e.g., Acme Status`) og **Søkemotorbeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
+- **Favicon**: **Rediger favikon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
 
 **Historikkdiagrammets farger.** Utenom **Tema** er dette de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
 
@@ -106,7 +118,7 @@ En dag siden ikke har data for, tegnes alltid grå med diagonale striper, uanset
 
 En dags oppetid måles over den delen av dagen som har data, og teller statusene som er valgt i **Teller som nedetid**. De anbefalte fargene skiller seg i lyshet så vel som i fargetone, så personer med rød-grønn fargeblindhet, omtrent én av tolv menn, kan skille dem fra hverandre; den grønne for Operational og den røde for Offline som monitorstatuser starter med, ser nesten like ut for dem. En side som er opprettet før disse reglene, eller via API-et eller Terraform, har ingen regler før du legger til noen: en tom tabell **Regler for stolpefarger** og **Forhåndsvisning av stolpefarger** tilbyr begge **Bruk anbefalte regler**. Via API-et sender du `"miscDataProps": {"addRecommendedBarColorRules": true}` med forespørselen som oppretter statussiden.
 
-Hvor mange dager diagrammet dekker, angis ikke her. Det er **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Avansert → Avanserte innstillinger**, fra 1 til 90 dager. Hvilke monitorstatuser som teller som nede, er **Teller som nedetid**, i samme rad på det kortet.
+Hvor mange dager diagrammet dekker, angis ikke her. Det er **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Avansert → Innstillinger**, fra 1 til 90 dager. Hvilke monitorstatuser som teller som nede, er **Teller som nedetid**, i samme rad på det kortet.
 
 **Språk.** Seksjonen **Språk** angir språkvelgeren besøkende får i sidens bunntekst. **Rediger språk** åpner to felt:
 
@@ -124,7 +136,7 @@ OneUptime leveres med atten språk: engelsk, tysk, fransk, spansk, italiensk, po
 
 ## Oppetidsprosent og nedetidsstatuser
 
-Begge ligger i raden **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`). Det finnes ingen knapp **Rediger**: hver innstilling lagres i det øyeblikket du endrer den.
+Begge ligger i raden **Oppetidshistorikk** på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Innstillinger** (`{id}/settings`). Det finnes ingen knapp **Rediger**: hver innstilling lagres i det øyeblikket du endrer den.
 
 - **Vis samlet oppetidsprosent**: en bryter, slått av som standard. Mens den er slått på, velger **Presisjon** ved siden av hvor mange desimaler prosenten viser: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. På OneUptime Cloud krever det planen **Scale** å slå på prosenten; presisjonen kan endres på alle planer.
 - **Teller som nedetid**: monitorstatusene, som fargede merker, der tiden teller mot oppetiden på denne siden. Her avgjør du for eksempel om en redusert status teller mot oppetiden. Minst én status forblir valgt.
@@ -274,7 +286,7 @@ Dialogen, **Reissue SSL Certificate for this Status Page**, ber Let's Encrypt om
 
 Handlingen vises ikke på et domene som bruker et sertifikat du har lastet opp: det finnes ikke noe Let's Encrypt-sertifikat å utstede på nytt, så last heller opp et nytt ved å redigere domenet. Den vises heller ikke før domenets første sertifikat er bestilt, noe som skjer av seg selv så snart CNAME-posten er verifisert.
 
-Den samme knappen, med den samme grensen på 24 timer, finnes på dashbordenes egendefinerte domener under **Dashbord → dashbordet ditt → Merkevare → Egendefinerte domener**, som fungerer på samme måte som statussidenes egendefinerte domener: se [Deling & offentlige dashbord](/docs/dashboards/sharing#egendefinerte-domener).
+Den samme knappen, med den samme grensen på 24 timer, finnes på dashbordenes egendefinerte domener under **Dashbord → dashbordet ditt → Offentlig lenke → Egendefinerte domener**, som fungerer på samme måte som statussidenes egendefinerte domener: se [Deling & offentlige dashbord](/docs/dashboards/sharing#egendefinerte-domener).
 
 ### Slik leser du domenets kolonne Status
 
@@ -309,7 +321,7 @@ Det samme gjelder API-nøkler. En nøkkel som bare kan lese statussidedomener, k
 
 ## Powered by OneUptime
 
-Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den har sitt eget kort, **Powered by OneUptime**, sammenfoldet under **Flere innstillinger** under kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den. Selvhostet er det en del av Enterprise Edition å skjule den: på Community Edition viser alle statussider linjen.
+Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den har sitt eget kort, **Powered by OneUptime**, sammenfoldet under **Flere innstillinger** under kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den. Selvhostet er det en del av Enterprise Edition å skjule den: på Community Edition viser alle statussider linjen.
 
 ## Neste steg
 

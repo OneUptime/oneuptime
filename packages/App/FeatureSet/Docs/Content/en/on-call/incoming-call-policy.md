@@ -154,7 +154,7 @@ To release a number, click **Release Number** next to it and confirm with **Rele
 A rule rings a person on the number they verified for incoming calls in this project, and skips anyone who has none. Each person adds their own:
 
 :::steps
-1. Open **User Settings** > **Incoming Call Policy** > **Incoming Phone Numbers**. **Incoming Call Policy** is a section of the side menu that starts folded.
+1. Open **User Settings** > **Paging & Calls** > **Incoming Phone Numbers**. **Paging & Calls** is a section of the side menu that starts folded.
 2. In the **Phone Numbers for Incoming Call Routing** card, click **Add Phone Number for Incoming Call Routing** and enter the number with its country code, such as `+15551234567`.
 3. Enter the 6-digit code OneUptime sends to it by SMS under **Verification Code**, and click **Verify**. **Send a new code** sends another one.
 :::
@@ -260,7 +260,7 @@ A rule created through the API without `escalateAfterSeconds` rings for 20 secon
 :::
 
 :::details The call is answered, but nobody is rung
-The call log says **Failed**. Check that the policy's **Answer Calls** is on, under **Settings**, that each rule's on-call schedule has somebody on call right now, and that the people the rules ring have a verified number under **User Settings** > **Incoming Call Policy** > **Incoming Phone Numbers**, in this project. Rules ring members of the project only.
+The call log says **Failed**. Check that the policy's **Answer Calls** is on, under **Settings**, that each rule's on-call schedule has somebody on call right now, and that the people the rules ring have a verified number under **User Settings** > **Paging & Calls** > **Incoming Phone Numbers**, in this project. Rules ring members of the project only.
 :::
 
 :::details Calls end up in voicemail

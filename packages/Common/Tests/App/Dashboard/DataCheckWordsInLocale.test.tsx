@@ -893,12 +893,11 @@ describe("Suggested Checks (#7221)", () => {
     );
 
     /*
-     * Under the words, Add starts where they do: a NORMAL button keeps a
-     * dialog footer's margin from md up (md:ml-3).
+     * Under the words, Add starts where they do: a Button has no margin of
+     * its own (#9128), and the row's gap spaces the buttons.
      */
-    expect(SUGGESTED_CHECK_BUTTONS_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining(["[&>button]:md:ml-0", "[&>*>button]:md:ml-0"]),
-    );
+    expect(SUGGESTED_CHECK_BUTTONS_CLASS_NAME.split(" ")).toContain("gap-2");
+    expect(SUGGESTED_CHECK_BUTTONS_CLASS_NAME).not.toContain("button]");
   });
 
   /*

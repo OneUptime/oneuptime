@@ -34,9 +34,9 @@ import english from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
  *
  *  - "Email me a sign-in link" on the sign-in page, under "or", where the
  *    page offers links;
- *  - "Log in with a link": their address, then "Check your email" - the
+ *  - "Sign in with a link": their address, then "Check your email" - the
  *    same answer whoever they are, so it says "if";
- *  - the page the link opens, which signs in only when they press Log in
+ *  - the page the link opens, which signs in only when they press Sign In
  *    (mail filters open links to scan them), lands them where they were
  *    going, and offers a new link when the server refuses this one.
  *
@@ -324,7 +324,7 @@ describe("the sign-in page: 'Email me a sign-in link' under 'or'", () => {
   });
 });
 
-describe("'Log in with a link': the address, then 'Check your email'", () => {
+describe("'Sign in with a link': the address, then 'Check your email'", () => {
   const renderMagicLink: (
     options?: Partial<{ enableMagicLinkLogin: boolean; forceSSO: boolean }>,
   ) => Promise<void> = async (
@@ -407,7 +407,7 @@ describe("'Log in with a link': the address, then 'Check your email'", () => {
     ).toMatch(/\/send-magic-link$/);
   });
 
-  test("then says to check that inbox - 'if' the address can log in - and for how long the link works", async () => {
+  test("then says to check that inbox - 'if' the address can sign in - and for how long the link works", async () => {
     await renderMagicLink();
     await askFor("reader@example.com");
 
@@ -421,7 +421,7 @@ describe("'Log in with a link': the address, then 'Check your email'", () => {
       }),
     ).toBeInTheDocument();
     expect(sent).toHaveTextContent(
-      `If reader@example.com can log in to ${PAGE_NAME}, a sign-in link is on its way. It works once and expires in ${STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES} minutes.`,
+      `If reader@example.com can sign in to ${PAGE_NAME}, a sign-in link is on its way. It works once and expires in ${STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES} minutes.`,
     );
     expect(sent).toHaveTextContent(english.accounts.magicLink.notReceived);
     expect(sent).toHaveAttribute("role", "status");
@@ -501,7 +501,7 @@ describe("'Log in with a link': the address, then 'Check your email'", () => {
     await renderMagicLink();
 
     expect(
-      screen.getByRole("link", { name: `${english.accounts.shared.login}.` }),
+      screen.getByRole("link", { name: english.accounts.shared.signInLink }),
     ).toHaveAttribute(
       "href",
       `/login?redirectUrl=${encodeURIComponent(INCIDENT)}`,
@@ -556,7 +556,7 @@ describe("'Log in with a link': the address, then 'Check your email'", () => {
     await renderMagicLink();
 
     expect(
-      screen.getByRole("link", { name: `${english.accounts.shared.login}.` }),
+      screen.getByRole("link", { name: english.accounts.shared.signInLink }),
     ).toHaveAttribute(
       "href",
       `/status-page/${STATUS_PAGE_ID.toString()}/login`,
@@ -628,11 +628,11 @@ describe("the page a sign-in link opens", () => {
     getJestSpyOn(LoginUtil, "login").mockImplementation(() => {});
   });
 
-  test("asks for one press of Log in, and signs nothing in until then", async () => {
+  test("asks for one press of Sign In, and signs nothing in until then", async () => {
     await renderLanding();
 
     expect(
-      screen.getByRole("heading", { name: `Log in to ${PAGE_NAME}` }),
+      screen.getByRole("heading", { name: `Sign in to ${PAGE_NAME}` }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(english.accounts.magicLinkLogin.description),
@@ -646,7 +646,7 @@ describe("the page a sign-in link opens", () => {
     expect(window.sessionStorage.getItem(SENSITIVE_URL_TOKEN_KEY)).toBe(TOKEN);
   });
 
-  test("Log in sends the link to this page's sign-in, and nothing else", async () => {
+  test("Sign In sends the link to this page's sign-in, and nothing else", async () => {
     await renderLanding();
     await pressLogIn();
 
@@ -718,7 +718,7 @@ describe("the page a sign-in link opens", () => {
     expect(Navigation.navigate).not.toHaveBeenCalled();
   });
 
-  test("a server that could not be reached: the link is kept, so Log in can be pressed again", async () => {
+  test("a server that could not be reached: the link is kept, so Sign In can be pressed again", async () => {
     respondWith(async (): Promise<never> => {
       throw new Error("Network error");
     });
@@ -777,7 +777,7 @@ describe("the page a sign-in link opens", () => {
       screen.queryByTestId(MAGIC_LINK_LOGIN_NEW_LINK_TEST_ID),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: english.accounts.sso.backToLogin }),
+      screen.getByRole("link", { name: english.accounts.sso.backToSignIn }),
     ).toHaveAttribute("href", "/login");
     expect(posts).toEqual([]);
   });
@@ -841,7 +841,7 @@ describe("the page a sign-in link opens", () => {
       `/status-page/${STATUS_PAGE_ID.toString()}/magic-link`,
     );
     expect(
-      screen.getByRole("link", { name: english.accounts.sso.backToLogin }),
+      screen.getByRole("link", { name: english.accounts.sso.backToSignIn }),
     ).toHaveAttribute(
       "href",
       `/status-page/${STATUS_PAGE_ID.toString()}/login`,

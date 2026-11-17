@@ -390,12 +390,12 @@ describe("the lookup table", () => {
   });
 
   /*
-   * A Button keeps a dialog footer's margin (md:ml-3): in a row of its own
-   * the first one sat in from the table's edge and the rest spread apart.
-   * The row takes it off each button it holds, which the row's classes
-   * reach only as its children or grandchildren.
+   * A Button once kept a dialog footer's margin (md:ml-3): in a row of its
+   * own the first one sat in from the table's edge and the rest spread
+   * apart. No Button carries a margin now (#9128): the row's gap spaces
+   * them.
    */
-  const DIALOG_FOOTER_MARGIN: RegExp = /(^|\s)md:ml-3(\s|$)/;
+  const OWN_MARGIN: RegExp = /(^|\s)(?:[a-z]+:)?!?(?:m[ls]-|w-full)/u;
 
   test("the table's buttons line up with the table, without a dialog footer's margin", () => {
     render(<TableHarness initial={[{ key: "51", value: "MNUPLR01" }]} />);
@@ -425,23 +425,16 @@ describe("the lookup table", () => {
         });
       }
 
-      // What the row takes off is what a Button puts on.
+      // No button carries a margin of its own.
       expect(
         buttons.some((button: HTMLElement) => {
-          return DIALOG_FOOTER_MARGIN.test(button.className);
+          return OWN_MARGIN.test(button.className);
         }),
-      ).toBe(true);
+      ).toBe(false);
     }
 
-    for (const reset of [
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-      "gap-2",
-    ]) {
-      expect(LOOKUP_BUTTON_ROW_CLASS_NAME.split(" ")).toContain(reset);
-    }
+    expect(LOOKUP_BUTTON_ROW_CLASS_NAME.split(" ")).toContain("gap-2");
+    expect(LOOKUP_BUTTON_ROW_CLASS_NAME).not.toContain("button]");
   });
 
   test("rows are added, typed into and removed", () => {

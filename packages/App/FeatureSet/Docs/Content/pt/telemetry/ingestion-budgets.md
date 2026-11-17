@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Abrir Orçamentos de ingestão
 
-No Admin Dashboard, acesse **Configurações → Telemetria → Orçamentos de ingestão**. **Telemetria** começa recolhido no menu lateral: clique nele para abri-lo.
+No Admin Dashboard, acesse **Configurações → Servidor → Orçamentos de ingestão**. **Servidor** começa recolhido no menu lateral: clique nele para abri-lo.
 
 ### Definir os orçamentos diários
 

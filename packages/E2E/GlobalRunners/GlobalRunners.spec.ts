@@ -228,6 +228,18 @@ async function openPicker(page: Page, stepIndex: number): Promise<Locator> {
   return options;
 }
 
+/*
+ * "Changes saved", said in the corner where the Dashboard says a change
+ * worked: a toast, not a "Saved" dialog to click away (#9120).
+ */
+function changesSavedToast(page: Page): Locator {
+  return page.getByTestId("toast").filter({
+    has: page
+      .getByTestId("toast-title")
+      .getByText("Changes saved", { exact: true }),
+  });
+}
+
 async function saveSteps(page: Page): Promise<Array<SavedStep>> {
   const before: number = (await recorded(page)).updates.length;
   await page.getByRole("button", { name: "Save Steps" }).click();
@@ -236,11 +248,14 @@ async function saveSteps(page: Page): Promise<Array<SavedStep>> {
       return (await recorded(page)).updates.length;
     })
     .toBe(before + 1);
-  // The page says it saved, and the dialog closes on Got it.
-  const saved: Locator = page.getByTestId("modal");
-  await expect(saved).toContainText("Runbook steps saved successfully.");
-  await saved.getByRole("button", { name: "Got it" }).click();
-  await expect(saved).toBeHidden();
+  // The page says it saved, without a dialog over the steps.
+  const saved: Locator = changesSavedToast(page);
+  await expect(saved).toBeVisible();
+  await expect(saved).toHaveAttribute("data-toast-type", "success");
+  await expect(page.getByTestId("modal")).toHaveCount(0);
+  // Closed, so the next save's toast is its own.
+  await saved.getByTestId("toast-dismiss").click();
+  await expect(saved).toHaveCount(0);
   const updates: Recorded["updates"] = (await recorded(page)).updates;
   const last: Recorded["updates"][number] = updates[updates.length - 1]!;
   expect({ model: last.model, id: last.id }).toEqual({

@@ -14,8 +14,9 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
  * Their row took back the buttons' own margin with a bare -ml-3. The
  * buttons have that margin (md:ml-3) only from the md breakpoint up, so on
  * a phone the row sat 12px left of the From and To fields - LLM Connect's
- * usage range and every other picker built on StartAndEndDate. The row now
- * takes the margin back from md up only (md:-ml-3), as the buttons carry it.
+ * usage range and every other picker built on StartAndEndDate. A Button has
+ * no margin of its own now (#9128): the row takes nothing back and spaces
+ * its buttons with its gap, so it starts where the fields do at every width.
  * ButtonMarginTakeBackGuard holds every such box in the product to it.
  */
 
@@ -36,7 +37,7 @@ afterEach(() => {
 
 describe("the quick ranges under a date picker", () => {
   for (const type of [StartAndEndDateType.DateTime, StartAndEndDateType.Date]) {
-    test(`take the buttons' margin back from md up only (${type})`, () => {
+    test(`start where the fields do, spaced by the row's gap (${type})`, () => {
       render(
         <StartAndEndDate
           type={type}
@@ -49,16 +50,24 @@ describe("the quick ranges under a date picker", () => {
         name: "1\u00A0day",
       }).parentElement;
       const classes: Array<string> = classesOf(row);
+      const margin: RegExp = /(^|:)!?-?m[ls]-/u;
 
-      expect(classes).toContain("md:-ml-3");
-      expect(classes).not.toContain("-ml-3");
+      expect(classes).toContain("gap-2");
+      expect(
+        classes.filter((token: string): boolean => {
+          return margin.test(token);
+        }),
+      ).toEqual([]);
 
-      // The buttons it holds carry the margin it takes back, from md up.
+      // The buttons it holds carry no margin of their own.
       const button: HTMLElement = screen.getByRole("button", {
         name: "1\u00A0day",
       });
-      expect(classesOf(button)).toContain("md:ml-3");
-      expect(classesOf(button)).not.toContain("ml-3");
+      expect(
+        classesOf(button).filter((token: string): boolean => {
+          return margin.test(token);
+        }),
+      ).toEqual([]);
     });
   }
 

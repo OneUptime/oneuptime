@@ -26,9 +26,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Only the network and the ModelTable are replaced. Every metric title is
  * checked for an (i) whose tooltip is the matching
- * NETWORK_SITE_METRIC_DESCRIPTIONS entry, Site Type (a name, not a number)
- * for having none, and the clickable summary tiles for not activating when
- * someone asks what the number means.
+ * NETWORK_SITE_METRIC_DESCRIPTIONS entry, as a page draws it (each number
+ * held to the duration's word after it, #8811), Site Type (a name, not a
+ * number) for having none, and the clickable summary tiles for not
+ * activating when someone asks what the number means.
  */
 
 const SITE_ID: string = "55555555-5555-4555-8555-555555555555";
@@ -142,6 +143,7 @@ import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "../../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import { Green } from "../../../Types/BrandColors";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -178,6 +180,11 @@ function infoButtonNames(): Array<string> {
     });
 }
 
+/*
+ * The (i) named after `label` says `text`, as a page draws English: each
+ * number held to the duration's word after it ("the last 24\u00A0hours",
+ * #8811), so a line never breaks between them.
+ */
 async function expectExplained(label: string, text: string): Promise<void> {
   const button: HTMLElement = screen.getByRole("button", {
     name: `About ${label}`,
@@ -192,7 +199,7 @@ async function expectExplained(label: string, text: string): Promise<void> {
     screen.getAllByRole("tooltip").map((tooltip: HTMLElement): string => {
       return tooltip.textContent || "";
     }),
-  ).toContain(text);
+  ).toContain(withDurationWordsHeld(text));
 
   fireEvent.mouseLeave(button);
   await act(async () => {

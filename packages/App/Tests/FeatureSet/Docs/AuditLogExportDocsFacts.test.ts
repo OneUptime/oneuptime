@@ -861,7 +861,9 @@ describeWhenEnterprisePresent(
       const line: string = readEe(
         "Dashboard/AuditLogExport/AuditLogExportEntriesLost.tsx",
       );
-      const api: string = readEe("Server/AuditLogExport/API/AuditLogExportAPI.ts");
+      const api: string = readEe(
+        "Server/AuditLogExport/API/AuditLogExportAPI.ts",
+      );
       const rule: string = readCommonSource(
         "Types/AuditLog/Export/AuditLogExportEntriesLost.ts",
       );

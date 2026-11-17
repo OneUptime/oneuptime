@@ -18,17 +18,17 @@ Abre una página de estado: la sección **Marca** de su menú lateral tiene tres
 
 | Página | Qué defines ahí |
 | ---- | ------------------ |
-| **Marca** | Logotipo e imagen de portada, el tema (claro, oscuro o según el dispositivo de cada visitante), título y descripción de la página, favicon, enlaces de la cabecera, la descripción de la página de vista general, la línea de copyright y los enlaces del pie de página. Plegados en **Más ajustes**: los colores del gráfico de historial, los idiomas y la indexación en motores de búsqueda. |
+| **Marca** | Logotipo e imagen de portada, el tema (claro, oscuro o según el dispositivo de cada visitante), enlaces de la cabecera, el texto de introducción, la línea de copyright y los enlaces del pie de página. Plegados en **Más ajustes**: el título de la página y la descripción para buscadores, el favicon, los colores del gráfico de historial, los idiomas y la indexación en motores de búsqueda. |
 | **Dominios personalizados** | Tu propio dominio, su registro DNS y su certificado SSL gratuito. |
 | **HTML, CSS y JavaScript** | HTML de la cabecera, HTML del pie de página, CSS personalizado y JavaScript personalizado. |
 
-Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las dos primeras son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla, y la línea tiene su propia tarjeta, justo debajo, plegada en **Más ajustes**.
+Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las dos primeras son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla, y la línea tiene su propia tarjeta, justo debajo, plegada en **Más ajustes**.
 
 Antes, la marca estaba repartida en pantallas separadas: **Marca esencial**, **Cabecera**, **Pie de página**, **Página de vista general** e **Idiomas**. Sus antiguas direcciones (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` y `{id}/languages`) abren ahora la página **Marca**, así que los marcadores y enlaces antiguos siguen funcionando.
 
 ## La página Marca
 
-**Páginas de estado → tu página → Marca → Marca** (`{id}/branding`). Cada tarjeta se guarda por separado. Tras el logotipo, el tema, el título y el favicon, las tarjetas siguen tu página de estado de arriba abajo: los enlaces de la cabecera, el texto de la parte superior de la vista general y después el pie de página. Lo que poca gente cambia está plegado en **Más ajustes**, al final.
+**Páginas de estado → tu página → Marca → Marca** (`{id}/branding`). Cada tarjeta se guarda por separado. Tras el logotipo y el tema, las tarjetas siguen tu página de estado de arriba abajo: los enlaces de la cabecera, el texto de introducción de la parte superior de la vista general y después el pie de página. Lo que poca gente cambia está plegado en **Más ajustes**, al final: el título y la descripción para buscadores, el favicon, los colores del gráfico de historial, los idiomas y la indexación en motores de búsqueda.
 
 ### Logotipo e imagen de portada
 
@@ -65,18 +65,25 @@ El tema va en el HTML de la página, así que la página se dibuja con él desde
 
 Tu CSS y tu HTML personalizados se aplican en ambos temas; [HTML, CSS y JavaScript personalizados](#html-css-y-javascript-personalizados) explica cómo dar estilo al oscuro.
 
-### Título, descripción y favicon
-
-- **Título y descripción**: el nombre de la página en la pestaña del navegador y en los correos a suscriptores, y la descripción que muestran los buscadores. **Editar** abre **Título de la página** (texto de ejemplo `e.g., Acme Status`) y **Descripción de la página**. Los buscadores y las vistas previas de enlaces los muestran, así que escríbelos para un cliente, no para tu equipo.
-- **Favicon**: **Editar favicon** abre la subida de **Favicon**: el pequeño icono de la pestaña del navegador.
-
 ### Enlaces de la cabecera
 
 La tabla **Enlaces de la cabecera** contiene los enlaces de la cabecera de la página de estado, como tu sitio web, tu documentación o un portal de soporte. Cada enlace tiene un **Título** y un **Enlace** (una URL, texto de ejemplo `https://link.com`), y se reordenan arrastrando. Sin enlaces, la tabla dice para qué sirven, con **Añadir Enlace de la cabecera** debajo.
 
-### Descripción de la página de vista general
+### Texto de introducción
 
-**Descripción de la página de vista general** es lo primero que aparece en la vista general de la página de estado, por encima de los anuncios, el estado general y tus recursos. **Editar descripción** abre un campo Markdown. Úsalo para una frase de contexto: qué cubre esta página y adónde acudir para obtener soporte. Una imagen que pongas en ella se muestra a todos los visitantes de la página.
+El **Texto de introducción** es lo primero que leen los visitantes en la vista general de la página de estado, por encima de los anuncios, el estado general y tus recursos. **Editar texto de introducción** abre un campo Markdown. Antes se llamaba **Descripción de la página de vista general**. Úsalo para una frase de contexto: qué cubre esta página y adónde acudir para obtener soporte. Una imagen que pongas en él se muestra a todos los visitantes de la página.
+
+### Tres descripciones, tres lectores
+
+Una página de estado tiene tres descripciones, cada una con el nombre de quien la lee:
+
+| Campo | Dónde se configura | Quién lo lee |
+| --- | --- | --- |
+| **Descripción interna** | La tarjeta **Detalles de la página de estado** en la **Vista general** de la página | Solo tu equipo. Los visitantes nunca la ven. |
+| **Descripción para buscadores** | **Título y descripción para buscadores**, en **Más ajustes** de **Marca** | Los buscadores y las vistas previas de enlaces. |
+| **Texto de introducción** | **Texto de introducción** en **Marca** | Los visitantes, en la parte superior de la página de estado. |
+
+Para cambiar lo que leen los visitantes en la página, edita el **Texto de introducción**.
 
 ### Pie de página
 
@@ -87,7 +94,12 @@ Los enlaces de la cabecera son para navegar; los del pie de página, para la let
 
 ### Más ajustes
 
-La última sección de la página está plegada en **Más ajustes**, porque poca gente cambia lo que contiene. Plegada, su cabecera nombra sus cuatro secciones (**Color de barra predeterminado**, **Reglas de color de las barras**, **Idiomas** e **Indexación en motores de búsqueda**) y muestra cada una que difiere de lo que trae una página de estado nueva: un color de barra predeterminado distinto del verde con el que empieza toda página, reglas de color de barra distintas de las recomendadas, un idioma predeterminado distinto del inglés, una lista de idiomas más corta o la indexación desactivada. Haz clic en ella para abrirla: es una sola tarjeta, con sus secciones una debajo de otra, cada una con su título, separadas por divisores.
+La última sección de la página está plegada en **Más ajustes**, porque poca gente cambia lo que contiene. Plegada, su cabecera nombra sus cuatro primeras secciones (**Título y descripción para buscadores**, **Favicon**, **Color de barra predeterminado** y **Reglas de color de las barras**), después cuántas más hay (**Idiomas** e **Indexación en motores de búsqueda**), y muestra cada una que difiere de lo que trae una página de estado nueva: un título de página o una descripción para buscadores, un favicon, un color de barra predeterminado distinto del verde con el que empieza toda página, reglas de color de barra distintas de las recomendadas, un idioma predeterminado distinto del inglés, una lista de idiomas más corta o la indexación desactivada. Haz clic en ella para abrirla: es una sola tarjeta, con sus secciones una debajo de otra, cada una con su título, separadas por divisores.
+
+**Título y descripción para buscadores, y favicon.** Se configuran una vez, si acaso, y ninguno de los dos es lo que leen los visitantes en la página, que es el **Texto de introducción**.
+
+- **Título y descripción para buscadores**: el nombre de la página en la pestaña del navegador y en los correos a suscriptores, y la descripción que muestran los buscadores. **Editar** abre **Título de la página** (texto de ejemplo `e.g., Acme Status`) y **Descripción para buscadores**. Los buscadores y las vistas previas de enlaces los muestran, así que escríbelos para un cliente, no para tu equipo.
+- **Favicon**: **Editar favicon** abre la subida de **Favicon**: el pequeño icono de la pestaña del navegador.
 
 **Colores del gráfico de historial.** Aparte del **Tema**, son los únicos ajustes de color integrados de una página de estado. Cada barra del historial de tiempo de actividad es un día.
 
@@ -106,7 +118,7 @@ Un día del que la página no tiene datos siempre se dibuja gris con rayas diago
 
 El tiempo de actividad de un día se mide sobre la parte del día que tiene datos, contando los estados elegidos en **Cuenta como tiempo de inactividad**. Los colores recomendados difieren en luminosidad además de en tono, así que las personas con daltonismo rojo-verde, aproximadamente uno de cada doce hombres, pueden distinguirlos; el verde de Operational y el rojo de Offline con los que empiezan los estados de monitor les parecen casi iguales. Una página creada antes de estas reglas, o mediante la API o Terraform, no tiene reglas hasta que añadas alguna: una tabla **Reglas de color de las barras** vacía y **Vista previa de los colores de las barras** ofrecen ambas **Usar reglas recomendadas**. Mediante la API, envía `"miscDataProps": {"addRecommendedBarColorRules": true}` con la solicitud que crea la página de estado.
 
-Cuántos días abarca el gráfico no se define aquí. Eso es **Historial de tiempo de actividad**, en la tarjeta **Lo que muestra tu página de estado** de **Avanzado → Ajustes avanzados**, de 1 a 90 días. Qué estados de monitor cuentan como caída es **Cuenta como tiempo de inactividad**, en la misma fila de esa tarjeta.
+Cuántos días abarca el gráfico no se define aquí. Eso es **Historial de tiempo de actividad**, en la tarjeta **Lo que muestra tu página de estado** de **Avanzado → Ajustes**, de 1 a 90 días. Qué estados de monitor cuentan como caída es **Cuenta como tiempo de inactividad**, en la misma fila de esa tarjeta.
 
 **Idiomas.** La sección **Idiomas** define el selector de idioma que los visitantes tienen en el pie de página. **Editar idiomas** abre dos campos:
 
@@ -124,7 +136,7 @@ OneUptime incluye dieciocho idiomas: inglés, alemán, francés, español, itali
 
 ## Porcentaje de tiempo de actividad y estados de inactividad
 
-Ambos están en la fila **Historial de tiempo de actividad** de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`). No hay botón **Editar**: cada uno se guarda en cuanto lo cambias.
+Ambos están en la fila **Historial de tiempo de actividad** de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes** (`{id}/settings`). No hay botón **Editar**: cada uno se guarda en cuanto lo cambias.
 
 - **Mostrar porcentaje de tiempo de actividad general**: un interruptor, desactivado de forma predeterminada. Mientras está activado, **Precisión** a su lado elige cuántos decimales muestra el porcentaje: `99%`, `99.9%`, `99.99%` (el predeterminado) o `99.999%`. En OneUptime Cloud, activar el porcentaje requiere el plan **Scale**; su precisión puede cambiarse en todos los planes.
 - **Cuenta como tiempo de inactividad**: los estados de monitor, como etiquetas de colores, cuyo tiempo cuenta contra el tiempo de actividad en esta página. Aquí decides, por ejemplo, si un estado degradado cuenta contra el tiempo de actividad. Siempre queda al menos un estado elegido.
@@ -274,7 +286,7 @@ Su cuadro de diálogo, **Volver a emitir el certificado SSL de esta página de e
 
 La acción no aparece en un dominio que usa un certificado que subiste tú: no hay certificado de Let's Encrypt que volver a emitir, así que sube uno nuevo editando el dominio. Tampoco aparece antes de que se pida el primer certificado del dominio, cosa que ocurre sola en cuanto se verifica su registro CNAME.
 
-El mismo botón, con el mismo límite de 24 horas, está en los dominios personalizados de los paneles, en **Paneles → tu panel → Marca → Dominios personalizados**, que funcionan igual que los dominios personalizados de las páginas de estado: consulta [Compartir y paneles públicos](/docs/dashboards/sharing#dominios-personalizados).
+El mismo botón, con el mismo límite de 24 horas, está en los dominios personalizados de los paneles, en **Paneles → tu panel → Enlace público → Dominios personalizados**, que funcionan igual que los dominios personalizados de las páginas de estado: consulta [Compartir y paneles públicos](/docs/dashboards/sharing#dominios-personalizados).
 
 ### Leer la columna Estado del dominio
 
@@ -309,7 +321,7 @@ Lo mismo vale para las claves de API. Una clave que solo puede leer los dominios
 
 ## Powered by OneUptime
 
-La línea «Powered by OneUptime» no es un ajuste de marca. Tiene su propia tarjeta, **Powered by OneUptime**, plegada en **Más ajustes** debajo de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`): **Mostrar la marca Powered By OneUptime**, activado de forma predeterminada. Desactívalo para ocultar la línea; se guarda al momento. En OneUptime Cloud, ocultarla requiere el plan **Scale**. En instalaciones autoalojadas, ocultarla forma parte de la Enterprise Edition: en la Community Edition, todas las páginas de estado muestran la línea.
+La línea «Powered by OneUptime» no es un ajuste de marca. Tiene su propia tarjeta, **Powered by OneUptime**, plegada en **Más ajustes** debajo de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes** (`{id}/settings`): **Mostrar la marca Powered By OneUptime**, activado de forma predeterminada. Desactívalo para ocultar la línea; se guarda al momento. En OneUptime Cloud, ocultarla requiere el plan **Scale**. En instalaciones autoalojadas, ocultarla forma parte de la Enterprise Edition: en la Community Edition, todas las páginas de estado muestran la línea.
 
 ## Próximos pasos
 

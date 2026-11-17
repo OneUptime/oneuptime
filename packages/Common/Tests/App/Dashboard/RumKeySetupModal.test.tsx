@@ -493,8 +493,9 @@ describe("in the reader's language", () => {
     await waitFor(() => {
       expect(dialog.textContent).toContain("secret-key-off");
     });
+    // German's one word for an ingestion key (#8806).
     expect(stepTitles()).toEqual([
-      "Aufnahmeschlüssel auswählen",
+      "Ingestion-Schlüssel auswählen",
       "Anstelle des abgelehnten Schlüssels einsetzen",
       "Bereitstellen und prüfen",
     ]);

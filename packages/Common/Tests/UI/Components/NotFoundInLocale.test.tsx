@@ -164,11 +164,6 @@ describe("its layout reads right to left as well as left to right", () => {
 
     for (const box of boxes) {
       for (const name of Array.from(box.classList)) {
-        // Taking a Button's own md:ml-3 off sets no side: it is the gap's.
-        if (name === "[&_button]:md:ml-0") {
-          continue;
-        }
-
         expect({ name, physical: PHYSICAL_SIDE.test(name) }).toEqual({
           name,
           physical: false,
@@ -177,7 +172,7 @@ describe("its layout reads right to left as well as left to right", () => {
     }
   });
 
-  test("the buttons are spaced by the row's gap, with a Button's own dialog margin taken off", () => {
+  test("the buttons are spaced by the row's gap alone: a Button has no margin of its own", () => {
     render(
       <NotFound
         homeRoute={new Route("/dashboard")}
@@ -190,7 +185,7 @@ describe("its layout reads right to left as well as left to right", () => {
       .closest("button")!.parentElement!;
 
     expect(row).toHaveClass("gap-3");
-    expect(row).toHaveClass("[&_button]:md:ml-0");
+    expect(row.className).not.toMatch(/ml-/u);
     expect(row).toHaveClass("flex-wrap");
   });
 });

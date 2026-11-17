@@ -325,7 +325,7 @@ Einen Anbieter hinzuzufügen, zu ändern oder wieder einzuschalten erfordert **S
 
 Solange das Projekt noch SSO verlangt, zeigt seine Seite **SSO** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
 
-Die Seiten **SSO** und **OIDC** einer Statusseite listen deren eigene Anbieter auf dieselbe Weise auf. Solange die Statusseite noch SSO verlangt, zeigen beide Seiten auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
+Die Seite **Single Sign-On** einer Statusseite listet deren eigene Anbieter auf dieselbe Weise auf, auf ihren Tabs **SAML** und **OIDC**. Solange die Statusseite noch SSO verlangt, zeigen beide Tabs auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
 
 ## Fehlerbehebung
 

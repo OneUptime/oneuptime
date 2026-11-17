@@ -367,13 +367,12 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
         </div>
 
         {/*
-         * Button carries md:ml-3, a dialog footer's spacing: cleared here so
          * Check line lines up with the box above it. "Check line", not
          * "Check": the Dashboard's "Check" is a noun (Data Security's issue
          * filter), and German, French and the rest read it as one
          * ("Prüfung") on a button that does something.
          */}
-        <div className="[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+        <div>
           <Button
             title="Check line"
             buttonStyle={ButtonStyleType.NORMAL}

@@ -54,6 +54,7 @@ import { initReactI18next } from "react-i18next";
 import GlobalVariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import RunbookVariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Variables";
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
@@ -534,35 +535,40 @@ if (target && window.location.pathname !== target) {
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
- * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters). Beside
+ * it, as there, the corner where the Dashboard says a change worked
+ * (ToastRegion): Save Steps says "Changes saved" in it (#9120).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
-    <Routes>
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/settings/variables"
-        element={
-          <Shell
-            component={GlobalVariablesPage}
-            trail="Settings / Global Variables"
-          />
-        }
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/:id/variables"
-        element={
-          <Shell
-            component={RunbookVariablesPage}
-            trail="Database failover / Variables"
-          />
-        }
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/:id/steps"
-        element={
-          <Shell component={StepsPage} trail="Database failover / Steps" />
-        }
-      />
-    </Routes>
-  </BrowserRouter>,
+  <>
+    <BrowserRouter useTransitions={false}>
+      <Routes>
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/settings/variables"
+          element={
+            <Shell
+              component={GlobalVariablesPage}
+              trail="Settings / Global Variables"
+            />
+          }
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/:id/variables"
+          element={
+            <Shell
+              component={RunbookVariablesPage}
+              trail="Database failover / Variables"
+            />
+          }
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/:id/steps"
+          element={
+            <Shell component={StepsPage} trail="Database failover / Steps" />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+    <ToastRegion />
+  </>,
 );

@@ -1,3 +1,4 @@
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
@@ -2226,15 +2227,14 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   <h3 className="mt-3 text-sm font-semibold text-gray-900">
                     {t("No resources match your search")}
                   </h3>
-                  <button
-                    type="button"
-                    className={`${BUTTON} mt-4 bg-indigo-600 text-white hover:bg-indigo-700`}
+                  <Button
+                    title="Clear search"
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    className="mt-4"
                     onClick={() => {
                       setSearch("");
                     }}
-                  >
-                    {t("Clear search")}
-                  </button>
+                  />
                 </div>
               ) : searching ? (
                 results.length > 0 ? (

@@ -349,7 +349,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
           ].join("\n")}
         >
           {widthPercent > 3 ? (
-            <div className="px-1 text-[10px] font-medium text-white truncate leading-snug pt-0.5">
+            <div className="px-1 text-xs font-medium text-white truncate leading-snug pt-0.5">
               {node.span.name}
             </div>
           ) : (

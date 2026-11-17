@@ -32,7 +32,7 @@ Vaste toewijzingen — een gebruiker of team die rechtstreeks in een regel van e
 
 | Link | Wie maakt hem | Wat hij bevat | Waar |
 | --- | --- | --- | --- |
-| **Persoonlijke feed** | Elke gebruiker, één per project | Jouw diensten in elk rooster van dat project, plus de diensten waarin je iemand vervangt (optioneel) | **Gebruikersinstellingen** > **Agenda** > **Agendafeed** |
+| **Persoonlijke feed** | Elke gebruiker, één per project | Jouw diensten in elk rooster van dat project, plus de diensten waarin je iemand vervangt (optioneel) | **Gebruikersinstellingen** > **Profiel en agenda** > **Agendafeed** |
 | **Roosterfeed** | Iedereen die het rooster mag bewerken; iedereen die het mag lezen, mag de link kopiëren | De diensten van iedereen in één rooster, met optionele afspraken voor dekkingsgaten | De pagina van het rooster, kaart **Abonneren op dit rooster** |
 | **Projectfeed** | Iedereen die bereikbaarheidsschema's mag bewerken; iedereen die ze mag lezen, mag de link kopiëren | De diensten van iedereen in elk rooster van het project, met optionele afspraken voor dekkingsgaten | **Bereikbaarheid** > **Agendafeeds** |
 
@@ -54,7 +54,7 @@ Persoonlijke feeds zijn per project: een tweede project krijgt een tweede link e
 :::steps
 ### Open je agendafeed
 
-Open **Gebruikersinstellingen** > **Agenda** > **Agendafeed** in het project waarvan je de diensten wilt. **Agenda** is een sectie van het zijmenu die ingeklapt begint.
+Open **Gebruikersinstellingen** > **Profiel en agenda** > **Agendafeed** in het project waarvan je de diensten wilt. **Profiel en agenda** is een sectie van het zijmenu die ingeklapt begint.
 
 ### Genereer de link
 
@@ -184,7 +184,7 @@ Feed-URL's sturen nooit door. Ze antwoorden `200` op welk schema OneUptime ook b
 Agenda-apps bezorgen geen alarmen uit geabonneerde feeds — Google laat ze vallen, Apple verwijdert ze standaard, Outlook vlakt ze af — dus OneUptime stuurt zijn eigen.
 
 :::steps
-1. Open **Gebruikersinstellingen** > **Agenda** > **Agendafeed**.
+1. Open **Gebruikersinstellingen** > **Profiel en agenda** > **Agendafeed**.
 2. Kies op de kaart **Herinner mij vóór diensten** hoe lang van tevoren: **1 week**, **1 dag**, **1 uur**, **15 min** of, met **Aangepast**, een eigen waarde tussen 15 minuten en 14 dagen. Je kunt er meerdere tegelijk kiezen.
 3. Kies hoe herinneringen je bereiken onder **Voordat mijn oproepdienst begint** op **Gebruikersinstellingen** > **Meldingsinstellingen** (tabblad Bereikbaarheid). E-mail en push staan standaard aan.
 :::

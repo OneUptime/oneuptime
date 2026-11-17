@@ -43,14 +43,16 @@ import path from "path";
  * hold if ingest does what the help says:
  *
  * - Pipelines help and docs: to show successful HTTP spans as Ok, create a
- *   pipeline with the filter condition Status = Unset (`statusCode = '0'`,
- *   what the visual filter builder saves) and a Status Remapper on
+ *   pipeline with the filter condition Status · equals · Unset (the visual
+ *   filter builder saves `statusCode = '0'`) and a Status Remapper on
  *   http.response.status_code (http.status_code on older SDKs) mapping 200,
  *   201, 204 and 304 to Ok. Spans already marked Error are never changed,
  *   and each mapping matches one exact value.
- * - Drop Filters help: "not an error" is `statusCode != 2`. The old example
- *   sampled `statusCode = 1`, which only matches spans some code explicitly
- *   marked Ok, so it never touched the typical successful span (Unset).
+ * - Drop Filters help: "not an error" is Status · does not equal · Error.
+ *   The old example sampled `statusCode = 1`, which only matches spans some
+ *   code explicitly marked Ok, so it never touched the typical successful
+ *   span (Unset). The help writes each condition as the builder draws it,
+ *   no longer a query nobody can type (#9133).
  *
  * Everything runs through the real code: the Dashboard's filter builder and
  * trace filter config build the pipeline filter, TracePipelineService
@@ -65,9 +67,18 @@ const LEGACY_HTTP_STATUS_CODE: string = "http.status_code";
 // The codes the Pipelines help maps to Ok, one mapping each.
 const DOCUMENTED_SUCCESS_CODES: Array<string> = ["200", "201", "204", "304"];
 
-// The Drop Filters help's "Sample successful CRUD" example, and the old one.
-const SAMPLE_SUCCESSFUL_CLIENT_SPANS: string =
-  "kind = 'SPAN_KIND_CLIENT' AND statusCode != 2";
+/*
+ * The Drop Filters help's "Keep a tenth of successful client calls", as the
+ * builder saves it, and the old example.
+ */
+const SAMPLE_SUCCESSFUL_CLIENT_SPANS: string = buildFilterQuery(
+  [
+    builderCondition("Span Kind", "=", "Client"),
+    builderCondition("Status", "!=", "Error"),
+  ],
+  "AND",
+  TraceFilterConfig,
+);
 const OLD_SAMPLE_SUCCESSFUL_CLIENT_SPANS: string =
   "kind = 'SPAN_KIND_CLIENT' AND statusCode = 1";
 
@@ -192,6 +203,36 @@ function clientSpan(statusCode: SpanStatus): JSONObject {
 }
 
 /*
+ * One condition as the visual filter builder makes it: a field and a value
+ * picked by the labels its dropdowns draw.
+ */
+function builderCondition(
+  fieldLabel: string,
+  operator: "=" | "!=",
+  valueLabel: string,
+): FilterConditionData {
+  const field: FilterFieldDefinition | undefined =
+    TraceFilterConfig.fields.find(
+      (candidate: FilterFieldDefinition): boolean => {
+        return candidate.label === fieldLabel;
+      },
+    );
+  const option: FilterFieldValueOption | undefined = field?.valueOptions?.find(
+    (candidate: FilterFieldValueOption): boolean => {
+      return candidate.label === valueLabel;
+    },
+  );
+
+  if (!field || !option) {
+    throw new Error(
+      `The trace filter builder has no ${fieldLabel} = ${valueLabel}`,
+    );
+  }
+
+  return { field: field.key, operator: operator, value: option.value };
+}
+
+/*
  * The filter the pipeline page saves when a customer picks the Status field,
  * "equals" and the named status in the visual filter builder.
  */
@@ -295,7 +336,7 @@ function readSettingsHelp(fileName: string): string {
     .join("`");
 }
 
-describe("the pipeline filter: Status = Unset", () => {
+describe("the pipeline filter: Status · equals · Unset", () => {
   test("the visual builder saves statusCode = '0' and reads it back as Status = Unset", () => {
     const filterQuery: string = builderStatusFilter("Unset");
 
@@ -461,7 +502,7 @@ describe("the Status Remapper recipe at ingest", () => {
   });
 });
 
-describe("the drop filter guidance: not an error is statusCode != 2", () => {
+describe("the drop filter guidance: not an error is Status · does not equal · Error", () => {
   const unsetOkAndErrorClientSpans: Array<JSONObject> = [
     clientSpan(SpanStatus.Unset),
     clientSpan(SpanStatus.Ok),
@@ -495,10 +536,12 @@ describe("the drop filter guidance: not an error is statusCode != 2", () => {
 });
 
 describe("the help gives customers the recipes these tests run", () => {
-  test("the Pipelines help names the Status = Unset filter, both source keys and the codes to map", () => {
+  test("the Pipelines help names the Status · equals · Unset filter, both source keys and the codes to map", () => {
     const help: string = readSettingsHelp("Pipelines.tsx");
 
-    expect(help).toContain("**Status = Unset** (`statusCode = '0'`)");
+    expect(help).toContain(
+      "filter is **Status** · equals · **Unset**, so a span marked Error is never changed",
+    );
     expect(help).toContain("**Status Remapper**");
     expect(help).toContain(`\`${HTTP_RESPONSE_STATUS_CODE}\``);
     expect(help).toContain(`\`${LEGACY_HTTP_STATUS_CODE}\``);
@@ -515,12 +558,18 @@ describe("the help gives customers the recipes these tests run", () => {
     expect(docs).toContain(`\`${HTTP_RESPONSE_STATUS_CODE}\``);
   });
 
-  test("REGRESSION: the Drop Filters help samples statusCode != 2, no longer statusCode = 1", () => {
+  test("REGRESSION: the Drop Filters help samples Status · does not equal · Error, no longer Ok", () => {
     const help: string = readSettingsHelp("DropFilters.tsx");
 
+    // The builder's words for the conditions these tests run.
     expect(help).toContain(
-      `\`${SAMPLE_SUCCESSFUL_CLIENT_SPANS}\`, with **Sample** at 10%`,
+      "**Span Kind** · equals · **Client** and **Status** · does not equal · **Error**, under **All conditions**, with **Sample** at 10%",
     );
+    expect(SAMPLE_SUCCESSFUL_CLIENT_SPANS).toBe(
+      "kind = 'SPAN_KIND_CLIENT' AND statusCode != '2'",
+    );
+    // No query to type: neither the old one nor the one the builder saves.
     expect(help).not.toContain(OLD_SAMPLE_SUCCESSFUL_CLIENT_SPANS);
+    expect(help).not.toContain(SAMPLE_SUCCESSFUL_CLIENT_SPANS);
   });
 });

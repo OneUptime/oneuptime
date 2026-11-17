@@ -102,7 +102,7 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
             ),
           }}
         />
-        <span className="text-gray-400">
+        <span className="text-gray-500">
           <InlineSeparator />
           {translator.translateText(UNAVAILABLE_EXPLANATION[reason])}
         </span>

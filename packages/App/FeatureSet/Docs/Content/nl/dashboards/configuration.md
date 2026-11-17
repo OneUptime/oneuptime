@@ -96,7 +96,7 @@ Archiveren is het omkeerbare alternatief voor verwijderen: kies het eerst als je
 
 ## Een dashboard verwijderen
 
-Open de pagina **Verwijderen** van het dashboard. Verwijderen kan niet ongedaan worden gemaakt: het dashboard, de widgets en variabelen ervan, en alle aangepaste domeinen die eraan gekoppeld zijn, worden verwijderd. Je telemetrie wordt niet aangeraakt.
+Open de pagina **Dashboard verwijderen** van het dashboard. Verwijderen kan niet ongedaan worden gemaakt: het dashboard, de widgets en variabelen ervan, en alle aangepaste domeinen die eraan gekoppeld zijn, worden verwijderd. Je telemetrie wordt niet aangeraakt.
 
 Als het dashboard openbaar is op een aangepast domein, antwoordt het adres niet meer zodra je het verwijdert. Om het adres te blijven aanbieden, voeg je het domein na het verwijderen van dit dashboard toe aan een ander dashboard: een domein hoort bij één dashboard tegelijk.
 

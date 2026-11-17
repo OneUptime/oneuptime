@@ -9,7 +9,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -342,23 +342,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
              * actually settles it instead.
              */}
             {MicrosoftTeamsAppClientId && BILLING_ENABLED && (
-              <button
-                type="button"
-                className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+              <Button
+                title="Open OneUptime in Microsoft Teams"
+                icon={IconProp.ExternalLink}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                className="mt-6"
                 onClick={() => {
                   window.open(
                     getMicrosoftTeamsAppLink(MicrosoftTeamsAppClientId || ""),
                     "_blank",
                   );
                 }}
-              >
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  size={SizeProp.Regular}
-                  className="h-4 w-4"
-                />
-                {translator.translateText("Open OneUptime in Microsoft Teams")}
-              </button>
+              />
             )}
 
             {!BILLING_ENABLED && MicrosoftTeamsAppClientId && (

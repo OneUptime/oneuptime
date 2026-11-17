@@ -77,7 +77,7 @@ As substituições que já se sobrepunham antes desta regra ficam como estão. A
 ## Outras formas de adicionar uma
 
 - A partir de um agendamento: na página **Camadas** de um agendamento, expanda uma camada e clique em **Pular até…** ao lado de uma pessoa. Abre o mesmo formulário, com ela ausente e a rotação cobrindo, como substituição global. Veja [Quando alguém está ausente](/docs/on-call/schedules#quando-alguém-está-ausente).
-- A partir dos seus próximos turnos: **Obter cobertura** em um dos seus turnos, em **Configurações do usuário → Calendário → Feed de calendário**, abre o formulário com você ausente nos horários desse turno, de modo que só falta **Quem cobre?**. Veja [Próximos turnos e cobertura](/docs/on-call/calendar-feeds#próximos-turnos-e-cobertura).
+- A partir dos seus próximos turnos: **Obter cobertura** em um dos seus turnos, em **Configurações do usuário → Perfil e calendário → Feed de calendário**, abre o formulário com você ausente nos horários desse turno, de modo que só falta **Quem cobre?**. Veja [Próximos turnos e cobertura](/docs/on-call/calendar-feeds#próximos-turnos-e-cobertura).
 
 Quando alguém sai do projeto, cada substituição que nomeia essa pessoa e que ainda não terminou é excluída, dos dois lados.
 

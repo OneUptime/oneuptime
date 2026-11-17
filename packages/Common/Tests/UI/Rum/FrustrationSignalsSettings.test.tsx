@@ -521,19 +521,19 @@ describe("changing a rule", () => {
     openRule("rageClick");
 
     /*
-     * Button's md:ml-3 is a dialog footer's gap; the row takes it back, so
-     * Save rule is not 12px in from the fields over it.
+     * Button used to carry a dialog footer's md:ml-3, which set Save rule
+     * 12px in from the fields over it. Neither the row nor the button
+     * carries a margin now: the row's gap spaces them.
      */
     const buttons: HTMLElement = screen.getByTestId(
       "frustration-signal-rageClick-save-rule",
     ).parentElement as HTMLElement;
 
-    expect(buttons).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    );
+    expect(buttons.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    // Nor does the button inside it: a Button has no margin of its own (#9128).
+    for (const button of Array.from(buttons.querySelectorAll("button"))) {
+      expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    }
 
     const box: HTMLElement = screen.getByTestId(
       "frustration-signal-rageClick-ignore",

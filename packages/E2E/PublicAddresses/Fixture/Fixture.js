@@ -639,6 +639,17 @@ API.get = async (options) => {
     window.__fixture.usedByGets.push(url);
     return new HTTPResponse(200, usedByAnswer(url), {});
   }
+  /*
+   * The status page's own setup health, the line at the top of its page
+   * (SetupHealthRecordFindings, #7297), kept apart too: GET
+   * /setup-health/record, answered as the server answers for a page with
+   * nothing to fix - no findings.
+   */
+  if (url.includes("/setup-health/record")) {
+    window.__fixture.setupHealthGets = window.__fixture.setupHealthGets || [];
+    window.__fixture.setupHealthGets.push(url);
+    return new HTTPResponse(200, { findings: [], checkedAt: CHECKED_AT }, {});
+  }
   window.__fixture.apiGets.push(url);
   if (url.includes("/certificates/")) {
     if (failing === "certs") {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
   EXCEPTION_SPIKE_CANDIDATE_LIMIT,
@@ -584,11 +585,7 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
       at(twentyFiveHoursAgo, 1),
       at(now, -10 * 60 * 1000),
     ];
-    let seed: number = 7;
-    const random: (below: number) => number = (below: number): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed % below;
-    };
+    const random: SeededRandom = seededRandom(7);
 
     for (let round: number = 0; round < 40; round++) {
       jest.restoreAllMocks();

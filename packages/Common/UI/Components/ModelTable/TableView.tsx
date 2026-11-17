@@ -548,7 +548,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
               className="h-4 w-4 flex-none text-indigo-500"
             />
             <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-none">
-              <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-400">
+              <span className="text-xs font-medium uppercase tracking-wider text-indigo-400">
                 {translator.translateText("View")}
               </span>
               <span className="max-w-[14rem] truncate text-sm font-semibold">

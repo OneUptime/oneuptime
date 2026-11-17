@@ -271,6 +271,7 @@ function mockPage(): void {
       uptimeDailyAggregate: uptimeDailyAggregate,
       monitorGroupCurrentStatuses: {},
       notMonitoredResourceIds: [],
+      notMonitoredYetResourceIds: [],
       statusPageGroups: [],
       statusPage: statusPage,
       monitorsOnStatusPage: [MONITOR, GROUP_MONITOR, UNRECORDED_MONITOR],

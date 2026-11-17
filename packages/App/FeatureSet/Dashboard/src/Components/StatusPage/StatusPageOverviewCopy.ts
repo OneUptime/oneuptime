@@ -33,6 +33,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const StatusPageOverviewCopy: {
   // The create form and the details card's Edit dialog.
   namePlaceholder: string;
+  /*
+   * The page's own description is your team's: visitors never see it. It
+   * was "Description", one of three a status page had - beside the
+   * Branding page's search engine description and the intro text visitors
+   * read (#9130) - so it is titled "Internal Description" and says whose
+   * it is.
+   */
+  descriptionHelp: string;
   descriptionPlaceholder: string;
   // The link card, first on the Overview.
   linkCardTitle: string;
@@ -48,6 +56,9 @@ export const StatusPageOverviewCopy: {
   firstStepButton: string;
 } = {
   namePlaceholder: translationKey("e.g., Acme Status"),
+  descriptionHelp: translationKey(
+    "Only your team sees this. Visitors read the intro text, set on Branding.",
+  ),
   descriptionPlaceholder: translationKey("e.g., For customers in Europe"),
   linkCardTitle: translationKey("Status Page Link"),
   linkCardDescription: translationKey("Where visitors find your status page."),

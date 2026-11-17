@@ -150,12 +150,20 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
      */
     expect(HOOK_CODE).toContain(
       squash(
-        'useBulkArchiveActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, singularName: "SLO", pluralName: "SLOs", archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, })',
+        'useBulkArchiveActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, singularName: "SLO", pluralName: "SLOs", archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, archiveConfirmDetails: usedBy.archiveConfirmDetails, getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails, })',
       ),
     );
 
     // Through the shared copy module, not a second spelling of it here.
     expect(HOOK_CODE).not.toContain('archiveConfirmMessage: "');
+  });
+
+  test("an Archive, a row's or the bulk one, says first what still uses the SLOs (#7435)", () => {
+    expect(HOOK_CODE).toContain(
+      squash(
+        "const usedBy: UsedByListActions<ServiceLevelObjective> = getUsedByListActions<ServiceLevelObjective>(UsedByRecordKind.Slo);",
+      ),
+    );
   });
 
   test("the switch hook turns SLOs on and off by their isEnabled, in the SLO's own names, in bulk and in each row", () => {
@@ -411,7 +419,8 @@ const CONSUMER_CASES: Array<ConsumerCase> = [
     SLOS_PAGE,
     "../../Components/Slo/useSloBulkActions",
     "const { bulkActions, archiveBulkActions, recommendedRulesBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
-    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], }}",
+    // Bulk Delete says first what still uses the SLOs (#7435).
+    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], deleteConfirmationDetails: usedBy.deleteConfirmationDetails, }}",
     "actionButtons={[...rowActions, ...archiveRowActions]}",
   ],
   [

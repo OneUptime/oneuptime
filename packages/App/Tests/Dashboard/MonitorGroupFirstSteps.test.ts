@@ -355,10 +355,10 @@ describe("the Overview of an empty group", () => {
     expect(list).toContain("modelType: MonitorGroupResource,");
   });
 
-  test("its button is centred: Button's dialog margin is cleared", () => {
-    expect(page).toContain(
-      "[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0",
-    );
+  // A Button has no margin of its own (#9128): nothing to take back.
+  test("its button is centred: nothing pushes it off centre", () => {
+    expect(page).toContain('dataTestId="monitor-group-add-monitors"');
+    expect(page).not.toMatch(/button\]:(md:)?ml-0/u);
   });
 
   test("names a group's fields as the create form does", () => {

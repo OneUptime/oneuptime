@@ -53,6 +53,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
 import { getTemplateNextEventAt } from "../../../FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTemplateSchedule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -414,6 +415,9 @@ const LIST_TABLE: string = readDashboardSource(
 );
 const CREATE_PAGE: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/Create.tsx",
+);
+const STATUS_PAGES_FIELD_COPY: string = readDashboardSource(
+  "Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts",
 );
 const FORM_MODULE: string = readDashboardSource(
   "Components/ScheduledMaintenance/ScheduledMaintenanceForm.ts",
@@ -1090,9 +1094,12 @@ describe("the overview's troubleshooting", () => {
   });
 
   it("drops an event from a status page after the page's history window, 14 days unless changed", () => {
+    // The server reads the window through one helper (#9182), unset is 14.
     expect(readCommonSource("Server/API/StatusPageAPI.ts")).toContain(
-      "statusPage.showScheduledEventHistoryInDays || 14,",
+      "getStatusPageHistoryInDays(\n      statusPage.showScheduledEventHistoryInDays,",
     );
+    expect(getStatusPageHistoryInDays(undefined)).toBe(14);
+    expect(getStatusPageHistoryInDays(null)).toBe(14);
     expect(
       new StatusPage().getTableColumnMetadata("showScheduledEventHistoryInDays")
         .defaultValue,
@@ -2099,6 +2106,18 @@ describe("the create form", () => {
           ),
         );
         expect(step).toBe("Maintenance Details");
+        continue;
+      }
+
+      // Defined once, for Create, the event's Edit and the templates (#9131).
+      if (field === "Show event on these status pages") {
+        expect(CREATE_PAGE).toMatch(
+          /getMaintenanceStatusPagesFormField<ScheduledMaintenance>\(\{\s*stepId: "resources-affected",/,
+        );
+        expect(STATUS_PAGES_FIELD_COPY).toContain(
+          'pickerTitle: translationKey("Show event on these status pages")',
+        );
+        expect(step).toBe("Resources Affected");
         continue;
       }
 
@@ -4176,9 +4195,9 @@ describe("the readers", () => {
       "resources-affected",
     );
     expect(stepOf(fieldObject(CREATE_PAGE, "Title"))).toBe("event");
-    expect(
-      fieldObject(CREATE_PAGE, "Show event on these status pages"),
-    ).toContain('title: "Show event on these status pages ",');
+    expect(STATUS_PAGES_FIELD_COPY).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("read the seeded states with their colours", () => {

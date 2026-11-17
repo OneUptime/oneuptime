@@ -782,7 +782,7 @@ describe("Security Events > Watchlists", () => {
     await renderList(project);
 
     expect(
-      screen.getByText(/did not include telemetry features/),
+      screen.getByText("Your plan does not include security events"),
     ).toBeInTheDocument();
     expect(tables[LIST_TABLE]).toBeUndefined();
   });

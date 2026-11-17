@@ -292,7 +292,7 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                 </p>
               )}
               {invitation.joinedAt ? (
-                <p className="mt-1.5 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-gray-500">
                   {translator.translateTemplate("Invited {{time}}", {
                     time: OneUptimeDate.fromNow(invitation.joinedAt),
                   })}

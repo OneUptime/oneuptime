@@ -80,7 +80,7 @@ Le richieste da qualsiasi altro IP vengono rifiutate con una pagina **Access Den
 
 ## Domini personalizzati
 
-Di base, una dashboard pubblica viene servita al suo link pubblico, sull'indirizzo di OneUptime. Per ospitarla su un tuo sottodominio come `dashboard.acme.com`, apri **Branding → Domini personalizzati** nel menu laterale della dashboard. Funziona esattamente come la pagina **Domini personalizzati** di una pagina di stato.
+Di base, una dashboard pubblica viene servita al suo link pubblico, sull'indirizzo di OneUptime. Per ospitarla su un tuo sottodominio come `dashboard.acme.com`, apri **Link pubblico → Domini personalizzati** nel menu laterale della dashboard. Funziona esattamente come la pagina **Domini personalizzati** di una pagina di stato.
 
 La scheda si intitola **Domini personalizzati** e dice che cosa fare: punta il record CNAME di ogni dominio al record CNAME per le dashboard della tua installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per te. La tabella ha due colonne, **Dominio** e **Stato**.
 

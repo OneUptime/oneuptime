@@ -172,7 +172,13 @@ On OneUptime Cloud, these administration settings need a plan. A page whose plan
 
 ## Cancel the plan
 
-To stop paying for a project, delete it: billing stops when it is deleted. See [Delete the project](/docs/configuration/project-settings#delete-the-project). A project bought through a reseller is cancelled with the reseller, and one bought through a cloud marketplace on the marketplace.
+To stop paying for seats, move the project to the Free plan. On the **Cancel Plan** card, click **Switch to Free Plan**: OneUptime says what the Free plan stops, and moves the project when you click **Switch to Free Plan** again. It takes a Project Owner or **Manage Billing**, and a payment method, as any plan change does.
+
+- **Nothing is deleted.** Your monitors, incidents, status pages and their history stay. Features the Free plan does not include stop working, and work again when you change back to a plan that includes them.
+- **Usage is still billed.** Pay as you go carries on on the Free plan: the telemetry your services send, and every monitor that is not a Manual monitor. Stop sending telemetry and delete the monitors you no longer need to stop those charges too.
+- **Questions about your bill?** Click **Contact Support** on the same card to write to support@oneuptime.com.
+
+Deleting the project stops all billing, and removes everything in it for good: see [Delete the project](/docs/configuration/project-settings#delete-the-project). A project bought through a reseller is cancelled with the reseller, and one bought through a cloud marketplace on the marketplace.
 
 ## Troubleshooting
 

@@ -28,9 +28,9 @@ Utforskaren har sex flikar:
 | Flik | Vad den är till för |
 | --- | --- |
 | **Tittare** | Listan över mätvärden, vart och ett med ett litet diagram och sitt senaste värde. Den öppnas på den senaste timmen. |
-| **PromQL** | Fråga efter dina mätvärden med PromQL, frågespråket i Prometheus, och anslut Grafana till dem. Se [Fråga efter mätvärden med PromQL](/docs/telemetry/promql). |
 | **Insikter** | Vilka tjänster som rapporterar mätvärden, och hur många. |
 | **AI** | Problemen som OneUptime hittar i dina mätvärden (för många värden, histogram-buckets som inte passar, saknade mätvärden), och vad OneUptime AI gjorde åt dem. Se [Förbättra mätvärden och lägg till de som saknas med AI](#förbättra-mätvärden-och-lägg-till-de-som-saknas-med-ai). |
+| **PromQL** | Fråga efter dina mätvärden med PromQL, frågespråket i Prometheus, och anslut Grafana till dem. Se [Fråga efter mätvärden med PromQL](/docs/telemetry/promql). |
 | **Installationsguide** | Hur du skickar mätvärden med OpenTelemetry med en av dina intagningsnycklar. |
 | **Inställningar** | **Pipelineregler** och **Inspelningsregler**: vad som händer med mätvärden när de kommer in. |
 

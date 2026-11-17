@@ -1,5 +1,17 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import useTranslateValue from "../../Utils/Translation";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
+
+/*
+ * A STATUS BADGE IS A PILL (#9137).
+ *
+ * It was a chip of its own - a gradient, a ring and bold text - beside the
+ * Pill's flat wash, so one page could show "Active" in two shapes and two
+ * greens. It now names its tone and the Pill draws it: the same size,
+ * corners, dot and contrast in both themes as every other chip. New code
+ * draws a Pill with a `tone`; this stays so the pages that use it keep
+ * working.
+ */
 
 export enum StatusBadgeType {
   Success = "success",
@@ -7,11 +19,24 @@ export enum StatusBadgeType {
   Danger = "danger",
   Info = "info",
   Neutral = "neutral",
+  // A state someone chose to switch off: grey, with a hollow dot.
+  Paused = "paused",
 }
+
+export const STATUS_BADGE_TONES: Readonly<Record<StatusBadgeType, PillTone>> =
+  Object.freeze({
+    [StatusBadgeType.Success]: PillTone.Success,
+    [StatusBadgeType.Warning]: PillTone.Warning,
+    [StatusBadgeType.Danger]: PillTone.Danger,
+    [StatusBadgeType.Info]: PillTone.Info,
+    [StatusBadgeType.Neutral]: PillTone.Neutral,
+    [StatusBadgeType.Paused]: PillTone.Paused,
+  });
 
 export interface ComponentProps {
   text: string;
   type?: StatusBadgeType | undefined;
+  // Where it sits in its row (a margin, flex-shrink-0), never its look.
   className?: string | undefined;
   /*
    * The text is drawn as given, never looked up: a name someone typed - a
@@ -21,60 +46,33 @@ export interface ComponentProps {
   isUserContent?: boolean | undefined;
   /*
    * The badge keeps to one line, never wider than the box it is in: words
-   * too long for the room end in "..." - a name someone typed can be long.
-   * Without it a badge wraps, as one of a few short words may.
+   * too long for the room end in "..." - a name someone typed can be long -
+   * and show whole under the pointer. Without it a badge wraps between its
+   * words, as one of a few short words may.
    */
   isOneLine?: boolean | undefined;
 }
 
-const statusStyles: Record<StatusBadgeType, string> = {
-  [StatusBadgeType.Success]:
-    "bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200/80",
-  [StatusBadgeType.Warning]:
-    "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200/80",
-  [StatusBadgeType.Danger]:
-    "bg-gradient-to-r from-red-50 to-red-100 text-red-800 ring-1 ring-inset ring-red-200/80",
-  [StatusBadgeType.Info]:
-    "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 ring-1 ring-inset ring-blue-200/80",
-  [StatusBadgeType.Neutral]:
-    "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200/80",
-};
-
 const StatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const type: StatusBadgeType = props.type || StatusBadgeType.Neutral;
-  const { translateString } = useTranslateValue();
-  const text: string = props.isUserContent
-    ? props.text
-    : translateString(props.text) ?? props.text;
-
-  if (props.isOneLine) {
-    return (
-      <span
-        className={`inline-flex min-w-0 max-w-full items-center whitespace-nowrap px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
-      >
-        {/*
-         * A name reads the way it is written - an English one on a Persian
-         * page ends in "..." at its own end, not before its first word.
-         */}
-        <span
-          className="min-w-0 truncate"
-          dir={props.isUserContent ? "auto" : undefined}
-          data-testid="status-badge-text"
-        >
-          {text}
-        </span>
-      </span>
-    );
-  }
-
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusStyles[type]} ${props.className || ""}`}
-    >
-      {text}
-    </span>
+    <Pill
+      text={props.text}
+      tone={STATUS_BADGE_TONES[props.type || StatusBadgeType.Neutral]}
+      isUserContent={props.isUserContent}
+      isWrapping={!props.isOneLine}
+      isKeepingWordsWhole={!props.isOneLine}
+      /*
+       * One line, in a flex row: it may shrink below its words, which then
+       * end in "...", rather than push its row wider.
+       */
+      className={
+        props.isOneLine
+          ? `min-w-0${props.className ? ` ${props.className}` : ""}`
+          : props.className
+      }
+    />
   );
 };
 

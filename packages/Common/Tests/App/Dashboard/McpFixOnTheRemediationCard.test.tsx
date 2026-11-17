@@ -60,6 +60,7 @@ import {
   ExternalMcpToolCallPlanUtil,
   ExternalMcpToolCallStatus,
 } from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
+import { getRemediationPlanFingerprint } from "../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -75,7 +76,8 @@ import { openRemediationFixes } from "./RemediationFixHarness";
  *     tool, what it is sent - each with where it stands (proposed, made,
  *     failed, not sent), what the server answered once it was made, and
  *     whether OneUptime AI made it without asking; "Approve & Run" makes
- *     exactly those changes.
+ *     exactly those changes, and names them by their fingerprint, so
+ *     changes made since the card read them are not approved from it.
  *   - The card's decision lines, the AI logs, the run's activity and its
  *     evidence name it in plain words.
  */
@@ -164,15 +166,15 @@ describe("the Remediation card", () => {
   });
 
   test("a proposed fix: each change, where it stands, and Approve & Run", async () => {
-    serve(
-      mcpFix(AutoRemediationSuggestionStatus.Suggested, [
-        call(1, ExternalMcpToolCallStatus.Proposed),
-        call(2, ExternalMcpToolCallStatus.Proposed, {
-          toolName: "scale_service",
-          arguments: { service: "api", count: 3 },
-        }),
-      ]),
-    );
+    const calls: Array<ExternalMcpToolCall> = [
+      call(1, ExternalMcpToolCallStatus.Proposed),
+      call(2, ExternalMcpToolCallStatus.Proposed, {
+        toolName: "scale_service",
+        arguments: { service: "api", count: 3 },
+      }),
+    ];
+
+    serve(mcpFix(AutoRemediationSuggestionStatus.Suggested, calls));
 
     await act(async () => {
       render(
@@ -243,7 +245,12 @@ describe("the Remediation card", () => {
       within(rows[0]!).getByTestId("remediation-mcp-tool-name").tagName,
     ).toBe("CODE");
 
-    // Approving sends exactly this suggestion to the approve route.
+    /*
+     * Approving sends exactly this suggestion to the approve route, named by
+     * the fingerprint of the changes the card shows: worked out in the
+     * browser as the server works it out (#6421). One approval runs it, so
+     * the press says no step of two.
+     */
     const post: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API, "post")
       .mockResolvedValue(new HTTPResponse(200, {}, {}) as never);
@@ -257,7 +264,13 @@ describe("the Remediation card", () => {
     expect(
       new URL(request.url.toString()).pathname.split("/").slice(-2),
     ).toEqual(["auto-remediation", "approve"]);
-    expect(request.data).toEqual({ suggestionId: SUGGESTION_ID });
+    expect(request.data).toEqual({
+      suggestionId: SUGGESTION_ID,
+      expectedPlanFingerprint: getRemediationPlanFingerprint({
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({ calls }),
+      }),
+    });
   });
 
   test("a fix made without asking: what each server answered, and the one that failed", async () => {

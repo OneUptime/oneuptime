@@ -191,6 +191,15 @@ function useRepository(
   getJestSpyOn(service, "autoOwnerOnCreate").mockResolvedValue(
     undefined as never,
   );
+  /*
+   * A delete also reads the files attached to the rows it takes and to
+   * their notes (AttachedFiles), through the same connection: none here, so
+   * every statement below is PublishedImages'. DatabaseServiceAttachedFiles
+   * holds that read on both delete paths.
+   */
+  getJestSpyOn(service, "readAttachedFilesOfRowsDeleted").mockResolvedValue(
+    new Map() as never,
+  );
 
   return repository;
 }

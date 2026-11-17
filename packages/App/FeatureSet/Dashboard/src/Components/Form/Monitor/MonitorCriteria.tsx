@@ -587,8 +587,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
           }}
         </Droppable>
       </DragDropContext>
-      {/* md:-ml-3 takes back the Button's own md:ml-3. */}
-      <div className="mt-4 md:-ml-3 flex">
+      <div className="mt-4 flex">
         <Button
           title="Add Criteria"
           buttonSize={ButtonSize.Small}

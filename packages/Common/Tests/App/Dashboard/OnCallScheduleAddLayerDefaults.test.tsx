@@ -204,13 +204,13 @@ describe("a schedule with no layers", () => {
     const state: HTMLElement = card.querySelector("#no-layers") as HTMLElement;
 
     expect(state.className.split(" ")).toContain("py-8");
+    expect(state).toHaveAttribute("data-size", "inline");
     expect(state.className).not.toContain("pt-52");
 
     const add: HTMLElement = screen.getByRole("button", { name: "Add Layer" });
 
-    expect((add.parentElement as HTMLElement).className).toContain(
-      "[&>button]:md:ml-0",
-    );
+    // Truly centred: the Button carries no margin of its own (#9128).
+    expect(add.className).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
   });
 });
 

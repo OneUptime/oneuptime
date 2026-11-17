@@ -154,7 +154,7 @@ För att frigöra ett nummer klickar du på **Frigör nummer** bredvid det och b
 En regel ringer en person på det nummer som personen har verifierat för inkommande samtal i det här projektet, och hoppar över alla som inte har något. Varje person lägger till sitt eget:
 
 :::steps
-1. Öppna **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**. **Inkommande samtalspolicy** är ett avsnitt i sidomenyn som börjar hopfällt.
+1. Öppna **Användarinställningar** > **Jourlarm och samtal** > **Inkommande telefonnummer**. **Jourlarm och samtal** är ett avsnitt i sidomenyn som börjar hopfällt.
 2. Klicka på **Lägg till Telefonnummer för inkommande samtalsroutning** i kortet **Telefonnummer för inkommande samtalsroutning** och ange numret med landsnummer, till exempel `+15551234567`.
 3. Ange den 6-siffriga kod som OneUptime skickar till numret via SMS under **Verifieringskod** och klicka på **Verifiera**. **Skicka en ny kod** skickar en ny.
 :::
@@ -260,7 +260,7 @@ En regel som skapas via API:et utan `escalateAfterSeconds` ringer i 20 sekunder,
 :::
 
 :::details Samtalet besvaras, men ingen ringes upp
-Samtalsloggen säger **Misslyckades**. Kontrollera att **Besvara samtal** är påslaget under policyns **Inställningar**, att varje regels jourschema har någon med jour just nu, och att de personer som reglerna ringer har ett verifierat nummer under **Användarinställningar** > **Inkommande samtalspolicy** > **Inkommande telefonnummer**, i det här projektet. Regler ringer bara medlemmar i projektet.
+Samtalsloggen säger **Misslyckades**. Kontrollera att **Besvara samtal** är påslaget under policyns **Inställningar**, att varje regels jourschema har någon med jour just nu, och att de personer som reglerna ringer har ett verifierat nummer under **Användarinställningar** > **Jourlarm och samtal** > **Inkommande telefonnummer**, i det här projektet. Regler ringer bara medlemmar i projektet.
 :::
 
 :::details Samtal hamnar i röstbrevlådan

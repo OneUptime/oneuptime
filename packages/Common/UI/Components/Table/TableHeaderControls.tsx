@@ -86,7 +86,7 @@ export const TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME: string =
  * phone the search stopped 12px short of the card's edge.
  */
 export const TABLE_HEADER_BUTTONS_BOX_CLASS_NAME: string =
-  "flex items-center transition-all duration-300 ease-out [&_button]:md:ml-0 empty:hidden";
+  "flex items-center transition-all duration-300 ease-out empty:hidden";
 
 /*
  * The same buttons, unfolded. On a phone they wrap onto a second line, at

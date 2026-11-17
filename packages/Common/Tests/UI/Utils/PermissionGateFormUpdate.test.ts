@@ -219,9 +219,12 @@ describe("PermissionGate.checkFormUpdate", () => {
       PermissionGate.check(new Project(), ModelAction.Update),
     );
     expect(result.isAllowed).toBe(false);
-    // The record's own permissions, Manage Billing among them.
+    /*
+     * The record's own permissions, Manage Billing among them, and Edit
+     * Incoming Request Secret for the one column it opens (#8502).
+     */
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project, Edit Incoming Request Secret.",
     );
   });
 

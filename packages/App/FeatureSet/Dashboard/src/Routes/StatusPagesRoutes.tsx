@@ -24,8 +24,7 @@ import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
 import StatusPagesViewMonitorRules from "../Pages/StatusPages/View/MonitorRules";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
 import StatusPageViewCustomFields from "../Pages/StatusPages/View/CustomFields";
-import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";
-import StatusPageViewOIDC from "../Pages/StatusPages/View/OIDC";
+import StatusPageViewSingleSignOn from "../Pages/StatusPages/View/SingleSignOn";
 import StatusPageViewSCIM from "../Pages/StatusPages/View/SCIM";
 import StatusPageViewPrivateUser from "../Pages/StatusPages/View/PrivateUser";
 import StatusPageViewOwners from "../Pages/StatusPages/View/Owners";
@@ -76,6 +75,10 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import StatusPageSingleSignOnProtocol, {
+  MOVED_SINGLE_SIGN_ON_PATHS,
+  getStatusPageSingleSignOnProtocolQuery,
+} from "Common/Types/StatusPage/StatusPageSingleSignOnProtocol";
 import StatusPageSubscriberChannel, {
   MOVED_SUBSCRIBER_LIST_PATHS,
   getStatusPageSubscriberChannelQuery,
@@ -85,7 +88,7 @@ import StatusPageSubscriberChannel, {
  * Where a status page's Advanced Options page used to be, relative to the
  * page's own URL. Spelled out because nothing in the RouteMap points here
  * any more: no menu ever linked to it, and it repeated the Embedded Status
- * page's badge settings (its JSON export is on Advanced Settings now). The
+ * page's badge settings (its JSON export is on Settings now). The
  * URL is kept only so an old link still arrives somewhere.
  */
 export const MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH: string =
@@ -97,7 +100,7 @@ export const MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH: string =
  * screens the Branding section was split into, and navbar-style, an empty
  * page no menu linked to. What they held is on the one Branding page now
  * (the overall uptime % and the statuses that count as downtime, which were
- * on Overview Page, are on Advanced Settings). Nothing in the RouteMap
+ * on Overview Page, are on Settings). Nothing in the RouteMap
  * points here any more; the URLs are kept only so a bookmark or a link in a
  * wiki still arrives somewhere.
  */
@@ -526,22 +529,41 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SSO)}
           element={
-            <StatusPageViewSSO
+            <StatusPageViewSingleSignOn
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
             />
           }
         />
 
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_OIDC)}
-          element={
-            <StatusPageViewOIDC
-              {...props}
-              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route}
-            />
-          }
-        />
+        {/*
+         * OIDC providers had a page of their own beside SSO's until #9130:
+         * its address forwards to the Single Sign-On page's OIDC tab, so a
+         * bookmark or a link in a wiki still arrives.
+         */}
+        {Object.keys(MOVED_SINGLE_SIGN_ON_PATHS).map(
+          (movedPath: string): ReactElement => {
+            const protocol: StatusPageSingleSignOnProtocol =
+              MOVED_SINGLE_SIGN_ON_PATHS[
+                movedPath
+              ] as StatusPageSingleSignOnProtocol;
+
+            return (
+              <PageRoute
+                key={movedPath}
+                path={movedPath}
+                element={
+                  <MovedPageRedirect
+                    pageMap={PageMap.STATUS_PAGE_VIEW_SSO}
+                    searchParams={getStatusPageSingleSignOnProtocolQuery(
+                      protocol,
+                    )}
+                  />
+                }
+              />
+            );
+          },
+        )}
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SCIM)}

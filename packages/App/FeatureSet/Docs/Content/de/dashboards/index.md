@@ -59,12 +59,12 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 | **Dashboard** | Das Dashboard selbst. Lesen Sie es, oder bearbeiten Sie es über sein Menü **⋯**. |
 | **Übersicht** | Sein Name, seine Beschreibung und seine Beschriftungen. |
 | **Freigabe** | Wer es sehen kann, sein öffentlicher Link und eine IP-Zulassungsliste unter Weitere Einstellungen. |
-| **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
 | **Branding** | Seitentitel, Beschreibung, Logo, Design und Favicon des öffentlichen Dashboards. |
 | **Benutzerdefinierte Domains** | Das öffentliche Dashboard unter Ihrer eigenen Domain bereitstellen. |
 | **Einstellungen** | Das Dashboard duplizieren, exportieren oder archivieren. |
+| **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
 | **Audit-Protokolle** | Jede Änderung am Dashboard und wer sie vorgenommen hat. |
-| **Löschen** | Das Dashboard endgültig löschen. |
+| **Dashboard löschen** | Das Dashboard endgültig löschen. |
 
 ## Ihr erstes Dashboard bauen
 

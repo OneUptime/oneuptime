@@ -150,13 +150,34 @@ async function foldedLine(fold: Locator): Promise<Array<string>> {
     .allInnerTexts();
 }
 
+/*
+ * "Changes saved", said in the corner where the Dashboard says a change
+ * worked: a toast, not a "Saved" dialog to click away (#9120).
+ */
+function changesSavedToast(page: Page): Locator {
+  return page.getByTestId("toast").filter({
+    has: page
+      .getByTestId("toast-title")
+      .getByText("Changes saved", { exact: true }),
+  });
+}
+
 async function saveSteps(page: Page): Promise<Array<SavedStep>> {
+  const before: number = (await recorded(page)).updates.length;
   await page.getByRole("button", { name: "Save Steps" }).click();
-  await expect(page.getByTestId("modal")).toBeVisible();
-  await page
-    .getByTestId("modal")
-    .getByRole("button", { name: "Got it" })
-    .click();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await recorded(page)).updates.length;
+    })
+    .toBe(before + 1);
+  // The page says it saved, without a dialog over the steps.
+  const saved: Locator = changesSavedToast(page);
+  await expect(saved).toBeVisible();
+  await expect(saved).toHaveAttribute("data-toast-type", "success");
+  await expect(page.getByTestId("modal")).toHaveCount(0);
+  // Closed, so the next save's toast is its own.
+  await saved.getByTestId("toast-dismiss").click();
+  await expect(saved).toHaveCount(0);
 
   const updates: Recorded["updates"] = (await recorded(page)).updates;
 
@@ -404,9 +425,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await expect(page.locator("#runbook-step-2-http-body")).toHaveCount(1);
 
     // A new request starts as a GET: no body to send, so no Body.
+    await page.getByTestId("runbook-add-step").click();
     await page
-      .getByText("Add another step")
-      .locator("xpath=..")
+      .getByRole("dialog")
       .getByRole("button", { name: /^HTTP/ })
       .click();
     await expect(header(page, "HTTP request")).toBeVisible();

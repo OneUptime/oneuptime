@@ -10,6 +10,7 @@ import MonitorFirstCheck, {
   MONITOR_FIRST_CHECK_SELECT,
   STARTING_STATUS_SELECT,
 } from "../../../Utils/Monitor/MonitorFirstCheck";
+import MonitorFirstCheckOverdue from "../../../Utils/Monitor/MonitorFirstCheckOverdue";
 import MonitorOverviewFamilyUtil, {
   MonitorOverviewFamily,
 } from "../../../Utils/Monitor/MonitorOverviewFamily";
@@ -219,7 +220,7 @@ describe("MonitorFirstCheck: whether anything has measured a monitor", () => {
   });
 });
 
-describe("MonitorFirstCheck: whether a first result is overdue", () => {
+describe("MonitorFirstCheckOverdue: whether a first result is overdue", () => {
   const overdue: (monitor: {
     monitorType?: string | undefined;
     createdAt?: Date | string | undefined;
@@ -229,7 +230,7 @@ describe("MonitorFirstCheck: whether a first result is overdue", () => {
     createdAt?: Date | string | undefined;
     monitoringInterval?: string | undefined;
   }): boolean => {
-    return MonitorFirstCheck.isFirstCheckOverdue({ monitor, now: NOW });
+    return MonitorFirstCheckOverdue.isFirstCheckOverdue({ monitor, now: NOW });
   };
 
   test("a probe check, a telemetry and an infrastructure monitor have a time it is due by", () => {
@@ -307,7 +308,7 @@ describe("MonitorFirstCheck: whether a first result is overdue", () => {
     const mondayAfternoon: Date = new Date("2026-11-16T12:00:00.000Z");
 
     expect(
-      MonitorFirstCheck.isFirstCheckOverdue({
+      MonitorFirstCheckOverdue.isFirstCheckOverdue({
         monitor: {
           monitorType: MonitorType.Website,
           createdAt: new Date(mondayAfternoon.getTime() - 2 * HOUR),

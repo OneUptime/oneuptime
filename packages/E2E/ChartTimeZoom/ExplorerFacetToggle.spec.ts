@@ -206,11 +206,15 @@ async function lastQueryOf(
  * a column header of the same name in the list is never taken for it.
  */
 function facetSection(page: Page, title: string): Locator {
-  return page
-    .locator("button[aria-expanded][aria-controls]")
-    .filter({ hasText: title })
-    .first()
-    .locator("xpath=../..");
+  // A title drawn as a defined term (Span Type, #9133) names its fold button.
+  const named: Locator = page.locator(
+    `button[aria-expanded][aria-controls][aria-label="${title}"]`,
+  );
+  const holding: Locator = page
+    .locator("button[aria-expanded][aria-controls]:not([aria-label])")
+    .filter({ hasText: title });
+
+  return named.or(holding).first().locator("xpath=../..");
 }
 
 // A value's row: a checkbox named for the value.

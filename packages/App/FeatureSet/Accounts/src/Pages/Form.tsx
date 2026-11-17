@@ -585,7 +585,6 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
                 isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.NORMAL}
                 icon={IconProp.Refresh}
-                className="md:!ml-0"
                 dataTestId="form-try-again"
                 onClick={() => {
                   focusHeadingOnLoadRef.current = true;
@@ -660,7 +659,6 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
             title={t("form.submitAnother")}
             isTitleTranslated={true}
             buttonStyle={ButtonStyleType.NORMAL}
-            className="md:!ml-0"
             dataTestId="form-submit-another"
             onClick={startAnotherResponse}
           />

@@ -221,7 +221,6 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
               title={FormsCopy.editBranding}
               icon={IconProp.Edit}
               buttonStyle={ButtonStyleType.NORMAL}
-              className="!ml-0"
               dataTestId="form-branding-edit"
               onClick={() => {
                 setIsEditing(true);

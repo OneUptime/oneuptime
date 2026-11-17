@@ -466,11 +466,7 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
   if (props.sites.length === 0) {
     const searchText: string = (props.searchText || "").trim();
     return (
-      /*
-       * EmptyState ships 13rem of vertical padding for a full-page
-       * placeholder; inside this page's card that reads as a hole.
-       */
-      <div className="-my-28">
+      <div>
         {props.isHealthFiltered ? (
           <EmptyState
             id="site-container-nothing-needs-attention"

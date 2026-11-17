@@ -36,10 +36,10 @@ The page shows the monitors you put on it as its resources, and incidents reach 
 
 ## At a glance
 
-- **Created with a name.** A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**. Resources, branding and domains are all configured afterwards.
+- **Created with a name.** A new status page only asks for its **Name**; **Internal Description** and **Labels** wait under **More fields**. Resources, branding and domains are all configured afterwards.
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
-- **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
+- **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
 - **Who can see it is one choice.** Anyone with the link, only people who sign in (private users, SAML SSO or OIDC), or anyone with the password — on the page's **Access** screen, with an optional IP allowlist under **More settings**.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
@@ -55,7 +55,7 @@ The words used across OneUptime are in the [Glossary](/docs/introduction/glossar
 | **Announcement** | A message you post to one or more status pages, with a start time and an optional end time. |
 | **Subscriber** | Someone (or something) following the page over email, SMS, Slack, Microsoft Teams or a webhook. |
 | **Custom domain** | A domain of yours — `status.example.com` — pointed at the page with a CNAME record. OneUptime issues its SSL certificate for free and renews it. |
-| **Private user** | An account that can log in to a private status page. Separate from your OneUptime project users. |
+| **Private user** | An account that can sign in to a private status page. Separate from your OneUptime project users. |
 
 ## Creating a status page
 
@@ -66,7 +66,7 @@ Open **Status Pages → All Status Pages** and click **Create Status Page**.
 
 ### Name the page
 
-In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.
+In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Internal Description** and **Labels** are optional, under **More fields**. The internal description is for your team: visitors never see it.
 
 That's the whole create form. The **Status Pages** list shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
 
@@ -82,7 +82,7 @@ Next, in rough order of usefulness:
 - Add resources so the page has something on it — see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups).
 - Set the page title, favicon, logo and cover, then attach a custom domain — see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 - Decide which channels people can subscribe on — see [Subscribers & Announcements](/docs/status-pages/subscribers).
-- Tune what appears on the page under **Advanced Settings**.
+- Tune what appears on the page under **Settings**.
 
 ## Where everything lives
 
@@ -90,17 +90,17 @@ Once a status page is open, its own left side menu is grouped into nine sections
 
 | Section | What's in it |
 | --- | --- |
-| **Basic** | **Overview**, **Announcements**, **Owners**. |
+| **Overview** | **Overview**, **Announcements**, **Owners**. |
 | **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right. |
 | **Rules** | **Monitor Rules** — rules that add every monitor that matches to the page, now and later. |
 | **Subscribers** | **Subscribers** (one page, with a tab for each channel: Email, SMS, Slack, Microsoft Teams and Webhook), **Subscriber Settings**, **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
-| **Security** | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**. |
+| **Security** | **Access** (who can see the page), **Private Users**, **Single Sign-On** (a tab each for SAML and OIDC), **SCIM**. |
 | **AI** | **MCP**. |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** — the page as code. |
-| **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**. |
+| **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Settings**, **Audit Logs**, **Delete Status Page**. |
 
-Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Advanced Settings** or **Subscribers**.
+Only **Overview** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Settings** or **Subscribers**.
 
 Two naming quirks worth knowing before you go looking:
 
@@ -147,7 +147,7 @@ For what puts an incident on this page in the first place, and what takes it off
 
 ## Choosing what shows on the page
 
-What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Advanced Settings**. It has a row for each list the page can show, then **Uptime History** (with the overall uptime percent and which statuses count as downtime). The "Powered by OneUptime" line has a card of its own, folded under **More settings** just under it. There is no Edit button: a switch saves the moment you flip it, a number of days when you leave its box or press Enter, and a pick from a list the moment you make it.
+What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Settings**. It has a row for each list the page can show, then **Uptime History** (with the overall uptime percent and which statuses count as downtime). The "Powered by OneUptime" line has a card of its own, folded under **More settings** just under it. There is no Edit button: a switch saves the moment you flip it, a number of days when you leave its box or press Enter, and a pick from a list the moment you make it.
 
 - **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Under it, **Show the last … days** (`showIncidentHistoryInDays`, default 14) is how far back the incident list reaches, and **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) is off by default.
 - **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — also in the incidents row, off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. It also decides which incidents bring their episodes onto the page, so it stays when **Show Incidents** is off. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
@@ -197,17 +197,21 @@ Picking a choice asks you to confirm, saying what changes for visitors, and save
 
 Add the people who may sign in on **Status Pages → your page → Security → Private Users**. There's an **Add in Bulk** action — paste a list of email addresses and each one gets an invitation email. Private users have their own forgot-password and reset-password flow, separate from your OneUptime project accounts. A new password signs them out on every device, and any sign-in link or reset link already sent stops working.
 
+**Private users, single sign-on and SCIM do nothing on a public page.** While **Anyone with the link** is the choice, every visitor sees the page without signing in. The **Private Users**, **Single Sign-On** and **SCIM** screens each say so at the top, "This status page is public, so these settings do nothing until you make it private.", with **Change access**, which opens **Access**. What they hold is folded under **Set Up Before Making It Private**: open it to add people or a provider before the page goes private, so nobody is locked out when it does.
+
 **Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
 
-**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that logs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Log in**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
+**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that signs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Sign In**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
 
 ### SSO and OIDC
 
-For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: **Add OIDC Provider** asks for the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. Once a page has a provider, the **Test Sign-In** card under the list links to the page's sign-in, to try it. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
+For a private page tied to your identity provider, open **Status Pages → your page → Security → Single Sign-On** (`{id}/sso`). It has a tab for each protocol. The **SAML** tab configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. The **OIDC** tab (`{id}/sso?protocol=oidc`) configures OpenID Connect: **Add OIDC Provider** asks for the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. Once a page has a provider, the **Test Sign-In** card under the list links to the page's sign-in, to try it. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Turning a status page's SSO or OIDC provider off, or deleting it, signs out the private users it signed in: their sessions end at their next request, and turning the provider on again does not bring them back - they sign in with it again. A new certificate or client secret, other URLs or a new name keep everyone signed in. On a page that requires SSO, turning off its last provider leaves nobody able to sign in until you turn one on again or turn **Require SSO for Login** off; to move to another provider, set up and test the new one before you turn the old one off.
 
-Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Try the link on the **Test Sign-In** card above it before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **SSO** and **OIDC** pages show the switch under the plan's upsell for that.
+Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Try the link on the **Test Sign-In** card above it before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **Single Sign-On** page shows the switch under the plan's upsell for that, on both tabs.
+
+**SSO** and **OIDC** used to be two entries in the menu. The old OIDC address, `{id}/oidc`, opens the **OIDC** tab.
 
 ### Reader sessions
 
@@ -240,7 +244,7 @@ Archive a status page to take it offline without deleting it. An archived status
 - **Leaves the Status Pages list.** Find it under **Status Pages → Advanced → Archived**.
 - **Keeps everything.** Its resources, groups, branding, domains, private users and subscribers are kept, so unarchiving puts the page back online exactly as it was.
 
-To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
+To archive one status page, open it and go to **Advanced → Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
 A status page's **Overview** has a **Showing now** card: the open incidents and the maintenance coming up or in progress that visitors see on it right now. Archiving or deleting the page, on its own pages or from the list, says first what visitors would stop seeing.
 

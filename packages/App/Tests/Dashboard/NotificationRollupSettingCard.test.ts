@@ -88,6 +88,18 @@ const MATRIX_PAGE_PARTS: Array<string> = [
   "NotificationSettings.tsx",
 ];
 
+/* Its words, and the per-event matrix it draws (#8887). */
+const MATRIX_WORDS_PARTS: Array<string> = [
+  "Components",
+  "NotificationSettings",
+  "NotificationSettingsWords.ts",
+];
+const MATRIX_PARTS: Array<string> = [
+  "Components",
+  "NotificationSettings",
+  "NotificationMatrix.tsx",
+];
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -247,8 +259,20 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
         "RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route",
       );
       expect(matrixPage).toContain("<Link to={emailPreferencesRoute}");
+
+      /*
+       * The page opens on what it is for, and the pages it is mistaken for
+       * (#8887): Email Preferences is a link in that sentence, which says
+       * it sets how much email you get.
+       */
       expect(matrixPage).toContain(
-        '"Reduce routine emails or change email rollup in Email Preferences"',
+        "template={NotificationSettingsWords.introSiblings}",
+      );
+      expect(matrixPage).toContain(
+        "emailPreferences: ( <Link to={emailPreferencesRoute}",
+      );
+      expect(readCode(MATRIX_WORDS_PARTS)).toContain(
+        "{{emailPreferences}} sets how much email you get.",
       );
     });
 
@@ -400,12 +424,17 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
     });
 
     /*
-     * The per-event matrix keeps its own control: a round cell in a grid of
-     * channels, not a switch beside a sentence.
+     * The per-event matrix's cells are the shared switch too, as every
+     * other setting is (#8887), each named for its channel and event.
      */
-    test("the matrix's channel cells are untouched", () => {
-      expect(readCode(MATRIX_PAGE_PARTS)).toContain(
-        '<button type="button" role="switch" aria-checked={props.enabled}',
+    test("the matrix's channel cells are the shared switch, named for their channel and event", () => {
+      const matrix: string = readCode(MATRIX_PARTS);
+
+      expect(matrix).toContain(
+        'import Toggle from "Common/UI/Components/Toggle/Toggle";',
+      );
+      expect(matrix).toContain(
+        "<Toggle value={isOn} ariaLabel={translator.translateTemplate( NotificationSettingsWords.channelForEvent,",
       );
     });
 

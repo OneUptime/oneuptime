@@ -38,6 +38,7 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import Color from "Common/Types/Color";
@@ -3043,10 +3044,14 @@ describe("the Public API page", () => {
         column,
         default: statusPage.getTableColumnMetadata(column).defaultValue,
         read: source.includes(
-          `OneUptimeDate.getSomeDaysAgo( statusPage.${column} || 14, )`,
+          `getStatusPageHistoryInDays( statusPage.${column}, )`,
         ),
       }).toEqual({ column, default: 14, read: true });
     }
+
+    // Unset (or nonsense), the helper the server reads through falls back to 14.
+    expect(getStatusPageHistoryInDays(undefined)).toBe(14);
+    expect(getStatusPageHistoryInDays(0)).toBe(14);
 
     expect(
       DISPLAY_SECTIONS.filter((section: DisplaySectionDefinition): boolean => {
@@ -3639,7 +3644,7 @@ describe("the Public API page", () => {
       'field: { _id: true, }, title: "Status Page ID",',
     );
     expect(statusPageSideMenuEntries()).toContain(
-      `Basic${PATH_SEPARATOR}Overview`,
+      `Overview${PATH_SEPARATOR}Overview`,
     );
     expect(
       oneLine(dashboardSource("Pages/StatusPages/SideMenu.tsx")),

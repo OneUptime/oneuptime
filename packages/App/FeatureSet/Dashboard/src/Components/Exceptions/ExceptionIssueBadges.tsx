@@ -97,7 +97,7 @@ const ExceptionIssueBadges: FunctionComponent<ComponentProps> = (
             key={badge.badge}
             title={badge.title}
             data-testid={`exception-badge-${badge.badge}`}
-            className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${badge.className}`}
+            className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-xs font-medium ${badge.className}`}
           >
             {badge.label}
           </span>

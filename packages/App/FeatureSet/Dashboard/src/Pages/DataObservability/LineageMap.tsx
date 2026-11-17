@@ -407,6 +407,7 @@ const DataObservabilityLineageMapPage: FunctionComponent<
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="w-full md:max-w-sm">
             <Input
+              isSearchOrFilter={true}
               value={search}
               onChange={(value: string): void => {
                 setSearch(value);

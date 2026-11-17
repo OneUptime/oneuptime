@@ -189,7 +189,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             {translator.translateText("Log Volume")}
           </span>
           {props.onZoomOut && (
-            <span className="text-[10px] text-gray-300">
+            <span className="text-xs text-gray-500">
               {translator.translateText("Double-click to reset")}
             </span>
           )}
@@ -234,7 +234,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             {translator.translateText("Log Volume")}
           </span>
           {props.onTimeRangeSelect && pivotedData.length > 0 && (
-            <span className="text-[10px] text-gray-300">
+            <span className="text-xs text-gray-500">
               {translator.translateText(
                 selection.canClickToZoom
                   ? "Click or drag to zoom"
@@ -243,7 +243,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             </span>
           )}
           {props.onZoomOut && (
-            <span className="text-[10px] text-gray-300">
+            <span className="text-xs text-gray-500">
               {translator.translateText("Double-click to reset")}
             </span>
           )}
@@ -269,7 +269,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
       {pivotedData.length === 0 && (
         <div
-          className="flex h-[120px] select-none items-center justify-center text-xs text-gray-400"
+          className="flex h-[120px] select-none items-center justify-center text-xs text-gray-500"
           {...selection.placeholderProps}
         >
           {props.isLoading ? (

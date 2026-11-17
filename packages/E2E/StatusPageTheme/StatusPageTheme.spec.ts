@@ -32,7 +32,7 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
  *   - On its own domain a Light or Dark page offers no switch; on the
  *     Dashboard's preview (its OneUptime address, where the rest of this
  *     suite opens it) every page does, for the visit only.
- *   - The SSO page offers Log in with password under its providers, lined
+ *   - The SSO page offers Sign in with password under its providers, lined
  *     up with them.
  *   - The footer's language and theme controls sit centred on a phone, and
  *     the switch is a target a thumb can hit.
@@ -1117,8 +1117,8 @@ test.describe("a logo made for the dark theme", () => {
 
 /*
  * The SSO page, while it lists the page's providers (#4911 follow-up): under
- * them, "or" and Log in with password, back to the email and password form,
- * as the sign-in page offers Log in with SSO the other way.
+ * them, "or" and Sign in with password, back to the email and password form,
+ * as the sign-in page offers Sign in with SSO the other way.
  */
 test.describe("the SSO page", () => {
   test("offers the way back to the password form under its providers", async ({
@@ -1129,7 +1129,7 @@ test.describe("the SSO page", () => {
     await expect(page.getByText("Acme Okta", { exact: true })).toBeVisible();
 
     const back: Locator = page.getByRole("link", {
-      name: "Log in with password",
+      name: "Sign in with password",
     });
 
     await expect(back).toBeVisible();
@@ -1252,9 +1252,9 @@ test.describe("the SSO page", () => {
     expect(Math.abs(firstGap - secondGap)).toBeLessThanOrEqual(1);
     expect(secondGap).toBeLessThan(16);
 
-    // Every card as wide as Log in with password, in line with it.
+    // Every card as wide as Sign in with password, in line with it.
     const back: { x: number; width: number } = (await page
-      .getByRole("link", { name: "Log in with password" })
+      .getByRole("link", { name: "Sign in with password" })
       .boundingBox())!;
 
     for (const box of boxes) {
@@ -1297,7 +1297,7 @@ test.describe("the SSO page", () => {
     expect(visited[0]).toContain("Acme Okta");
     expect(visited[1]).toContain("Contractors (Microsoft Entra ID)");
     expect(visited[2]).toContain("Auth0");
-    expect(visited[3]).toBe("Log in with password");
+    expect(visited[3]).toBe("Sign in with password");
 
     // Enter on a provider starts its sign-in.
     await page.keyboard.press("Shift+Tab");

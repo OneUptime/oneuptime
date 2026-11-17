@@ -80,7 +80,7 @@ As requisições de qualquer outro IP são recusadas com uma página **Access De
 
 ## Domínios personalizados
 
-De início, um painel público é servido no link público dele, no próprio endereço do OneUptime. Para hospedá-lo num subdomínio seu, como `dashboard.acme.com`, abra **Marca → Domínios personalizados** no menu lateral do painel. Funciona exatamente como a página **Domínios personalizados** de uma página de status.
+De início, um painel público é servido no link público dele, no próprio endereço do OneUptime. Para hospedá-lo num subdomínio seu, como `dashboard.acme.com`, abra **Link público → Domínios personalizados** no menu lateral do painel. Funciona exatamente como a página **Domínios personalizados** de uma página de status.
 
 O cartão se chama **Domínios personalizados** e diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de painéis da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. A tabela tem duas colunas, **Domínio** e **Status**.
 

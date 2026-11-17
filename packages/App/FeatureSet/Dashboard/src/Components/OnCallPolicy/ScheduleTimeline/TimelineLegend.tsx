@@ -142,7 +142,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
           <span className="inline-block h-3 w-4 rounded-sm bg-gray-300 opacity-60" />
           {translator.translateText("Past shift")}
         </span>
-        <span className="text-gray-400 sm:ml-auto">
+        <span className="text-gray-500 sm:ml-auto">
           {translator.translateTemplate(
             "Times in {{timezone}}. Past shifts are recomputed from each schedule's current setup.",
             { timezone: props.timezone },

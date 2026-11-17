@@ -77,7 +77,7 @@ Las sustituciones que ya se solapaban antes de esta regla se quedan como están.
 ## Otras formas de añadir una
 
 - Desde una programación: en la página **Capas** de una programación, despliega una capa y haz clic en **Omitir hasta…** junto a una persona. Se abre el mismo formulario con esa persona ausente y la rotación cubriendo, como sustitución global. Consulta [Cuando alguien está ausente](/docs/on-call/schedules#cuando-alguien-está-ausente).
-- Desde tus próximos turnos: **Buscar cobertura** en uno de tus turnos, en **Ajustes de usuario → Calendario → Feed de calendario**, abre el formulario contigo ausente durante las horas de ese turno, de modo que solo queda **¿Quién cubre?**. Consulta [Próximos turnos y cobertura](/docs/on-call/calendar-feeds#próximos-turnos-y-cobertura).
+- Desde tus próximos turnos: **Buscar cobertura** en uno de tus turnos, en **Ajustes de usuario → Perfil y calendario → Feed de calendario**, abre el formulario contigo ausente durante las horas de ese turno, de modo que solo queda **¿Quién cubre?**. Consulta [Próximos turnos y cobertura](/docs/on-call/calendar-feeds#próximos-turnos-y-cobertura).
 
 Cuando alguien deja el proyecto, se elimina cada sustitución que lo nombra y que aún no ha terminado, en cualquiera de los dos lados.
 

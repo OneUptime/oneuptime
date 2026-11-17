@@ -143,7 +143,7 @@ const ExceptionSegmentedControl: <TValue extends string>(
               {translator.translateText(option.label)}
               {option.hint && (
                 <span
-                  className={`tabular-nums ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                  className={`tabular-nums ${isActive ? "text-gray-500" : "text-gray-500"}`}
                 >
                   {option.hint}
                 </span>

@@ -77,7 +77,7 @@ Tilsidesættelser, der allerede overlappede før denne regel, forbliver som de e
 ## Andre måder at tilføje en på
 
 - Fra en vagtplan: Fold et lag ud på vagtplanens side **Lag**, og klik på **Spring over indtil…** ved siden af en person. Det åbner den samme formular med personen som fraværende og rotationen som den, der dækker, som en global tilsidesættelse. Se [Når nogen er fraværende](/docs/on-call/schedules#når-nogen-er-fraværende).
-- Fra dine kommende vagter: **Find afløser** på en af dine vagter, under **Brugerindstillinger → Kalender → Kalenderfeed**, åbner formularen med dig som fraværende i den vagts tidsrum, så kun **Hvem dækker?** er tilbage. Se [Kommende vagter og afløsning](/docs/on-call/calendar-feeds#kommende-vagter-og-afløsning).
+- Fra dine kommende vagter: **Find afløser** på en af dine vagter, under **Brugerindstillinger → Profil og kalender → Kalenderfeed**, åbner formularen med dig som fraværende i den vagts tidsrum, så kun **Hvem dækker?** er tilbage. Se [Kommende vagter og afløsning](/docs/on-call/calendar-feeds#kommende-vagter-og-afløsning).
 
 Når nogen forlader projektet, slettes hver tilsidesættelse, der nævner dem og ikke er slut endnu, på begge sider.
 

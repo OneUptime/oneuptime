@@ -540,10 +540,20 @@ describe("Teams > View side menu: the Compliance item", () => {
       goTo(`/dashboard/${PROJECT_ID}/settings/teams/${TEAM_ID.toString()}`);
       await renderMenu(<TeamViewSideMenu modelId={TEAM_ID} />);
 
-      expect(sectionTitlesInOrder().includes("Compliance")).toBe(shown);
+      /*
+       * Compliance is an entry of Members & Access: it was a section of its
+       * own, under a heading of its own name (#9134).
+       */
+      expect(sectionTitlesInOrder()).not.toContain("Compliance");
+      const compliance: Array<{ title: string; href: string }> = linksIn(
+        "Members & Access",
+      ).filter((link: { title: string }): boolean => {
+        return link.title === "Compliance";
+      });
+      expect(compliance.length === 1).toBe(shown);
 
       if (shown) {
-        expect(linksIn("Compliance")[0]?.href).toContain(
+        expect(compliance[0]?.href).toContain(
           `${TEAM_ID.toString()}/compliance`,
         );
       }

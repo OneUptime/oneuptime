@@ -2161,17 +2161,17 @@ test.describe("a rule's conditions at every width", () => {
         const entry: Locator = page.getByTestId(`rules-${name}`);
         const [row] = await readConditions(page, name);
         const add: Locator = entry.getByTestId("rule-criteria-add");
-        const box: { x: number; width: number } | null = await add.boundingBox();
-        const look: { background: string; border: string } =
-          await add.evaluate(
-            (element: Element): { background: string; border: string } => {
-              const style: CSSStyleDeclaration = getComputedStyle(element);
-              return {
-                background: style.backgroundColor,
-                border: style.borderTopColor,
-              };
-            },
-          );
+        const box: { x: number; width: number } | null =
+          await add.boundingBox();
+        const look: { background: string; border: string } = await add.evaluate(
+          (element: Element): { background: string; border: string } => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              border: style.borderTopColor,
+            };
+          },
+        );
 
         expect(box).not.toBeNull();
         // A white fill and a grey edge: not the tinted indigo it was.
@@ -2179,9 +2179,7 @@ test.describe("a rule's conditions at every width", () => {
         expect([name, look.border]).not.toEqual([name, "rgba(0, 0, 0, 0)"]);
 
         const start: number =
-          lang === "fa"
-            ? Math.round(box!.x + box!.width)
-            : Math.round(box!.x);
+          lang === "fa" ? Math.round(box!.x + box!.width) : Math.round(box!.x);
         const pickersStart: number =
           lang === "fa" ? row!.field.right : row!.field.left;
 
@@ -2443,4 +2441,120 @@ describePageLanguages({
   address: (language: string): string => {
     return `${ROUTE}?section=buttons${language === "en" ? "" : `&lang=${language}`}`;
   },
+});
+
+/*
+ * Empty and loading states (#9135). An empty card's message used to start
+ * 208px under the card's title (EmptyState's 13rem), a quarter of a phone's
+ * screen; a card loading drew a bar 208px down (PageLoader) or between 4rem
+ * margins in a paler grey (ComponentLoader), and a page's content area a bar
+ * 208px down an empty area. Now an empty card is a card's height, a loading
+ * card is about as tall as an empty one, every bar is the same grey, and a
+ * page loads as a card-shaped skeleton where its first card goes.
+ */
+test.describe("empty and loading states keep the page still", () => {
+  interface Box {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
+  async function boxOf(locator: Locator): Promise<Box> {
+    const box: Box | null = await locator.boundingBox();
+
+    if (!box) {
+      throw new Error("Not drawn");
+    }
+
+    return box;
+  }
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`at ${width} pixels, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await open(
+          page,
+          `section=states${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+
+        // An empty card's message starts near its title, not 208px under it.
+        const emptyCard: Locator = page.getByTestId("state-empty-card");
+        const title: Box = await boxOf(
+          emptyCard.getByRole("heading", { name: "Probes", exact: true }),
+        );
+        const message: Locator = emptyCard.getByRole("heading", {
+          name: "No probes yet",
+        });
+        expect(
+          (await boxOf(message)).y - (title.y + title.height),
+        ).toBeLessThan(200);
+
+        /*
+         * A card that loads is about as tall as the same card empty, with
+         * either bar, so nothing under it moves when "No probes yet" arrives.
+         */
+        const emptyHeight: number = (await boxOf(emptyCard)).height;
+        for (const loading of [
+          "state-loading-card",
+          "state-page-loader-card",
+        ]) {
+          const loadingHeight: number = (await boxOf(page.getByTestId(loading)))
+            .height;
+          expect(Math.abs(loadingHeight - emptyHeight)).toBeLessThan(48);
+        }
+
+        // Every bar is the same grey.
+        const barColours: Array<string> = await page
+          .getByTestId("bar-loader")
+          .evaluateAll((bars: Array<Element>): Array<string> => {
+            return bars.map((bar: Element): string => {
+              const fill: Element | null = bar.querySelector("span");
+              return fill
+                ? window.getComputedStyle(fill).backgroundColor
+                : "none";
+            });
+          });
+        expect(barColours.length).toBeGreaterThanOrEqual(2);
+        expect(new Set(barColours).size).toBe(1);
+
+        // An inline state is shorter than a card's, a page's taller.
+        const cardState: number = (
+          await boxOf(page.locator("#state-empty-card-state"))
+        ).height;
+        expect(
+          (await boxOf(page.locator("#state-empty-inline-state"))).height,
+        ).toBeLessThan(cardState);
+        expect(
+          (await boxOf(page.locator("#state-empty-page-state"))).height,
+        ).toBeGreaterThan(cardState);
+
+        /*
+         * A page that loads draws a card-shaped skeleton right under its
+         * header, where its first card goes, and no bar.
+         */
+        const pageLoading: Locator = page.getByTestId("state-page-loading");
+        const skeleton: Locator = pageLoading.getByTestId("page-skeleton");
+        await expect(skeleton).toBeVisible();
+        await expect(pageLoading.getByTestId("bar-loader")).toHaveCount(0);
+        const header: Box = await boxOf(
+          pageLoading.getByRole("heading", { name: "Monitor", exact: true }),
+        );
+        expect(
+          (await boxOf(skeleton)).y - (header.y + header.height),
+        ).toBeLessThan(80);
+
+        // The skeleton's card is filled as a real card is, in this theme.
+        const skeletonFill: Rgba = await paintedBackground(
+          skeleton.locator("> div").first().locator("div").first(),
+        );
+        const cardFill: Rgba = await paintedBackground(message);
+        expect(contrast(skeletonFill, cardFill)).toBeLessThan(1.2);
+
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `states-${width}-${theme}`);
+      });
+    }
+  }
 });

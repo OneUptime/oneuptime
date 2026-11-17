@@ -234,7 +234,7 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
       );
     } else if (suggestion.offer === SuggestionOffer.Act) {
       action = (
-        <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+        <div>
           <Button
             title={REMEDIATION_CODE_FIX_COPY.openPullRequest}
             icon={IconProp.Code}

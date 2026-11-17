@@ -128,10 +128,10 @@ const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
       {props.onTurnOn ? (
         /*
          * Under the sentences (md to lg) the button starts where they do,
-         * past the icon: its own md:ml-3 plus this pl-8 is the icon's width
-         * and the gap after it. On a phone it is as wide as the notice.
+         * past the icon: pl-11 is the icon's width (32px) and the gap after
+         * it (12px). A Button has no margin of its own (#9128).
          */
-        <div className="shrink-0 md:pl-8 lg:pl-0">
+        <div className="shrink-0 md:pl-11 lg:pl-0">
           <Button
             title={WorkflowEnabledCopy.turnOnWorkflow}
             icon={IconProp.Power}

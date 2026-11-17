@@ -96,7 +96,7 @@ Arkivering er det reversible alternativ til sletning: brug det først, når du e
 
 ## Sletning af et dashboard
 
-Åbn dashboardets side **Slet**. Sletning kan ikke fortrydes: dashboardet, dets widgets og variabler og alle brugerdefinerede domæner, der er knyttet til det, fjernes. Din telemetri berøres ikke.
+Åbn dashboardets side **Slet dashboard**. Sletning kan ikke fortrydes: dashboardet, dets widgets og variabler og alle brugerdefinerede domæner, der er knyttet til det, fjernes. Din telemetri berøres ikke.
 
 Hvis dashboardet er offentligt på et brugerdefineret domæne, holder adressen op med at svare, så snart du sletter det. For at blive ved med at servere adressen tilføjer du domænet til et andet dashboard, efter at du har slettet dette: et domæne tilhører ét dashboard ad gangen.
 

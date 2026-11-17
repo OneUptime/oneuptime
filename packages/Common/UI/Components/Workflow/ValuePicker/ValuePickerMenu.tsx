@@ -14,6 +14,8 @@
  */
 
 import Icon from "../../Icon/Icon";
+import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
+import ButtonType from "../../Button/ButtonTypes";
 import ErrorSentence from "../../ErrorMessage/ErrorSentence";
 import IconProp from "../../../../Types/Icon/IconProp";
 import useClipboardCopy, {
@@ -778,7 +780,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 return (
                   <span
                     key={badge}
-                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
+                    className={`shrink-0 rounded border px-1 text-xs font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
                   >
                     {badge}
                   </span>
@@ -820,7 +822,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           {option.typeLabel && (
             <span
               data-part="kind"
-              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide ${quiet}`}
+              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-xs font-medium uppercase leading-4 tracking-wide ${quiet}`}
             >
               {translator.translateText(option.typeLabel)}
             </span>
@@ -1124,7 +1126,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                                   {item.label}
                                 </span>
                                 {item.typeLabel ? (
-                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-400">
+                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-xs font-medium uppercase leading-4 tracking-wide text-gray-400">
                                     {translator.translateText(item.typeLabel)}
                                   </span>
                                 ) : null}
@@ -1583,13 +1585,14 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                   }
                 }}
               />
-              <button
-                type="submit"
-                className="shrink-0 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                data-testid="value-picker-path-insert"
-              >
-                {translator.translateText("Insert")}
-              </button>
+              <Button
+                title="Insert"
+                type={ButtonType.Submit}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonSize={ButtonSize.Small}
+                className="shrink-0"
+                dataTestId="value-picker-path-insert"
+              />
             </div>
             {pathError && (
               <p className="mt-1 text-xs text-red-600" role="alert">

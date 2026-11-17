@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details Den medfølgende sonde viser Afbrudt, efter at du har flyttet ingressens port
-Admin Dashboard viser sonden under **Indstillinger > Overvågning > Globale sonder**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som som standard er `http://localhost` (port 80). `npm start` flytter den til ingressens port, så længe den peger på `localhost`. Har du sat den til en anden adresse eller startet OneUptime med Docker CLI, så sæt den til ingressens nye port, for eksempel `http://localhost:8080`, og genstart OneUptime.
+Admin Dashboard viser sonden under **Indstillinger > Delt med alle projekter > Globale sonder**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som som standard er `http://localhost` (port 80). `npm start` flytter den til ingressens port, så længe den peger på `localhost`. Har du sat den til en anden adresse eller startet OneUptime med Docker CLI, så sæt den til ingressens nye port, for eksempel `http://localhost:8080`, og genstart OneUptime.
 :::
 
 ## Næste trin

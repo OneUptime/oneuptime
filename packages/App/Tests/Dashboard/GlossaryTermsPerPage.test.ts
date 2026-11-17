@@ -15,7 +15,7 @@ import path from "path";
  *     Dashboard components it draws (one level of imports): a form and the
  *     note it draws are one page;
  *   - no file marks the same term twice;
- *   - the twenty-one words the audits found people trip on are each marked
+ *   - the twenty-two words the audits found people trip on are each marked
  *     where a core flow first meets them;
  *   - the five hard forms each link the docs page that explains them.
  *
@@ -243,7 +243,7 @@ describe("marked words on a page", () => {
 });
 
 /*
- * The words the audits found people trip on (#6819), and where each is
+ * The words the audits found people trip on (#6819, #9133), and where each is
  * first met in a core flow. "On-call rules" names two things; its one
  * definition says both, and both pages mark it.
  */
@@ -292,18 +292,29 @@ const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
   ["ErrorBudget", ["Components/Slo/SloBudgetBurnDownCard.tsx"]],
   ["Runbook", ["Pages/Runbook/Runbooks.tsx"]],
   ["Workflow", ["Pages/Workflow/Workflows.tsx"]],
+  /*
+   * About 180 Traces strings say span, and nothing said what one is
+   * (#9133): the explorer's Span Type facet and a trace's Spans count.
+   */
+  [
+    "Span",
+    [
+      "Components/Traces/TracesViewer.tsx",
+      "Components/Traces/TraceDetail/TraceHeader.tsx",
+    ],
+  ],
 ];
 
 describe("the words people trip on", () => {
-  test("are twenty-one, each its own term", () => {
-    expect(TERMS_WHERE_FIRST_MET.length).toBe(21);
+  test("are twenty-two, each its own term", () => {
+    expect(TERMS_WHERE_FIRST_MET.length).toBe(22);
     expect(
       new Set(
         TERMS_WHERE_FIRST_MET.map((entry: [string, Array<string>]): string => {
           return entry[0];
         }),
       ).size,
-    ).toBe(21);
+    ).toBe(22);
   });
 
   test.each(TERMS_WHERE_FIRST_MET)(

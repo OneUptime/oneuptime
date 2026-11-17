@@ -39,10 +39,12 @@ import {
  *
  *   Basic       Overview, Steps                    open
  *   Logs        Executions                         folded
- *   Owners      Owners                             folded
  *   Settings    Triggers, Settings                 folded
  *   Developer   Terraform, API, CLI, AI Assistants folded
- *   Advanced    Audit Logs, Delete Runbook         folded
+ *   Advanced    Owners, Audit Logs, Delete Runbook folded
+ *
+ * Owners was a section of its own, under a heading of its own name, until
+ * #9134.
  *
  * Executions and Triggers used to sit in Basic, open on every visit, and the
  * Settings page under Advanced. Every page kept its URL and its breadcrumbs.
@@ -275,7 +277,6 @@ const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
 const SECTIONS_IN_ORDER: Array<string> = [
   "Basic",
   "Logs",
-  "Owners",
   "Settings",
   "Developer",
   "Advanced",
@@ -311,7 +312,6 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
   { title: "Overview", section: "Basic", path: RUNBOOK_PATH },
   { title: "Steps", section: "Basic", path: `${RUNBOOK_PATH}/steps` },
   { title: "Executions", section: "Logs", path: EXECUTIONS_PATH },
-  { title: "Owners", section: "Owners", path: `${RUNBOOK_PATH}/owners` },
   { title: "Triggers", section: "Settings", path: TRIGGERS_PATH },
   { title: "Variables", section: "Settings", path: VARIABLES_PATH },
   { title: "Settings", section: "Settings", path: SETTINGS_PATH },
@@ -327,6 +327,7 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
     section: "Developer",
     path: `${RUNBOOK_PATH}/developer/ai-assistants`,
   },
+  { title: "Owners", section: "Advanced", path: `${RUNBOOK_PATH}/owners` },
   {
     title: "Audit Logs",
     section: "Advanced",
@@ -430,7 +431,7 @@ afterEach(() => {
 });
 
 describe("a runbook's side menu", () => {
-  test("has Basic, Logs, Owners, Settings, Developer and Advanced, in that order", async () => {
+  test("has Basic, Logs, Settings, Developer and Advanced, in that order", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     expect(sectionTitlesInOrder()).toEqual(SECTIONS_IN_ORDER);
@@ -470,7 +471,7 @@ describe("a runbook's side menu", () => {
     expect(SETTINGS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_SETTINGS));
   });
 
-  test("Advanced keeps Audit Logs and Delete Runbook: the Settings page moved out", async () => {
+  test("Advanced keeps Owners, Audit Logs and Delete Runbook: the Settings page moved out", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     expect(linksIn("Advanced")).toEqual(linksOf("Advanced"));
@@ -488,10 +489,10 @@ describe("a runbook's side menu", () => {
     expect(entry("Advanced", "Delete Runbook")).toHaveClass("danger-on-hover");
   });
 
-  test("Owners and Developer are where they were", async () => {
+  test("Developer is where it was, and Owners has no section of its own", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
-    expect(linksIn("Owners")).toEqual(linksOf("Owners"));
+    expect(sectionTitlesInOrder()).not.toContain("Owners");
     expect(linksIn("Developer")).toEqual(linksOf("Developer"));
   });
 
@@ -661,7 +662,7 @@ describe("opening a folded section", () => {
     expectOpen("Settings");
     expect(linksIn("Settings")).toEqual(linksOf("Settings"));
 
-    for (const section of ["Logs", "Owners", "Developer", "Advanced"]) {
+    for (const section of ["Logs", "Developer", "Advanced"]) {
       expectFolded(section);
     }
   });

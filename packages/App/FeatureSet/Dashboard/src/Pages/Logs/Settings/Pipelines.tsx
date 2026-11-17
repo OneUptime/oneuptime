@@ -41,27 +41,19 @@ A pipeline changes the logs that arrive after you save it, within about a minute
 | **Attribute Remapper** | Renames or copies an attribute |
 | **Category Processor** | Sets an attribute to a category, by the first of its filters a log matches |
 
-## Filter Queries
+## Filter Conditions
 
-A filter picks logs by their fields:
+A pipeline's filter is built on its page, under **Filter Conditions**. Each condition is a **Field**, an **Operator** and a **Value**: **Severity** · equals · **Error**.
 
-| Operator | Example | Matches |
-|----------|---------|---------|
-| \`=\` | \`severityText = 'Error'\` | Exactly this value |
-| \`!=\` | \`severityText != 'Debug'\` | Anything but this value |
-| \`IN\` | \`severityText IN ('Error', 'Warning')\` | Any value in the list |
-| \`LIKE\` | \`body LIKE 'timeout'\` | Text that contains this, in any case |
-| \`AND\`, \`OR\` | \`severityText = 'Error' AND attributes.service = 'api'\` | Both, or either, of two conditions |
-
-- **Fields:** \`severityText\`, \`body\`, \`primaryEntityId\` and \`attributes.<key>\`.
-- **Severities:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\` and \`Fatal\`. It is \`Information\`, not \`INFO\`, and \`Warning\`, not \`WARN\`.
-- \`=\`, \`!=\` and \`IN\` are case-sensitive: \`'Error'\` matches, \`'ERROR'\` does not. Only \`LIKE\` ignores case.
+- **Fields:** **Severity**, **Log Body** and **Service ID**, or any attribute with **Custom Attribute...**.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Error\` matches, \`ERROR\` does not. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- With more than one condition, pick **All conditions** or **Any condition**.
 
 ## Examples
 
-- **Fix a legacy app's severities**: a pipeline for \`attributes.source = 'legacy-app'\` with a **Severity Remapper** that reads \`level\` and maps \`warn\` to Warning, \`fatal\` to Fatal and \`info\` to Information.
-- **Use one name for an attribute**: a pipeline with no filter and an **Attribute Remapper** from \`attributes.client_ip\` to \`attributes.source_address\`.
-- **Sort errors into categories**: a pipeline for \`severityText IN ('Error', 'Fatal')\` with a **Category Processor** that writes \`error_category\`: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`.
+- **Fix a legacy app's severities**: a pipeline for the custom attribute \`source\` · equals · \`legacy-app\`, with a **Severity Remapper** that reads \`level\` and maps \`warn\` to Warning, \`fatal\` to Fatal and \`info\` to Information.
+- **Use one name for an attribute**: a pipeline with no filter and an **Attribute Remapper** from \`client_ip\` to \`source_address\`.
+- **Sort errors into categories**: a pipeline for **Severity** · is one of · \`Error, Fatal\`, with a **Category Processor** that writes \`error_category\`: "Database Error" for **Log Body** · contains · \`connection\`, "Timeout" for **Log Body** · contains · \`timeout\`.
 `;
 
 /*

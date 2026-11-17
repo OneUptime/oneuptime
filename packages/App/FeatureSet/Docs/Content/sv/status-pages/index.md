@@ -36,10 +36,10 @@ Sidan visar monitorerna du lägger på den som resurser, och incidenter når sid
 
 ## I korthet
 
-- **Skapas med ett namn.** En ny statussida frågar bara efter sitt **Namn**; **Beskrivning** och **Etiketter** väntar under **Fler fält**. Resurser, varumärke och domäner ställer du in efteråt.
+- **Skapas med ett namn.** En ny statussida frågar bara efter sitt **Namn**; **Intern beskrivning** och **Etiketter** väntar under **Fler fält**. Resurser, varumärke och domäner ställer du in efteråt.
 - **Resurser är det besökarna ser.** Varje rad på sidan är en **Statussideresurs**: en monitor (eller monitorgrupp) med eget visningsnamn, egen knappbeskrivning och egna upptidsval. Grupper delar upp en lång sida i sektioner och kan kapslas.
 - **En förhandsgransknings-URL från första dagen.** Varje statussida får en förhandsgranskningslänk, så att du kan se den innan det finns en anpassad domän.
-- **Rutterna för besökare beror på inställningar.** Incidenter, episoder, meddelanden och schemalagda händelser visas bara så länge deras reglage i **Vad din statussida visar** (under **Avancerade inställningar**) är på, och prenumerationssidan bara så länge **Visa prenumerantsida** är på.
+- **Rutterna för besökare beror på inställningar.** Incidenter, episoder, meddelanden och schemalagda händelser visas bara så länge deras reglage i **Vad din statussida visar** (under **Inställningar**) är på, och prenumerationssidan bara så länge **Visa prenumerantsida** är på.
 - **Vem som får se den är ett enda val.** Alla med länken, bara personer som loggar in (privata användare, SAML- eller OIDC-SSO) eller alla med lösenordet, på sidans skärm **Åtkomst**, med en valfri IP-tillåtelselista under **Fler inställningar**.
 - **Prenumeranter aviseras automatiskt.** Prenumeranter via e-post, SMS, Slack, Microsoft Teams och webhook kan följa en sida, varje kanal bakom sitt eget reglage.
 
@@ -66,7 +66,7 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 
 ### Ge sidan ett namn
 
-Fyll i **Namn** (obligatoriskt, minst två tecken) i fönstret **Skapa ny: Statussida**, och klicka på **Skapa statussida**. **Beskrivning** och **Etiketter** är valfria, under **Fler fält**.
+Fyll i **Namn** (obligatoriskt, minst två tecken) i fönstret **Skapa ny: Statussida**, och klicka på **Skapa statussida**. **Intern beskrivning** och **Etiketter** är valfria, under **Fler fält**. Den interna beskrivningen är till för ditt team: besökare ser den aldrig.
 
 Det är hela formuläret. Listan **Statussidor** visar **Namn**, **Beskrivning**, **Etiketter** och **Ägare**, och kan filtreras på **Statussidans ID**, **Namn** och **Beskrivning**.
 
@@ -82,7 +82,7 @@ Därefter, ungefär i ordning efter nytta:
 - Lägg till resurser så att sidan visar något: se [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups).
 - Ange sidans titel, favicon, logotyp och omslagsbild, och koppla sedan en anpassad domän: se [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 - Bestäm vilka kanaler folk kan prenumerera via: se [Prenumeranter och meddelanden](/docs/status-pages/subscribers).
-- Finjustera vad som visas på sidan under **Avancerade inställningar**.
+- Finjustera vad som visas på sidan under **Inställningar**.
 
 ## Var allt finns
 
@@ -90,17 +90,17 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i nio sekti
 
 | Sektion | Vad den innehåller |
 | --- | --- |
-| **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
+| **Översikt** | **Översikt**, **Meddelanden**, **Ägare**. |
 | **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger). |
 | **Regler** | **Monitorregler**: regler som lägger till varje monitor som matchar på sidan, nu och senare. |
 | **Prenumeranter** | **Prenumeranter** (en enda sida, med en flik för varje kanal: E-post, SMS, Slack, Microsoft Teams och Webhook), **Prenumerantinställningar**, **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
-| **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **SSO**, **OIDC**, **SCIM**. |
+| **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **Enkel inloggning** (en flik vardera för SAML och OIDC), **SCIM**. |
 | **AI** | **MCP**. |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter**: sidan som kod. |
-| **Avancerad** | **Inbäddad status**, **Rapporter**, **Anpassade fält**, **Avancerade inställningar**, **Granskningsloggar**, **Ta bort statussida**. |
+| **Avancerad** | **Inbäddad status**, **Rapporter**, **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort statussida**. |
 
-Bara **Grundläggande** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Avancerade inställningar** eller **Prenumeranter**.
+Bara **Översikt** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Inställningar** eller **Prenumeranter**.
 
 Två egenheter i namnen som är bra att känna till innan du letar:
 
@@ -147,7 +147,7 @@ Vad som sätter en incident på den här sidan och vad som tar bort den kan du l
 
 ## Välja vad som visas på sidan
 
-Vad besökarna ser anges på ett enda kort: **Vad din statussida visar**, under **Statussidor → din sida → Avancerad → Avancerade inställningar**. Det har en rad för varje lista sidan kan visa, sedan **Upptidshistorik** (med den totala upptidsprocenten och statusarna som räknas som driftstopp). Raden "Powered by OneUptime" har ett eget kort direkt under, hopfällt under **Fler inställningar**. Det finns ingen redigeringsknapp: ett reglage sparas så fort du slår om det, ett antal dagar när du lämnar fältet eller trycker på Enter, och ett val i en lista så fort du gör det.
+Vad besökarna ser anges på ett enda kort: **Vad din statussida visar**, under **Statussidor → din sida → Avancerad → Inställningar**. Det har en rad för varje lista sidan kan visa, sedan **Upptidshistorik** (med den totala upptidsprocenten och statusarna som räknas som driftstopp). Raden "Powered by OneUptime" har ett eget kort direkt under, hopfällt under **Fler inställningar**. Det finns ingen redigeringsknapp: ett reglage sparas så fort du slår om det, ett antal dagar när du lämnar fältet eller trycker på Enter, och ett val i en lista så fort du gör det.
 
 - **Visa incidenter** (`showIncidentsOnStatusPage`): på som standard. Under den bestämmer **Visa de senaste … dagarna** (`showIncidentHistoryInDays`, standard 14) hur långt bakåt incidentlistan går, och **Visa incidentetiketter** (`showIncidentLabelsOnStatusPage`) är av som standard.
 - **Visa bara incidenter som är begränsade till den här sidan** (`onlyShowScopedIncidents`): också på incidentraden, av som standard. Slå på den så visar sidan, och aviserar sina prenumeranter om, bara de incidenter som är begränsade till den med **Begränsa till dessa statussidor**. Incidenter som inte är begränsade till någon sida, även de som en monitor, Slack, Microsoft Teams, API:et eller AI öppnar av sig själv, når aldrig sidan förrän någon lägger till sidan i dem. Den avgör också vilka incidenter som tar med sina episoder till sidan, och därför finns den kvar när **Visa incidenter** är av. För sidor som delar monitorer men betjänar olika målgrupper, se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
@@ -197,17 +197,21 @@ Att välja ett alternativ ber om bekräftelse och säger vad som ändras för be
 
 Lägg till personerna som får logga in under **Statussidor → din sida → Säkerhet → Privata användare**. Det finns en åtgärd **Lägg till i bulk**: klistra in en lista med e-postadresser så får varje adress ett inbjudningsmejl. Privata användare har ett eget flöde för glömt lösenord och återställning, skilt från kontona i ditt OneUptime-projekt. Ett nytt lösenord loggar ut dem på alla enheter, och varje inloggningslänk eller återställningslänk som redan skickats slutar fungera.
 
+**Privata användare, enkel inloggning och SCIM gör ingenting på en offentlig sida.** Så länge **Alla med länken** är valet ser alla besökare sidan utan att logga in. Skärmarna **Privata användare**, **Enkel inloggning** och **SCIM** säger det högst upp, "Den här statussidan är offentlig, så de här inställningarna gör ingenting förrän du gör den privat.", med **Ändra åtkomst**, som öppnar **Åtkomst**. Det de innehåller ligger hopfällt under **Konfigurera innan sidan görs privat**: öppna det för att lägga till personer eller en leverantör innan sidan blir privat, så att ingen stängs ute när den blir det.
+
 **Privata användare och lösenordet läggs inte ihop.** Så länge **Alla med lösenordet** är valet kan privata användare inte logga in (de anger också lösenordet), och skärmen **Privata användare** säger det, med en länk tillbaka till **Åtkomst**.
 
 **Inloggningslänkar.** På en sida som besökare loggar in på erbjuder inloggningssidan också **Skicka en inloggningslänk till mig**: en privat användare anger sin e-postadress och får en länk som loggar in hen utan lösenord. Länken fungerar en gång, i 15 minuter, och ber man om en ny ersätter den den gamla. Den öppnar en sida där användaren trycker på **Logga in**, så att e-postfilter som öppnar varje länk för att skanna den inte kan förbruka den först. Sidan svarar likadant oavsett om adressen tillhör en av dess privata användare eller inte, så att be om en länk avslöjar inte för någon vem som kan logga in. Länkar är påslagna på alla sidor; för att hålla privata användare till sina lösenord stänger du av **Inloggningslänkar** under **Fler inställningar** på **Privata användare** (den som redan är inloggad med en länk förblir inloggad). De erbjuds aldrig medan **Kräv SSO för inloggning** är på eller **Alla med lösenordet** är valet.
 
 ### SSO och OIDC
 
-För en privat sida som är kopplad till din identitetsleverantör ställer **Statussidor → din sida → Säkerhet → SSO** in SAML: **Lägg till SSO-leverantör** frågar efter inloggnings-URL:en, utfärdaren och x509-certifikatet, och signerings- och digest-metoderna fylls i under **Fler fält**. **Statussidor → din sida → Säkerhet → OIDC** ställer in OpenID Connect: **Lägg till OIDC-leverantör** frågar efter utfärdaren, klient-ID:t och hemligheten, och discovery-URL:en, scopes och claim-namnen fylls i under **Fler fält**. När en sida har en leverantör länkar kortet **Testa inloggning** under listan till sidans inloggning, så att du kan prova den. **SCIM** skapar privata användare automatiskt från IdP:n. På OneUptime Cloud kräver alla tre abonnemanget Scale eller högre. I en egendriftad installation ingår SSO och OIDC i alla utgåvor, och SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
+För en privat sida som är kopplad till din identitetsleverantör öppnar du **Statussidor → din sida → Säkerhet → Enkel inloggning** (`{id}/sso`). Den har en flik för varje protokoll. Fliken **SAML** ställer in SAML: **Lägg till SSO-leverantör** frågar efter inloggnings-URL:en, utfärdaren och x509-certifikatet, och signerings- och digest-metoderna fylls i under **Fler fält**. Fliken **OIDC** (`{id}/sso?protocol=oidc`) ställer in OpenID Connect: **Lägg till OIDC-leverantör** frågar efter utfärdaren, klient-ID:t och hemligheten, och discovery-URL:en, scopes och claim-namnen fylls i under **Fler fält**. När en sida har en leverantör länkar kortet **Testa inloggning** under listan till sidans inloggning, så att du kan prova den. **SCIM** skapar privata användare automatiskt från IdP:n. På OneUptime Cloud kräver alla tre abonnemanget Scale eller högre. I en egendriftad installation ingår SSO och OIDC i alla utgåvor, och SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Att stänga av eller ta bort en statussidas SSO- eller OIDC-leverantör loggar ut de privata användare som den loggade in: deras sessioner upphör vid nästa begäran, och att slå på leverantören igen återställer dem inte; de loggar in via den på nytt. Ett nytt certifikat eller en ny klienthemlighet, andra URL:er eller ett nytt namn håller alla inloggade. På en sida som kräver SSO stänger det ute alla att stänga av dess sista leverantör, tills du slår på en igen eller stänger av **Kräv SSO för inloggning**; för att byta till en annan leverantör ställer du in och testar den nya innan du stänger av den gamla.
 
-Under leverantörerna innehåller kortet **SSO-inställningar** reglaget **Kräv SSO för inloggning** (`requireSsoForLogin`, av som standard), som sparas så fort du slår om det. Att slå på det ber först om bekräftelse, eftersom privata användare därefter inte kan logga in med e-post och lösenord: bara personerna som din SSO- eller OIDC-leverantör släpper in kan se sidan. Prova länken på kortet **Testa inloggning** ovanför innan du slår på det. Det spelar bara roll så länge **Bara personer som loggar in** är valet, och skärmen **Åtkomst** visar det som **SSO krävs** under det valet. Medan det är på loggas även en privat användare som loggade in med e-post och lösenord ut vid nästa begäran: bara sessioner som en SSO- eller OIDC-leverantör startade räknas. På OneUptime Cloud kräver det abonnemanget **Scale** att slå på det, och att stänga av det fungerar på alla abonnemang. En sida som fortfarande kräver SSO efter att en provperiod med Scale har tagit slut, eller efter ett byte till ett lägre abonnemang, fortsätter med det tills någon stänger av det: dess sidor **SSO** och **OIDC** visar reglaget för det under abonnemangserbjudandet.
+Under leverantörerna innehåller kortet **SSO-inställningar** reglaget **Kräv SSO för inloggning** (`requireSsoForLogin`, av som standard), som sparas så fort du slår om det. Att slå på det ber först om bekräftelse, eftersom privata användare därefter inte kan logga in med e-post och lösenord: bara personerna som din SSO- eller OIDC-leverantör släpper in kan se sidan. Prova länken på kortet **Testa inloggning** ovanför innan du slår på det. Det spelar bara roll så länge **Bara personer som loggar in** är valet, och skärmen **Åtkomst** visar det som **SSO krävs** under det valet. Medan det är på loggas även en privat användare som loggade in med e-post och lösenord ut vid nästa begäran: bara sessioner som en SSO- eller OIDC-leverantör startade räknas. På OneUptime Cloud kräver det abonnemanget **Scale** att slå på det, och att stänga av det fungerar på alla abonnemang. En sida som fortfarande kräver SSO efter att en provperiod med Scale har tagit slut, eller efter ett byte till ett lägre abonnemang, fortsätter med det tills någon stänger av det: dess sida **Enkel inloggning** visar reglaget för det under abonnemangserbjudandet, på båda flikarna.
+
+**SSO** och **OIDC** var tidigare två poster i menyn. Den gamla OIDC-adressen, `{id}/oidc`, öppnar fliken **OIDC**.
 
 ### Läsarsessioner
 
@@ -240,7 +244,7 @@ Arkivera en statussida för att ta den offline utan att ta bort den. En arkivera
 - **Försvinner från listan över statussidor.** Du hittar den under **Statussidor → Avancerad → Arkiverad**.
 - **Behåller allt.** Dess resurser, grupper, varumärke, domäner, privata användare och prenumeranter behålls, så när du avarkiverar den kommer sidan tillbaka online precis som den var.
 
-För att arkivera en statussida öppnar du den och går till **Avancerad → Avancerade inställningar → Arkivera statussida**. För att arkivera flera markerar du dem i listan **Statussidor** och väljer **Arkivera**. För att få tillbaka en öppnar du **Statussidor → Avancerad → Arkiverad**, markerar den och väljer **Avarkivera**, eller öppnar den och klickar på **Avarkivera** i bannern högst upp på dess sidor.
+För att arkivera en statussida öppnar du den och går till **Avancerad → Inställningar → Arkivera statussida**. För att arkivera flera markerar du dem i listan **Statussidor** och väljer **Arkivera**. För att få tillbaka en öppnar du **Statussidor → Avancerad → Arkiverad**, markerar den och väljer **Avarkivera**, eller öppnar den och klickar på **Avarkivera** i bannern högst upp på dess sidor.
 
 En statussidas **Översikt** har kortet **Visas nu**: de öppna incidenterna och det kommande eller pågående underhållet som besökare ser på den just nu. När du arkiverar eller tar bort sidan, på dess egna sidor eller från listan, sägs först vad besökare skulle sluta se.
 

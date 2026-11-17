@@ -1074,7 +1074,6 @@ const Detail: FunctionComponent<PageComponentProps> = (
       {hasItem && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!hasItem ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="item-empty-state"
           title={t("incidents.notFoundTitle")}
           description={t("incidents.notFound")}

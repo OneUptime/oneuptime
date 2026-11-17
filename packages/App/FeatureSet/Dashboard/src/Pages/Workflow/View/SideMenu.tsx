@@ -77,19 +77,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Owners">
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.WORKFLOW_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
       {getDeveloperSideMenuSection({
         modelType: Workflow,
         scope: DeveloperDocsScope.View,
@@ -108,6 +95,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
 
+        {/*
+         * Who owns the workflow, with the other pages that change it. It was a
+         * section of its own, under a heading of its own name (#9134).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.WORKFLOW_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
         <SideMenuItem
           link={{
             title: "Audit Logs",

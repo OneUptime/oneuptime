@@ -45,10 +45,8 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 | --- | --- |
 | **Primeros pasos** | **Lista de configuración**: lo que queda por configurar, en el orden que importa |
 | **Alertas y notificaciones** | **Métodos de notificación**, **Cómo contactarme**, **Ajustes de notificaciones** y **Preferencias de correo**, que fija cuántos correos suman tus novedades |
-| **Registros de guardia** | **Registros de guardia**: cada vez que te avisaron en este proyecto, y lo que se envió |
-| **Política de llamadas entrantes** | **Números de teléfono entrantes**: el número al que te llama una política de llamadas entrantes |
-| **Calendario** | **Feed de calendario**: tus turnos en tu aplicación de calendario, y recordatorios antes de que empiecen |
-| **Perfil** | **Campos personalizados**: datos que tu proyecto pide a sus miembros |
+| **Avisos de guardia y llamadas** | **Registros de guardia**: cada vez que te avisaron en este proyecto, y lo que se envió; **Números de teléfono entrantes**: el número al que te llama una política de llamadas entrantes |
+| **Perfil y calendario** | **Feed de calendario**: tus turnos en tu aplicación de calendario, y recordatorios antes de que empiecen; **Campos personalizados**: datos que tu proyecto pide a sus miembros |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**: tu propia cuenta, en cada espacio de trabajo que el proyecto ha conectado |
 
 **Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
@@ -112,7 +110,7 @@ Lo que cambia son las palabras de OneUptime: asuntos, encabezados, botones y fra
 ## Solución de problemas
 
 :::details Estaba de guardia, pero no me llegó nada
-Abre **Ajustes de usuario → Registros de guardia**. Si no hay fila para el incidente, su política de guardia nunca te avisó: revisa sus reglas de escalado y quién estaba de guardia. En una fila con el estado **Error**, **Ver mensaje de estado** dice por qué, por ejemplo un canal que el proyecto desactivó. Después comprueba que tus métodos están verificados y que **Tu lista de configuración** no tiene nada pendiente en **Para que podamos contactarte**.
+Abre **Ajustes de usuario → Avisos de guardia y llamadas → Registros de guardia**. Si no hay fila para el incidente, su política de guardia nunca te avisó: revisa sus reglas de escalado y quién estaba de guardia. En una fila con el estado **Error**, **Ver mensaje de estado** dice por qué, por ejemplo un canal que el proyecto desactivó. Después comprueba que tus métodos están verificados y que **Tu lista de configuración** no tiene nada pendiente en **Para que podamos contactarte**.
 :::
 
 :::details Recibo correos sobre registros que nunca pedí

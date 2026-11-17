@@ -156,7 +156,7 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
-- **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Gevarenzone, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
+- **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Project verwijderen, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
 - **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
@@ -165,7 +165,7 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 Zoeken leest wat u typt zoals u het bedoelt:
 
 - Hoofdletters, accenten, spaties en koppeltekens maken niet uit: *on-call*, *on call* en *oncall* vinden dezelfde pagina's, en woorden mogen in elke volgorde staan.
-- Het kent voor veel pagina's andere woorden, in het Engels: *pager* of *escalation* voor Bereikbaarheidsbeleid, *rota* voor Bereikbaarheidsschema's, *2fa* voor tweefactorauthenticatie, *delete project* voor de Gevarenzone.
+- Het kent voor veel pagina's andere woorden, in het Engels: *pager* of *escalation* voor Bereikbaarheidsbeleid, *rota* voor Bereikbaarheidsschema's, *2fa* voor tweefactorauthenticatie, *remove project* voor Project verwijderen.
 - Voeg de naam van het product toe om een zoekopdracht te verfijnen: *incident custom fields* vindt de pagina Aangepaste velden van Incidenten.
 - Een kleine tikfout, zoals *incidnet*, vindt nog steeds wat u bedoelde als niets exact overeenkomt.
 

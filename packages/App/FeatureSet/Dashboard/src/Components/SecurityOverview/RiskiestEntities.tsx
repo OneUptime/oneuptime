@@ -87,7 +87,6 @@ const RiskiestEntities: FunctionComponent<ComponentProps> = (
           title="Try again"
           icon={IconProp.Refresh}
           buttonStyle={ButtonStyleType.NORMAL}
-          className="!ml-0 !w-auto"
           isLoading={props.isReading}
           disabled={props.isReading}
           dataTestId={RISKIEST_ENTITIES_TEST_IDS.tryAgain}

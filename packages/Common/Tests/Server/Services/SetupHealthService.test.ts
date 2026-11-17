@@ -273,8 +273,16 @@ function ingestionKey(data: {
   const item: TelemetryIngestionKey = withId(new TelemetryIngestionKey(), KEY);
   item.name = "Production collector";
   item.createdAt = data.createdAt;
-  item.lastUsedAt = data.lastUsedAt;
-  item.isEnabled = data.isEnabled;
+
+  // What a case does not give stays unset, as on a key never used.
+  if (data.lastUsedAt !== undefined) {
+    item.lastUsedAt = data.lastUsedAt;
+  }
+
+  if (data.isEnabled !== undefined) {
+    item.isEnabled = data.isEnabled;
+  }
+
   return item;
 }
 

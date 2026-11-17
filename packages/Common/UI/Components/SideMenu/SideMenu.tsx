@@ -843,7 +843,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * edge.
              */}
             <div className="min-w-0 text-start">
-              <p className="text-xs text-gray-400 font-medium">
+              <p className="text-xs text-gray-500 font-medium">
                 {translateString("Navigate to")}
               </p>
               <h3 className="text-sm font-semibold text-gray-900 break-words">

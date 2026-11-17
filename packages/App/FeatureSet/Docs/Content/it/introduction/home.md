@@ -156,7 +156,7 @@ Sopra il titolo di ogni pagina, un percorso come *Progetto › Docker › Impost
 
 Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona di ricerca nella barra in alto, e inizia a digitare. La ricerca trova:
 
-- **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Zona pericolosa, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
+- **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Elimina progetto, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
 - **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Configurazioni SMTP personalizzate* trova Canali di notifica. Digita il nome in inglese o nella tua lingua.
 - **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
 - **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
@@ -165,7 +165,7 @@ Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona
 La ricerca legge ciò che digiti come lo intendi:
 
 - Maiuscole, accenti, spazi e trattini non contano: *on-call*, *on call* e *oncall* trovano le stesse pagine, e le parole possono essere in qualsiasi ordine.
-- Conosce altre parole per molte pagine, in inglese: *pager* o *escalation* per Policy di reperibilità, *rota* per Pianificazioni di reperibilità, *2fa* per l'autenticazione a due fattori, *delete project* per la Zona pericolosa.
+- Conosce altre parole per molte pagine, in inglese: *pager* o *escalation* per Policy di reperibilità, *rota* per Pianificazioni di reperibilità, *2fa* per l'autenticazione a due fattori, *remove project* per Elimina progetto.
 - Aggiungi il nome del prodotto per restringere una ricerca: *incident custom fields* trova la pagina Campi personalizzati degli incidenti.
 - Un piccolo errore di battitura, come *incidnet*, trova comunque ciò che intendevi quando nulla corrisponde esattamente.
 

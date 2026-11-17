@@ -260,7 +260,7 @@ describe("Status page custom domains (English docs)", () => {
 
   /*
    * Dashboards -> a dashboard -> Custom Domains is under the dashboard's
-   * Branding section, and works the same way: the reissue paragraph says
+   * Public Link section, and works the same way: the reissue paragraph says
    * where, and sends readers to the dashboard guide.
    */
   it("sends readers to dashboard custom domains by their menu path", () => {
@@ -270,7 +270,7 @@ describe("Status page custom domains (English docs)", () => {
     );
 
     expect(reissue).toContain(
-      "**Dashboards → your dashboard → Branding → Custom Domains**",
+      "**Dashboards → your dashboard → Public Link → Custom Domains**",
     );
     expect(reissue).toContain("(/docs/dashboards/sharing#custom-domains)");
   });

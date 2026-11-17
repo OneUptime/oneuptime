@@ -325,7 +325,7 @@ Añadir un proveedor, cambiar uno o volver a activarlo requiere **Scale**. Quié
 
 Mientras el proyecto siga exigiendo SSO, su página **SSO** también muestra **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar el último proveedor. Hasta entonces, el último proveedor con el que las personas pueden iniciar sesión no se puede desactivar ni eliminar, para que nadie quede fuera del proyecto.
 
-Las páginas **SSO** y **OIDC** de una página de estado muestran sus propios proveedores de la misma forma. Mientras la página de estado siga exigiendo SSO, ambas páginas también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar sus proveedores, o sus usuarios privados no podrán iniciar sesión en absoluto.
+La página **Inicio de sesión único** de una página de estado muestra sus propios proveedores de la misma forma, en sus pestañas **SAML** y **OIDC**. Mientras la página de estado siga exigiendo SSO, ambas pestañas también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar sus proveedores, o sus usuarios privados no podrán iniciar sesión en absoluto.
 
 ## Solución de problemas
 

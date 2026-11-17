@@ -3,14 +3,18 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The step type cards on a runbook's Steps page (Runbooks > a runbook >
- * Steps): the grid a new runbook's first step is picked from, and the "Add
- * another step" grid under the steps it has.
+ * The step type choices on a runbook's Steps page (Runbooks > a runbook >
+ * Steps): the grid a new runbook's first step is picked from, and the Add
+ * Step dialog a runbook with steps adds one from.
  *
  * Seven step types sat five to a row - five, then an orphaned two - and a
  * card beside a taller one had its icon lower than its neighbours', because
- * a button centres what it holds. Both grids are four to a row now (four,
- * then three), and every card is a column from the top.
+ * a button centres what it holds. The first step's grid is four to a row
+ * now (four, then three), and every choice is a column from the top.
+ *
+ * The seven cards also sat under every runbook that had steps, as "Add
+ * another step", as tall as the runbook on a phone (#9138). That grid is a
+ * dialog now, opened by one Add Step button at the end of the list.
  *
  * What a renderer in jsdom cannot see is the layout, so the classes are
  * read from the page's source.
@@ -62,33 +66,50 @@ function stepTypeCount(): number {
   return STEPS_PAGE.slice(start, end).split("RunbookStepType.").length - 1;
 }
 
-describe("the step type cards", () => {
-  test("are drawn in two places: the first step, and Add another step", () => {
-    expect(stepTypeGrids()).toHaveLength(2);
+// The one choice both places draw: renderStepTypeChoice's button.
+function stepTypeChoice(): string {
+  const start: number = STEPS_PAGE.indexOf("const renderStepTypeChoice");
+  const end: number = STEPS_PAGE.indexOf("</button>", start);
+
+  return STEPS_PAGE.slice(start, end);
+}
+
+describe("the step type choices", () => {
+  test("are drawn in two places: the first step, and the Add Step dialog", () => {
+    const grids: Array<string> = stepTypeGrids();
+
+    expect(grids).toHaveLength(2);
+    expect(grids[1]).toContain('data-testid="runbook-step-type-picker"');
+    for (const grid of grids) {
+      expect(grid).toContain("renderStepTypeChoice(t,");
+    }
+    expect(STEPS_PAGE).not.toContain("Add another step");
   });
 
-  test("seven step types make two even rows at four to a row", () => {
+  test("seven step types: two even rows at four to a row for the first step, two to a row in the dialog", () => {
     expect(stepTypeCount()).toBe(7);
 
-    for (const grid of stepTypeGrids()) {
-      expect(grid).toContain("lg:grid-cols-4");
-      expect(grid).not.toContain("lg:grid-cols-5");
-      // One to a row on a phone, two on a tablet, as before.
+    const [firstStep, dialog] = stepTypeGrids() as [string, string];
+
+    expect(firstStep).toContain("lg:grid-cols-4");
+    expect(firstStep).not.toContain("lg:grid-cols-5");
+    // One to a row on a phone, two on a tablet, as before.
+    for (const grid of [firstStep, dialog]) {
       expect(grid).toContain("grid-cols-1 sm:grid-cols-2");
     }
   });
 
-  test("every card is a column from the top, so the icons in a row line up", () => {
-    for (const grid of stepTypeGrids()) {
-      const button: string = grid.slice(grid.indexOf("<button"));
+  test("every choice is a column from the top, so the icons in a row line up", () => {
+    const choice: string = stepTypeChoice();
+    const button: string = choice.slice(choice.indexOf("<button"));
 
-      expect(button).toContain("flex flex-col items-start justify-start");
-    }
+    expect(button).toContain('type="button"');
+    expect(button).toContain("flex flex-col items-start justify-start");
   });
 
-  test("a card's line is in the reader's language", () => {
-    for (const grid of stepTypeGrids()) {
-      expect(grid).toContain("translator.translateText(meta.description)");
-    }
+  test("a choice's line is in the reader's language", () => {
+    expect(stepTypeChoice()).toContain(
+      "translator.translateText(meta.description)",
+    );
   });
 });

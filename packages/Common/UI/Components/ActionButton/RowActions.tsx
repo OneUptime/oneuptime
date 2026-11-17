@@ -294,14 +294,8 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
 
   return (
     <div
-      /*
-       * Button carries an md:ml-3 of its own, meant for a row of loose
-       * buttons. Here the gap does the spacing, and the stray margin would
-       * push a centred group off centre.
-       */
-      className={`flex items-center gap-2 [&_button]:md:ml-0 ${
-        props.className || "justify-end"
-      }`}
+      /* The gap spaces the buttons: a Button has no margin of its own. */
+      className={`flex items-center gap-2 ${props.className || "justify-end"}`}
       data-testid="row-actions"
     >
       {error &&

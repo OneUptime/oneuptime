@@ -661,7 +661,7 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
             },
           )}
           {overflowCount > 0 ? (
-            <p className={cx("pt-1 text-xs", "text-gray-400")}>
+            <p className={cx("pt-1 text-xs", "text-gray-500")}>
               {translator.translatePlural(
                 {
                   one: "+{{count}} more series — highest values shown",

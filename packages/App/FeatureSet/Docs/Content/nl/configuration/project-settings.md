@@ -40,7 +40,7 @@ flowchart LR
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
 | **Auditlogboeken** | **Auditlogboeken**, **Instellingen**, **Export** | [Auditlogboeken](/docs/configuration/audit-logs), [Export van auditlogboek](/docs/configuration/audit-log-export) |
-| **Gevarenzone** | **Gevarenzone** | [Het project verwijderen](#het-project-verwijderen) |
+| **Gevarenzone** | **Project verwijderen** | [Het project verwijderen](#het-project-verwijderen) |
 
 **Facturering en facturen** en **AI-tegoeden** bestaan alleen in OneUptime Cloud: een zelf gehoste installatie heeft geen facturering.
 
@@ -113,7 +113,7 @@ Een project verwijderen verwijdert alles erin, voor elk lid: de monitors, incide
 :::steps
 ### De gevarenzone openen
 
-Ga naar **Projectinstellingen → Gevarenzone**.
+Ga naar **Projectinstellingen → Gevarenzone → Project verwijderen**.
 
 ### Op Project verwijderen klikken
 

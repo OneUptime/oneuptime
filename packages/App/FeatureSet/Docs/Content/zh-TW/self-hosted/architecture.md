@@ -58,6 +58,7 @@ flowchart TB
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 專案、監測器、事件、使用者以及其他所有設定與狀態。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 記錄、指標、追蹤、例外、效能剖析與監測器記錄。 |
 | Valkey | `valkey` | `valkey` | 快取、工作佇列，以及待處理的推播回執之類的短期狀態。 |
+| ClamAV | `clamav` | `clamav`（預設關閉） | 在儲存之前掃描使用者傳送的檔案是否含有惡意軟體。僅在你開啟時執行：Docker Compose 用 `COMPOSE_PROFILES=clamav`，Helm 用 `clamav.enabled`。 |
 
 應用程式的所有角色都是同一個映像檔：Docker Compose 在一個 `app` 容器中執行它們，而 Helm Chart 可以把 worker 與 telemetry writer 作為各自獨立的部署來執行。如何為每一層決定規模，請參閱[規模估算與容量規劃](/docs/installation/sizing)。
 

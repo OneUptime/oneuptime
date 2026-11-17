@@ -37,7 +37,6 @@
     "announcements": "公告",
     "scheduledEvents": "排定維護",
     "subscribe": "訂閱",
-    "login": "登入",
     "logout": "登出"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "密碼",
       "newPassword": "新密碼",
       "confirmPassword": "確認密碼",
-      "login": "登入"
+      "signInLink": "登入。"
     },
     "login": {
       "welcomeBack": "歡迎回來！",
-      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "signInPrompt": "請登入以檢視 {{statusPageName}}。",
       "forgotPassword": "忘記密碼？",
       "submit": "登入",
       "or": "或",
-      "logInWithSso": "透過 SSO 登入",
+      "signInWithSso": "透過 SSO 登入",
       "emailSignInLink": "透過電子郵件傳送登入連結"
     },
     "sso": {
       "title": "透過 SSO 登入",
-      "loginPrompt": "請登入以檢視 {{statusPageName}}",
+      "signInPrompt": "請登入以檢視 {{statusPageName}}。",
       "noProviders": "未設定或啟用 SSO 提供者",
       "notAvailable": "此狀態頁不支援單一登入（SSO）。請改用您的電子郵件與密碼登入。",
-      "backToLogin": "返回登入",
-      "logInWithPassword": "使用密碼登入"
+      "backToSignIn": "返回登入",
+      "signInWithPassword": "使用密碼登入"
     },
     "forgotPassword": {
       "title": "忘記密碼",
@@ -339,7 +338,7 @@
       "knowPassword": "知道您的密碼？",
       "successTitle": "您的密碼已重設",
       "successDescription": "請使用新密碼登入。",
-      "loginButton": "登入",
+      "signInButton": "登入",
       "linkExpiredTitle": "此重設連結已過期",
       "linkExpiredDescription": "重設連結的有效期為一天。請申請新連結，我們會以電子郵件寄給您。",
       "linkInvalidTitle": "此重設連結已失效",

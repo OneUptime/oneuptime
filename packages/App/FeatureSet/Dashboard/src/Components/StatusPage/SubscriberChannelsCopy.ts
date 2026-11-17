@@ -9,7 +9,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * It used to be spread out. The five channel switches were five one-switch
  * cards on Subscriber Settings and again a three-step 'Subscriber Settings'
- * card on Advanced Settings, which was also the only home of Show Subscriber
+ * card on Settings, which was also the only home of Show Subscriber
  * Page. Four of the five channels start off, so on every new status page
  * four of the five subscriber lists opened with a red "not enabled" banner
  * pointing somewhere else. A channel's list now carries the channel's own

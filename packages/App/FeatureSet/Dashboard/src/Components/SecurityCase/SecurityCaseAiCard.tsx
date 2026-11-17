@@ -108,13 +108,6 @@ import React, {
 
 export const SECURITY_CASE_AI_CARD_ID: string = "security-case-ai-card";
 
-/*
- * Every button in the card sits on the content's left edge and keeps its
- * row's gap: Button carries md:ml-3 for dialog footers, which pushed the
- * first button of each row 12px in from the text above it.
- */
-const CARD_BUTTON_CLASS_NAME: string = "!ml-0";
-
 // How often the card asks while a triage is on its way.
 export const SECURITY_CASE_AI_POLL_INTERVAL_MS: number = 3000;
 // The latest steps the card lists while a triage runs.
@@ -489,7 +482,6 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         buttonSize={isPrimary ? ButtonSize.Normal : ButtonSize.Small}
         isLoading={isStarting}
         disabled={!canStart || isStarting}
-        className={CARD_BUTTON_CLASS_NAME}
         tooltip={
           triageAccess === SecurityCaseAiTriageAccess.No
             ? updateGate.disabledReason
@@ -699,7 +691,6 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                   title={SecurityCaseAiCopy.setPriorityButton}
                   buttonStyle={ButtonStyleType.NORMAL}
                   buttonSize={ButtonSize.Small}
-                  className={CARD_BUTTON_CLASS_NAME}
                   disabled={props.isWorking}
                   onClick={() => {
                     props.onSetPriority(suggestedPriority);
@@ -752,7 +743,6 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Play}
                   buttonStyle={ButtonStyleType.NORMAL}
                   buttonSize={ButtonSize.Small}
-                  className={CARD_BUTTON_CLASS_NAME}
                   disabled={props.isWorking}
                   onClick={() => {
                     props.onRunPlaybook(
@@ -879,7 +869,6 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
               icon={IconProp.ChatBubbleLeftRight}
               buttonStyle={ButtonStyleType.NORMAL}
               buttonSize={ButtonSize.Small}
-              className={CARD_BUTTON_CLASS_NAME}
               onClick={askAboutCase}
               dataTestId="security-case-ai-ask"
             />

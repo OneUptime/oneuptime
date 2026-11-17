@@ -595,7 +595,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                   <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
                     {formatShiftDuration(shift.start, shift.end)}
                   </span>
-                  <span className="text-[11px] font-medium text-gray-400">
+                  <span className="text-[11px] font-medium text-gray-500">
                     {formatRelativeStart(shift.start, props.now)}
                   </span>
                 </div>

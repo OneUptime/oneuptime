@@ -37,7 +37,6 @@
     "announcements": "Kunngjøringer",
     "scheduledEvents": "Planlagt vedlikehold",
     "subscribe": "Abonner",
-    "login": "Logg inn",
     "logout": "Logg ut"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Passord",
       "newPassword": "Nytt passord",
       "confirmPassword": "Bekreft passord",
-      "login": "Logg inn"
+      "signInLink": "Logg inn."
     },
     "login": {
       "welcomeBack": "Velkommen tilbake!",
-      "loginPrompt": "Vennligst logg inn for å se {{statusPageName}}",
+      "signInPrompt": "Vennligst logg inn for å se {{statusPageName}}.",
       "forgotPassword": "Glemt passord?",
       "submit": "Logg inn",
       "or": "eller",
-      "logInWithSso": "Logg inn med SSO",
+      "signInWithSso": "Logg inn med SSO",
       "emailSignInLink": "Send meg en innloggingslenke"
     },
     "sso": {
       "title": "Logg inn med SSO",
-      "loginPrompt": "Vennligst logg inn for å se {{statusPageName}}",
+      "signInPrompt": "Vennligst logg inn for å se {{statusPageName}}.",
       "noProviders": "Ingen SSO-leverandører er konfigurert eller aktivert",
       "notAvailable": "Single sign-on (SSO) er ikke tilgjengelig for denne statussiden. Logg inn med e-post og passord i stedet.",
-      "backToLogin": "Tilbake til innlogging",
-      "logInWithPassword": "Logg inn med passord"
+      "backToSignIn": "Tilbake til innlogging",
+      "signInWithPassword": "Logg inn med passord"
     },
     "forgotPassword": {
       "title": "Glemt passord",
@@ -339,7 +338,7 @@
       "knowPassword": "Kjenner du passordet ditt?",
       "successTitle": "Passordet ditt er tilbakestilt",
       "successDescription": "Logg inn med det nye passordet ditt.",
-      "loginButton": "Logg inn",
+      "signInButton": "Logg inn",
       "linkExpiredTitle": "Denne tilbakestillingslenken har utløpt",
       "linkExpiredDescription": "Tilbakestillingslenker virker i én dag. Be om en ny lenke, så sender vi den til deg på e-post.",
       "linkInvalidTitle": "Denne tilbakestillingslenken virker ikke lenger",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Skriv inn passordet for å se denne statussiden.",
-      "passwordRequired": "passord er påkrevd.",
+      "passwordRequired": "Passord er påkrevd.",
       "passwordLabel": "Passord",
       "submit": "Lås opp statusside"
     },

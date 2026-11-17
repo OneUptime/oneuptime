@@ -414,7 +414,7 @@ const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
           <span>{translator.translateText(copyButtonText(feedback))}</span>
         </button>
       </div>
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-gray-500">
         {explorerLabel
           ? translator.translateTemplate(
               "Paste into the {{explorer}} explorer search bar.",
@@ -459,18 +459,18 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
               data-testid="locked-filter-scope-match"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                   {translator.translateText(match.label)}
                 </span>
                 <span
-                  className="text-[10px] tabular-nums text-gray-400"
+                  className="text-xs tabular-nums text-gray-500"
                   data-testid="locked-filter-scope-match-count"
                 >
                   {match.values.length}
                 </span>
               </div>
               {match.description ? (
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-gray-500">
                   {translator.translateText(match.description)}
                 </p>
               ) : (
@@ -527,7 +527,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
         />
         {detail.searchToken ? (
           <div className="space-y-1 border-t border-gray-100 pt-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               {translator.translateText("Search syntax")}
             </div>
             <SearchSyntaxRow
@@ -547,7 +547,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
       className="w-80 max-w-full space-y-1 p-1 text-left text-xs"
       data-testid="locked-filter-tooltip"
     >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+      <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
         {translator.translateText("Search syntax")}
       </div>
       {detail.searchToken ? (
@@ -556,7 +556,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
           signal={props.signal}
         />
       ) : (
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-gray-500">
           {translator.translateText(
             detail.searchTokenUnavailableReason || NO_SEARCH_SYNTAX_REASON,
           )}

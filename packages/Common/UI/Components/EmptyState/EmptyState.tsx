@@ -8,6 +8,33 @@ import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * How much room an empty state takes, by where it sits. Each is a preset, so
+ * an empty card is as tall on one page as on the next, and no call site
+ * writes padding of its own.
+ *
+ * The default used to be 13rem above and 13rem below (416px), a whole page's
+ * worth, so in a card on a 390px phone the message began a quarter of the
+ * way down the screen; callers then overrode it with a dozen sizes of their
+ * own, and two cancelled it with negative margins (#9135).
+ */
+export enum EmptyStateSize {
+  // A short line in a panel, a step of a form, a list inside a card.
+  Inline = "inline",
+  // The body of a card or a list: the default.
+  Card = "card",
+  // A whole page with nothing else on it: not found, not set up, blocked.
+  Page = "page",
+}
+
+export const EMPTY_STATE_PADDING_CLASS_NAMES: Readonly<
+  Record<EmptyStateSize, string>
+> = {
+  [EmptyStateSize.Inline]: "px-4 py-8",
+  [EmptyStateSize.Card]: "px-4 py-12 sm:py-16",
+  [EmptyStateSize.Page]: "px-4 py-16 sm:py-24",
+};
+
 export interface ComponentProps {
   title: string | ReactElement;
   description: string | ReactElement;
@@ -21,13 +48,8 @@ export interface ComponentProps {
   id: string;
   iconClassName?: string;
   showSolidBackground?: boolean | undefined;
-  /*
-   * Vertical padding. The default is 13rem top and bottom, which suits a
-   * full-page dashboard empty state but swamps a short page. Override it
-   * rather than changing the default — several call sites cancel the 13rem
-   * with negative margins and would overlap their neighbours if it shrank.
-   */
-  paddingClassName?: string | undefined;
+  // Where the state sits (EmptyStateSize); a card's room by default.
+  size?: EmptyStateSize | undefined;
 }
 
 const EmptyState: FunctionComponent<ComponentProps> = (
@@ -35,11 +57,13 @@ const EmptyState: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
+  const size: EmptyStateSize = props.size || EmptyStateSize.Card;
   return (
     <React.Fragment>
       <div
         id={props.id}
-        className={`flex ${props.paddingClassName || "pt-52 pb-52"} ${
+        data-size={size}
+        className={`flex w-full ${EMPTY_STATE_PADDING_CLASS_NAMES[size]} ${
           props.showSolidBackground ? "bg-white rounded shadow" : ""
         }`}
       >

@@ -507,7 +507,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ? [
           <div
             key="scheduled-maintenance-calendar-actions"
-            className="flex min-w-0 max-w-full items-center gap-3 [&_button]:md:ml-0"
+            className="flex min-w-0 max-w-full items-center gap-3"
             data-testid="scheduled-maintenance-calendar-actions"
           >
             {calendarMainButton ? (

@@ -45,10 +45,8 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 | --- | --- |
 | **Erste Schritte** | **Einrichtungs-Checkliste**: was noch einzurichten ist, in der Reihenfolge, die zählt |
 | **Warnungen & Benachrichtigungen** | **Benachrichtigungsmethoden**, **Wie ich erreichbar bin**, **Benachrichtigungseinstellungen** und **E-Mail-Einstellungen**, wo Sie festlegen, wie viele E-Mails Ihre Neuigkeiten ergeben |
-| **Bereitschaftsprotokolle** | **Bereitschaftsprotokolle**: jeder Alarm an Sie in diesem Projekt, und was gesendet wurde |
-| **Richtlinie für eingehende Anrufe** | **Eingehende Telefonnummern**: die Nummer, unter der eine Richtlinie für eingehende Anrufe Sie anruft |
-| **Kalender** | **Kalender-Feed**: Ihre Schichten in Ihrer Kalender-App, und Erinnerungen, bevor sie beginnen |
-| **Profil** | **Benutzerdefinierte Felder**: Angaben, die Ihr Projekt von seinen Mitgliedern erfragt |
+| **Alarmierung und Anrufe** | **Bereitschaftsprotokolle**: jeder Alarm an Sie in diesem Projekt, und was gesendet wurde; **Eingehende Telefonnummern**: die Nummer, unter der eine Richtlinie für eingehende Anrufe Sie anruft |
+| **Profil und Kalender** | **Kalender-Feed**: Ihre Schichten in Ihrer Kalender-App, und Erinnerungen, bevor sie beginnen; **Benutzerdefinierte Felder**: Angaben, die Ihr Projekt von seinen Mitgliedern erfragt |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Ihr eigenes Konto, in jedem Arbeitsbereich, den das Projekt verbunden hat |
 
 **Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
@@ -112,7 +110,7 @@ Was sich ändert, sind die Worte von OneUptime: Betreffzeilen, Überschriften, S
 ## Fehlerbehebung
 
 :::details Ich hatte Bereitschaft, aber nichts hat mich erreicht
-Öffnen Sie **Benutzereinstellungen → Bereitschaftsprotokolle**. Keine Zeile für den Vorfall bedeutet, dass seine Bereitschaftsrichtlinie Sie nie alarmiert hat: Prüfen Sie ihre Eskalationsregeln und wer Bereitschaft hatte. Bei einer Zeile mit dem Status **Fehler** sagt **Statusmeldung anzeigen**, warum, etwa ein Kanal, den das Projekt ausgeschaltet hat. Prüfen Sie dann, ob Ihre Methoden verifiziert sind und ob **Ihre Einrichtungs-Checkliste** unter **Damit wir Sie erreichen können** nichts mehr offen hat.
+Öffnen Sie **Benutzereinstellungen → Alarmierung und Anrufe → Bereitschaftsprotokolle**. Keine Zeile für den Vorfall bedeutet, dass seine Bereitschaftsrichtlinie Sie nie alarmiert hat: Prüfen Sie ihre Eskalationsregeln und wer Bereitschaft hatte. Bei einer Zeile mit dem Status **Fehler** sagt **Statusmeldung anzeigen**, warum, etwa ein Kanal, den das Projekt ausgeschaltet hat. Prüfen Sie dann, ob Ihre Methoden verifiziert sind und ob **Ihre Einrichtungs-Checkliste** unter **Damit wir Sie erreichen können** nichts mehr offen hat.
 :::
 
 :::details Ich bekomme E-Mails zu Datensätzen, nach denen ich nie gefragt habe

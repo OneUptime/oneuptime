@@ -59,12 +59,12 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 | **Instrumentpanel** | Själva instrumentpanelen. Läs den, eller redigera den från dess **⋯**-meny. |
 | **Översikt** | Dess namn, beskrivning och etiketter. |
 | **Delning** | Vem som kan se den, dess offentliga länk och en IP-tillåtelselista under Fler inställningar. |
-| **Ägare** | Användarna och teamen som äger den. |
 | **Varumärke** | Sidtitel, beskrivning, logotyp, tema och favicon för den offentliga instrumentpanelen. |
 | **Anpassade domäner** | Lägg den offentliga instrumentpanelen på din egen domän. |
 | **Inställningar** | Duplicera, exportera eller arkivera instrumentpanelen. |
+| **Ägare** | Användarna och teamen som äger den. |
 | **Granskningsloggar** | Varje ändring som gjorts på instrumentpanelen, och vem som gjorde den. |
-| **Ta bort** | Ta bort instrumentpanelen för gott. |
+| **Ta bort instrumentpanel** | Ta bort instrumentpanelen för gott. |
 
 ## Bygg din första instrumentpanel
 
