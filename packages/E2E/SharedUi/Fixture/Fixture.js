@@ -109,6 +109,7 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationBell";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
@@ -1261,9 +1262,39 @@ const ATTRIBUTE_FILTERS = [
   { key: "attributes", title: "Attributes", type: FieldType.JSON },
 ];
 
+/*
+ * A stepped edit dialog whose steps are all filled in, as Admin Dashboard >
+ * Settings > Email > Edit SMTP Config is: Next on the first step, the save
+ * on the last only, and the step list able to open any step (#9245).
+ */
+const MAIL_SERVER_STEPS = [
+  { id: "server", title: "Server" },
+  { id: "sender", title: "Sender" },
+];
+
+const MAIL_SERVER_FIELDS = [
+  {
+    field: { host: true },
+    title: "Hostname",
+    stepId: "server",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "smtp.server.com",
+  },
+  {
+    field: { fromName: true },
+    title: "From Name",
+    stepId: "sender",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "Company, Inc.",
+  },
+];
+
 function Keyboard() {
   const [log, setLog] = useState([]);
   const [stepId, setStepId] = useState("criteria");
+  const [isEditingMailServer, setIsEditingMailServer] = useState(false);
   const say = (line) => {
     setLog((lines) => {
       return [...lines, line];
@@ -1312,6 +1343,45 @@ function Keyboard() {
           }}
         />
       </Card>
+      <Card
+        title="Mail server"
+        description="A stepped edit dialog."
+        buttons={[
+          {
+            title: "Edit SMTP Config",
+            icon: IconProp.Edit,
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              setIsEditingMailServer(true);
+            },
+          },
+        ]}
+      >
+        <p className="text-sm text-gray-600">smtp.example.com</p>
+      </Card>
+      {isEditingMailServer ? (
+        <BasicFormModal
+          title="Edit SMTP Config"
+          submitButtonText="Save Changes"
+          onClose={() => {
+            setIsEditingMailServer(false);
+          }}
+          onSubmit={(values) => {
+            say(`saved:${values.host}|${values.fromName}`);
+            setIsEditingMailServer(false);
+          }}
+          formProps={{
+            id: "edit-mail-server",
+            steps: MAIL_SERVER_STEPS,
+            allowAnyStepNavigation: true,
+            initialValues: {
+              host: "smtp.example.com",
+              fromName: "Example Status",
+            },
+            fields: MAIL_SERVER_FIELDS,
+          }}
+        />
+      ) : null}
       <Card title="Logs" description="Attribute filter chips.">
         <FilterViewer
           id="logs"

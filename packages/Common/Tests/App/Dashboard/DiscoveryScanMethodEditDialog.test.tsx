@@ -177,6 +177,7 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -284,7 +285,7 @@ async function openLastStep(): Promise<void> {
   );
 
   await act(async (): Promise<void> => {
-    fireEvent.click(steps[steps.length - 1]!);
+    fireEvent.click(formStepButton(steps[steps.length - 1]!));
   });
   await settle();
 }

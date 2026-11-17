@@ -240,6 +240,7 @@ import {
   listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 type Page = FunctionComponent<PageComponentProps>;
 
@@ -1056,7 +1057,7 @@ describe("Metrics > Settings > Pipeline Rules", () => {
         within(steps).getAllByRole("listitem");
 
       await act(async (): Promise<void> => {
-        fireEvent.click(stepItems[stepItems.length - 1]!);
+        fireEvent.click(formStepButton(stepItems[stepItems.length - 1]!));
       });
       await within(dialog()).findByTestId(
         `card-select-option-${MetricPipelineRuleType.Drop}`,

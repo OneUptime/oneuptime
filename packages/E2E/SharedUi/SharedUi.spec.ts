@@ -2671,6 +2671,220 @@ test.describe("on a 390px touch phone", () => {
 });
 
 /*
+ * #9245: a stepped edit dialog (Admin Dashboard > Settings > Email > Edit
+ * SMTP Config is one) offers Next on its first step and its save on the
+ * last, and its step list opens any step. The steps became buttons in
+ * #9231; this walks the real BasicFormModal by pointer, by finger and by
+ * keyboard so a dialog that loses its Next, its steps or its save fails.
+ */
+async function openMailServerDialog(page: Page): Promise<Locator> {
+  await openKeyboard(page);
+  await page.getByRole("button", { name: "Edit SMTP Config" }).click();
+
+  const dialog: Locator = page.getByRole("dialog");
+
+  await expect(dialog.getByPlaceholder("smtp.server.com")).toHaveValue(
+    "smtp.example.com",
+  );
+
+  return dialog;
+}
+
+function nextButtonOf(dialog: Locator): Locator {
+  return dialog.getByTestId("modal-footer-next-button");
+}
+
+function saveButtonOf(dialog: Locator): Locator {
+  return dialog.getByTestId("modal-footer-submit-button");
+}
+
+// The control is whole on the screen: not under the fold or off its side.
+async function expectOnScreen(page: Page, control: Locator): Promise<void> {
+  await control.scrollIntoViewIfNeeded();
+
+  const box: { x: number; y: number; width: number; height: number } | null =
+    await control.boundingBox();
+  const viewport: { width: number; height: number } | null =
+    page.viewportSize();
+
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
+}
+
+test.describe("a stepped dialog's Next, steps and save, at 1280 pixels", () => {
+  test("the pointer: Next, a step's row anywhere on it, and Save Changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+    const progress: Locator = dialog.getByRole("navigation", {
+      name: "Progress",
+    });
+
+    await expect(saveButtonOf(dialog)).toHaveCount(0);
+    await expectOnScreen(page, nextButtonOf(dialog));
+    await nextButtonOf(dialog).click();
+
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toHaveValue(
+      "Example Status",
+    );
+    await expect(nextButtonOf(dialog)).toHaveCount(0);
+    await expectOnScreen(page, saveButtonOf(dialog));
+
+    /*
+     * Back to Server by a click near the far corner of its row, not its
+     * words: the button fills the row, so no part of it is dead.
+     */
+    const serverRow: Locator = progress
+      .getByRole("listitem")
+      .filter({ hasText: "Server" });
+    const row: { x: number; y: number; width: number; height: number } | null =
+      await serverRow.boundingBox();
+
+    expect(row).not.toBeNull();
+
+    // Each corner of the row is the button's, the far end too (#9245).
+    expect(
+      await serverRow.evaluate((item: Element): Array<boolean> => {
+        const box: DOMRect = item.getBoundingClientRect();
+        const button: Element | null = item.querySelector("button");
+
+        return [
+          [box.left + 1, box.top + 1],
+          [box.right - 1, box.top + 1],
+          [box.left + 1, box.bottom - 1],
+          [box.right - 1, box.bottom - 1],
+        ].map(([x, y]: Array<number>): boolean => {
+          const hit: Element | null = document.elementFromPoint(x!, y!);
+
+          return Boolean(button && hit && button.contains(hit));
+        });
+      }),
+    ).toEqual([true, true, true, true]);
+
+    await page.mouse.click(row!.x + row!.width - 2, row!.y + row!.height - 2);
+    await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+    await expect(saveButtonOf(dialog)).toHaveCount(0);
+
+    // The step list opens the last step directly; Save Changes is there.
+    await progress.getByRole("button", { name: "Sender" }).click();
+    await expectOnScreen(page, saveButtonOf(dialog));
+    await expect(saveButtonOf(dialog)).toHaveText("Save Changes");
+    await saveButtonOf(dialog).click();
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("the keyboard: Tab reaches Next, a step and Save Changes, Enter and Space press them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+    const progress: Locator = dialog.getByRole("navigation", {
+      name: "Progress",
+    });
+
+    await tabTo(page, nextButtonOf(dialog));
+    expect(await focusRingOf(nextButtonOf(dialog))).not.toBe("none");
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    const server: Locator = progress.getByRole("button", { name: "Server" });
+
+    await tabTo(page, server);
+    expect(await focusRingOf(server)).not.toBe("none");
+    await page.keyboard.press("Space");
+    await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+
+    const sender: Locator = progress.getByRole("button", { name: "Sender" });
+
+    await tabTo(page, sender);
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    await tabTo(page, saveButtonOf(dialog));
+    expect(await focusRingOf(saveButtonOf(dialog))).not.toBe("none");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+  });
+});
+
+test.describe("a stepped dialog's Next and save, on a 390px touch phone", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`a finger: Next, then Save Changes, both on the screen, ${theme}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+      await page.getByRole("button", { name: "Edit SMTP Config" }).tap();
+
+      const dialog: Locator = page.getByRole("dialog");
+
+      await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+      // The step list is folded away on a phone: a count says where you are.
+      await expect(dialog.getByText("Step 1 of 2")).toBeVisible();
+      await expect(saveButtonOf(dialog)).toHaveCount(0);
+
+      await expectOnScreen(page, nextButtonOf(dialog));
+      await screenshot(page, `stepped-dialog-390-first-step-${theme}`, {
+        fullPage: false,
+      });
+      await nextButtonOf(dialog).tap();
+
+      await expect(dialog.getByText("Step 2 of 2")).toBeVisible();
+      await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+      await expectOnScreen(page, saveButtonOf(dialog));
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `stepped-dialog-390-last-step-${theme}`, {
+        fullPage: false,
+      });
+      await saveButtonOf(dialog).tap();
+
+      await expect(page.getByTestId("keyboard-log")).toHaveText(
+        "saved:smtp.example.com|Example Status",
+      );
+    });
+  }
+
+  test("the keyboard: Next and Save Changes are reached with Tab and pressed with Enter", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+
+    await tabTo(page, nextButtonOf(dialog));
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    await tabTo(page, saveButtonOf(dialog));
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+  });
+});
+
+/*
  * Empty and loading states (#9135). An empty card's message used to start
  * 208px under the card's title (EmptyState's 13rem), a quarter of a phone's
  * screen; a card loading drew a bar 208px down (PageLoader) or between 4rem

@@ -131,6 +131,7 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 /*
  * Reads the page makes that these tests leave unanswered: refused at
@@ -528,7 +529,7 @@ async function readHostSettingsDialog(
   ).getAllByRole("listitem");
 
   await act(async () => {
-    fireEvent.click(steps[steps.length - 1]!);
+    fireEvent.click(formStepButton(steps[steps.length - 1]!));
   });
   await settle();
 
