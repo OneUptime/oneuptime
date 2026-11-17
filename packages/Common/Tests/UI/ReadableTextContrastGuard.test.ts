@@ -1,11 +1,15 @@
 // UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { listScanRoots } from "../ForeignHiddenRuleGuard";
 import {
   FaintText,
-  FaintTextKind,
+  REPOSITORY_ROOT,
   findFaintText,
   scanDirectories,
 } from "../Helpers/FaintTextScan";
+import STILL_TO_FIX from "./ReadableTextStillToFix";
 import {
   DARK_SURFACES,
   LIGHT_SURFACES,
@@ -28,39 +32,48 @@ import {
  * So text a person reads is gray-500 or darker: gray-500 is 4.8:1 on white
  * (held below), and the dark theme paints gray-400 and gray-500 the same
  * slate (Theme.css), so the move changes nothing there. Body text reads
- * better at gray-600. And it is at least 11px: text-[10px] and smaller are
- * flagged.
+ * better at gray-600.
+ *
+ * And it is text-xs (12px) or larger (#9192). text-[10px] and smaller are
+ * flagged everywhere. 11px (text-[11px]) is kept for a short label that
+ * its shape makes legible: an eyebrow in capitals ("uppercase": "RECENT",
+ * "LAST 24 HOURS"), or a chip, a badge or a key that frames its word
+ * (rounded, on a ground or in a border of its own; a kbd). Those still meet
+ * 4.5:1, since their colour is held like any other. A hint, a value, a
+ * timestamp or a sentence at 11px is flagged: write text-xs.
  *
  * The scan (Tests/Helpers/FaintTextScan) reads every element whose className
- * names a resting text-gray-300/400 (or slate's), or text-[10px] and under,
- * and that holds words or a value. It leaves alone what nobody reads as
- * words: an icon (an Icon, an svg), an aria-hidden or sr-only element, a
- * lone separator or the quiet dash ("/", "·", "—"), an element on a dark
- * ground of its own (bg-gray-700 and darker), and a variant (hover:,
- * placeholder:, dark:). gray-400 stays right for those.
+ * names a resting text-gray-300/400 (or slate's), or a size under 12px, and
+ * that holds words or a value. It follows a class held in a const of the
+ * same file (className={FACET_COUNT_COLUMN_CLASS}). It leaves alone what
+ * nobody reads as words: an icon (an Icon, an svg), an aria-hidden or
+ * sr-only element, a lone separator, ellipsis or the quiet dash ("/", "·",
+ * "…", "—"), an element on a dark ground of its own (bg-gray-700 and
+ * darker), and a variant (hover:, placeholder:, dark:). gray-400 stays right
+ * for those.
  *
  * To fix one: write text-gray-500 (text-gray-600 for body text), and
- * text-xs for a tiny size. A use that truly is not read as words (a
+ * text-xs for a small size. A use that truly is not read as words (a
  * placeholder drawn by hand, a disabled row) goes in NOT_READ_AS_WORDS below
- * with why. The scan covers Common's components and the Dashboard's Logs,
- * Traces, Exceptions and On-Call screens; more of the Dashboard joins as it
- * is fixed.
+ * with why.
+ *
+ * The shared UI (Common/UI) holds none. The apps hold no more than
+ * STILL_TO_FIX (ReadableTextStillToFix.ts) allows a file, a count that may
+ * only fall: lower it, or take the file off, as you fix them.
  */
 
-const SCANNED_DIRECTORIES: ReadonlyArray<string> = [
-  "packages/Common/UI/Components",
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions",
-  "packages/App/FeatureSet/Dashboard/src/Components/Logs",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallDutySchedule",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallRule",
-  "packages/App/FeatureSet/Dashboard/src/Components/Span",
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Exceptions",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Logs",
-  "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Traces",
-];
+/*
+ * Every frontend is read: each feature set's browser source, the shared UI
+ * and the Enterprise screens when ee/ is there.
+ */
+const SCANNED_DIRECTORIES: ReadonlyArray<string> = listScanRoots(
+  REPOSITORY_ROOT,
+).map((directory: string): string => {
+  return path.relative(REPOSITORY_ROOT, directory).split(path.sep).join("/");
+});
+
+// Held to none: the shared UI every app draws with.
+const SHARED_UI: string = "packages/Common/UI/";
 
 interface NotReadAsWords {
   file: string;
@@ -194,7 +207,55 @@ describe("the scan finds faint and tiny text", () => {
     expect(scan(`<span className="text-[9px]">{count}</span>`)).toEqual([
       "tiny-size text-[9px]",
     ]);
-    expect(scan(`<span className="text-[11px]">{count}</span>`)).toEqual([]);
+    expect(scan(`<span className="text-[10.5px]">{count}</span>`)).toEqual([
+      "tiny-size text-[10.5px]",
+    ]);
+  });
+
+  test("11px for a hint, a value or a sentence", () => {
+    expect(
+      scan(`<p className="text-[11px] text-gray-500">No values found.</p>`),
+    ).toEqual(["small-size text-[11px]"]);
+    expect(
+      scan(`<span className="font-mono text-[11px]">{timestamp}</span>`),
+    ).toEqual(["small-size text-[11px]"]);
+    // A hover ground is not a chip's: at rest it is bare words.
+    expect(
+      scan(
+        `<button className="rounded px-1.5 text-[11px] hover:bg-gray-100">Clear all</button>`,
+      ),
+    ).toEqual(["small-size text-[11px]"]);
+  });
+
+  test("a class held in a const of the file", () => {
+    expect(
+      scan(
+        `const COUNT_CLASS: string = "w-7 font-mono text-[10px]"; <span className={COUNT_CLASS}>{count}</span>`,
+      ),
+    ).toEqual(["tiny-size text-[10px]"]);
+    expect(
+      scan(
+        `const BASE = "truncate text-gray-400"; <span className={\`\${BASE} \${extra}\`}>{label}</span>`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+    expect(
+      scan(
+        `function Row() { const tone = on ? "text-gray-900" : "text-gray-400"; return <span className={tone}>{label}</span>; }`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+    expect(
+      scan(
+        `const STYLES = { label: "text-xs text-gray-400" } as const; <span className={STYLES.label}>{label}</span>`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+  });
+
+  test("the nearest const of a name, as the language reads it", () => {
+    expect(
+      scan(
+        `const tone = "text-gray-400"; function Row() { const tone = "text-gray-700"; return <span className={tone}>{label}</span>; }`,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -261,36 +322,89 @@ describe("the scan leaves alone what nobody reads as words", () => {
   });
 });
 
-describe("text people read is readable (#9127)", () => {
-  const found: Array<FaintText> = scanDirectories(SCANNED_DIRECTORIES);
+describe("text people read is readable (#9127, #9192)", () => {
+  const everything: Array<FaintText> = scanDirectories(SCANNED_DIRECTORIES);
 
-  test("the scan reads the shared components", () => {
+  const found: Array<FaintText> = everything.filter(
+    (text: FaintText): boolean => {
+      return !isNotReadAsWords(text);
+    },
+  );
+
+  function countsByFile(): Map<string, number> {
+    const counts: Map<string, number> = new Map<string, number>();
+
+    for (const text of found) {
+      counts.set(text.file, (counts.get(text.file) || 0) + 1);
+    }
+
+    return counts;
+  }
+
+  test("the scan reads the shared UI and every app", () => {
+    for (const directory of [
+      "packages/Common/UI",
+      "packages/App/FeatureSet/Dashboard/src",
+      "packages/App/FeatureSet/StatusPage/src",
+      "packages/App/FeatureSet/AdminDashboard/src",
+      "packages/App/FeatureSet/Accounts/src",
+    ]) {
+      expect(SCANNED_DIRECTORIES).toContain(directory);
+    }
+
     // A path or a parser that went wrong would pass by finding nothing.
     expect(
-      found.filter((text: FaintText): boolean => {
-        return text.file.startsWith("packages/Common/UI/Components/");
-      }).length,
-    ).toBeGreaterThan(0);
+      everything.some((text: FaintText): boolean => {
+        return text.file.startsWith(SHARED_UI);
+      }),
+    ).toBe(true);
   });
 
-  test("no gray-300 or gray-400 text that is read as words", () => {
-    const faint: Array<string> = found
-      .filter((text: FaintText): boolean => {
-        return text.kind === FaintTextKind.FaintGray && !isNotReadAsWords(text);
-      })
-      .map(describeFinding);
+  test("the shared UI draws no faint or small text that is read as words", () => {
+    expect(
+      found
+        .filter((text: FaintText): boolean => {
+          return text.file.startsWith(SHARED_UI);
+        })
+        .map(describeFinding),
+    ).toEqual([]);
 
-    expect(faint).toEqual([]);
+    for (const file of Object.keys(STILL_TO_FIX)) {
+      expect(file.startsWith(SHARED_UI)).toBe(false);
+    }
   });
 
-  test("no text smaller than 11px", () => {
-    const tiny: Array<string> = found
-      .filter((text: FaintText): boolean => {
-        return text.kind === FaintTextKind.TinySize;
-      })
-      .map(describeFinding);
+  test("the apps hold no more faint or small text than they did", () => {
+    const counts: Map<string, number> = countsByFile();
+    const over: Array<string> = [];
 
-    expect(tiny).toEqual([]);
+    for (const [file, count] of counts) {
+      if (count > (STILL_TO_FIX[file] || 0)) {
+        over.push(
+          ...found
+            .filter((text: FaintText): boolean => {
+              return text.file === file;
+            })
+            .map(describeFinding),
+        );
+      }
+    }
+
+    expect(over).toEqual([]);
+  });
+
+  test("a count that fell is lowered, so it cannot climb back", () => {
+    const counts: Map<string, number> = countsByFile();
+
+    for (const [file, allowed] of Object.entries(STILL_TO_FIX)) {
+      // The Enterprise screens are not in every copy of the repository.
+      if (!fs.existsSync(path.join(REPOSITORY_ROOT, file))) {
+        expect(file.startsWith("ee/")).toBe(true);
+        continue;
+      }
+
+      expect(`${file}: ${counts.get(file) || 0}`).toBe(`${file}: ${allowed}`);
+    }
   });
 
   test.each(
@@ -301,7 +415,7 @@ describe("text people read is readable (#9127)", () => {
     "each exception still matches a use: %s",
     (_file: string, entry: NotReadAsWords) => {
       expect(
-        found.some((text: FaintText): boolean => {
+        everything.some((text: FaintText): boolean => {
           return text.file === entry.file && text.literal === entry.literal;
         }),
       ).toBe(true);
