@@ -36,7 +36,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- **आते हुए मेट्रिक्स।** उन्हें [OpenTelemetry](/docs/telemetry/open-telemetry) से भेजें, या किसी एजेंट से, जैसे [होस्ट OpenTelemetry Collector](/docs/telemetry/host-otel-collector) या [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent)।
+- **आते हुए मेट्रिक्स।** उन्हें [OpenTelemetry](/docs/telemetry/open-telemetry) से भेजें, या किसी एजेंट से, जैसे [होस्ट OpenTelemetry Collector](/docs/telemetry/host-otel-collector) या [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent)। पहला डेटा आने तक यह पृष्ठ **गाइडेड सेटअप** दिखाता है, जो आपको आपके पहले लॉग, मेट्रिक्स और ट्रेस से लेकर उन पर अलर्ट तक ले जाता है, और उसके बगल में **अपने पहले मेट्रिक्स भेजें**, जो सिर्फ़ सेटअप गाइड खोलता है।
 - **टेलीमेट्री पढ़ सकने वाली भूमिका।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, दर्शक, टेलीमेट्री एडमिन, टेलीमेट्री सदस्य या टेलीमेट्री दर्शक, या Read Metrics अनुमति वाली कस्टम भूमिका। वह कौन-से मेट्रिक्स पढ़ती है, इसके लिए देखें [टेलीमेट्री](/docs/permissions/index#टेलीमेट्री)।
 
 ## मेट्रिक ढूँढना

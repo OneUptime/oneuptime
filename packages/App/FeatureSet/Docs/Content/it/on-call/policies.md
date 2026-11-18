@@ -22,6 +22,8 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 
 Il modulo chiede anche **Attivarla per ogni nuovo incidente e ogni nuovo avviso** a chi può aggiungere regole di reperibilità. Aggiunge una regola in **Incidenti → Regole → Regole di reperibilità** e una in **Avvisi → Regole → Regole di reperibilità**, che corrispondono a tutto ed eseguono questa policy. È attivo all'inizio per la prima policy di un progetto, finché il progetto non ha né una policy di reperibilità né una regola di reperibilità, e disattivato per le successive: attivare due policy per ogni nuovo incidente e ogni nuovo avviso è una scelta da fare. Se resta disattivato, la policy non chiama nessuno finché una regola, un monitor o una persona non la esegue.
 
+![La spiegazione dell'elenco «Policy di reperibilità» vuoto, con «Configurazione guidata» evidenziato](screen:on-call-policies-guided-setup)
+
 Per farvi guidare passo dopo passo, dal telefono fino a una chiamata di prova, fate clic su **Configurazione guidata**: nell'elenco vuoto **Policy di reperibilità** o in **Come funziona**. Vedi [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
 L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.

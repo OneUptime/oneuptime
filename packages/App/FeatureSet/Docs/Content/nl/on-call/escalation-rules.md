@@ -62,6 +62,8 @@ Klik onder **Op de hoogte stellen** op **Ontvanger toevoegen**, zoek en kies zov
 
 **Escaleren na (in minuten)** is hoe lang er op een bevestiging wordt gewacht voordat het volgende niveau wordt opgeroepen. Het begint op **30 minuten**; pas het aan wat bij het niveau past.
 
+![Het dialoogvenster "Escalatieregel toevoegen" van een beleid met één niveau, met "Opgeroepen na (in minuten)" omcirkeld](screen:escalation-rule-paged-after)
+
 Een regel die na de eerste wordt toegevoegd, vraagt in plaats daarvan **Opgeroepen na (in minuten)**: hoe lang het niveau ervoor op een bevestiging wacht voordat dit niveau wordt opgeroepen. Het begint op de wachttijd van dat niveau en wordt als die wachttijd opgeslagen; het nieuwe niveau wacht zelf 30 minuten totdat u er een na toevoegt. Wie regels mag toevoegen maar niet wijzigen, krijgt **Escaleren na (in minuten)**, en het dialoogvenster zegt wanneer het nieuwe niveau wordt opgeroepen.
 
 ### Geef de regel een naam, als u wilt

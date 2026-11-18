@@ -517,6 +517,59 @@
     "width": 768,
     "height": 702
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Astreinte",
+      "La bonne personne est prévenue, à chaque fois",
+      "1",
+      "Créer une politique d'astreinte",
+      "2",
+      "Ajouter des plannings ou des personnes à chaque règle d'escalade",
+      "3",
+      "La relier aux moniteurs, incidents et alertes",
+      "Configuration guidée",
+      "Créer une politique d'astreinte",
+      "Guide pas à pas",
+      "Documentation"
+    ],
+    "outline": [
+      "heading: La bonne personne est prévenue, à chaque fois",
+      "button: Configuration guidée",
+      "button: Créer une politique d'astreinte",
+      "link: Guide pas à pas",
+      "link: Documentation"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Ajouter une règle d'escalade",
+      "Ajoute le niveau 2 de cette politique : qui est alerté, et quand.",
+      "Notifier",
+      "Les plannings d'astreinte alertent la personne d'astreinte ; Suivant dans la rotation alerte la personne d'après. Les équipes alertent chaque membre.",
+      "Ajouter un intervenant",
+      "Cette règle dit qui est appelé. La façon dont chaque personne est jointe, par quelle méthode et après combien de temps, relève de sa propre page Comment me joindre.",
+      "Appelé après (en minutes)",
+      "Combien de temps Level 1 attend une prise en compte avant que ce niveau soit appelé. Enregistré comme délai de Level 1.",
+      "Plus de champs· Nom, Description",
+      "Annuler",
+      "Créer une règle",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Ajouter une règle d'escalade",
+      "button: Fermer",
+      "button: Ajouter un intervenant",
+      "link: Comment me joindre",
+      "field number: 30",
+      "button: Plus de champs· Nom, Description",
+      "button: Annuler",
+      "button: Créer une règle"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Clés d'ingestion",
@@ -554,18 +607,13 @@
       "Éléments 1-4 sur 4",
       "Lignes par page",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Rechercher : clés d'ingestion par nom, description…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Clés d'ingestion",
@@ -591,13 +639,13 @@
       "field checkbox: Sélectionner Clé d'ingestion : Marketing site",
       "button: Voir : Clé d'ingestion",
       "button: Plus d'actions pour Clé d'ingestion : Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Aller à la page précédente",
       "button: Page 1",
       "button: Aller à la page suivante"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

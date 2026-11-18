@@ -36,7 +36,7 @@ El explorador tiene seis pestañas:
 
 ## Antes de empezar
 
-- **Métricas que llegan.** Envíelas con [OpenTelemetry](/docs/telemetry/open-telemetry), o desde un agente como el [colector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) o el [agente de Kubernetes](/docs/telemetry/kubernetes-agent).
+- **Métricas que llegan.** Envíelas con [OpenTelemetry](/docs/telemetry/open-telemetry), o desde un agente como el [colector de OpenTelemetry para hosts](/docs/telemetry/host-otel-collector) o el [agente de Kubernetes](/docs/telemetry/kubernetes-agent). Hasta que llegan los primeros datos, esta página ofrece **Configuración guiada**, que te lleva desde tus primeros registros, métricas y trazas hasta las alertas sobre ellos, junto a **Enviar tus primeras métricas**, la guía de configuración sola.
 - **Un rol que pueda leer telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Metrics. Consulte [Telemetría](/docs/permissions/index#telemetría) para saber qué métricas lee.
 
 ## Encontrar una métrica

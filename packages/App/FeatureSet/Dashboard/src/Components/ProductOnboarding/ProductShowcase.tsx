@@ -63,7 +63,8 @@ export function getUnlockedButton(
 
 /*
  * The product's guided setup as the explanation's button (#7148): for
- * whoever may create what the setup makes, as Create is offered. It opens
+ * whoever may create what the setup makes - every record of it
+ * (ProductGuidedSetup.alsoCreates, #7142) - as Create is offered. It opens
  * the setup's page, saying where it was opened from (`from`: the empty
  * list or How it works, sent with guided_setup/started, #7054);
  * `beforeOpen` closes what it is drawn in (a dialog).
@@ -77,7 +78,12 @@ export function getProductGuidedSetupButton(data: {
 
   if (
     !setup ||
-    !PermissionGate.check(new setup.modelType(), ModelAction.Create).isAllowed
+    ![setup.modelType, ...(setup.alsoCreates || [])].every(
+      (modelType: { new (): BaseModel }): boolean => {
+        return PermissionGate.check(new modelType(), ModelAction.Create)
+          .isAllowed;
+      },
+    )
   ) {
     return undefined;
   }

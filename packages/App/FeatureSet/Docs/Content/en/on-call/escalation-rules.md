@@ -62,6 +62,8 @@ Under **Notify**, click **Add responder**, search, and pick as many on-call sche
 
 **Escalate after (in minutes)** is how long to wait for an acknowledgement before the next level is paged. It starts at **30 minutes**; change it to whatever suits the level.
 
+![The "Add Escalation Rule" dialog on a policy with one level, with "Paged after (in minutes)" ringed](screen:escalation-rule-paged-after)
+
 A rule added after the first asks **Paged after (in minutes)** instead: how long the level before it waits for an acknowledgement before this one is paged. It starts at that level's wait and is saved as it; the new level itself waits 30 minutes until you add one after it. Someone who may add rules but not change them is asked **Escalate after (in minutes)**, and the dialog says when the new level is paged.
 
 ### Name the rule, if you want to

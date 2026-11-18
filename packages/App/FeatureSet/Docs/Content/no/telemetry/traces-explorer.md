@@ -36,7 +36,7 @@ Utforskeren har fem faner:
 
 ## Før du begynner
 
-- **Spor som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt.
+- **Spor som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt. Til de første dataene kommer, tilbyr denne siden **Veiledet oppsett**, som tar deg fra de første loggene, målingene og sporene dine til varsler på dem, ved siden av **Send de første sporene dine**, oppsettsguiden alene.
 - **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Traces. Omfanget avgjør hvem sine spans du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Finn en forespørsel

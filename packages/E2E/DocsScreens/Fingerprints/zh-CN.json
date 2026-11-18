@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "值班",
+      "每次都能通知到对的人",
+      "1",
+      "创建值班策略",
+      "2",
+      "为每条升级规则添加排班或人员",
+      "3",
+      "将其关联到监视器、事件和警报",
+      "引导式设置",
+      "创建值班策略",
+      "分步指南",
+      "文档"
+    ],
+    "outline": [
+      "heading: 每次都能通知到对的人",
+      "button: 引导式设置",
+      "button: 创建值班策略",
+      "link: 分步指南",
+      "link: 文档"
+    ],
+    "width": 417,
+    "height": 292
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "添加升级规则",
+      "添加此策略的级别 2：呼叫谁，以及何时呼叫。",
+      "通知",
+      "值班计划会通知当前值班的人；“轮换中的下一个人”会通知其后的人。团队会通知每位成员。",
+      "添加响应人",
+      "此规则决定呼叫谁。每个人通过哪种方式、在多久之后被联系，由其本人的 如何联系我 决定。",
+      "呼叫延迟（分钟）",
+      "在呼叫此级别之前，Level 1 等待确认的时间。保存为 Level 1 的等待时间。",
+      "更多字段· 名称、描述",
+      "取消",
+      "创建规则",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: 添加升级规则",
+      "button: 关闭",
+      "button: 添加响应人",
+      "link: 如何联系我",
+      "field number: 30",
+      "button: 更多字段· 名称、描述",
+      "button: 取消",
+      "button: 创建规则"
+    ],
+    "width": 512,
+    "height": 508
+  },
   "ingestion-keys": {
     "text": [
       "摄取密钥",
@@ -554,18 +607,13 @@
       "第 1-4 条，共 4 条",
       "每页行数",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 按名称、描述搜索摄取密钥…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 摄取密钥",
@@ -591,13 +639,13 @@
       "field checkbox: 选择 摄取密钥：Marketing site",
       "button: 查看摄取密钥",
       "button: 摄取密钥：Marketing site 的更多操作",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 转到上一页",
       "button: 第 1 页",
       "button: 转到下一页"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [
