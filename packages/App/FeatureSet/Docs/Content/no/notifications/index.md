@@ -87,7 +87,7 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 
 Så lenge et steg gjenstår, åpner **Brukerinnstillinger** på denne sjekklisten, og på **Varslingsmetoder** når ingenting vesentlig gjenstår. En lenke til en annen side i **Brukerinnstillinger** åpner fortsatt den siden.
 
-Når du står i en vaktpolicy og oppsettet ditt ikke er ferdig, viser bjellen øverst på hver side **Fullfør oppsettet av varslene dine**, og hvorfor: ingenting kan nå deg, en alvorlighetsgrad har ingen regel, eller prosjektet ditt ber om en telefonmetode du ikke har verifisert. Den åpner denne sjekklisten, eller **Slik når man meg** for telefonen. **Skjul i en uke** legger den bort i denne nettleseren, og den forsvinner av seg selv når oppsettet ditt er ferdig.
+Når du står i en vaktpolicy og oppsettet ditt ikke er ferdig, viser bjellen øverst på hver side **Fullfør oppsettet av varslingene dine**, og hvorfor: ingenting kan nå deg, en alvorlighetsgrad har ingen regel, eller prosjektet ditt ber om en telefonmetode du ikke har verifisert. Den åpner denne sjekklisten, eller **Slik når man meg** for telefonen. **Skjul i en uke** legger den bort i denne nettleseren, og den forsvinner av seg selv når oppsettet ditt er ferdig.
 
 ## Når ingen regel passer
 
