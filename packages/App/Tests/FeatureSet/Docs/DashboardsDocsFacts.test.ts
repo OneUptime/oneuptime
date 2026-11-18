@@ -1098,6 +1098,7 @@ describe("Authoring a Dashboard, against the product", () => {
 
     for (const control of [
       "Editing",
+      "Unsaved changes",
       "Add Widget",
       "Variables",
       "Cancel",
@@ -1146,16 +1147,37 @@ describe("Authoring a Dashboard, against the product", () => {
     expect(view).toContain("<LeaveWithoutSavingQuestion");
     expect(view).toContain("prompt={leavePrompt}");
     expect(question).toContain('title={"Leave without saving?"}');
-    expect(question).toContain('submitButtonText={"Discard Changes"}');
     expect(question).toContain('closeButtonText={"Keep Editing"}');
+    /*
+     * Save Changes, the board's own save, then on - only once it worked
+     * (issue #7402) - and Discard Changes beside it.
+     */
+    expect(question).toContain(
+      'submitButtonText={isSaving ? "Saving..." : "Save Changes"}',
+    );
+    expect(question).toContain('title="Discard Changes"');
+    expect(question).toContain(
+      "await props.prompt.saveAndLeave(onSaveChanges);",
+    );
+    expect(view).toContain("onSaveChanges={saveChanges}");
     expect(editAndSave).toContain(
       `A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open ${bold(
         "Leave without saving?",
-      )} with the same two choices: ${bold(
+      )} with three choices: ${bold(
+        "Save Changes",
+      )} saves the dashboard and then goes on to the page you were opening, ${bold(
         "Keep Editing",
       )} stays on the dashboard with your changes, and ${bold(
         "Discard Changes",
-      )} goes on to the page you were opening.`,
+      )} goes on without saving. If the save is refused, you stay on the dashboard, and the question says why.`,
+    );
+    // The toolbar says so while there is something to save (issue #7403).
+    expect(toolbar).toContain('text="Unsaved changes"');
+    expect(toolbar).toContain("props.hasUnsavedChanges ? (");
+    expect(editAndSave).toContain(
+      `Once you change something, the toolbar says ${bold(
+        "Unsaved changes",
+      )} where it said ${bold("Editing")}.`,
     );
     expect(editAndSave).toContain(
       "Closing or reloading the tab asks with your browser's own dialog.",

@@ -665,16 +665,23 @@ work out, starts from a default for everything else, and folds what most people 
   on: what failed, a value shown once, a run's report, details they opened. Enforced by
   [SuccessDialogsGuard](../../packages/Common/Tests/UI/SuccessDialogsGuard.test.ts).
 - **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
-  edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
-  the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
-  Closing or reloading the tab asks with the browser's own dialog (`useLeaveGuard`, #7173). With
-  nothing unsaved, nothing asks. Enforced by
+  edited), a step to another page waits for its answer: a link, the side menu, the breadcrumbs, a
+  button, the project picker, the browser's Back and Forward. Closing or reloading the tab asks with
+  the browser's own dialog (`useLeaveGuard`, #7173). With nothing unsaved, nothing asks. Every
+  editor asks with one question, `LeaveWithoutSavingQuestion`, and hands it its own save: Save
+  Changes saves, then goes on only once the save worked, and a refusal keeps the person on the
+  page, still asked, and says why; Keep Editing, where the focus starts, stays; Discard Changes
+  goes on without saving. The Layers page drew a copy of its own (#7973), and keeping your work
+  took Keep Editing, the page's Save and the link again (#7402). While it holds unsaved work, the
+  page says so where its title is: a dashboard's toolbar says Unsaved changes (#7403). Enforced by
   [LeaveGuard](../../packages/Common/Tests/UI/Utils/LeaveGuard.test.ts),
   [UseLeaveGuard](../../packages/Common/Tests/UI/Utils/UseLeaveGuard.test.tsx),
   [NavigationLeaveGuard](../../packages/Common/Tests/UI/Utils/NavigationLeaveGuard.test.ts),
   [LinkLeaveGuard](../../packages/Common/Tests/UI/Components/LinkLeaveGuard.test.tsx),
-  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
-  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
+  [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx),
+  [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx)
+  and
+  [LeaveWithoutSavingQuestionGuard](../../packages/Common/Tests/App/Dashboard/LeaveWithoutSavingQuestionGuard.test.ts).
 
 ### Help dialogs
 
