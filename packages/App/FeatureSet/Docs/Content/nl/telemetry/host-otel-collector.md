@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, de mount `/hostfs` en de variabelen `HOST_*` laten `hostmetrics` en `process` de kernel van de host lezen in plaats van die van de container. Gebruik alleen de metrics-pipeline van de configuratie: de image heeft geen `journalctl`, en de receiver `systemd` heeft de D-Bus van de host nodig.
 
+Of met Docker Compose, sla dit op als `docker-compose.yml` naast `config.yaml`:
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+Start het met:
+
+```bash
+docker compose up -d
+```
+
 ### Vanuit de release-tarball
 
 Waar pakketten geen optie zijn, pak je de statische binary uit en geef je hem een eigen systemd-unit:

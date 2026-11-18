@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, `/hostfs` 마운트, `HOST_*` 변수는 `hostmetrics`와 `process`가 컨테이너가 아닌 호스트의 커널을 읽게 합니다. 구성의 메트릭 파이프라인만 사용하세요. 이미지에는 `journalctl`이 없고, `systemd` 리시버에는 호스트의 D-Bus가 필요합니다.
 
+또는 Docker Compose를 사용하는 경우 `config.yaml` 옆에 `docker-compose.yml`로 저장하세요.
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+다음 명령으로 시작하세요.
+
+```bash
+docker compose up -d
+```
+
 ### 릴리스 tarball에서
 
 패키지를 쓸 수 없는 경우 정적 바이너리를 풀고 전용 systemd 유닛을 만드세요:

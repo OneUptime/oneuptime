@@ -858,6 +858,35 @@ docker run -d \
 
 `--network host`, `--pid host`, monteringen `/hostfs` och `HOST_*`-variablerna låter `hostmetrics` och `process` läsa värdens kärna i stället för containerns. Använd bara konfigurationens mätvärdespipeline: imagen har ingen `journalctl`, och receivern `systemd` behöver värdens D-Bus.
 
+Eller med Docker Compose, spara detta som `docker-compose.yml` bredvid `config.yaml`:
+
+```yaml title="docker-compose.yml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: otel-collector
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /:/hostfs:ro,rslave
+    environment:
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_ETC=/hostfs/etc
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_DEV=/hostfs/dev
+    command: ["--config", "/etc/otelcol-contrib/config.yaml"]
+```
+
+Starta den med:
+
+```bash
+docker compose up -d
+```
+
 ### Från utgåvans tarball-arkiv
 
 Där paket inte är ett alternativ packar du upp den statiska binärfilen och ger den en egen systemd-enhet:
