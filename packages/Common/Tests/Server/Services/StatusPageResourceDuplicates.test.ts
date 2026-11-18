@@ -8,7 +8,6 @@ import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import {
   afterEach,
   beforeEach,
@@ -166,15 +165,57 @@ function resourceReads(findBy: {
     });
 }
 
+/*
+ * The read that numbers a new resource: the last resource of its list, by
+ * order (ContiguousOrder.getAppendOrder), the one read of the service
+ * sorted by order.
+ */
+function isAppendRead(findBy: unknown): boolean {
+  return Boolean(
+    (findBy as { sort?: Record<string, unknown> } | undefined)?.sort?.["order"],
+  );
+}
+
+// The queries of the reads that numbered a new resource, in order.
+function appendQueries(
+  findOneBy: SpyInstance<typeof StatusPageResourceService.findOneBy>,
+): Array<Record<string, unknown>> {
+  return findOneBy.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0];
+    })
+    .filter(isAppendRead)
+    .map((findBy: unknown) => {
+      return (findBy as { query: Record<string, unknown> }).query;
+    });
+}
+
+// The reads that looked for a duplicate of the resource's monitor or group.
+function duplicateLookups(
+  findOneBy: SpyInstance<typeof StatusPageResourceService.findOneBy>,
+): Array<unknown> {
+  return findOneBy.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0];
+    })
+    .filter((findBy: unknown) => {
+      return !isAppendRead(findBy);
+    });
+}
+
 function mockService(rows: Array<StatusPageResource>): {
   findOneBy: SpyInstance<typeof StatusPageResourceService.findOneBy>;
   findBy: SpyInstance<typeof StatusPageResourceService.findBy>;
-  countBy: SpyInstance<typeof StatusPageResourceService.countBy>;
   updateOneBy: SpyInstance<typeof StatusPageResourceService.updateOneBy>;
 } {
   const findOneBy: any = jest
     .spyOn(StatusPageResourceService, "findOneBy")
     .mockImplementation(async (findBy: any) => {
+      // No numbered resource in the list yet: a new one is the first.
+      if (isAppendRead(findBy)) {
+        return null;
+      }
+
       const query: any = findBy.query || {};
       const directId: string | null = getDirectId(query._id);
       const excludedId: string | null = getExcludedId(query._id);
@@ -224,10 +265,6 @@ function mockService(rows: Array<StatusPageResource>): {
       return match || null;
     });
 
-  const countBy: any = jest
-    .spyOn(StatusPageResourceService, "countBy")
-    .mockResolvedValue(new PositiveNumber(rows.length) as never);
-
   // The resources an update writes: the rows its query names by id.
   const findBy: any = jest
     .spyOn(StatusPageResourceService, "findBy")
@@ -247,7 +284,7 @@ function mockService(rows: Array<StatusPageResource>): {
     .spyOn(StatusPageResourceService, "updateOneBy")
     .mockResolvedValue(1 as never);
 
-  return { findOneBy, findBy, countBy, updateOneBy };
+  return { findOneBy, findBy, updateOneBy };
 }
 
 function createBy(data: {
@@ -509,10 +546,10 @@ describe("StatusPageResourceService duplicate rules", () => {
 
       await onBeforeCreate(createBy({}));
 
-      expect(mocks.findOneBy).not.toHaveBeenCalled();
+      expect(duplicateLookups(mocks.findOneBy)).toEqual([]);
     });
 
-    it("refuses before it renumbers the group", async () => {
+    it("refuses before it numbers the resource", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([
         makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
       ]);
@@ -521,7 +558,7 @@ describe("StatusPageResourceService duplicate rules", () => {
         onBeforeCreate(createBy({ monitorId: MONITOR_ID })),
       ).rejects.toThrow(BadDataException);
 
-      expect(mocks.countBy).not.toHaveBeenCalled();
+      expect(appendQueries(mocks.findOneBy)).toEqual([]);
       expect(mocks.updateOneBy).not.toHaveBeenCalled();
     });
 
@@ -857,11 +894,11 @@ describe("StatusPageResourceService, under either name of a reference", () => {
     } as CreateBy<StatusPageResource>;
   }
 
-  function countQuery(
-    countBy: ReturnType<typeof mockService>["countBy"],
+  // The list the new resource was numbered in: the query of the read that numbered it.
+  function numberingQuery(
+    findOneBy: ReturnType<typeof mockService>["findOneBy"],
   ): Record<string, unknown> {
-    return (countBy.mock.calls[0]![0] as { query: Record<string, unknown> })
-      .query;
+    return appendQueries(findOneBy)[0]!;
   }
 
   it("numbers a resource in the group named by the relation", async () => {
@@ -869,10 +906,10 @@ describe("StatusPageResourceService, under either name of a reference", () => {
 
     await onBeforeCreate(createByRelations({ statusPageGroup: GROUP_ID }));
 
-    expect(String(countQuery(mocks.countBy)["statusPageGroupId"])).toBe(
+    expect(String(numberingQuery(mocks.findOneBy)["statusPageGroupId"])).toBe(
       GROUP_ID.toString(),
     );
-    expect(String(countQuery(mocks.countBy)["statusPageId"])).toBe(
+    expect(String(numberingQuery(mocks.findOneBy)["statusPageId"])).toBe(
       STATUS_PAGE_ID.toString(),
     );
   });
@@ -883,12 +920,12 @@ describe("StatusPageResourceService, under either name of a reference", () => {
     await onBeforeCreate(createByRelations({}));
 
     // QueryHelper.isNull(), not an id.
-    expect(countQuery(mocks.countBy)["statusPageGroupId"]).not.toBeInstanceOf(
-      ObjectID,
-    );
-    expect(String(countQuery(mocks.countBy)["statusPageGroupId"])).not.toBe(
-      GROUP_ID.toString(),
-    );
+    expect(
+      numberingQuery(mocks.findOneBy)["statusPageGroupId"],
+    ).not.toBeInstanceOf(ObjectID);
+    expect(
+      String(numberingQuery(mocks.findOneBy)["statusPageGroupId"]),
+    ).not.toBe(GROUP_ID.toString());
   });
 
   it("keeps the group named by the relation in its ID column, for the list the saved row is ordered in", async () => {
@@ -1049,8 +1086,8 @@ describe("StatusPageResourceService, a monitor or a monitor group", () => {
         ),
       ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
 
+      // No duplicate looked for, and no number read for it.
       expect(mocks.findOneBy).not.toHaveBeenCalled();
-      expect(mocks.countBy).not.toHaveBeenCalled();
     });
 
     it("refuses one naming both by the relations the resource form posts", async () => {
