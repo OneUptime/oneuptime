@@ -128,7 +128,9 @@ const StatusPageFirstStep: FunctionComponent<ComponentProps> = (
       title={StatusPageOverviewCopy.firstStepButton}
       description={StatusPageOverviewCopy.firstStepDescription}
       addedToastAction={{
-        title: translator.translateText(StatusPageOverviewCopy.viewStatusPage),
+        title:
+          translator.translateText(StatusPageOverviewCopy.viewStatusPage) ||
+          StatusPageOverviewCopy.viewStatusPage,
         onClick: () => {
           // The page as its visitors see it, beside the Dashboard.
           Navigation.navigate(
