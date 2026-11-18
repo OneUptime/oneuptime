@@ -6,9 +6,11 @@ import {
 import {
   KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS,
   KUBERNETES_COST_METRIC_DESCRIPTIONS,
+  KUBERNETES_COST_OVERVIEW_DESCRIPTIONS,
   KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS,
   KubernetesClusterMetric,
   KubernetesCostMetric,
+  KubernetesCostOverviewMetric,
   KubernetesRightSizingMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import {
@@ -47,6 +49,9 @@ const COST: Record<KubernetesCostMetric, string> =
   KUBERNETES_COST_METRIC_DESCRIPTIONS;
 const RIGHT_SIZING: Record<KubernetesRightSizingMetric, string> =
   KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS;
+// The overview's Cost card (#9548).
+const COST_OVERVIEW: Record<KubernetesCostOverviewMetric, string> =
+  KUBERNETES_COST_OVERVIEW_DESCRIPTIONS;
 
 function percentOf(ratio: number): string {
   return `${Math.round(ratio * 100)}%`;
@@ -109,6 +114,13 @@ describe("the Kubernetes cluster description records read well", () => {
     );
   });
 
+  test("the overview's cost texts pass the shared rules", () => {
+    expectReadableDescriptionRecord(
+      COST_OVERVIEW,
+      "KUBERNETES_COST_OVERVIEW_DESCRIPTIONS",
+    );
+  });
+
   test("the records cover exactly the metrics the pages show", () => {
     expect(Object.keys(CLUSTER).sort()).toEqual(
       [
@@ -133,9 +145,11 @@ describe("the Kubernetes cluster description records read well", () => {
         "nodesNotReady",
         "podHealth",
         "pods",
+        "podsCannotRun",
         "podsFailed",
         "podsPending",
         "podsRunning",
+        "podsUnknown",
         "topCpuPods",
         "topMemoryPods",
       ].sort(),
@@ -178,13 +192,18 @@ describe("the Kubernetes cluster description records read well", () => {
         "underprovisioned",
       ].sort(),
     );
+
+    expect(Object.keys(COST_OVERVIEW).sort()).toEqual(
+      ["efficiency", "idleSpend", "lastDaySpend", "monthlyRunRate"].sort(),
+    );
   });
 
-  test("no text is shared across the three records either", () => {
+  test("no text is shared across the records either", () => {
     const all: Array<string> = [
       ...Object.values(CLUSTER),
       ...Object.values(COST),
       ...Object.values(RIGHT_SIZING),
+      ...Object.values(COST_OVERVIEW),
     ];
 
     expect(new Set(all).size).toBe(all.length);
@@ -195,6 +214,7 @@ describe("the Kubernetes cluster description records read well", () => {
       ...Object.values(CLUSTER),
       ...Object.values(COST),
       ...Object.values(RIGHT_SIZING),
+      ...Object.values(COST_OVERVIEW),
     ]) {
       expect({ text, length: text.length <= 260 }).toEqual({
         text,
@@ -221,8 +241,10 @@ const TITLED: Array<[string, string]> = [
   ["Network", CLUSTER.networkChart],
   ["Cluster inventory counts", CLUSTER.inventoryCounts],
   ["Running", CLUSTER.podsRunning],
+  ["Can't run", CLUSTER.podsCannotRun],
   ["Pending", CLUSTER.podsPending],
   ["Failed", CLUSTER.podsFailed],
+  ["Unknown", CLUSTER.podsUnknown],
   ["Nodes Not Ready", CLUSTER.nodesNotReady],
   ["Cluster Health", CLUSTER.clusterHealth],
   ["Cluster Health", CLUSTER.clusterHealthOpenShift],
@@ -263,6 +285,10 @@ const TITLED: Array<[string, string]> = [
   ["CPU Request", RIGHT_SIZING.cpuRequest],
   ["Memory Request", RIGHT_SIZING.memoryRequest],
   ["Est. Saving", RIGHT_SIZING.estimatedSaving],
+  ["Last 24 Hours", COST_OVERVIEW.lastDaySpend],
+  ["Monthly Run-Rate", COST_OVERVIEW.monthlyRunRate],
+  ["Idle Spend", COST_OVERVIEW.idleSpend],
+  ["Efficiency", COST_OVERVIEW.efficiency],
 ];
 
 describe("each title is explained by the text beside it", () => {
@@ -281,8 +307,9 @@ describe("each title is explained by the text beside it", () => {
       ...Object.values(CLUSTER),
       ...Object.values(COST),
       ...Object.values(RIGHT_SIZING),
+      ...Object.values(COST_OVERVIEW),
     ]) {
-      expect(shown.has(text)).toBe(true);
+      expect({ text, shown: shown.has(text) }).toEqual({ text, shown: true });
     }
   });
 });
