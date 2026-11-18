@@ -49,6 +49,7 @@ import {
   DataAssetFreshness,
   DataAssetFreshnessResult,
   getDataAssetFreshness,
+  getDataAssetLateAt,
 } from "../../../Types/DataObservability/DataAssetFreshness";
 import { JSONObject } from "../../../Types/JSON";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
@@ -958,6 +959,17 @@ export default class TableHealthIngest {
       asset.lastChangedAt = plan.lastChangedAt;
     }
 
+    // When it is late without a change, once its rhythm is known (Tables' Late filter).
+    const lateAt: Date | null = getDataAssetLateAt({
+      kind: table.kind,
+      lastChangedAt: plan.lastChangedAt,
+      updateIntervalInSeconds: plan.updateIntervalInSeconds,
+    });
+
+    if (lateAt) {
+      asset.lateAt = lateAt;
+    }
+
     if (plan.reads.lastReadAt) {
       asset.lastReadAt = plan.reads.lastReadAt;
     }
@@ -998,6 +1010,12 @@ export default class TableHealthIngest {
       sizeInBytes: table.sizeInBytes as number,
       lastChangedAt: plan.lastChangedAt as Date,
       updateIntervalInSeconds: plan.updateIntervalInSeconds as number,
+      // Written with what it is worked out from, so a list asking for the late tables reads them right.
+      lateAt: getDataAssetLateAt({
+        kind: table.kind,
+        lastChangedAt: plan.lastChangedAt,
+        updateIntervalInSeconds: plan.updateIntervalInSeconds,
+      }) as Date,
       lastReadAt: plan.reads.lastReadAt as Date,
       unreadSince: plan.reads.unreadSince as Date,
       assetKind: table.kind,

@@ -196,6 +196,7 @@ import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
 import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufacturer";
 import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
+import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1412,6 +1413,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new BackfillTelemetryMilestonesFromClickhouse(),
+  /*
+   * When each table and pipeline is late without a change or a run, and how
+   * each check stands now (#6550, #6552, #6554), for the rows that were there
+   * before AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
+   * added the columns: Tables' Late filter, Checks' order and the menu's
+   * count read them. Postgres only, a page at a time by id, and idempotent;
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillDataObservabilityAttentionColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

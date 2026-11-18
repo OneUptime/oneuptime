@@ -411,6 +411,12 @@ export default class DataObservabilityAttentionReader {
     projectId: ObjectID;
     reader: DatabaseCommonInteractionProps;
     checks: Array<DataCheck>;
+    /*
+     * For a caller that keeps the answer (DataCheckHealthSync): alerts that
+     * cannot be read throw, rather than reading as none open - a failing
+     * check is never written as passing because a read failed.
+     */
+    throwsWhenAlertsUnreadable?: boolean | undefined;
   }): Promise<Map<string, DataCheckHealthAnswer>> {
     const monitorIds: Array<string> = Array.from(
       new Set(
@@ -422,9 +428,17 @@ export default class DataObservabilityAttentionReader {
       ),
     );
     const openByMonitor: Map<string, Alert> = new Map();
+    const read: <T>(
+      what: string,
+      reader: () => Promise<Array<T>>,
+    ) => Promise<Array<T>> = data.throwsWhenAlertsUnreadable
+      ? async <T>(_what: string, reader: () => Promise<Array<T>>) => {
+          return await reader();
+        }
+      : readOrNothing;
 
     if (monitorIds.length > 0) {
-      const alerts: Array<Alert> = await readOrNothing(
+      const alerts: Array<Alert> = await read(
         "the open alerts of checks",
         async () => {
           return await AlertService.findBy({

@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
+import DataCheckHealthSync from "../Utils/DataObservability/DataCheckHealthSync";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import AlertMeasurementService from "./AlertMeasurementService";
@@ -2491,6 +2492,19 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
       })
     ) {
       await MonitorOpenRecords.forgetMonitorsOfAlerts(updatedItemIds);
+
+      /*
+       * A data check whose monitor raised one of them is failing while it is
+       * open, and passing once it resolves: kept on the check, so Checks
+       * lists the failing ones first (DataCheckHealthSync, #6554). One
+       * indexed read for an alert of any other monitor; never awaited, and
+       * never a reason the state change fails.
+       */
+      DataCheckHealthSync.refreshForAlerts(updatedItemIds).catch(
+        (error: unknown) => {
+          logger.error(error);
+        },
+      );
     }
 
     // Only the alerts whose monitor this update actually set, moved or cleared.
