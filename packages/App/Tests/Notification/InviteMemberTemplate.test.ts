@@ -57,6 +57,18 @@ const TEAM_MEMBER_SERVICE_PATH: string = Path.resolve(
   "TeamMemberService.ts",
 );
 
+const INVITATION_INVITER_PATH: string = Path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "Server",
+  "Utils",
+  "TeamMember",
+  "InvitationInviter.ts",
+);
+
 const PROJECT_NAME: string = "Acme Production";
 const SIGN_IN_LINK: string = "https://oneuptime.test/accounts";
 const REGISTER_LINK: string =
@@ -218,6 +230,110 @@ describe("InviteMember.hbs - an ordinary invitation", () => {
       expect(html).toContain("Sign In to OneUptime");
       expect(html).not.toContain("Create Your Account");
     });
+  });
+});
+
+/*
+ * WHO INVITED THEM (#7471): a name the reader knows, and the address to
+ * check it by, in the first line of every shape of the email - and never
+ * the line that sent a reader of a Create Your Account button to be
+ * redirected to create an account.
+ */
+describe("InviteMember.hbs - who invited them", () => {
+  const INVITER: Record<string, string> = {
+    inviterLabel: "Ada Walker (ada@walk.example)",
+    inviterName: "Ada Walker",
+  };
+
+  test.each([
+    ["true", "true", "Ada Walker (ada@walk.example) added you to "],
+    ["true", "false", "Ada Walker (ada@walk.example) added you to "],
+    ["false", "true", "Ada Walker (ada@walk.example) invited you to join "],
+    ["false", "false", "Ada Walker (ada@walk.example) invited you to join "],
+  ])(
+    "accepted %s, new account %s: the first line names the inviter and the project",
+    (isInvitationAccepted: string, isNewUser: string, opening: string) => {
+      const html: string = render({
+        isInvitationAccepted: isInvitationAccepted,
+        isNewUser: isNewUser,
+        ...INVITER,
+      });
+
+      expect(html).toContain(`${opening}${PROJECT_NAME} on OneUptime.`);
+      // The line that named nobody is gone.
+      expect(html).not.toContain("been invited to join a project");
+      expect(html).not.toContain("been added to a project");
+    },
+  );
+
+  test("an invitation that names nobody reads as it always did", () => {
+    const html: string = render({
+      isInvitationAccepted: "false",
+      isNewUser: "true",
+    });
+
+    expect(html).toContain(
+      "You've been invited to join a project on OneUptime. Create your account to get started.",
+    );
+    expect(html).not.toContain("invited you to join");
+  });
+
+  test("prints the inviter's and the project's names as words, never as HTML", () => {
+    const html: string = render({
+      isInvitationAccepted: "false",
+      isNewUser: "true",
+      projectName: "<b>Acme</b>",
+      inviterLabel: '<img src="https://evil.example/x.png"> (ada@walk.example)',
+      inviterName: "Ada",
+    });
+
+    expect(html).not.toContain('<img src="https://evil.example/x.png">');
+    // Handlebars escapes "=" too.
+    expect(html).toContain(
+      "&lt;img src&#x3D;&quot;https://evil.example/x.png&quot;&gt;",
+    );
+    expect(html).not.toContain("<b>Acme</b>");
+  });
+
+  test.each([
+    ["true", "true"],
+    ["true", "false"],
+    ["false", "true"],
+    ["false", "false"],
+  ])(
+    "accepted %s, new account %s: no line says they will be redirected to create an account",
+    (isInvitationAccepted: string, isNewUser: string) => {
+      for (const inviter of [INVITER, {}]) {
+        const html: string = render({
+          isInvitationAccepted: isInvitationAccepted,
+          isNewUser: isNewUser,
+          ...inviter,
+        });
+
+        expect(html).not.toContain("redirected to create one");
+      }
+    },
+  );
+
+  test("TeamMemberService hands the template the inviter's variables, from InvitationInviter", () => {
+    const serviceSource: string = fs.readFileSync(TEAM_MEMBER_SERVICE_PATH, {
+      encoding: "utf8",
+    });
+    const inviterSource: string = fs.readFileSync(INVITATION_INVITER_PATH, {
+      encoding: "utf8",
+    });
+
+    expect(serviceSource).toContain(
+      "...InvitationInviterUtil.getTemplateVars(inviter),",
+    );
+    expect(inviterSource).toContain(
+      "inviterLabel: InvitationInviterUtil.getLabel(inviter),",
+    );
+    expect(inviterSource).toContain(
+      "inviterName: InvitationInviterUtil.getName(inviter),",
+    );
+    expect(templateSource()).toContain("inviterLabel");
+    expect(templateSource()).toContain("inviterName");
   });
 });
 

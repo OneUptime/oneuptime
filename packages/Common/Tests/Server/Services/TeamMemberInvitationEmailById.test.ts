@@ -14,6 +14,8 @@ import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import Errors from "../../../Server/Utils/Errors";
+import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
+import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import PublicMessageRateLimit, {
   PublicMessageSendPermit,
   TeamMessageKind,
@@ -159,6 +161,12 @@ let giveBackSpy: jest.Mock;
 
 beforeEach(() => {
   stubProjectDirectory({});
+
+  /*
+   * Who invited them is read as its own account (InvitationInviter), held
+   * on its own below: here the invitation names nobody.
+   */
+  jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(null);
 
   jest.spyOn(TeamService, "findOneBy").mockResolvedValue(new Team(TEAM_ID));
   jest
@@ -705,5 +713,86 @@ describe("TeamMemberService.getInviteeToEmailById", () => {
         userId: PERSON_ID,
       }),
     ).resolves.toBeNull();
+  });
+});
+
+/*
+ * WHO INVITED THEM (#7471): the invitation names the person who made it,
+ * read as their own account, in its subject and its first line - and, on a
+ * self-hosted server, a reply reaches them. One that names nobody reads as
+ * it always did.
+ */
+describe("the invitation names who made it", () => {
+  const ADA: { name: string; email: string } = {
+    name: "Ada Walker",
+    email: "ada@company.com",
+  };
+
+  test("asks who made it: the request's person, as against the person invited", async () => {
+    const readSpy: jest.SpyInstance = jest
+      .spyOn(InvitationInviterUtil, "read")
+      .mockResolvedValue(ADA);
+
+    await callHook("onBeforeCreate", addById({ props: projectAdminProps() }));
+
+    expect(readSpy).toHaveBeenCalledTimes(1);
+    const asked: {
+      props: DatabaseCommonInteractionProps;
+      inviteeUserId: ObjectID;
+    } = readSpy.mock.calls[0]![0] as {
+      props: DatabaseCommonInteractionProps;
+      inviteeUserId: ObjectID;
+    };
+
+    expect(asked.props.userId?.toString()).toBe(ADMIN_ID.toString());
+    expect(asked.inviteeUserId.toString()).toBe(PERSON_ID.toString());
+  });
+
+  test("its subject and its template's variables name them", async () => {
+    jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(ADA);
+
+    await callHook("onBeforeCreate", addById({ props: projectAdminProps() }));
+
+    const mail: EmailMessage = sentMail();
+
+    expect(mail.subject).toBe(`Ada Walker invited you to ${PROJECT_NAME}`);
+    expect(mail.isSubjectLiteral).toBe(true);
+    expect(mail.vars["inviterLabel"]).toBe("Ada Walker (ada@company.com)");
+    expect(mail.vars["inviterName"]).toBe("Ada Walker");
+  });
+
+  test("accepted for them, the subject says who added them", async () => {
+    jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(ADA);
+
+    await callHook(
+      "onBeforeCreate",
+      addById({ props: masterAdminProps(), hasAcceptedInvitation: true }),
+    );
+
+    expect(sentMail().subject).toBe(`Ada Walker added you to ${PROJECT_NAME}`);
+  });
+
+  test("a reply goes where the server's kind says: to them on a self-hosted server", async () => {
+    jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(ADA);
+
+    await callHook("onBeforeCreate", addById({ props: projectAdminProps() }));
+
+    expect(sentMail().replyToEmail?.toString()).toBe(
+      InvitationInviterUtil.getReplyTo({
+        inviter: ADA,
+        isSelfHosted: !IsBillingEnabled,
+      })?.toString(),
+    );
+  });
+
+  test("naming nobody, nothing of theirs is set, and no reply is redirected", async () => {
+    await callHook("onBeforeCreate", addById({ props: projectAdminProps() }));
+
+    const mail: EmailMessage = sentMail();
+
+    expect(mail.subject).toBe(`You have been invited to ${PROJECT_NAME}`);
+    expect(mail.vars).not.toHaveProperty("inviterLabel");
+    expect(mail.vars).not.toHaveProperty("inviterName");
+    expect(mail.replyToEmail).toBeUndefined();
   });
 });

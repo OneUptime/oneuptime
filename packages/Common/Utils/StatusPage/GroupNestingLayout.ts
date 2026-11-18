@@ -1,7 +1,7 @@
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageGroupViewMode from "../../Types/StatusPage/StatusPageGroupViewMode";
-import StatusPageResourceExplorerUtil from "./ResourceExplorer";
+import parseGridAxisValues from "./GridAxisValues";
 
 /*
  * Status page groups nest (Corporate Unit -> Region -> Market -> Site) and the
@@ -333,7 +333,7 @@ export default class StatusPageGroupNestingLayoutUtil {
    * a list group does, or the group's empty line if it has none. Its
    * visitors cannot add the axes, and the error that stood in their place
    * read as the status page failing (#9476). The values are read as the
-   * Dashboard's Resources screen reads them (parseAxisValues), so the two
+   * Dashboard's Resources screen reads them (GridAxisValues), so the two
    * agree on which grids have no rows or columns.
    */
   public static isDrawnAsGrid(
@@ -347,12 +347,8 @@ export default class StatusPageGroupNestingLayoutUtil {
     }
 
     return (
-      StatusPageResourceExplorerUtil.parseAxisValues(
-        statusPageGroup.rowAxisValues,
-      ).length > 0 &&
-      StatusPageResourceExplorerUtil.parseAxisValues(
-        statusPageGroup.columnAxisValues,
-      ).length > 0
+      parseGridAxisValues(statusPageGroup.rowAxisValues).length > 0 &&
+      parseGridAxisValues(statusPageGroup.columnAxisValues).length > 0
     );
   }
 

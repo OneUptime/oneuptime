@@ -840,10 +840,15 @@ test.describe("the Overview's OpenShift card", () => {
       lineHeight + 1,
     );
 
-    // The longest title of the quick links, and its count beside it.
-    const link: Locator = page
-      .getByText("OpenShift's older way to roll out pods", { exact: true })
-      .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+    /*
+     * The longest title of the quick links, and its count beside it. Each
+     * quick link is a tile that is a link (#9222).
+     */
+    const link: Locator = page.getByRole("link").filter({
+      has: page.getByText("OpenShift's older way to roll out pods", {
+        exact: true,
+      }),
+    });
     const count: Locator = link.locator("span.rounded-full");
 
     const linkBox: { x: number; width: number } = (await link.boundingBox())!;

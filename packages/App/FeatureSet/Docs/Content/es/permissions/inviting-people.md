@@ -53,7 +53,7 @@ Escriba su dirección en **Correo electrónico**. Si ninguna cuenta de OneUptime
 
 Haga clic en **Invitar**. OneUptime envía la invitación por correo y abre la página de la persona. Aparece como **Invitación enviada** hasta que acepta.
 
-En un servidor autoalojado que aún no puede enviar correos electrónicos, no sale ningún correo y la persona aparece como **Invitado**. Un administrador maestro ve primero **Envíale su enlace de invitación**: copie el enlace, envíeselo usted mismo y luego haga clic en **Hecho**. Cualquier otra persona pide al administrador del servidor que [configure el correo](/docs/emails/smtp#abrir-el-formulario).
+En un servidor autoalojado que aún no puede enviar correos electrónicos, no sale ningún correo y la persona aparece como **Invitado**. Un administrador maestro ve primero **Envíale su enlace de invitación**: copie el enlace, envíeselo usted mismo y luego haga clic en **Hecho**. Cualquier otra persona pide al administrador del servidor que [configure el correo](/docs/emails/smtp#abrir-el-formulario). Configurar el correo más tarde no envía las invitaciones hechas antes: la persona entra con su enlace de invitación, o registrándose con la dirección invitada.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ En un servidor autoalojado que aún no puede enviar correos electrónicos, no sa
 
 ## Aceptar una invitación
 
-El correo de invitación nombra el proyecto. Su botón es **Create Your Account** para quien aún no tiene cuenta de OneUptime y **Sign In to OneUptime** para quien ya tiene una. Una vez que inicia sesión, acepta en uno de dos lugares:
+El correo de invitación nombra el proyecto y a quien la invitó. Su botón es **Create Your Account** para quien aún no tiene cuenta de OneUptime y **Sign In to OneUptime** para quien ya tiene una.
+
+**Create Your Account** abre la página de registro con su dirección y el nombre que usted escribió ya rellenados, y dice qué proyecto la invitó y quién. Registrarse allí la une al proyecto, sin nada más que aceptar.
+
+En un servidor autoalojado que aún no puede enviar correos electrónicos, nadie recibe un correo: el enlace de invitación que recibe en su lugar abre la misma página de registro, o la página de inicio de sesión para quien ya tiene una cuenta.
+
+Quien inicia sesión, o se registra de otra forma, acepta en uno de dos lugares:
 
 | Dónde está | Qué ve | En qué hace clic |
 | --- | --- | --- |
@@ -112,6 +118,8 @@ El equipo Owners conserva siempre al menos un miembro que se unió, para que un 
 
 En **Usuarios**, abra el menú de la fila de la persona, **⋯**, y haga clic en **Eliminar del proyecto**. O abra a la persona y elija **Eliminar del proyecto** en su menú lateral. Para quitar a varias personas a la vez, seleccione sus filas y elimine la selección: cada una se quita de la misma forma.
 
+Si su rol solo quita personas de algunos equipos, como los suyos, **Eliminar del proyecto** queda bloqueado para alguien que también está en un equipo del que usted no puede quitarlo, y nombra los equipos que lo mantienen en el proyecto, los que usted puede ver. Quitar a varias personas a la vez lo deja fuera, y lo dice.
+
 Quitar a alguien lo saca de cada equipo del proyecto. Pierde el acceso al instante, aunque tenga la sesión iniciada, se le quita de los calendarios de guardia y de las reglas de escalado, y deja de recibir las notificaciones del proyecto. Su cuenta de OneUptime no se elimina, y puede volver a invitarlo. [Usuarios, equipos y permisos](/docs/permissions/index#usuarios) enumera todo lo que se lleva salir de un proyecto.
 
 ## Otras formas de unirse
@@ -134,8 +142,14 @@ En OneUptime Cloud, un proyecto en el plan Free tiene espacio para una persona. 
 A una dirección se le pueden enviar 10 invitaciones por hora, a proyectos y páginas de estado privadas en conjunto, las envíe quien las envíe. Espera una hora y vuelve a invitar a la persona.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Su rol solo quita personas de algunos equipos del proyecto, como los suyos, y esta persona también está en otros. Quítela de sus propios equipos en su página **Equipos**, o pida a un Propietario del proyecto o a un Administrador del proyecto que la quite del proyecto.
+:::
+
 :::details El correo de invitación no llegó, o su enlace caducó
 La invitación no depende del correo. Pídale que se registre con la dirección invitada: OneUptime envía a esa dirección un enlace nuevo para terminar de crear la cuenta. Quien ya tiene una cuenta inicia sesión y encuentra la invitación esperándole.
+
+Para ver si salió, abra la pestaña **Correo electrónico** de los **Registros de notificación** del proyecto: la fila de cada invitación dice si se envió, y por qué no. En un servidor autoalojado, un administrador maestro también encuentra cada correo que el servidor no pudo enviar en su [registro de correos](/docs/emails/email-providers#ver-lo-que-envió-el-servidor).
 
 En un servidor autoalojado que aún no puede enviar correos electrónicos, registrarse tampoco puede enviarle un enlace nuevo por correo: en su lugar, le indica que pida su enlace de invitación. Cuando el administrador del servidor haya [configurado el correo](/docs/emails/smtp#abrir-el-formulario), registrarse funciona como se describe arriba. Hasta entonces, un administrador maestro puede enviarle un enlace nuevo, que funciona una vez, solo para esa dirección, durante 7 días: en **Usuarios**, abra el menú de la fila de la persona, **⋯**, y haga clic en **Obtener enlace de invitación**.
 :::

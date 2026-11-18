@@ -118,8 +118,13 @@ created as `MonitorTest` creates it and answers on its first read, judged by the
 steps' criteria as the server judges it (`MonitorTestEvaluation`): the first criteria, top to
 bottom, whose name says online for an answer that is up, or offline for one that is down.
 
-A monitor's last fire drill (`GET /on-call-test-page/fire-drill/last/:monitorId`, #9386), which
-When this goes down reads under its chain, answers that none was run.
+When this goes down ends with the monitor's last fire drill (#9386), which it reads once its
+answer is in (`GET /on-call-test-page/fire-drill/last/:monitorId`, as
+`OnCallFireDrillHistoryService` answers it): by default no monitor has been drilled, so nothing
+is drawn; `?fireDrill=last` gives the subject monitor the drill Ben Ito ran yesterday - its
+Offline failure, a Critical incident - whose one test, Primary On-Call's, Ana Lopez acknowledged
+by SMS 42 seconds after it paged. `WhenThisGoesDown.spec.ts` checks both: the read, and the
+drill at the card's end with each policy's test under Show details.
 
 `?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
 already an owner of this monitor."), as the server refuses a second row for an owner.

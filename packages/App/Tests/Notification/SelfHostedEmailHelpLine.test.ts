@@ -189,6 +189,21 @@ const textOf: (html: string) => string = (html: string): string => {
   return markupAsSpacesWithOutlookContent(html).replace(WHITESPACE_RUN, " ");
 };
 
+// The invitation's variables that name who made it (InvitationInviter).
+const INVITER_VARIABLE_NAMES: ReadonlyArray<string> = [
+  "inviterLabel",
+  "inviterName",
+];
+
+const INVITER: Record<string, string> = {
+  inviterLabel: "Ada Walker (ada@walk.example)",
+  inviterName: "Ada Walker",
+};
+
+// What an invitation that names its inviter says on a self-hosted server.
+const INVITER_LINE: string =
+  "Need help? Ask Ada Walker, who invited you, or your server's admin.";
+
 /*
  * A template rendered with a value for every variable it reads - so every
  * block it has is drawn - and with the server and the branding given here,
@@ -209,6 +224,12 @@ const render: (name: string, server: Record<string, string>) => string = (
     "brandProductName",
     "brandWebsiteUrl",
     "brandLogoUrl",
+    /*
+     * An invitation that names who made it sends questions to them as well
+     * (#7471): held below, on its own. Here, the invitation names nobody,
+     * as one OneUptime, an API key or a workflow makes.
+     */
+    ...INVITER_VARIABLE_NAMES,
   ]) {
     delete variables[reserved];
   }
@@ -310,6 +331,53 @@ describe.each([...TEMPLATES_WITH_A_HELP_LINE])("%s", (name: string) => {
     const text: string = textOf(render(name, SELF_HOSTED));
 
     expect(text.split(ADMIN_LINE).length - 1).toBe(1);
+  });
+});
+
+describe("an invitation that names who made it (#7471)", () => {
+  const renderInvitation: (server: Record<string, string>) => string = (
+    server: Record<string, string>,
+  ): string => {
+    return render("InviteMember", { ...INVITER, ...server });
+  };
+
+  test("on a self-hosted server, sends questions to the inviter or the server's admin, never OneUptime's support", () => {
+    const html: string = renderInvitation(SELF_HOSTED);
+
+    expect(textOf(html)).toContain(INVITER_LINE);
+    expect(textOf(html).split("Need help?").length - 1).toBe(1);
+    expect(textOf(html)).not.toContain(ADMIN_LINE);
+    expect(html).not.toContain(SUPPORT_ADDRESS);
+    expect(textOf(html)).not.toContain("Contact support");
+  });
+
+  test("renamed, on a self-hosted server, says the same", () => {
+    const html: string = renderInvitation({ ...SELF_HOSTED, ...RENAMED });
+
+    expect(textOf(html)).toContain(INVITER_LINE);
+    expect(html).not.toContain(SUPPORT_ADDRESS);
+  });
+
+  test("on OneUptime Cloud, keeps OneUptime's support, and names the inviter only as who invited them", () => {
+    const html: string = renderInvitation(CLOUD);
+
+    expect(html).toContain(SUPPORT_LINK);
+    expect(textOf(html)).not.toContain(INVITER_LINE);
+    expect(textOf(html)).not.toContain(ADMIN_LINE);
+  });
+
+  test("the inviter's name is printed as their words, never as HTML", () => {
+    const html: string = render("InviteMember", {
+      ...SELF_HOSTED,
+      inviterLabel: '<a href="https://evil.example">Ada</a> (ada@walk.example)',
+      inviterName: '<a href="https://evil.example">Ada</a>',
+    });
+
+    expect(html).not.toContain('<a href="https://evil.example">');
+    // Handlebars escapes "=" too.
+    expect(html).toContain(
+      "&lt;a href&#x3D;&quot;https://evil.example&quot;&gt;",
+    );
   });
 });
 

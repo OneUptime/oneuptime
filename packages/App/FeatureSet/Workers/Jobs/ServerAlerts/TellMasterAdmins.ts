@@ -193,7 +193,16 @@ export const SERVER_ALERT_SENDERS: ServerAlertSenders = {
     return isAccepted(
       await SmsService.sendSms(
         { to: data.to, message: data.text },
-        { isSensitive: false, failIfNotSent: true },
+        {
+          /*
+           * The server's own Twilio account: a message about the server to
+           * its master admins, which no project sends or pays for - so it
+           * passes no project's config and names no project.
+           */
+          customTwilioConfig: undefined,
+          isSensitive: false,
+          failIfNotSent: true,
+        },
       ),
     );
   },

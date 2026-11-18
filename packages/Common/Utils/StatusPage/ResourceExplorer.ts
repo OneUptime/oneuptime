@@ -8,6 +8,7 @@ import StatusPageGroupTreeUtil, {
   StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "./GroupTree";
+import parseGridAxisValues from "./GridAxisValues";
 import { getReaderNumberLocale } from "../../Types/DateLanguage";
 
 /*
@@ -974,23 +975,13 @@ export default class StatusPageResourceExplorerUtil {
   /* ------------------------------------------------------------------ */
 
   /*
-   * The comma separated axis values a grid group is defined by, as a list.
+   * The comma separated axis values a grid group is defined by, as a list:
+   * read as the public status page reads them (GridAxisValues).
    */
   public static parseAxisValues(
     raw?: string | null | undefined,
   ): Array<string> {
-    if (!raw) {
-      return [];
-    }
-
-    return raw
-      .split(",")
-      .map((value: string): string => {
-        return value.trim();
-      })
-      .filter((value: string): boolean => {
-        return value.length > 0;
-      });
+    return parseGridAxisValues(raw);
   }
 
   /*

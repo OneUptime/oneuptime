@@ -203,9 +203,33 @@ const SMTP_FORM_LINK: string = "/docs/emails/smtp#open-the-form";
  * not arrive. AdministrationDocsTranslations holds every language to them.
  */
 const NO_EMAIL_STEP: string =
-  "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).";
+  "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form). Email set up later does not send the invitations made before it: they get in with their invitation link, or by signing up with the address you invited.";
 const NO_EMAIL_ANSWER: string =
   "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.";
+
+/*
+ * Where the answer for an invitation email that did not arrive says to see
+ * whether it went out (#7169): the project's notification logs, and on a
+ * self-hosted server the server's own email log (#6878).
+ */
+const EMAIL_PROVIDERS_PAGE: string = "emails/email-providers";
+const EMAIL_LOG_LINK: string =
+  "/docs/emails/email-providers#see-what-the-server-sent";
+const WENT_OUT_ANSWER: string =
+  "To see whether it went out, open the **Email** tab of the project's **Notification Logs**: each invitation's row says whether it was sent, and why not. On a self-hosted server, a master admin also finds every email the server failed to send in its [email log](/docs/emails/email-providers#see-what-the-server-sent).";
+
+/*
+ * What Accept an invitation says of the sign-up page an invitation opens
+ * (#7471), and of the link handed out where no email went (#7169).
+ */
+const SIGN_UP_JOINS: string =
+  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.";
+const NO_EMAIL_ACCEPT: string =
+  "On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.";
+
+// What Remove someone from the project says of a reader who reaches only some teams (#6599).
+const REMOVAL_LOCK: string =
+  "If your role removes people only from some teams, such as the ones you own, **Remove from Project** is locked for someone who is also in a team you can't remove them from, and names the teams that keep them in the project, the ones you may see. Removing several people at once leaves them out, and says so.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const PARAGRAPH_BREAK: RegExp = /\n[ \t]*\n/;
@@ -686,20 +710,118 @@ describe("Inviting People", () => {
     );
   });
 
-  it("names the invitation email's subjects and buttons", () => {
+  it("names the invitation email's subjects and buttons, and says it names who invited them", () => {
     const service: string = readCommonSource(
       "Server/Services/TeamMemberService.ts",
+    );
+    const inviter: string = readCommonSource(
+      "Server/Utils/TeamMember/InvitationInviter.ts",
     );
     const template: string = readPackageFile(
       "App/FeatureSet/Notification/Templates/InviteMember.hbs",
     );
 
-    expect(service).toContain('"You have been invited to " + project.name');
-    expect(service).toContain('"You have been added to " + project.name');
+    // The subject says who invited them, or what it always said (#7471).
+    expect(service).toContain("subject: InvitationInviterUtil.getSubject({");
+    expect(inviter).toContain('"You have been invited to " + data.projectName');
+    expect(inviter).toContain('"You have been added to " + data.projectName');
+    expect(inviter).toContain("`${name} invited you to ${data.projectName}`");
+    // The first line names them too.
+    expect(template).toContain(
+      '(concat inviterLabel " invited you to join " projectName " on " (brandName)',
+    );
     expect(template).toContain('buttonText="Create Your Account"');
     expect(template).toContain('buttonText=(concat "Sign In to " (brandName))');
-    expect(page).toContain(
-      "Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.",
+    expect(section(page, "## Accept an invitation")).toContain(
+      "The invitation email names the project and who invited them. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.",
+    );
+  });
+
+  /*
+   * The sign-up page an invitation opens (#7471): it fills in what the
+   * invitation knows, says which project and who, and signing up there
+   * joins - the server accepts that project's invitation once the token
+   * has claimed the account. And where no email went (#7169), the link
+   * handed out instead opens the same pages.
+   */
+  it("says the sign-up page an invitation opens names the project and who invited them, fills in the name, and joins", () => {
+    const register: string = collapsed(
+      readPackageFile("App/FeatureSet/Accounts/src/Pages/Register.tsx"),
+    );
+    const authentication: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/API/Authentication.ts"),
+    );
+    const signUpInvitation: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/Utils/SignUpInvitation.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // The page draws the invitation, fills in the name, and names the project in the sign-up.
+    expect(register).toContain(
+      "<InvitedSignUpHeader invitation={invitation} />",
+    );
+    expect(register).toContain(
+      'return current["name"] ? current : { ...current, name: name };',
+    );
+    expect(register).toContain(
+      "miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY] = invitation.projectId;",
+    );
+    // The server accepts it once the token has claimed the account.
+    expect(authentication).toContain(
+      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: alreadySavedUser.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
+    );
+    expect(signUpInvitation).toContain(
+      "hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(),",
+    );
+
+    expect(accept[1]).toBe(SIGN_UP_JOINS);
+    expect(boldNames(SIGN_UP_JOINS)).toEqual(["Create Your Account"]);
+  });
+
+  it("says the link handed out where no email went opens the same sign-up page, or the sign-in page for an account", () => {
+    const invitationLink: string = collapsed(
+      readCommonSource("Server/Utils/InvitationLink.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // An account with a password is sent the sign-in page; one without, the sign-up link.
+    expect(invitationLink).toContain(
+      "if (user.password) { return { link: await InvitationLink.getSignInLink(),",
+    );
+    expect(invitationLink).toContain(
+      "await UserRegistrationToken.generateRegistrationLink({ userId: user.id, email: user.email, });",
+    );
+    // The sign-up link is the one the email's Create Your Account carries.
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain("await UserRegistrationToken.generateRegistrationLink({");
+
+    expect(accept[2]).toBe(NO_EMAIL_ACCEPT);
+    // Then the two places for everyone who signs in.
+    expect(accept[3]).toBe(
+      "Someone who signs in, or signs up another way, accepts in one of two places:",
+    );
+  });
+
+  it("says email set up later sends no invitation made before it: an invitation is emailed when it is made", () => {
+    const service: string = readCommonSource(
+      "Server/Services/TeamMemberService.ts",
+    );
+    const onCreate: string = between(
+      service,
+      "protected override async onBeforeCreate(",
+      "protected override async onBeforeUpdate(",
+    );
+
+    // The one InviteMember email, sent as the membership is made.
+    expect(service.split("EmailTemplateType.InviteMember").length - 1).toBe(1);
+    expect(onCreate).toContain("templateType: EmailTemplateType.InviteMember,");
+    expect(NO_EMAIL_STEP).toContain(
+      "Email set up later does not send the invitations made before it: they get in with their invitation link, or by signing up with the address you invited.",
     );
   });
 
@@ -781,6 +903,20 @@ describe("Inviting People", () => {
     ).toBe(true);
     expect(refusals).toContain(
       ':::details "You have reached the user limit for the free plan"',
+    );
+
+    // Remove from Project's refusal, by its first sentence (#6599).
+    const someTeamsOnly: string =
+      "You can remove this person from only some of their teams, so you can't remove them from the project";
+
+    expect(
+      Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY.startsWith(
+        `${someTeamsOnly}.`,
+      ),
+    ).toBe(true);
+    expect(refusals).toContain(`:::details "${someTeamsOnly}"`);
+    expect(detailsText(page, `"${someTeamsOnly}"`)).toBe(
+      "Your role removes people only from some of the project's teams, such as the ones you own, and this person is in others too. Remove them from your own teams on their **Teams** page, or ask a Project Owner or Project Admin to remove them from the project.",
     );
 
     // The Free plan holds one person.
@@ -956,6 +1092,7 @@ describe("Inviting People", () => {
     it("ends the troubleshooting answer for a missing invitation email with what happens without email, in a paragraph of its own", () => {
       expect(paragraphs(answer)).toEqual([
         "The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.",
+        WENT_OUT_ANSWER,
         NO_EMAIL_ANSWER,
       ]);
       // The list, its row menu and the action, as the Dashboard draws them.
@@ -1217,6 +1354,76 @@ describe("Inviting People", () => {
     expect(section(page, "## Remove someone from the project")).toContain(
       "open the person's row menu, **⋯**, and click **Remove from Project**",
     );
+  });
+
+  /*
+   * Someone whose role removes people only from the teams they own cannot
+   * take a person off a team they do not (#6599): Remove from Project is
+   * locked for them, naming the teams that keep the person - the ones the
+   * reader may read - on the row, in Bulk Actions and on the person's page.
+   */
+  it("says Remove from Project is locked for someone a role reaching only some teams cannot take off every team, naming the teams it may see", () => {
+    const removalReach: string = collapsed(
+      readDashboardSource("Utils/ProjectRemovalReach.ts"),
+    );
+    const personPage: string = collapsed(
+      readDashboardSource("Components/User/RemoveUserFromProject.tsx"),
+    );
+    const route: string = collapsed(
+      readCommonSource("Server/API/TeamMemberAPI.ts"),
+    );
+
+    // The row's lock, which a bulk removal checks too.
+    expect(users).toContain(
+      "getDeleteDisabledReason={removalReach.getDeleteDisabledReason}",
+    );
+    expect(users).toContain("<ProjectRemovalBulkDetails");
+    // Asked only of a reader who may remove people, but not across the whole project.
+    expect(removalReach).toContain(
+      "GrantablePermission.canCurrentUserActOnWholeProject([ ...PROJECT_REMOVAL_PERMISSIONS, ])",
+    );
+    // The person's page locks it too.
+    expect(personPage).toContain("disabled: Boolean(lockReason),");
+    // Teams are named only for a reader who may read them.
+    expect(route).toContain("await ReadableTeamNames.read({");
+
+    const paragraphsOfSection: Array<string> = paragraphs(
+      section(page, "## Remove someone from the project"),
+    );
+
+    expect(paragraphsOfSection[1]).toBe(REMOVAL_LOCK);
+    expect(boldNames(REMOVAL_LOCK)).toEqual(["Remove from Project"]);
+  });
+
+  it("says where to see whether an invitation email went out: the project's notification logs, and the server's email log", () => {
+    const sideMenu: string = readDashboardSource("Pages/Settings/SideMenu.tsx");
+    const tabs: string = readDashboardSource(
+      "Components/NotificationLogs/NotificationLogsTabs.tsx",
+    );
+    const providers: string = english(EMAIL_PROVIDERS_PAGE);
+    const logHeading: DocsHeading | undefined = scanMarkdown(
+      providers,
+    ).headings.find((heading: DocsHeading): boolean => {
+      return heading.text === "See what the server sent";
+    });
+
+    // The invitation email is the project's, so its log row is too.
+    expect(
+      collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
+    ).toContain(
+      "{ projectId: createBy.data.projectId!, userId: user.id!, }, ).catch(",
+    );
+    expect(sideMenu).toContain('title: "Notification Logs"');
+    expect(tabs).toContain('name: "Email"');
+    // And a failed one is in the server's own email log, for a master admin.
+    expect(`/docs/${EMAIL_PROVIDERS_PAGE}#${logHeading?.slug}`).toBe(
+      EMAIL_LOG_LINK,
+    );
+    expect(section(providers, "## See what the server sent")).toContain(
+      "and every email it failed to send, a project's too",
+    );
+    expect(linkTargets(WENT_OUT_ANSWER)).toEqual([EMAIL_LOG_LINK]);
+    expect(boldNames(WENT_OUT_ANSWER)).toEqual(["Email", "Notification Logs"]);
   });
 });
 
@@ -2917,6 +3124,8 @@ describe("every page", () => {
       const sent: Array<string> = [
         Errors.TeamMemberService.ALREADY_INVITED,
         Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+        // Remove from Project refused for a role that reaches only some teams (#6599).
+        Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
         PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
         // An invitation refused for its address (PublicMessageRateLimit).
         PublicMessageRateLimit.getTeamRefusalMessage({

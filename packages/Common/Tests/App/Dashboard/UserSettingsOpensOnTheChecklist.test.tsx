@@ -367,12 +367,16 @@ describe("the answer remembered in this browser", () => {
   });
 
   test("a browser that keeps nothing remembers nothing, and never fails", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-      throw new Error("SecurityError");
-    });
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("QuotaExceededError");
-    });
+    jest
+      .spyOn(Object.getPrototypeOf(window.localStorage), "getItem")
+      .mockImplementation(() => {
+        throw new Error("SecurityError");
+      });
+    jest
+      .spyOn(Object.getPrototypeOf(window.localStorage), "setItem")
+      .mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
 
     expect(() => {
       rememberLanding({
@@ -731,10 +735,10 @@ describe("the checklist, handed over", () => {
     const actual: typeof import("../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/useSetupChecklist") =
       jest.requireActual(
         "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/useSetupChecklist",
-      );
+      ) as never;
 
     const API: { default: { get: (...args: Array<unknown>) => unknown } } =
-      jest.requireActual("../../../UI/Utils/API/API");
+      jest.requireActual("../../../UI/Utils/API/API") as never;
     const getSpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API.default, "get")
       .mockRejectedValue(new Error("Recheck read it") as never);
@@ -775,7 +779,7 @@ describe("every read of the checklist", () => {
     answer: UserReadinessWire,
   ): void => {
     const API: { default: { get: (...args: Array<unknown>) => unknown } } =
-      jest.requireActual("../../../UI/Utils/API/API");
+      jest.requireActual("../../../UI/Utils/API/API") as never;
     const ModelAPI: {
       default: {
         getCommonHeaders: () => unknown;
@@ -783,7 +787,7 @@ describe("every read of the checklist", () => {
         getList: () => unknown;
         count: () => unknown;
       };
-    } = jest.requireActual("../../../UI/Utils/ModelAPI/ModelAPI");
+    } = jest.requireActual("../../../UI/Utils/ModelAPI/ModelAPI") as never;
 
     jest.spyOn(API.default, "get").mockImplementation((async (data: {
       url: { toString(): string };
@@ -808,7 +812,7 @@ describe("every read of the checklist", () => {
       const actual: typeof import("../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/useSetupChecklist") =
         jest.requireActual(
           "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/useSetupChecklist",
-        );
+        ) as never;
 
       return await actual.loadSetupChecklist({
         userId: USER_ID,
@@ -827,7 +831,7 @@ describe("every read of the checklist", () => {
       };
     } = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/MyReadiness",
-    );
+    ) as never;
 
     MyReadiness.default.clear();
     stubReads(readiness({ status: "PartiallyReady", gap: true }));
@@ -856,7 +860,7 @@ describe("every read of the checklist", () => {
 
   test("a readiness read that fails remembers nothing", async () => {
     const API: { default: { get: (...args: Array<unknown>) => unknown } } =
-      jest.requireActual("../../../UI/Utils/API/API");
+      jest.requireActual("../../../UI/Utils/API/API") as never;
 
     jest
       .spyOn(API.default, "get")

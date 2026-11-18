@@ -34,6 +34,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -41,6 +42,12 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
  */
 beforeEach(() => {
   stubProjectDirectory({});
+
+  /*
+   * Who invited them is read as its own account (InvitationInviter), held
+   * in TeamMemberInvitationEmailById: here the invitation names nobody.
+   */
+  jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(null);
 });
 
 /*
