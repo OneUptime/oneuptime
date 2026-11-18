@@ -53,6 +53,7 @@ export const RUM_EXAMPLE_APP_NAMES: Readonly<Record<RumClient, string>> = {
 
 export const RUM_BROWSER_SETUP_DOCS_URL: string = "/docs/rum/browser-setup";
 export const RUM_MOBILE_SETUP_DOCS_URL: string = "/docs/rum/mobile-setup";
+export const RUM_ANDROID_SETUP_DOCS_URL: string = "/docs/rum/android-setup";
 export const RUM_TROUBLESHOOTING_DOCS_URL: string = "/docs/rum/troubleshooting";
 export const RUM_WEB_VITALS_DOCS_URL: string = "/docs/rum/web-vitals";
 export const SESSION_REPLAY_DOCS_URL: string = "/docs/telemetry/session-replay";
@@ -568,12 +569,12 @@ All three are on the key's page in **Project Settings > Telemetry & APM > Ingest
       title: "SDK notes for Android, iOS and React Native",
       summary:
         "Which device attributes each SDK sets for you, and where to find its code.",
-      markdown: `- **Android** — the [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent's own resource provides \`device.model.identifier\`, \`device.manufacturer\` and an install-scoped \`device.id\`, so classification works without extra configuration. Verify it on your version: if the **Clients** tab stays empty while traces arrive, add the device attributes yourself.
+      markdown: `- **Android** — the [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent (\`io.opentelemetry.android:android-agent\`) sets \`device.model.identifier\`, \`device.model.name\` and \`device.manufacturer\` on its own resource, so classification works without extra configuration, and it reports crashes, ANRs, slow and frozen frames, app starts and sessions by itself. It names the app after its launcher label unless you set \`service.name\`, and it sends no \`device.id\`. [Android Setup](${RUM_ANDROID_SETUP_DOCS_URL}) has the Gradle dependency, the code and what each of those becomes in OneUptime.
 - **iOS / Swift** — with [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), set \`device.model.identifier\` and \`device.manufacturer\` on the resource yourself: the resource an SDK version contributes has changed between releases.
 - **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](${RUM_BROWSER_SETUP_DOCS_URL}) with two differences: there is no \`browserDetector\`, and you set \`device.manufacturer\` and \`device.model.identifier\` yourself so the telemetry classifies as mobile. It still sends with a **Server** key, like any mobile app.
 - **Anything else** — Flutter, Unity, .NET MAUI or a hand-rolled OTLP writer work the same way, as long as the resource carries \`service.name\` plus one \`device.*\` attribute.
 
-The mobile OpenTelemetry SDKs are pre-1.0 and their builder APIs change between releases. [Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL}) has code for each; check the method names against the version you pin.`,
+The mobile OpenTelemetry SDKs change their builder APIs between releases. [Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL}) has code for each; check the method names against the version you pin.`,
     },
     {
       title: "Labels and owners",
@@ -593,8 +594,9 @@ To label applications or assign owners by name, use **Real User Monitoring → S
     {
       title: "What you get",
       summary:
-        "Page views, error rate and p95 duration, device models and the telemetry tabs.",
-      markdown: `- **Overview** — page views, error rate and p95 duration over a selectable time range, with trend charts, derived from the spans your instrumentation emits.
+        "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.",
+      markdown: `- **Overview** — events, error rate and p95 duration over a selectable time range, with trend charts, derived from the spans your instrumentation emits.
+- **Exceptions** — the crashes and ANRs your app reports, as unhandled exceptions, on the Overview and in **Exceptions**. OpenTelemetry Android reports both on its own; an ANR is listed as the type \`ANR\`.
 - **Logs**, **Traces** and **Metrics** — the telemetry explorers, scoped to this application.
 - **Clients** — the device models the application has been seen on, from \`device.model.identifier\`. Coarse by model, never per end user.
 
@@ -644,10 +646,16 @@ The Service that was already created does not turn into a RUM application — th
 /* ---------------------------------------------------------------- Guide */
 
 function getLinks(client: RumClient): Array<SetupGuideLink> {
+  if (client === "mobile") {
+    return [
+      { title: "Mobile setup", url: RUM_MOBILE_SETUP_DOCS_URL },
+      { title: "Android setup", url: RUM_ANDROID_SETUP_DOCS_URL },
+      { title: "RUM troubleshooting", url: RUM_TROUBLESHOOTING_DOCS_URL },
+    ];
+  }
+
   return [
-    client === "mobile"
-      ? { title: "Mobile setup", url: RUM_MOBILE_SETUP_DOCS_URL }
-      : { title: "Browser setup", url: RUM_BROWSER_SETUP_DOCS_URL },
+    { title: "Browser setup", url: RUM_BROWSER_SETUP_DOCS_URL },
     { title: "RUM troubleshooting", url: RUM_TROUBLESHOOTING_DOCS_URL },
   ];
 }
