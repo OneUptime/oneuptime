@@ -10,6 +10,7 @@ jest.mock("../../../Server/Utils/Express", () => {
 
 import CommonAPI from "../../../Server/API/CommonAPI";
 import ProductFeedbackAPI, {
+  PRODUCT_FEEDBACK_ANSWER_NOT_FOUND_MESSAGE,
   PRODUCT_FEEDBACK_OFF_MESSAGE,
   PRODUCT_FEEDBACK_TOO_MANY_MESSAGE,
 } from "../../../Server/API/ProductFeedbackAPI";
@@ -30,6 +31,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -41,6 +43,7 @@ import {
   GiveFeedbackCategory,
   GiveFeedbackDestination,
   ONEUPTIME_SUPPORT_EMAIL,
+  PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_SUMMARY_ROUTE,
   PRODUCT_FEEDBACK_ASK_ROUTE,
@@ -133,6 +136,7 @@ let submit: jest.SpyInstance;
 let addDetails: jest.SpyInstance;
 let getAdminSummary: jest.SpyInstance;
 let getAdminList: jest.SpyInstance;
+let deleteAnswer: jest.SpyInstance;
 let sendJson: jest.SpyInstance;
 let takeAnswer: jest.SpyInstance;
 let prepareEmail: jest.SpyInstance;
@@ -193,6 +197,9 @@ beforeEach(() => {
   getAdminList = jest
     .spyOn(ProductFeedbackService, "getAdminList")
     .mockResolvedValue({ items: [], count: 0 });
+  deleteAnswer = jest
+    .spyOn(ProductFeedbackService, "deleteAnswer")
+    .mockResolvedValue(true);
   takeAnswer = jest
     .spyOn(ProductFeedbackRateLimit, "take")
     .mockReturnValue(true);
@@ -221,11 +228,17 @@ async function call(
   uri: string,
   body?: unknown,
   query?: Record<string, string>,
+  params?: Record<string, string>,
 ): Promise<unknown> {
   const next: jest.Mock = jest.fn();
 
   await routeFor(method, uri).handlerFunction(
-    { query: query || {}, params: {}, headers: {}, body: body } as never,
+    {
+      query: query || {},
+      params: params || {},
+      headers: {},
+      body: body,
+    } as never,
     {} as never,
     next as unknown as NextFunction,
   );
@@ -238,7 +251,7 @@ const answered: () => JSONObject = (): JSONObject => {
 };
 
 describe("the routes", () => {
-  test("one bare router: a person's four behind the user middleware, the admins' two behind the master-admin one", () => {
+  test("one bare router: a person's four behind the user middleware, the admins' three behind the master-admin one", () => {
     expect(ProductFeedbackAPI).toBe(mockRouter);
 
     expect(
@@ -263,6 +276,12 @@ describe("the routes", () => {
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       ]);
     }
+
+    // Deleting an answer is a master admin's, alone (#7366).
+    expect(
+      routeFor("DELETE", `${PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE}/:answerId`)
+        .middlewares,
+    ).toEqual([MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware]);
   });
 });
 
@@ -692,5 +711,75 @@ describe("the master admins' reads", () => {
       }),
     ).toBeInstanceOf(BadDataException);
     expect(getAdminList).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /product-feedback/admin/answer/:answerId (#7366)", () => {
+  const DELETE_URI: string = `${PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE}/:answerId`;
+
+  test("deletes the answer named, and says so", async () => {
+    expect(
+      await call("DELETE", DELETE_URI, undefined, undefined, {
+        answerId: ANSWER_ID.toString(),
+      }),
+    ).toBeUndefined();
+    expect(deleteAnswer).toHaveBeenCalledTimes(1);
+    expect((deleteAnswer.mock.calls[0]![0] as ObjectID).toString()).toBe(
+      ANSWER_ID.toString(),
+    );
+    expect(answered()).toEqual({ deleted: true });
+  });
+
+  test("an answer already gone is a 404 that says so, never a pretended delete", async () => {
+    deleteAnswer.mockResolvedValue(false);
+
+    const error: unknown = await call(
+      "DELETE",
+      DELETE_URI,
+      undefined,
+      undefined,
+      {
+        answerId: ANSWER_ID.toString(),
+      },
+    );
+
+    expect(error).toBeInstanceOf(NotFoundException);
+    expect((error as Error).message).toBe(
+      PRODUCT_FEEDBACK_ANSWER_NOT_FOUND_MESSAGE,
+    );
+    expect(sendJson).not.toHaveBeenCalled();
+  });
+
+  test("an id that is not one is a 400, and nothing is deleted", async () => {
+    for (const answerId of ["", "not-an-id", "1; DROP TABLE"]) {
+      expect(
+        await call("DELETE", DELETE_URI, undefined, undefined, { answerId }),
+      ).toBeInstanceOf(BadDataException);
+    }
+    expect(deleteAnswer).not.toHaveBeenCalled();
+  });
+});
+
+describe("the list's kinds (#7209)", () => {
+  test("a docs page's answers can be listed on their own", async () => {
+    await call("GET", PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE, undefined, {
+      kind: "docs_page",
+    });
+
+    expect(getAdminList.mock.calls[0]![0]).toMatchObject({
+      kind: ProductFeedbackKind.DocsPage,
+    });
+  });
+
+  test("the Dashboard can never post a docs page's answer: only the docs keep those", async () => {
+    const error: unknown = await call("POST", PRODUCT_FEEDBACK_ROUTE, {
+      kind: "docs_page",
+      topic: "monitor/website-monitor",
+      isPositive: false,
+    });
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).not.toContain("docs_page");
+    expect(submit).not.toHaveBeenCalled();
   });
 });
