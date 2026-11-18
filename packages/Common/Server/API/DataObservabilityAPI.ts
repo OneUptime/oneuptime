@@ -124,6 +124,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * DATA OBSERVABILITY'S OWN ROUTES, BESIDE THE DATA ASSET CRUD ROUTES.
@@ -1845,6 +1847,13 @@ export default class DataObservabilityAPI extends BaseAPI<
       route,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      /*
+       * A change or an action of Data Observability - every route but its reads -
+       * is refused while the server has switched it off (#7479).
+       */
+      ...(permissions === READ_PERMISSIONS
+        ? []
+        : [ServerProductRoutes.refuseWhileOff(ProductKey.DataObservability)]),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

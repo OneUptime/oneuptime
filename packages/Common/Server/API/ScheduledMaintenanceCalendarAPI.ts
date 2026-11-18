@@ -41,6 +41,8 @@ import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { MAINTENANCE_CALENDAR_FILE_NAME } from "../../Types/ScheduledMaintenance/MaintenanceCalendar";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * The HTTP face of the team's calendar link for scheduled maintenance.
@@ -680,6 +682,7 @@ router.post(
   TEAM_FEED_PUBLISH_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.ScheduledMaintenance),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -746,6 +749,7 @@ router.post(
   TEAM_FEED_ROTATE_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.ScheduledMaintenance),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

@@ -222,6 +222,8 @@ import {
   getStatusPageHistoryInDays,
   HISTORY_IN_DAYS_RESPONSE_KEY,
 } from "../../Utils/StatusPage/HistoryWindow";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -1235,6 +1237,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.StatusPages),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (

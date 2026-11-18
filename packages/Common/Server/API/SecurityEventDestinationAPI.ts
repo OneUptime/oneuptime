@@ -19,6 +19,8 @@ import { SecurityEventDestinationSettings } from "../Utils/SecurityEvent/Destina
 import ConnectorErrorMessage from "../Utils/SecurityEvent/ConnectorErrorMessage";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * Security event destinations: the CRUD routes, and
@@ -49,6 +51,7 @@ export default class SecurityEventDestinationAPI extends BaseAPI<
       `${basePath}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

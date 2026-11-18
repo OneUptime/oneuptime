@@ -29,6 +29,8 @@ import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * "Can this responder actually be paged?" answered over HTTP, for one policy,
@@ -794,6 +796,7 @@ router.get(
 router.post(
   "/on-call-readiness/send-setup-reminder",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

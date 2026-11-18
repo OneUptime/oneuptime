@@ -28,6 +28,8 @@ import DiscoveryImportRunner, {
 import DiscoveredDevices from "../Utils/NetworkDevice/DiscoveredDevices";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * IMPORTING A DISCOVERY SCAN'S HOSTS, OVER HTTP (Network > Discovery >
@@ -197,6 +199,7 @@ async function readImportView(data: {
 router.post(
   "/network-device-discovery-import/start",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -234,6 +237,7 @@ router.post(
 router.post(
   "/network-device-discovery-import/start-from-discovered-devices",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -400,6 +404,7 @@ router.get(
 router.post(
   "/network-device-discovery-import/import/:importId/stop",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -442,6 +447,7 @@ router.post(
 router.post(
   "/network-device-discovery-import/import/:importId/retry",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

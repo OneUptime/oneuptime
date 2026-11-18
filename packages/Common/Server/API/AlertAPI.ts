@@ -29,6 +29,8 @@ import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
 import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
   public constructor() {
@@ -39,6 +41,7 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
       `${new this.entityType().getCrudApiPath()?.toString()}/generate-note-from-ai/:alertId`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Alerts),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);

@@ -39,6 +39,8 @@ import IncidentSubscriberAudienceBuilder, {
 } from "../Utils/StatusPage/IncidentSubscriberAudienceBuilder";
 import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
 import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export default class IncidentAPI extends BaseAPI<
   Incident,
@@ -68,6 +70,7 @@ export default class IncidentAPI extends BaseAPI<
         ?.toString()}/generate-postmortem-from-ai/:incidentId`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generatePostmortemFromAI(req, res);
@@ -84,6 +87,7 @@ export default class IncidentAPI extends BaseAPI<
         ?.toString()}/generate-note-from-ai/:incidentId`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);

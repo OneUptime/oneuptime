@@ -61,6 +61,8 @@ import TelemetryExceptionMerge, {
   ExceptionMergeResult,
   ExceptionUnmergeResult,
 } from "../Utils/Telemetry/TelemetryExceptionMerge";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -120,6 +122,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/create-ai-agent-task/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.createAIAgentTask(req, res);
@@ -306,6 +309,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/merge/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.mergeExceptions(req, res);
@@ -320,6 +324,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/unmerge/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.unmergeException(req, res);

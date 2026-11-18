@@ -33,6 +33,8 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * The Traffic pages' one read: POST /network-traffic/summary - a device's,
@@ -243,6 +245,7 @@ export default class NetworkTrafficAPI {
     router.post(
       "/network-traffic/link-appliance",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -275,6 +278,7 @@ export default class NetworkTrafficAPI {
     router.post(
       "/network-traffic/unlink-appliance",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (
         req: ExpressRequest,
         res: ExpressResponse,

@@ -33,6 +33,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // Beside the rule table's CRUD path, /service-level-objective-burn-rate-rule.
 export const SLO_RECOMMENDED_BURN_RATE_RULES_ROUTE: string =
@@ -134,6 +136,7 @@ export default class ServiceLevelObjectiveBurnRateRuleAPI extends BaseAPI<
     this.router.post(
       `${basePath}${SLO_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE}`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Slos),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -217,6 +220,7 @@ export default class ServiceLevelObjectiveBurnRateRuleAPI extends BaseAPI<
     this.router.post(
       `${basePath}${SLO_BULK_ADD_RECOMMENDED_BURN_RATE_RULES_ROUTE}`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Slos),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

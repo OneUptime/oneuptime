@@ -21,6 +21,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ObjectID from "../../Types/ObjectID";
 import { isOAuth2WorkflowVariable } from "../../Types/Workflow/WorkflowVariableOAuth";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * ------------------------------------------------------------------
@@ -77,6 +79,7 @@ export default class WorkflowVariableAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/:id/refresh-oauth-token`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Workflows),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

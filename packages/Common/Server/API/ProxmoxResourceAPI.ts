@@ -23,6 +23,8 @@ import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // A node's pve externalId is "node/<name>" on the agent and the native push.
 const NODE_EXTERNAL_ID_PREFIX: string = "node/";
@@ -94,6 +96,7 @@ export default class ProxmoxResourceAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/remove-node/:clusterId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Proxmox),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.removeNode(req, res);
