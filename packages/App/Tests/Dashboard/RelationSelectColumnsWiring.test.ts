@@ -31,10 +31,16 @@ import ts from "typescript";
  * carries both a `modelType` and a `select`, walks each nested relation, and
  * resolves the inner columns against the model metadata the server will use.
  *
- * WHAT IT DOES NOT COVER. Only literal `modelType: X` / `select: { ... }` pairs
- * in one object are matched. A select built in a variable, spread in, or
- * assembled conditionally is invisible here, as is any call that names its
- * model somewhere other than a `modelType` property. The count assertion at the
+ * A select, or a relation's select within it, can be a constant declared
+ * elsewhere and named or spread in - `select: A_SELECT`, `monitors: { _id:
+ * true, ...SLO_MONITOR_FIRST_CHECK_SELECT }`. The constant is followed to the
+ * object it is declared with, in the same file or the one it is imported from
+ * (relative, or Common/...), through its own spreads.
+ *
+ * WHAT IT DOES NOT COVER. Only `modelType: X` / `select` pairs in one object
+ * are matched. A select assembled at run time (a function's result, a
+ * conditional spread) is invisible here, as is any call that names its model
+ * somewhere other than a `modelType` property. The count assertion at the
  * bottom guards the parse itself: if a refactor moves the call shape, this file
  * fails rather than quietly checking nothing.
  */
@@ -139,6 +145,183 @@ function readObjectProperties(
   return properties;
 }
 
+const parsedFiles: Map<string, ts.SourceFile> = new Map();
+
+function parseFile(filePath: string): ts.SourceFile {
+  const parsed: ts.SourceFile | undefined = parsedFiles.get(filePath);
+
+  if (parsed) {
+    return parsed;
+  }
+
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    filePath,
+    fs.readFileSync(filePath, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    TSX_FILE_PATTERN.test(filePath) ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+
+  parsedFiles.set(filePath, sourceFile);
+
+  return sourceFile;
+}
+
+// The file an import names: relative to the importer, or Common/... .
+function resolveImport(fromFile: string, specifier: string): string | null {
+  let base: string;
+
+  if (specifier.startsWith(".")) {
+    base = path.resolve(path.dirname(fromFile), specifier);
+  } else if (specifier.startsWith("Common/")) {
+    base = path.join(REPO_ROOT, specifier);
+  } else {
+    return null;
+  }
+
+  for (const candidate of [
+    `${base}.ts`,
+    `${base}.tsx`,
+    path.join(base, "Index.ts"),
+  ]) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+// `{ ... } as const`, `{ ... } satisfies T` and `({ ... })` are the object.
+function unwrapExpression(expression: ts.Expression): ts.Expression {
+  let unwrapped: ts.Expression = expression;
+
+  while (
+    ts.isAsExpression(unwrapped) ||
+    ts.isSatisfiesExpression(unwrapped) ||
+    ts.isParenthesizedExpression(unwrapped)
+  ) {
+    unwrapped = unwrapped.expression;
+  }
+
+  return unwrapped;
+}
+
+/*
+ * The object literal a constant is declared with: in this file, or in the
+ * file it is imported from.
+ */
+function resolveConstantObject(
+  name: string,
+  sourceFile: ts.SourceFile,
+): ts.ObjectLiteralExpression | null {
+  for (const statement of sourceFile.statements) {
+    if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === name &&
+          declaration.initializer
+        ) {
+          const initializer: ts.Expression = unwrapExpression(
+            declaration.initializer,
+          );
+
+          return ts.isObjectLiteralExpression(initializer) ? initializer : null;
+        }
+      }
+    }
+
+    if (
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.importClause?.namedBindings &&
+      ts.isNamedImports(statement.importClause.namedBindings)
+    ) {
+      for (const element of statement.importClause.namedBindings.elements) {
+        if (element.name.text !== name) {
+          continue;
+        }
+
+        const importedFile: string | null = resolveImport(
+          sourceFile.fileName,
+          statement.moduleSpecifier.text,
+        );
+
+        return importedFile
+          ? resolveConstantObject(
+              (element.propertyName ?? element.name).text,
+              parseFile(importedFile),
+            )
+          : null;
+      }
+    }
+  }
+
+  return null;
+}
+
+interface SelectEntry {
+  value: ts.Expression;
+  // Where the scanned file names it: the key, or the spread that brings it.
+  namedAt: ts.Node;
+}
+
+// Spreads of spreads, followed this deep.
+const MAX_SPREAD_DEPTH: number = 5;
+
+/*
+ * A select's keys, the ones a spread brings in included. A select written
+ * once is spread into relation selects - `monitors: { _id: true,
+ * ...SLO_MONITOR_FIRST_CHECK_SELECT }` - and the permission layer walks the
+ * keys a spread brings exactly as it walks the ones written out. The SLO
+ * notice banner's monitors select broke so in 16.0.0's release run, while
+ * this scan read only the keys written out.
+ */
+function readSelectProperties(
+  node: ts.ObjectLiteralExpression,
+  spreadAt: ts.Node | null = null,
+  depth: number = 0,
+): Map<string, SelectEntry> {
+  const entries: Map<string, SelectEntry> = new Map();
+
+  for (const property of node.properties) {
+    if (
+      ts.isPropertyAssignment(property) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+    ) {
+      entries.set(property.name.text, {
+        value: property.initializer,
+        namedAt: spreadAt ?? property.initializer,
+      });
+      continue;
+    }
+
+    if (
+      ts.isSpreadAssignment(property) &&
+      ts.isIdentifier(property.expression) &&
+      depth < MAX_SPREAD_DEPTH
+    ) {
+      const spread: ts.ObjectLiteralExpression | null = resolveConstantObject(
+        property.expression.text,
+        property.getSourceFile(),
+      );
+
+      if (spread) {
+        for (const [key, entry] of readSelectProperties(
+          spread,
+          spreadAt ?? property,
+          depth + 1,
+        )) {
+          entries.set(key, entry);
+        }
+      }
+    }
+  }
+
+  return entries;
+}
+
 function collectRelationSelectSites(): Array<RelationSelectSite> {
   const modelNames: Set<string> = listModelNames();
   const sites: Array<RelationSelectSite> = [];
@@ -163,8 +346,13 @@ function collectRelationSelectSites(): Array<RelationSelectSite> {
             readObjectProperties(node);
           const modelTypeExpression: ts.Expression | undefined =
             properties.get("modelType");
-          const selectExpression: ts.Expression | undefined =
+          const selectProperty: ts.Expression | undefined =
             properties.get("select");
+          // `select: A_SELECT` is the object A_SELECT is declared with.
+          const selectExpression: ts.Expression | null | undefined =
+            selectProperty && ts.isIdentifier(selectProperty)
+              ? resolveConstantObject(selectProperty.text, sourceFile)
+              : selectProperty && unwrapExpression(selectProperty);
 
           if (
             modelTypeExpression &&
@@ -173,17 +361,19 @@ function collectRelationSelectSites(): Array<RelationSelectSite> {
             ts.isObjectLiteralExpression(selectExpression) &&
             modelNames.has(modelTypeExpression.text)
           ) {
-            for (const [key, value] of readObjectProperties(selectExpression)) {
+            for (const [key, entry] of readSelectProperties(selectExpression)) {
+              const value: ts.Expression = unwrapExpression(entry.value);
+
               // A nested object literal is a select through a relation.
               if (!ts.isObjectLiteralExpression(value)) {
                 continue;
               }
 
               const { line } = sourceFile.getLineAndCharacterOfPosition(
-                value.getStart(),
+                entry.namedAt.getStart(),
               );
 
-              for (const [innerKey] of readObjectProperties(value)) {
+              for (const [innerKey] of readSelectProperties(value)) {
                 sites.push({
                   file: path.relative(REPO_ROOT, filePath),
                   line: line + 1,
@@ -357,5 +547,35 @@ describe("relation selects only name columns the permission layer allows", () =>
     );
 
     expect(rosterSites.length).toBeGreaterThan(0);
+  });
+
+  test("a relation select spread in from a shared constant is covered: the SLO notice banner's monitors", async () => {
+    /*
+     * The banner reads its monitors' first-check and pause state through the
+     * SLO, spreading SLO_MONITOR_FIRST_CHECK_SELECT (which spreads
+     * MONITOR_PAUSE_FLAGS_SELECT) into the relation. Three of those columns
+     * were not readable through a relation, so the banner's read failed for
+     * everyone and an archived SLO's Settings page lost its banner - found by
+     * 16.0.0's release run, as this scan read only keys written out.
+     */
+    const bannerColumns: Array<string> = (await scan()).sites
+      .filter((site: RelationSelectSite) => {
+        return (
+          site.file.endsWith("Components/Slo/SloNoticeBanner.tsx") &&
+          site.modelName === "ServiceLevelObjective" &&
+          site.relation === "monitors"
+        );
+      })
+      .map((site: RelationSelectSite) => {
+        return site.column;
+      });
+
+    expect(bannerColumns).toEqual(
+      expect.arrayContaining([
+        "firstMeasuredAt",
+        "disableActiveMonitoringBecauseOfManualIncident",
+        "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
+      ]),
+    );
   });
 });
