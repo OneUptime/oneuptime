@@ -8,21 +8,27 @@ import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType
 import {
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceExcerpt,
   DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesSource,
 } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity/DataStoreKey";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import { FindingSampleRecord } from "../../../../Types/DataSecurity/FindingSampleRecord";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
+import { getDataTypePrefilter } from "../../../../Utils/DataSecurity/DetectorPrefilter";
 import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/Index";
 import {
   classifyField,
   FieldClassification,
   FieldClassifierOptions,
 } from "../../../../Utils/DataSecurity/FieldClassifier";
+import { getHintedDataTypeIds } from "../../../../Utils/DataSecurity/FieldNameHints";
+import { buildOccurrenceExcerpt } from "../../../../Utils/DataSecurity/OccurrenceExcerpt";
 import { ScanDetector } from "../../../../Utils/DataSecurity/TextScanner";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
@@ -52,14 +58,22 @@ import {
  *
  * A finding says a data type sits at a location of one service's telemetry
  * - attributes.user.pps in its traces - from a sample a scan classified.
- * This finds the newest records that carry it there, so a person can open
- * the trace, the log line, the exception or the session and see it happen
- * (issue #5594):
+ * This reads the records that carry it there, so a person sees the log line
+ * or the span with the data in its place, and opens the trace, the logs,
+ * the exception or the session (issues #5594 and #9549):
  *
- *  - which records: the store's own - one service's, or one RUM
- *    application's - of the finding's signal, with a value at the
- *    finding's location, the newest first, over the last
- *    OCCURRENCE_WINDOW_IN_DAYS days of data retention still keeps;
+ *  - which records: where the evidence is. The very records the last scan
+ *    found it in, when the finding kept them (FindingSampleRecord): read by
+ *    their millisecond, a lookup. A finding from before scans kept them is
+ *    looked for in the hour the last scan read, before it last saw it, and
+ *    one no scan has seen in the newest records of the last
+ *    OCCURRENCE_WINDOW_IN_DAYS days. It used to be the newest records of
+ *    the last week, whatever the finding: a finding last seen twelve days
+ *    ago had no record in the window, and a type seen in one sampled line
+ *    of four hundred was not among a busy service's newest three hundred;
+ *  - a search, not a lookup, asks the database for the records whose value
+ *    could hold the type (DetectorPrefilter), not every record with a value
+ *    there, so the few hundred it reads are the right ones;
  *  - which of them carry it: each value at the location is read as the
  *    scan read it (readTelemetryRecordValues) and classified with the
  *    finding's own data type's detectors (classifyField), so a record is
@@ -68,8 +82,9 @@ import {
  *    longer one, so a scrubbed finding's newest records stop showing;
  *  - what of them: when it was written, the keys that open it (trace and
  *    span, the exception's group, the session), its name or severity, and
- *    the value masked as a finding's samples are (Masking). Never a raw
- *    value, nor anything else the record holds.
+ *    its value at the location cut around the data, every sensitive value
+ *    in it masked as a finding's samples are (OccurrenceExcerpt). Never a
+ *    raw value of any type.
  *
  * One read, bounded like a scan's: the project is its first condition, the
  * owner and the window the next, at most a few hundred records, every value
@@ -78,8 +93,72 @@ import {
  * a record here that they could not open.
  */
 
-// How far back the newest records are looked for.
+// How far back the newest records are looked for, when no scan has seen it.
 export const OCCURRENCE_WINDOW_IN_DAYS: number = 7;
+
+/*
+ * How long before a scan finished the records it read can be: the hour it
+ * reads (DataSecurityRunner.scanTelemetry), and the minutes a scan of every
+ * service's telemetry takes before its findings are written.
+ */
+export const SAMPLE_WINDOW_IN_MINUTES: number = 75;
+
+// The rows read for each kept record: a few may share its millisecond.
+export const SAMPLED_ROWS_PER_RECORD: number = 4;
+
+/*
+ * Where a finding's records are read: the ones the last scan kept, the
+ * hour it read, or the newest of the last days - and over which window.
+ */
+export interface OccurrenceSearch {
+  source: DataSecurityOccurrencesSource;
+  since: Date;
+  until: Date;
+  // The kept records, for a read of them.
+  records: Array<FindingSampleRecord>;
+}
+
+export function planOccurrenceSearch(data: {
+  now: Date;
+  sampleRecords?: ReadonlyArray<FindingSampleRecord> | undefined;
+  lastSeenAt?: Date | null | undefined;
+}): OccurrenceSearch {
+  const records: Array<FindingSampleRecord> = [...(data.sampleRecords || [])];
+
+  if (records.length > 0) {
+    const times: Array<number> = records.map(
+      (record: FindingSampleRecord): number => {
+        return new Date(record.time).getTime();
+      },
+    );
+
+    return {
+      source: DataSecurityOccurrencesSource.SampledRecords,
+      since: new Date(Math.min(...times)),
+      // The newest record's millisecond, all of it.
+      until: new Date(Math.max(...times) + 1),
+      records,
+    };
+  }
+
+  const lastSeenAt: number =
+    data.lastSeenAt instanceof Date ? data.lastSeenAt.getTime() : NaN;
+
+  if (Number.isFinite(lastSeenAt) && lastSeenAt > 0) {
+    return {
+      source: DataSecurityOccurrencesSource.SampleWindow,
+      since: new Date(lastSeenAt - SAMPLE_WINDOW_IN_MINUTES * 60 * 1000),
+      until: new Date(lastSeenAt),
+      records: [],
+    };
+  }
+
+  return {
+    source: DataSecurityOccurrencesSource.Recent,
+    ...getOccurrenceWindow(data.now),
+    records: [],
+  };
+}
 
 /*
  * The window a read looks in: the last OCCURRENCE_WINDOW_IN_DAYS days to
@@ -517,13 +596,57 @@ function appendOccurrenceColumns(
   statement.append(")) AS readEvents");
 }
 
-// Only the records with a value at the location.
+/*
+ * The value - `appendValue` writes the SQL that holds it - cut where the
+ * scan cuts it, holds what the prefilter matches. Bound, never written in.
+ */
+function appendPrefilter(
+  statement: Statement,
+  appendValue: (statement: Statement) => void,
+  maxLength: number,
+  prefilter: string,
+): void {
+  statement.append("match(substringUTF8(");
+  appendValue(statement);
+  statement.append(", 1, ");
+  appendNumber(statement, maxLength);
+  statement.append(
+    SQL`), ${{ type: TableColumnType.Text, value: prefilter }})`,
+  );
+}
+
+function sqlOf(text: string): (statement: Statement) => void {
+  return (statement: Statement): void => {
+    statement.append(text);
+  };
+}
+
+/*
+ * Only the records with a value at the location - and, given a prefilter
+ * (DetectorPrefilter), only those whose value there could hold the data.
+ * A span's events are read whole: their values are JSON text there.
+ */
 function appendLocationFilter(
   statement: Statement,
   read: OccurrenceRead,
+  caps: TelemetrySampleCaps,
+  prefilter: string | null,
 ): void {
   if (read.kind === "text") {
     statement.append(` AND ${read.column} != ''`);
+
+    if (prefilter) {
+      statement.append(" AND ");
+      appendPrefilter(
+        statement,
+        sqlOf(read.column),
+        read.column === "identifiedUserLabel"
+          ? caps.attributeValueLength
+          : caps.textLength,
+        prefilter,
+      );
+    }
+
     return;
   }
 
@@ -535,6 +658,37 @@ function appendLocationFilter(
       statement.append(
         SQL`${{ type: TableColumnType.Text, value: match.key }})`,
       );
+
+      if (prefilter) {
+        statement.append(" AND ");
+        appendPrefilter(
+          statement,
+          (inner: Statement): void => {
+            inner.append(`${read.column}[`);
+            inner.append(
+              SQL`${{ type: TableColumnType.Text, value: match.key }}]`,
+            );
+          },
+          caps.attributeValueLength,
+          prefilter,
+        );
+      }
+
+      return;
+    }
+
+    if (prefilter) {
+      // A key the location stands for, whose value could hold the data.
+      statement.append(" AND arrayExists((k, v) -> ");
+      appendKeyCondition(statement, match, "k");
+      statement.append(" AND ");
+      appendPrefilter(
+        statement,
+        sqlOf("v"),
+        caps.attributeValueLength,
+        prefilter,
+      );
+      statement.append(`, mapKeys(${read.column}), mapValues(${read.column}))`);
       return;
     }
 
@@ -564,17 +718,112 @@ function readSettings(): string {
   });
 }
 
-// The most records one read of a plan takes.
-export function getOccurrenceReadLimit(plan: OccurrencePlan): number {
-  return plan.read.kind === "events"
-    ? OCCURRENCE_EVENT_RECORDS_PER_READ
-    : OCCURRENCE_RECORDS_PER_READ;
+/*
+ * The most records one read of a plan takes: for kept records, a few rows
+ * for each of their milliseconds.
+ */
+export function getOccurrenceReadLimit(
+  plan: OccurrencePlan,
+  records: ReadonlyArray<FindingSampleRecord> = [],
+): number {
+  const most: number =
+    plan.read.kind === "events"
+      ? OCCURRENCE_EVENT_RECORDS_PER_READ
+      : OCCURRENCE_RECORDS_PER_READ;
+
+  return records.length > 0
+    ? Math.min(most, records.length * SAMPLED_ROWS_PER_RECORD)
+    : most;
+}
+
+/*
+ * What a search asks the database to narrow by: the finding's data type's
+ * own patterns (DetectorPrefilter) - none where the location's name hints
+ * at the type, since a value there counts by its shape or its name alone (a
+ * cvv field's "123"), which no pattern finds.
+ */
+export function getOccurrencePrefilter(data: {
+  dataTypeId: string;
+  location: string;
+  options: ContentScanOptions;
+}): string | null {
+  if (
+    getHintedDataTypeIds(data.location, data.options.extraHints).has(
+      data.dataTypeId,
+    )
+  ) {
+    return null;
+  }
+
+  return getDataTypePrefilter({
+    dataTypeId: data.dataTypeId,
+    customDetectors: data.options.customDetectors,
+  });
+}
+
+/*
+ * A record's value at the location as its excerpt shows it: cut around the
+ * finding's data, every sensitive value in it masked (OccurrenceExcerpt).
+ */
+export function buildOccurrenceExcerptReader(data: {
+  dataTypeId: string;
+  location: string;
+  options: ContentScanOptions;
+}): (value: TelemetryRecordValue) => DataSecurityOccurrenceExcerpt {
+  return (value: TelemetryRecordValue): DataSecurityOccurrenceExcerpt => {
+    return buildOccurrenceExcerpt({
+      value: value.value,
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      field: value.field,
+      event: value.event,
+      options: {
+        customDetectors: data.options.customDetectors,
+        extraHints: data.options.extraHints,
+        disabledDataTypeIds: data.options.disabledDataTypeIds,
+        allowedValues: data.options.allowedValues,
+      },
+    });
+  };
+}
+
+/*
+ * Only the records written in one of the kept records' milliseconds: each
+ * a range of the primary key's own column, so the read is a lookup.
+ */
+function appendRecordTimes(
+  statement: Statement,
+  timeColumn: string,
+  records: ReadonlyArray<FindingSampleRecord>,
+): void {
+  statement.append(" AND (");
+
+  records.forEach((record: FindingSampleRecord, index: number): void => {
+    const time: Date = new Date(record.time);
+
+    statement.append(index === 0 ? "(" : " OR (");
+    statement.append(timeColumn);
+    statement.append(
+      SQL` >= ${{ type: TableColumnType.DateTime64, value: time }} AND `,
+    );
+    statement.append(timeColumn);
+    statement.append(
+      SQL` < ${{
+        type: TableColumnType.DateTime64,
+        value: new Date(time.getTime() + 1),
+      }})`,
+    );
+  });
+
+  statement.append(")");
 }
 
 /*
  * The newest records of one owner in the window with a value at the
- * plan's location: their time and keys, and that value, cut short. Every
- * value in it is bound as a parameter.
+ * plan's location: their time and keys, and that value, cut short. Given
+ * kept records, only those records' milliseconds; given a prefilter, only
+ * records whose value could hold the data. Every value in it is bound as a
+ * parameter.
  */
 export function buildTelemetryOccurrenceStatement(
   data: TelemetryReadWindow & {
@@ -582,6 +831,8 @@ export function buildTelemetryOccurrenceStatement(
     ownerId: string;
     limit: number;
     caps: TelemetrySampleCaps;
+    records?: ReadonlyArray<FindingSampleRecord> | undefined;
+    prefilter?: string | null | undefined;
   },
 ): Statement {
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
@@ -597,7 +848,17 @@ export function buildTelemetryOccurrenceStatement(
   statement.append(tableOf(source.table));
   appendWhere(statement, source, data);
   appendOwnersIn(statement, source, [data.ownerId]);
-  appendLocationFilter(statement, data.plan.read);
+
+  if (data.records && data.records.length > 0) {
+    appendRecordTimes(statement, source.timeColumn, data.records);
+  }
+
+  appendLocationFilter(
+    statement,
+    data.plan.read,
+    data.caps,
+    data.prefilter || null,
+  );
   statement.append(" ORDER BY ");
   statement.append(source.timeColumn);
   statement.append(" DESC LIMIT ");
@@ -718,6 +979,10 @@ export function readOccurrenceRows(data: {
    * a variable as a pattern made from what a project writes.
    */
   maskIfFound: (value: string) => string | null;
+  // The excerpt of a value that holds it (buildOccurrenceExcerptReader).
+  excerptOf?:
+    | ((value: TelemetryRecordValue) => DataSecurityOccurrenceExcerpt)
+    | undefined;
   max: number;
 }): { occurrences: Array<DataSecurityFindingOccurrence>; recordsRead: number } {
   const occurrences: Array<DataSecurityFindingOccurrence> = [];
@@ -758,15 +1023,19 @@ export function readOccurrenceRows(data: {
       const maskedValue: string | null = data.maskIfFound(value.value);
 
       if (maskedValue) {
-        occurrences.push(
-          occurrenceOf({
-            source: data.plan.source,
-            row,
-            ownerId: data.ownerId,
-            time,
-            maskedValue,
-          }),
-        );
+        const occurrence: DataSecurityFindingOccurrence = occurrenceOf({
+          source: data.plan.source,
+          row,
+          ownerId: data.ownerId,
+          time,
+          maskedValue,
+        });
+
+        if (data.excerptOf) {
+          occurrence.excerpt = data.excerptOf(value);
+        }
+
+        occurrences.push(occurrence);
         break;
       }
     }
@@ -797,12 +1066,23 @@ export function getTelemetryStoreOwnerId(store: {
   return ObjectID.isValidUUID(ownerId) ? ownerId : null;
 }
 
+async function readRows(
+  source: SourceDefinition,
+  statement: Statement,
+): Promise<Array<JSONObject>> {
+  const result: Results = await source.runner.executeQuery(statement);
+  const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+
+  return (response.data || []) as Array<JSONObject>;
+}
+
 /*
- * The newest records of a telemetry store that carry a finding's data at
- * its location, read now. The caller has checked the reader may read the
- * store's telemetry; `options` is the project's scan setup
- * (DataSecurityRunner.getScanSetup), for its custom types, hints, allowed
- * values and the scan's caps.
+ * The records of a telemetry store that carry a finding's data at its
+ * location, read now: the ones the last scan kept, the hour it read, or the
+ * newest of the last days (planOccurrenceSearch). The caller has checked
+ * the reader may read the store's telemetry; `options` is the project's
+ * scan setup (DataSecurityRunner.getScanSetup), for its custom types,
+ * hints, allowed values and the scan's caps.
  */
 export async function findTelemetryFindingOccurrences(data: {
   projectId: ObjectID;
@@ -811,40 +1091,79 @@ export async function findTelemetryFindingOccurrences(data: {
   location: string;
   dataTypeId: string;
   options: ContentScanOptions;
+  // The records the last scan found it in, and when that was.
+  sampleRecords?: ReadonlyArray<FindingSampleRecord> | undefined;
+  lastSeenAt?: Date | null | undefined;
   now?: Date | undefined;
 }): Promise<DataSecurityFindingOccurrences> {
-  const { since, until } = getOccurrenceWindow(
-    data.now || OneUptimeDate.getCurrentDate(),
-  );
+  const search: OccurrenceSearch = planOccurrenceSearch({
+    now: data.now || OneUptimeDate.getCurrentDate(),
+    sampleRecords: data.sampleRecords,
+    lastSeenAt: data.lastSeenAt,
+  });
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const caps: TelemetrySampleCaps = capsOf(source, data.options);
-  const limit: number = getOccurrenceReadLimit(data.plan);
-  let rows: Array<JSONObject>;
+  const limit: number = getOccurrenceReadLimit(data.plan, search.records);
+  // A lookup of kept records needs no narrowing; a search does.
+  const prefilter: string | null =
+    search.source === DataSecurityOccurrencesSource.SampledRecords
+      ? null
+      : getOccurrencePrefilter({
+          dataTypeId: data.dataTypeId,
+          location: data.location,
+          options: data.options,
+        });
 
-  try {
-    const result: Results = await source.runner.executeQuery(
-      buildTelemetryOccurrenceStatement({
-        projectId: data.projectId,
-        since,
-        until,
-        plan: data.plan,
-        ownerId: data.ownerId,
-        limit,
-        caps,
-      }),
-    );
-    const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+  const statementFor: (prefilter: string | null) => Statement = (
+    narrowedBy: string | null,
+  ): Statement => {
+    return buildTelemetryOccurrenceStatement({
+      projectId: data.projectId,
+      since: search.since,
+      until: search.until,
+      plan: data.plan,
+      ownerId: data.ownerId,
+      limit,
+      caps,
+      records: search.records,
+      prefilter: narrowedBy,
+    });
+  };
 
-    rows = (response.data || []) as Array<JSONObject>;
-  } catch (error) {
+  const readFailed: (error: unknown) => void = (error: unknown): void => {
     logger.warn(
       `DataSecurity: could not read the records of ${source.label} ${data.ownerId} at ${data.location} in project ${data.projectId.toString()}:`,
     );
     logger.warn(error);
+  };
 
-    throw new BadDataException(
-      "Could not read these records just now. Try again in a minute.",
-    );
+  let rows: Array<JSONObject>;
+
+  try {
+    rows = await readRows(source, statementFor(prefilter));
+  } catch (error) {
+    readFailed(error);
+
+    /*
+     * Narrowed, a search the database could not run - an expression it
+     * refused, a search that ran out of time - is read again as it always
+     * was: the newest records with a value there.
+     */
+    if (!prefilter) {
+      throw new BadDataException(
+        "Could not read these records just now. Try again in a minute.",
+      );
+    }
+
+    try {
+      rows = await readRows(source, statementFor(null));
+    } catch (retryError) {
+      readFailed(retryError);
+
+      throw new BadDataException(
+        "Could not read these records just now. Try again in a minute.",
+      );
+    }
   }
 
   const read: {
@@ -861,14 +1180,26 @@ export async function findTelemetryFindingOccurrences(data: {
       location: data.location,
       options: data.options,
     }),
+    excerptOf: buildOccurrenceExcerptReader({
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      options: data.options,
+    }),
     max: MAX_OCCURRENCES,
   });
 
-  return {
+  const found: DataSecurityFindingOccurrences = {
     occurrences: read.occurrences,
-    since: since.toISOString(),
-    until: until.toISOString(),
+    since: search.since.toISOString(),
+    until: search.until.toISOString(),
     recordsRead: read.recordsRead,
     isComplete: rows.length < limit,
+    source: search.source,
   };
+
+  if (data.lastSeenAt instanceof Date && !isNaN(data.lastSeenAt.getTime())) {
+    found.lastSeenAt = data.lastSeenAt.toISOString();
+  }
+
+  return found;
 }

@@ -1234,6 +1234,13 @@ export interface TelemetryRecordValue {
   location: string;
   locationKind: DataStoreLocationKind;
   value: string;
+  /*
+   * For an attribute: its key as the record has it, numbered parts and all
+   * (gen_ai.prompt.3.content) - what a record's excerpt names it by.
+   */
+  field?: string | undefined;
+  // For a span event's attribute: the event's name.
+  event?: string | undefined;
 }
 
 function readAttributeValues(
@@ -1264,6 +1271,7 @@ function readAttributeValues(
         location: foldedKey,
         locationKind: DataStoreLocationKind.Body,
         value: boundedValue,
+        field: boundedKey,
       });
       continue;
     }
@@ -1272,6 +1280,7 @@ function readAttributeValues(
       location: data.base + foldedKey,
       locationKind: DataStoreLocationKind.Attribute,
       value: boundedValue,
+      field: boundedKey,
     });
   }
 }
@@ -1312,6 +1321,8 @@ function readEventValues(
           ? DataStoreLocationKind.Body
           : DataStoreLocationKind.Attribute,
         value,
+        field: boundedKey,
+        event: eventName,
       });
     }
   }
