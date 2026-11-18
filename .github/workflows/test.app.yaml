@@ -344,6 +344,9 @@ jobs:
           # 21.6 minutes, group 3 21.8. Group 13 came on the same day for
           # the status page and telemetry setups' suite (#7143, 2.9 minutes:
           # 138 s locally, times 1.26): no group had that left on a lane.
+          # The journeys' two guided journeys (#7141) took Journeys from 4.4
+          # to 4.9 minutes, so Product Onboarding moved from group 2 to group
+          # 13: group 2 21.4 minutes, group 13 2.9.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -369,7 +372,6 @@ jobs:
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-list-delete-ui
-              test-product-onboarding-ui
               test-host-collectors-ui
               test-on-call-guided-setup-ui
               test-resource-onboarding-ui
@@ -513,6 +515,7 @@ jobs:
           - group: 13
             suites: >-
               test-status-page-telemetry-guided-setups-ui
+              test-product-onboarding-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
