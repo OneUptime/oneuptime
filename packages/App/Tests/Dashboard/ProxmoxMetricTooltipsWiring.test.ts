@@ -388,15 +388,16 @@ describe("cluster overview: hero, cards and tables", () => {
     const connection: string = between(
       OVERVIEW,
       'data-testid="proxmox-hero-connection"',
-      'data-testid="proxmox-hero-health"',
+      'testId="proxmox-hero-health"',
     );
 
     expect(connection).toMatch(tooltipPattern("Agent Status", "agentStatus"));
     expect(count(connection, "<InfoTooltip")).toBe(1);
 
+    // The shared pill (ResourceHealthPill), which opens why when it is not Healthy.
     const health: string = between(
       OVERVIEW,
-      'data-testid="proxmox-hero-health"',
+      'testId="proxmox-hero-health"',
       "<ResourceHeroDescription",
     );
 
