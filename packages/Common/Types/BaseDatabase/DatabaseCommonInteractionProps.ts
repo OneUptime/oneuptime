@@ -8,6 +8,7 @@ import {
 } from "../Permission";
 import UserType from "../UserType";
 import WriteSource from "./WriteSource";
+import ReadAudience from "./ReadAudience";
 
 export default interface DatabaseCommonInteractionProps {
   userId?: ObjectID | undefined;
@@ -76,4 +77,13 @@ export default interface DatabaseCommonInteractionProps {
    * it. "Your password was changed" (UserService) says from where.
    */
   requestOrigin?: RequestOrigin | undefined;
+  /*
+   * A run of OneUptime's own whose writing everyone who may see its subject
+   * reads - an AI investigation's report, in its incident's or alert's feed
+   * and channels (#9576). Read with isRoot only: the run reads as root, but
+   * only what every one of those readers may read - the permission layer
+   * narrows each read by it (ReadAudienceScope), as it narrows a person's by
+   * their grants. Never a permission: it only ever takes records away.
+   */
+  readAudience?: ReadAudience | undefined;
 }

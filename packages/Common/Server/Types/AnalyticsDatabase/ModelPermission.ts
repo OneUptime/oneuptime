@@ -51,6 +51,8 @@ import TelemetryReadScopeUtil, {
 } from "../../Utils/Telemetry/TelemetryReadScope";
 import PromiseCache from "../../Utils/PromiseCache";
 import LlmConversationPrivacy from "../../Utils/LlmObservability/LlmConversationPrivacy";
+import ReadAudiencePermission from "../Database/Permissions/ReadAudiencePermission";
+import ReadAudience from "../../../Types/BaseDatabase/ReadAudience";
 import ArrayUtil from "../../../Utils/Array";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
@@ -681,6 +683,20 @@ export default class ModelPermission {
 
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
+
+      /*
+       * A run of OneUptime's own read for everyone who may see its subject
+       * (#9576): the telemetry of the resources it leaves out is left out
+       * with them (ReadAudiencePermission.getTelemetryScope).
+       */
+      if (ReadAudiencePermission.getAudience(props)) {
+        query = await this.addReadScopeToQuery(
+          modelType,
+          query,
+          props,
+          DatabaseRequestType.Read,
+        );
+      }
     }
 
     if (!props.isRoot && !props.isMasterAdmin) {
@@ -1242,6 +1258,23 @@ export default class ModelPermission {
   }
 
   /*
+   * Whose telemetry OneUptime's own read reaches: every resource's - unless
+   * it is a run read for everyone who may see its subject (#9576), which
+   * reads the telemetry of the resources it reads alone
+   * (ReadAudiencePermission.getTelemetryScope).
+   */
+  private static getRootScope(
+    props: DatabaseCommonInteractionProps,
+  ): TelemetryReadScope {
+    const audience: ReadAudience | null =
+      ReadAudiencePermission.getAudience(props);
+
+    return audience
+      ? ReadAudiencePermission.getTelemetryScope(audience)
+      : TelemetryReadScopeUtil.getUnrestrictedScope();
+  }
+
+  /*
    * WHOSE TELEMETRY THE CALLER MAY READ, for one analytics model and
    * operation: the scope the model reads apply (addReadScopeToQuery) and the
    * one the /telemetry/* routes and the AI tools that build their own SQL
@@ -1259,7 +1292,7 @@ export default class ModelPermission {
     type: DatabaseRequestType = DatabaseRequestType.Read,
   ): Promise<TelemetryReadScope> {
     if (props.isRoot || props.isMasterAdmin) {
-      return TelemetryReadScopeUtil.getUnrestrictedScope();
+      return ModelPermission.getRootScope(props);
     }
 
     const model: TBaseModel = new modelType();
@@ -1387,7 +1420,7 @@ export default class ModelPermission {
     const props: DatabaseCommonInteractionProps = data.props;
 
     if (props.isRoot || props.isMasterAdmin) {
-      return TelemetryReadScopeUtil.getUnrestrictedScope();
+      return ModelPermission.getRootScope(props);
     }
 
     const grants: ReadGrants = ModelPermission.getReadGrants(data);
@@ -1498,7 +1531,10 @@ export default class ModelPermission {
     const props: DatabaseCommonInteractionProps = data.props;
 
     if (props.isRoot || props.isMasterAdmin) {
-      return true;
+      return TelemetryReadScopeUtil.isReadable(
+        ModelPermission.getRootScope(props),
+        data.resource.id,
+      );
     }
 
     const grants: ReadGrants = ModelPermission.getReadGrants(data);
@@ -1580,7 +1616,9 @@ export default class ModelPermission {
     data: ReadGrantRequest,
   ): boolean {
     if (data.props.isRoot || data.props.isMasterAdmin) {
-      return true;
+      return TelemetryReadScopeUtil.isProjectWide(
+        ModelPermission.getRootScope(data.props),
+      );
     }
 
     const grants: ReadGrants = ModelPermission.getReadGrants(data);
@@ -1739,7 +1777,11 @@ export default class ModelPermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): Promise<Query<TBaseModel>> {
-    if (props.isRoot || props.isMasterAdmin) {
+    // Root reads all of it - unless it reads for an audience (getRootScope).
+    if (
+      (props.isRoot || props.isMasterAdmin) &&
+      !ReadAudiencePermission.getAudience(props)
+    ) {
       return query;
     }
 
