@@ -11,6 +11,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpResponse,
 } from "../../DataSource/HttpFetch";
 import BiRequestError from "./BiRequestError";
+import { BiSourceRead, BiSourceReader, collectBiSources } from "./BiSources";
 import {
   BiTableRef,
   MAX_BI_NAME_LENGTH,
@@ -104,6 +105,11 @@ export interface BiToolRead {
   datasets?: Array<DataBiDatasetRead> | undefined;
   // What the tool said of those datasets' tables (Power BI); left out otherwise.
   datasetFacts?: DataBiDatasetFacts | undefined;
+  /*
+   * Where those datasets' data comes from (Power BI), each source with how
+   * many datasets read it and the tables read from it; left out otherwise.
+   */
+  sources?: Array<BiSourceRead> | undefined;
 }
 
 export type BiTransport = (
@@ -1029,6 +1035,11 @@ export class PowerBiConnector {
       warnings: [...refreshRead.warnings, ...warnings],
       datasets: datasetReads,
       datasetFacts: getPowerBiDatasetFacts(chartedDatasets),
+      sources: collectBiSources(
+        chartedDatasets.map((dataset: PowerBiDataset): BiSourceReader => {
+          return { sources: dataset.sources, tables: dataset.tables };
+        }),
+      ),
     };
   }
 }

@@ -74,8 +74,8 @@ export const DATA_BI_LINEAGE_PROBLEMS: ReadonlyArray<DataBiLineageProblem> =
 
 // A data source of a tool's summary: how much reads it, and whether OneUptime watches it.
 export interface DataBiLineageSource extends DataBiSource {
-  // Datasets (or dashboards, for a tool with no datasets) whose data comes from it.
-  datasetCount: number;
+  // What reads it: datasets, for a tool with datasets (DataBiLineageSummary.datasets); dashboards otherwise.
+  readerCount: number;
   // Tables read from it, and how many of them matched a watched table.
   tableCount: number;
   matchedTableCount: number;
@@ -229,7 +229,7 @@ export function readDataBiLineageSummary(
         return source && fields
           ? {
               ...source,
-              datasetCount: readCount(fields["datasetCount"]),
+              readerCount: readCount(fields["readerCount"]),
               tableCount: readCount(fields["tableCount"]),
               matchedTableCount: readCount(fields["matchedTableCount"]),
               dataStoreId: readText(fields["dataStoreId"]),

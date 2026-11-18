@@ -6,7 +6,7 @@ import {
   MAX_DATA_DASHBOARD_SOURCES,
 } from "../../../../Types/DataObservability/DataBiLineage";
 import { JSONObject } from "../../../../Types/JSON";
-import { isCollectorEngine } from "../DataObservabilityEngines";
+import { getBiDatabaseSource, uniqueSources } from "./BiSources";
 import { BiTableRef, uniqueTables } from "./BiTables";
 import { readPowerQueryDataset, PowerQueryRead } from "./PowerQuery";
 
@@ -151,41 +151,12 @@ export function readSafeLocation(value: unknown): string | null {
     : text.slice(0, MAX_LOCATION_LENGTH);
 }
 
-// What an engine is called, as a data source's type.
-const ENGINE_TYPES: Readonly<Record<string, string>> = {
-  sqlserver: "SQL Server",
-  postgresql: "PostgreSQL",
-  mysql: "MySQL",
-  oracle: "Oracle",
-  redshift: "Amazon Redshift",
-  snowflake: "Snowflake",
-  bigquery: "Google BigQuery",
-  databricks: "Databricks",
-  athena: "Amazon Athena",
-  dataverse: "Microsoft Dataverse",
-  teradata: "Teradata",
-  db2: "IBM Db2",
-  sybase: "Sybase",
-  saphana: "SAP HANA",
-  informix: "Informix",
-  vertica: "Vertica",
-  impala: "Impala",
-};
-
-function database(
+// A database as a data source: OneUptime's engine only where it can watch it (BiSources).
+const database: (
   engine: string,
   server: string | null,
   databaseName: string | null,
-): DataBiSource {
-  return {
-    type: ENGINE_TYPES[engine] || engine,
-    // Only an engine OneUptime can watch: a Teradata database is a source it cannot.
-    engine: isCollectorEngine(engine) ? engine : null,
-    server: server || null,
-    database: databaseName || null,
-    location: null,
-  };
-}
+) => DataBiSource = getBiDatabaseSource;
 
 function elsewhere(type: string, location: string | null): DataBiSource {
   return { type, engine: null, server: null, database: null, location };
@@ -316,38 +287,6 @@ export function readPowerBiDatasource(value: unknown): DataBiSource | null {
     default:
       return elsewhere(type, url || path);
   }
-}
-
-function sourceKey(source: DataBiSource): string {
-  return [
-    source.type,
-    source.engine,
-    source.server,
-    source.database,
-    source.location,
-  ]
-    .map((part: string | null): string => {
-      return (part || "").toLowerCase();
-    })
-    .join("\u0000");
-}
-
-// Each source once.
-export function uniqueSources(
-  sources: Array<DataBiSource>,
-): Array<DataBiSource> {
-  const seen: Set<string> = new Set();
-
-  return sources.filter((source: DataBiSource): boolean => {
-    const key: string = sourceKey(source);
-
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
 }
 
 interface ScannedDataset {
