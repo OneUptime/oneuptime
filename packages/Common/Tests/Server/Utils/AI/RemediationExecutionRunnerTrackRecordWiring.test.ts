@@ -453,7 +453,10 @@ describe("the fixes made before, in the planner's context", () => {
           readAudience: ReadAudience,
         ) => Promise<Array<string>>;
       }
-    ).describeEarlierFixes(suggestion, readAudienceOf({ projectId: PROJECT_ID }));
+    ).describeEarlierFixes(
+      suggestion,
+      readAudienceOf({ projectId: PROJECT_ID }),
+    );
 
     expect(readEarlierFixes).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -474,14 +477,17 @@ describe("the fixes made before, in the planner's context", () => {
           readAudience: ReadAudience,
         ) => Promise<Array<string>>;
       }
-    ).describeEarlierFixes({
-      id: SUGGESTION_ID,
-      projectId: PROJECT_ID,
-      incidentId: INCIDENT_ID,
-      resourceType: AiResourceType.DockerHost,
-      resourceId: RESOURCE_ID,
-      autoRemediationRuleId: ObjectID.generate(),
-    } as unknown as AutoRemediationSuggestion, readAudienceOf({ projectId: PROJECT_ID }));
+    ).describeEarlierFixes(
+      {
+        id: SUGGESTION_ID,
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+        autoRemediationRuleId: ObjectID.generate(),
+      } as unknown as AutoRemediationSuggestion,
+      readAudienceOf({ projectId: PROJECT_ID }),
+    );
 
     expect(lines).toEqual([]);
     expect(readEarlierFixes).not.toHaveBeenCalled();
@@ -558,6 +564,8 @@ describe("a proposal, with its track record and its buttons", () => {
         projectId: PROJECT_ID,
         excludeSuggestionId: SUGGESTION_ID,
         excludeSubject: { incidentId: INCIDENT_ID, alertId: undefined },
+        // The incidents it names are read for the round's readers (#9612).
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
       }),
     );
 
