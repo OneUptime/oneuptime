@@ -45,12 +45,12 @@ En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular
 
 **Ejerregler** tilføjer ejerbrugere og -teams til nye begivenheder, der matcher, og **Etiketregler** tilføjer etiketter. At oprette en tager to trin: **Match**, betingelserne, og derefter **Ejere** eller **Etiketter**, det, reglen tilføjer.
 
-| Betingelse                                                         | Matcher                                                                    |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| **Monitorer**, **Begivenhedsetiketter**, **Monitoretiketter** | Begivenheder med en af de monitorer eller etiketter, du vælger.            |
-| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | Et mønster, som et regulært udtryk, uden forskel på store og små bogstaver. |
+I trinnet **Match** starter **Gælder for** på **Alle vedligeholdelseshændelser**: reglen handler på hver ny begivenhed. For at indsnævre den vælger du **Kun vedligeholdelseshændelser, der opfylder betingelserne**, udfylder den betingelse, der åbnes, og klikker derefter på **Tilføj betingelse** for hver af de andre. Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver betingelse skal holde, eller **Én skal matche**, hvor én er nok.
 
-En regel matcher kun, når hver betingelse, du udfylder, holder; en betingelse, der står tom, springes over.
+| Betingelse                                                         | Sammenligner med                                                           |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| **Monitorer**, **Begivenhedsetiketter**, **Monitoretiketter** | **Har en af**, **Har alle** eller **Har ingen af** de monitorer eller etiketter, du vælger. |
+| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
 
 - **En regel kan nedarve.** Foldet sammen under **Nedarv ejere** eller **Nedarv etiketter** giver seks kontakter ejerne eller etiketterne videre fra begivenhedens monitorer, værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester.
 - **En ny regel skal tilføje noget**: vælg mindst én ejer eller etiket, eller slå en kontakt til.
@@ -132,7 +132,7 @@ Regler, brugerdefinerede felter og målinger kræver **Projektejer** eller **Pro
 ## Fejlfinding
 
 :::details En ejerregel tilføjede ingen til en ny begivenhed
-Åbn reglen, og kontrollér dens betingelser: hver betingelse, du har udfyldt, skal holde. Et titelmønster er et regulært udtryk, så `db upgrade` matcher ikke "DB-Upgrade"; skriv `db.upgrade`. En regel handler også kun på begivenheder, der er oprettet, efter den blev gemt: brug **Kør nu** til dem, du allerede har.
+Åbn reglen, og kontrollér dens betingelser: med **Alle skal matche** skal hver af dem holde. Tekst sammenlignes, som den er skrevet, bortset fra store og små bogstaver, så **Indeholder** `db upgrade` matcher ikke "DB-Upgrade"; vælg **Matcher mønster**, og skriv `db.upgrade`. En regel handler også kun på begivenheder, der er oprettet, efter den blev gemt: brug **Kør nu** til dem, du allerede har.
 :::
 
 :::details Ejerne fik ingen påmindelse

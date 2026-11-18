@@ -103,6 +103,30 @@ import {
 } from "Common/Utils/Measurement/MeasurementMoments";
 import EventInterval from "Common/Types/Events/EventInterval";
 import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "Common/Types/Rules/RuleCriteria";
+import {
+  getRuleCriteriaSubjectForModel,
+  RuleCriteriaSubject,
+} from "Common/Types/Rules/RuleCriteriaSubject";
+import { RuleCriteriaMatcher } from "Common/Utils/Rules/RuleCriteriaMatcher";
+import RulePatternMatchUtil from "Common/Utils/Rules/RulePatternMatchUtil";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import {
+  RULE_CRITERIA_OPERATOR_LABELS,
+  RuleCriteriaCopy,
+  getDefaultRuleCriteriaOperator,
+  getRuleCriteriaOperatorsForField,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  RuleCriteriaSubjectCopy,
+  getRuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import {
   ONLY_STATE_DELETE_MESSAGES,
   StateRowDeleteEffect,
@@ -3405,65 +3429,287 @@ describe("owner and label rules", () => {
     );
   });
 
-  it("match on the conditions the table lists, the patterns as case-insensitive regular expressions", () => {
-    for (const page of [OWNER_RULES_PAGE, LABEL_RULES_PAGE]) {
-      const titles: Array<string> = quotedTitles(
-        page.slice(page.indexOf("formFields={[")),
-      ).filter((title: string): boolean => {
-        return [
-          "Monitors",
-          "Event Labels",
-          "Monitor Labels",
-          "Event Title",
-          "Event Description",
-          "Monitor Name",
-          "Monitor Description",
-        ].includes(title);
-      });
+  /*
+   * The Match step is the shared condition builder (#9026): each match field
+   * is a condition, and the operators it offers come from the field's type -
+   * a list (the monitors and labels picked) or text (the event's and its
+   * monitors' words). The table says both, as the builder names them.
+   */
+  it("match on the conditions the table lists, with the operators the builder offers each", () => {
+    const listConditions: Array<string> = [
+      "Monitors",
+      "Event Labels",
+      "Monitor Labels",
+    ];
+    const textConditions: Array<string> = [
+      "Event Title",
+      "Event Description",
+      "Monitor Name",
+      "Monitor Description",
+    ];
 
-      expect(titles).toEqual([
-        "Monitors",
-        "Event Labels",
-        "Monitor Labels",
-        "Event Title",
-        "Event Description",
-        "Monitor Name",
-        "Monitor Description",
-      ]);
-      expect(page).toContain(
-        '"Case-insensitive regex matched against event and monitor text."',
+    for (const page of [OWNER_RULES_PAGE, LABEL_RULES_PAGE]) {
+      const formFields: string = page.slice(page.indexOf("formFields={["));
+      const titles: Array<string> = quotedTitles(formFields).filter(
+        (title: string): boolean => {
+          return [...listConditions, ...textConditions].includes(title);
+        },
+      );
+
+      expect(titles).toEqual([...listConditions, ...textConditions]);
+
+      for (const title of listConditions) {
+        const field: string = fieldObject(formFields, title);
+
+        expect({ title, step: stepOf(field) }).toEqual({
+          title,
+          step: "match-criteria",
+        });
+        expect(field).toContain(
+          "fieldType: FormFieldSchemaType.MultiSelectDropdown,",
+        );
+      }
+
+      for (const title of textConditions) {
+        const field: string = fieldObject(formFields, title);
+
+        expect({ title, step: stepOf(field) }).toEqual({
+          title,
+          step: "match-criteria",
+        });
+        expect(field).toContain("fieldType: FormFieldSchemaType.Text,");
+      }
+    }
+
+    // What the builder offers a list field and a text field, by name.
+    const operatorNames: (
+      field: Field<ScheduledMaintenanceOwnerRule>,
+    ) => Array<string> = (
+      field: Field<ScheduledMaintenanceOwnerRule>,
+    ): Array<string> => {
+      return getRuleCriteriaOperatorsForField(field).map(
+        (operator: RuleCriteriaOperator): string => {
+          return RULE_CRITERIA_OPERATOR_LABELS[operator];
+        },
+      );
+    };
+    const listOperators: Array<string> = operatorNames({
+      field: { monitors: true },
+      title: "Monitors",
+      stepId: "match-criteria",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    });
+    const textOperators: Array<string> = operatorNames({
+      field: { titlePattern: true },
+      title: "Event Title",
+      stepId: "match-criteria",
+      fieldType: FormFieldSchemaType.Text,
+    });
+
+    expect(listOperators).toEqual(["Has any of", "Has all of", "Has none of"]);
+    expect(textOperators).toEqual([
+      "Contains",
+      "Does not contain",
+      "Equals",
+      "Does not equal",
+      "Starts with",
+      "Ends with",
+      "Matches pattern",
+      "Does not match pattern",
+    ]);
+
+    // A row names its conditions as a list: "**A**, **B**, **C**".
+    const commaListed: (names: Array<string>) => string = (
+      names: Array<string>,
+    ): string => {
+      return names
+        .map((name: string): string => {
+          return `**${name}**`;
+        })
+        .join(", ");
+    };
+
+    expect(firstColumn(rules)).toEqual([
+      commaListed(listConditions),
+      commaListed(textConditions),
+    ]);
+
+    const comparesWith: Array<string> = tableRows(rules).map(
+      (row: string): string => {
+        return tableCells(row)[1] || "";
+      },
+    );
+
+    expect(comparesWith[0]).toBe(
+      `${listed(listOperators, "or")} the monitors or labels you pick.`,
+    );
+    expect(comparesWith[1]).toBe(
+      `${commaListed(textOperators.slice(0, 6))}, ignoring case, or ${listed(textOperators.slice(6))}, for a regular expression or a \`*\` wildcard.`,
+    );
+
+    // Both engines test text through the one case-insensitive matcher.
+    for (const engine of [
+      "Server/Services/ScheduledMaintenanceOwnerRuleEngineService.ts",
+      "Server/Services/ScheduledMaintenanceLabelRuleEngineService.ts",
+    ]) {
+      expect(readCommonSource(engine)).toContain(
+        "return RulePatternMatchUtil.testRegex(pattern, value);",
       );
     }
 
-    expect(firstColumn(rules)).toEqual([
-      "**Monitors**, **Event Labels**, **Monitor Labels**",
-      "**Event Title**, **Event Description**, **Monitor Name**, **Monitor Description**",
-    ]);
-    expect(rules).toContain(
-      "A pattern, as a regular expression, ignoring case.",
+    expect(RulePatternMatchUtil.testRegex("^db upgrade$", "DB Upgrade")).toBe(
+      true,
     );
   });
 
   /*
-   * The Match step is the shared condition builder, which starts on Match
-   * all: the docs' sentence is its default. It also offers Match any, which
-   * the in-app help says and the docs do not yet (#9026).
+   * A rule starts on every new event: Applies to answers "All maintenance
+   * events" until someone narrows it, and the engines match a rule with no
+   * conditions to every event (emptyResult). With two or more conditions the
+   * builder asks Match all, where it starts, or Match any (#9026: the page
+   * said every condition filled in had to hold).
    */
-  it("match only when every condition filled in holds", () => {
+  it("apply to every new event until narrowed, then match all or any of their conditions", () => {
     const builder: string = readCommonSource(
       "UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx",
     );
+    const copy: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+      RuleCriteriaSubject.ScheduledMaintenanceEvents,
+    );
 
+    for (const model of [
+      "ScheduledMaintenanceOwnerRule",
+      "ScheduledMaintenanceLabelRule",
+    ]) {
+      expect({ model, subject: getRuleCriteriaSubjectForModel(model) }).toEqual(
+        {
+          model,
+          subject: RuleCriteriaSubject.ScheduledMaintenanceEvents,
+        },
+      );
+    }
+
+    expect(copy).toEqual({
+      all: "All maintenance events",
+      matching: "Only maintenance events that match conditions",
+    });
+    expect(RuleCriteriaCopy.appliesToTitle).toBe("Applies to");
+    expect(RuleCriteriaCopy.addCondition).toBe("Add condition");
+    expect(RuleCriteriaCopy.matchAll).toBe("Match all");
+    expect(RuleCriteriaCopy.matchAny).toBe("Match any");
+    expect(RuleCriteriaCopy.matchAllHint).toBe("Every condition must be true.");
+    expect(RuleCriteriaCopy.matchAnyHint).toBe(
+      "At least one condition must be true.",
+    );
     expect(builder).toContain(
       "next.filterCondition || criteria.filterCondition || FilterCondition.All,",
     );
     expect(builder).toContain("[FilterCondition.All, FilterCondition.Any]");
+    expect(builder).toContain(
+      "{isFilterConditionNeeded(criteria.filters) && (",
+    );
+
+    // No conditions: every event. Saved criteria: all of them, or any one.
+    for (const engine of [
+      "Server/Services/ScheduledMaintenanceOwnerRuleEngineService.ts",
+      "Server/Services/ScheduledMaintenanceLabelRuleEngineService.ts",
+    ]) {
+      const source: string = readCommonSource(engine);
+      const start: number = source.indexOf(
+        "return await RuleCriteriaMatcher.matchesWithLegacy({",
+      );
+      // The call's own options, up to the legacy matcher it is handed.
+      const call: string = source.slice(
+        start,
+        source.indexOf("matchesLegacyRule:", start),
+      );
+
+      expect({ engine, found: start >= 0 }).toEqual({ engine, found: true });
+      expect(call).toContain("emptyResult: true,");
+    }
+
+    const criteria: (
+      filterCondition: FilterCondition,
+      filters: Array<RuleCriteriaFilter>,
+    ) => RuleCriteria = (
+      filterCondition: FilterCondition,
+      filters: Array<RuleCriteriaFilter>,
+    ): RuleCriteria => {
+      return {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: filterCondition,
+        filters: filters,
+      };
+    };
+    const holds: RuleCriteriaFilter = {
+      field: "titlePattern",
+      operator: RuleCriteriaOperator.Contains,
+      value: "database",
+    };
+    const fails: RuleCriteriaFilter = {
+      field: "descriptionPattern",
+      operator: RuleCriteriaOperator.Contains,
+      value: "network",
+    };
+    const matches: (value: RuleCriteria) => boolean = (
+      value: RuleCriteria,
+    ): boolean => {
+      return RuleCriteriaMatcher.matchesSync({
+        criteria: value,
+        emptyResult: true,
+        matchesFilter: (filter: RuleCriteriaFilter): boolean => {
+          return filter === holds;
+        },
+      });
+    };
+
+    expect(matches(criteria(FilterCondition.All, []))).toBe(true);
+    expect(matches(criteria(FilterCondition.All, [holds, fails]))).toBe(false);
+    expect(matches(criteria(FilterCondition.All, [holds]))).toBe(true);
+    expect(matches(criteria(FilterCondition.Any, [holds, fails]))).toBe(true);
+    expect(matches(criteria(FilterCondition.Any, [fails]))).toBe(false);
+
     expect(OWNER_RULES_PAGE).toContain(
       "choose whether all of them or any one must match.",
     );
     expect(rules).toContain(
-      "A rule matches only when every condition you fill in holds; a condition left empty is skipped.",
+      `On **Match**, **${RuleCriteriaCopy.appliesToTitle}** starts on **${copy.all}**: the rule acts on every new event. To narrow it down, pick **${copy.matching}** and fill in the condition that opens, then click **${RuleCriteriaCopy.addCondition}** for each other one. With two or more conditions, choose **${RuleCriteriaCopy.matchAll}**, where every condition must hold, or **${RuleCriteriaCopy.matchAny}**, where one is enough.`,
     );
+    expect(rules).not.toContain("every condition you fill in");
+    expect(rules).not.toContain("a condition left empty is skipped");
+  });
+
+  /*
+   * A rule that adds nobody: under Match all every condition must hold, and
+   * a text condition starts on Contains, which compares the words as
+   * written - so the troubleshooting points at Matches pattern for a title
+   * whose words vary.
+   */
+  it("troubleshoot a rule that adds nobody with Match all, Contains and Matches pattern", () => {
+    const body: string = detailsBody(
+      english(RULES_AND_SETTINGS),
+      "An owner rule did not add anyone to a new event",
+    );
+
+    expect(
+      getDefaultRuleCriteriaOperator<ScheduledMaintenanceOwnerRule>({
+        field: { titlePattern: true },
+        title: "Event Title",
+        stepId: "match-criteria",
+        fieldType: FormFieldSchemaType.Text,
+      }),
+    ).toBe(RuleCriteriaOperator.Contains);
+    // Contains compares the words as written, apart from case.
+    expect(RulePatternMatchUtil.testRegex("db upgrade", "DB-Upgrade")).toBe(
+      false,
+    );
+    expect(RulePatternMatchUtil.testRegex("db.upgrade", "DB-Upgrade")).toBe(
+      true,
+    );
+    expect(body).toContain(
+      `Open the rule and check its conditions: under **${RuleCriteriaCopy.matchAll}**, every one must hold. Text is compared as written, apart from case, so **${RULE_CRITERIA_OPERATOR_LABELS[RuleCriteriaOperator.Contains]}** \`db upgrade\` does not match "DB-Upgrade"; pick **${RULE_CRITERIA_OPERATOR_LABELS[RuleCriteriaOperator.MatchesPattern]}** and write \`db.upgrade\`.`,
+    );
+    expect(body).not.toContain("every condition you filled in must hold");
   });
 
   it("fold six inherit switches, and refuse a new rule that adds nothing", () => {

@@ -45,12 +45,12 @@ Eine neue Regel beginnt aktiviert; schalten Sie **Aktiviert** in ihrem Bearbeitu
 
 **Eigentümerregeln** fügen neuen passenden Ereignissen Eigentümer-Benutzer und -Teams hinzu, und **Beschriftungsregeln** fügen Beschriftungen hinzu. Das Erstellen braucht zwei Schritte: **Übereinstimmung**, die Bedingungen, dann **Eigentümer** oder **Beschriftungen**, was die Regel hinzufügt.
 
-| Bedingung                                                       | Passt auf                                                                  |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitore**, **Ereignis-Beschriftungen**, **Überwachungs-Beschriftungen** | Ereignisse mit einem der gewählten Monitore oder einer der gewählten Beschriftungen. |
-| **Ereignistitel**, **Ereignisbeschreibung**, **Überwachungsname**, **Überwachungsbeschreibung** | Ein Muster, als regulärer Ausdruck, ohne Beachtung der Groß- und Kleinschreibung. |
+Im Schritt **Übereinstimmung** steht **Gilt für** auf **Alle Wartungsereignisse**: Die Regel wirkt auf jedes neue Ereignis. Um sie einzugrenzen, wählen Sie **Nur Wartungsereignisse, die den Bedingungen entsprechen**, füllen die Bedingung aus, die sich öffnet, und klicken für jede weitere auf **Bedingung hinzufügen**. Bei zwei oder mehr Bedingungen wählen Sie **Alle müssen zutreffen**, wobei jede Bedingung gelten muss, oder **Eine muss zutreffen**, wobei eine genügt.
 
-Eine Regel passt nur, wenn jede ausgefüllte Bedingung zutrifft; eine leer gelassene Bedingung wird übersprungen.
+| Bedingung                                                       | Vergleicht mit                                                             |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitore**, **Ereignis-Beschriftungen**, **Überwachungs-Beschriftungen** | **Hat eines von**, **Hat alle von** oder **Hat keines von** den Monitoren oder Beschriftungen, die Sie wählen. |
+| **Ereignistitel**, **Ereignisbeschreibung**, **Überwachungsname**, **Überwachungsbeschreibung** | **Enthält**, **Enthält nicht**, **Gleich**, **Ungleich**, **Beginnt mit**, **Endet mit**, ohne Beachtung der Groß-/Kleinschreibung, oder **Entspricht Muster** und **Entspricht nicht dem Muster**, für einen regulären Ausdruck oder einen Platzhalter `*`. |
 
 - **Eine Regel kann erben.** Eingeklappt unter **Eigentümer erben** oder **Beschriftungen erben** geben sechs Schalter die Eigentümer oder Beschriftungen der Monitore, Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste des Ereignisses weiter.
 - **Eine neue Regel muss etwas hinzufügen**: Wählen Sie mindestens einen Eigentümer oder eine Beschriftung, oder schalten Sie einen Schalter ein.
@@ -132,7 +132,7 @@ Regeln, benutzerdefinierte Felder und Messungen erfordern **Projektinhaber** ode
 ## Fehlerbehebung
 
 :::details Eine Eigentümerregel hat einem neuen Ereignis niemanden hinzugefügt
-Öffnen Sie die Regel und prüfen Sie ihre Bedingungen: Jede ausgefüllte Bedingung muss zutreffen. Ein Titelmuster ist ein regulärer Ausdruck, daher passt `db upgrade` nicht auf „DB-Upgrade“; schreiben Sie `db.upgrade`. Eine Regel wirkt außerdem nur auf Ereignisse, die nach ihrem Speichern erstellt werden: Nutzen Sie **Jetzt ausführen** für die, die Sie schon haben.
+Öffnen Sie die Regel und prüfen Sie ihre Bedingungen: Bei **Alle müssen zutreffen** muss jede von ihnen zutreffen. Text wird so verglichen, wie er geschrieben ist, nur ohne Beachtung der Groß-/Kleinschreibung, daher passt **Enthält** `db upgrade` nicht auf „DB-Upgrade“; wählen Sie **Entspricht Muster** und schreiben Sie `db.upgrade`. Eine Regel wirkt außerdem nur auf Ereignisse, die nach ihrem Speichern erstellt werden: Nutzen Sie **Jetzt ausführen** für die, die Sie schon haben.
 :::
 
 :::details Eigentümer haben keine Erinnerung erhalten
