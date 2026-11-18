@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن تتلقى هذه الأرقام أي رسالة نصية. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن تتلقى هذه الأرقام أي رسالة نصية. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني الآن، لذا لن يصل أي بريد إلى هذه العناوين. اطلب من مسؤول الخادم إعداد البريد الإلكتروني.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني الآن، لذا لن يصل أي بريد إلى هذه العناوين. أعِدّ البريد الإلكتروني في Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني الآن، لذا لن يصل أي بريد إلى هذه العناوين. أعِدّ البريد الإلكتروني في Admin Dashboard.",
+  "Finish setting up your notifications": "أكمل إعداد إشعاراتك",
+  "Hide for a week": "إخفاء لمدة أسبوع",
+  "Nothing can reach you yet.": "لا يمكن أن يصل إليك أي شيء بعد.",
+  "Some severities have no notification rule yet.": "بعض درجات الخطورة ليس لها قاعدة إشعارات بعد."
 }

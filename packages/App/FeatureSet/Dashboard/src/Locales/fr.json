@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Ce serveur ne peut pas envoyer de SMS pour le moment : ces numéros ne reçoivent aucun SMS. Demandez à l'administrateur de votre serveur de configurer les SMS et les appels.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Ce serveur ne peut pas envoyer de SMS pour le moment : ces numéros ne reçoivent aucun SMS. Configurez les SMS et les appels dans l'Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Ce serveur ne peut pas envoyer d'e-mails pour le moment : ces adresses ne reçoivent aucun e-mail. Demandez à l'administrateur de votre serveur de configurer l'e-mail.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Ce serveur ne peut pas envoyer d'e-mails pour le moment : ces adresses ne reçoivent aucun e-mail. Configurez l'e-mail dans l'Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Ce serveur ne peut pas envoyer d'e-mails pour le moment : ces adresses ne reçoivent aucun e-mail. Configurez l'e-mail dans l'Admin Dashboard.",
+  "Finish setting up your notifications": "Terminez la configuration de vos notifications",
+  "Hide for a week": "Masquer pendant une semaine",
+  "Nothing can reach you yet.": "Rien ne peut encore vous joindre.",
+  "Some severities have no notification rule yet.": "Certaines gravités n'ont pas encore de règle de notification."
 }

@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए इन नंबरों पर कोई SMS नहीं आएगा। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए इन नंबरों पर कोई SMS नहीं आएगा। Admin Dashboard में SMS और कॉल सेट करें।",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए इन पतों पर कोई ईमेल नहीं आएगा। अपने सर्वर एडमिन से ईमेल सेट अप करने के लिए कहें।",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए इन पतों पर कोई ईमेल नहीं आएगा। Admin Dashboard में ईमेल सेट अप करें।"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए इन पतों पर कोई ईमेल नहीं आएगा। Admin Dashboard में ईमेल सेट अप करें।",
+  "Finish setting up your notifications": "अपनी सूचनाओं का सेटअप पूरा करें",
+  "Hide for a week": "एक सप्ताह के लिए छिपाएं",
+  "Nothing can reach you yet.": "अभी तक आप तक कुछ भी नहीं पहुँच सकता।",
+  "Some severities have no notification rule yet.": "कुछ गंभीरता स्तरों के लिए अभी तक कोई सूचना नियम नहीं है।"
 }

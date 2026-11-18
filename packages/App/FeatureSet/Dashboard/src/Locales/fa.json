@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "این سرور الان نمی‌تواند پیامک بفرستد، پس به این شماره‌ها پیامکی نمی‌رسد. از مدیر سرور بخواهید پیامک و تماس را راه‌اندازی کند.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "این سرور الان نمی‌تواند پیامک بفرستد، پس به این شماره‌ها پیامکی نمی‌رسد. پیامک و تماس را در Admin Dashboard راه‌اندازی کنید.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "این سرور الان نمی‌تواند ایمیل بفرستد، پس به این نشانی‌ها ایمیلی نمی‌رسد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "این سرور الان نمی‌تواند ایمیل بفرستد، پس به این نشانی‌ها ایمیلی نمی‌رسد. ایمیل را در Admin Dashboard راه‌اندازی کنید."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "این سرور الان نمی‌تواند ایمیل بفرستد، پس به این نشانی‌ها ایمیلی نمی‌رسد. ایمیل را در Admin Dashboard راه‌اندازی کنید.",
+  "Finish setting up your notifications": "راه‌اندازی اعلان‌های خود را کامل کنید",
+  "Hide for a week": "پنهان کردن برای یک هفته",
+  "Nothing can reach you yet.": "هنوز هیچ راهی برای رسیدن به شما نیست.",
+  "Some severities have no notification rule yet.": "برخی سطح‌های شدت هنوز قاعدهٔ اعلان ندارند."
 }

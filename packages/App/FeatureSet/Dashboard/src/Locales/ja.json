@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "このサーバーは現在 SMS を送信できないため、これらの番号に SMS は届きません。サーバー管理者に SMS と電話の設定を依頼してください。",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "このサーバーは現在 SMS を送信できないため、これらの番号に SMS は届きません。Admin Dashboard で SMS と電話を設定してください。",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。サーバー管理者にメールの設定を依頼してください。",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。Admin Dashboard でメールを設定してください。"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。Admin Dashboard でメールを設定してください。",
+  "Finish setting up your notifications": "通知の設定を完了してください",
+  "Hide for a week": "1週間非表示にする",
+  "Nothing can reach you yet.": "まだ連絡を受け取れる方法がありません。",
+  "Some severities have no notification rule yet.": "一部の重大度にはまだ通知ルールがありません。"
 }

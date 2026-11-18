@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "此服务器目前无法发送短信，因此这些号码不会收到短信。请联系服务器管理员设置短信和电话。",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "此服务器目前无法发送短信，因此这些号码不会收到短信。请在 Admin Dashboard 中设置短信和电话。",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请联系服务器管理员设置电子邮件。",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请在 Admin Dashboard 中设置电子邮件。"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请在 Admin Dashboard 中设置电子邮件。",
+  "Finish setting up your notifications": "完成通知设置",
+  "Hide for a week": "隐藏一周",
+  "Nothing can reach you yet.": "目前还无法联系到您。",
+  "Some severities have no notification rule yet.": "部分严重程度还没有通知规则。"
 }

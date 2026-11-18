@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Denne serveren kan ikke sende SMS akkurat nå, så disse numrene får ingen SMS. Be serveradministratoren om å sette opp SMS og anrop.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Denne serveren kan ikke sende SMS akkurat nå, så disse numrene får ingen SMS. Sett opp SMS og anrop i Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Denne serveren kan ikke sende e-post akkurat nå, så disse adressene får ingen e-post. Be serveradministratoren om å sette opp e-post.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Denne serveren kan ikke sende e-post akkurat nå, så disse adressene får ingen e-post. Sett opp e-post i Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Denne serveren kan ikke sende e-post akkurat nå, så disse adressene får ingen e-post. Sett opp e-post i Admin Dashboard.",
+  "Finish setting up your notifications": "Fullfør oppsettet av varslene dine",
+  "Hide for a week": "Skjul i en uke",
+  "Nothing can reach you yet.": "Ingenting kan nå deg ennå.",
+  "Some severities have no notification rule yet.": "Noen alvorlighetsgrader har ennå ingen varslingsregel."
 }

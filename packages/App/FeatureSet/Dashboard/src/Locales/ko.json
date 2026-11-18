@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 SMS를 보낼 수 없어 이 번호들로 SMS가 가지 않습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보낼 수 없어 이 번호들로 SMS가 가지 않습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "이 서버는 지금 이메일을 보낼 수 없어 이 주소들로 이메일이 가지 않습니다. 서버 관리자에게 이메일 설정을 요청하세요.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "이 서버는 지금 이메일을 보낼 수 없어 이 주소들로 이메일이 가지 않습니다. Admin Dashboard에서 이메일을 설정하세요."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "이 서버는 지금 이메일을 보낼 수 없어 이 주소들로 이메일이 가지 않습니다. Admin Dashboard에서 이메일을 설정하세요.",
+  "Finish setting up your notifications": "알림 설정을 마무리하세요",
+  "Hide for a week": "1주일 동안 숨기기",
+  "Nothing can reach you yet.": "아직 연락받을 수 있는 방법이 없습니다.",
+  "Some severities have no notification rule yet.": "일부 심각도에 아직 알림 규칙이 없습니다."
 }

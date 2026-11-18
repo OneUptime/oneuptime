@@ -7,7 +7,12 @@ import {
   SetupChecklist,
   WorkspaceProbe,
   buildSetupChecklist,
+  hasEssentialStepsLeft,
 } from "./ChecklistModel";
+import { rememberLanding } from "./UserSettingsLanding";
+import MyReadiness, {
+  parseUserReadiness,
+} from "../../OnCallPolicy/Readiness/MyReadiness";
 import CalendarFeedAPI from "../../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
 import ProjectNotificationChannelsStore, {
   canChangeProjectNotificationChannels,
@@ -24,10 +29,8 @@ import { FeedStatus } from "../../OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import { PERSONAL_FEED_CURRENT_PATH } from "../../OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 import {
   ReadinessMethodWire,
-  ReadinessSummaryWire,
   UserReadinessWire,
   getVerifiedMethods,
-  parseReadinessSummary,
 } from "../../OnCallPolicy/Readiness/ReadinessTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -48,7 +51,7 @@ import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAu
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 /*
  * Everything the setup checklist needs, loaded in one pass.
@@ -91,6 +94,11 @@ export interface SetupChecklistState {
 export interface UseSetupChecklistOptions {
   userId: ObjectID | null;
   projectId: ObjectID | null;
+  /*
+   * The checklist for this person and project, just read by whoever opened
+   * the page: shown at once, and not read again until Recheck.
+   */
+  initialChecklist?: SetupChecklist | null | undefined;
 }
 
 /*
@@ -722,6 +730,214 @@ const loadCustomFieldProbe: LoadCustomFieldsFunction = async (params: {
   };
 };
 
+/*
+ * The whole checklist for one person in one project: the readiness first -
+ * the one required read, whose failure is thrown as it came, for the caller
+ * to say in the reader's words (API.getFriendlyMessage) - then the probes.
+ *
+ * Each read is handed on to where the rest of the Dashboard reads it: the
+ * person's readiness to the bell (MyReadiness), which asks somebody on
+ * call to finish their setup (#7040), and whether essential steps are left
+ * to the page User Settings opens on (UserSettingsLanding, #7039).
+ */
+export const loadSetupChecklist: (data: {
+  userId: string;
+  projectId: string;
+  // The Recheck button: past the server's cache of the readiness.
+  isRecheck?: boolean | undefined;
+}) => Promise<SetupChecklist> = async (data: {
+  userId: string;
+  projectId: string;
+  isRecheck?: boolean | undefined;
+}): Promise<SetupChecklist> => {
+  const projectId: ObjectID = new ObjectID(data.projectId);
+  const userId: ObjectID = new ObjectID(data.userId);
+
+  const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+    `/on-call-readiness/user/${data.userId}`,
+  );
+
+  /*
+   * Readiness is cached server-side for 60 seconds, which is right for a
+   * page load and wrong for the Recheck button: the whole reason somebody
+   * presses it is that they have just fixed something in another tab, and a
+   * button that re-reads a cache computed before the fix reports the old
+   * answer and reads as broken. `refresh` is the server's documented
+   * bypass. It is deliberately NOT set on the automatic load, where the
+   * cache is doing its job.
+   */
+  if (data.isRecheck) {
+    url.addQueryParam("refresh", "true");
+  }
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.get<JSONObject>({
+      url: url,
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  /*
+   * The per-user route answers with a bare UserReadiness rather than a
+   * summary; parseUserReadiness wraps it into the one shape ReadinessTypes
+   * knows how to read. Hand-rolling a second reader for this payload is how
+   * the two would drift apart the next time the server adds a field.
+   */
+  const readiness: UserReadinessWire | undefined = parseUserReadiness(
+    response.data,
+  );
+
+  if (!readiness) {
+    throw new Error("Could not read your notification setup.");
+  }
+
+  MyReadiness.record({
+    projectId: data.projectId,
+    userId: data.userId,
+    readiness: readiness,
+  });
+
+  /*
+   * The project's own switches, read once and used twice: the fallback flag
+   * decides whether a rule gap is a delayed page or a lost one, and the four
+   * channel flags decide which of the reader's verified methods can actually
+   * carry anything.
+   *
+   * It is awaited BEFORE the probe fan-out rather than inside it because the
+   * notification-settings answer genuinely depends on the channel flags - a
+   * deliverability answer computed without them scores a switched-off
+   * channel as working. The remaining probes do not depend on it and run
+   * concurrently below.
+   */
+  const projectSettings: ProjectSettingsProbe =
+    await loadProjectSettings(projectId);
+
+  const isFallbackEnabled: boolean = projectSettings.isFallbackEnabled;
+  const isFallbackKnown: boolean = projectSettings.isKnown;
+
+  /*
+   * The probes run together rather than in sequence: they are independent
+   * reads of different tables and the page waits for the slowest, not the
+   * sum. Each resolves to its own unknown value on failure, so one refused
+   * request cannot suppress the others.
+   */
+  const [
+    notificationSettingRows,
+    incomingCall,
+    slack,
+    microsoftTeams,
+    mattermost,
+    customFields,
+    calendarFeed,
+  ]: [
+    Array<UserNotificationSetting> | null,
+    IncomingCallProbe,
+    WorkspaceProbe,
+    WorkspaceProbe,
+    WorkspaceProbe,
+    CustomFieldProbe,
+    CalendarFeedProbe,
+  ] = await Promise.all([
+    loadNotificationSettingRows({
+      projectId: projectId,
+      userId: userId,
+    }).catch((): null => {
+      return null;
+    }),
+    loadIncomingCallProbe({
+      projectId: projectId,
+      userId: userId,
+    }).catch((): IncomingCallProbe => {
+      return UNKNOWN_INCOMING_CALL;
+    }),
+    loadWorkspaceProbe({
+      projectId: projectId,
+      userId: userId,
+      workspaceType: WorkspaceType.Slack,
+    }).catch((): WorkspaceProbe => {
+      return UNKNOWN_WORKSPACE;
+    }),
+    loadWorkspaceProbe({
+      projectId: projectId,
+      userId: userId,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    }).catch((): WorkspaceProbe => {
+      return UNKNOWN_WORKSPACE;
+    }),
+    loadWorkspaceProbe({
+      projectId: projectId,
+      userId: userId,
+      workspaceType: WorkspaceType.Mattermost,
+    }).catch((): WorkspaceProbe => {
+      return UNKNOWN_WORKSPACE;
+    }),
+    loadCustomFieldProbe({
+      projectId: projectId,
+      userId: userId,
+    }).catch((): CustomFieldProbe => {
+      return UNKNOWN_CUSTOM_FIELDS;
+    }),
+    loadCalendarFeedProbe().catch((): CalendarFeedProbe => {
+      return UNKNOWN_CALENDAR_FEED;
+    }),
+  ]);
+
+  // Worked out here because it needs the workspaces' answers as well.
+  const notificationSettings: NotificationSettingProbes =
+    notificationSettingRows
+      ? getNotificationSettingProbes({
+          rows: notificationSettingRows,
+          usableMethodTypes: getUsableMethodTypes({
+            readiness: readiness,
+            enabledChannels: {
+              isKnown: projectSettings.isKnown,
+              disabledMethodTypes: projectSettings.disabledMethodTypes,
+            },
+          }),
+          workspaces: {
+            [WorkspaceType.Slack]: slack,
+            [WorkspaceType.MicrosoftTeams]: microsoftTeams,
+            [WorkspaceType.Mattermost]: mattermost,
+          },
+        })
+      : {
+          onCallShiftAlerts: UNKNOWN_ON_CALL_SHIFT_ALERTS,
+          deliverableSettings: UNKNOWN_DELIVERABLE_SETTINGS,
+        };
+
+  const checklist: SetupChecklist = buildSetupChecklist({
+    readiness: readiness,
+    isFallbackEnabled: isFallbackEnabled,
+    isFallbackKnown: isFallbackKnown,
+    onCallShiftAlerts: notificationSettings.onCallShiftAlerts,
+    deliverableSettings: notificationSettings.deliverableSettings,
+    incomingCall: incomingCall,
+    slack: slack,
+    microsoftTeams: microsoftTeams,
+    customFields: customFields,
+    calendarFeed: calendarFeed,
+    /*
+     * Read once every request above has answered, so the permission
+     * snapshot they carry has arrived: a project owner or someone with
+     * Manage Billing is sent to the switches, everyone else told who
+     * can turn them on.
+     */
+    canTurnOnProjectChannels: canChangeProjectNotificationChannels(),
+  });
+
+  rememberLanding({
+    userId: data.userId,
+    projectId: data.projectId,
+    hasEssentialStepsLeft: hasEssentialStepsLeft(checklist),
+    now: Date.now(),
+  });
+
+  return checklist;
+};
+
 const useSetupChecklist: (
   options: UseSetupChecklistOptions,
 ) => SetupChecklistState = (
@@ -735,11 +951,23 @@ const useSetupChecklist: (
   const userIdString: string = options.userId?.toString() || "";
   const projectIdString: string = options.projectId?.toString() || "";
 
+  /*
+   * A checklist just read by whoever opened this page (User Settings'
+   * forward, #7039) is shown as it is, not read a second time: the first
+   * load is skipped once. Recheck reads it again, as always.
+   */
+  const initialChecklist: SetupChecklist | null =
+    userIdString && projectIdString ? options.initialChecklist || null : null;
+  const isFirstLoadSkippedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(Boolean(initialChecklist));
+
   const [isLoading, setIsLoading] = useState<boolean>(
-    Boolean(userIdString && projectIdString),
+    Boolean(userIdString && projectIdString) && !initialChecklist,
   );
   const [error, setError] = useState<string>("");
-  const [checklist, setChecklist] = useState<SetupChecklist | null>(null);
+  const [checklist, setChecklist] = useState<SetupChecklist | null>(
+    initialChecklist,
+  );
 
   const load: (isRecheck?: boolean) => Promise<void> = useCallback(
     async (isRecheck?: boolean): Promise<void> => {
@@ -747,195 +975,21 @@ const useSetupChecklist: (
         return;
       }
 
-      const projectId: ObjectID = new ObjectID(projectIdString);
-      const userId: ObjectID = new ObjectID(userIdString);
-
       setIsLoading(true);
       setError("");
 
-      let readiness: UserReadinessWire;
-
       try {
-        const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
-          `/on-call-readiness/user/${userIdString}`,
+        setChecklist(
+          await loadSetupChecklist({
+            userId: userIdString,
+            projectId: projectIdString,
+            isRecheck: isRecheck,
+          }),
         );
-
-        /*
-         * Readiness is cached server-side for 60 seconds, which is right for a
-         * page load and wrong for the Recheck button: the whole reason somebody
-         * presses it is that they have just fixed something in another tab, and a
-         * button that re-reads a cache computed before the fix reports the old
-         * answer and reads as broken. `refresh` is the server's documented
-         * bypass. It is deliberately NOT set on the automatic load, where the
-         * cache is doing its job.
-         */
-        if (isRecheck) {
-          url.addQueryParam("refresh", "true");
-        }
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.get<JSONObject>({
-            url: url,
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        /*
-         * The per-user route answers with a bare UserReadiness rather than a
-         * summary, so it is wrapped into the one shape ReadinessTypes knows how
-         * to read. Hand-rolling a second reader for this payload is how the two
-         * would drift apart the next time the server adds a field.
-         */
-        const summary: ReadinessSummaryWire = parseReadinessSummary({
-          users: [response.data],
-        } as JSONObject);
-
-        const parsed: UserReadinessWire | undefined = summary.users[0];
-
-        if (!parsed || !parsed.userId) {
-          throw new Error("Could not read your notification setup.");
-        }
-
-        readiness = parsed;
       } catch (err) {
         setError(API.getFriendlyMessage(err));
         setChecklist(null);
-        setIsLoading(false);
-        return;
       }
-
-      /*
-       * The project's own switches, read once and used twice: the fallback flag
-       * decides whether a rule gap is a delayed page or a lost one, and the four
-       * channel flags decide which of the reader's verified methods can actually
-       * carry anything.
-       *
-       * It is awaited BEFORE the probe fan-out rather than inside it because the
-       * notification-settings answer genuinely depends on the channel flags - a
-       * deliverability answer computed without them scores a switched-off
-       * channel as working. The remaining probes do not depend on it and run
-       * concurrently below.
-       */
-      const projectSettings: ProjectSettingsProbe =
-        await loadProjectSettings(projectId);
-
-      const isFallbackEnabled: boolean = projectSettings.isFallbackEnabled;
-      const isFallbackKnown: boolean = projectSettings.isKnown;
-
-      /*
-       * The probes run together rather than in sequence: they are independent
-       * reads of different tables and the page waits for the slowest, not the
-       * sum. Each resolves to its own unknown value on failure, so one refused
-       * request cannot suppress the others.
-       */
-      const [
-        notificationSettingRows,
-        incomingCall,
-        slack,
-        microsoftTeams,
-        mattermost,
-        customFields,
-        calendarFeed,
-      ]: [
-        Array<UserNotificationSetting> | null,
-        IncomingCallProbe,
-        WorkspaceProbe,
-        WorkspaceProbe,
-        WorkspaceProbe,
-        CustomFieldProbe,
-        CalendarFeedProbe,
-      ] = await Promise.all([
-        loadNotificationSettingRows({
-          projectId: projectId,
-          userId: userId,
-        }).catch((): null => {
-          return null;
-        }),
-        loadIncomingCallProbe({
-          projectId: projectId,
-          userId: userId,
-        }).catch((): IncomingCallProbe => {
-          return UNKNOWN_INCOMING_CALL;
-        }),
-        loadWorkspaceProbe({
-          projectId: projectId,
-          userId: userId,
-          workspaceType: WorkspaceType.Slack,
-        }).catch((): WorkspaceProbe => {
-          return UNKNOWN_WORKSPACE;
-        }),
-        loadWorkspaceProbe({
-          projectId: projectId,
-          userId: userId,
-          workspaceType: WorkspaceType.MicrosoftTeams,
-        }).catch((): WorkspaceProbe => {
-          return UNKNOWN_WORKSPACE;
-        }),
-        loadWorkspaceProbe({
-          projectId: projectId,
-          userId: userId,
-          workspaceType: WorkspaceType.Mattermost,
-        }).catch((): WorkspaceProbe => {
-          return UNKNOWN_WORKSPACE;
-        }),
-        loadCustomFieldProbe({
-          projectId: projectId,
-          userId: userId,
-        }).catch((): CustomFieldProbe => {
-          return UNKNOWN_CUSTOM_FIELDS;
-        }),
-        loadCalendarFeedProbe().catch((): CalendarFeedProbe => {
-          return UNKNOWN_CALENDAR_FEED;
-        }),
-      ]);
-
-      // Worked out here because it needs the workspaces' answers as well.
-      const notificationSettings: NotificationSettingProbes =
-        notificationSettingRows
-          ? getNotificationSettingProbes({
-              rows: notificationSettingRows,
-              usableMethodTypes: getUsableMethodTypes({
-                readiness: readiness,
-                enabledChannels: {
-                  isKnown: projectSettings.isKnown,
-                  disabledMethodTypes: projectSettings.disabledMethodTypes,
-                },
-              }),
-              workspaces: {
-                [WorkspaceType.Slack]: slack,
-                [WorkspaceType.MicrosoftTeams]: microsoftTeams,
-                [WorkspaceType.Mattermost]: mattermost,
-              },
-            })
-          : {
-              onCallShiftAlerts: UNKNOWN_ON_CALL_SHIFT_ALERTS,
-              deliverableSettings: UNKNOWN_DELIVERABLE_SETTINGS,
-            };
-
-      setChecklist(
-        buildSetupChecklist({
-          readiness: readiness,
-          isFallbackEnabled: isFallbackEnabled,
-          isFallbackKnown: isFallbackKnown,
-          onCallShiftAlerts: notificationSettings.onCallShiftAlerts,
-          deliverableSettings: notificationSettings.deliverableSettings,
-          incomingCall: incomingCall,
-          slack: slack,
-          microsoftTeams: microsoftTeams,
-          customFields: customFields,
-          calendarFeed: calendarFeed,
-          /*
-           * Read once every request above has answered, so the permission
-           * snapshot they carry has arrived: a project owner or someone with
-           * Manage Billing is sent to the switches, everyone else told who
-           * can turn them on.
-           */
-          canTurnOnProjectChannels: canChangeProjectNotificationChannels(),
-        }),
-      );
 
       setIsLoading(false);
     },
@@ -947,6 +1001,11 @@ const useSetupChecklist: (
       setIsLoading(false);
       setChecklist(null);
       setError("");
+      return;
+    }
+
+    if (isFirstLoadSkippedRef.current) {
+      isFirstLoadSkippedRef.current = false;
       return;
     }
 

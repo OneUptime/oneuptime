@@ -1298,8 +1298,10 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       RouteMap[PageMap.USER_SETTINGS] as Route,
     ),
     /*
-     * Opens on Notification Methods, and stays lit on every page of User
-     * Settings, not only that first one.
+     * User Settings' own address, which opens the setup checklist while
+     * essential steps are left on it, and Notification Methods after
+     * (#7039: Pages/UserSettings/Landing). It stays lit on every page of
+     * User Settings, not only the first.
      */
     activeRoute: RouteMap[PageMap.USER_SETTINGS_ROOT],
   };

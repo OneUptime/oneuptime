@@ -56791,5 +56791,9 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Vraag uw serverbeheerder om sms en oproepen in te richten.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Richt sms en oproepen in via het Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Vraag uw serverbeheerder om e-mail in te stellen.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Stel e-mail in via het Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Stel e-mail in via het Admin Dashboard.",
+  "Finish setting up your notifications": "Rond het instellen van je meldingen af",
+  "Hide for a week": "Een week verbergen",
+  "Nothing can reach you yet.": "Nog niets kan je bereiken.",
+  "Some severities have no notification rule yet.": "Sommige ernstniveaus hebben nog geen meldingsregel."
 }
