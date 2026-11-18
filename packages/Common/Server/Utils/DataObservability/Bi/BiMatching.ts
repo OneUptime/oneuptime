@@ -1,4 +1,4 @@
-import { BiTableRef } from "./BiConnectors";
+import { BiTableRef } from "./BiTables";
 import { ProjectCatalog } from "../OpenLineageIngest";
 import { UsageAsset, UsageStore } from "../TableUsageMatching";
 
