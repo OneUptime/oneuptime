@@ -2,6 +2,7 @@ import DatabaseConfig from "../../../Server/DatabaseConfig";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import MailService from "../../../Server/Services/MailService";
 import OnCallReadinessService, {
+  PHONE_METHOD_REQUIRED_READINESS_REASON,
   ReadinessCoverageCell,
   ReadinessStatus,
   ResponderSource,
@@ -417,6 +418,33 @@ describe("OnCallSetupReminderService - (B) never claim more than is true", () =>
       SetupReminderOutcome.SkippedNothingMissing,
     );
     expect(mailSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Ready responder missing the phone method their project asks for is reminded, with why, and sent to add one (#7449)", async () => {
+    const readiness: UserReadiness = buildReadiness({
+      userId: USER_A,
+      status: ReadinessStatus.Ready,
+      reasons: [PHONE_METHOD_REQUIRED_READINESS_REASON],
+    });
+    readiness.isMissingPhoneMethod = true;
+    readinessSpy.mockResolvedValue([readiness] as never);
+
+    const result: SetupReminderResult = await newService().sendSetupReminders({
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+    });
+
+    expect(outcomeFor(result, USER_A)).toBe(SetupReminderOutcome.Sent);
+
+    const message: string = onlyMail().message;
+
+    expect(message).toContain(
+      "No verified phone method (SMS, phone call or WhatsApp) - this project asks everyone on call to add one",
+    );
+    // Nothing is missing from their rules: the link is where a phone is added.
+    expect(message).toContain(
+      `/${PROJECT_ID.toString()}/user-settings/notification-methods`,
+    );
   });
 
   test("a Ready responder does not consume their 24h window either", async () => {

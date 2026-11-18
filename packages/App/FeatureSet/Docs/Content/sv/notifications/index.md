@@ -61,7 +61,7 @@ När du går med i ett projekt med en verifierad inloggnings-e-post ställer One
 2. För varje allvarlighetsgrad, på var och en av de fyra flikarna i **Så når man mig**, skickar en regel ett e-postmeddelande till dig så snart du larmas.
 3. En rad uppdateringar om det du äger, och om dina jourpass, är påslagna via e-post. Se [Aviseringsinställningar](/docs/notifications/notification-settings#vad-som-är-påslaget-för-en-ny-medlem).
 
-Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Så når man mig](/docs/notifications/on-call-rules#reglerna-du-börjar-med).
+Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Så når man mig](/docs/notifications/on-call-rules#reglerna-du-börjar-med). När ditt projekt har en standardordning följer din e-post och varje metod som du verifierar den i stället: se [Standardordningen](/docs/notifications/on-call-rules#standardordningen).
 
 ## Checklistan för konfiguration
 

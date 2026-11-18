@@ -61,7 +61,7 @@ Wanneer je lid wordt van een project met een geverifieerd aanmeld-e-mailadres, s
 2. Voor elke ernst, op elk van de vier tabbladen van **Hoe ik bereikbaar ben**, stuurt een regel je een e-mail zodra je wordt opgeroepen.
 3. Een reeks nieuws over wat van jou is, en over je diensten, staat aan per e-mail. Zie [Meldingsinstellingen](/docs/notifications/notification-settings#wat-er-aanstaat-voor-een-nieuw-lid).
 
-Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint).
+Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elke ernst, verstuurd zodra je wordt opgeroepen. Een telefoonnummer voor sms verifiëren betekent dus dat elke oproep je ook een sms stuurt. Wil je sms alleen voor kritieke oproepen, verwijder dan de sms-regels van de andere ernstniveaus. Zie [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#de-regels-waarmee-je-begint). Als je project een standaardreeks heeft, volgen je e-mailadres en elke methode die je verifieert die in plaats daarvan: zie [De standaardreeks](/docs/notifications/on-call-rules#de-standaardreeks).
 
 ## De instellingschecklist
 

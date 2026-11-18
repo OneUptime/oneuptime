@@ -3,6 +3,7 @@ import { loadCustomNotificationChannels } from "../../../Utils/CustomNotificatio
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Project from "Common/Models/DatabaseModels/Project";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserMattermost from "Common/Models/DatabaseModels/UserMattermost";
@@ -55,7 +56,28 @@ export interface PagingLadderData {
   rules: Array<PagingLadderRule>;
   // By severity id: the colour each card's title draws.
   severityColors: Record<string, string>;
+  /*
+   * The project asks everyone on call for a phone method (#7449): your own
+   * page says so while you have none. Not known: not asked.
+   */
+  isPhoneMethodRequired?: boolean | undefined;
 }
+
+// Whether the project asks everyone on call for a phone method; false when it cannot be read.
+const readIsPhoneMethodRequired: () => Promise<boolean> =
+  async (): Promise<boolean> => {
+    try {
+      const project: Project | null = await ModelAPI.getItem<Project>({
+        modelType: Project,
+        id: ProjectUtil.getCurrentProjectId()!,
+        select: { requirePhoneMethodForOnCall: true },
+      });
+
+      return project?.requirePhoneMethodForOnCall === true;
+    } catch {
+      return false;
+    }
+  };
 
 // What a save did, as the server says.
 export interface PagingLadderSaveResult {
@@ -122,10 +144,16 @@ export const loadPagingLadderData: (
 ) => Promise<PagingLadderData> = async (
   userId: ObjectID,
 ): Promise<PagingLadderData> => {
-  const [incidentSeverities, alertSeverities, ruleList]: [
+  const [
+    incidentSeverities,
+    alertSeverities,
+    ruleList,
+    isPhoneMethodRequired,
+  ]: [
     Array<IncidentSeverity | AlertSeverity>,
     Array<IncidentSeverity | AlertSeverity>,
     ListResult<UserNotificationRule>,
+    boolean,
   ] = await Promise.all([
     readSeverities(IncidentSeverity),
     readSeverities(AlertSeverity),
@@ -140,6 +168,7 @@ export const loadPagingLadderData: (
       select: PAGING_LADDER_RULE_SELECT as never,
       sort: {},
     }),
+    readIsPhoneMethodRequired(),
   ]);
 
   const severityColors: Record<string, string> = {};
@@ -157,6 +186,7 @@ export const loadPagingLadderData: (
     }),
     rules: ruleList.data as unknown as Array<PagingLadderRule>,
     severityColors: severityColors,
+    isPhoneMethodRequired: isPhoneMethodRequired,
   };
 };
 

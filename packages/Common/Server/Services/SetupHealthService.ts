@@ -248,12 +248,19 @@ export function toResponderFact(user: UserReadiness): SetupHealthResponderFact {
     reason = SetupHealthResponderReason.InvitationNotAccepted;
   }
 
-  return {
+  const fact: SetupHealthResponderFact = {
     userId: idText(user.userId),
     name: user.userName || user.userEmail || "",
     isNotReachable: user.status === ReadinessStatus.NotReachable,
     reason: reason,
   };
+
+  // Readiness's own answer, never worked out again here (#7449).
+  if (user.isMissingPhoneMethod === true) {
+    fact.isMissingPhoneMethod = true;
+  }
+
+  return fact;
 }
 
 export default class SetupHealthService {

@@ -34,7 +34,7 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 :::steps
 ### Adicionar uma forma de contatar você
 
-Clique em **Adicionar** em uma etapa para enviar um dos seus métodos verificados no momento dessa etapa, ou em **Adicionar etapa** para começar uma nova etapa depois da última. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
+Clique em **Adicionar** em uma etapa para enviar um dos seus métodos verificados no momento dessa etapa, ou em **Adicionar etapa** para começar uma nova etapa depois da última. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**. Sem sair da página, **Adicionar seu telefone** abaixo das etapas envia um código para o seu número e, depois de verificado, o número aciona você por SMS e por chamada telefônica; **Usar este navegador** e **Baixar o app** adicionam push da mesma forma.
 
 ### Escolher quando usar
 
@@ -68,7 +68,7 @@ Uma gravidade que seu projeto arquivou aparece depois das outras, marcada como *
 
 ## As regras com que você começa
 
-Cada método que você verifica recebe uma regra em cada cartão de cada aba, enviada assim que você é acionado. O seu e-mail de login as tem desde o dia em que você entrou, para que um acionamento sempre chegue até você. Verifique um número de telefone para SMS, e todo acionamento também manda um SMS para você.
+Cada método que você verifica recebe uma regra em cada cartão de cada aba, enviada assim que você é acionado. O seu e-mail de login as tem desde o dia em que você entrou, para que um acionamento sempre chegue até você. Verifique um número de telefone para SMS, e todo acionamento também manda um SMS para você. Quando o seu projeto tem uma sequência padrão, um método que você verifica a segue em vez disso: veja [A sequência padrão](#a-sequência-padrão).
 
 É um começo seguro, e normalmente demais. Enxugue para o que cada gravidade merece:
 
@@ -79,6 +79,16 @@ Cada método que você verifica recebe uma regra em cada cartão de cada aba, en
 | Menor ou baixa | Um e-mail na hora |
 
 Suas próprias regras não têm horário de silêncio: deixe as gravidades baixas no e-mail, ou em uma regra de push definida como **Normal**, para que elas nunca acordem você. Para que o acionamento de uma gravidade baixa aguarde o horário comercial para todos, defina a regra de plantão que o aciona como **Somente em horário comercial**: veja [Regras de plantão](/docs/alerts/settings#regras-de-plantão).
+
+## A sequência padrão
+
+Um projeto pode ter uma sequência padrão: como um membro é acionado depois que verifica uma forma de ser contatado. Um Proprietário do projeto ou um Administrador do projeto a define em **Sequência padrão para novos membros**, recolhida em **Mais configurações** em **Configurações do projeto → Notificações → Canais de notificação**, com canais em vez dos dispositivos de cada pessoa: por exemplo, push na hora e uma chamada telefônica depois de 5 minutos.
+
+Com uma sequência padrão, um método que você verifica recebe uma regra em cada etapa do seu canal, em cada cartão de cada aba, e um canal que a sequência deixa de fora não recebe nenhuma. As regras que você já tem nunca mudam, e um acionamento que não encontra nenhuma regra ainda recorre aos seus métodos verificados.
+
+Para dá-la a membros que já têm regras, um administrador usa **Aplicar sequência padrão** na página Prontidão: veja [Aplicar a sequência padrão](/docs/on-call/readiness#aplicar-a-sequência-padrão). Cada um deles recebe um e-mail.
+
+**Telefone para quem está de plantão**, ao lado, pede a todos de plantão um número verificado de SMS, chamada telefônica ou WhatsApp. Enquanto você não tiver nenhum, esta página diz isso acima de **Adicionar seu telefone**, e Prontidão e Saúde da configuração citam você. Ninguém fica bloqueado.
 
 ## Adicione uma regra
 

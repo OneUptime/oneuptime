@@ -8,6 +8,7 @@ import {
   savePagingLadder,
 } from "./PagingLadder/PagingLadderApi";
 import PagingLadderEditor from "./PagingLadder/PagingLadderEditor";
+import AddWaysToReach from "./PagingLadder/AddWaysToReach";
 import {
   PagingMethodChoice,
   getMemberMethodChoices,
@@ -396,6 +397,25 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
             })}
           </ul>
         </div>
+      ) : (
+        <></>
+      )}
+      {isOwn ? (
+        /*
+         * A phone, this browser or the app, added without leaving the page
+         * (#7451), and the project's ask for a phone method (#7449). Each
+         * reads the ladder again, keeping what is on screen.
+         */
+        <AddWaysToReach
+          methods={methods}
+          isPushTurnedOff={isPushTurnedOff}
+          isPhoneMethodRequired={data?.isPhoneMethodRequired === true}
+          onAdded={() => {
+            load().catch(() => {
+              // load() reports its own failure.
+            });
+          }}
+        />
       ) : (
         <></>
       )}

@@ -253,6 +253,16 @@ import EpisodeMemberEmailList, {
 import OnCallTestPageDelivery from "../Utils/OnCall/OnCallTestPageDelivery";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  PAGING_METHOD_COLUMNS,
+  PagingMethodColumn,
+  getChannelForPagingMethodColumn,
+} from "../../Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderDefaultStep,
+  getPagingLadderDefaultStepsForChannel,
+  readPagingLadderDefault,
+} from "../../Types/NotificationRule/PagingLadderDefault";
+import {
   getOnCallCustomChannelSendFailedMessage,
   getOnCallSendFailedMessage,
   getOnCallWorkspaceSendFailedMessage,
@@ -270,6 +280,16 @@ interface CustomChannelPagedRecord {
   project: CustomChannelReference;
   record: CustomChannelRecord;
 }
+
+/*
+ * One rule a verified method starts with in every card: at once, or at a
+ * step of the project's default ladder (#7449), a push one with its sound
+ * and repeat.
+ */
+type DefaultRuleStep = Pick<
+  PagingLadderDefaultStep,
+  "notifyAfterMinutes" | "pushNotificationLevel" | "repeatEveryMinutes"
+>;
 
 export interface NotificationMethodDescriptor {
   userEmailId?: ObjectID;
@@ -9010,59 +9030,85 @@ export class Service extends ProjectReferencesService<Model> {
     const { projectId, userId, notificationMethod } = data;
 
     /*
-     * Read each severity list once and reuse it for both rule types it drives.
-     * Incident severities scope both ON_CALL_EXECUTED_INCIDENT and
-     * ON_CALL_EXECUTED_INCIDENT_EPISODE; alert severities do the same for their
-     * two.
+     * THE PROJECT'S DEFAULT LADDER (#7449, Project.defaultPagingLadder):
+     * when the project has one, this method's channel decides its on-call
+     * rules. A channel the default names gets a rule at each of its waits in
+     * every card ("a call after 5 minutes"); a channel it leaves out gets
+     * none, and the project's fallback still reaches somebody who has no
+     * rule at all. Without a default - and always for a custom channel,
+     * which pages everyone it is set to page - every card pages at once, as
+     * it always has. Either way nothing is rewritten: a card that already
+     * has a rule for this method keeps it (createSeverityScopedRules).
      */
-    const incidentSeverityIds: Array<ObjectID> =
-      await this.getIncidentSeverityIds(projectId);
-    const alertSeverityIds: Array<ObjectID> =
-      await this.getAlertSeverityIds(projectId);
+    const steps: Array<PagingLadderDefaultStep> | null =
+      await this.getProjectDefaultLadderStepsForMethod({
+        projectId: projectId,
+        notificationMethod: notificationMethod,
+      });
 
-    await this.createSeverityScopedRules({
-      projectId,
-      userId,
-      notificationMethod,
-      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      severityIds: incidentSeverityIds,
-      severityColumn: "incidentSeverityId",
-    });
+    const ruleSteps: Array<DefaultRuleStep> =
+      steps === null ? [{ notifyAfterMinutes: 0 }] : steps;
 
-    await this.createSeverityScopedRules({
-      projectId,
-      userId,
-      notificationMethod,
-      ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-      severityIds: alertSeverityIds,
-      severityColumn: "alertSeverityId",
-    });
+    if (ruleSteps.length > 0) {
+      /*
+       * Read each severity list once and reuse it for both rule types it
+       * drives. Incident severities scope both ON_CALL_EXECUTED_INCIDENT and
+       * ON_CALL_EXECUTED_INCIDENT_EPISODE; alert severities do the same for
+       * their two.
+       */
+      const incidentSeverityIds: Array<ObjectID> =
+        await this.getIncidentSeverityIds(projectId);
+      const alertSeverityIds: Array<ObjectID> =
+        await this.getAlertSeverityIds(projectId);
 
-    /*
-     * The two episode rule types are severity-scoped as well, and used not to
-     * be. UserOnCallLogService counts episode rules filtered by a concrete
-     * severity id, and the episode rule pages in User Settings scope their
-     * tables the same way — so a NULL-severity episode rule matched no page and
-     * appeared in no table. Users got "defaults" that were unreachable and
-     * invisible at the same time.
-     */
-    await this.createSeverityScopedRules({
-      projectId,
-      userId,
-      notificationMethod,
-      ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-      severityIds: alertSeverityIds,
-      severityColumn: "alertSeverityId",
-    });
+      await this.createSeverityScopedRules({
+        projectId,
+        userId,
+        notificationMethod,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityIds: incidentSeverityIds,
+        severityColumn: "incidentSeverityId",
+        steps: ruleSteps,
+      });
 
-    await this.createSeverityScopedRules({
-      projectId,
-      userId,
-      notificationMethod,
-      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-      severityIds: incidentSeverityIds,
-      severityColumn: "incidentSeverityId",
-    });
+      await this.createSeverityScopedRules({
+        projectId,
+        userId,
+        notificationMethod,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityIds: alertSeverityIds,
+        severityColumn: "alertSeverityId",
+        steps: ruleSteps,
+      });
+
+      /*
+       * The two episode rule types are severity-scoped as well, and used not
+       * to be. UserOnCallLogService counts episode rules filtered by a
+       * concrete severity id, and the episode rule pages in User Settings
+       * scope their tables the same way — so a NULL-severity episode rule
+       * matched no page and appeared in no table. Users got "defaults" that
+       * were unreachable and invisible at the same time.
+       */
+      await this.createSeverityScopedRules({
+        projectId,
+        userId,
+        notificationMethod,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+        severityIds: alertSeverityIds,
+        severityColumn: "alertSeverityId",
+        steps: ruleSteps,
+      });
+
+      await this.createSeverityScopedRules({
+        projectId,
+        userId,
+        notificationMethod,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+        severityIds: incidentSeverityIds,
+        severityColumn: "incidentSeverityId",
+        steps: ruleSteps,
+      });
+    }
 
     /*
      * These two are about the user's shift, not about anything that fired, so
@@ -9080,6 +9126,58 @@ export class Service extends ProjectReferencesService<Model> {
       notificationMethod,
       NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
     );
+  }
+
+  /*
+   * The steps of the project's default ladder for this method's channel
+   * (#7449): what its on-call rules are made at. Null when they are made as
+   * they always were, at once - the project has no default (or it could not
+   * be read: a verification never fails for it), or the method is a custom
+   * channel, which a default never filters. Empty when the default leaves
+   * the channel out.
+   */
+  @CaptureSpan()
+  public async getProjectDefaultLadderStepsForMethod(data: {
+    projectId: ObjectID;
+    notificationMethod: NotificationMethodDescriptor;
+  }): Promise<Array<PagingLadderDefaultStep> | null> {
+    const column: PagingMethodColumn | undefined = PAGING_METHOD_COLUMNS.find(
+      (candidate: PagingMethodColumn): boolean => {
+        return Boolean(
+          data.notificationMethod[
+            candidate as keyof NotificationMethodDescriptor
+          ],
+        );
+      },
+    );
+
+    if (!column || column === "customNotificationChannelId") {
+      return null;
+    }
+
+    let defaultSteps: Array<PagingLadderDefaultStep> = [];
+
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: { defaultPagingLadder: true },
+        props: { isRoot: true },
+      });
+
+      defaultSteps = readPagingLadderDefault(project?.defaultPagingLadder);
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+
+    if (defaultSteps.length === 0) {
+      return null;
+    }
+
+    return getPagingLadderDefaultStepsForChannel({
+      defaultSteps: defaultSteps,
+      channel: getChannelForPagingMethodColumn(column),
+    });
   }
 
   private applyNotificationMethod(
@@ -9211,10 +9309,13 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Seed one rule per severity for a severity-scoped rule type, skipping any
-   * (method, severity, ruleType) triple the user already has. The duplicate
-   * check is keyed on the same columns the write sets, so re-verifying a method
-   * never doubles a user's rules — and therefore never doubles their pages.
+   * Seed a severity-scoped rule type's rules for one method: in every
+   * severity, a rule at each step's wait (one, at once, unless the project's
+   * default ladder says otherwise), skipping any severity where the user
+   * already has a rule of this method and type. The duplicate check is keyed
+   * on the same columns the write sets, so re-verifying a method never
+   * doubles a user's rules — and therefore never doubles their pages — and
+   * a rule somebody has is never rewritten.
    */
   private async createSeverityScopedRules(data: {
     projectId: ObjectID;
@@ -9223,6 +9324,7 @@ export class Service extends ProjectReferencesService<Model> {
     ruleType: NotificationRuleType;
     severityIds: Array<ObjectID>;
     severityColumn: "incidentSeverityId" | "alertSeverityId";
+    steps: ReadonlyArray<DefaultRuleStep>;
   }): Promise<void> {
     for (const severityId of data.severityIds) {
       const existingRule: Model | null = await this.findOneBy({
@@ -9242,20 +9344,33 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const rule: Model = new Model();
-      rule.projectId = data.projectId;
-      rule.userId = data.userId;
-      this.applyNotificationMethod(rule, data.notificationMethod);
-      rule[data.severityColumn] = severityId;
-      rule.notifyAfterMinutes = 0;
-      rule.ruleType = data.ruleType;
+      for (const step of data.steps) {
+        const rule: Model = new Model();
+        rule.projectId = data.projectId;
+        rule.userId = data.userId;
+        this.applyNotificationMethod(rule, data.notificationMethod);
+        rule[data.severityColumn] = severityId;
+        rule.notifyAfterMinutes = step.notifyAfterMinutes;
+        rule.ruleType = data.ruleType;
 
-      await this.create({
-        data: rule,
-        props: {
-          isRoot: true,
-        },
-      });
+        // A push step's sound and repeat, from the default (#7449).
+        if (data.notificationMethod.userPushId) {
+          if (step.pushNotificationLevel) {
+            rule.pushNotificationLevel = step.pushNotificationLevel;
+          }
+
+          if (step.repeatEveryMinutes !== undefined) {
+            rule.repeatEveryMinutes = step.repeatEveryMinutes;
+          }
+        }
+
+        await this.create({
+          data: rule,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
   }
 

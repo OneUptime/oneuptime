@@ -61,7 +61,7 @@ Quand vous rejoignez un projet avec un e-mail de connexion vérifié, OneUptime 
 2. Pour chaque gravité, sur chacun des quatre onglets des **Comment me joindre**, une règle vous envoie un e-mail dès que vous êtes alerté.
 3. Un ensemble de nouvelles sur ce dont vous êtes propriétaire, et sur vos permanences, est activé par e-mail. Voir [Paramètres de notification](/docs/notifications/notification-settings#ce-qui-est-activé-pour-un-nouveau-membre).
 
-Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ).
+Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règle pour chaque gravité, envoyée dès que vous êtes alerté. Vérifier un numéro de téléphone pour les SMS signifie donc que chaque alerte vous envoie aussi un SMS. Pour garder les SMS pour les alertes critiques uniquement, supprimez les règles SMS des autres gravités. Voir [Comment me joindre](/docs/notifications/on-call-rules#les-règles-de-départ). Quand votre projet a une séquence par défaut, votre e-mail et chaque méthode que vous vérifiez la suivent à la place : voir [La séquence par défaut](/docs/notifications/on-call-rules#la-séquence-par-défaut).
 
 ## La liste de configuration
 

@@ -61,7 +61,7 @@ When you join a project with a verified sign-in email, OneUptime sets you up so 
 2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.
 3. A set of updates about what you own, and about your shifts, is switched on by email. See [Notification Settings](/docs/notifications/notification-settings#what-is-on-for-a-new-member).
 
-Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with).
+Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with). When your project has a default ladder, your email and every method you verify follow it instead: see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder).
 
 ## The setup checklist
 
