@@ -1072,11 +1072,13 @@ describe("the status page and telemetry guided setups, from their products (#714
   });
 
   test("Logs, Traces and Metrics name the telemetry setup - the three its guide sets up - and nothing else does", () => {
-    for (const product of [
+    const telemetry: Array<OnboardedProductKey> = [
       ProductKey.Logs,
       ProductKey.Traces,
       ProductKey.Metrics,
-    ]) {
+    ];
+
+    for (const product of telemetry) {
       expect({
         product,
         guidedSetup: PRODUCT_ONBOARDINGS[product].guidedSetup,
@@ -1091,12 +1093,14 @@ describe("the status page and telemetry guided setups, from their products (#714
       });
     }
 
-    for (const product of [
+    const others: Array<OnboardedProductKey> = [
       ProductKey.Exceptions,
       ProductKey.Profiles,
       ProductKey.Topology,
       ProductKey.Services,
-    ]) {
+    ];
+
+    for (const product of others) {
       expect({
         product,
         guidedSetup: PRODUCT_ONBOARDINGS[product].guidedSetup,
@@ -1253,7 +1257,12 @@ describe("the status page and telemetry guided setups, from their products (#714
   test("a read-only member is offered neither setup, on the list or in How it works", async () => {
     asViewer();
 
-    for (const product of [ProductKey.StatusPages, ProductKey.Logs]) {
+    const products: Array<OnboardedProductKey> = [
+      ProductKey.StatusPages,
+      ProductKey.Logs,
+    ];
+
+    for (const product of products) {
       await renderInRouter(<ProductShowcase product={product} />);
       expect({
         product,
