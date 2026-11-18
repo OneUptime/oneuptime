@@ -46,7 +46,18 @@ import {
  * A project can have tens of thousands of tables, and a drawing past a few
  * hundred cards is read by nobody, so the map holds the flows seen most
  * recently first, at most MAX_DATA_LINEAGE_MAP_NODES cards, and says when
- * there were more (isTruncated). What it draws is still true.
+ * there were more (isTruncated) and how many tables it left out
+ * (hiddenTableCount). What it draws is still true.
+ *
+ * A map can start somewhere (#6547): from one database - the flows of its
+ * tables, and the cards they join - or from a search of the whole project -
+ * the flows of the tables, pipelines, services and dashboards whose names
+ * hold the words (DataLineageMapRequest) - so a table whose flows are older
+ * than the newest a whole map holds is found all the same.
+ *
+ * It holds only what its reader may read (#9526): a role limited to what
+ * its members own, or to some labels, sees the flows of those tables and
+ * pipelines, and is never told of another - not by name, not in a count.
  *
  * The rows are read by Server/Utils/DataObservability/DataLineageMap; the
  * choosing and the drawing's facts are worked out here, free of the
@@ -105,6 +116,89 @@ export const MAX_DATA_LINEAGE_MAP_DASHBOARDS: number = 100;
 
 // The most operations an arrow from a service names.
 export const MAX_DATA_LINEAGE_MAP_OPERATIONS: number = 6;
+
+/*
+ * The most tables a map that starts somewhere reads the flows of: one
+ * database's, a search's, or - for a reader limited to some of the
+ * project's tables - the ones they may read. Past it, the map says it was
+ * cut short.
+ */
+export const MAX_DATA_LINEAGE_MAP_FOCUS_TABLES: number = 1000;
+
+// The most pipelines, services and dashboards one search of the map matches.
+export const MAX_DATA_LINEAGE_MAP_SEARCH_MATCHES: number = 100;
+
+// The longest search the map takes: a table's schema.table key, or a few words of it.
+export const MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH: number = 100;
+
+/*
+ * Where a map starts (#6547): the whole project, one database, or a
+ * search of the whole project. Both narrow it together.
+ */
+export interface DataLineageMapRequest {
+  // The flows of this database's tables, and the cards they join.
+  dataStoreId?: string | undefined;
+  // The flows of the tables, pipelines, services and dashboards whose names hold these words.
+  search?: string | undefined;
+}
+
+const UUID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/*
+ * A map's request as sent: the database by its ID, the search trimmed and
+ * at most MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH long, each left out when empty.
+ * A string says why it was refused.
+ */
+export function readDataLineageMapRequest(
+  body: unknown,
+): DataLineageMapRequest | string {
+  if (body === null || body === undefined) {
+    return {};
+  }
+
+  if (typeof body !== "object" || Array.isArray(body)) {
+    return "Send the map's request as an object.";
+  }
+
+  const fields: Record<string, unknown> = body as Record<string, unknown>;
+  const request: DataLineageMapRequest = {};
+  const dataStoreId: unknown = fields["dataStoreId"];
+  const search: unknown = fields["search"];
+
+  if (dataStoreId !== undefined && dataStoreId !== null && dataStoreId !== "") {
+    if (typeof dataStoreId !== "string" || !UUID_PATTERN.test(dataStoreId)) {
+      return "Name the database by its ID.";
+    }
+
+    request.dataStoreId = dataStoreId.toLowerCase();
+  }
+
+  if (search !== undefined && search !== null) {
+    if (typeof search !== "string") {
+      return "Search for words: a table's name, or a pipeline's, a service's or a dashboard's.";
+    }
+
+    const words: string = search.trim();
+
+    if (words.length > MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH) {
+      return `Search for at most ${MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH} characters.`;
+    }
+
+    if (words) {
+      request.search = words;
+    }
+  }
+
+  return request;
+}
+
+// Whether a request starts the map somewhere: one database, or a search.
+export function isFocusedDataLineageMapRequest(
+  request: DataLineageMapRequest,
+): boolean {
+  return Boolean(request.dataStoreId || request.search);
+}
 
 // The most BI tools the map tells of whose dashboards are on no watched table.
 export const MAX_DATA_LINEAGE_MAP_BI_TOOLS: number = 20;
@@ -183,6 +277,15 @@ export interface DataLineageMap {
   // More flows than one map holds: the newest are drawn.
   isTruncated: boolean;
   /*
+   * The tables the flows read need that the map does not draw, past its
+   * most cards: how many more there are, each counted once - at least this
+   * many when there were more flows than were read
+   * (isHiddenTableCountAtLeast). Only tables its reader may read are
+   * counted. Left out by a server from before it was counted.
+   */
+  hiddenTableCount?: number | undefined;
+  isHiddenTableCountAtLeast?: boolean | undefined;
+  /*
    * The BI tools whose dashboards were read but are on no watched table,
    * each with why (DataBiLineageSummary): what the map says it cannot
    * draw on tables. Left out when there are none.
@@ -259,6 +362,10 @@ export interface DataLineageMapChoice {
   // Cards the flows draw.
   nodeCount: number;
   isTruncated: boolean;
+  // The tables the flows read need that are not drawn, each once.
+  hiddenTableCount: number;
+  // More rows than were read: there are at least that many.
+  isHiddenTableCountAtLeast: boolean;
 }
 
 /*
@@ -275,8 +382,11 @@ export interface DataLineageMapBiChoice {
   isTruncated: boolean;
 }
 
+// How a table's card id starts (getLineageMapTableNodeId).
+const TABLE_NODE_PREFIX: string = "table:";
+
 export function getLineageMapTableNodeId(dataAssetId: string): string {
-  return `table:${dataAssetId}`;
+  return `${TABLE_NODE_PREFIX}${dataAssetId}`;
 }
 
 export function getLineageMapPipelineNodeId(dataPipelineId: string): string {
@@ -542,6 +652,17 @@ export function chooseDataLineageMapFlows(data: {
     dataAssetIds.add(row.dataAssetId);
   }
 
+  // Every table a flow read needs that no drawn flow does: left out, each once.
+  const hiddenTables: Set<string> = new Set();
+
+  for (const flow of ordered) {
+    for (const id of flow.nodes) {
+      if (id.startsWith(TABLE_NODE_PREFIX) && !drawn.has(id)) {
+        hiddenTables.add(id);
+      }
+    }
+  }
+
   return {
     lineage,
     usages,
@@ -553,6 +674,8 @@ export function chooseDataLineageMapFlows(data: {
     ),
     nodeCount: drawn.size,
     isTruncated,
+    hiddenTableCount: hiddenTables.size,
+    isHiddenTableCountAtLeast: Boolean(data.hadMoreRows),
   };
 }
 
@@ -1120,6 +1243,8 @@ export function assembleDataLineageMap(data: {
       },
     ),
     isTruncated,
+    hiddenTableCount: data.choice.hiddenTableCount,
+    isHiddenTableCountAtLeast: data.choice.isHiddenTableCountAtLeast,
   };
 }
 

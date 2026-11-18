@@ -1678,7 +1678,21 @@ describe("what the decisions stand on", () => {
    * left working; the pages that ask for them are gone while the product is
    * off (ServerProductGate), so nothing asks.
    */
-  test.each([["attentionCount"], ["issues"]])(
+  /*
+   * So do the lineage routes: the Lineage Map now starting from a database
+   * or a search of the whole project (#6547), and a pipeline's lineage with
+   * the columns its runs moved (#6854), each answering only about what its
+   * caller may read (#9526) - reads all the same, left working.
+   */
+  test.each([
+    ["attentionCount"],
+    ["issues"],
+    ["lineageMap"],
+    ["pipelineLineage"],
+    ["tableLineage"],
+    ["lineageExpand"],
+    ["tableLineageAnswer"],
+  ])(
     "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
     (route: string) => {
       const source: string = fs.readFileSync(

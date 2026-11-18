@@ -114,6 +114,12 @@ resource "oneuptime_monitor_user_owner" "api" {
 }
 
 resource "oneuptime_monitor_owner_rule" "api" {
+  # Created after the monitor already has its owner: a rule gives a monitor
+  # its owners as the monitor is made, so a rule that came first would make
+  # the same person its owner before oneuptime_monitor_user_owner.api does,
+  # and that create would be refused as "already an owner" (#9482).
+  depends_on = [oneuptime_monitor_user_owner.api]
+
   name              = "TF E2E People Owners ${random_id.suffix.hex}"
   owner_user_emails = [var.test_user_email, local.newcomer]
 }

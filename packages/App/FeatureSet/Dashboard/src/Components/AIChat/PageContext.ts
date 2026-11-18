@@ -16,6 +16,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -260,6 +261,21 @@ const entityPageRules: Array<EntityPageRule> = [
     noun: translationKey("data security issue"),
     chipLabel: "This data security issue",
     icon: IconProp.ShieldExclamation,
+    isValidId: isUuid,
+  },
+  /*
+   * A table's pages in Data Observability - its overview, Lineage tab,
+   * checks and the rest (#6735): Ask AI reads that table by its ID - how
+   * fresh it is, what it is built from and what is built from it - so
+   * "this table" is the one on screen, even when several databases have a
+   * table of its name.
+   */
+  {
+    pageMapKey: PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
+    type: AIChatPageContextType.DataTable,
+    noun: translationKey("table"),
+    chipLabel: "This table",
+    icon: IconProp.TableCells,
     isValidId: isUuid,
   },
 ];
@@ -757,6 +773,15 @@ export default class PageContextUtil {
               select: { title: true },
             });
           return PageContextUtil.titleOnly(item?.title);
+        }
+        // A table by its schema.table key, as its page is headed: read with the viewer's own grants.
+        case AIChatPageContextType.DataTable: {
+          const item: DataAsset | null = await ModelAPI.getItem<DataAsset>({
+            modelType: DataAsset,
+            id: id,
+            select: { assetKey: true, name: true },
+          });
+          return PageContextUtil.titleOnly(item?.assetKey || item?.name);
         }
         // An account by the name it has in OneUptime.
         case AIChatPageContextType.CloudAccount: {
@@ -1529,6 +1554,34 @@ export default class PageContextUtil {
             title: "How sure",
             question:
               "When was this store last scanned, and how sure are its findings?",
+          },
+        ];
+      // What a table's own answers say (get_data_table_freshness, get_data_table_lineage).
+      case AIChatPageContextType.DataTable:
+        return [
+          {
+            icon: IconProp.FlowDiagram,
+            title: "Built from",
+            question:
+              "What is this table built from, and is anything upstream late or failing?",
+          },
+          {
+            icon: IconProp.Alert,
+            title: "What breaks",
+            question:
+              "What breaks if this table stops loading? List the tables and dashboards built on it.",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "Is it fresh",
+            question:
+              "Is this table fresh? When did it last change, and how often does it usually?",
+          },
+          {
+            icon: IconProp.ExclaimationCircle,
+            title: "Open alerts",
+            question:
+              "What alerts are open on this table, and is a pipeline that writes it failing?",
           },
         ];
       case AIChatPageContextType.DataSecurityIssue:

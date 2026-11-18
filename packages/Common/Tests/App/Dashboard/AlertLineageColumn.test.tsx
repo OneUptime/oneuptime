@@ -691,6 +691,24 @@ describe("an alert from a check on one column", () => {
     expect(offered()).toEqual(["customer_id", "amount", "order_id"]);
   });
 
+  test("with the table's own order of its columns, the rest follow the check's column in that order, as on the table's Lineage tab (#6853)", async () => {
+    await renderDrawn(
+      anAnswer({ columnOrder: ["order_id", "customer_id", "amount", "notes"] }),
+    );
+
+    expect(offered()).toEqual(["customer_id", "order_id", "amount"]);
+    // Still opening with the check's column followed.
+    expect(columnOn(STAGING)).toBe("cust_id");
+  });
+
+  test("the table's order names the check's column in another case: it is offered once, first, as the check names it", async () => {
+    await renderDrawn(
+      anAnswer({ columnOrder: ["ORDER_ID", "CUSTOMER_ID", "AMOUNT"] }),
+    );
+
+    expect(offered()).toEqual(["customer_id", "ORDER_ID", "AMOUNT"]);
+  });
+
   test("another column picked follows that one instead, the alert's ways still picked out", async () => {
     await renderDrawn();
 
@@ -1301,6 +1319,198 @@ describe("the cause's pipeline on its arrows", () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
+});
+
+/*
+ * An alert it caused on a pipeline drawn only on arrows (#6853): the way
+ * down ends on the arrows that pipeline moves data along, and each says
+ * Consequence under the pipeline's name, as a consequence's card says it -
+ * the way the cause's pipeline says Cause on the way up. orders_load is
+ * both here: the cause, on the way up, and on the way down to the alert
+ * this one caused.
+ */
+function consequenceOnPipeline(
+  pipeline: DataTableLineagePipeline = ORDERS_LOAD,
+  fields: {
+    causeDataPipelineIds?: Array<string>;
+    consequenceDataPipelineIds?: Array<string> | null;
+  } = {},
+): DataAlertLineageAnswer {
+  const answer: DataAlertLineageAnswer = causeOnPipeline(
+    pipeline,
+    [pipeline],
+    fields.causeDataPipelineIds || [],
+  );
+  const highlight: DataLineageHighlight = answer.lineage!.highlight!;
+
+  if (fields.consequenceDataPipelineIds !== null) {
+    highlight.consequenceDataPipelineIds =
+      fields.consequenceDataPipelineIds || [LOAD];
+  }
+
+  return answer;
+}
+
+describe("the consequence's pipeline on its arrows (#6853)", () => {
+  test("the arrow a way down ends on names it in indigo, and says Consequence under its name", async () => {
+    await renderDrawn(consequenceOnPipeline());
+
+    expect(arrowData(TABLE, MART)).toEqual({
+      label: "orders_load",
+      title: "orders_load",
+      isLabelHighlighted: true,
+      isConsequence: true,
+      isHighlighted: true,
+    });
+
+    const label: HTMLElement = arrowLabel(TABLE, MART);
+
+    expect(within(label).getByTestId("lineage-edge-name")).toHaveTextContent(
+      "orders_load",
+    );
+    expect(
+      within(label).getByTestId("lineage-edge-consequence"),
+    ).toHaveTextContent("Consequence");
+    expect(
+      within(label).queryByTestId("lineage-edge-cause"),
+    ).not.toBeInTheDocument();
+    expect(wordsClassOf(label)).toBe("text-indigo-600");
+  });
+
+  test("the cause's arrow still says Cause, the consequence's Consequence: one each, never both on one", async () => {
+    await renderDrawn(
+      consequenceOnPipeline(ORDERS_LOAD, { causeDataPipelineIds: [LOAD] }),
+    );
+
+    expect(arrowData(SOURCE, STAGING)).toEqual({
+      label: "orders_load",
+      title: "orders_load",
+      isLabelHighlighted: true,
+      isCause: true,
+      isHighlighted: true,
+    });
+    expect(arrowData(TABLE, MART)?.["isConsequence"]).toBe(true);
+    expect(arrowData(TABLE, MART)?.["isCause"]).toBeUndefined();
+    expect(screen.getAllByTestId("lineage-edge-cause")).toHaveLength(1);
+    expect(screen.getAllByTestId("lineage-edge-consequence")).toHaveLength(1);
+    expect(
+      within(arrowLabel(SOURCE, STAGING)).queryByTestId(
+        "lineage-edge-consequence",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an arrow off the alert's ways says neither, though the same pipeline moves its data", async () => {
+    const answer: DataAlertLineageAnswer = consequenceOnPipeline();
+    const lineage: DataTableLineage = answer.lineage!;
+
+    // orders_load moves side.orders' data too: that arrow is on no way.
+    lineage.edges = lineage.edges.map(
+      (edge: DataTableLineageEdge): DataTableLineageEdge => {
+        return edge.id === edgeId(TABLE, SIDE)
+          ? { ...edge, pipelines: [ORDERS_LOAD] }
+          : edge;
+      },
+    );
+
+    await renderDrawn(answer);
+
+    expect(arrowData(TABLE, SIDE)).toEqual({});
+    expect(screen.getAllByTestId("lineage-edge-consequence")).toHaveLength(1);
+  });
+
+  test("its run failed: red, says it failed under the pointer, and still Consequence", async () => {
+    await renderDrawn(
+      consequenceOnPipeline({ ...ORDERS_LOAD, lastRunState: "FAIL" }),
+    );
+
+    expect(arrowData(TABLE, MART)).toEqual({
+      label: "orders_load",
+      title: "orders_load failed",
+      isConsequence: true,
+      isHighlighted: true,
+    });
+
+    const label: HTMLElement = arrowLabel(TABLE, MART);
+
+    expect(wordsClassOf(label)).toBe("text-red-600");
+    expect(
+      within(label).getByTestId("lineage-edge-consequence"),
+    ).toHaveTextContent("Consequence");
+  });
+
+  test("an answer from before the consequences' pipelines were sent: named on its arrow, without Consequence", async () => {
+    await renderDrawn(
+      consequenceOnPipeline(ORDERS_LOAD, { consequenceDataPipelineIds: null }),
+    );
+
+    expect(arrowData(TABLE, MART)).toEqual({
+      label: "orders_load",
+      title: "orders_load",
+      isLabelHighlighted: true,
+      isHighlighted: true,
+    });
+    expect(
+      screen.queryByTestId("lineage-edge-consequence"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the name and Consequence keep to the label's room: the word too long for it ends in its own ellipsis, never cut", async () => {
+    await renderDrawn(
+      consequenceOnPipeline({
+        ...ORDERS_LOAD,
+        name: "orders_load_from_the_payments_provider_callbacks_every_hour",
+      }),
+    );
+
+    const label: HTMLElement = arrowLabel(TABLE, MART);
+    const name: HTMLElement = within(label).getByTestId("lineage-edge-name");
+    const consequence: HTMLElement = within(label).getByTestId(
+      "lineage-edge-consequence",
+    );
+
+    expect(label.style.maxWidth).toBe(`${LINEAGE_EDGE_LABEL_MAX_WIDTH}px`);
+    expect(label).toHaveClass("truncate", "flex", "flex-col", "items-center");
+    expect(name).toHaveClass("block", "max-w-full", "truncate");
+    expect(consequence).toHaveClass("max-w-full");
+    expect(within(consequence).getByTestId("pill")).toHaveClass("max-w-full");
+    expect(within(consequence).getByTestId("pill-text")).toHaveClass(
+      "min-w-0",
+      "truncate",
+    );
+    expect(name.compareDocumentPosition(consequence)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  test.each([
+    ["en", "Consequence"],
+    ["de", "Folge"],
+    ["ar", "النتيجة"],
+    ["fa", "پیامد"],
+  ])(
+    "%s: the consequence's arrow says %s, as its card would, inside the label's room",
+    async (language: string, word: string) => {
+      if (language !== "en") {
+        await inLanguage(language);
+        expect(readDashboardLocale(language)["Consequence"]).toBe(word);
+      }
+
+      await renderDrawn(consequenceOnPipeline());
+
+      const label: HTMLElement = arrowLabel(TABLE, MART);
+
+      expect(
+        within(label).getByTestId("lineage-edge-consequence"),
+      ).toHaveTextContent(word);
+      // The pipeline's Latin name still reads left to right, cut at its own end.
+      expect(within(label).getByTestId("lineage-edge-name")).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
+      expect(label.style.maxWidth).toBe(`${LINEAGE_EDGE_LABEL_MAX_WIDTH}px`);
+    },
+  );
 });
 
 describe("in the reader's language", () => {
