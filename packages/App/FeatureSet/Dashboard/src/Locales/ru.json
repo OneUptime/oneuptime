@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Выход из поставщика удостоверений",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Если включено «Выходить и из поставщика удостоверений», зарегистрируйте и URI перенаправления после выхода: поставщик отправляет туда людей после того, как завершит их сеанс.",
+  "Sign-out Redirect URI:": "URI перенаправления после выхода:",
+  "Sign Out of the Identity Provider Too": "Выходить и из поставщика удостоверений",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Выход из OneUptime также завершает сеанс у этого поставщика и во всех других приложениях, которые его используют. Включайте для общих компьютеров."
 }

@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Uscita dal provider di identità",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Se «Esci anche dal provider di identità» è attivo, registra anche l'URI di reindirizzamento dopo l'uscita: il provider vi rimanda le persone dopo averle fatte uscire.",
+  "Sign-out Redirect URI:": "URI di reindirizzamento dopo l'uscita:",
+  "Sign Out of the Identity Provider Too": "Esci anche dal provider di identità",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Uscire da OneUptime fa uscire anche da questo provider e da ogni altra app che lo usa. Attivalo per i computer condivisi."
 }

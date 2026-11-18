@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "Reenviar o e-mail de convite para {{email}}?",
   "Send their invitation email again?": "Reenviar o e-mail de convite?",
   "Invitation sent to {{email}}": "Convite enviado para {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Foram enviados convites demais para este endereço na última hora. Você poderá reenviá-lo depois das {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Foram enviados convites demais para este endereço na última hora. Você poderá reenviá-lo depois das {{time}}.",
+  "Sign Out of the Identity Provider Too": "Sair também do provedor de identidade",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Sair do OneUptime também encerra a sessão neste provedor e em todos os outros apps que o usam. Ative para computadores compartilhados.",
+  "Sign-out Redirect URI:": "URI de redirecionamento após sair:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registre a URI de redirecionamento no seu provedor de identidade OIDC e, quando «Sair também do provedor de identidade» estiver ativado, também a URI de redirecionamento após sair."
 }

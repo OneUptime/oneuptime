@@ -518,7 +518,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
      * Last, as it is about the sign-out rather than the sign-in. Turning it
      * on is refused, in words this form shows, for a provider whose
      * discovery document names no end_session_endpoint
-     * (Server/Utils/IdentityProviderSignOutCheck); the post-logout redirect
+     * (Server/Utils/IdentityProviderSignOutCheck); the sign-out redirect
      * URI to register is shown beside the provider's other URLs.
      */
     ...(options?.withIdentityProviderSignOut

@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Cierre de sesión en el proveedor de identidad",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Si «Cerrar sesión también en el proveedor de identidad» está activado, registra también la URI de redirección tras cerrar sesión: el proveedor envía allí a las personas después de cerrar su sesión.",
+  "Sign-out Redirect URI:": "URI de redirección tras cerrar sesión:",
+  "Sign Out of the Identity Provider Too": "Cerrar sesión también en el proveedor de identidad",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Cerrar sesión en OneUptime también cierra la sesión en este proveedor y en todas las demás aplicaciones que lo usan. Actívalo para ordenadores compartidos."
 }

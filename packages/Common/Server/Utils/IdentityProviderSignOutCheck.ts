@@ -32,7 +32,7 @@ import { isUsableEndSessionEndpoint } from "../../Types/SSO/IdentityProviderSign
 export const DISCOVERY_READ_TIMEOUT_IN_MS: number = 10_000;
 
 export const NO_END_SESSION_ENDPOINT_MESSAGE: string =
-  "This identity provider cannot sign people out: its discovery document names no end_session_endpoint (OpenID Connect RP-initiated logout). Leave Sign out of the identity provider too off for this provider, or check its discovery URL.";
+  "This identity provider cannot sign people out: its discovery document names no end_session_endpoint, where an OpenID Connect provider ends its sessions. Leave Sign out of the identity provider too off for this provider, or check its discovery URL.";
 
 export const DISCOVERY_UNREADABLE_MESSAGE: string =
   "OneUptime could not read this identity provider's discovery document, so it cannot tell whether the provider can sign people out. Check the discovery URL and try again, or leave Sign out of the identity provider too off.";

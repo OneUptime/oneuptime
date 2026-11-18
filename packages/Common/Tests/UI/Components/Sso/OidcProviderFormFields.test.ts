@@ -22,6 +22,8 @@ import {
 import {
   GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY,
   OIDC_ADVANCED_DEFAULTS_SUMMARY,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+  OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE,
   OIDC_ISSUER_URL_ERROR,
   OIDC_SCOPES_WITHOUT_OPENID_ERROR,
   OidcIssuerChange,
@@ -111,11 +113,17 @@ function isUnseenColumn<TEntity>(field: Field<TEntity>): boolean {
 }
 
 const PROJECT_FIELDS: Array<Field<ProjectOIDC>> =
-  getOidcProviderFormFields<ProjectOIDC>({ withTeams: true });
+  getOidcProviderFormFields<ProjectOIDC>({
+    withTeams: true,
+    withIdentityProviderSignOut: true,
+  });
 const STATUS_PAGE_FIELDS: Array<Field<StatusPageOIDC>> =
   getOidcProviderFormFields<StatusPageOIDC>();
 const GLOBAL_FIELDS: Array<Field<GlobalOIDC>> =
-  getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true });
+  getOidcProviderFormFields<GlobalOIDC>({
+    withGlobalAccessSwitches: true,
+    withIdentityProviderSignOut: true,
+  });
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -154,6 +162,7 @@ describe("the fields each form gets", () => {
       "emailClaimName",
       "nameClaimName",
       "description",
+      "signOutOfIdentityProvider",
     ]);
   });
 
@@ -190,6 +199,7 @@ describe("the fields each form gets", () => {
       "disableSignUpWithSso",
       "restrictToAttachedProjects",
       "restrictToAttachedProjects",
+      "signOutOfIdentityProvider",
     ]);
   });
 
@@ -734,6 +744,96 @@ describe("the folded Advanced section", () => {
         discoveryURL: URL.fromString(
           "https://dev-123456.okta.com/oauth2/default/.well-known/openid-configuration",
         ),
+      }),
+    ).toBe(true);
+  });
+});
+
+/*
+ * "Sign out of the identity provider too" (#9535): a provider people sign
+ * in to OneUptime with - a project's, or the instance-wide one - can sign
+ * them out of the identity provider too when they sign out. Off by default,
+ * folded with the rest of what has an answer, last, as it is about the
+ * sign-out. A status page's provider signs nobody in to OneUptime, so its
+ * form never has it.
+ */
+describe("the switch to sign out of the identity provider too", () => {
+  test("is a switch, off to start with and never required, at the end of the Advanced section", () => {
+    for (const fields of [PROJECT_FIELDS, GLOBAL_FIELDS] as Array<
+      Array<Field<unknown>>
+    >) {
+      const signOut: Field<unknown> = fieldFor(
+        fields,
+        "signOutOfIdentityProvider",
+      );
+
+      expect(signOut.fieldType).toBe(FormFieldSchemaType.Toggle);
+      expect(signOut.defaultValue).toBe(false);
+      expect(signOut.required).toBe(false);
+      expect(signOut.stepId).toBe(SSO_SIGN_IN_STEP_ID);
+      expect(signOut.collapsibleSection).toBe(
+        fieldFor(fields, "scopes").collapsibleSection,
+      );
+      expect(keyOf(fields[fields.length - 1]!)).toBe(
+        "signOutOfIdentityProvider",
+      );
+    }
+  });
+
+  test("says what on does, and when to turn it on, in one short sentence", () => {
+    const signOut: Field<ProjectOIDC> = fieldFor(
+      PROJECT_FIELDS,
+      "signOutOfIdentityProvider",
+    );
+
+    expect(signOut.title).toBe(OIDC_IDENTITY_PROVIDER_SIGN_OUT_TITLE);
+    expect(signOut.title).toBe("Sign Out of the Identity Provider Too");
+    expect(signOut.description).toBe(
+      OIDC_IDENTITY_PROVIDER_SIGN_OUT_DESCRIPTION,
+    );
+    expect(String(signOut.description).length).toBeLessThanOrEqual(150);
+    expect(String(signOut.description)).toMatch(/shared computers/);
+  });
+
+  test("a status page's provider form has none", () => {
+    expect(keysOn(STATUS_PAGE_FIELDS, "sign-in")).not.toContain(
+      "signOutOfIdentityProvider",
+    );
+    expect(
+      keysOn(getOidcProviderFormFields<ProjectOIDC>({ withTeams: true }), "sign-in"),
+    ).not.toContain("signOutOfIdentityProvider");
+  });
+
+  test("turned on, the folded section says Configured instead of its defaults", () => {
+    const AT_DEFAULTS: Record<string, unknown> = {
+      name: "Okta",
+      issuerURL: "https://acme.okta.com",
+      discoveryURL: URL.fromString(
+        "https://acme.okta.com/.well-known/openid-configuration",
+      ),
+      scopes: DEFAULT_OIDC_SCOPES,
+      emailClaimName: DEFAULT_OIDC_EMAIL_CLAIM_NAME,
+      nameClaimName: DEFAULT_OIDC_NAME_CLAIM_NAME,
+      description: "Sign in with Okta",
+    };
+
+    expect(
+      isOidcAdvancedAtDefaults(
+        { ...AT_DEFAULTS, signOutOfIdentityProvider: false },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(true);
+    expect(
+      isOidcAdvancedAtDefaults(
+        { ...AT_DEFAULTS, signOutOfIdentityProvider: true },
+        { withIdentityProviderSignOut: true },
+      ),
+    ).toBe(false);
+    // A form without the switch never reads it.
+    expect(
+      isOidcAdvancedAtDefaults({
+        ...AT_DEFAULTS,
+        signOutOfIdentityProvider: true,
       }),
     ).toBe(true);
   });

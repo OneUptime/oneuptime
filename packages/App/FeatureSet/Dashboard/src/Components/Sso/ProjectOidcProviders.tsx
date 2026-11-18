@@ -225,7 +225,7 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
                   },
                   {
                     // Where the provider sends people once it has signed them out (#9535).
-                    label: "Post-logout Redirect URI:",
+                    label: "Sign-out Redirect URI:",
                     value: getPostLogoutRedirectUri({
                       httpProtocol: HTTP_PROTOCOL.toString(),
                       host: HOST,
@@ -240,10 +240,10 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
               </div>
               <div
                 className="text-sm text-gray-500"
-                data-testid="oidc-config-post-logout-note"
+                data-testid="oidc-config-sign-out-note"
               >
                 {translator.translateText(
-                  "If Sign Out of the Identity Provider Too is on, also register the post-logout redirect URI: the provider sends people there once it has signed them out.",
+                  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.",
                 )}
               </div>
               {!oidcConfigTarget?.isEnabled && (

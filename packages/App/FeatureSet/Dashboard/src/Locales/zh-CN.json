@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "退出身份提供商的登录",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "如果开启了“同时退出身份提供商的登录”，请同时注册退出登录后的重定向 URI：提供商在让用户退出后会将其送回该地址。",
+  "Sign-out Redirect URI:": "退出登录后的重定向 URI：",
+  "Sign Out of the Identity Provider Too": "同时退出身份提供商的登录",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "退出 OneUptime 时，也会退出此提供商以及所有使用它的其他应用。共享计算机请开启。"
 }

@@ -745,7 +745,7 @@ export default class ProjectOIDC extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Sign Out of the Identity Provider Too",
     description:
-      "When enabled, signing out of OneUptime also signs the person out of this identity provider (OpenID Connect RP-initiated logout), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must publish an end_session_endpoint and allow OneUptime's sign-in page as a post-logout redirect URI.",
+      "When enabled, signing out of OneUptime also signs the person out of this identity provider (OpenID Connect RP-initiated sign-out), so the next person on a shared computer signs in as themselves. It also signs them out of every other app that uses the provider. The provider must publish an end_session_endpoint and allow OneUptime's sign-in page as a sign-out redirect URI (post_logout_redirect_uri).",
     defaultValue: false,
     example: true,
   })

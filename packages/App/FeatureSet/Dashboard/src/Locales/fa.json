@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "خروج از ارائه‌دهندهٔ هویت",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "اگر «از ارائه‌دهندهٔ هویت هم خارج شود» روشن است، URI هدایت پس از خروج را هم ثبت کنید: ارائه‌دهنده پس از خارج کردن افراد، آن‌ها را به آنجا می‌فرستد.",
+  "Sign-out Redirect URI:": "URI هدایت پس از خروج:",
+  "Sign Out of the Identity Provider Too": "از ارائه‌دهندهٔ هویت هم خارج شود",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "خروج از OneUptime افراد را از این ارائه‌دهنده و از هر برنامهٔ دیگری که از آن استفاده می‌کند هم خارج می‌کند. برای رایانه‌های مشترک روشن کنید."
 }

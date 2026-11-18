@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Utloggning från identitetsleverantören",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Om ”Logga även ut från identitetsleverantören” är på registrerar du även omdirigerings-URI:n efter utloggning: leverantören skickar dit personer när den har loggat ut dem.",
+  "Sign-out Redirect URI:": "Omdirigerings-URI efter utloggning:",
+  "Sign Out of the Identity Provider Too": "Logga även ut från identitetsleverantören",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "När man loggar ut från OneUptime loggas man även ut från den här leverantören och från alla andra appar som använder den. Slå på för delade datorer."
 }

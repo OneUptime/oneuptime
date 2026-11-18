@@ -236,12 +236,12 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
         <Card
           title={"Identity Provider URL"}
           description={
-            "Register the redirect URI with your OIDC identity provider, and the post-logout redirect URI too when Sign Out of the Identity Provider Too is on."
+            "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on."
           }
         >
           {/*
            * The values, each with a button that copies it. The provider
-           * sends people back to the post-logout redirect URI - the sign-in
+           * sends people back to the sign-out redirect URI - the sign-in
            * page - once it has signed them out (#9535).
            */}
           <CopyableValueList
@@ -252,7 +252,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 value: redirectURI,
               },
               {
-                label: "Post-logout Redirect URI:",
+                label: "Sign-out Redirect URI:",
                 value: postLogoutRedirectURI,
               },
             ]}

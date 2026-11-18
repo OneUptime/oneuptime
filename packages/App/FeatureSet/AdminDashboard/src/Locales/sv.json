@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "Skicka inbjudningsmejlet till {{email}} igen?",
   "Send their invitation email again?": "Skicka inbjudningsmejlet igen?",
   "Invitation sent to {{email}}": "Inbjudan skickad till {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}.",
+  "Sign Out of the Identity Provider Too": "Logga även ut från identitetsleverantören",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "När man loggar ut från OneUptime loggas man även ut från den här leverantören och från alla andra appar som använder den. Slå på för delade datorer.",
+  "Sign-out Redirect URI:": "Omdirigerings-URI efter utloggning:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registrera omdirigerings-URI:n hos din OIDC-identitetsleverantör, och även omdirigerings-URI:n efter utloggning när ”Logga även ut från identitetsleverantören” är på."
 }

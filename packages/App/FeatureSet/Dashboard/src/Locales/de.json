@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Abmeldung beim Identitätsanbieter",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Wenn „Auch beim Identitätsanbieter abmelden“ eingeschaltet ist, registrieren Sie auch die Weiterleitungs-URI nach der Abmeldung: Dorthin schickt der Anbieter die Personen, nachdem er sie abgemeldet hat.",
+  "Sign-out Redirect URI:": "Weiterleitungs-URI nach der Abmeldung:",
+  "Sign Out of the Identity Provider Too": "Auch beim Identitätsanbieter abmelden",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Wer sich von OneUptime abmeldet, wird auch bei diesem Anbieter abgemeldet und bei jeder anderen App, die ihn nutzt. Für gemeinsam genutzte Computer einschalten."
 }

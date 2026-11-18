@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "ID プロバイダーからのサインアウト",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "「ID プロバイダーからもサインアウト」がオンの場合は、サインアウト後のリダイレクト URI も登録してください。プロバイダーは、サインアウトさせた人をそこへ戻します。",
+  "Sign-out Redirect URI:": "サインアウト後のリダイレクト URI:",
+  "Sign Out of the Identity Provider Too": "ID プロバイダーからもサインアウト",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime からサインアウトすると、このプロバイダーと、それを使うほかのすべてのアプリからもサインアウトします。共用コンピューターではオンにしてください。"
 }

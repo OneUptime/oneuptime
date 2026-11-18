@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "ID 공급자 로그아웃",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "'ID 공급자에서도 로그아웃'이 켜져 있으면 로그아웃 후 리디렉션 URI도 등록하세요. 공급자는 사용자를 로그아웃시킨 뒤 그곳으로 보냅니다.",
+  "Sign-out Redirect URI:": "로그아웃 후 리디렉션 URI:",
+  "Sign Out of the Identity Provider Too": "ID 공급자에서도 로그아웃",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime에서 로그아웃하면 이 공급자와 이를 사용하는 다른 모든 앱에서도 로그아웃됩니다. 공용 컴퓨터에서는 켜세요."
 }

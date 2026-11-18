@@ -57084,5 +57084,10 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Identity Provider Sign-Out": "Afmelden bij de identiteitsprovider",
+  "If Sign Out of the Identity Provider Too is on, also register the sign-out redirect URI: the provider sends people there once it has signed them out.": "Als 'Ook afmelden bij de identiteitsprovider' aanstaat, registreer dan ook de omleidings-URI na afmelden: de provider stuurt mensen daarheen zodra hij ze heeft afgemeld.",
+  "Sign-out Redirect URI:": "Omleidings-URI na afmelden:",
+  "Sign Out of the Identity Provider Too": "Ook afmelden bij de identiteitsprovider",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Afmelden bij OneUptime meldt mensen ook af bij deze provider en bij elke andere app die hem gebruikt. Zet dit aan voor gedeelde computers."
 }
