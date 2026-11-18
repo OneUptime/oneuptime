@@ -127,7 +127,15 @@
  *              alert an alert incident rule turns into an incident after
  *              30 minutes, shown through the monitor group Checkout).
  *              POST /who-is-told/draft (Create Monitor's criteria, #7055)
- *              answers as this does, for the form's name.
+ *              answers as this does, for the form's name, its online and
+ *              offline criteria under the draft's own criteria ids.
+ *   ?monitorTest=  what Test Monitor's probe answers on Create Monitor's
+ *              criteria step (#7074): online (default: a 200 in 182 ms) |
+ *              offline (a 503). The test row is created as MonitorTest
+ *              creates it, and its answer - judged by the tested steps'
+ *              criteria, as MonitorTestEvaluation judges it: the first
+ *              online or offline criteria that matches - waits on the
+ *              first read of the row.
  *   ?usedBy=   what "Used by" answers for a monitor (GET /used-by/
  *              monitor/:monitorId, and /:relation for See all's pages):
  *              none (default: nothing refers to it, so the card says what
@@ -233,6 +241,7 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import TableView from "Common/Models/DatabaseModels/TableView";
@@ -386,6 +395,9 @@ const securityMode = ["news", "quiet"].includes(params.get("security"))
   : "none";
 // What "Used by" answers (?usedBy=).
 const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
+// What Test Monitor's probe answers (?monitorTest=).
+const monitorTestMode =
+  params.get("monitorTest") === "offline" ? "offline" : "online";
 // What "When this goes down" answers (?whoIsTold=).
 const whoIsToldMode = [
   "nobody",
@@ -1088,6 +1100,8 @@ table(TableView);
 
 // The id the fixture answers Create Monitor's create with (a stub page).
 const CREATED_MONITOR_ID = ID.monitor(100);
+// The row Test Monitor creates (?monitorTest=).
+const MONITOR_TEST_ID = "7c000000-0000-4000-8000-000000000001";
 
 /*
  * What the probe says of a private OneUptime status page
@@ -2992,6 +3006,9 @@ ModelAPI.createOrUpdate = async (options) => {
   if (modelName === tableName(MonitorStatusTimeline)) {
     return createStatusEvent(options.model, data);
   }
+  if (modelName === tableName(MonitorTest)) {
+    return createMonitorTest(options.model);
+  }
   if (
     modelName === tableName(MonitorOwnerUser) ||
     modelName === tableName(MonitorOwnerTeam)
@@ -3023,6 +3040,113 @@ ModelAPI.createOrUpdate = async (options) => {
   }
   return new HTTPResponse(200, { ...data, _id: CREATED_MONITOR_ID }, {});
 };
+
+/*
+ * The status a criteria sets: "online" for the operational one, "offline"
+ * for the offline one - read off the status, not the criteria's name,
+ * which is written in the reader's language.
+ */
+function criteriaStatusKey(instance) {
+  const statusId = String(instance?.data?.monitorStatusId || "");
+  if (statusId === String(statuses.operational.id)) {
+    return "online";
+  }
+  if (statusId === String(statuses.offline.id)) {
+    return "offline";
+  }
+  return "";
+}
+
+/*
+ * Test Monitor's row (?monitorTest=): what the probe answered for the
+ * steps it was given, as ProcessProbeIngest stores it - the answer judged
+ * by the tested steps' criteria (MonitorTestEvaluation): the first one,
+ * top to bottom, that marks the monitor operational for an answer that is
+ * up, or offline for one that is down.
+ */
+function createMonitorTest(model) {
+  const steps = model.monitorSteps;
+  const step = steps?.data?.monitorStepsInstanceArray?.[0];
+  const stepId = String(step?.data?.id || "step-1");
+  const isOnline = monitorTestMode === "online";
+  const instances =
+    step?.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || [];
+  let hasMatched = false;
+  const criteriaResults = instances.map((instance) => {
+    const name = String(instance.data?.name || "");
+    const isMet =
+      !hasMatched && criteriaStatusKey(instance) === monitorTestMode;
+    hasMatched = hasMatched || isMet;
+    return {
+      criteriaId: String(instance.data?.id || ""),
+      criteriaName: name,
+      filterCondition: instance.data?.filterCondition,
+      met: isMet,
+      message: isMet ? "The check's answer matched." : "",
+      filters: [],
+    };
+  });
+  const now = OneUptimeDate.getCurrentDate();
+  insert(MonitorTest, {
+    _id: MONITOR_TEST_ID,
+    monitorType: model.monitorType,
+    probeId: model.probeId,
+    monitorSteps: steps,
+    monitorStepProbeResponse: {
+      [stepId]: {
+        probeId: model.probeId,
+        monitorStepId: new ObjectID(stepId),
+        monitorDestination: step?.data?.monitorDestination,
+        isOnline: isOnline,
+        responseCode: isOnline ? 200 : 503,
+        responseTimeInMs: isOnline ? 182 : 2410,
+        monitoredAt: now,
+        failureCause: isOnline ? "" : "The server answered 503.",
+        evaluationSummary: {
+          evaluatedAt: now,
+          criteriaResults: criteriaResults,
+          events: [],
+        },
+      },
+    },
+  });
+  const response = new HTTPResponse(200, { _id: MONITOR_TEST_ID }, {});
+  response.data = make(MonitorTest, { _id: MONITOR_TEST_ID });
+  return response;
+}
+
+/*
+ * The draft's own criteria ids on the answer's online and offline
+ * criteria: the ids a judged test result names (Test Monitor, #7074).
+ */
+function withDraftCriteriaIds(answer, monitorStepsJson) {
+  let steps;
+  try {
+    steps = MonitorSteps.fromJSON(monitorStepsJson);
+  } catch {
+    return answer;
+  }
+  const instances = (steps?.data?.monitorStepsInstanceArray || []).flatMap(
+    (step) => {
+      return (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      );
+    },
+  );
+  const idFor = (key) => {
+    const instance = instances.find((candidate) => {
+      return criteriaStatusKey(candidate) === key;
+    });
+    return instance ? String(instance.data?.id || "") : "";
+  };
+  return {
+    ...answer,
+    criteria: answer.criteria.map((criteria) => {
+      const id = idFor(criteria.id);
+      return id ? { ...criteria, id: id } : criteria;
+    }),
+  };
+}
 
 /*
  * An owner added from the hero's Add owners list, as the server adds one: a
@@ -3961,7 +4085,12 @@ async function handleApi(method, options) {
   if (method === "POST" && parsed.pathname.endsWith("/who-is-told/draft")) {
     const name = typeof body.name === "string" ? body.name : "";
 
-    return ok({ ...whoIsTold("", name), monitorId: "", monitorName: name });
+    return ok(
+      withDraftCriteriaIds(
+        { ...whoIsTold("", name), monitorId: "", monitorName: name },
+        body.monitorSteps,
+      ),
+    );
   }
 
   // What refers to a monitor (?usedBy=).

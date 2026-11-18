@@ -2,7 +2,11 @@ import { BASE_URL } from "../../Config";
 import { clickRowMenuAction } from "../Helpers/RowActions";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { toId } from "./Helpers/MonitorAlerting";
-import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
+import {
+  clickNext,
+  fillMonitorAddress,
+  selectMonitorTypeCard,
+} from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -214,8 +218,9 @@ test.describe("Monitor summary probe picker", () => {
       .locator(monitorCreateFormSelector)
       .waitFor({ state: "visible", timeout: 60000 });
 
-    // Step 1: what to monitor, then the name.
+    // Step 1: what to monitor, where it is (#7463), then the name.
     await selectMonitorTypeCard({ page, cardValue: "Website" });
+    await fillMonitorAddress({ page, address: "https://oneuptime.com" });
     await page
       .locator(`${monitorCreateFormSelector} input[placeholder='Monitor Name']`)
       .fill(monitorName);
@@ -230,12 +235,6 @@ test.describe("Monitor summary probe picker", () => {
     ).toBeVisible({
       timeout: 60000,
     });
-    const destination: Locator = page
-      .locator(monitorCreateFormSelector)
-      .getByRole("textbox")
-      .first();
-    await destination.waitFor({ state: "visible", timeout: 30000 });
-    await destination.fill("https://oneuptime.com");
     // Criteria is not the last step: Next walks on to choose the probes.
     await clickNext({ page });
 
@@ -261,7 +260,7 @@ test.describe("Monitor summary probe picker", () => {
 
     /*
      * Probes & Interval is the last step: the labels fold under More fields on
-     * Monitor Info, so there is no Labels step to walk on to.
+     * What to Monitor, so there is no Labels step to walk on to.
      */
     await expect(
       page

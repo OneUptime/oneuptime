@@ -7,7 +7,6 @@ import {
   createMonitor,
   fillByPlaceholder,
   fillCodeEditor,
-  fillDestination,
   InfraMonitorRecipe,
   MonitorTypeRecipe,
 } from "./Helpers/Monitors";
@@ -30,8 +29,8 @@ test.describe.configure({ mode: "serial" });
 
 const recipes: Array<MonitorTypeRecipe> = [
   /*
-   * Manual skips criteria and interval: Monitor Info, with the labels under
-   * More fields, is its only step.
+   * Manual skips criteria and interval: What to Monitor, with the labels
+   * under More fields, is its only step.
    */
   {
     label: "Manual",
@@ -78,72 +77,57 @@ const recipes: Array<MonitorTypeRecipe> = [
     hasInterval: false,
   },
 
-  // Probeable types with a bare destination input (first textbox) + interval.
+  /*
+   * Probeable types of one address + interval: the address is asked with
+   * the type, on What to Monitor (#7463), and the criteria step needs
+   * nothing more.
+   */
   {
     label: "Website",
     cardValue: "Website",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "https://example.com" });
-    },
+    address: "https://example.com",
   },
   {
     label: "API",
     cardValue: "API",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "https://example.com" });
-    },
+    address: "https://example.com",
   },
   {
     label: "Ping",
     cardValue: "Ping",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "example.com" });
-    },
+    address: "example.com",
   },
   {
     label: "IP",
     cardValue: "IP",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "1.1.1.1" });
-    },
+    address: "1.1.1.1",
   },
   {
     label: "Port",
     cardValue: "Port",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "example.com" });
-      const portInput: Locator = page
-        .locator("#create-monitor-form")
-        .getByRole("textbox")
-        .nth(1);
-      await portInput.waitFor({ state: "visible", timeout: 30000 });
-      await portInput.fill("443");
-    },
+    address: "example.com",
+    port: "443",
   },
   {
     label: "SSL Certificate",
     cardValue: "SSL Certificate",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "https://example.com" });
-    },
+    address: "https://example.com",
   },
   /*
    * NTP asks only for the time server: the port (123), the timeout and the
-   * retries wait folded under More fields.
+   * retries wait folded under More fields on the criteria step.
    */
   {
     label: "NTP",
     cardValue: "NTP",
     hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillDestination({ page, value: "time.example.com" });
-    },
+    address: "time.example.com",
   },
 
   // Probeable types with placeholder-labelled step forms + interval.
@@ -410,12 +394,33 @@ test.describe("Monitor Creation - Representative Types", () => {
   for (const recipe of recipes) {
     test(`should create a ${recipe.label} monitor`, async () => {
       test.setTimeout(120000);
-      await createMonitor({
+      const monitorId: string = await createMonitor({
         page: ctx.page,
         projectId: ctx.projectId,
         monitorName: `E2E ${recipe.label} ${Faker.generateName().toString()}`,
         recipe,
       });
+
+      if (!recipe.address) {
+        return;
+      }
+
+      // The address asked with the type is the one the monitor checks (#7463).
+      const monitor: JSONish = await getItem({
+        page: ctx.page,
+        projectId: ctx.projectId,
+        path: "/api/monitor",
+        id: monitorId,
+        select: { monitorSteps: true },
+      });
+      const steps: string = JSON.stringify(monitor["monitorSteps"] || {});
+      const host: string = recipe.address.replace(/^https?:\/\//, "");
+
+      expect(steps).toContain(host);
+
+      if (recipe.port) {
+        expect(steps).toContain(`"_type":"Port","value":${recipe.port}`);
+      }
     });
   }
 

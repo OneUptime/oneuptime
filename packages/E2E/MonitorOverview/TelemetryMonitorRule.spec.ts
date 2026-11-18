@@ -558,7 +558,7 @@ test.describe("A Logs monitor's criteria step", () => {
     });
   });
 
-  test("after a walk back to Monitor Info and another type, Traces starts on its own recipe", async ({
+  test("after a walk back to What to Monitor and another type, Traces starts on its own recipe", async ({
     page,
   }: {
     page: Page;
@@ -575,8 +575,8 @@ test.describe("A Logs monitor's criteria step", () => {
       "true",
     );
 
-    // Back to Monitor Info, another type, and forward again.
-    await form.getByText("Monitor Info", { exact: true }).first().click();
+    // Back to What to Monitor, another type, and forward again.
+    await form.getByText("What to Monitor", { exact: true }).first().click();
     await page.getByTestId("card-select-change").click();
     await page.getByTestId("card-select-search").fill("Traces");
     await page.getByTestId("card-select-option-Traces").click();
