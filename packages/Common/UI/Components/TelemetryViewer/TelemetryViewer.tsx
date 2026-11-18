@@ -592,12 +592,11 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/*
-       * Toolbar. Its own width is what a button in it may ask about
-       * (@container): the Traces page's Create monitor says its words only
-       * where the row has room for them.
+       * Toolbar. It wraps: a button that does not fit beside the search goes
+       * onto a row of its own, with its words, never a bare icon (#9455).
        */}
       <div
-        className="flex flex-wrap items-center gap-2 [container-type:inline-size]"
+        className="flex flex-wrap items-center gap-2"
         data-testid={TELEMETRY_VIEWER_TOOLBAR_TEST_ID}
       >
         {/*

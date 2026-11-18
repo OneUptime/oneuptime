@@ -263,14 +263,6 @@ const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
   "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
 
 /*
- * Create monitor's words: on a phone, where the toolbar wraps, and on a
- * toolbar 80rem wide or more (TelemetryViewer's toolbar row is the
- * container); between the two the bell alone, so the search keeps room.
- */
-export const TRACES_CREATE_MONITOR_LABEL_CLASS_NAME: string =
-  "md:hidden [@container(min-width:80rem)]:inline";
-
-/*
  * Synthetic "Span Type" facet: a choice of one - Entry spans (the default),
  * Root spans or All spans (Types/Telemetry/TraceSpanType). It is not a Span
  * column: choosing a value drives the `spanType` state, which compiles to
@@ -3741,24 +3733,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           {props.offersCreateMonitor && canCreateMonitor ? (
             <Tooltip text="Create monitor: get alerted about requests like these.">
               {/*
-               * Its words show on a phone, where the toolbar wraps onto
-               * rows of its own, and on a toolbar of 80rem and more;
-               * between the two the bell alone, so the search keeps its
-               * room beside the buttons (with the words it was 16rem in a
-               * 1280px window). It is named Create monitor either way.
+               * Its words show at every width: a bell alone, named only by
+               * this tooltip, was found by hovering (#9455). The toolbar
+               * wraps instead - the search keeps its 16rem, and the buttons
+               * that do not fit beside it go onto a row of their own.
                */}
               <button
                 type="button"
-                aria-label={translator.translateText("Create monitor")}
                 className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
                 onClick={navigateToCreateMonitor}
                 data-testid="traces-create-monitor"
               >
                 <Icon icon={IconProp.Bell} className="h-3.5 w-3.5" />
-                <span
-                  className={TRACES_CREATE_MONITOR_LABEL_CLASS_NAME}
-                  data-testid="traces-create-monitor-label"
-                >
+                <span data-testid="traces-create-monitor-label">
                   {translator.translateText("Create monitor")}
                 </span>
               </button>
