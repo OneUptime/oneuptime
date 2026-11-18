@@ -1641,6 +1641,39 @@ describe("a project that has a status page already (#7517)", () => {
     expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
   });
 
+  test("a new page whose monitors cannot be read back counts what was added to it, never what the project's page shows", async () => {
+    shownOn[WALK_CO["id"]!] = ["m-api", "m-db"];
+    await renderSetup();
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    });
+    await press("guided-setup-make-new-page");
+    await press("guided-setup-monitor-m-web");
+
+    const read: (id: string) => Promise<unknown> = api[
+      "loadShownMonitors"
+    ]!.getMockImplementation() as (id: string) => Promise<unknown>;
+    api["loadShownMonitors"]!.mockImplementation(
+      (id: string): Promise<unknown> => {
+        return id === PAGE_ID
+          ? Promise.reject(new Error("The read failed."))
+          : read(id);
+      },
+    );
+    await press("guided-setup-create-status-page");
+
+    expect(api["createStatusPage"]).toHaveBeenCalledWith("Acme Status");
+    expect(
+      screen.getByTestId("guided-setup-step-pick-done-line"),
+    ).toHaveTextContent('"Acme Status" shows 1 monitor.');
+    expect(screen.getByTestId("guided-setup-preview")).toHaveTextContent(
+      "Website",
+    );
+    expect(screen.getByTestId("guided-setup-preview")).not.toHaveTextContent(
+      "API",
+    );
+  });
+
   test("and back: Add to an existing status page instead goes on with the project's page again, the picks kept", async () => {
     await renderSetup();
     await press("guided-setup-monitor-m-db");

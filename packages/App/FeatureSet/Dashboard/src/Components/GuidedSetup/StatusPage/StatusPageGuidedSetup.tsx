@@ -501,11 +501,18 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         }),
       ];
 
+      /*
+       * A read that fails: what was added, after what the project's page
+       * picked showed already - never what a page picked before showed.
+       */
+      const shownBefore: ShownMonitors =
+        (chosenPage && chosenPage.id === page.id ? chosenShown : null) ||
+        NOTHING_SHOWN;
       const nextShown: ShownMonitors =
         await StatusPageSetupApi.loadShownMonitors(page.id).catch(() => {
           return {
-            count: (chosenShown?.count || 0) + added.length,
-            names: [...(chosenShown?.names || []), ...added],
+            count: shownBefore.count + added.length,
+            names: [...shownBefore.names, ...added],
           };
         });
 
