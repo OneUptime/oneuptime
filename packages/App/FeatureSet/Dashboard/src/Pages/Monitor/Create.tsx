@@ -49,6 +49,7 @@ import MonitorSteps, {
   MonitorStepSeed,
 } from "../../Components/Form/Monitor/MonitorSteps";
 import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
+import { toProbeIds } from "../../Components/Form/Monitor/MonitorTest";
 import URL from "Common/Types/API/URL";
 import DeviceWebUiUtil, {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
@@ -2122,6 +2123,18 @@ const MonitorCreate: FunctionComponent<
                            * metric chart's Create monitor.
                            */
                           isCreating={!monitorTemplateId}
+                          /*
+                           * Test Monitor starts on a probe the form has
+                           * picked (#7985) - the defaults until Probes &
+                           * Interval changes them - and what would follow
+                           * its result is read for the labels it holds.
+                           */
+                          testProbeIds={toProbeIds(
+                            (value as JSONObject)["probes"],
+                          )}
+                          monitorLabels={
+                            value.labels as Array<unknown> | undefined
+                          }
                         />
                         {/*
                          * Who these criteria would tell, before the monitor

@@ -274,6 +274,13 @@ export interface ComponentProps {
   offerRecipes?: boolean | undefined;
   // Whether the form was sent with an error in these steps.
   showErrors?: boolean | undefined;
+  /*
+   * For Test Monitor: the probes that check this monitor, the likeliest
+   * first, which the test starts on (#7985), and the labels a monitor not
+   * created yet has, which who is told reads (#7074).
+   */
+  testProbeIds?: Array<string> | undefined;
+  monitorLabels?: Array<unknown> | undefined;
 }
 
 /*
@@ -2587,6 +2594,9 @@ return {
             monitorSteps={props.allMonitorSteps}
             monitorType={props.monitorType}
             probes={props.probes}
+            preferredProbeIds={props.testProbeIds}
+            monitorName={props.monitorName}
+            labels={props.monitorLabels}
             buttonSize={ButtonSize.Normal}
           />
         </Card>

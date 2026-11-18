@@ -110,6 +110,13 @@ export interface ComponentProps extends CustomElementProps {
    * recipe, and a telemetry monitor's recipes are offered.
    */
   isCreating?: boolean | undefined;
+  /*
+   * For Test Monitor (MonitorTest): the probes that check this monitor,
+   * the likeliest first - the form's picks, or the monitor's own - and
+   * the labels a monitor not created yet has.
+   */
+  testProbeIds?: Array<string> | undefined;
+  monitorLabels?: Array<unknown> | undefined;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -1005,6 +1012,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               }}
               offerRecipes={isNewMonitor}
               showErrors={Boolean(error)}
+              testProbeIds={props.testProbeIds}
+              monitorLabels={props.monitorLabels}
               /*
                * onDelete={() => {
                *     // remove the criteria filter

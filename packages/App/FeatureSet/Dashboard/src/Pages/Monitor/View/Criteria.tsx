@@ -34,7 +34,9 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { useAsyncEffect } from "use-async-effect";
-import MonitorTestForm from "../../../Components/Form/Monitor/MonitorTest";
+import MonitorTestForm, {
+  getCheckingProbeIds,
+} from "../../../Components/Form/Monitor/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import Button, {
@@ -58,6 +60,13 @@ const MonitorCriteria: FunctionComponent<
   const [error, setError] = useState<string>("");
 
   const [probes, setProbes] = useState<Array<Probe>>([]);
+
+  /*
+   * The probes that check this monitor, switched on, oldest first: Test
+   * Monitor starts on the first of them rather than on an empty picker
+   * (#7985).
+   */
+  const [monitorProbeIds, setMonitorProbeIds] = useState<Array<string>>([]);
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
@@ -90,6 +99,9 @@ const MonitorCriteria: FunctionComponent<
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
 
       setProbes(probes);
+
+      // The probes this monitor is checked from, which Test Monitor starts on.
+      setMonitorProbeIds(await getCheckingProbeIds(modelId));
 
       setMonitorType(item.monitorType);
     } catch (err) {
@@ -206,6 +218,7 @@ const MonitorCriteria: FunctionComponent<
               monitorSteps={monitorSteps}
               monitorType={monitorType}
               probes={probes}
+              preferredProbeIds={monitorProbeIds}
             />
           ) : (
             <></>
@@ -242,6 +255,7 @@ const MonitorCriteria: FunctionComponent<
                   monitorType={monitorType || MonitorType.Manual}
                   monitorId={modelId}
                   monitorName={monitorName}
+                  testProbeIds={monitorProbeIds}
                 />
               );
             },
