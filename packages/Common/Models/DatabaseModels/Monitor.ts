@@ -2424,6 +2424,12 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     isDefaultValueColumn: false,
+    /*
+     * Readable through a relation, as isArchived is: an SLO reads whether its
+     * monitors have been measured yet through itself, for its notice banner's
+     * "Waiting for the first check" (SLO_MONITOR_FIRST_CHECK_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "First Measured At",
     description:
       "When a check result, heartbeat, email, agent report or evaluation first reached this monitor. Empty while nothing has measured it yet: its status is then only the one every monitor is created in. A manual monitor, whose status a person sets, holds the time it was created.",
@@ -2452,6 +2458,12 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
+    /*
+     * Readable through a relation, as disableActiveMonitoring is: what reads a
+     * monitor through another record - an SLO's notice banner - must be able to
+     * tell why it is paused (MONITOR_PAUSE_FLAGS_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "Disable Monitoring because of Ongoing Maintenance Event",
     description: "Disable Monitoring because of Ongoing Maintenance Event",
     defaultValue: false,
@@ -2482,6 +2494,12 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
+    /*
+     * Readable through a relation, as disableActiveMonitoring is: what reads a
+     * monitor through another record - an SLO's notice banner - must be able to
+     * tell why it is paused (MONITOR_PAUSE_FLAGS_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "Disable Monitoring because of Manual Incident",
     description:
       "Disable Monitoring because of Incident which is creeated manually by user.",
