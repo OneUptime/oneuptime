@@ -68,9 +68,7 @@ afterEach(() => {
 
 describe("the column", () => {
   const metadata: () => TableColumnMetadata = (): TableColumnMetadata => {
-    return new UserSession().getTableColumnMetadata(
-      "identityProviderSignOut",
-    );
+    return new UserSession().getTableColumnMetadata("identityProviderSignOut");
   };
 
   test("keeps the ID token encrypted at rest, and the rest as written", () => {
@@ -81,9 +79,11 @@ describe("the column", () => {
   test("is read and written through the API by nobody, not even the session's own person", () => {
     const model: UserSession = new UserSession();
 
-    expect(model.getColumnAccessControlFor("identityProviderSignOut")).toEqual(
-      { create: [], read: [], update: [] },
-    );
+    expect(model.getColumnAccessControlFor("identityProviderSignOut")).toEqual({
+      create: [],
+      read: [],
+      update: [],
+    });
     expect(
       model
         .getColumnAccessControlFor("identityProviderSignOut")
@@ -180,7 +180,9 @@ describe("a sign-out reads it from the live session it is about to end", () => {
       .mockImplementation((async () => {
         const session: UserSession = new UserSession();
         session.id = SESSION_ID;
-        session.identityProviderSignOut = { ...RECORD } as unknown as JSONObject;
+        session.identityProviderSignOut = {
+          ...RECORD,
+        } as unknown as JSONObject;
         return session;
       }) as never);
   });

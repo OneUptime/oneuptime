@@ -305,9 +305,7 @@ describe("OIDCUtil - what a sign-out at the provider needs", () => {
     expect(result.idToken).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/);
 
     const payload: JSONObject = JSON.parse(
-      Buffer.from(result.idToken!.split(".")[1]!, "base64url").toString(
-        "utf8",
-      ),
+      Buffer.from(result.idToken!.split(".")[1]!, "base64url").toString("utf8"),
     ) as JSONObject;
 
     expect(payload["nonce"]).toBe(NONCE);

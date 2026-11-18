@@ -93,9 +93,7 @@ function buildRequest(data: {
     params: {},
     query: {},
     body: {},
-    cookies: data.cookie
-      ? { [CookieUtil.getUserTokenKey()]: data.cookie }
-      : {},
+    cookies: data.cookie ? { [CookieUtil.getUserTokenKey()]: data.cookie } : {},
     headers: {
       tenantid: "",
       ...(data.bearer ? { authorization: `Bearer ${data.bearer}` } : {}),
@@ -164,16 +162,22 @@ beforeEach(() => {
   isUserBlocked = jest
     .spyOn(UserService, "isUserBlocked")
     .mockResolvedValue(false as never);
-  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(false as never);
-  jest.spyOn(UserService, "updateLastActive").mockResolvedValue(undefined as never);
+  jest
+    .spyOn(UserService, "isUserMasterAdmin")
+    .mockResolvedValue(false as never);
+  jest
+    .spyOn(UserService, "updateLastActive")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(ProjectService, "updateLastActive")
     .mockResolvedValue(undefined as never);
-  jest.spyOn(AccessTokenService, "getUserGlobalAccessPermission").mockResolvedValue({
-    _type: "UserGlobalAccessPermission",
-    projectIds: [],
-    globalPermissions: [],
-  } as UserGlobalAccessPermission as never);
+  jest
+    .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+    .mockResolvedValue({
+      _type: "UserGlobalAccessPermission",
+      projectIds: [],
+      globalPermissions: [],
+    } as UserGlobalAccessPermission as never);
 
   // A session row: the user's, revoked once a revocation wrote it.
   findOneById = jest
@@ -237,17 +241,21 @@ describe("after a sign-out, the session's access token is refused at once", () =
     const sessionId: ObjectID = ObjectID.generate();
     const copiedToken: string = signSessionToken(sessionId);
 
-    expect((await callApi(buildRequest({ cookie: copiedToken }))).wasLetThrough).toBe(
-      true,
-    );
+    expect(
+      (await callApi(buildRequest({ cookie: copiedToken }))).wasLetThrough,
+    ).toBe(true);
 
     // POST /identity/logout ends the session it names.
     await UserSessionService.revokeSessionById(sessionId, {
       cause: SessionEndCause.SignedOut,
     });
 
-    expectRefusedAsExpired(await callApi(buildRequest({ cookie: copiedToken })));
-    expectRefusedAsExpired(await callApi(buildRequest({ bearer: copiedToken })));
+    expectRefusedAsExpired(
+      await callApi(buildRequest({ cookie: copiedToken })),
+    );
+    expectRefusedAsExpired(
+      await callApi(buildRequest({ bearer: copiedToken })),
+    );
   });
 
   test("the refusal says the session ended, as an expired token", async () => {
@@ -296,9 +304,9 @@ describe("after a sign-out, the session's access token is refused at once", () =
       const sessionId: ObjectID = ObjectID.generate();
       const token: string = signSessionToken(sessionId);
 
-      expect((await callApi(buildRequest({ cookie: token }))).wasLetThrough).toBe(
-        true,
-      );
+      expect(
+        (await callApi(buildRequest({ cookie: token }))).wasLetThrough,
+      ).toBe(true);
 
       await UserSessionService.revokeSessionById(sessionId, {
         cause: cause as never,
@@ -317,11 +325,16 @@ describe("after a sign-out, the session's access token is refused at once", () =
     });
 
     expectRefusedAsExpired(
-      await callApi(buildRequest({ cookie: signSessionToken(laptopSessionId) })),
+      await callApi(
+        buildRequest({ cookie: signSessionToken(laptopSessionId) }),
+      ),
     );
     expect(
-      (await callApi(buildRequest({ cookie: signSessionToken(phoneSessionId) })))
-        .wasLetThrough,
+      (
+        await callApi(
+          buildRequest({ cookie: signSessionToken(phoneSessionId) }),
+        )
+      ).wasLetThrough,
     ).toBe(true);
   });
 });
@@ -386,9 +399,9 @@ describe("a live session costs no database read per request", () => {
     const token: string = signSessionToken(sessionId);
 
     for (let request: number = 0; request < 25; request++) {
-      expect((await callApi(buildRequest({ cookie: token }))).wasLetThrough).toBe(
-        true,
-      );
+      expect(
+        (await callApi(buildRequest({ cookie: token }))).wasLetThrough,
+      ).toBe(true);
     }
 
     expect(findOneById).toHaveBeenCalledTimes(1);

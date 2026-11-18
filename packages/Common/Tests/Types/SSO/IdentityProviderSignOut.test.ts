@@ -96,7 +96,10 @@ describe("isUsableIdToken", () => {
     ["a single part", "not-a-jwt"],
     ["four parts", "a.b.c.d"],
     ["characters no JWT has", "a.b.c<script>"],
-    ["a token longer than any provider's", `a.${"b".repeat(MAX_ID_TOKEN_LENGTH)}.c`],
+    [
+      "a token longer than any provider's",
+      `a.${"b".repeat(MAX_ID_TOKEN_LENGTH)}.c`,
+    ],
   ])("refuses %s", (_: string, token: unknown) => {
     expect(isUsableIdToken(token)).toBe(false);
   });
@@ -129,7 +132,10 @@ describe("readIdentityProviderSignOutRecord", () => {
     ["nothing", null],
     ["a list", [RECORD]],
     ["text", "a record"],
-    ["a SAML provider's", { ...RECORD, providerType: SsoProviderType.GlobalSSO }],
+    [
+      "a SAML provider's",
+      { ...RECORD, providerType: SsoProviderType.GlobalSSO },
+    ],
     ["no provider", { ...RECORD, providerId: "" }],
     [
       "an endpoint nobody may be sent to",
@@ -142,7 +148,8 @@ describe("readIdentityProviderSignOutRecord", () => {
 });
 
 describe("buildIdentityProviderSignOutUrl", () => {
-  const POST_LOGOUT_REDIRECT_URI: string = "https://oneuptime.example.com/accounts";
+  const POST_LOGOUT_REDIRECT_URI: string =
+    "https://oneuptime.example.com/accounts";
 
   function build(
     overrides: Partial<{
@@ -203,7 +210,10 @@ describe("buildIdentityProviderSignOutUrl", () => {
   });
 
   test.each([
-    ["an endpoint nobody may be sent to", { endSessionEndpoint: "javascript:alert(1)" }],
+    [
+      "an endpoint nobody may be sent to",
+      { endSessionEndpoint: "javascript:alert(1)" },
+    ],
     ["an ID token that is not one", { idToken: "not-a-jwt" }],
     ["no client ID", { clientId: "" }],
   ])("is null for %s", (_: string, overrides: Record<string, string>) => {

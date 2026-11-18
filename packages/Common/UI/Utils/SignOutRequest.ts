@@ -111,7 +111,10 @@ export default class SignOutRequest {
     );
 
     if (!signOut) {
-      return { answer: SignOutAnswer.NotSent, identityProviderSignOutUrl: null };
+      return {
+        answer: SignOutAnswer.NotSent,
+        identityProviderSignOutUrl: null,
+      };
     }
 
     return await SignOutRequest.waitFor(

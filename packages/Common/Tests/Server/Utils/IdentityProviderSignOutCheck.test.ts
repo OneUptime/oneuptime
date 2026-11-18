@@ -296,9 +296,11 @@ describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
       }),
     });
 
-    expect(fetch.mock.calls.map((call: Array<unknown>) => {
-      return (call[0] as { url: string }).url;
-    })).toEqual([OTHER_DISCOVERY_URL]);
+    expect(
+      fetch.mock.calls.map((call: Array<unknown>) => {
+        return (call[0] as { url: string }).url;
+      }),
+    ).toEqual([OTHER_DISCOVERY_URL]);
   });
 
   /*
@@ -352,17 +354,20 @@ describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
       { signOutOfIdentityProvider: false, discoveryURL: OTHER_DISCOVERY_URL },
     ],
     ["changes something else", { name: "Okta" }],
-  ])("a save that %s reads nothing", async (_: string, data: object) => {
-    providerIs(storedProvider({ signOutOfIdentityProvider: true }));
+  ])(
+    "a save that %s reads nothing",
+    async (_: string, data: Record<string, unknown>) => {
+      providerIs(storedProvider({ signOutOfIdentityProvider: true }));
 
-    await IdentityProviderSignOutCheck.beforeUpdate({
-      service: GlobalOidcService,
-      updateBy: updateOf(data as Record<string, unknown>),
-    });
+      await IdentityProviderSignOutCheck.beforeUpdate({
+        service: GlobalOidcService,
+        updateBy: updateOf(data),
+      });
 
-    expect(findBy).not.toHaveBeenCalled();
-    expect(fetch).not.toHaveBeenCalled();
-  });
+      expect(findBy).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /*

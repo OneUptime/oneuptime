@@ -160,7 +160,9 @@ jest.mock("Common/Server/Services/UserSessionService", () => {
     __esModule: true,
     default: {
       findIdentityProviderSignOut: async (
-        data: { refreshToken: string } | { sessionId: ObjectID; userId: ObjectID },
+        data:
+          | { refreshToken: string }
+          | { sessionId: ObjectID; userId: ObjectID },
       ): Promise<unknown> => {
         events.push("read what the session kept");
 
@@ -467,7 +469,9 @@ describe("a sign-out of a session whose provider signs people out too", () => {
     ) => {
       signedIn(keptFor(providerType));
 
-      const result: SignOutResult = await signOut({ cookies: REFRESH_COOKIE() });
+      const result: SignOutResult = await signOut({
+        cookies: REFRESH_COOKIE(),
+      });
 
       expect(table[0]!.isRevoked).toBe(true);
       expect(table[0]!.cause).toBe(SessionEndCause.SignedOut);

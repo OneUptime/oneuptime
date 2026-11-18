@@ -800,7 +800,10 @@ describe("the switch to sign out of the identity provider too", () => {
       "signOutOfIdentityProvider",
     );
     expect(
-      keysOn(getOidcProviderFormFields<ProjectOIDC>({ withTeams: true }), "sign-in"),
+      keysOn(
+        getOidcProviderFormFields<ProjectOIDC>({ withTeams: true }),
+        "sign-in",
+      ),
     ).not.toContain("signOutOfIdentityProvider");
   });
 

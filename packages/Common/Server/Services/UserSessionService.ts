@@ -425,9 +425,7 @@ export class Service extends DatabaseService<Model> {
       .then((session: Model | null): SessionStanding => {
         const standing: SessionStanding = {
           isLive: Boolean(session && session.isRevoked === false),
-          userId: session?.userId
-            ? Service.getStandingKey(session.userId)
-            : "",
+          userId: session?.userId ? Service.getStandingKey(session.userId) : "",
         };
 
         /*
@@ -1910,7 +1908,9 @@ export class Service extends DatabaseService<Model> {
    * than the session. A write of that column alone, which no hook reacts to.
    */
   @CaptureSpan()
-  public async forgetIdentityProviderSignOut(sessionId: ObjectID): Promise<void> {
+  public async forgetIdentityProviderSignOut(
+    sessionId: ObjectID,
+  ): Promise<void> {
     await this.getRepository().update(
       {
         _id: sessionId.toString(),
