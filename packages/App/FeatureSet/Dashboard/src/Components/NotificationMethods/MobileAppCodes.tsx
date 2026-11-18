@@ -29,6 +29,15 @@ export const MOBILE_APP_INSTALL_SENTENCE: string = translationKey(
   "Scan a code with your phone to install the app, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
 );
 
+/*
+ * A phone shows no codes - it is the phone the app goes on - so it is told
+ * where the app is instead: the two links above. How to Reach Me's "Get the
+ * app" (#7451) asked a phone to scan a code it did not show.
+ */
+export const MOBILE_APP_INSTALL_ON_PHONE_SENTENCE: string = translationKey(
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
+);
+
 export interface ComponentProps {
   dataTestId: string;
   serverUrlDataTestId: string;
@@ -64,6 +73,25 @@ const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
 const MobileAppCodes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * The address, read left to right on every page. It moves to a line of
+   * its own before it is broken, and is broken only when it is longer than
+   * a line: "http://localhost" was drawn "ht" / "tp://localhost" on a phone.
+   */
+  const getServerUrl: (dataTestId: string) => ReactElement = (
+    dataTestId: string,
+  ): ReactElement => {
+    return (
+      <code
+        className="break-words rounded bg-white px-1 py-0.5 font-mono text-[0.8125rem] font-medium text-gray-900"
+        data-testid={dataTestId}
+        dir="ltr"
+      >
+        {getMobileAppServerUrl()}
+      </code>
+    );
+  };
+
   return (
     <div
       data-testid={props.dataTestId}
@@ -75,19 +103,20 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
         <StoreCode name={APP_STORE_NAME} url={MOBILE_APP_IOS_URL} />
         <StoreCode name={GOOGLE_PLAY_NAME} url={MOBILE_APP_ANDROID_URL} />
       </div>
-      <p className="min-w-0 text-sm leading-6 text-gray-700">
+      {/* Beside the codes, from a laptop's width; a phone's sentence below it. */}
+      <p className="min-w-0 text-sm leading-6 text-gray-700 max-sm:hidden">
         <TranslatedSentence
           template={MOBILE_APP_INSTALL_SENTENCE}
           slots={{
-            serverUrl: (
-              <code
-                className="break-all rounded bg-white px-1 py-0.5 font-mono text-[0.8125rem] font-medium text-gray-900"
-                data-testid={props.serverUrlDataTestId}
-                dir="ltr"
-              >
-                {getMobileAppServerUrl()}
-              </code>
-            ),
+            serverUrl: getServerUrl(props.serverUrlDataTestId),
+          }}
+        />
+      </p>
+      <p className="min-w-0 text-sm leading-6 text-gray-700 sm:hidden">
+        <TranslatedSentence
+          template={MOBILE_APP_INSTALL_ON_PHONE_SENTENCE}
+          slots={{
+            serverUrl: getServerUrl(`${props.serverUrlDataTestId}-on-phone`),
           }}
         />
       </p>

@@ -1,5 +1,6 @@
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationRuleService, {
   NotificationMethodDescriptor,
@@ -274,6 +275,12 @@ beforeEach(() => {
   userEmailCreateSpy = jest
     .spyOn(UserEmailService, "create")
     .mockResolvedValue(existingUserEmail(CREATED_EMAIL_ID, true) as never);
+
+  /*
+   * A project with no default ladder (#7449): every card pages at once.
+   * UserNotificationRuleDefaultLadder pins what one changes.
+   */
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null as never);
 });
 
 afterEach(() => {

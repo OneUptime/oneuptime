@@ -34,7 +34,7 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 :::steps
 ### Een manier toevoegen om u te bereiken
 
-Klik bij een stap op **Toevoegen** om een van uw geverifieerde methoden op het moment van die stap te sturen, of op **Stap toevoegen** om na de laatste stap een nieuwe te beginnen. Een nummer of adres dat nog op zijn code wacht, staat onder **Nog niet geverifieerd**, met **Verifiëren**.
+Klik bij een stap op **Toevoegen** om een van uw geverifieerde methoden op het moment van die stap te sturen, of op **Stap toevoegen** om na de laatste stap een nieuwe te beginnen. Een nummer of adres dat nog op zijn code wacht, staat onder **Nog niet geverifieerd**, met **Verifiëren**. Zonder de pagina te verlaten stuurt **Je telefoon toevoegen** onder de stappen een code naar uw nummer, en zodra het geverifieerd is, roept het nummer u op per sms en per telefoongesprek; **Deze browser gebruiken** en **Download de app** voegen push op dezelfde manier toe.
 
 ### Kiezen wanneer die wordt gebruikt
 
@@ -68,7 +68,7 @@ Een ernst die uw project heeft gearchiveerd, staat na de andere, gemarkeerd met 
 
 ## De regels waarmee je begint
 
-Elke methode die je verifieert, krijgt een regel op elke kaart van elk tabblad, verstuurd zodra je wordt opgeroepen. Je aanmeld-e-mailadres heeft ze sinds de dag dat je lid werd, zodat een oproep je altijd bereikt. Verifieer een telefoonnummer voor sms, en elke oproep stuurt je ook een sms.
+Elke methode die je verifieert, krijgt een regel op elke kaart van elk tabblad, verstuurd zodra je wordt opgeroepen. Je aanmeld-e-mailadres heeft ze sinds de dag dat je lid werd, zodat een oproep je altijd bereikt. Verifieer een telefoonnummer voor sms, en elke oproep stuurt je ook een sms. Als je project een standaardreeks heeft, volgt een methode die je verifieert die in plaats daarvan: zie [De standaardreeks](#de-standaardreeks).
 
 Dat is een veilig begin, en meestal te veel. Kort het in tot wat elke ernst verdient:
 
@@ -79,6 +79,16 @@ Dat is een veilig begin, en meestal te veel. Kort het in tot wat elke ernst verd
 | Klein of laag | Meteen een e-mail |
 
 Je eigen regels hebben geen stille uren: houd lage ernstniveaus op e-mail, of op een pushregel ingesteld op **Normaal**, zodat ze je nooit wakker maken. Om de oproep voor een laag ernstniveau voor iedereen op werktijden te laten wachten, zet je de bereikbaarheidsregel die oproept op **Alleen tijdens werktijden**: zie [Bereikbaarheidsregels](/docs/alerts/settings#bereikbaarheidsregels).
+
+## De standaardreeks
+
+Een project kan een standaardreeks hebben: hoe een lid wordt opgeroepen zodra het een manier verifieert om bereikt te worden. Een Projecteigenaar of Projectbeheerder stelt die in bij **Standaardreeks voor nieuwe leden**, ingeklapt onder **Meer instellingen** op **Projectinstellingen → Meldingen → Meldingskanalen**, met kanalen in plaats van iemands eigen apparaten: bijvoorbeeld meteen een push en na 5 minuten een telefoongesprek.
+
+Met een standaardreeks krijgt een methode die je verifieert een regel bij elke stap van haar kanaal, op elke kaart van elk tabblad, en een kanaal dat de reeks weglaat krijgt er geen. Regels die je al hebt, veranderen nooit, en een oproep die geen regel vindt, valt nog steeds terug op je geverifieerde methoden.
+
+Om hem te geven aan leden die al regels hebben, gebruikt een beheerder **Standaardreeks toepassen** op de pagina Gereedheid: zie [De standaardreeks toepassen](/docs/on-call/readiness#de-standaardreeks-toepassen). Ieder van hen krijgt één e-mail.
+
+**Telefoon voor mensen met dienst**, ernaast, vraagt iedereen met dienst om een geverifieerd nummer voor sms, telefoongesprekken of WhatsApp. Zolang je er geen hebt, zegt deze pagina dat boven **Je telefoon toevoegen**, en Gereedheid en Inrichtingsstatus noemen je. Niemand wordt buitengesloten.
 
 ## Een regel toevoegen
 

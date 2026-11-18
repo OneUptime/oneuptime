@@ -416,7 +416,15 @@ export class OnCallSetupReminderService extends BaseService {
      * that twice and the next mail from this sender - which might be the one
      * that matters - has already been filed as noise.
      */
-    if (readiness.status === ReadinessStatus.Ready) {
+    if (
+      readiness.status === ReadinessStatus.Ready &&
+      /*
+       * Unless their project asks people on call for a phone method and
+       * they have none (#7449): that is something to set up, said in the
+       * reasons the mail lists.
+       */
+      !readiness.isMissingPhoneMethod
+    ) {
       return {
         userId: userId,
         outcome: SetupReminderOutcome.SkippedNothingMissing,

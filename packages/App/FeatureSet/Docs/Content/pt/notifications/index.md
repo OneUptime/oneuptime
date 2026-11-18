@@ -61,7 +61,7 @@ Quando você entra em um projeto com um e-mail de login verificado, o OneUptime 
 2. Para cada gravidade, em cada uma das quatro abas de **Como me contatar**, uma regra envia um e-mail assim que você é acionado.
 3. Um conjunto de novidades sobre o que é seu, e sobre os seus turnos, fica ativado por e-mail. Veja [Configurações de notificação](/docs/notifications/notification-settings#o-que-fica-ativado-para-um-novo-membro).
 
-Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Como me contatar](/docs/notifications/on-call-rules#as-regras-com-que-você-começa).
+Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Como me contatar](/docs/notifications/on-call-rules#as-regras-com-que-você-começa). Quando o seu projeto tem uma sequência padrão, o seu e-mail e cada método que você verificar a seguem em vez disso: veja [A sequência padrão](/docs/notifications/on-call-rules#a-sequência-padrão).
 
 ## A lista de configuração
 

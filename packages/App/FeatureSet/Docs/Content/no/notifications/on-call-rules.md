@@ -34,7 +34,7 @@ De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsA
 :::steps
 ### Legg til en måte å nå deg på
 
-Klikk på **Legg til** ved et trinn for å sende en av de verifiserte metodene dine på trinnets tidspunkt, eller på **Legg til trinn** for å starte et nytt trinn etter det siste. Et nummer eller en adresse som fortsatt venter på koden, står under **Ikke verifisert ennå**, med **Verifiser**.
+Klikk på **Legg til** ved et trinn for å sende en av de verifiserte metodene dine på trinnets tidspunkt, eller på **Legg til trinn** for å starte et nytt trinn etter det siste. Et nummer eller en adresse som fortsatt venter på koden, står under **Ikke verifisert ennå**, med **Verifiser**. Uten å forlate siden sender **Legg til telefonen din** under trinnene en kode til nummeret ditt, og når det er verifisert, tilkaller nummeret deg via SMS og telefonsamtale; **Bruk denne nettleseren** og **Hent appen** legger til push på samme måte.
 
 ### Velg når den brukes
 
@@ -68,7 +68,7 @@ En alvorlighetsgrad som prosjektet ditt har arkivert, kommer etter de andre, mer
 
 ## Reglene du starter med
 
-Hver metode du verifiserer, får en regel på hvert kort på hver fane, sendt så snart du blir tilkalt. Påloggings-e-posten din har dem fra dagen du ble medlem, slik at en tilkalling alltid når deg. Verifiser et telefonnummer for SMS, så sender hver tilkalling deg også en SMS.
+Hver metode du verifiserer, får en regel på hvert kort på hver fane, sendt så snart du blir tilkalt. Påloggings-e-posten din har dem fra dagen du ble medlem, slik at en tilkalling alltid når deg. Verifiser et telefonnummer for SMS, så sender hver tilkalling deg også en SMS. Når prosjektet ditt har en standardrekkefølge, følger en metode du verifiserer den i stedet: se [Standardrekkefølgen](#standardrekkefølgen).
 
 Det er en trygg start, og som regel for mye. Kutt det ned til det hver alvorlighetsgrad fortjener:
 
@@ -79,6 +79,16 @@ Det er en trygg start, og som regel for mye. Kutt det ned til det hver alvorligh
 | Mindre eller lav | En e-post med en gang |
 
 Dine egne regler har ingen stilletimer: hold lave alvorlighetsgrader på e-post, eller på en push-regel satt til **Normal**, så de aldri vekker deg. For å la tilkallingen for en lav alvorlighetsgrad vente på arbeidstiden for alle, setter du vaktregelen som tilkaller, til **Bare i arbeidstiden**: se [Vaktregler](/docs/alerts/settings#vaktregler).
+
+## Standardrekkefølgen
+
+Et prosjekt kan ha en standardrekkefølge: hvordan et medlem tilkalles når det verifiserer en måte å bli nådd på. En Prosjekteier eller Prosjektadministrator angir den i **Standardrekkefølge for nye medlemmer**, sammenfoldet under **Flere innstillinger** på **Prosjektinnstillinger → Varslinger → Varslingskanaler**, med kanaler i stedet for noens egne enheter: for eksempel push med en gang og en telefonsamtale etter 5 minutter.
+
+Med en standardrekkefølge får en metode du verifiserer, en regel ved hvert av kanalens trinn, på hvert kort på hver fane, og en kanal som rekkefølgen utelater, får ingen. Regler du allerede har, endres aldri, og en tilkalling som ikke finner noen regel, faller fortsatt tilbake på de verifiserte metodene dine.
+
+For å gi den til medlemmer som allerede har regler, bruker en administrator **Bruk standardrekkefølge** på siden Beredskap: se [Bruk standardrekkefølgen](/docs/on-call/readiness#bruk-standardrekkefølgen). Hver av dem får én e-post.
+
+**Telefon for folk på vakt**, ved siden av, ber alle på vakt om å ha et verifisert nummer for SMS, telefonsamtaler eller WhatsApp. Så lenge du ikke har noe, sier denne siden det over **Legg til telefonen din**, og Beredskap og Oppsettets helse nevner deg. Ingen blir låst ute.
 
 ## Legg til en regel
 

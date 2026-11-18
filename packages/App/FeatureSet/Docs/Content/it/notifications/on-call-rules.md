@@ -34,7 +34,7 @@ La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messag
 :::steps
 ### Aggiungere un modo per raggiungerti
 
-Fai clic su **Aggiungi** in un passaggio per inviare uno dei tuoi metodi verificati al momento di quel passaggio, oppure su **Aggiungi passaggio** per iniziare un nuovo passaggio dopo l'ultimo. Un numero o un indirizzo che aspetta ancora il suo codice compare in **Non ancora verificato**, con **Verifica**.
+Fai clic su **Aggiungi** in un passaggio per inviare uno dei tuoi metodi verificati al momento di quel passaggio, oppure su **Aggiungi passaggio** per iniziare un nuovo passaggio dopo l'ultimo. Un numero o un indirizzo che aspetta ancora il suo codice compare in **Non ancora verificato**, con **Verifica**. Senza lasciare la pagina, **Aggiungi il tuo telefono** sotto i passaggi invia un codice al tuo numero e, una volta verificato, il numero ti chiama via SMS e con una chiamata telefonica; **Usa questo browser** e **Scarica l'app** aggiungono il push allo stesso modo.
 
 ### Scegliere quando usarlo
 
@@ -68,7 +68,7 @@ Una gravità che il tuo progetto ha archiviato compare dopo le altre, contrasseg
 
 ## Le regole con cui partite
 
-Ogni metodo che verificate riceve una regola su ogni riquadro di ogni scheda, inviata appena venite chiamati. La vostra e-mail di accesso le ha dal giorno in cui siete entrati, perché una chiamata vi raggiunga sempre. Verificate un numero di telefono per gli SMS, e ogni chiamata vi manda anche un SMS.
+Ogni metodo che verificate riceve una regola su ogni riquadro di ogni scheda, inviata appena venite chiamati. La vostra e-mail di accesso le ha dal giorno in cui siete entrati, perché una chiamata vi raggiunga sempre. Verificate un numero di telefono per gli SMS, e ogni chiamata vi manda anche un SMS. Quando il vostro progetto ha una sequenza predefinita, un metodo che verificate la segue invece: vedete [La sequenza predefinita](#la-sequenza-predefinita).
 
 È un inizio sicuro, e di solito troppo. Riducetelo a ciò che ogni gravità merita:
 
@@ -79,6 +79,16 @@ Ogni metodo che verificate riceve una regola su ogni riquadro di ogni scheda, in
 | Minore o bassa | Un'e-mail subito |
 
 Le vostre regole non hanno fasce di silenzio: lasciate le gravità basse sull'e-mail, o su una regola push impostata su **Standard**, così non vi svegliano mai. Perché la chiamata di una gravità bassa attenda l'orario di lavoro per tutti, impostate la regola di reperibilità che la attiva su **Solo durante l'orario di lavoro**: vedere [Regole di reperibilità](/docs/alerts/settings#regole-di-reperibilità).
+
+## La sequenza predefinita
+
+Un progetto può avere una sequenza predefinita: come viene chiamato un membro appena verifica un modo per essere raggiunto. Un Proprietario del progetto o un Amministratore del progetto la imposta in **Sequenza predefinita per i nuovi membri**, chiusa in **Altre impostazioni** su **Impostazioni del progetto → Notifiche → Canali di notifica**, con canali invece che con i dispositivi di ciascuno: per esempio un push subito e una chiamata telefonica dopo 5 minuti.
+
+Con una sequenza predefinita, un metodo che verificate riceve una regola a ogni passaggio del suo canale, su ogni riquadro di ogni scheda, e un canale che la sequenza esclude non ne riceve nessuna. Le regole che avete già non cambiano mai, e una chiamata che non trova alcuna regola ricade comunque sui vostri metodi verificati.
+
+Per darla ai membri che hanno già delle regole, un amministratore usa **Applica sequenza predefinita** nella pagina Prontezza: vedete [Applicare la sequenza predefinita](/docs/on-call/readiness#applicare-la-sequenza-predefinita). Ognuno di loro riceve un'e-mail.
+
+**Telefono per le persone reperibili**, accanto, chiede a tutte le persone reperibili un numero verificato per SMS, chiamate telefoniche o WhatsApp. Finché non ne avete uno, questa pagina lo dice sopra **Aggiungi il tuo telefono**, e Prontezza e Stato della configurazione vi nominano. Nessuno resta escluso.
 
 ## Aggiungere una regola
 

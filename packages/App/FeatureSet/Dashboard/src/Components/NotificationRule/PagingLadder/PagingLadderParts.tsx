@@ -99,11 +99,14 @@ export const MethodLabel: FunctionComponent<{
       {NotificationMethodUtil.getMethodName(translator, channel)}
     </span>
   );
-  const identifier: string = NotificationMethodUtil.getIdentifierText(
-    translator,
-    channel,
-    props.choice.identifier,
-  );
+  // A channel of the project's default: its name alone (#7449).
+  const identifier: string = props.choice.isChannelOnly
+    ? ""
+    : NotificationMethodUtil.getIdentifierText(
+        translator,
+        channel,
+        props.choice.identifier,
+      );
 
   return (
     <span className="min-w-0 break-words" data-testid="paging-ladder-method">

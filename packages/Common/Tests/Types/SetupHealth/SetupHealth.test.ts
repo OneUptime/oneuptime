@@ -1065,6 +1065,90 @@ describe("responders, from Readiness", () => {
     );
   });
 
+  /*
+   * The project asks people on call for a phone method (#7449): Readiness
+   * names who has none (isMissingPhoneMethod), and this lists them, worth
+   * fixing - never a second calculation of what a phone method is.
+   */
+  test("somebody on a policy with no phone method, where the project asks for one, is worth fixing", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        responders: [
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNotReachable: false,
+            reason: SetupHealthResponderReason.NoVerifiedMethod,
+            isMissingPhoneMethod: true,
+          },
+        ],
+      }),
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      check: SetupHealthCheck.ResponderHasNoPhone,
+      level: SetupHealthLevel.WorthFixing,
+      record: { kind: SetupHealthRecordKind.User, id: BEN, name: "Ben Ito" },
+      fix: SetupHealthFix.OnCallReadiness,
+    });
+    expect(findings[0]!.sentence).toBe(
+      "Ben Ito is on call but has no verified phone method, which this project asks everyone on call to have.",
+    );
+  });
+
+  test("somebody nothing reaches is one finding, the worse one, not a phone one too", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        responders: [
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNotReachable: true,
+            reason: SetupHealthResponderReason.NoVerifiedMethod,
+            isMissingPhoneMethod: true,
+          },
+        ],
+      }),
+    );
+
+    expect(
+      findings.map((finding: SetupHealthFinding): SetupHealthCheck => {
+        return finding.check;
+      }),
+    ).toEqual([SetupHealthCheck.ResponderCannotBePaged]);
+  });
+
+  test("a project that does not ask, or somebody who has one, is no phone finding", () => {
+    for (const isMissingPhoneMethod of [false, undefined]) {
+      expect(
+        getSetupHealthFindings(
+          facts({
+            responders: [
+              {
+                userId: BEN,
+                name: "Ben Ito",
+                isNotReachable: false,
+                reason: SetupHealthResponderReason.NoVerifiedMethod,
+                isMissingPhoneMethod: isMissingPhoneMethod,
+              },
+            ],
+          }),
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test("the phone finding is listed with who is paged, after who can't be", () => {
+    expect(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.ResponderHasNoPhone),
+    ).toBe(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(
+        SetupHealthCheck.ResponderCannotBePaged,
+      ) + 1,
+    );
+  });
+
   test("the reasons go worst first", () => {
     expect(SETUP_HEALTH_RESPONDER_REASON_ORDER[0]).toBe(
       SetupHealthResponderReason.NotAMember,
