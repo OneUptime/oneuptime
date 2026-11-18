@@ -17,6 +17,7 @@ import MonitorStepKubernetesMonitor, {
 } from "./MonitorStepKubernetesMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { KubernetesCostMetric } from "../Kubernetes/KubernetesCostMetrics";
 
 export type KubernetesAlertTemplateCategory =
   | "Availability"
@@ -24,7 +25,8 @@ export type KubernetesAlertTemplateCategory =
   | "Node"
   | "ControlPlane"
   | "Storage"
-  | "Scheduling";
+  | "Scheduling"
+  | "Cost";
 
 export type KubernetesAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -2220,6 +2222,214 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * --- Cost templates (#9548) ---
+ *
+ * They read the metrics OneUptime writes from the cost agent's hourly
+ * allocations (Common/Types/Kubernetes/KubernetesCostMetrics): one point per
+ * hour, stamped at the hour's start and written about an hour after it
+ * closes. So each watches the past day, a window of 24 points, and sums
+ * them - a day's cost is the sum of its hours. The newest hour or two are
+ * still on their way when the window is read, so "the past day" is about 22
+ * hours of cost; a budget is set with that in mind.
+ *
+ * The two budgets are absolute, like Database Size Above Budget: 100 a day
+ * for the cluster and 20 for a namespace, in the cluster's currency (USD
+ * unless the agent says otherwise) - a starting point to set to your own.
+ * The idle share is relative, and its 40% is where the Costs page's Idle %
+ * tile turns red.
+ *
+ * Cost monitoring is on by default in the agent, except on the gke-autopilot
+ * and eks-fargate presets: there, or with cost.enabled=false, these
+ * templates find no data.
+ */
+export const KUBERNETES_CLUSTER_DAILY_COST_BUDGET: number = 100;
+export const KUBERNETES_NAMESPACE_DAILY_COST_BUDGET: number = 20;
+export const KUBERNETES_IDLE_COST_SHARE_THRESHOLD: number = 40;
+
+const clusterDailyCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-cluster-daily-cost",
+  name: "Cluster Daily Cost Over Budget",
+  summary: `The cluster costs more than ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} a day: a starting budget to set to your own.`,
+  description: `Alert when what the cluster cost over the past day passes a budget, ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} in the cluster's currency (USD unless the cost agent says otherwise) until you set your own. Sums oneuptime.kubernetes.cost.total, what each hour cost, idle capacity included, as the cluster's cost engine priced it. An hour's cost arrives about an hour after it closes, so the window holds about the last 22 hours. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "cluster_cost";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            title: "Cluster Cost",
+            metricName: KubernetesCostMetric.Total,
+            // Each point is one hour's cost: added up, not averaged.
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [],
+        // One series, the cluster's, which the alert then names.
+        groupByAttributeKeys: ["resource.k8s.cluster.name"],
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_CLUSTER_DAILY_COST_BUDGET,
+        // A day's cost is the sum of its hours.
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        incidentTitle: `[K8s] Cluster Daily Cost Over Budget (>${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} a day) - ${args.monitorName}`,
+        incidentDescription: `What the cluster cost over the past day has passed its budget. Open the cluster's Costs page for what drove it - the namespaces and workloads that cost the most, how much was idle capacity, and the Right-Sizing card's requests to shrink. A deliberate scale-up only needs a new budget.`,
+        criteriaName: `Cluster Daily Cost - Past Day > ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET}`,
+        criteriaDescription:
+          "Triggers when the cluster's cost summed over the past day passes the budget.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_CLUSTER_DAILY_COST_BUDGET,
+        // Must match the unhealthy side: a sum of hourly costs.
+        metricAggregationType: EvaluateOverTimeType.Sum,
+      }),
+    });
+  },
+};
+
+const namespaceDailyCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-namespace-daily-cost",
+  name: "Namespace Daily Cost Over Budget",
+  summary: `A namespace costs more than ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} a day: a starting budget to set to your own.`,
+  description: `Alert when what a namespace cost over the past day passes a budget, ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} in the cluster's currency (USD unless the cost agent says otherwise) until you set your own. Sums oneuptime.kubernetes.cost.workload, what each workload cost each hour, per namespace: idle capacity is never charged to one. An hour's cost arrives about an hour after it closes, so the window holds about the last 22 hours. One incident per namespace; a Namespace scope watches only the one you name. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "namespace_cost";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            title: "Namespace Cost",
+            metricName: KubernetesCostMetric.Workload,
+            /*
+             * Sum WITHIN each namespace: its workloads' costs in the hour,
+             * which the criteria then add up over the day.
+             */
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [],
+        // Per namespace: one over budget must not hide the next.
+        groupByAttributeKeys: ["resource.k8s.namespace.name"],
+        resourceScope: KubernetesResourceScope.Namespace,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_NAMESPACE_DAILY_COST_BUDGET,
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        incidentTitle: `[K8s] Namespace Daily Cost Over Budget (>${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} a day) - ${args.monitorName}`,
+        incidentDescription: `What a namespace cost over the past day has passed its budget. The namespace is named under "Affected resource" below. Its row on the cluster's Costs page splits the cost into CPU, memory and storage, and Spend by Workload shows which of its workloads drove it; the Right-Sizing card lists the requests to shrink.`,
+        criteriaName: `Namespace Daily Cost - Past Day > ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET}`,
+        criteriaDescription:
+          "Triggers when a namespace's cost summed over the past day passes the budget.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_NAMESPACE_DAILY_COST_BUDGET,
+        metricAggregationType: EvaluateOverTimeType.Sum,
+      }),
+    });
+  },
+};
+
+const highIdleCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-high-idle-cost",
+  name: "High Idle Spend",
+  summary: `More than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of what the cluster cost over the past day was idle capacity.`,
+  description: `Alert when more than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of the cluster's cost over the past day paid for capacity no workload used. Divides oneuptime.kubernetes.cost.idle, node capacity nothing requested or used plus cost the engine could not allocate, by oneuptime.kubernetes.cost.total, hour by hour, and averages the hours. ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% is where the Costs page's Idle % turns red. Fewer or smaller nodes, or a cluster autoscaler that scales down, bring it down. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "idle_cost_share";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: "idle_cost",
+            title: "Idle Cost",
+            metricName: KubernetesCostMetric.Idle,
+            aggregationType: MetricsAggregationType.Sum,
+          },
+          {
+            alias: "cluster_cost",
+            title: "Cluster Cost",
+            metricName: KubernetesCostMetric.Total,
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "Idle Share",
+            formula: "(idle_cost / cluster_cost) * 100",
+            legendUnit: "%",
+          },
+        ],
+        /*
+         * Both metrics are written with the cluster's name, in the same
+         * window, so the two halves of the share meet on it.
+         */
+        groupByAttributeKeys: ["resource.k8s.cluster.name"],
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_IDLE_COST_SHARE_THRESHOLD,
+        // The share of each hour, averaged over the day.
+        metricAggregationType: EvaluateOverTimeType.Average,
+        incidentTitle: `[K8s] High Idle Spend (>${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}%) - ${args.monitorName}`,
+        incidentDescription: `More than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of what the cluster cost over the past day paid for node capacity that no workload requested or used. Look at the cluster's Nodes page for nodes with little scheduled on them, check that a cluster autoscaler can scale down, and right-size node pools whose machines are larger than the pods on them need.`,
+        criteriaName: `High Idle Spend - Idle Share > ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}%`,
+        criteriaDescription:
+          "Triggers when idle capacity is more than the threshold's share of the cluster's cost over the past day.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_IDLE_COST_SHARE_THRESHOLD,
+        metricAggregationType: EvaluateOverTimeType.Average,
+      }),
+    });
+  },
+};
+
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
     clusterStoppedReportingTemplate,
@@ -2243,6 +2453,9 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     hpaAtMaxReplicasTemplate,
     podMemoryLimitSaturationTemplate,
     podCpuLimitSaturationTemplate,
+    clusterDailyCostTemplate,
+    namespaceDailyCostTemplate,
+    highIdleCostTemplate,
   ];
 }
 
