@@ -122,6 +122,11 @@ export function toSecurityEvent(
     ["mitreTactics", snapshot.mitreTactics],
     ["mitreTechniques", snapshot.mitreTechniques],
     ["attributes", snapshot.attributes],
+    // The request it happened in, so the panel opens its trace and session.
+    ["traceId", snapshot.traceId],
+    ["spanId", snapshot.spanId],
+    ["sessionId", snapshot.sessionId],
+    ["requestOutcome", snapshot.requestOutcome],
   ];
 
   for (const [column, value] of columns) {
