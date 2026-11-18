@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
+import BiLineageNotes from "../../Components/DataObservability/BiLineageNotes";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   LineageRead,
@@ -33,6 +34,7 @@ import {
 import URL from "Common/Types/API/URL";
 import {
   DataLineageMap,
+  DataLineageMapBiTool,
   DataLineageMapNode,
   DataLineageMapNodeKind,
   DataLineageMapTrace,
@@ -82,6 +84,10 @@ import React, {
  * it matches and everything upstream and downstream of them; the switches
  * leave services, pipelines or dashboards off; selecting a card picks out
  * its whole lineage and says what it is, with its page one click away.
+ *
+ * A BI tool whose dashboards were read but are on no watched table is told
+ * of, with why and See Why for the steps that fix it (#9507): first on an
+ * empty map, and above a drawn one.
  */
 
 export const LINEAGE_MAP_DOCS_URL: URL = URL.fromString(
@@ -253,8 +259,14 @@ const LineageMapLegend: FunctionComponent = (): ReactElement => {
   );
 };
 
+const BI_TOOLS_OFF_TABLES: string = translationKey(
+  "Your BI tools were read, but their dashboards are built on no table OneUptime watches yet. The map draws them once they are, from any of these:",
+);
+
 // What the map is waiting for: where lineage comes from, and the guide to send it.
-const LineageMapEmpty: FunctionComponent = (): ReactElement => {
+const LineageMapEmpty: FunctionComponent<{
+  biTools: Array<DataLineageMapBiTool>;
+}> = (props: { biTools: Array<DataLineageMapBiTool> }): ReactElement => {
   const translator: Translator = useTranslator();
   const sources: Array<string> = [
     translationKey(
@@ -274,11 +286,19 @@ const LineageMapEmpty: FunctionComponent = (): ReactElement => {
       id="lineage-map-empty"
       icon={IconProp.FlowDiagram}
       title={translationKey("No lineage yet")}
-      description={translationKey(
-        "The map draws where your data flows as soon as OneUptime sees it, from any of these:",
-      )}
+      description={
+        props.biTools.length > 0
+          ? BI_TOOLS_OFF_TABLES
+          : translationKey(
+              "The map draws where your data flows as soon as OneUptime sees it, from any of these:",
+            )
+      }
       footer={
         <div className="mx-auto mt-4 max-w-xl text-start">
+          <BiLineageNotes
+            tools={props.biTools}
+            className="mb-5 space-y-1.5 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
+          />
           <ul className="list-disc space-y-1.5 ps-5 text-sm text-gray-600">
             {sources.map((source: string): ReactElement => {
               return <li key={source}>{translator.translateText(source)}</li>;
@@ -377,7 +397,7 @@ const DataObservabilityLineageMapPage: FunctionComponent<
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />
     );
   } else if (isLineageMapEmpty(read.answer)) {
-    body = <LineageMapEmpty />;
+    body = <LineageMapEmpty biTools={read.answer.biToolsOffTables || []} />;
   } else {
     const counts: Record<DataLineageMapNodeKind, number> = countLineageMapKinds(
       read.answer,
@@ -475,6 +495,8 @@ const DataObservabilityLineageMapPage: FunctionComponent<
                 DataLineageMapNodeKind.Service,
                 DataLineageMapNodeKind.Pipeline,
                 DataLineageMapNodeKind.Dashboard,
+                DataLineageMapNodeKind.Dataset,
+                DataLineageMapNodeKind.Source,
               ] as Array<DataLineageMapNodeKind>
             )
               .filter((kind: DataLineageMapNodeKind): boolean => {
@@ -500,6 +522,11 @@ const DataObservabilityLineageMapPage: FunctionComponent<
         ) : (
           <></>
         )}
+
+        <BiLineageNotes
+          tools={read.answer.biToolsOffTables || []}
+          className="space-y-1 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600"
+        />
 
         {view === LineageMapView.List ? details : <></>}
 
@@ -559,7 +586,7 @@ Search for a table, service, pipeline or dashboard: the map keeps what matches a
 - **Services:** the database spans in your traces name the table and the statement, so a service is drawn writing the tables it inserts into or updates and reading the tables it selects from.
 - **Pipelines:** OpenLineage events, dbt artifacts, Fivetran and Airbyte syncs, and scheduled jobs in your traces say which tables each run read and wrote.
 - **Databases:** a view is built from the tables it is defined on, and the query history of Snowflake, BigQuery, Redshift, ClickHouse and Databricks shows queries that read one table and wrote another.
-- **BI tools:** each dashboard is drawn reading the tables it is built on.
+- **BI tools:** each dashboard is drawn reading the tables it is built on, even when nothing else touches them. A Power BI report or dashboard built on no table OneUptime watches is drawn with the datasets it charts and the data sources they load from, such as a database you have not connected, a SharePoint list or an Excel file.
 
 ## Reading the Map
 

@@ -173,7 +173,12 @@ import Route from "../../../Types/API/Route";
 import { DataAssetFreshness } from "../../../Types/DataObservability/DataAssetFreshness";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import {
+  DataBiLineageProblem,
+  DataBiLineageSummary,
+} from "../../../Types/DataObservability/DataBiLineage";
+import {
   DataLineageMap,
+  DataLineageMapBiTool,
   DataLineageMapEdge,
   DataLineageMapEdgeKind,
   DataLineageMapEvidence,
@@ -610,5 +615,164 @@ describe("the Lineage Map page", () => {
       await screen.findByText("How the Lineage Map Works"),
     ).toBeInTheDocument();
     expect(screen.getByText("Where Lineage Comes From")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A BI tool's dashboards on the map (#9507): a Power BI report on no
+ * watched table is drawn with the dataset it charts and the data sources
+ * it loads from; and a tool whose dashboards are on no watched table is
+ * told of, with why, on an empty map and above a drawn one.
+ */
+describe("the Lineage Map page, with a BI tool's dashboards", () => {
+  const SUMMARY: DataBiLineageSummary = {
+    dashboardCount: 783,
+    dashboardsOnWatchedTables: 0,
+    tableCount: 0,
+    matchedTableCount: 0,
+    datasets: {
+      count: 59,
+      withTables: 0,
+      withQueries: 0,
+      withSchemaError: 0,
+      schemaError: null,
+      readingDataflows: 0,
+    },
+    sources: [],
+    moreSourceCount: 0,
+    unwatchedTables: [],
+    problems: [DataBiLineageProblem.NoTablesFromTool],
+  };
+  const TOOL: DataLineageMapBiTool = {
+    dataBiConnectionId: "77777777-7777-4777-8777-000000000001",
+    name: "Oneuptime PBI Data Observability",
+    tool: "Power BI",
+    dashboardCount: 783,
+    summary: SUMMARY,
+  };
+  const DATABASE_SOURCE: string = "source:sql server|sql01|facilities|";
+  const FILE_SOURCE: string =
+    "source:sharepoint|||https://acme.sharepoint.com/sites/facilities";
+
+  function powerBiMap(fields: Partial<DataLineageMap> = {}): DataLineageMap {
+    return {
+      nodes: [
+        {
+          id: `dashboard:${BOARD}`,
+          kind: DataLineageMapNodeKind.Dashboard,
+          name: "15 29 EMG NUO Master Checklist- GANTT View.xlsx",
+          dataDashboardId: BOARD,
+          tool: "Power BI",
+          url: "https://app.powerbi.com/groups/w1/reports/r1",
+        },
+        {
+          id: "dataset:ds1",
+          kind: DataLineageMapNodeKind.Dataset,
+          name: "Master Checklist",
+          tool: "Power BI",
+          workspace: "New Unit Readiness",
+        },
+        {
+          id: DATABASE_SOURCE,
+          kind: DataLineageMapNodeKind.Source,
+          name: "sql01 / Facilities",
+          sourceType: "SQL Server",
+          isDatabaseSource: true,
+        },
+        {
+          id: FILE_SOURCE,
+          kind: DataLineageMapNodeKind.Source,
+          name: "https://acme.sharepoint.com/sites/facilities",
+          sourceType: "SharePoint",
+          isDatabaseSource: false,
+        },
+      ],
+      edges: [
+        arrow(DataLineageMapEdgeKind.Feeds, DATABASE_SOURCE, "dataset:ds1", {
+          seenIn: [DataLineageMapEvidence.BiTool],
+        }),
+        arrow(DataLineageMapEdgeKind.Feeds, FILE_SOURCE, "dataset:ds1", {
+          seenIn: [DataLineageMapEvidence.BiTool],
+        }),
+        arrow(
+          DataLineageMapEdgeKind.Reads,
+          "dataset:ds1",
+          `dashboard:${BOARD}`,
+          { seenIn: [DataLineageMapEvidence.BiTool] },
+        ),
+      ],
+      isTruncated: false,
+      ...fields,
+    };
+  }
+
+  test("a report on no watched table is drawn with its dataset and the data sources it loads from", async () => {
+    getLineageMapMock.mockResolvedValue(powerBiMap());
+    await renderPage();
+
+    expect(screen.getByTestId("lineage-map-summary")).toHaveTextContent(
+      "1 dashboard · 1 dataset · 2 data sources",
+    );
+    // Each card says what it is: its workspace, its kind of source.
+    expect(card("dataset:ds1")).toHaveTextContent("New Unit Readiness");
+    expect(card(DATABASE_SOURCE)).toHaveTextContent("SQL Server");
+    expect(card(FILE_SOURCE)).toHaveTextContent("SharePoint");
+
+    // Selecting the report follows it up to where its data comes from.
+    fireEvent.click(card(`dashboard:${BOARD}`));
+    expect(isDimmed("dataset:ds1")).toBe(false);
+    expect(isDimmed(DATABASE_SOURCE)).toBe(false);
+
+    // The Dashboards switch leaves the report's dataset and sources off with it.
+    fireEvent.click(screen.getByTestId("lineage-map-kind-Dashboard"));
+    expect(screen.getByTestId("lineage-map-no-match")).toBeInTheDocument();
+  });
+
+  test("an empty map whose BI tool was read says why, and See Why says what to do", async () => {
+    getLineageMapMock.mockResolvedValue({
+      nodes: [],
+      edges: [],
+      isTruncated: false,
+      biToolsOffTables: [TOOL],
+    });
+    await renderPage();
+
+    expect(await screen.findByText("No lineage yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Your BI tools were read, but their dashboards are built on no table OneUptime watches yet. The map draws them once they are, from any of these:",
+      ),
+    ).toBeInTheDocument();
+
+    const note: HTMLElement = screen.getByTestId("bi-lineage-note");
+
+    expect(note).toHaveTextContent(
+      "783 dashboards of Oneuptime PBI Data Observability are built on no table OneUptime watches.",
+    );
+    expect(note).toHaveTextContent("Power BI sent no tables");
+
+    fireEvent.click(screen.getByTestId("bi-lineage-note-why"));
+    expect(await screen.findByTestId("bi-lineage-dialog")).toBeInTheDocument();
+    expect(
+      screen.getByText("Let Power BI Describe Its Tables"),
+    ).toBeInTheDocument();
+  });
+
+  test("a drawn map tells of a BI tool whose dashboards are on no watched table, above it", async () => {
+    getLineageMapMock.mockResolvedValue(aMap({ biToolsOffTables: [TOOL] }));
+    await renderPage();
+
+    expect(await screen.findByTestId("mock-react-flow")).toBeInTheDocument();
+    expect(screen.getByTestId("bi-lineage-notes")).toHaveTextContent(
+      "783 dashboards of Oneuptime PBI Data Observability are built on no table OneUptime watches.",
+    );
+  });
+
+  test("a map with nothing to tell of says nothing of BI tools", async () => {
+    getLineageMapMock.mockResolvedValue(aMap());
+    await renderPage();
+
+    expect(await screen.findByTestId("mock-react-flow")).toBeInTheDocument();
+    expect(screen.queryByTestId("bi-lineage-notes")).toBeNull();
   });
 });
