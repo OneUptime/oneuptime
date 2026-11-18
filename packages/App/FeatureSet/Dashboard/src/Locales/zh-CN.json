@@ -56918,5 +56918,10 @@
   "Update the probe, or let it poll more devices at once: raise {{setting}} on the probe and restart it.": "请更新探测器，或让它一次轮询更多设备：在探测器上调高 {{setting}} 并重启它。",
   "Whether this probe polls its network devices as often as they are set.": "此探测器是否按设置的频率轮询其网络设备。",
   "{{behind}} of {{total}} behind": "{{behind}}/{{total}} 滞后",
-  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\n当探测器检查的监视器或轮询的网络设备在预定时间过后等待超过 1 分钟时，该探测器即视为滞后，因此检查频率低于设置。探测器页面会说明如何让它赶上。此监视器监视的探测器都不再滞后后，此问题将自动解决。"
+  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\n当探测器检查的监视器或轮询的网络设备在预定时间过后等待超过 1 分钟时，该探测器即视为滞后，因此检查频率低于设置。探测器页面会说明如何让它赶上。此监视器监视的探测器都不再滞后后，此问题将自动解决。",
+  "Check their email address, then remove them and invite them again.": "请核对对方的邮箱地址，然后将其移除并重新邀请。",
+  "Email Not Sent": "邮件未发送",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "邮件可用后，请将对方移除并重新邀请，或向服务器管理员索取对方的邀请链接。",
+  "Their invitation email was not sent.": "邀请邮件未发送。",
+  "They can still join: send them their invitation link yourself.": "对方仍可加入：请自行把邀请链接发给对方。"
 }

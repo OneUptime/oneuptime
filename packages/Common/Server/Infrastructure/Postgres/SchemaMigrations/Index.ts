@@ -1062,6 +1062,7 @@ import { KeepSampleProjectColumns1809183500000 } from "./1809183500000-KeepSampl
 import { AddProbeChecksLate1809183650000 } from "./1809183650000-AddProbeChecksLate";
 import { AddProbeDevicePollsLate1809183760000 } from "./1809183760000-AddProbeDevicePollsLate";
 import { AddDocsFeedbackKeeping1809183800000 } from "./1809183800000-AddDocsFeedbackKeeping";
+import { AddEmailLogTemplateType1809183830000 } from "./1809183830000-AddEmailLogTemplateType";
 
 export default [
   InitialMigration,
@@ -2128,4 +2129,5 @@ export default [
   AddProbeChecksLate1809183650000,
   AddProbeDevicePollsLate1809183760000,
   AddDocsFeedbackKeeping1809183800000,
+  AddEmailLogTemplateType1809183830000,
 ];

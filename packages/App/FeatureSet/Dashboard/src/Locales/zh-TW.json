@@ -56918,5 +56918,10 @@
   "Update the probe, or let it poll more devices at once: raise {{setting}} on the probe and restart it.": "請更新探測器，或讓它一次輪詢更多裝置：在探測器上調高 {{setting}} 並重新啟動它。",
   "Whether this probe polls its network devices as often as they are set.": "此探測器是否依設定的頻率輪詢其網路裝置。",
   "{{behind}} of {{total}} behind": "{{behind}}/{{total}} 落後",
-  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\n當探測器檢查的監測器或輪詢的網路裝置在預定時間過後等待超過 1 分鐘時，該探測器即視為落後，因此檢查頻率低於設定。探測器頁面會說明如何讓它趕上。此監測器監看的探測器都不再落後後，此問題就會自動解決。"
+  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\n當探測器檢查的監測器或輪詢的網路裝置在預定時間過後等待超過 1 分鐘時，該探測器即視為落後，因此檢查頻率低於設定。探測器頁面會說明如何讓它趕上。此監測器監看的探測器都不再落後後，此問題就會自動解決。",
+  "Check their email address, then remove them and invite them again.": "請核對對方的電子郵件地址，然後將其移除並重新邀請。",
+  "Email Not Sent": "郵件未傳送",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "郵件可用後，請將對方移除並重新邀請，或向伺服器管理員索取對方的邀請連結。",
+  "Their invitation email was not sent.": "邀請郵件未傳送。",
+  "They can still join: send them their invitation link yourself.": "對方仍可加入：請自行把邀請連結傳給對方。"
 }

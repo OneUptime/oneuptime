@@ -68,6 +68,8 @@ import {
   SERVER_EMAIL_COPY,
   ServerEmail,
   canGetInvitationLinks,
+  canGetLinksOfInvitationsNotSent,
+  canReadInvitationEmailsNotSent,
   cannotSendEmail,
   useServerEmail,
 } from "../../Utils/ServerEmail";
@@ -78,6 +80,11 @@ import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import {
+  InvitationEmailsNotSent,
+  useInvitationEmailsNotSent,
+} from "Common/UI/Components/InvitationLink/InvitationEmailsNotSent";
+import PendingInvitationPill from "../../Components/User/PendingInvitationPill";
 import {
   ProjectRemovalReach,
   useProjectRemovalReach,
@@ -108,6 +115,8 @@ const Users: FunctionComponent<PageComponentProps> = (
   const [invitationLinkFor, setInvitationLinkFor] = React.useState<{
     teamMemberId: ObjectID;
     viewPageRoute: Route | null;
+    // Their latest invitation email was not sent, on a server that sends email.
+    isEmailNotSent: boolean;
   } | null>(null);
 
   /*
@@ -118,6 +127,15 @@ const Users: FunctionComponent<PageComponentProps> = (
   const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
     canGetInvitationLinks(serverEmail),
   );
+
+  /*
+   * A pending person whose latest invitation email the mail service
+   * refused says Email Not Sent, not Invitation Sent (#9511): asked of the
+   * project's Email Logs, for a reader who may read them. A master admin
+   * gets their invitation link from the row.
+   */
+  const invitationEmailsNotSent: InvitationEmailsNotSent =
+    useInvitationEmailsNotSent(canReadInvitationEmailsNotSent(serverEmail));
 
   /*
    * Someone who may remove people only from the teams they own cannot take
@@ -402,18 +420,27 @@ const Users: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         /*
          * A pending person's row: their invitation link, for a master admin
-         * on a server that cannot send email. The row stands for every team
-         * the person is invited to, and its id is one of those invitations;
-         * the link is the person's, whichever one it is read from.
+         * on a server that cannot send email - or whose latest invitation
+         * email was not sent (#9511). The row stands for every team the
+         * person is invited to, and its id is one of those invitations; the
+         * link is the person's, whichever one it is read from.
          */
         actionButtons={[
           getInvitationLinkRowAction<TeamMember>({
             isAvailable: canGetInvitationLinks(serverEmail),
             isNotSignedUp: membersNotSignedUp.isNotSignedUp,
-            onOpen: (teamMemberId: ObjectID) => {
+            isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail)
+              ? (item: TeamMember): boolean => {
+                  return Boolean(invitationEmailsNotSent.getNotSent(item));
+                }
+              : undefined,
+            onOpen: (teamMemberId: ObjectID, item: TeamMember) => {
               setInvitationLinkFor({
                 teamMemberId: teamMemberId,
                 viewPageRoute: null,
+                isEmailNotSent:
+                  !cannotSendEmail(serverEmail) &&
+                  Boolean(invitationEmailsNotSent.getNotSent(item)),
               });
             },
           }),
@@ -421,6 +448,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         onFetchSuccess={(rows: Array<TeamMember>) => {
           membersNotSignedUp.onFetchSuccess(rows);
           removalReach.onFetchSuccess(rows);
+          invitationEmailsNotSent.onFetchSuccess(rows);
         }}
         topContent={filterBar}
         emptyState={facetEmptyState}
@@ -562,16 +590,16 @@ const Users: FunctionComponent<PageComponentProps> = (
              */
             disableSort: true,
             getElement: (item: TeamMember) => {
+              /*
+               * Invited, on a server that cannot send email; Email Not Sent,
+               * when the latest invitation email was refused (#9511);
+               * Invitation Sent otherwise.
+               */
               if (!item.hasAcceptedInvitation) {
-                // Nothing was sent by a server that cannot send email.
                 return (
-                  <Pill
-                    text={
-                      cannotSendEmail(serverEmail)
-                        ? SERVER_EMAIL_COPY.invitedPill
-                        : "Invitation Sent"
-                    }
-                    color={Yellow}
+                  <PendingInvitationPill
+                    serverEmail={serverEmail}
+                    notSent={invitationEmailsNotSent.getNotSent(item)}
                   />
                 );
               }
@@ -659,6 +687,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 setInvitationLinkFor({
                   teamMemberId: teamMember.id,
                   viewPageRoute: new Route(viewPageRoute),
+                  isEmailNotSent: false,
                 });
               } else {
                 Navigation.navigate(new Route(viewPageRoute));
@@ -735,6 +764,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {invitationLinkFor && (
         <InvitationLinkModal
           teamMemberId={invitationLinkFor.teamMemberId}
+          isEmailNotSent={invitationLinkFor.isEmailNotSent}
           onClose={() => {
             const viewPageRoute: Route | null = invitationLinkFor.viewPageRoute;
             setInvitationLinkFor(null);

@@ -56918,5 +56918,10 @@
   "Update the probe, or let it poll more devices at once: raise {{setting}} on the probe and restart it.": "Update the probe, or let it poll more devices at once: raise {{setting}} on the probe and restart it.",
   "Whether this probe polls its network devices as often as they are set.": "Whether this probe polls its network devices as often as they are set.",
   "{{behind}} of {{total}} behind": "{{behind}} of {{total}} behind",
-  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind."
+  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.",
+  "Check their email address, then remove them and invite them again.": "Check their email address, then remove them and invite them again.",
+  "Email Not Sent": "Email Not Sent",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.",
+  "Their invitation email was not sent.": "Their invitation email was not sent.",
+  "They can still join: send them their invitation link yourself.": "They can still join: send them their invitation link yourself."
 }

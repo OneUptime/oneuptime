@@ -84,7 +84,7 @@ När personen accepterar är den med i projektet direkt, med teamets behörighet
 | --- | --- |
 | **Användare** | Namn och e-postadress. |
 | **Team** | Vart och ett av projektets team som personen är med i eller inbjuden till. |
-| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess. På en egenvärdad server som inte kan skicka e-post ännu visas **Inbjuden** i stället: inbjudan skapas, men inget mejl skickas. |
+| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess, eller **Mejl inte skickat** när e-posttjänsten avvisade det senaste inbjudningsmejlet. På en egenvärdad server som inte kan skicka e-post ännu visas **Inbjuden** i stället: inbjudan skapas, men inget mejl skickas. |
 
 Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en rad för att öppna personens sida:
 
@@ -152,6 +152,10 @@ Inbjudan beror inte på e-postmeddelandet. Be personen registrera sig med den in
 För att se om det skickades öppnar du fliken **E-post** under projektets **Aviseringsloggar**: raden för varje inbjudan säger om den skickades, och varför inte. På en egenvärdad server hittar en huvudadministratör också varje mejl som servern inte kunde skicka i dess [e-postlogg](/docs/emails/email-providers#se-vad-servern-har-skickat).
 
 På en egenvärdad server som inte kan skicka e-post ännu kan inte heller registreringen mejla en ny länk: i stället ber den personen att be om sin inbjudningslänk. När serverns administratör har [konfigurerat e-post](/docs/emails/smtp#öppna-formuläret) fungerar registreringen som ovan. Till dess kan en huvudadministratör skicka personen en ny länk, som fungerar en gång, bara för den adressen, i 7 dagar: under **Användare** öppnar du personens radmeny, **⋯**, och klickar på **Hämta inbjudningslänk**.
+:::
+
+:::details En person visar Mejl inte skickat
+E-posttjänsten avvisade det senaste inbjudningsmejlet, så inget nådde personen. Peka på **Mejl inte skickat**, eller tryck på den, för att se varför, så som fliken **E-post** under projektets **Aviseringsloggar** säger det. Kontrollera adressen du bjöd in, och när e-posten fungerar tar du bort personen och bjuder in den igen. På en egenvärdad server kan serverns administratör i stället skicka personen dess inbjudningslänk: en huvudadministratör öppnar personens radmeny under **Användare**, **⋯**, och klickar på **Hämta inbjudningslänk**.
 :::
 
 :::details Bjud in användare säger att användarna hanteras av SCIM Push Groups

@@ -76,6 +76,7 @@ import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingSt
 import EmailSendFailure from "Common/Types/Email/EmailSendFailure";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import { createHash } from "crypto";
 import fsp from "fs/promises";
@@ -1678,6 +1679,19 @@ export default class MailService {
       emailLog.subject = StatusPageSubscriberUnsubscribe.redactCredentials(
         mail.subject,
       );
+
+      /*
+       * Which of OneUptime's emails it was, as the server's email log keeps
+       * it (ServerEmailLogWriter): the Users list finds a person's
+       * invitation emails by it, to say when the latest was not sent
+       * (#9511).
+       */
+      if (mail.templateType) {
+        emailLog.templateType = mail.templateType.slice(
+          0,
+          ColumnLength.ShortText,
+        );
+      }
 
       if (options.emailServer?.id) {
         emailLog.projectSmtpConfigId = options.emailServer?.id;

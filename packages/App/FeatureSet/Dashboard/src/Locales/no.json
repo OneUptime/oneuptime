@@ -56918,5 +56918,10 @@
   "Update the probe, or let it poll more devices at once: raise {{setting}} on the probe and restart it.": "Oppdater sonden, eller la den polle flere enheter samtidig: øk {{setting}} på sonden og start den på nytt.",
   "Whether this probe polls its network devices as often as they are set.": "Om denne sonden poller nettverksenhetene sine så ofte som de er innstilt til.",
   "{{behind}} of {{total}} behind": "{{behind}} av {{total}} på etterskudd",
-  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nEn sonde er på etterskudd når monitorene den sjekker, eller nettverksenhetene den poller, venter mer enn ett minutt etter tidspunktet sitt, så de sjekkes sjeldnere enn innstilt. Siden dens sier hva som hjelper den å ta igjen. Dette løser seg selv når ingen av sondene denne monitoren overvåker, er på etterskudd."
+  "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nEn sonde er på etterskudd når monitorene den sjekker, eller nettverksenhetene den poller, venter mer enn ett minutt etter tidspunktet sitt, så de sjekkes sjeldnere enn innstilt. Siden dens sier hva som hjelper den å ta igjen. Dette løser seg selv når ingen av sondene denne monitoren overvåker, er på etterskudd.",
+  "Check their email address, then remove them and invite them again.": "Sjekk e-postadressen deres, fjern dem så og inviter dem på nytt.",
+  "Email Not Sent": "E-post ikke sendt",
+  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Når e-post virker, fjerner du dem og inviterer dem på nytt, eller ber serveradministratoren om invitasjonslenken deres.",
+  "Their invitation email was not sent.": "Invitasjonsmeldingen ble ikke sendt.",
+  "They can still join: send them their invitation link yourself.": "De kan fortsatt bli med: send dem invitasjonslenken selv."
 }

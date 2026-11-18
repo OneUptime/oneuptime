@@ -84,7 +84,7 @@ Accettando entra subito nel progetto, con le autorizzazioni del suo team e la co
 | --- | --- |
 | **Utente** | Il suo nome e il suo indirizzo email. |
 | **Team** | Ogni team del progetto di cui fa parte, o in cui è invitata. |
-| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora. Su un server self-hosted che non può ancora inviare email, invece **Invitato**: l'invito viene creato, ma non parte nessuna email. |
+| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora, oppure **Email non inviata** quando il servizio di posta ha rifiutato la sua ultima email di invito. Su un server self-hosted che non può ancora inviare email, invece **Invitato**: l'invito viene creato, ma non parte nessuna email. |
 
 Filtra l'elenco per **Utente**, **Stato** o **Team**. Fai clic su una riga per aprire la pagina della persona:
 
@@ -152,6 +152,10 @@ L'invito non dipende dall'email. Chiedi alla persona di registrarsi con l'indiri
 Per vedere se è partita, apri la scheda **E-mail** dei **Log di notifica** del progetto: la riga di ogni invito dice se è stato inviato, e perché no. Su un server self-hosted, un amministratore principale trova anche ogni email che il server non è riuscito a inviare nel suo [log delle email](/docs/emails/email-providers#vedere-che-cosa-ha-inviato-il-server).
 
 Su un server self-hosted che non può ancora inviare email, nemmeno la registrazione può inviare un nuovo link via email: chiede invece alla persona di farsi dare il suo link di invito. Quando l'amministratore del server avrà [configurato l'email](/docs/emails/smtp#aprire-il-modulo), la registrazione funziona come sopra. Fino ad allora, un amministratore principale può inviarle un nuovo link, che funziona una volta, solo per quell'indirizzo, per 7 giorni: in **Utenti**, apri il menu della riga della persona, **⋯**, e fai clic su **Ottieni link di invito**.
+:::
+
+:::details Una persona mostra Email non inviata
+Il servizio di posta ha rifiutato la sua ultima email di invito, quindi non le è arrivato nulla. Punta su **Email non inviata**, o toccala, per vederne il motivo, come lo riporta la scheda **E-mail** dei **Log di notifica** del progetto. Controlla l'indirizzo invitato, poi, quando l'email funziona, rimuovi la persona e invitala di nuovo. Su un server self-hosted, l'amministratore del server può invece inviarle il suo link di invito: un amministratore principale apre il menu della riga della persona in **Utenti**, **⋯**, e fa clic su **Ottieni link di invito**.
 :::
 
 :::details Invita utente dice che gli utenti sono gestiti da SCIM Push Groups
