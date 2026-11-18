@@ -170,7 +170,7 @@ Click **Save Changes**. The next check is judged by the new criteria.
 
 ### Test the monitor
 
-On a monitor that probes check, click **Test Monitor** on the card, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows what the check found.
+On a monitor that probes check, click **Test Monitor** on the card: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the check found. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 :::
 
 A Manual monitor has no criteria: you set its status yourself. See [Updating Status](/docs/monitor/manual-monitor#updating-status).

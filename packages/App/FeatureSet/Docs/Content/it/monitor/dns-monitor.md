@@ -48,7 +48,7 @@ Inserite il **Nome di dominio** da interrogare, come `example.com`, e scegliete 
 
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra i record che la sonda ha ricevuto.
+Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra i record che la sonda ha ricevuto. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 

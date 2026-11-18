@@ -170,7 +170,7 @@ Klicken Sie auf **Änderungen speichern**. Die nächste Prüfung wird nach den n
 
 ### Den Monitor testen
 
-Bei einem Monitor, den Sonden prüfen, klicken Sie auf der Karte auf **Monitor testen**, wählen unter **Sonde auswählen** eine Sonde und klicken auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die Prüfung gefunden hat.
+Bei einem Monitor, den Sonden prüfen, klicken Sie auf der Karte auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die Prüfung gefunden hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 :::
 
 Ein manueller Monitor hat keine Kriterien: Sie setzen seinen Status selbst. Siehe [Status aktualisieren](/docs/monitor/manual-monitor#den-status-aktualisieren).

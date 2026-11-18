@@ -48,7 +48,7 @@ Introduzca el **Nombre de dominio** que se va a consultar, como `example.com`, y
 
 ### Probarlo
 
-Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra los registros que recibió la sonda.
+Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra los registros que recibió la sonda. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 
 ### Revisar los criterios
 

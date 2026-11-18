@@ -49,17 +49,17 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Klicka på **Fler monitortyper** under **Monitortyp** och välj **IP** under **Grundläggande övervakning**.
 
-### Namnge den
-
-Ange ett **Namn**, som `Office gateway`, och klicka sedan på **Nästa**.
-
 ### Ange adressen
 
 Ange under **IP-adress** den IPv4- eller IPv6-adress som ska kontrolleras, som `192.168.1.1` eller `2001:db8::1`. Ett värdnamn godtas inte: fältet visar ett fel. För att pinga en värd via namn använder du en [ping-monitor](/docs/monitor/ping-monitor).
 
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `192.168.1.1`. Behåll det eller ange ett eget, som `Office gateway`, och klicka sedan på **Nästa**.
+
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar de tur och retur-tider och den paketförlust som sonden såg.
+Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar de tur och retur-tider och den paketförlust som sonden såg. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

@@ -62,7 +62,7 @@ Dans **Zone (nom de domaine)**, saisissez la zone à valider, comme `example.com
 
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que chaque vérification a trouvé.
+Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que chaque vérification a trouvé. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 

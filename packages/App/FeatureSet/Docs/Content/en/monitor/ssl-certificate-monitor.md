@@ -40,17 +40,17 @@ A probe that has lost its own network connection reports no result, so it cannot
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, pick **SSL Certificate**.
 
-### Name it
-
-Enter a **Name**, such as `example.com certificate`, then click **Next**.
-
 ### Enter the URL
 
 In **Website URL**, enter the site whose certificate to check, such as `https://example.com`. For a service on another port, include it: `https://example.com:8443`.
 
+### Name it
+
+The **Name** fills in from what you entered, such as `example.com`. Keep it or enter your own, such as `example.com certificate`, then click **Next**.
+
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows the certificate the probe got, with its issuer and expiry date.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows the certificate the probe got, with its issuer and expiry date. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

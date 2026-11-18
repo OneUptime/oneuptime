@@ -45,17 +45,17 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, scegliete **API**.
 
-### Dargli un nome
-
-Inserite un **Nome**, come `Orders API`, poi fate clic su **Avanti**.
-
 ### Inserire la richiesta
 
-In **URL API**, inserite l'URL completo dell'endpoint, come `https://api.example.com/health`. Scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della richiesta (in JSON)**.
+In **URL API**, inserite l'URL completo dell'endpoint, come `https://api.example.com/health`.
+
+### Dargli un nome
+
+Il **Nome** si compila con ciò che avete inserito, ad esempio `api.example.com/health`. Tenetelo o inseritene uno vostro, come `Orders API`, poi fate clic su **Avanti**.
 
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API.
+In **Destinazione del monitor**, scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della richiesta (in JSON)**. Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 

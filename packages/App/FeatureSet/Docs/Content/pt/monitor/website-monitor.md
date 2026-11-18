@@ -46,17 +46,17 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 Acesse **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, escolha **Site**.
 
-### Dar um nome a ele
-
-Informe um **Nome**, como `Marketing site`, e clique em **Próximo**.
-
 ### Informar a URL
 
-Em **URL do site**, informe o endereço completo da página, incluindo `https://`, como `https://example.com`. Para alterar redirecionamentos, certificados, o tempo limite ou as novas tentativas, abra **Mais campos** logo abaixo (veja [Opções de configuração](#opções-de-configuração)).
+Em **URL do site**, informe o endereço completo da página, incluindo `https://`, como `https://example.com`.
+
+### Dar um nome a ele
+
+O **Nome** é preenchido com o que você informou, como `example.com`. Mantenha-o ou informe um seu, como `Marketing site`, e clique em **Próximo**.
 
 ### Testá-lo
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a sonda recebeu.
+Para alterar redirecionamentos, certificados, o tempo limite ou as novas tentativas, abra **Mais campos** em **Alvo do monitor** (veja [Opções de configuração](#opções-de-configuração)). Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a sonda recebeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 
@@ -99,7 +99,7 @@ Use `{{random}}` da mesma forma: `https://example.com/health?nocache={{random}}`
 
 ### Mais campos
 
-Estas configurações ficam recolhidas em **Mais campos**, abaixo da URL. O cabeçalho recolhido as lista e mostra quais você alterou.
+Estas configurações ficam recolhidas em **Mais campos**, dentro de **Alvo do monitor**. O cabeçalho recolhido as lista e mostra quais você alterou.
 
 | Campo | Padrão | O que faz |
 | --- | --- | --- |

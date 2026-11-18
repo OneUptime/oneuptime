@@ -40,17 +40,17 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **Certificat SSL**.
 
-### Le nommer
-
-Saisissez un **Nom**, comme `example.com certificate`, puis cliquez sur **Suivant**.
-
 ### Saisir l'URL
 
 Dans **URL du site web**, saisissez le site dont le certificat doit être vérifié, comme `https://example.com`. Pour un service sur un autre port, indiquez-le : `https://example.com:8443`.
 
+### Le nommer
+
+Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `example.com`. Gardez-le ou saisissez le vôtre, comme `example.com certificate`, puis cliquez sur **Suivant**.
+
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre le certificat que la sonde a reçu, avec son émetteur et sa date d'expiration.
+Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre le certificat que la sonde a reçu, avec son émetteur et sa date d'expiration. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 

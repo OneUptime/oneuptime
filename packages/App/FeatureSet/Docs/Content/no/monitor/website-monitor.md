@@ -46,17 +46,17 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Nettsted** under **Monitortype**.
 
-### Gi den et navn
-
-Angi et **Navn**, som `Marketing site`, og klikk så på **Neste**.
-
 ### Angi URL-en
 
-Angi sidens fullstendige adresse under **Nettsted-URL**, inkludert `https://`, som `https://example.com`. For å endre omdirigeringer, sertifikater, tidsavbruddet eller nye forsøk åpner du **Flere felt** under (se [Konfigurasjonsalternativer](#konfigurasjonsalternativer)).
+Angi sidens fullstendige adresse under **Nettsted-URL**, inkludert `https://`, som `https://example.com`.
+
+### Gi den et navn
+
+**Navn** fylles ut fra det du anga, som `example.com`. Behold det, eller angi ditt eget, som `Marketing site`, og klikk så på **Neste**.
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva sonden fikk tilbake.
+For å endre omdirigeringer, sertifikater, tidsavbruddet eller nye forsøk åpner du **Flere felt** under **Monitor-mål** (se [Konfigurasjonsalternativer](#konfigurasjonsalternativer)). Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser hva sonden fikk tilbake. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 
@@ -99,7 +99,7 @@ Bruk `{{random}}` på samme måte: `https://example.com/health?nocache={{random}
 
 ### Flere felt
 
-Disse innstillingene er brettet sammen under **Flere felt**, under URL-en. Den sammenbrettede overskriften nevner dem og viser hvilke du har endret.
+Disse innstillingene er brettet sammen under **Flere felt**, i **Monitor-mål**. Den sammenbrettede overskriften nevner dem og viser hvilke du har endret.
 
 | Felt | Standard | Hva det gjør |
 | --- | --- | --- |

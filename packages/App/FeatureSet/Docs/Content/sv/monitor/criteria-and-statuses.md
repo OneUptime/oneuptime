@@ -170,7 +170,7 @@ Klicka på **Spara ändringar**. Nästa kontroll bedöms efter de nya kriteriern
 
 ### Testa monitorn
 
-På en monitor som sonder kontrollerar klickar du på **Testa monitor** på kortet, väljer en sond under **Välj sond** och klickar på **Kör test**. **Resultat av övervakningstest** visar vad kontrollen hittade.
+På en monitor som sonder kontrollerar klickar du på **Testa monitor** på kortet: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad kontrollen hittade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 :::
 
 En manuell monitor har inga kriterier: du sätter dess status själv. Se [Uppdatera status](/docs/monitor/manual-monitor#uppdatera-status).

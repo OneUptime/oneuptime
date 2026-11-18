@@ -48,7 +48,7 @@ Digite o **Nome de domínio** a consultar, como `example.com`, e escolha o **Tip
 
 ### Testá-lo
 
-Clique em **Testar monitor**, escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. **Resultado do Teste do Monitor** mostra os registros que a sonda recebeu.
+Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra os registros que a sonda recebeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 

@@ -46,17 +46,17 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **Website**.
 
-### Hem een naam geven
-
-Vul een **Naam** in, zoals `Marketing site`, en klik dan op **Volgende**.
-
 ### De URL invullen
 
-Vul onder **Website-URL** het volledige adres van de pagina in, inclusief `https://`, zoals `https://example.com`. Om omleidingen, certificaten, de time-out of nieuwe pogingen te wijzigen, opent u **Meer velden** eronder (zie [Configuratieopties](#configuratieopties)).
+Vul onder **Website-URL** het volledige adres van de pagina in, inclusief `https://`, zoals `https://example.com`.
+
+### Hem een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `example.com`. Houd die of vul uw eigen naam in, zoals `Marketing site`, en klik dan op **Volgende**.
 
 ### Hem testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** toont wat de sonde terugkreeg.
+Om omleidingen, certificaten, de time-out of nieuwe pogingen te wijzigen, opent u **Meer velden** onder **Monitordoel** (zie [Configuratieopties](#configuratieopties)). Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de sonde terugkreeg. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 
@@ -99,7 +99,7 @@ Gebruik `{{random}}` op dezelfde manier: `https://example.com/health?nocache={{r
 
 ### Meer velden
 
-Deze instellingen zijn ingeklapt onder **Meer velden**, onder de URL. De ingeklapte kop noemt ze en toont welke u hebt gewijzigd.
+Deze instellingen zijn ingeklapt onder **Meer velden**, in **Monitordoel**. De ingeklapte kop noemt ze en toont welke u hebt gewijzigd.
 
 | Veld | Standaard | Wat het doet |
 | --- | --- | --- |

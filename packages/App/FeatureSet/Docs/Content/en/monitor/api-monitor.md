@@ -45,17 +45,17 @@ A probe that has lost its own network connection reports no result, so it cannot
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, pick **API**.
 
-### Name it
-
-Enter a **Name**, such as `Orders API`, then click **Next**.
-
 ### Enter the request
 
-In **API URL**, enter the endpoint's full URL, such as `https://api.example.com/health`. Pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body (in JSON)**.
+In **API URL**, enter the endpoint's full URL, such as `https://api.example.com/health`.
+
+### Name it
+
+The **Name** fills in from what you entered, such as `api.example.com/health`. Keep it or enter your own, such as `Orders API`, then click **Next**.
 
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows what the API answered.
+Under **Monitor Target**, pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body (in JSON)**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the API answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 
