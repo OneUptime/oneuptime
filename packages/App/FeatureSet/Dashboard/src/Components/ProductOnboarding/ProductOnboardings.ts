@@ -1,5 +1,8 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import Route from "Common/Types/API/Route";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
@@ -70,6 +73,22 @@ const docs: (path: string) => Route = (path: string): Route => {
   return new Route(`/docs/${path}`);
 };
 
+/*
+ * "Send logs, metrics and traces, then get alerted" (#6806), from the
+ * telemetry products themselves (#7142): Home's checklist and Search led
+ * there, and the first-run explanation of Logs, Traces and Metrics - the
+ * three its guide sets up - offered only the setup guide's dialog, which
+ * stops at "View logs". The dialog stays beside it, for data alone. Offered
+ * to whoever may make the ingestion key its guide asks for and the
+ * monitors it ends with.
+ */
+const TELEMETRY_GUIDED_SETUP: ProductOnboarding["guidedSetup"] = {
+  page: PageMap.SERVICES_GUIDED_SETUP,
+  buttonTitle: translationKey("Guided setup"),
+  modelType: TelemetryIngestionKey,
+  alsoCreates: [Monitor],
+};
+
 export const PRODUCT_ONBOARDINGS: Record<
   OnboardedProductKey,
   ProductOnboarding
@@ -127,6 +146,18 @@ export const PRODUCT_ONBOARDINGS: Record<
     showcase: STATUS_PAGES_SHOWCASE,
     docsRoute: docs("status-pages/index"),
     guideRoute: docs("guides/status-page"),
+    /*
+     * "Publish a status page" (#6806), from the product itself (#7142):
+     * Home's checklist and Search led there, and the empty Status Pages list
+     * offered only Create Status Page. Offered to whoever may make a page
+     * and put monitors on it, as the setup asks (mayCreateStatusPage).
+     */
+    guidedSetup: {
+      page: PageMap.STATUS_PAGES_GUIDED_SETUP,
+      buttonTitle: translationKey("Guided setup"),
+      modelType: StatusPage,
+      alsoCreates: [StatusPageResource],
+    },
   },
   [ProductKey.ScheduledMaintenance]: {
     page: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
@@ -145,18 +176,21 @@ export const PRODUCT_ONBOARDINGS: Record<
     name: translationKey("Logs"),
     showcase: LOGS_SHOWCASE,
     docsRoute: docs("telemetry/logs-explorer"),
+    guidedSetup: TELEMETRY_GUIDED_SETUP,
   },
   [ProductKey.Metrics]: {
     page: PageMap.METRICS,
     name: translationKey("Metrics"),
     showcase: METRICS_SHOWCASE,
     docsRoute: docs("telemetry/metrics-explorer"),
+    guidedSetup: TELEMETRY_GUIDED_SETUP,
   },
   [ProductKey.Traces]: {
     page: PageMap.TRACES,
     name: translationKey("Traces"),
     showcase: TRACES_SHOWCASE,
     docsRoute: docs("telemetry/traces-explorer"),
+    guidedSetup: TELEMETRY_GUIDED_SETUP,
   },
   [ProductKey.Profiles]: {
     page: PageMap.PROFILES,

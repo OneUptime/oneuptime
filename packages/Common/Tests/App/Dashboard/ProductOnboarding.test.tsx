@@ -92,6 +92,7 @@ import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryInges
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
@@ -1036,6 +1037,356 @@ describe("Monitors' guided setup (#7054)", () => {
   });
 });
 
+/*
+ * ISSUE #7142: the status page and telemetry guided setups were opened
+ * from Home's checklist and Search, and never from the products themselves.
+ * Walk after walk, a newcomer who opened Status Pages or Logs from the
+ * products menu met only the manual way - Create Status Page, the setup
+ * guide's dialog - and found the guided setups by typing their names into
+ * Search. Each product now names its setup as On-Call (#7148) and Monitors
+ * (#7054) do: the one primary button of its explanation, on the empty list
+ * and in How it works, with the manual way beside it, plain. Only someone
+ * who may make every record the setup makes is offered it.
+ */
+describe("the status page and telemetry guided setups, from their products (#7142)", () => {
+  const createStatusPage: ShowcaseAddButton = {
+    title: "Create Status Page",
+    onClick: jest.fn() as unknown as () => void,
+  };
+
+  // A member of a custom role holding exactly these.
+  const holding: (permissions: Array<Permission>) => void = (
+    permissions: Array<Permission>,
+  ): void => {
+    mockPermissions = permissions;
+    PermissionGate.clearPermissionPropsCache();
+  };
+
+  test("Status Pages names its guided setup, for whoever may make a page and put monitors on it", () => {
+    expect(PRODUCT_ONBOARDINGS[ProductKey.StatusPages].guidedSetup).toEqual({
+      page: PageMap.STATUS_PAGES_GUIDED_SETUP,
+      buttonTitle: "Guided setup",
+      modelType: StatusPage,
+      alsoCreates: [StatusPageResource],
+    });
+  });
+
+  test("Logs, Traces and Metrics name the telemetry setup - the three its guide sets up - and nothing else does", () => {
+    for (const product of [
+      ProductKey.Logs,
+      ProductKey.Traces,
+      ProductKey.Metrics,
+    ]) {
+      expect({
+        product,
+        guidedSetup: PRODUCT_ONBOARDINGS[product].guidedSetup,
+      }).toEqual({
+        product,
+        guidedSetup: {
+          page: PageMap.SERVICES_GUIDED_SETUP,
+          buttonTitle: "Guided setup",
+          modelType: TelemetryIngestionKey,
+          alsoCreates: [Monitor],
+        },
+      });
+    }
+
+    for (const product of [
+      ProductKey.Exceptions,
+      ProductKey.Profiles,
+      ProductKey.Topology,
+      ProductKey.Services,
+    ]) {
+      expect({
+        product,
+        guidedSetup: PRODUCT_ONBOARDINGS[product].guidedSetup,
+      }).toEqual({ product, guidedSetup: undefined });
+    }
+  });
+
+  test("its words name the page it opens, as each setup's breadcrumb does", () => {
+    const dashboard: string = path.join(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src",
+    );
+
+    for (const [product, file, page] of [
+      [
+        ProductKey.StatusPages,
+        "StatusPagesBreadcrumbs.ts",
+        "PageMap.STATUS_PAGES_GUIDED_SETUP",
+      ],
+      [
+        ProductKey.Logs,
+        "ServiceBreadcrumbs.ts",
+        "PageMap.SERVICES_GUIDED_SETUP",
+      ],
+    ] as Array<[OnboardedProductKey, string, string]>) {
+      const breadcrumbs: string = fs.readFileSync(
+        path.join(dashboard, "Utils/Breadcrumbs", file),
+        "utf8",
+      );
+      const setupCrumbs: string = breadcrumbs.slice(breadcrumbs.indexOf(page));
+
+      expect({
+        product,
+        named: setupCrumbs
+          .slice(0, setupCrumbs.indexOf("]"))
+          .includes(
+            `"${PRODUCT_ONBOARDINGS[product].guidedSetup!.buttonTitle}"`,
+          ),
+      }).toEqual({ product, named: true });
+    }
+  });
+
+  test("the empty Status Pages list offers it first, with Create Status Page beside it, plain, saying where it was opened from", async () => {
+    await renderInRouter(
+      <ProductShowcase
+        product={ProductKey.StatusPages}
+        startButton={createStatusPage}
+      />,
+    );
+
+    const showcase: HTMLElement = screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID);
+    const setup: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
+    );
+    const create: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+    );
+
+    expect(setup).toHaveTextContent("Guided setup");
+    expect(create).toHaveTextContent("Create Status Page");
+    expect(setup).toHaveClass("bg-indigo-600");
+    expect(create).not.toHaveClass("bg-indigo-600");
+    expect(
+      setup.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(setup);
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/status-pages/setup?from=empty_list`,
+    );
+  });
+
+  test("the empty Status Pages page itself: one click to the setup, one button for each job", async () => {
+    setCount(StatusPage, 0);
+    goTo(`/dashboard/${PROJECT_ID}/status-pages`);
+    await renderInRouter(
+      <StatusPagesPage
+        {...({
+          pageRoute: new Route(`/dashboard/${PROJECT_ID}/status-pages`),
+          currentProject: null,
+          hasPaymentMethod: true,
+        } as unknown as PageComponentProps)}
+      />,
+    );
+
+    const showcase: HTMLElement = screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID);
+    expect(
+      within(showcase).getAllByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toHaveLength(1);
+    // Create once, beside the setup: the empty table leaves its own to it.
+    expect(
+      within(showcase).getAllByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveLength(1);
+    expect(screen.queryByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(
+        within(showcase).getByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+      );
+    });
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/status-pages/setup?from=empty_list`,
+    );
+  });
+
+  test("How it works on Status Pages offers it too, and closes as it opens it", async () => {
+    await renderInRouter(
+      <ProductAboutButton product={ProductKey.StatusPages} />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    const setup: HTMLElement = within(
+      screen.getByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID),
+    ).getByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID);
+
+    await act(async () => {
+      fireEvent.click(setup);
+    });
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/status-pages/setup?from=how_it_works`,
+    );
+    expect(screen.queryByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID)).toBeNull();
+  });
+
+  test("someone who may make a status page but not put monitors on it is not offered it: the page would stay empty", async () => {
+    holding([
+      Permission.ReadProjectStatusPage,
+      Permission.CreateProjectStatusPage,
+    ]);
+
+    await renderInRouter(
+      <ProductShowcase
+        product={ProductKey.StatusPages}
+        startButton={createStatusPage}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    // Create stays, as the one primary button.
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveClass("bg-indigo-600");
+  });
+
+  test("a read-only member is offered neither setup, on the list or in How it works", async () => {
+    asViewer();
+
+    for (const product of [ProductKey.StatusPages, ProductKey.Logs]) {
+      await renderInRouter(<ProductShowcase product={product} />);
+      expect({
+        product,
+        offered: screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+      }).toEqual({ product, offered: null });
+      cleanup();
+
+      await renderInRouter(<ProductAboutButton product={product} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+      });
+      expect({
+        product,
+        offered: screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+      }).toEqual({ product, offered: null });
+      cleanup();
+    }
+  });
+
+  test("a new project's Logs, Traces and Metrics open the telemetry setup in one click, the setup guide's dialog beside it, plain", async () => {
+    for (const [product, start] of [
+      [ProductKey.Logs, "Send your first logs"],
+      [ProductKey.Traces, "Send your first traces"],
+      [ProductKey.Metrics, "Send your first metrics"],
+    ] as Array<
+      [ProductKey.Logs | ProductKey.Traces | ProductKey.Metrics, string]
+    >) {
+      navigateSpy.mockClear();
+      setCount(Service, 0);
+      await renderInRouter(<TelemetryFirstRunShowcase product={product} />);
+
+      const showcase: HTMLElement = screen.getByTestId(
+        PRODUCT_SHOWCASE_TEST_ID,
+      );
+      const setup: HTMLElement = within(showcase).getByTestId(
+        RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
+      );
+      const dialog: HTMLElement = within(showcase).getByTestId(
+        RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+      );
+
+      expect({ product, setup: setup.textContent }).toEqual({
+        product,
+        setup: "Guided setup",
+      });
+      expect(dialog).toHaveTextContent(start);
+      expect(setup).toHaveClass("bg-indigo-600");
+      expect(dialog).not.toHaveClass("bg-indigo-600");
+
+      await act(async () => {
+        fireEvent.click(setup);
+      });
+
+      expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+        `/dashboard/${PROJECT_ID}/service/setup?from=empty_list`,
+      );
+      // The setup opens on its own page: the dialog is not opened too.
+      expect(screen.queryByTestId(TELEMETRY_SETUP_DIALOG_TEST_ID)).toBeNull();
+      cleanup();
+    }
+  });
+
+  test("the dialog is still one click away beside it, and opens as before", async () => {
+    setCount(Service, 0);
+    await renderInRouter(
+      <TelemetryFirstRunShowcase product={ProductKey.Logs} />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID));
+    });
+    await settle();
+
+    expect(screen.getByTestId(TELEMETRY_SETUP_DIALOG_TEST_ID)).toBeVisible();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("someone who may make an ingestion key but not a monitor gets the dialog alone: the setup ends with monitors", async () => {
+    holding([
+      Permission.ReadTelemetryIngestionKey,
+      Permission.CreateTelemetryIngestionKey,
+      Permission.ReadService,
+    ]);
+    setCount(Service, 0);
+    await renderInRouter(
+      <TelemetryFirstRunShowcase product={ProductKey.Logs} />,
+    );
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveTextContent("Send your first logs");
+  });
+
+  test("How it works on Logs offers the telemetry setup once there is data", async () => {
+    await renderInRouter(<ProductAboutButton product={ProductKey.Logs} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    const dialog: HTMLElement = screen.getByTestId(
+      PRODUCT_ABOUT_DIALOG_TEST_ID,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+      );
+    });
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/service/setup?from=how_it_works`,
+    );
+  });
+
+  test("Profiles, which the telemetry setup's guide does not set up, keeps its dialog as its one primary button", async () => {
+    setCount(Service, 0);
+    await renderInRouter(
+      <TelemetryFirstRunShowcase product={ProductKey.Profiles} />,
+    );
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveClass("bg-indigo-600");
+  });
+});
+
 describe("who is offered the first step", () => {
   const button: ShowcaseAddButton = {
     title: "Create Monitor",
@@ -1322,8 +1673,12 @@ describe("Status Pages, drawn whole", () => {
     expect(
       within(showcase).getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
     ).toHaveTextContent("Create Status Page");
+    // The guided setup first, as the one primary button (#7142).
+    expect(
+      within(showcase).getByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toHaveTextContent("Guided setup");
 
-    // The showcase's button opens the table's own create form.
+    // The showcase's Create opens the table's own create form.
     expect(screen.queryByTestId("modal")).toBeNull();
     await act(async () => {
       fireEvent.click(
