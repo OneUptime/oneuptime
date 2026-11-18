@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useId,
+} from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -87,6 +92,11 @@ export interface ComponentProps {
   hidesDescription?: boolean | undefined;
   // Drawn without its own frame, inside a dialog (a product's About).
   isBare?: boolean | undefined;
+  /*
+   * A quiet line under the buttons, which brings its own spacing: How it
+   * works' offer to import from another tool (#7033).
+   */
+  actionsNote?: ReactNode | undefined;
 }
 
 export const RESOURCE_SHOWCASE_TEST_ID: string = "resource-showcase";
@@ -657,6 +667,8 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
                 )}
               </div>
             )}
+
+            {props.actionsNote}
 
             {showcase.highlights.length > 0 && (
               <ul

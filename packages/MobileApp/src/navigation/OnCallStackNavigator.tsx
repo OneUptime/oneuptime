@@ -11,7 +11,9 @@ import EditOnCallOverrideScreen from "../screens/EditOnCallOverrideScreen";
 import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import TestPageScreen from "../screens/TestPageScreen";
+import GetReadyScreen from "../screens/GetReadyScreen";
 import { TEST_PAGE_TEXT } from "../oncall/testPage";
+import { GET_READY_TEXT } from "../onboarding/getReady";
 import type { OnCallStackParamList } from "./types";
 
 /*
@@ -37,6 +39,8 @@ const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
   "EditOnCallOverride",
   // A test page opened from its push, over the roster beside it.
   "TestPage",
+  // The app's first steps (#7041), over whatever is open.
+  "GetReady",
 ];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
@@ -122,6 +126,20 @@ export default function OnCallStackNavigator(): React.JSX.Element {
         component={TestPageScreen}
         options={{
           title: TEST_PAGE_TEXT.screenTitle,
+          presentation: "modal",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
+      />
+      {/*
+       * The app's first steps (#7041), opened by itself once on a new
+       * install's first launch: a sheet, so Not Now - or a swipe - puts it
+       * away, and a test page's own sheet opens over it.
+       */}
+      <Stack.Screen
+        name="GetReady"
+        component={GetReadyScreen}
+        options={{
+          title: GET_READY_TEXT.screenTitle,
           presentation: "modal",
           ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
         }}

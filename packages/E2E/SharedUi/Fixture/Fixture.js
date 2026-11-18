@@ -113,6 +113,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationBell";
+import { NotificationBellSection } from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationItem";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
 import TableRow from "Common/UI/Components/Table/TableRow";
@@ -1259,6 +1260,21 @@ const BELL_ITEMS = [
     count: 1,
     alertType: HeaderAlertType.SUCCESS,
   },
+  /*
+   * "Finish setting up your notifications" (#7040), as the Dashboard's
+   * header draws it: amber, under On-Call, why under its title, and Hide
+   * beside it (its Hide is added where the bell is drawn, to log it).
+   */
+  {
+    id: "notificationSetup",
+    icon: IconProp.BellAlert,
+    title: "Finish setting up your notifications",
+    description: "Nothing can reach you yet.",
+    count: 1,
+    alertType: HeaderAlertType.WARNING,
+    section: NotificationBellSection.OnCall,
+    dismissTitle: "Hide for a week",
+  },
 ];
 
 const FORM_STEPS = [
@@ -1345,7 +1361,16 @@ function Keyboard() {
     <div className="space-y-5" data-testid="section-keyboard">
       <div className="flex justify-end" data-testid="bell-holder">
         <NotificationBell
-          items={BELL_ITEMS}
+          items={BELL_ITEMS.map((item) => {
+            return item.dismissTitle
+              ? {
+                  ...item,
+                  onDismiss: () => {
+                    say(`bell-hide:${item.id}`);
+                  },
+                }
+              : item;
+          })}
           onItemClick={(item) => {
             say(`bell:${item.id}`);
           }}

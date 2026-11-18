@@ -48,6 +48,23 @@ const MAX_RETRIES: number = 3;
  */
 export const FOREGROUND_REGISTRATION_INTERVAL_MS: number = 5 * 60 * 1000;
 
+/*
+ * Registering again on request: the first steps' "Allow notifications"
+ * (screens/GetReadyScreen.tsx) asks for the permission, and a phone that
+ * has just been allowed registers at once - asking again where it has
+ * not, as starting the app does - rather than at the next start or return.
+ */
+type RegistrationListener = () => void;
+
+const registrationListeners: Set<RegistrationListener> =
+  new Set<RegistrationListener>();
+
+export function requestPushRegistration(): void {
+  for (const listener of Array.from(registrationListeners)) {
+    listener();
+  }
+}
+
 export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated }: { isAuthenticated: boolean } = useAuth();
   const { projectList }: { projectList: Array<{ _id: string }> } = useProject();
@@ -87,6 +104,23 @@ export function usePushNotifications(navigationRef: unknown): void {
    * left the app.
    */
   const [returnsToForeground, setReturnsToForeground] = useState<number>(0);
+
+  // Registrations asked for (requestPushRegistration): each registers again.
+  const [registrationRequests, setRegistrationRequests] = useState<number>(0);
+
+  useEffect((): (() => void) => {
+    const listener: RegistrationListener = (): void => {
+      setRegistrationRequests((count: number): number => {
+        return count + 1;
+      });
+    };
+
+    registrationListeners.add(listener);
+
+    return (): void => {
+      registrationListeners.delete(listener);
+    };
+  }, []);
 
   // When a registration last started (Date.now()), 0 before the first.
   const lastRegistrationStartedAtRef: React.MutableRefObject<number> =
@@ -337,7 +371,7 @@ export function usePushNotifications(navigationRef: unknown): void {
     return (): void => {
       cancelled = true;
     };
-  }, [isAuthenticated, projectList, returnsToForeground]);
+  }, [isAuthenticated, projectList, returnsToForeground, registrationRequests]);
 
   // Set up notification listeners
   useEffect((): (() => void) | undefined => {

@@ -73,18 +73,26 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 import {
   canRunToolImportFor,
+  getProductToolImportOffer,
   getToolImportEmptyStateAction,
   getToolImportOfferRoute,
   getToolImportOfferTitle,
   MONITORS_IMPORT_OFFER,
   ON_CALL_POLICIES_IMPORT_OFFER,
   ON_CALL_SCHEDULES_IMPORT_OFFER,
+  PRODUCT_TOOL_IMPORT_OFFERS,
   STATUS_PAGES_IMPORT_OFFER,
+  TOOL_IMPORT_HOW_IT_WORKS_QUESTION,
   TOOL_IMPORT_OFFER_NAMED_TOOLS,
   TOOL_IMPORT_OFFER_TEST_ID,
   ToolImportListOffer,
   withToolImportOffer,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ToolImport/ToolImportOffer";
+import ProductKey, {
+  ONBOARDED_PRODUCT_KEYS,
+  OnboardedProductKey,
+} from "../../../Types/Product/ProductKey";
+import { getToolImportSourcesThatFill } from "../../../Types/ToolImport/ToolImportCatalog";
 import {
   getToolImportQueryString,
   IMPORTER_KIND_QUERY_PARAM,
@@ -555,4 +563,238 @@ describe("in the list's empty state", () => {
       expect(shownActions(data)).not.toContain(TOOL_IMPORT_OFFER_TEST_ID);
     },
   );
+});
+
+/*
+ * ISSUE #7033: once a list had a record, the empty list's link was gone,
+ * and How it works - the product's explanation behind the ? beside its
+ * title - never named the importer. A team that made one monitor by hand,
+ * or joined a busy project, had only Project Settings > Advanced left.
+ * The three products whose lists an import fills keep one line there,
+ * with the empty list's own words and tools, for whoever may run it, and
+ * each says How it works opened the importer.
+ */
+describe("in a product's How it works (#7033)", () => {
+  const HOW_IT_WORKS: Array<
+    [string, OnboardedProductKey, ToolImportListOffer, ToolImportEntryPoint]
+  > = [
+    [
+      "Monitors",
+      ProductKey.Monitors,
+      MONITORS_IMPORT_OFFER,
+      ToolImportEntryPoint.MonitorsHowItWorks,
+    ],
+    [
+      "On-Call",
+      ProductKey.OnCall,
+      ON_CALL_POLICIES_IMPORT_OFFER,
+      ToolImportEntryPoint.OnCallHowItWorks,
+    ],
+    [
+      "Status Pages",
+      ProductKey.StatusPages,
+      STATUS_PAGES_IMPORT_OFFER,
+      ToolImportEntryPoint.StatusPagesHowItWorks,
+    ],
+  ];
+
+  const OFFERING: Array<OnboardedProductKey> = [
+    ProductKey.Monitors,
+    ProductKey.OnCall,
+    ProductKey.StatusPages,
+  ];
+
+  function offeredProducts(): Array<OnboardedProductKey> {
+    return ONBOARDED_PRODUCT_KEYS.filter(
+      (product: OnboardedProductKey): boolean => {
+        return Boolean(getProductToolImportOffer(product));
+      },
+    );
+  }
+
+  function inMenuOrder(
+    products: Array<OnboardedProductKey>,
+  ): Array<OnboardedProductKey> {
+    return ONBOARDED_PRODUCT_KEYS.filter((product: OnboardedProductKey) => {
+      return products.includes(product);
+    });
+  }
+
+  test("only Monitors, On-Call and Status Pages offer it: the products whose lists an import fills", () => {
+    expect(Object.keys(PRODUCT_TOOL_IMPORT_OFFERS).sort()).toEqual(
+      [...OFFERING].sort(),
+    );
+    expect(offeredProducts()).toEqual(inMenuOrder(OFFERING));
+  });
+
+  test("Incidents, Alerts, Services and the rest never do, though incident.io brings incident settings and PagerDuty services", () => {
+    for (const product of [
+      ProductKey.Incidents,
+      ProductKey.Alerts,
+      ProductKey.Services,
+      ProductKey.Logs,
+      ProductKey.Workflows,
+    ] as Array<OnboardedProductKey>) {
+      expect({ product, offer: getProductToolImportOffer(product) }).toEqual({
+        product,
+        offer: undefined,
+      });
+    }
+  });
+
+  test.each(HOW_IT_WORKS)(
+    "%s: the empty list's tools, record and words, saying How it works opened it",
+    (
+      _name: string,
+      product: OnboardedProductKey,
+      listOffer: ToolImportListOffer,
+      from: ToolImportEntryPoint,
+    ) => {
+      const offer: ToolImportListOffer = getProductToolImportOffer(product)!;
+
+      expect(offer.kind).toBe(listOffer.kind);
+      expect(offer.modelType).toBe(listOffer.modelType);
+      expect(offer.from).toBe(from);
+      expect(offer.from).not.toBe(listOffer.from);
+      expect(
+        getToolImportOfferTitle({ kind: offer.kind, translator: ENGLISH }),
+      ).toBe(
+        getToolImportOfferTitle({ kind: listOffer.kind, translator: ENGLISH }),
+      );
+      expect(getToolImportOfferRoute(offer).toString()).toBe(
+        `/dashboard/${PROJECT_ID}/settings/import?from=${from}&kind=${listOffer.kind}`,
+      );
+    },
+  );
+
+  test("every product that offers it is filled by at least one tool's import", () => {
+    for (const offer of Object.values(PRODUCT_TOOL_IMPORT_OFFERS)) {
+      expect(getToolImportSourcesThatFill(offer!.kind).length).toBeGreaterThan(
+        0,
+      );
+    }
+  });
+
+  test("On-Call names the on-call tools, as its policies' and schedules' empty lists both do", () => {
+    expect(
+      getToolImportOfferTitle({
+        kind: getProductToolImportOffer(ProductKey.OnCall)!.kind,
+        translator: ENGLISH,
+      }),
+    ).toBe("Import from Opsgenie, PagerDuty, incident.io and others");
+    expect(
+      getToolImportSourcesThatFill(ToolImportResourceKind.OnCallPolicy),
+    ).toEqual(
+      getToolImportSourcesThatFill(ToolImportResourceKind.OnCallSchedule),
+    );
+  });
+
+  test("each place the importer opens from says its own name, none twice", () => {
+    expect([
+      ToolImportEntryPoint.MonitorsHowItWorks,
+      ToolImportEntryPoint.OnCallHowItWorks,
+      ToolImportEntryPoint.StatusPagesHowItWorks,
+    ]).toEqual([
+      "monitors-how-it-works",
+      "on-call-how-it-works",
+      "status-pages-how-it-works",
+    ]);
+
+    const values: Array<string> = Object.values(ToolImportEntryPoint);
+
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  test("a read-only member is offered it on no product: the dialog opens for every member", () => {
+    permissionsForTest = [Permission.Viewer];
+
+    expect(offeredProducts()).toEqual([]);
+  });
+
+  test("before the permissions have loaded, nothing is offered", () => {
+    permissionsForTest = [];
+
+    expect(offeredProducts()).toEqual([]);
+  });
+
+  test("a master admin is offered it on all three", () => {
+    permissionsForTest = [];
+    isMasterAdminForTest = true;
+
+    expect(offeredProducts()).toEqual(inMenuOrder(OFFERING));
+  });
+
+  test("someone who may create monitors only is offered it on Monitors only", () => {
+    permissionsForTest = [Permission.CreateProjectMonitor];
+
+    expect(offeredProducts()).toEqual([ProductKey.Monitors]);
+  });
+
+  test("someone who may create on-call policies only is offered it on On-Call only", () => {
+    permissionsForTest = [Permission.CreateProjectOnCallDutyPolicy];
+
+    expect(offeredProducts()).toEqual([ProductKey.OnCall]);
+  });
+
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+    "ar",
+  ])("%s asks the question in its own words", (code: string) => {
+    const question: string =
+      translatorFor(code).translateText(TOOL_IMPORT_HOW_IT_WORKS_QUESTION) ||
+      "";
+
+    expect(question).not.toBe(TOOL_IMPORT_HOW_IT_WORKS_QUESTION);
+    // A question, ending in the language's own question mark.
+    expect(question).toMatch(/[?？؟]$/);
+  });
+
+  test("German asks it as the Dashboard's numbering help does", () => {
+    expect(
+      translatorFor("de").translateText(TOOL_IMPORT_HOW_IT_WORKS_QUESTION),
+    ).toBe("Sie wechseln von einem anderen Tool?");
+  });
+});
+
+/*
+ * The analytics page names every place the importer says it was opened
+ * from (importer/opened's `from`), so the funnel can be rebuilt from it.
+ */
+describe("Docs/analytics/activation.md", () => {
+  test("names every ?from= the importer can be opened with", () => {
+    const doc: string = fs.readFileSync(
+      path.join(__dirname, "../../../../../Docs/analytics/activation.md"),
+      "utf8",
+    );
+    const row: string =
+      doc.split("\n").find((line: string): boolean => {
+        return line.startsWith("| `importer/opened` |");
+      }) || "";
+
+    for (const from of [
+      ...Object.values(ToolImportEntryPoint),
+      "welcome",
+      "settings",
+    ]) {
+      expect({ from, named: row.includes(`\`${from}\``) }).toEqual({
+        from,
+        named: true,
+      });
+    }
+  });
 });

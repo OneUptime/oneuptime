@@ -514,6 +514,51 @@ with an on-call policy that pages you by push:
    is created.
 7. On a self-hosted server that relays its pushes, repeat 1 and 2.
 
+### First steps: Get Ready for On-Call
+
+Since the release after 1.6.0 a new install opens **Get Ready for On-Call**
+by itself, once, the first time it is signed in to a project: allow
+notifications, ring through silent mode (Critical Alerts on an iPhone, Do Not
+Disturb access on Android), and send yourself a test page and acknowledge it
+- the same test page as the Dashboard's Send me a test page. Not Now puts it
+away; it never opens by itself again, and Settings > Get Ready for On-Call
+opens it any time. An update over a phone already registered for pushes never
+opens it by itself. Critical alerts asked for and allowed in the phone's
+settings (Android's Do Not Disturb access, iOS Settings after a refusal)
+turn on when the app comes back, here and on Settings' switch, without a
+second press. `src/onboarding/getReady.test.ts`,
+`src/onboarding/firstRun.test.ts`, `src/screens/GetReadyScreen.test.tsx`,
+`src/navigation/GetReadyFirstRun.test.tsx`,
+`src/hooks/useCriticalAlerts.test.tsx` and `tests/ui/get-ready.spec.js`
+cover the code paths and the screen; the phone's own prompts need a device.
+Before the release, on an iPhone and an Android phone, with a fresh install
+of the build, signed in to a project with an on-call policy that pages you
+by push:
+
+1. Sign in: the app opens Get Ready for On-Call over On-Call, with Allow
+   notifications as the step to do. Press **Allow Notifications**: the
+   system prompt appears; allow. The step reads done at once, and the phone
+   shows in User Settings > Notification Methods on the Dashboard as a push
+   device.
+2. On the iPhone, press **Turn On Critical Alerts**: iOS asks for Critical
+   Alerts; allow. On Android, the same button opens Do Not Disturb access;
+   turn it on for OneUptime On-Call and come back: the step reads done
+   without a second tap, and so does Settings > Critical On-Call Alerts.
+   On a second iPhone, refuse at the prompt, then allow Critical Alerts in
+   iOS Settings and come back: the step reads done by itself.
+3. Press **Send Test Page**, with the phone locked: the push reads "TEST
+   page from OneUptime". Acknowledge it from the push: back in the app, the
+   step reads acknowledged and the screen says you are ready. Press Done.
+4. Kill and reopen the app, and sign out and in: Get Ready for On-Call
+   never opens by itself again. Settings > Get Ready for On-Call opens it,
+   with the three steps still done.
+5. On a second fresh install, refuse notifications at the prompt: the step
+   says notifications are off in the phone's settings, and **Open Settings**
+   opens the app's own page there. Turn them on and come back: the step
+   reads done.
+6. Install this build over the previous release on a phone already signed
+   in and receiving pages: Get Ready for On-Call does not open by itself.
+
 ### Sessions: the idle timeout, signing out, and why the app signed out
 
 Since the release after 1.6.0 the app tells the server, with every renewal,

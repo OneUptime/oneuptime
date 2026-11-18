@@ -388,11 +388,16 @@ describe("every page of a project names where it is", () => {
     }
   });
 
-  test("User Settings still opens on Notification Methods", () => {
+  /*
+   * User Settings' own address: it forwards to the setup checklist while
+   * essential steps are left on it, and to Notification Methods after
+   * (#7039, UserSettingsLanding).
+   */
+  test("User Settings opens its own address, which picks the first page", () => {
     const items: DashboardNavigationItems = readCatalog();
 
     expect(items.rightElement.route.toString()).toBe(
-      `/dashboard/${PROJECT_ID}/user-settings/notification-methods`,
+      `/dashboard/${PROJECT_ID}/user-settings/`,
     );
   });
 

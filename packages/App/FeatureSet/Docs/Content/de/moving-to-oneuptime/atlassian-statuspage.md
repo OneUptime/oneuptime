@@ -82,7 +82,7 @@ Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eing
 Öffnen Sie jede Seite unter **Statusseiten** und vergleichen Sie sie mit der in Statuspage. Jede Komponente ist ein manueller Monitor: Ändern Sie ihren Status in OneUptime, wenn sich etwas ändert.
 
 ### Die Adresse Ihrer Statusseite auf OneUptime umstellen
-Öffnen Sie die Seite unter **Statusseiten**, fügen Sie Ihre Domain unter **Benutzerdefinierte Domains** hinzu und ändern Sie dann ihren DNS-Eintrag. Danach erreichen Ihre Besucher und Abonnenten die neue Seite.
+Öffnen Sie die Seite unter **Statusseiten**, fügen Sie Ihre Domain unter **Benutzerdefinierte Domains** hinzu und ändern Sie dann ihren DNS-Eintrag. Danach erreichen Ihre Besucher und Abonnenten die neue Seite. Bis dahin zeigt der Bericht, wo jede übernommene Seite auf OneUptime erreichbar ist, mit **Link kopieren**.
 
 ### Ihre Seite in Atlassian Statuspage abschalten
 Sobald Ihre Domain auf OneUptime zeigt, schließen Sie die Seite in Statuspage, damit ihre Abonnenten nicht doppelt benachrichtigt werden.

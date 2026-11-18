@@ -82,7 +82,7 @@ Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut coch
 Sous **Pages de statut**, ouvrez chaque page et comparez-la avec celle de Statuspage. Chaque composant est un moniteur manuel : changez son statut dans OneUptime quand quelque chose change.
 
 ### Faire pointer l'adresse de votre page de statut vers OneUptime
-Sous **Pages de statut**, ouvrez la page, ajoutez votre domaine dans **Domaines personnalisés**, puis modifiez son enregistrement DNS. Vos visiteurs et abonnés arrivent alors sur la nouvelle page.
+Sous **Pages de statut**, ouvrez la page, ajoutez votre domaine dans **Domaines personnalisés**, puis modifiez son enregistrement DNS. Vos visiteurs et abonnés arrivent alors sur la nouvelle page. D'ici là, le rapport indique où chaque page importée est en ligne sur OneUptime, avec **Copier le lien**.
 
 ### Désactiver votre page dans Atlassian Statuspage
 Dès que votre domaine pointe vers OneUptime, fermez la page dans Statuspage pour que ses abonnés ne soient pas prévenus deux fois.

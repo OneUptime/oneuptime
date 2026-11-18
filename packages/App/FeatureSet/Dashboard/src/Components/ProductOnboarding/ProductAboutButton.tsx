@@ -8,6 +8,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceShowcaseCard from "../ResourceShowcase/ResourceShowcaseCard";
+import ToolImportHowItWorksLine from "../ToolImport/ToolImportHowItWorksLine";
 import {
   PRODUCT_ABOUT_TEXT,
   OnboardedProductKey,
@@ -103,6 +104,19 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
               docsRoute={onboarding.docsRoute}
               guideRoute={onboarding.guideRoute}
               isBare={true}
+              /*
+               * "Moving from another tool?" with the empty list's link to
+               * the importer, for a product an import fills and whoever
+               * may run it (#7033): a busy list no longer offers it.
+               */
+              actionsNote={
+                <ToolImportHowItWorksLine
+                  product={props.product}
+                  onOpen={(): void => {
+                    setIsOpen(false);
+                  }}
+                />
+              }
             />
           </div>
         </Modal>

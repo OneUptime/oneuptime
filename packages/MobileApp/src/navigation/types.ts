@@ -81,6 +81,13 @@ export type SettingsStackParamList = {
 
   // The alarm critical pages play on this phone, and on an iPhone how loud.
   CriticalAlertSound: undefined;
+
+  /*
+   * The app's first steps (#7041): allow notifications, ring through
+   * silent mode, send yourself a test page. The same screen the on-call
+   * stack opens on a new install's first launch, pushed here from its row.
+   */
+  GetReady: undefined;
 };
 
 /**
@@ -147,6 +154,14 @@ export type OnCallStackParamList = {
     projectId: string;
     acknowledgeRequestId?: string | undefined;
   };
+
+  /*
+   * The app's first steps (#7041), opened by itself on a new install's
+   * first launch (GetReadyFirstRun): a sheet over the on-call overview, so
+   * a test page's push opens its own sheet over it, and closing both comes
+   * back to the steps.
+   */
+  GetReady: undefined;
 };
 
 export type IncidentsStackParamList = {

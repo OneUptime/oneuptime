@@ -94,7 +94,7 @@ En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera o
 Lägg till ägare på dina monitorer, eller en jourpolicy under **Jour** > **Jourpolicyer** på incidenterna de öppnar, så att rätt personer får veta när något går ner.
 
 ### Peka statussidans adress mot OneUptime
-Öppna sidan under **Statussidor**, lägg till din domän under **Anpassade domäner** och ändra sedan dess DNS-post. Då når dina besökare och prenumeranter den nya sidan.
+Öppna sidan under **Statussidor**, lägg till din domän under **Anpassade domäner** och ändra sedan dess DNS-post. Då når dina besökare och prenumeranter den nya sidan. Till dess visar rapporten var varje överförd sida är live på OneUptime, med **Kopiera länk**.
 
 ### Stäng av kontrollerna i Better Stack
 När OneUptime kontrollerar samma saker pausar du dem i Better Stack, så att ingen får besked två gånger.

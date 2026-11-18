@@ -82,7 +82,7 @@ Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può se
 In **Pagine di stato**, apri ogni pagina e confrontala con quella in Statuspage. Ogni componente è un monitor manuale: cambia il suo stato in OneUptime quando qualcosa cambia.
 
 ### Fai puntare l'indirizzo della tua pagina di stato a OneUptime
-In **Pagine di stato**, apri la pagina, aggiungi il tuo dominio in **Domini personalizzati**, poi cambia il suo record DNS. I visitatori e gli iscritti arriveranno così alla nuova pagina.
+In **Pagine di stato**, apri la pagina, aggiungi il tuo dominio in **Domini personalizzati**, poi cambia il suo record DNS. I visitatori e gli iscritti arriveranno così alla nuova pagina. Fino ad allora, il report mostra dove ogni pagina importata è online su OneUptime, con **Copia link**.
 
 ### Disattiva la tua pagina in Atlassian Statuspage
 Quando il tuo dominio punta a OneUptime, chiudi la pagina in Statuspage così i suoi iscritti non vengono avvisati due volte.

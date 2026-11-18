@@ -286,6 +286,47 @@ export const withTestPageAcknowledgedBy: (
   };
 };
 
+/*
+ * The state with members noted as having acknowledged a test page before
+ * the note was kept (#7042): a test page acknowledged before #6807 shipped,
+ * or a note a write lost before #7043. They are older than every member
+ * noted since, so they go before them, oldest first, each once - and when
+ * the list is full it is still the newest that are kept. The same state
+ * when every one of them is noted already, so the caller can skip the write.
+ */
+export const withTestPagesAcknowledgedBefore: (
+  state: WelcomeChecklistState,
+  userIds: Array<string>,
+) => WelcomeChecklistState = (
+  state: WelcomeChecklistState,
+  userIds: Array<string>,
+): WelcomeChecklistState => {
+  const noted: Array<string> = state.testPageAcknowledgedByUserIds || [];
+  const earlier: Array<string> = [];
+
+  for (const userId of userIds) {
+    const id: string | undefined =
+      typeof userId === "string"
+        ? readString(userId.trim())?.toLowerCase()
+        : undefined;
+
+    if (id && !noted.includes(id) && !earlier.includes(id)) {
+      earlier.push(id);
+    }
+  }
+
+  if (earlier.length === 0) {
+    return state;
+  }
+
+  return {
+    ...state,
+    testPageAcknowledgedByUserIds: [...earlier, ...noted].slice(
+      -MAX_HIDDEN_FOR_USER_IDS,
+    ),
+  };
+};
+
 // The state with the checklist finished, unless it already was.
 export const withWelcomeChecklistFinished: (
   state: WelcomeChecklistState,
