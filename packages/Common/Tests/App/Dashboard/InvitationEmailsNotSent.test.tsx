@@ -150,6 +150,8 @@ type CapturedTableProps = {
   onFetchSuccess?:
     | ((data: Array<TeamMember>, totalCount: number) => void)
     | undefined;
+  modelAPI?: unknown;
+  selectMoreFields?: Record<string, unknown> | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -194,6 +196,7 @@ import {
 import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUsersModelAPI from "../../../UI/Utils/ModelAPI/ProjectUsersModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
@@ -904,6 +907,19 @@ describe.each(PAGES)(
 
       expect(asks()).toHaveLength(1);
       expect(asks()[0]!.data).toEqual({ userIds: [GRACE, ALAN] });
+    });
+
+    test("its rows carry the person's id that the ask names", async () => {
+      await renderPage(Page);
+
+      // The Users list's rows are built with it (ProjectUsersModelAPI); a table of memberships asks for it.
+      if (Page !== Users) {
+        expect(table().selectMoreFields).toEqual(
+          expect.objectContaining({ userId: true }),
+        );
+      } else {
+        expect(table().modelAPI).toBe(ProjectUsersModelAPI);
+      }
     });
 
     // The regression: #9511.

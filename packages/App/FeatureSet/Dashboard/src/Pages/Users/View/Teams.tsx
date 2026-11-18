@@ -112,6 +112,10 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           userId: userId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        // Whose invitation email a pending row asks about (#9511).
+        selectMoreFields={{
+          userId: true,
+        }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");

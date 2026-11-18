@@ -164,6 +164,10 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
           teamId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        // Whose invitation email a pending row asks about (#9511).
+        selectMoreFields={{
+          userId: true,
+        }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (isPushGroupsManaged) {
             throw new BadDataException(
