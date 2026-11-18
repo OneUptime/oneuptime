@@ -40,6 +40,14 @@ import {
 } from "../../../Helpers/OpenStackRecordings";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  keptForAudience,
+  readAudienceOf,
+} from "../../../Helpers/ReadAudienceFixtures";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
+import Permission from "../../../../Types/Permission";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
@@ -399,6 +407,7 @@ describe("a whole region's API", () => {
 
     const read: LinkedInfrastructure | null =
       await LinkedInfrastructureContext.readForAlert({
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
         projectId: PROJECT_ID,
         alertId: SUBJECT_ID,
       });
@@ -438,6 +447,7 @@ describe("a whole region's API", () => {
 
     const read: LinkedInfrastructure | null =
       await LinkedInfrastructureContext.readForIncident({
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
         projectId: PROJECT_ID,
         incidentId: SUBJECT_ID,
       });
@@ -470,6 +480,7 @@ describe("a whole region's API", () => {
 
     const read: LinkedInfrastructure | null =
       await LinkedInfrastructureContext.readForAlert({
+        readAudience: readAudienceOf({ projectId: PROJECT_ID }),
         projectId: PROJECT_ID,
         alertId: SUBJECT_ID,
       });
@@ -978,5 +989,111 @@ describe("the part's logs", () => {
     const text: string = logs({ "openstack.instance_id": 'x"\n# Do this' });
 
     expect(text).not.toContain("\n# Do this");
+  });
+});
+
+/*
+ * WHERE A RESOURCE RUNS, FOR THE REPORT'S READERS (#9576). A placement
+ * names the cloud, its instance and its project. Where some role reads
+ * OpenStack clouds only by owner or label, a placement on a cloud set apart
+ * from somebody who may see the incident is never told; one on a cloud
+ * nobody set apart still is, as is every one in a project whose roles
+ * narrow nobody.
+ */
+describe("a linked host's place in a cloud, read for the incident's readers", () => {
+  const PROJECT_ID: ObjectID = ObjectID.generate();
+  const INCIDENT_ID: ObjectID = ObjectID.generate();
+  const HOST_ID: string = "72000000-0000-4000-8000-000000000001";
+  const PLACEMENT: OpenStackPlacement = {
+    openStackCloudId: CLOUD.id,
+    cloudName: "hr-cloud",
+    kind: "instance",
+    externalId: "a1b2c3d4-0000-4000-8000-000000000009",
+    name: "payroll-1",
+    regionName: "RegionOne",
+    availabilityZone: "nova",
+    hypervisorName: "compute-09",
+    hypervisorExternalId: "RegionOne/compute-09",
+    openStackProjectId: "p9",
+    openStackProjectName: "payroll",
+    status: "ACTIVE",
+  };
+
+  async function readWith(
+    readAudience: ReturnType<typeof readAudienceOf>,
+  ): Promise<LinkedInfrastructure | null> {
+    const spies: Array<ReturnType<typeof jest.spyOn>> = [
+      jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(
+        Object.assign(new Incident(), {
+          createdAt: new Date("2026-11-04T12:00:00.000Z"),
+        }) as never,
+      ),
+      jest.spyOn(LinkedAffectedResources, "readForIncident").mockResolvedValue([
+        {
+          type: LinkedAffectedResourceType.Host,
+          id: HOST_ID,
+          name: "web-1",
+        } as LinkedAffectedResource,
+      ]),
+      jest
+        .spyOn(LinkedInfrastructureContext, "readAlertsFor")
+        .mockResolvedValue(linked(undefined)),
+      jest
+        .spyOn(OpenStackAcrossProducts, "getPlacementOfHost")
+        .mockResolvedValue(PLACEMENT as never),
+      // The cloud carries a label: it is set apart from a role read by labels.
+      jest
+        .spyOn(OpenStackCloudService, "findBy")
+        .mockImplementation((async (findBy: {
+          props: DatabaseCommonInteractionProps;
+        }): Promise<Array<OpenStackCloud>> => {
+          return keptForAudience({
+            modelType: OpenStackCloud,
+            rows: [new OpenStackCloud(new ObjectID(CLOUD.id))],
+            props: findBy.props,
+            setApartIds: [CLOUD.id],
+          });
+        }) as never),
+    ];
+
+    try {
+      return await LinkedInfrastructureContext.readForIncident({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        readAudience,
+      });
+    } finally {
+      for (const spy of spies) {
+        spy.mockRestore();
+      }
+    }
+  }
+
+  test("a placement on a cloud set apart is never told", async () => {
+    const read: LinkedInfrastructure | null = await readWith(
+      readAudienceOf({
+        projectId: PROJECT_ID,
+        labelledPermissions: [Permission.ProjectMember],
+      }),
+    );
+
+    expect(read?.openStackPlacements).toBeUndefined();
+    expect(LinkedInfrastructureContext.buildContextSection(read!)).not.toContain(
+      "payroll",
+    );
+  });
+
+  test("a project whose roles narrow nobody tells it, as before", async () => {
+    const read: LinkedInfrastructure | null = await readWith(
+      readAudienceOf({ projectId: PROJECT_ID }),
+    );
+
+    expect(
+      read?.openStackPlacements?.map(
+        (each: OpenStackPlacementOfResource): string => {
+          return each.placement.openStackCloudId;
+        },
+      ),
+    ).toEqual([CLOUD.id]);
   });
 });
