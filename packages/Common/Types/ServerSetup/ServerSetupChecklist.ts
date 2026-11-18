@@ -424,6 +424,10 @@ export const SERVER_SETUP_STATUS_WORDS: Readonly<
     [ServerSetupStatus.NotSetUp]: translationKey(
       "Not set up: browser notifications need VAPID keys in config.env. Mobile push works without them.",
     ),
+    // The server's own pushes fail: the push relay unreachable, its keys refused (#6881).
+    [ServerSetupStatus.Failing]: translationKey(
+      "Failing: push notifications have not gone out since {{time}}.",
+    ),
     [ServerSetupStatus.Done]: translationKey(
       "Set up: people can get alerts as browser notifications.",
     ),
@@ -1177,9 +1181,9 @@ export default class ServerSetupChecklistUtil {
   /*
    * The test push (#7028) goes to the admin's own phones and browsers,
    * which need no VAPID keys on a phone: offered whenever push is not
-   * turned off for the server, done or not, since nothing yet says how the
-   * server's pushes go (#6881). A server that does not say where push
-   * stands offers none.
+   * turned off for the server, done or not - browser push set up says
+   * nothing of phones. A server that does not say where push stands offers
+   * none.
    */
   private static getPushTests(
     facts: ServerSetupFacts,
@@ -1187,6 +1191,36 @@ export default class ServerSetupChecklistUtil {
     return facts.push && facts.push.state !== ServerSendingState.NotSetUp
       ? [ServerSendingChannel.Push]
       : [];
+  }
+
+  /*
+   * Push: done once browsers can be pushed to (VAPID keys) - and failing,
+   * whatever the keys, while the server's own pushes fail (#6881): the push
+   * relay cannot be reached, or the keys are refused. Then no phone and no
+   * browser gets a page, and the row says since when and why. Optional
+   * still: it never brings the Dashboard's card back.
+   */
+  private static evaluatePush(facts: ServerSetupFacts): ServerSetupCheckResult {
+    const tests: Array<ServerSendingChannel> =
+      ServerSetupChecklistUtil.getPushTests(facts);
+
+    if (facts.push && facts.push.state === ServerSendingState.Failing) {
+      return ServerSetupChecklistUtil.result({
+        id: ServerSetupCheckId.BrowserPush,
+        status: ServerSetupStatus.Failing,
+        facts: facts,
+        time: facts.push.failingSince,
+        reason: facts.push.lastFailure,
+        tests: tests,
+      });
+    }
+
+    return ServerSetupChecklistUtil.evaluateYesNo({
+      id: ServerSetupCheckId.BrowserPush,
+      isDone: facts.isBrowserPushSetUp,
+      facts: facts,
+      tests: tests,
+    });
   }
 
   // Every check, in the catalogue's order, as they stand at `now`.
@@ -1214,12 +1248,7 @@ export default class ServerSetupChecklistUtil {
       }),
       ServerSetupChecklistUtil.evaluateBackups(facts, now),
       ServerSetupChecklistUtil.evaluateUpdateChecks(facts),
-      ServerSetupChecklistUtil.evaluateYesNo({
-        id: ServerSetupCheckId.BrowserPush,
-        isDone: facts.isBrowserPushSetUp,
-        facts: facts,
-        tests: ServerSetupChecklistUtil.getPushTests(facts),
-      }),
+      ServerSetupChecklistUtil.evaluatePush(facts),
       ServerSetupChecklistUtil.evaluateYesNo({
         id: ServerSetupCheckId.AiProvider,
         isDone: facts.hasAiProvider,

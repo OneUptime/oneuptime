@@ -1318,6 +1318,72 @@ describe("the page", () => {
 });
 
 /*
+ * #6881: while the server's own pushes fail - the push relay out of reach,
+ * its keys refused - the push row says so, since when and why, with the
+ * test push that shows they work again.
+ */
+describe("the push row, while the server's pushes fail", () => {
+  const RELAY_DOWN: string =
+    "Request failed to https://oneuptime.com/api/notification/push-relay/send. Connection refused";
+
+  test("says it is failing, since when, and what the push service or relay said", () => {
+    const push: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          isBrowserPushSetUp: true,
+          push: channel(ServerSendingChannel.Push, ServerSendingState.Failing, {
+            lastFailure: RELAY_DOWN,
+          }),
+        }),
+      ),
+      ServerSetupCheckId.BrowserPush,
+    );
+
+    expect(push.isFailing).toBe(true);
+    expect(push.isFinished).toBe(false);
+    expect(words(push.status)).toBe(
+      `Failing: push notifications have not gone out since [${EARLIER}].`,
+    );
+    expect(push.checked.map(words)).toEqual([
+      `The provider said: ${RELAY_DOWN}`,
+    ]);
+    expect(actionsOf(push)).toEqual([
+      `guide | Read the guide | ${SERVER_SETUP_GUIDES.browserPush}`,
+      "test | push",
+    ]);
+  });
+
+  test("in German, in the reader's words, the relay's own words as they came", async () => {
+    const de: Locale = readLocale("de");
+    const checklist: HTMLElement = await renderIn(
+      "de",
+      answerFor({
+        push: channel(ServerSendingChannel.Push, ServerSendingState.Failing, {
+          lastFailure: RELAY_DOWN,
+        }),
+      }),
+    );
+
+    within(checklist).getByTestId("server-setup-optional-toggle").click();
+    await flush();
+
+    const status: string = (
+      within(checklist).getByTestId("server-setup-browser-push").textContent ||
+      ""
+    ).replace(/[⁦-⁩]/g, "");
+
+    expect(status).toContain(
+      (
+        de[
+          "Failing: push notifications have not gone out since {{time}}."
+        ] as string
+      ).split("{{time}}")[0]!,
+    );
+    expect(status).toContain(RELAY_DOWN);
+  });
+});
+
+/*
  * #9437: the Email row says what its settings are missing in the reader's
  * language - the server sends it as words, a sentence of the Admin
  * Dashboard's locales and what fills it - with the provider as written and

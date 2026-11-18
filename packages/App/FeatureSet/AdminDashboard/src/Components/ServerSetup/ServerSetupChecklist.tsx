@@ -599,6 +599,11 @@ export const getServerSetupRow: (data: {
       break;
 
     case ServerSetupCheckId.BrowserPush:
+      // The server's own pushes fail (#6881): what the push service or relay said.
+      if (check.status === ServerSetupStatus.Failing) {
+        providerSaid(check.sentThrough, check.reason);
+      }
+
       if (!check.isFinished) {
         actions.push({
           kind: "guide",
@@ -609,7 +614,8 @@ export const getServerSetupRow: (data: {
 
       /*
        * A test push to this admin's own phones and browsers (#7028), done
-       * or not: nothing yet tells the server how its pushes go (#6881).
+       * or not: browsers set up says nothing of phones, and a push that
+       * goes out shows the server's pushes work again (#6881).
        */
       for (const channel of check.tests) {
         actions.push({ kind: "test", title: "", channel: channel });

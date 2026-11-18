@@ -4202,5 +4202,6 @@
   "This Twilio config has no number to send SMS from.": "Cette configuration Twilio n'a aucun numéro depuis lequel envoyer des SMS.",
   "This Twilio config has no number to make calls from.": "Cette configuration Twilio n'a aucun numéro depuis lequel passer des appels.",
   "Region (an AWS Region code, such as us-east-1)": "Région (un code de région AWS, comme us-east-1)",
-  "Domain (the sending domain, such as mg.example.com)": "Domaine (le domaine d'envoi, comme mg.example.com)"
+  "Domain (the sending domain, such as mg.example.com)": "Domaine (le domaine d'envoi, comme mg.example.com)",
+  "Failing: push notifications have not gone out since {{time}}.": "En échec : aucune notification push n'est partie depuis {{time}}."
 }

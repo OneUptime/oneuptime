@@ -4202,5 +4202,6 @@
   "This Twilio config has no number to send SMS from.": "این پیکربندی Twilio شماره‌ای برای فرستادن پیامک ندارد.",
   "This Twilio config has no number to make calls from.": "این پیکربندی Twilio شماره‌ای برای برقراری تماس ندارد.",
   "Region (an AWS Region code, such as us-east-1)": "منطقه (کد یک منطقهٔ AWS، مانند us-east-1)",
-  "Domain (the sending domain, such as mg.example.com)": "دامنه (دامنهٔ فرستنده، مانند mg.example.com)"
+  "Domain (the sending domain, such as mg.example.com)": "دامنه (دامنهٔ فرستنده، مانند mg.example.com)",
+  "Failing: push notifications have not gone out since {{time}}.": "ناموفق: از {{time}} هیچ اعلان پوشی فرستاده نشده است."
 }

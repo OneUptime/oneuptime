@@ -4202,5 +4202,6 @@
   "This Twilio config has no number to send SMS from.": "이 Twilio 구성에는 SMS를 보낼 번호가 없습니다.",
   "This Twilio config has no number to make calls from.": "이 Twilio 구성에는 전화를 걸 번호가 없습니다.",
   "Region (an AWS Region code, such as us-east-1)": "리전 (us-east-1 같은 AWS 리전 코드)",
-  "Domain (the sending domain, such as mg.example.com)": "도메인 (mg.example.com 같은 발신 도메인)"
+  "Domain (the sending domain, such as mg.example.com)": "도메인 (mg.example.com 같은 발신 도메인)",
+  "Failing: push notifications have not gone out since {{time}}.": "실패: {{time}} 이후로 푸시 알림이 나가지 않았습니다."
 }

@@ -4202,5 +4202,6 @@
   "This Twilio config has no number to send SMS from.": "此 Twilio 配置没有用于发送短信的号码。",
   "This Twilio config has no number to make calls from.": "此 Twilio 配置没有用于拨打电话的号码。",
   "Region (an AWS Region code, such as us-east-1)": "区域（AWS 区域代码，例如 us-east-1）",
-  "Domain (the sending domain, such as mg.example.com)": "域名（发件域名，例如 mg.example.com）"
+  "Domain (the sending domain, such as mg.example.com)": "域名（发件域名，例如 mg.example.com）",
+  "Failing: push notifications have not gone out since {{time}}.": "发送失败：自 {{time}} 起没有发出任何推送通知。"
 }

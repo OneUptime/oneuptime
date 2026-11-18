@@ -4202,5 +4202,6 @@
   "This Twilio config has no number to send SMS from.": "この Twilio 設定には SMS の送信元番号がありません。",
   "This Twilio config has no number to make calls from.": "この Twilio 設定には発信元番号がありません。",
   "Region (an AWS Region code, such as us-east-1)": "リージョン (us-east-1 などの AWS リージョンコード)",
-  "Domain (the sending domain, such as mg.example.com)": "ドメイン (mg.example.com などの送信ドメイン)"
+  "Domain (the sending domain, such as mg.example.com)": "ドメイン (mg.example.com などの送信ドメイン)",
+  "Failing: push notifications have not gone out since {{time}}.": "失敗しています：{{time}} 以降、プッシュ通知が送信されていません。"
 }

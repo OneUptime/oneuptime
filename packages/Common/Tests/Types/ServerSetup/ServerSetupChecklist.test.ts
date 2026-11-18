@@ -1734,7 +1734,7 @@ describe("backups npm run backup made", () => {
 
 /*
  * #7028: Send test push, on the push row, whenever push is not turned off
- * for the server - done or not, since nothing yet says how its pushes go.
+ * for the server - done or not: browsers set up says nothing of phones.
  */
 describe("the test push", () => {
   test("is offered while push is on, set up or not; never while it is off, or on a server that does not say", () => {
@@ -1780,6 +1780,103 @@ describe("the test push", () => {
 
     expect(read!.checks[0]!.tests).toEqual([ServerSendingChannel.Push]);
     expect(read!.checks[1]!.tests).toEqual([ServerSendingChannel.Email]);
+  });
+});
+
+/*
+ * #6881: the server now knows how its own pushes go. While they fail - the
+ * push relay out of reach, the server's keys refused - the push row says
+ * so, since when and why, whatever the VAPID keys, and offers the test push
+ * that shows they work again. It stays optional: the Dashboard's card is
+ * for the required checks.
+ */
+describe("the push row, while the server's pushes fail", () => {
+  const RELAY_DOWN: string =
+    "Request failed to https://oneuptime.com/api/notification/push-relay/send. Connection refused";
+
+  const failingPush: () => ServerChannelStatus = (): ServerChannelStatus => {
+    return channel(ServerSendingChannel.Push, ServerSendingState.Failing, {
+      lastFailure: RELAY_DOWN,
+    });
+  };
+
+  test("is failing, since when and why, with or without the VAPID keys", () => {
+    for (const isBrowserPushSetUp of [true, false]) {
+      const push: ServerSetupCheckResult = check(
+        freshFacts({
+          isBrowserPushSetUp: isBrowserPushSetUp,
+          push: failingPush(),
+        }),
+        ServerSetupCheckId.BrowserPush,
+      );
+
+      expect(push.status).toBe(ServerSetupStatus.Failing);
+      expect(push.isFinished).toBe(false);
+      expect(push.time).toBe(EARLIER);
+      expect(push.reason).toBe(RELAY_DOWN);
+      expect(push.tests).toEqual([ServerSendingChannel.Push]);
+      expect(ServerSetupChecklistUtil.getStatusWords(push)).toBe(
+        "Failing: push notifications have not gone out since {{time}}.",
+      );
+    }
+  });
+
+  test("is what the keys say while the pushes go out, or nothing is known yet", () => {
+    for (const state of [
+      ServerSendingState.Working,
+      ServerSendingState.Untested,
+    ]) {
+      expect(
+        check(
+          freshFacts({
+            isBrowserPushSetUp: true,
+            push: channel(ServerSendingChannel.Push, state),
+          }),
+          ServerSetupCheckId.BrowserPush,
+        ).status,
+      ).toBe(ServerSetupStatus.Done);
+      expect(
+        check(
+          freshFacts({ push: channel(ServerSendingChannel.Push, state) }),
+          ServerSetupCheckId.BrowserPush,
+        ).status,
+      ).toBe(ServerSetupStatus.NotSetUp);
+    }
+
+    // An older server says nothing of push: the keys alone.
+    expect(
+      check(
+        freshFacts({ isBrowserPushSetUp: true }),
+        ServerSetupCheckId.BrowserPush,
+      ).status,
+    ).toBe(ServerSetupStatus.Done);
+  });
+
+  test("stays optional: it never counts among the required checks the card counts", () => {
+    const answer: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.getAnswer({
+        facts: freshFacts({ push: failingPush() }),
+        readerUserId: null,
+        now: NOW,
+      });
+
+    expect(answer.openRequired).not.toContain(ServerSetupCheckId.BrowserPush);
+  });
+
+  test("a browser reads it back: failing, when and why", () => {
+    const push: ServerSetupCheckResult = check(
+      freshFacts({ push: failingPush() }),
+      ServerSetupCheckId.BrowserPush,
+    );
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ checks: [push] })),
+      );
+
+    expect(read!.checks[0]!.status).toBe(ServerSetupStatus.Failing);
+    expect(read!.checks[0]!.reason).toBe(RELAY_DOWN);
+    expect(read!.checks[0]!.time).toBe(EARLIER);
   });
 });
 
