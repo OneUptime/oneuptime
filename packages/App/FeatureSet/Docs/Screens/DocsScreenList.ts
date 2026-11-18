@@ -543,7 +543,10 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
     query: "?seed=on-call-policy",
     width: 1280,
     height: 1000,
-    state: [{ press: "Add Escalation Rule", exact: false }, { waitFor: "modal" }],
+    state: [
+      { press: "Add Escalation Rule", exact: false },
+      { waitFor: "modal" },
+    ],
     crop: '[data-testid="modal"]',
     padding: 0,
     highlight: "Paged after (in minutes)",

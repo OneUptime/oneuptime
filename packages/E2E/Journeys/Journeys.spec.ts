@@ -539,9 +539,7 @@ journey(
     expect(monitors).toHaveLength(3);
     // Each watches the service that reported.
     for (const monitor of monitors) {
-      expect(JSON.stringify(monitor.data["monitorSteps"])).toContain(
-        SERVICE,
-      );
+      expect(JSON.stringify(monitor.data["monitorSteps"])).toContain(SERVICE);
     }
   },
 );

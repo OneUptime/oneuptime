@@ -66,9 +66,11 @@ import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
@@ -159,6 +161,8 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   >([]);
   const [isNewPage, setIsNewPage] = useState<boolean>(true);
   const [chosenPageId, setChosenPageId] = useState<string>("");
+  // The page picked last, for a read of what it shows that arrives late.
+  const chosenPageIdRef: MutableRefObject<string> = useRef<string>("");
   const [chosenShown, setChosenShown] = useState<ShownMonitors | null>(null);
   const [openStepKey, setOpenStepKey] = useState<string | null>(
     StatusPageSetupStep.Pick,
@@ -203,6 +207,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
    * still skips what the page shows.
    */
   const choosePage: (pageId: string) => void = (pageId: string): void => {
+    chosenPageIdRef.current = pageId;
     setChosenPageId(pageId);
     setChosenShown(null);
     setPickError("");
@@ -214,10 +219,15 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
 
     StatusPageSetupApi.loadShownMonitors(pageId)
       .then((pageShown: ShownMonitors) => {
-        setChosenShown(pageShown);
+        // A page picked again since: its own read draws its marks.
+        if (chosenPageIdRef.current === pageId) {
+          setChosenShown(pageShown);
+        }
       })
       .catch(() => {
-        setChosenShown(null);
+        if (chosenPageIdRef.current === pageId) {
+          setChosenShown(null);
+        }
       });
   };
 
@@ -1066,8 +1076,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
              * (#7517). Someone who may not make one goes on with those.
              */
             setIsNewPage(mayCreate);
-            setChosenPageId("");
-            setChosenShown(null);
+            choosePage("");
             StatusPageSetupApi.loadEditableStatusPages()
               .then((pages: Array<StatusPageSetupPage>) => {
                 setExistingPages(pages);

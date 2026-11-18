@@ -534,7 +534,10 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               : SHOWCASE_HERO_CLASS_NAME
           }
         >
-          <div className="min-w-0" data-testid={RESOURCE_SHOWCASE_PITCH_TEST_ID}>
+          <div
+            className="min-w-0"
+            data-testid={RESOURCE_SHOWCASE_PITCH_TEST_ID}
+          >
             {/* A dialog's title already names the product. */}
             {!props.isBare && (
               <Pill

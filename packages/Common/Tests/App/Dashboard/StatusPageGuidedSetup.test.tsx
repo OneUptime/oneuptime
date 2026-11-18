@@ -1290,6 +1290,30 @@ describe("read in another language (#7252)", () => {
       });
     });
 
+    /*
+     * A monitor and a monitor group are named by the project: "Network" is
+     * "Network" in every language, never the Dashboard's word for it
+     * (German "Netzwerk"), in the list step 1 picks from (#7147).
+     */
+    test("the list's names are drawn as the project wrote them, never looked up", async () => {
+      api["loadMonitors"]!.mockResolvedValue([
+        { id: "m-network", name: "Network" },
+        { id: "m-status", name: "Status" },
+      ]);
+      api["loadMonitorGroups"]!.mockResolvedValue([
+        { id: "g-network", name: "Network" },
+      ]);
+      await renderSetup();
+
+      const list: string = withoutIsolateMarks(
+        screen.getByTestId("guided-setup-monitors").textContent || "",
+      );
+
+      expect(list).toContain("Network");
+      expect(list).toContain("Status");
+      expect(list).not.toContain(readDashboardLocale(language)["Network"]!);
+    });
+
     test("the name is one of the reader's pages: step 2 says so in their words, naming the page", async () => {
       api["findOwnStatusPage"]!.mockResolvedValue({
         id: PAGE_ID,
@@ -1665,6 +1689,45 @@ describe("a project that has a status page already (#7517)", () => {
       monitors: [MONITORS[1]],
     });
     expect(storedRun()).toEqual({ statusPageId: OLDER["id"] });
+  });
+
+  test("a page picked before the one before it is read: the marks are the page picked, whatever arrives late", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([WALK_CO, OLDER]);
+    shownOn[WALK_CO["id"]!] = ["m-db"];
+    // Walk Co's read is slow: it arrives after the older page's.
+    let arriveWalkCo: () => void = (): void => {};
+    const fake: (id: string) => Promise<unknown> = api[
+      "loadShownMonitors"
+    ]!.getMockImplementation() as (id: string) => Promise<unknown>;
+    api["loadShownMonitors"]!.mockImplementation(
+      (id: string): Promise<unknown> => {
+        if (id !== WALK_CO["id"]) {
+          return fake(id);
+        }
+
+        return new Promise((resolve: (value: unknown) => void) => {
+          arriveWalkCo = () => {
+            resolve(fake(id));
+          };
+        });
+      },
+    );
+    await renderSetup();
+    await pickPage("Walk Co Internal");
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    });
+
+    await act(async () => {
+      arriveWalkCo();
+    });
+
+    // The older page's marks stay: Walk Co's late read draws none.
+    expect(screen.getByTestId("guided-setup-monitor-m-api")).toBeDisabled();
+    expect(screen.getByTestId("guided-setup-monitor-m-db")).not.toBeDisabled();
+    expect(screen.getByTestId("guided-setup-picked-count")).toHaveTextContent(
+      "0 of 2 picked",
+    );
   });
 
   test("someone who may change the project's pages but not make one: the offer, and no way to a new page", async () => {
