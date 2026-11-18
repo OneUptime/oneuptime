@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "شما هنوز {{channels}} را تأیید نکرده‌اید، پس آن گام‌ها کنار گذاشته شده‌اند و تا آن زمان گام‌های {{kept}} خودتان می‌ماند.",
   "You have not verified {{channels}} yet, so those steps are left out.": "شما هنوز {{channels}} را تأیید نکرده‌اید، پس آن گام‌ها کنار گذاشته شده‌اند.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شده‌اند و تا آن زمان گام‌های {{kept}} خودش می‌ماند.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شده‌اند."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شده‌اند.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "این سرور الان نمی‌تواند پیامک بفرستد، پس کدی برای افزودن شماره‌تان به شما نمی‌رسد. از مدیر سرور بخواهید پیامک و تماس را راه‌اندازی کند.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "این سرور الان نمی‌تواند پیامک بفرستد، پس کدی برای افزودن شماره‌تان به شما نمی‌رسد. پیامک و تماس را در Admin Dashboard راه‌اندازی کنید."
 }

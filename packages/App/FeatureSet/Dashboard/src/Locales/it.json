@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Non hai ancora verificato {{channels}}, quindi quei passaggi sono tralasciati, e nel frattempo restano i tuoi passaggi via {{kept}}.",
   "You have not verified {{channels}} yet, so those steps are left out.": "Non hai ancora verificato {{channels}}, quindi quei passaggi sono tralasciati.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono tralasciati, e nel frattempo restano i suoi passaggi via {{kept}}.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono tralasciati."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono tralasciati.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Questo server al momento non può inviare SMS, quindi non può arrivarti il codice per aggiungere il tuo numero. Chiedi all'amministratore del server di configurare SMS e chiamate.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Questo server al momento non può inviare SMS, quindi non può arrivarti il codice per aggiungere il tuo numero. Configura SMS e chiamate nell'Admin Dashboard."
 }

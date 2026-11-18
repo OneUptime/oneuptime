@@ -1,6 +1,5 @@
 import { PagingMethodChoice } from "./PagingLadderMethods";
 import { PAGING_LADDER_COPY } from "./PagingLadderWords";
-import { getAdminServerSetupUrl } from "../../../Utils/ServerEmail";
 import OnCallSetupApi, {
   AddedNumber,
   ProjectPhoneFacts,
@@ -16,6 +15,11 @@ import {
   getThisBrowserDeviceId,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import {
+  SERVER_CANNOT_SEND_FIX_WORDS,
+  ServerCannotSendChannel,
+  getServerCannotSendFixUrl,
+} from "../../NotificationMethods/ServerCannotSendPanel";
 import {
   ChannelGatedMethodList,
   getChannelGatedMethodList,
@@ -51,8 +55,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *     addCallNumber, which a number proven by text needs no second code
  *     for). Not offered while SMS is off in the project, which is said, nor
  *     while this server can't send SMS right now (GET /project-can-send,
- *     #9446): no code could reach the number, and that is said as the
- *     guided setup says it, with who can fix it;
+ *     #9446): no code could reach the number, and that is said, with who
+ *     can fix it;
  *   - use this browser: registered the one way Notification Methods and the
  *     guided setup register one (RegisterThisBrowser), from the click, so
  *     the browser can ask its permission;
@@ -82,6 +86,22 @@ export const ADD_WAYS_COPY: {
     "This project asks everyone on call to have a phone method.",
   ),
   recheck: translationKey("Recheck"),
+};
+
+/*
+ * Add your phone while this server can't send SMS (#9446): the code that
+ * adds a number could not reach it. Said as Notification Methods says it
+ * over a list of numbers, and who can fix it. Not the guided setup's "email
+ * and the app still reach you": the server may not send email either, and
+ * the ladder above says so.
+ */
+export const PHONE_CODE_NOT_SENT_COPY: { member: string; admin: string } = {
+  member: translationKey(
+    "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.",
+  ),
+  admin: translationKey(
+    "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.",
+  ),
 };
 
 export interface ComponentProps {
@@ -388,10 +408,7 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
             )}
           </p>
         ) : isSmsNotSentNow ? (
-          /*
-           * No code could reach the number: said as the on-call guided
-           * setup says it at the same step, and who can fix it.
-           */
+          // No code could reach the number: said, and who can fix it.
           <div
             className="flex max-w-3xl flex-col items-start gap-1"
             data-testid="paging-ladder-sms-not-sent"
@@ -399,19 +416,23 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
             <p className="text-sm text-amber-700">
               {translator.translateText(
                 isMasterAdmin
-                  ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
-                  : ON_CALL_SETUP_COPY.serverNoTwilio,
+                  ? PHONE_CODE_NOT_SENT_COPY.admin
+                  : PHONE_CODE_NOT_SENT_COPY.member,
               )}
             </p>
             {isMasterAdmin ? (
               <a
-                href={getAdminServerSetupUrl().toString()}
+                href={getServerCannotSendFixUrl(
+                  ServerCannotSendChannel.SMS,
+                ).toString()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-indigo-600 underline-offset-2 hover:text-indigo-800 hover:underline"
                 data-testid="paging-ladder-set-up-sms"
               >
-                {translator.translateText(ON_CALL_SETUP_COPY.setUpTwilio)}
+                {translator.translateText(
+                  SERVER_CANNOT_SEND_FIX_WORDS[ServerCannotSendChannel.SMS],
+                )}
               </a>
             ) : (
               <></>

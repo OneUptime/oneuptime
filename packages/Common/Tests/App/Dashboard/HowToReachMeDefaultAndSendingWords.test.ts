@@ -4,6 +4,7 @@ import path from "path";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import { PHONE_CODE_NOT_SENT_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/AddWaysToReach";
 import {
   PAGING_LADDER_DEFAULT_START_COPY,
   describeDefaultStartLeftOut,
@@ -209,15 +210,38 @@ describe("which steps this server can't send right now (#9446)", () => {
     for (const sentence of [
       SMS_AND_CALLS_NOT_SENT_COPY.member,
       SMS_AND_CALLS_NOT_SENT_COPY.admin,
+      PHONE_CODE_NOT_SENT_COPY.member,
+      PHONE_CODE_NOT_SENT_COPY.admin,
       NOT_SENT_RIGHT_NOW,
     ]) {
       expect(sentence).not.toMatch(/twilio|smtp|error|failed|api key/i);
     }
 
-    expect(SMS_AND_CALLS_NOT_SENT_COPY.member).toContain(
-      "Ask your server's admin",
-    );
-    expect(SMS_AND_CALLS_NOT_SENT_COPY.admin).toContain("Admin Dashboard");
+    for (const words of [
+      SMS_AND_CALLS_NOT_SENT_COPY,
+      PHONE_CODE_NOT_SENT_COPY,
+    ]) {
+      expect(words.member).toContain("Ask your server's admin");
+      expect(words.admin).toContain("Admin Dashboard");
+    }
+  });
+
+  test("Add your phone says what Notification Methods says of SMS, with the code in the middle, and nothing of what else reaches you", () => {
+    const panel: { member: string; admin: string } =
+      SERVER_CANNOT_SEND_COPY[ServerCannotSendChannel.SMS];
+
+    for (const key of ["member", "admin"] as const) {
+      const sentences: Array<string> = panel[key].split(
+        ", so these numbers get no SMS. ",
+      );
+      expect(sentences).toHaveLength(2);
+
+      expect(PHONE_CODE_NOT_SENT_COPY[key]).toBe(
+        `${sentences[0]}, so it can't text you a code to add your number. ${sentences[1]}`,
+      );
+      // The server may not send email either: the ladder above says so.
+      expect(PHONE_CODE_NOT_SENT_COPY[key]).not.toMatch(/email|the app/i);
+    }
   });
 });
 
@@ -315,6 +339,8 @@ describe("the new words, in every Dashboard language", () => {
     NOT_SENT_RIGHT_NOW,
     SMS_AND_CALLS_NOT_SENT_COPY.member,
     SMS_AND_CALLS_NOT_SENT_COPY.admin,
+    PHONE_CODE_NOT_SENT_COPY.member,
+    PHONE_CODE_NOT_SENT_COPY.admin,
   ];
 
   const PLACEHOLDER: RegExp = /\{\{\s*(\w+)\s*\}\}/g;

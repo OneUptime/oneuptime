@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.",
   "You have not verified {{channels}} yet, so those steps are left out.": "You have not verified {{channels}} yet, so those steps are left out.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} has not verified {{channels}} yet, so those steps are left out."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} has not verified {{channels}} yet, so those steps are left out.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard."
 }

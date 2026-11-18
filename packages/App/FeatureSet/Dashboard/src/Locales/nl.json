@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "U hebt {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten, en uw eigen stappen via {{kept}} blijven intussen behouden.",
   "You have not verified {{channels}} yet, so those steps are left out.": "U hebt {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten, en de eigen stappen via {{kept}} blijven intussen behouden.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Deze server kan nu geen sms versturen, dus u krijgt geen code om uw nummer toe te voegen. Vraag uw serverbeheerder om sms en oproepen in te richten.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu geen sms versturen, dus u krijgt geen code om uw nummer toe te voegen. Richt sms en oproepen in via het Admin Dashboard."
 }

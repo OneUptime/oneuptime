@@ -289,7 +289,10 @@ import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageCha
 import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 import UserUtil from "../../../UI/Utils/User";
-import { ADD_WAYS_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/AddWaysToReach";
+import {
+  ADD_WAYS_COPY,
+  PHONE_CODE_NOT_SENT_COPY,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/AddWaysToReach";
 import { ON_CALL_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import {
   BROWSER_PUSH_PROBLEM_MESSAGES,
@@ -2478,7 +2481,7 @@ describe("steps this server can't send right now (#9446)", () => {
 
     expect(
       await screen.findByTestId("paging-ladder-sms-not-sent"),
-    ).toHaveTextContent(ON_CALL_SETUP_COPY.serverNoTwilio);
+    ).toHaveTextContent(PHONE_CODE_NOT_SENT_COPY.member);
     expect(
       screen.queryByTestId("paging-ladder-phone-form"),
     ).not.toBeInTheDocument();
@@ -2486,7 +2489,27 @@ describe("steps this server can't send right now (#9446)", () => {
     expect(addSmsMock).not.toHaveBeenCalled();
   });
 
-  test("a master admin adding their phone there is sent to set SMS up", async () => {
+  test("on a server that sends nothing, it never says email still reaches you, as the ladder above says it does not", async () => {
+    projectCanSend = { email: false, sms: false, call: false };
+    loadMethodsMock.mockResolvedValue([
+      choice("userEmailId", EMAIL, "Email", "me@example.com"),
+    ]);
+    givenRules(rulesFor(CELLS, [step("userEmailId", EMAIL, 0)]));
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId("paging-ladder-add-phone"));
+
+    const words: HTMLElement = await screen.findByTestId(
+      "paging-ladder-sms-not-sent",
+    );
+    expect(words).toHaveTextContent(PHONE_CODE_NOT_SENT_COPY.member);
+    expect(words.textContent).not.toMatch(/email|the app/i);
+    expect(notices()[0]!).toHaveTextContent(
+      SERVER_CANNOT_SEND_COPY[ServerCannotSendChannel.Email].member,
+    );
+  });
+
+  test("a master admin adding their phone there is sent where the ladder's notice sends them", async () => {
     jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
     projectCanSend = { email: true, sms: false, call: true };
     loadMethodsMock.mockResolvedValue([
@@ -2499,10 +2522,13 @@ describe("steps this server can't send right now (#9446)", () => {
 
     expect(
       await screen.findByTestId("paging-ladder-sms-not-sent"),
-    ).toHaveTextContent(ON_CALL_SETUP_COPY.serverNoTwilioForAdmin);
-    expect(
-      screen.getByTestId("paging-ladder-set-up-sms").getAttribute("href"),
-    ).toContain("/setup");
+    ).toHaveTextContent(PHONE_CODE_NOT_SENT_COPY.admin);
+
+    const fix: HTMLElement = screen.getByTestId("paging-ladder-set-up-sms");
+    expect(fix).toHaveTextContent(
+      SERVER_CANNOT_SEND_FIX_WORDS[ServerCannotSendChannel.SMS],
+    );
+    expect(fix.getAttribute("href")).toContain("/settings/call-and-sms");
   });
 
   test("Add your phone asks for the number as before while SMS can go out", async () => {

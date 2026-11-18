@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "まだ {{channels}} を確認していないため、それらのステップは除外されています。それまではご自分の {{kept}} のステップが残ります。",
   "You have not verified {{channels}} yet, so those steps are left out.": "まだ {{channels}} を確認していないため、それらのステップは除外されています。",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されています。それまでは本人の {{kept}} のステップが残ります。",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されています。"
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されています。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "このサーバーは現在 SMS を送信できないため、番号を追加するためのコードが届きません。サーバー管理者に SMS と電話の設定を依頼してください。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "このサーバーは現在 SMS を送信できないため、番号を追加するためのコードが届きません。Admin Dashboard で SMS と電話を設定してください。"
 }

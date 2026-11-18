@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og dine egne trin med {{kept}} bliver indtil videre.",
   "You have not verified {{channels}} yet, so those steps are left out.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og deres egne trin med {{kept}} bliver indtil videre.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Denne server kan ikke sende sms lige nu, så du kan ikke få en kode på sms til at tilføje dit nummer. Bed din serveradministrator om at sætte sms og opkald op.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Denne server kan ikke sende sms lige nu, så du kan ikke få en kode på sms til at tilføje dit nummer. Sæt sms og opkald op i Admin Dashboard."
 }

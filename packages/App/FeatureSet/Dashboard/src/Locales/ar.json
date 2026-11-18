@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "لم تتحقق من {{channels}} بعد، لذا تُستبعد تلك الخطوات، وتبقى خطواتك الخاصة عبر {{kept}} إلى ذلك الحين.",
   "You have not verified {{channels}} yet, so those steps are left out.": "لم تتحقق من {{channels}} بعد، لذا تُستبعد تلك الخطوات.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "لم يتحقق {{name}} من {{channels}} بعد، لذا تُستبعد تلك الخطوات، وتبقى خطواته الخاصة عبر {{kept}} إلى ذلك الحين.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا تُستبعد تلك الخطوات."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا تُستبعد تلك الخطوات.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard."
 }

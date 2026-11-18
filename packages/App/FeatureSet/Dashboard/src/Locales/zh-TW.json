@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "你尚未驗證{{channels}}，因此省略了這些步驟，在此期間保留你自己的{{kept}}步驟。",
   "You have not verified {{channels}} yet, so those steps are left out.": "你尚未驗證{{channels}}，因此省略了這些步驟。",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟，在此期間保留其自己的{{kept}}步驟。",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟。"
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法傳送簡訊，因此無法收到新增號碼所需的驗證碼。請聯絡伺服器管理員設定簡訊和電話。",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法傳送簡訊，因此無法收到新增號碼所需的驗證碼。請在 Admin Dashboard 中設定簡訊和電話。"
 }

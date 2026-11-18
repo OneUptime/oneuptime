@@ -56823,5 +56823,7 @@
   "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Du har inte verifierat {{channels}} än, så de stegen är utelämnade, och dina egna steg via {{kept}} finns kvar tills vidare.",
   "You have not verified {{channels}} yet, so those steps are left out.": "Du har inte verifierat {{channels}} än, så de stegen är utelämnade.",
   "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade, och deras egna steg via {{kept}} finns kvar tills vidare.",
-  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade."
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Be serveradministratören att konfigurera sms och samtal.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Konfigurera sms och samtal i Admin Dashboard."
 }
