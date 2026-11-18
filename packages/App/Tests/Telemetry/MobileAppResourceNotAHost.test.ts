@@ -98,6 +98,9 @@ const metricsService: Record<string, any> =
   OtelMetricsIngestService as unknown as Record<string, any>;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// What a test reads off a spy: the arguments of each call.
+type CallRecorder = { mock: { calls: Array<Array<unknown>> } };
+
 function stringAttribute(key: string, value: string): JSONObject {
   return { key: key, value: { stringValue: value } };
 }
@@ -144,13 +147,9 @@ const WINDOWS_HOST_RESOURCE: Record<string, string> = {
 };
 
 describe("A mobile app's resource never makes a Host", () => {
-  let findOrCreateSpy: jest.SpiedFunction<
-    typeof HostService.findOrCreateByHostIdentifier
-  >;
+  let findOrCreateSpy: CallRecorder;
   // How autoDiscoverHost finds or creates the Host row for a host.name.
-  let resolveHostIdSpy: jest.SpiedFunction<
-    (...args: Array<unknown>) => unknown
-  >;
+  let resolveHostIdSpy: CallRecorder;
 
   beforeEach(() => {
     OtelIngestBaseService.clearInProcessMemos();
@@ -161,7 +160,7 @@ describe("A mobile app's resource never makes a Host", () => {
 
     findOrCreateSpy = jest
       .spyOn(HostService, "findOrCreateByHostIdentifier")
-      .mockResolvedValue(host);
+      .mockResolvedValue(host) as unknown as CallRecorder;
     jest
       .spyOn(HostService, "updateLastSeen")
       .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
@@ -170,9 +169,7 @@ describe("A mobile app's resource never makes a Host", () => {
     jest.spyOn(baseService, "shouldRunMaintenance").mockResolvedValue(false);
     resolveHostIdSpy = jest
       .spyOn(baseService, "resolveDiscoveredResourceId")
-      .mockResolvedValue(HOST_ROW_ID.toString()) as jest.SpiedFunction<
-      (...args: Array<unknown>) => unknown
-    >;
+      .mockResolvedValue(HOST_ROW_ID.toString()) as unknown as CallRecorder;
     jest
       .spyOn(baseService, "tryLinkHostToProxmoxGuest")
       .mockResolvedValue(undefined);
@@ -326,11 +323,9 @@ describe("A kiosk app's telemetry belongs to its RUM application", () => {
       dataRententionInDays: 15,
     } as TelemetryServiceMetadata;
 
-    const buildSpy: jest.SpiedFunction<
-      typeof OTelIngestService.buildResourceMetadataForNonService
-    > = jest
+    const buildSpy: CallRecorder = jest
       .spyOn(OTelIngestService, "buildResourceMetadataForNonService")
-      .mockResolvedValue(metadata);
+      .mockResolvedValue(metadata) as unknown as CallRecorder;
 
     /*
      * A Host row for the device's host.name exists, or would be created:

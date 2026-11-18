@@ -187,7 +187,10 @@ function crashAttributes(): Array<OtlpAttribute> {
   ];
 }
 
-function insertedRows(spy: jest.SpiedFunction<any>): Array<JSONObject> {
+// What a test reads off a spy: the arguments of each call.
+type CallRecorder = { mock: { calls: Array<Array<unknown>> } };
+
+function insertedRows(spy: CallRecorder): Array<JSONObject> {
   const rows: Array<JSONObject> = [];
   for (const call of spy.mock.calls) {
     for (const row of call[0] as Array<JSONObject>) {
@@ -197,15 +200,15 @@ function insertedRows(spy: jest.SpiedFunction<any>): Array<JSONObject> {
   return rows;
 }
 
-function onlyRow(spy: jest.SpiedFunction<any>): JSONObject {
+function onlyRow(spy: CallRecorder): JSONObject {
   const rows: Array<JSONObject> = insertedRows(spy);
   expect(rows).toHaveLength(1);
   return rows[0]!;
 }
 
 describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => {
-  let logInsertSpy: jest.SpiedFunction<any>;
-  let exceptionInsertSpy: jest.SpiedFunction<any>;
+  let logInsertSpy: CallRecorder;
+  let exceptionInsertSpy: CallRecorder;
   let upsertedPayloads: Array<TelemetryExceptionPayload>;
 
   beforeAll(() => {
@@ -221,10 +224,10 @@ describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => 
     setupIngestMocks();
     logInsertSpy = jest
       .spyOn(LogService, "insertJsonRows")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(undefined) as unknown as CallRecorder;
     exceptionInsertSpy = jest
       .spyOn(ExceptionInstanceService, "insertJsonRows")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(undefined) as unknown as CallRecorder;
     upsertedPayloads = [];
     jest
       .spyOn(ExceptionUtil, "saveOrUpdateTelemetryExceptionsBatch")
