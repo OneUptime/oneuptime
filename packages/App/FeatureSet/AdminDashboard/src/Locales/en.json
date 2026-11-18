@@ -4224,5 +4224,13 @@
   "Text This Number": "Text This Number",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.",
   "Push to Master Admins' Devices": "Push to Master Admins' Devices",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on.",
+  "Search people or teams...": "Search people or teams...",
+  "Owners": "Owners",
+  "Is any of": "Is any of",
+  "Is none of": "Is none of",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is any of {{count}} selected people or teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is any of {{count}} selected person or team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is none of {{count}} selected people or teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team"
 }

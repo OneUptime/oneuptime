@@ -4224,5 +4224,13 @@
   "Text This Number": "إرسال رسالة نصية إلى هذا الرقم",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "تُرسَل رسالة نصية إلى هذا الرقم عبر إعدادات الرسائل النصية لهذا الخادم نفسه. اتركه فارغًا لعدم إرسال أي رسالة.",
   "Push to Master Admins' Devices": "إشعار فوري إلى أجهزة المسؤولين الرئيسيين",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "يُرسَل إشعار فوري إلى كل جهاز سجّل فيه مسؤول رئيسي الدخول إلى تطبيق OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "يُرسَل إشعار فوري إلى كل جهاز سجّل فيه مسؤول رئيسي الدخول إلى تطبيق OneUptime.",
+  "Search people or teams...": "ابحث عن أشخاص أو فرق...",
+  "Owners": "المالكون",
+  "Is any of": "أي من",
+  "Is none of": "لا شيء من",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}: أي من الأشخاص أو الفرق المحددة (العدد: {{count}})",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}: الشخص أو الفريق المحدد (العدد: {{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}: لا أحد من الأشخاص أو الفرق المحددة (العدد: {{count}})",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}: ليس الشخص أو الفريق المحدد (العدد: {{count}})"
 }

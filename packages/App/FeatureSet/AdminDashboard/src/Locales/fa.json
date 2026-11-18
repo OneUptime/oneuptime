@@ -4224,5 +4224,13 @@
   "Text This Number": "پیامک به این شماره",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "پیامکی از راه تنظیمات پیامک خود این سرور به این شماره فرستاده می‌شود. برای نفرستادن، خالی بگذارید.",
   "Push to Master Admins' Devices": "پوش به دستگاه‌های مدیران ارشد",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "یک اعلان پوش به هر دستگاهی فرستاده می‌شود که مدیر ارشدی در آن وارد اپ OneUptime شده است."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "یک اعلان پوش به هر دستگاهی فرستاده می‌شود که مدیر ارشدی در آن وارد اپ OneUptime شده است.",
+  "Search people or teams...": "جستجوی افراد یا تیم‌ها...",
+  "Owners": "مالکان",
+  "Is any of": "یکی از این‌ها است",
+  "Is none of": "هیچ‌یک از این‌ها نیست",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} یکی از {{count}} فرد یا تیم انتخاب‌شده است",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} همان {{count}} فرد یا تیم انتخاب‌شده است",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} هیچ‌یک از {{count}} فرد یا تیم انتخاب‌شده نیست",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} آن {{count}} فرد یا تیم انتخاب‌شده نیست"
 }

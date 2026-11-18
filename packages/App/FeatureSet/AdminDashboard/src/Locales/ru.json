@@ -4224,5 +4224,13 @@
   "Text This Number": "Отправлять SMS на этот номер",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "SMS отправляется на этот номер через собственные настройки SMS этого сервера. Оставьте поле пустым, чтобы не отправлять SMS.",
   "Push to Master Admins' Devices": "Push на устройства главных администраторов",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Push-уведомление приходит на каждое устройство, на котором главный администратор вошёл в приложение OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Push-уведомление приходит на каждое устройство, на котором главный администратор вошёл в приложение OneUptime.",
+  "Search people or teams...": "Поиск людей или команд...",
+  "Owners": "Владельцы",
+  "Is any of": "Равно одному из",
+  "Is none of": "Не равно ни одному из",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}: ни один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}: ни один из выбранных людей или команд ({{count}})"
 }

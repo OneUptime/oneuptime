@@ -4224,5 +4224,13 @@
   "Text This Number": "이 번호로 SMS 보내기",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "이 서버의 SMS 설정을 통해 이 번호로 SMS를 보냅니다. 보내지 않으려면 비워 두세요.",
   "Push to Master Admins' Devices": "마스터 관리자 기기로 푸시",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다.",
+  "Search people or teams...": "사람 또는 팀 검색...",
+  "Owners": "소유자",
+  "Is any of": "다음 중 하나임",
+  "Is none of": "다음 중 어느 것도 아님",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님"
 }

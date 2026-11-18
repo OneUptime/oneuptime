@@ -4224,5 +4224,13 @@
   "Text This Number": "Send SMS til dette nummeret",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "En SMS går til dette nummeret gjennom serverens egne SMS-innstillinger. La feltet stå tomt for å ikke sende noen.",
   "Push to Master Admins' Devices": "Push til hovedadministratorenes enheter",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-varsling går til hver enhet der en hovedadministrator er logget inn i OneUptime-appen."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-varsling går til hver enhet der en hovedadministrator er logget inn i OneUptime-appen.",
+  "Search people or teams...": "Søk etter personer eller team ...",
+  "Owners": "Eiere",
+  "Is any of": "Er en av",
+  "Is none of": "Er ingen av",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} er en av {{count}} valgte personer eller team",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} er {{count}} valgt person eller team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} er ingen av {{count}} valgte personer eller team",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team"
 }

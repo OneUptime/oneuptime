@@ -4224,5 +4224,13 @@
   "Text This Number": "傳送簡訊到此號碼",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "透過此伺服器本身的簡訊設定傳送簡訊到此號碼。留空則不傳送。",
   "Push to Master Admins' Devices": "推播到主要管理員的裝置",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。",
+  "Search people or teams...": "搜尋人員或團隊...",
+  "Owners": "擁有者",
+  "Is any of": "是下列任一項",
+  "Is none of": "不是下列任一項",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個"
 }
