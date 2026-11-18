@@ -14,14 +14,7 @@ import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -97,7 +90,7 @@ describe("the column", () => {
 });
 
 describe("a sign-in", () => {
-  let create: jest.SpiedFunction<typeof UserSessionService.create>;
+  let create: jest.SpyInstance;
 
   beforeEach(() => {
     create = jest
@@ -172,7 +165,7 @@ describe("a sign-in", () => {
 });
 
 describe("a sign-out reads it from the live session it is about to end", () => {
-  let findOneBy: jest.SpiedFunction<typeof UserSessionService.findOneBy>;
+  let findOneBy: jest.SpyInstance;
 
   beforeEach(() => {
     findOneBy = jest

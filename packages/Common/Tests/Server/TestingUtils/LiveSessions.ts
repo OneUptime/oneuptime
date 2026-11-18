@@ -1,5 +1,4 @@
 import UserSessionService from "../../../Server/Services/UserSessionService";
-import { jest } from "@jest/globals";
 
 /*
  * EVERY SESSION A TEST'S ACCESS TOKENS NAME IS LIVE.
@@ -13,9 +12,7 @@ import { jest } from "@jest/globals";
  * person as not blocked (UserService.isUserBlocked). What an ended session
  * does is EndedSessionAccessToken.test.ts and UserSessionLiveSessions.test.ts.
  */
-export function treatEverySessionAsLive(): jest.SpiedFunction<
-  typeof UserSessionService.isSessionLive
-> {
+export function treatEverySessionAsLive(): jest.SpyInstance {
   return jest
     .spyOn(UserSessionService, "isSessionLive")
     .mockResolvedValue(true);

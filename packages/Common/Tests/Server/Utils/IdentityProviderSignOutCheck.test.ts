@@ -8,6 +8,7 @@ import IdentityProviderSignOutCheck, {
 } from "../../../Server/Utils/IdentityProviderSignOutCheck";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import ProjectSsoProviderChanges from "../../../Server/Utils/ProjectSsoProviderChanges";
 import GlobalOIDC from "../../../Models/DatabaseModels/GlobalOidc";
@@ -15,14 +16,7 @@ import ProjectOIDC from "../../../Models/DatabaseModels/ProjectOidc";
 import URL from "../../../Types/API/URL";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -50,7 +44,7 @@ const PROVIDER_ID: string = "9c9c9c9c-9c9c-4c9c-8c9c-9c9c9c9c9c9c";
 
 type DiscoveryDocuments = Record<string, unknown>;
 
-let fetch: jest.SpiedFunction<typeof DataSourceHttpFetch.fetch>;
+let fetch: jest.SpyInstance;
 
 // Each discovery URL answers with its document; anything else is unreachable.
 function serveDiscovery(documents: DiscoveryDocuments): void {
@@ -235,7 +229,7 @@ describe("IdentityProviderSignOutCheck.beforeCreate", () => {
 });
 
 describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
-  let findBy: jest.SpiedFunction<typeof GlobalOidcService.findBy>;
+  let findBy: jest.SpyInstance;
 
   function providerIs(provider: GlobalOIDC): void {
     findBy.mockResolvedValue([provider] as never);
@@ -375,7 +369,7 @@ describe("IdentityProviderSignOutCheck.beforeUpdate", () => {
  * other checks take: a refused switch leaves the provider as it was.
  */
 describe("the provider services ask before a create or an update is written", () => {
-  interface PermittedHooks<TModel> {
+  interface PermittedHooks<TModel extends DatabaseBaseModel> {
     onCreatePermitted: (onCreate: OnCreate<TModel>) => Promise<void>;
     onUpdatePermitted: (updateBy: UpdateBy<TModel>) => Promise<void>;
   }
@@ -404,9 +398,7 @@ describe("the provider services ask before a create or an update is written", ()
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);
-    const lockTaken: jest.SpiedFunction<
-      typeof GlobalSsoProviderChanges.beforeProviderUpdate
-    > = jest
+    const lockTaken: jest.SpyInstance = jest
       .spyOn(GlobalSsoProviderChanges, "beforeProviderUpdate")
       .mockResolvedValue(undefined as never);
 
@@ -444,9 +436,7 @@ describe("the provider services ask before a create or an update is written", ()
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);
-    const writeHeld: jest.SpiedFunction<
-      typeof ProjectSsoProviderChanges.beforeWrite
-    > = jest
+    const writeHeld: jest.SpyInstance = jest
       .spyOn(ProjectSsoProviderChanges, "beforeWrite")
       .mockResolvedValue(undefined as never);
 
@@ -469,9 +459,7 @@ describe("the provider services ask before a create or an update is written", ()
       .mockResolvedValue([
         storedProvider({ signOutOfIdentityProvider: false }),
       ] as never);
-    const writeHeld: jest.SpiedFunction<
-      typeof ProjectSsoProviderChanges.beforeWrite
-    > = jest
+    const writeHeld: jest.SpyInstance = jest
       .spyOn(ProjectSsoProviderChanges, "beforeWrite")
       .mockResolvedValue(undefined as never);
 

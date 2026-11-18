@@ -30,14 +30,7 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { UserGlobalAccessPermission } from "../../../Types/Permission";
 import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
