@@ -458,7 +458,7 @@ const REFRESH_COOKIE: () => Dictionary<string> = (): Dictionary<string> => {
 };
 
 describe("a sign-out of a session whose provider signs people out too", () => {
-  it.each([
+  it.each<[SsoProviderType.GlobalOIDC | SsoProviderType.ProjectOIDC, string]>([
     [SsoProviderType.GlobalOIDC, "oneuptime-global"],
     [SsoProviderType.ProjectOIDC, "oneuptime-project"],
   ])(
