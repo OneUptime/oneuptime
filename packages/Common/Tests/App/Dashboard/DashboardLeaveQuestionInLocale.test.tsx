@@ -190,6 +190,9 @@ const CANCEL_DESCRIPTION: string =
   "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.";
 const KEEP_EDITING: string = "Keep Editing";
 const DISCARD_CHANGES: string = "Discard Changes";
+// The leave question's third answer (#7402), and why a refused save failed.
+const SAVE_CHANGES: string = "Save Changes";
+const CHANGES_NOT_SAVED: string = "Your changes were not saved.";
 
 // What Cancel asked before: no language may ask it so again.
 const OLD_CANCEL_TITLE: string = "Are you sure?";
@@ -203,6 +206,8 @@ const QUESTION_WORDS: ReadonlyArray<string> = [
   CANCEL_DESCRIPTION,
   KEEP_EDITING,
   DISCARD_CHANGES,
+  SAVE_CHANGES,
+  CHANGES_NOT_SAVED,
 ];
 
 // The two questions, each a title the buttons answer.
@@ -216,6 +221,7 @@ const ENGLISH_SENTENCES: ReadonlyArray<string> = [
   "If you discard them, the dashboard goes back to how it was last saved.",
   KEEP_EDITING,
   DISCARD_CHANGES,
+  SAVE_CHANGES,
 ];
 
 /*
@@ -440,7 +446,7 @@ function dialogText(): string {
 
 function expectQuestionIn(
   language: string,
-  question: { title: string; description: string },
+  question: { title: string; description: string; answers?: Array<string> },
 ): void {
   const text: string = dialogText();
 
@@ -449,6 +455,7 @@ function expectQuestionIn(
     question.description,
     KEEP_EDITING,
     DISCARD_CHANGES,
+    ...(question.answers || []),
   ]) {
     expect(text).toContain(word(language, key));
   }
@@ -513,6 +520,8 @@ describe.each([...DRAWN_LANGUAGES])(
       expectQuestionIn(language, {
         title: LEAVE_TITLE,
         description: LEAVE_DESCRIPTION,
+        // Leaving offers to save first, in the language's words (#7402).
+        answers: [SAVE_CHANGES],
       });
     });
 

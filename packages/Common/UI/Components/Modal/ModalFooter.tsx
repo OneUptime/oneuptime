@@ -16,6 +16,8 @@ export interface ComponentProps {
   leftFooterElement?: ReactElement | undefined;
   hasContentHiddenBelow?: boolean | undefined;
   secondaryButton?: ModalSecondaryButton | undefined;
+  // The close button is locked while what the dialog started runs (Modal's isCloseDisabled).
+  isCloseDisabled?: boolean | undefined;
 }
 
 /*
@@ -73,6 +75,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
             onClick={() => {
               props.onClose?.();
             }}
+            disabled={Boolean(props.isCloseDisabled)}
             dataTestId="modal-footer-close-button"
             className={MODAL_FOOTER_BUTTON_CLASS_NAME}
           />

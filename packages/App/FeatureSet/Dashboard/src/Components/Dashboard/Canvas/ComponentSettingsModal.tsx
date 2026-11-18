@@ -330,6 +330,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         </span>
       }
       modalWidth={ModalWidth.Large}
+      /*
+       * The dialog opens on its Live Preview, the focus on the dialog
+       * itself, and Tab goes on from there (#7174). Its first field took
+       * the focus as the form drew, and a browser scrolls a dialog to the
+       * field it focuses: below a Monitor List's preview, in a 900px
+       * window, its Title opened the dialog 391px down, the preview out of
+       * sight; focused without the scroll, the field and its ring would
+       * have been out of sight instead.
+       */
+      isInitialFocusOnDialog={true}
       onClose={() => {
         props.onComponentUpdate(component);
         props.onClose();

@@ -3,7 +3,7 @@ import { ScheduleLayersChanges } from "Common/Types/OnCallDutyPolicy/ScheduleLay
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -31,6 +31,15 @@ export type LayersSaveStatus =
   | { kind: "conflict" }
   // Saved, but the page could not read the layers again.
   | { kind: "reloadFailed"; message: string };
+
+/*
+ * Why a save did not save when someone else changed the layers first, and
+ * what to do: the bar says it, and so does the question leaving the page
+ * asks, when its Save Changes runs into the same (Layers).
+ */
+export const LAYERS_CONFLICT_NOT_SAVED: string = translationKey(
+  "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
+);
 
 // How many changes the bar names before "and N more".
 export const LAYERS_SAVE_BAR_SHOWN_CHANGES: number = 3;
@@ -191,9 +200,7 @@ const LayersSaveBar: FunctionComponent<ComponentProps> = (
               {translator.translateText("Someone else changed these layers")}
             </p>
             <p className="mt-0.5 text-sm text-gray-600">
-              {translator.translateText(
-                "Your changes were not saved. Reload to see the layers as they are now, then make your changes again.",
-              )}
+              {translator.translateText(LAYERS_CONFLICT_NOT_SAVED)}
             </p>
           </div>
         </div>

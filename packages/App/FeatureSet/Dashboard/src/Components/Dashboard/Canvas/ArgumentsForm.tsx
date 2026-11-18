@@ -563,12 +563,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return undefined;
   };
 
-  const renderSectionForm: (
+  const renderSectionForm: (sectionGroup: SectionGroup) => ReactElement = (
     sectionGroup: SectionGroup,
-    isFirstFieldOfSettings: boolean,
-  ) => ReactElement = (
-    sectionGroup: SectionGroup,
-    isFirstFieldOfSettings: boolean,
   ): ReactElement => {
     const sectionKey: string = sectionGroup.section.name;
 
@@ -585,14 +581,17 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         key={`${component.componentId.toString()}-${sectionKey}`}
         /*
          * A form puts the focus in its first field as it draws, and the
-         * browser scrolls the dialog to that field. Only the first field of
-         * the settings may take it: the Live Preview sits above them. Every
-         * section's form took it, so a later section's field - the Title of
-         * a folded Display Options, or of a second open section - opened
-         * the dialog 200 to 900 pixels down, past the preview. Folded, the
-         * field then turned invisible and the focus fell out of the dialog.
+         * browser scrolls the dialog to that field - past the Live Preview,
+         * which sits above the settings. Every section's form took it, so a
+         * later section's field - the Title of a folded Display Options, or
+         * of a second open section - opened the dialog 200 to 900 pixels
+         * down; folded, the field then turned invisible and the focus fell
+         * out of the dialog. Then only the first field took it, which a
+         * browser showed doing the same: a Monitor List's Title, below its
+         * preview, opened the dialog 391 pixels down (#7174). No field
+         * takes it: the dialog starts on itself (ComponentSettingsModal).
          */
-        disableAutofocus={!isFirstFieldOfSettings}
+        disableAutofocus={true}
         hideSubmitButton={true}
         /*
          * A widget's settings apply as they are typed, and no press checks
@@ -1415,15 +1414,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       );
     };
 
-  /*
-   * A table's Data (columns) or a Data Source widget's query is drawn above
-   * the sections, and is the first thing to fill in: the first section's
-   * field does not take the focus from it. The dialog's own first focus,
-   * which never scrolls, starts there.
-   */
-  const isEditorAboveSections: boolean =
-    isDataSourceWidget || hasTableColumnsArg || hasTableGroupByArg;
-
   return (
     <div className="mb-3 mt-1">
       {componentArguments && componentArguments.length === 0 && (
@@ -1458,10 +1448,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               defaultCollapsed={shouldCollapse}
             >
               <div>
-                {renderSectionForm(
-                  sectionGroup,
-                  isFirstSection && !isEditorAboveSections,
-                )}
+                {renderSectionForm(sectionGroup)}
                 {/* Render multi-query and multi-formula UI inside Data Source */}
                 {sectionGroup.section.name === "Data Source" && (
                   <>

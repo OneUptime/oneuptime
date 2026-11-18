@@ -4,6 +4,10 @@ import path from "path";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { OpenAPIParser } from "../Core/OpenAPIParser";
 import { OpenAPISpec, TerraformAttribute } from "../Core/Types";
+import {
+  HANDWRITTEN_RESOURCES,
+  HandwrittenResource,
+} from "../Core/HandwrittenResources";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -159,11 +163,27 @@ let monitorStatusGo: string;
 let fileGo: string;
 let resourceCount: number;
 
+/*
+ * The resource files the generator writes. The resources written by hand
+ * (Core/HandwrittenResources.ts) are copied in beside them, with their Go
+ * tests, under the same resource_ prefix: the generator does not write them,
+ * and their own tests hold what they plan, an import that settles included
+ * (StaticFiles/resource_on_call_schedule_layers_test.go).
+ */
 function generatedFiles(): Array<string> {
+  const handwritten: Set<string> = new Set(
+    HANDWRITTEN_RESOURCES.flatMap((resource: HandwrittenResource) => {
+      return resource.staticFiles;
+    }),
+  );
   return fs
     .readdirSync(path.join(outputDir, "internal/provider"))
     .filter((name: string) => {
-      return name.startsWith("resource_") && name.endsWith(".go");
+      return (
+        name.startsWith("resource_") &&
+        name.endsWith(".go") &&
+        !handwritten.has(name)
+      );
     });
 }
 

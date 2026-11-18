@@ -56762,7 +56762,7 @@
   "No default ladder: a member is paged by every method they verify, at once.": "Ingen standardordning: en medlem larmas direkt via varje metod den verifierar.",
   "No phone method": "Ingen telefonmetod",
   "On-Call Readiness and Setup health name everyone on a policy without one, and a setup reminder asks them to add one. Nobody is locked out.": "Beredskap för jour och Inställningarnas hälsa nämner alla i en policy utan en, och en påminnelse om konfiguration ber dem lägga till en. Ingen blir utelåst.",
-  "Only a Project Owner or Project Admin can change the default ladder.": "Bara en projektägare eller projektadministratör kan ändra standardordningen.",
+  "Only a Project Owner or Project Admin can change the default ladder.": "Bara en Projektägare eller Projektadministratör kan ändra standardordningen.",
   "Phone added. It can text and call you now: put it in your ladder.": "Telefon tillagd. Du kan nu nås med sms och samtal: lägg den i din ordning.",
   "Phone for People on Call": "Telefon för personer i jour",
   "Require Phone Method for On-Call": "Kräv telefonmetod för jour",
@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "{{count}} monitor tillagd",
   "Is Sample Project": "Är ett exempelprojekt",
   "Sample Project": "Exempelprojekt",
-  "Sample Project ID": "Exempelprojekt-ID"
+  "Sample Project ID": "Exempelprojekt-ID",
+  "Your changes were not saved.": "Dina ändringar sparades inte."
 }

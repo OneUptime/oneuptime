@@ -2732,14 +2732,21 @@ describe("Forms, against the builder, the Share page and the public page", () =>
     // The guard raises the browser's own question: no listener of its own.
     expect(builder).not.toContain("beforeunload");
     expect(question).toContain('title={"Leave without saving?"}');
-    expect(question).toContain('submitButtonText={"Discard Changes"}');
     expect(question).toContain('closeButtonText={"Keep Editing"}');
+    expect(question).toContain('title="Discard Changes"');
+    // Save Changes saves the questions as the builder's does, then leaves (issue #7402).
+    expect(question).toContain(
+      'submitButtonText={isSaving ? "Saving..." : "Save Changes"}',
+    );
+    expect(builder).toContain(
+      "onSaveChanges={isReadOnly ? undefined : saveFields}",
+    );
 
     expect(page).toContain(
       `Until you save, the builder says **${FormsCopy.unsavedChanges}** and offers **${FormsCopy.discardChanges}**. Leaving the builder before you save asks first.`,
     );
     expect(page).toContain(
-      "A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+      "A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with three choices: **Save Changes** saves the questions and then goes on to the page you were opening, **Keep Editing** stays in the builder with your changes, and **Discard Changes** goes on without saving. Closing or reloading the tab asks with your browser's own dialog.",
     );
     expect(page).not.toContain("the browser asks before you leave the page");
   });

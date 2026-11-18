@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "모니터 {{count}}개를 추가했습니다",
   "Is Sample Project": "샘플 프로젝트 여부",
   "Sample Project": "샘플 프로젝트",
-  "Sample Project ID": "샘플 프로젝트 ID"
+  "Sample Project ID": "샘플 프로젝트 ID",
+  "Your changes were not saved.": "변경 사항이 저장되지 않았습니다."
 }

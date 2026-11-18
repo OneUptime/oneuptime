@@ -1375,14 +1375,19 @@ describe("saving the steps on the authoring page", () => {
       'title={isSaving ? "Saving..." : "Save Steps"}',
     );
     expect(question).toContain('title={"Leave without saving?"}');
-    expect(question).toContain('submitButtonText={"Discard Changes"}');
     expect(question).toContain('closeButtonText={"Keep Editing"}');
+    expect(question).toContain('title="Discard Changes"');
+    // Save Changes saves the steps as Save Steps does, then leaves (issue #7402).
+    expect(question).toContain(
+      'submitButtonText={isSaving ? "Saving..." : "Save Changes"}',
+    );
+    expect(STEPS_PAGE).toContain("onSaveChanges={saveSteps}");
 
     expect(AUTHORING).toContain(
       "Click **Save Steps**. Until you do, the editor says **Unsaved changes**.",
     );
     expect(AUTHORING).toContain(
-      "Leaving the steps before you save asks first. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with two choices: **Keep Editing** stays on the steps with your changes, and **Discard Changes** goes on to the page you were opening. Closing or reloading the tab asks with your browser's own dialog.",
+      "Leaving the steps before you save asks first. A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open **Leave without saving?** with three choices: **Save Changes** saves the steps and then goes on to the page you were opening, **Keep Editing** stays on the steps with your changes, and **Discard Changes** goes on without saving. Closing or reloading the tab asks with your browser's own dialog.",
     );
   });
 });
