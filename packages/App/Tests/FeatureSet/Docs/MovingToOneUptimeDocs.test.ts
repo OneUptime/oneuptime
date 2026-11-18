@@ -664,7 +664,9 @@ describe("Finish the switch ends on the report's next step", () => {
 
       expect(
         finishStepsOf(readPage("en", source)).find((step: FinishStep) => {
-          return step.heading === "Point your status page's address at OneUptime";
+          return (
+            step.heading === "Point your status page's address at OneUptime"
+          );
         })?.body,
       ).toContain(
         "Until then, the report shows where each page you brought over is live on OneUptime, with **Copy link**.",
