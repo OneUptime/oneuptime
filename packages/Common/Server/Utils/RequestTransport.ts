@@ -74,9 +74,7 @@ export default class RequestTransport {
   public static isInstallationAddress(
     req: ExpressRequest | undefined,
   ): boolean {
-    const requestHost: string | null = RequestTransport.hostnameOf(
-      RequestTransport.hostHeaderOf(req),
-    );
+    const requestHost: string | null = RequestTransport.requestHostnameOf(req);
 
     if (!requestHost) {
       return false;
@@ -175,6 +173,16 @@ export default class RequestTransport {
     } catch {
       return null;
     }
+  }
+
+  /*
+   * The host name a request named, by the Host header the ingress passed
+   * on (never X-Forwarded-Host): lower case, no port. Null without one.
+   */
+  public static requestHostnameOf(
+    req: ExpressRequest | undefined,
+  ): string | null {
+    return RequestTransport.hostnameOf(RequestTransport.hostHeaderOf(req));
   }
 
   private static hostHeaderOf(

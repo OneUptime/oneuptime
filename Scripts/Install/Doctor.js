@@ -49,6 +49,8 @@ const { MARKS } = require("./StartOutput");
  *   - HOST reaches this OneUptime from outside the containers: it asks HOST
  *     for a proof the server signed, so another server at that address is
  *     told apart.
+ *   - A proxy in front passes on the host name and the scheme the browser
+ *     used: the server says how that request reached it.
  *   - The certificate, when PROVISION_SSL is on: issued, for which name,
  *     expiring when; when not, the reason from the app's log.
  *   - Free disk where Docker keeps its images and volumes.
@@ -128,11 +130,11 @@ const TROUBLESHOOTING_COVERAGE = {
   'npm start ends with "Maximum retries reached"':
     "Detected: every service that is not running or healthy, with its log, and whether OneUptime answers at the ingress.",
   'The browser says "OneUptime is not set up for this address"':
-    "Partly: HOST left at localhost or at a listening address, and whether HOST reaches this OneUptime. Not the address someone typed, which only their browser knows.",
+    "Partly: HOST left at localhost or at a listening address, whether HOST reaches this OneUptime, and whether a proxy in front passes on the host name, from the doctor's own request through it. Not the address someone typed, which only their browser knows.",
   "Some pages load, but live updates or uploads fail":
     "Partly, as above: which address people open is known only to their browsers.",
   'Signing up or signing in fails with "Page not found"':
-    "Partly: HOST without the ingress's port, and whether HOST reaches this OneUptime. Not whether a proxy passes on the Host header of every request, which takes a browser's request through it.",
+    "Detected: HOST without the ingress's port, whether HOST reaches this OneUptime, and whether a proxy in front passes on the host name the browser asked for, from the doctor's own request to HOST through it.",
   "The browser warns about the certificate after you set PROVISION_SSL":
     "Detected: the certificate HOST presents, and the app's CoreSSL lines when it is not issued.",
   "The bundled probe shows Disconnected after you moved the ingress port":
@@ -590,6 +592,111 @@ const addressFindings = (publicUrl, response) => {
 };
 
 /*
+ * The host names OneUptime's ingress serves the whole application on
+ * besides HOST (server_name in Nginx/default.conf.template): a request that
+ * names one of them still reaches the dashboard, and any other name is
+ * served as a status page's custom domain.
+ */
+const INGRESS_OWN_NAMES = ["localhost", "ingress"];
+
+// A host name as two can be compared: lower case, no brackets, no trailing dot.
+const comparableHostname = (hostname) => {
+  let text = String(hostname || "")
+    .trim()
+    .toLowerCase();
+
+  if (text.startsWith("[") && text.endsWith("]")) {
+    text = text.slice(1, -1);
+  }
+
+  return text.endsWith(".") ? text.slice(0, -1) : text;
+};
+
+const PROXY_GUIDE = `${DOCS_URL}#use-your-own-reverse-proxy`;
+
+/*
+ * Pure: whether whatever stands in front of OneUptime - a reverse proxy, a
+ * load balancer, a CDN - passes on what the browser asked for (#7050), from
+ * the answer to the proof request addressFindings reads: the app says the
+ * host name the request reached it with and whether it took it for HTTPS
+ * (`request`, CustomDomainServerReadiness.answerTo). Nothing to say when the
+ * request did not reach this OneUptime (addressFindings says so), or when
+ * the server is older and does not say.
+ *
+ *   - The host name. OneUptime's ingress routes by it: HOST, localhost and
+ *     ingress reach the application, and any other name is served as a
+ *     status page's custom domain. A proxy that sends its upstream's name
+ *     instead of the browser's (Nginx's default) sends HOST's visitors
+ *     there: "OneUptime is not set up for this address", sign-in "Page not
+ *     found". The app reads the Host header alone, never X-Forwarded-Host.
+ *   - The scheme. A proxy that ends TLS and sends no X-Forwarded-Proto makes
+ *     the app take HTTPS visitors for plain HTTP: links it writes for status
+ *     pages start with http://, the sign-in cookies of status pages and
+ *     dashboards on custom domains are not kept on HTTPS, and Twilio's calls
+ *     to incoming call policies fail their signature check.
+ *
+ * Who a visitor is (X-Forwarded-For) is the Health page's "Visitors share an
+ * address" card, which reads it from real sign-ins: one request from this
+ * server cannot tell a proxy that drops it from no proxy at all.
+ */
+const proxyFindings = (publicUrl, host, response) => {
+  const seen =
+    response && response.status === 200 && response.json
+      ? response.json.request
+      : null;
+
+  if (!seen || typeof seen !== "object") {
+    return [];
+  }
+
+  const findings = [];
+  const expected = comparableHostname(splitHost(host).hostname);
+  const reached =
+    typeof seen.host === "string" ? comparableHostname(seen.host) : "";
+  const hostFix =
+    "Have the proxy pass on the Host header the browser sent: Caddy and Traefik do unless told otherwise, Nginx with proxy_set_header Host $host; and Apache with ProxyPreserveHost On. A cloud load balancer passes it on.";
+
+  if (reached !== expected) {
+    const as = reached ? `as ${reached}` : "with no host name it could read";
+
+    findings.push(
+      INGRESS_OWN_NAMES.indexOf(reached) !== -1
+        ? finding(
+            "warn",
+            `A proxy in front of OneUptime changes the host name: a request to ${publicUrl} reached OneUptime ${as}. The dashboard still opens, but status pages and dashboards on their own domains cannot be served through this proxy.`,
+            `${hostFix} See ${PROXY_GUIDE}`,
+          )
+        : finding(
+            "fix",
+            `A proxy in front of OneUptime changes the host name: a request to ${publicUrl} reached OneUptime ${as}, so people who open ${publicUrl} get "OneUptime is not set up for this address", and signing in fails.`,
+            `${hostFix} See ${PROXY_GUIDE}`,
+          ),
+    );
+  }
+
+  if (publicUrl.indexOf("https:") === 0 && seen.isHttps === false) {
+    findings.push(
+      finding(
+        "warn",
+        `A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to ${publicUrl} for plain HTTP. Links it writes for status pages start with http://, the sign-in cookies of status pages and dashboards on custom domains are not kept on HTTPS, and Twilio's calls to incoming call policies are refused.`,
+        `Have the proxy send X-Forwarded-Proto: https. Caddy, Traefik and cloud load balancers send it; in Nginx add proxy_set_header X-Forwarded-Proto $scheme; See ${PROXY_GUIDE}`,
+      ),
+    );
+  }
+
+  if (findings.length === 0) {
+    findings.push(
+      finding(
+        "ok",
+        `Requests to ${publicUrl} reach OneUptime with their host name${publicUrl.indexOf("https:") === 0 ? " and as HTTPS" : ""}.`,
+      ),
+    );
+  }
+
+  return findings;
+};
+
+/*
  * Pure: the certificate HOST presents on port 443, when PROVISION_SSL is
  * on. `certificate` is { authorized, authorizationError, subject, issuer,
  * validTo, altNames } or { error }; `sslLog` the app's last CoreSSL lines.
@@ -1031,15 +1138,14 @@ const run = async (options) => {
   const host = String(settings.get("HOST") || "").trim();
 
   if (addressProof && publicUrl && !isLoopbackOrEmpty(host)) {
-    add(
-      addressFindings(
-        publicUrl,
-        await request(
-          `${publicUrl}/status-page-api/custom-domain-readiness/${addressProof}`,
-          {},
-        ),
-      ),
+    const reached = await request(
+      `${publicUrl}/status-page-api/custom-domain-readiness/${addressProof}`,
+      {},
     );
+
+    add(addressFindings(publicUrl, reached));
+    // And whether a proxy in front passed on the host name and the scheme.
+    add(proxyFindings(publicUrl, host, reached));
   }
 
   const hostname = splitHost(host).hostname;
@@ -1201,6 +1307,7 @@ module.exports = {
   serverFixOf,
   serverFindings,
   addressFindings,
+  proxyFindings,
   certificateFindings,
   diskFindings,
   summaryOf,

@@ -34,6 +34,7 @@ const {
   serverFixOf,
   serverFindings,
   addressFindings,
+  proxyFindings,
   certificateFindings,
   diskFindings,
   summaryOf,
@@ -893,6 +894,184 @@ describe("HOST, from outside the containers", () => {
   });
 });
 
+/*
+ * #7050: the server says how the doctor's request to HOST reached it - the
+ * host name and whether it took it for HTTPS - so a proxy in front that does
+ * not pass them on is named, with the fix for the proxies people run.
+ */
+describe("a proxy in front of OneUptime", () => {
+  const PUBLIC_URL = "https://oneuptime.example.com";
+  const reachedAs = (request) => {
+    const json = { proof: "0123abcd.signature", request: request };
+
+    return { status: 200, body: JSON.stringify(json), json: json };
+  };
+
+  test("that passes on the host name and HTTPS is one passing line", () => {
+    expect(
+      proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: "oneuptime.example.com", isHttps: true }),
+      ),
+    ).toEqual([
+      finding(
+        "ok",
+        "Requests to https://oneuptime.example.com reach OneUptime with their host name and as HTTPS.",
+      ),
+    ]);
+  });
+
+  test.each([
+    ["the proxy's upstream address", "127.0.0.1"],
+    ["the proxy's own name for OneUptime", "oneuptime-upstream"],
+    ["another site's name", "status.example.org"],
+  ])(
+    "that sends %s instead of the host name is something to fix: HOST's visitors are served as a status page's domain",
+    (_label, seenHost) => {
+      const found = proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: seenHost, isHttps: true }),
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("fix");
+      expect(found[0].message).toBe(
+        `A proxy in front of OneUptime changes the host name: a request to https://oneuptime.example.com reached OneUptime as ${seenHost}, so people who open https://oneuptime.example.com get "OneUptime is not set up for this address", and signing in fails.`,
+      );
+      expect(found[0].fix).toContain("proxy_set_header Host $host;");
+      expect(found[0].fix).toContain("ProxyPreserveHost On");
+      expect(found[0].fix).toContain(
+        "https://oneuptime.com/docs/installation/docker-compose#use-your-own-reverse-proxy",
+      );
+    },
+  );
+
+  test.each(["localhost", "ingress"])(
+    "that sends %s, a name OneUptime's ingress still serves the dashboard on, is worth a look: custom domains cannot work through it",
+    (seenHost) => {
+      const found = proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: seenHost, isHttps: true }),
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("warn");
+      expect(found[0].message).toContain(`reached OneUptime as ${seenHost}.`);
+      expect(found[0].message).toContain(
+        "status pages and dashboards on their own domains cannot be served through this proxy",
+      );
+    },
+  );
+
+  test("that sends no host name OneUptime can read is something to fix", () => {
+    const found = proxyFindings(
+      PUBLIC_URL,
+      "oneuptime.example.com",
+      reachedAs({ host: null, isHttps: true }),
+    );
+
+    expect(found[0].level).toBe("fix");
+    expect(found[0].message).toContain(
+      "reached OneUptime with no host name it could read",
+    );
+  });
+
+  test.each([
+    [
+      "with a port in HOST",
+      "oneuptime.example.com:8443",
+      "oneuptime.example.com",
+    ],
+    ["in other capitals", "OneUptime.Example.com", "oneuptime.example.com"],
+    ["with a trailing dot", "oneuptime.example.com.", "oneuptime.example.com"],
+    ["an IPv6 address in brackets", "[2001:db8::1]:8443", "[2001:db8::1]"],
+    [
+      "an IPv6 address the server names without them",
+      "[2001:db8::1]",
+      "2001:db8::1",
+    ],
+  ])(
+    "the same host name %s is the host name passed on",
+    (_label, host, seenHost) => {
+      expect(
+        proxyFindings(
+          PUBLIC_URL,
+          host,
+          reachedAs({ host: seenHost, isHttps: true }),
+        ).map((entry) => {
+          return entry.level;
+        }),
+      ).toEqual(["ok"]);
+    },
+  );
+
+  test("that ends TLS and drops X-Forwarded-Proto is worth a look, with what goes wrong and the fix", () => {
+    const found = proxyFindings(
+      PUBLIC_URL,
+      "oneuptime.example.com",
+      reachedAs({ host: "oneuptime.example.com", isHttps: false }),
+    );
+
+    expect(found.length).toBe(1);
+    expect(found[0].level).toBe("warn");
+    expect(found[0].message).toBe(
+      "A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to https://oneuptime.example.com for plain HTTP. Links it writes for status pages start with http://, the sign-in cookies of status pages and dashboards on custom domains are not kept on HTTPS, and Twilio's calls to incoming call policies are refused.",
+    );
+    expect(found[0].fix).toContain("X-Forwarded-Proto: https");
+    expect(found[0].fix).toContain(
+      "proxy_set_header X-Forwarded-Proto $scheme;",
+    );
+    expect(found[0].fix).toContain("Caddy, Traefik and cloud load balancers");
+  });
+
+  test("both at once are both said, the host name first", () => {
+    expect(
+      proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: "127.0.0.1", isHttps: false }),
+      ).map((entry) => {
+        return entry.level;
+      }),
+    ).toEqual(["fix", "warn"]);
+  });
+
+  test("over plain HTTP, the scheme is not asked about", () => {
+    expect(
+      proxyFindings(
+        "http://oneuptime.example.com",
+        "oneuptime.example.com",
+        reachedAs({ host: "oneuptime.example.com", isHttps: false }),
+      ),
+    ).toEqual([
+      finding(
+        "ok",
+        "Requests to http://oneuptime.example.com reach OneUptime with their host name.",
+      ),
+    ]);
+  });
+
+  test.each([
+    [
+      "HOST did not reach this OneUptime",
+      { status: 404, body: "", json: null },
+    ],
+    ["no answer", { error: "ETIMEDOUT" }],
+    [
+      "an older server, which does not say how the request arrived",
+      { status: 200, body: "{}", json: { proof: "0123abcd.signature" } },
+    ],
+    ["an answer that is no JSON", { status: 200, body: "OK", json: null }],
+  ])("nothing is said when %s", (_label, response) => {
+    expect(
+      proxyFindings(PUBLIC_URL, "oneuptime.example.com", response),
+    ).toEqual([]);
+  });
+});
+
 describe("the certificate, when PROVISION_SSL is on", () => {
   test("issued and far from expiry: who issued it and until when", () => {
     expect(
@@ -1333,6 +1512,56 @@ describe("npm run doctor", () => {
       method: "GET",
       headers: {},
     });
+  });
+
+  test("a proxy in front that rewrites the host name and drops X-Forwarded-Proto is named, each with its fix, and the doctor exits 1 (#7050)", async () => {
+    const reached = {
+      proof: "0123abcd.signature",
+      request: { host: "127.0.0.1", isHttps: false },
+    };
+    const result = await runDoctor({
+      config: healthyConfig(["PROVISION_SSL=false"]),
+      network: {
+        address: {
+          status: 200,
+          body: JSON.stringify(reached),
+          json: reached,
+        },
+      },
+    });
+
+    expect(result.output).toContain(
+      '  ✗ A proxy in front of OneUptime changes the host name: a request to https://oneuptime.example.com reached OneUptime as 127.0.0.1, so people who open https://oneuptime.example.com get "OneUptime is not set up for this address", and signing in fails.\n      Fix: Have the proxy pass on the Host header the browser sent:',
+    );
+    expect(result.output).toContain(
+      "  ! A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to https://oneuptime.example.com for plain HTTP.",
+    );
+    // HOST still reaches this OneUptime: only the proxy's headers are wrong.
+    expect(result.output).not.toContain("but not as this OneUptime");
+    expect(result.output).toContain("1 thing to fix, and 1 worth a look.");
+    expect(result.code).toBe(1);
+  });
+
+  test("a proxy that passes on the host name and HTTPS says so with --all, and nothing without it", async () => {
+    const reached = {
+      proof: "0123abcd.signature",
+      request: { host: "oneuptime.example.com", isHttps: true },
+    };
+    const network = {
+      address: { status: 200, body: JSON.stringify(reached), json: reached },
+    };
+
+    const quiet = await runDoctor({ network: network });
+
+    expect(quiet.output).not.toContain("A proxy in front");
+    expect(quiet.output).toContain("Everything looks right.");
+    expect(quiet.code).toBe(0);
+
+    const all = await runDoctor({ network: network, argv: ["--all"] });
+
+    expect(all.output).toContain(
+      "  ✓ Requests to https://oneuptime.example.com reach OneUptime with their host name and as HTTPS.",
+    );
   });
 
   test("the ingress on another port is checked there", async () => {

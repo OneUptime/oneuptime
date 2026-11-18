@@ -6,6 +6,7 @@ import DnsLookup, {
   DnsLookupFailure,
 } from "../../../../Server/Utils/CustomDomain/DnsLookup";
 import Domain from "../../../../Server/Types/Domain";
+import { ExpressRequest } from "../../../../Server/Utils/Express";
 import CustomDomainServerReadinessJSON, {
   CustomDomainReadinessCheck,
   CustomDomainReadinessCheckId,
@@ -206,6 +207,106 @@ describe("the readiness proof", () => {
         CustomDomainServerReadiness.createProof(),
       ),
     ).toBe(true);
+  });
+});
+
+/*
+ * What the readiness address answers a valid proof (#7050): the proof, and
+ * how the request reached the app, so `npm run doctor` and diagnose.sh can
+ * tell whether a proxy in front of OneUptime passes on the host name and
+ * the scheme the browser used.
+ */
+describe("the readiness answer to a valid proof", () => {
+  const PROOF: string = `${"a".repeat(32)}.${"b".repeat(64)}`;
+
+  function arrived(data: {
+    headers: Record<string, string | Array<string>>;
+    secure?: boolean;
+  }): ExpressRequest {
+    return {
+      headers: data.headers,
+      secure: data.secure === true,
+    } as unknown as ExpressRequest;
+  }
+
+  test("says the host name the request named and that it came over HTTPS", () => {
+    expect(
+      CustomDomainServerReadiness.answerTo({
+        proof: PROOF,
+        req: arrived({
+          headers: { host: "oneuptime.example.com" },
+          secure: true,
+        }),
+      }),
+    ).toEqual({
+      proof: PROOF,
+      request: { host: "oneuptime.example.com", isHttps: true },
+    });
+  });
+
+  test("says plain HTTP when the app took the request for it", () => {
+    expect(
+      CustomDomainServerReadiness.answerTo({
+        proof: PROOF,
+        req: arrived({ headers: { host: "oneuptime.example.com" } }),
+      })["request"],
+    ).toEqual({ host: "oneuptime.example.com", isHttps: false });
+  });
+
+  test.each([
+    [
+      "the host a proxy rewrote it to, with its port",
+      "127.0.0.1:8080",
+      "127.0.0.1",
+    ],
+    [
+      "a name in capitals, with a trailing dot",
+      "OneUptime.Example.COM.",
+      "oneuptime.example.com",
+    ],
+  ])(
+    "names %s as a host name alone",
+    (_label: string, host: string, named: string) => {
+      expect(
+        CustomDomainServerReadiness.answerTo({
+          proof: PROOF,
+          req: arrived({ headers: { host: host } }),
+        })["request"],
+      ).toEqual({ host: named, isHttps: false });
+    },
+  );
+
+  test.each([
+    ["no Host header", {}],
+    [
+      "a Host header that is no host name",
+      { host: "evil.example.com/<script>" },
+    ],
+    ["a Host header with a user in it", { host: "user@oneuptime.example.com" }],
+  ])(
+    "says no host for %s",
+    (_label: string, headers: Record<string, string>) => {
+      expect(
+        CustomDomainServerReadiness.answerTo({
+          proof: PROOF,
+          req: arrived({ headers: headers }),
+        })["request"],
+      ).toEqual({ host: null, isHttps: false });
+    },
+  );
+
+  test("never reads X-Forwarded-Host, which a caller writes", () => {
+    expect(
+      CustomDomainServerReadiness.answerTo({
+        proof: PROOF,
+        req: arrived({
+          headers: {
+            host: "127.0.0.1",
+            "x-forwarded-host": "oneuptime.example.com",
+          },
+        }),
+      })["request"],
+    ).toEqual({ host: "127.0.0.1", isHttps: false });
   });
 });
 
