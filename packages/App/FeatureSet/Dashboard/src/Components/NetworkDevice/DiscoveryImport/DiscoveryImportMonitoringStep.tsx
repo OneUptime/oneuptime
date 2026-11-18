@@ -58,6 +58,7 @@ import {
   NO_DEVICE_MONITOR_TEMPLATE_REASON,
   POLL_TEMPLATES_GROUP_TITLE,
   UNNAMED_TEMPLATE_NAME,
+  describeAddressTemplate,
 } from "./DiscoveryImportTemplateCopy";
 
 /*
@@ -157,45 +158,6 @@ export function getTemplateChoiceName(
   return (
     choice.name || (translator.translateText(UNNAMED_TEMPLATE_NAME) as string)
   );
-}
-
-/*
- * What a Ping, IP, Port or NTP template's monitor does, in the words its
- * option in the list carries under its name.
- */
-export function describeAddressTemplate(
-  translator: Translator,
-  choice: DiscoveryImportTemplateChoice,
-): string {
-  if (choice.monitorType === MonitorType.IP) {
-    return translator.translateText("Pings each device's IP address") as string;
-  }
-
-  if (choice.monitorType === MonitorType.Port) {
-    const ports: Array<number> = choice.ports || [];
-
-    if (ports.length === 1) {
-      return translator.translateTemplate(
-        "Checks port {{port}} on each device",
-        { port: String(ports[0]) },
-      );
-    }
-
-    if (ports.length > 1) {
-      return translator.translateTemplate(
-        "Checks ports {{ports}} on each device",
-        { ports: ports.join(", ") },
-      );
-    }
-
-    return translator.translateText("Checks a port on each device") as string;
-  }
-
-  if (choice.monitorType === MonitorType.NTP) {
-    return translator.translateText("Asks each device for the time") as string;
-  }
-
-  return translator.translateText("Pings each device") as string;
 }
 
 /*

@@ -93,17 +93,20 @@ export interface AutoImportRuleRunResult {
   // Matched hosts whose create threw. Logged server-side, never fatal.
   devicesFailed: number;
   /*
-   * Active Network Device monitors a dry run predicts it would create from
-   * the rule's selected Monitor Template. Always zero on a real run: real
-   * work is counted by monitorsCreated / monitorsFailed instead.
+   * Active monitors a dry run predicts it would create from the rule's
+   * selected Monitor Template - a Network Device, Ping, IP, Port or NTP one
+   * (issue #9510). Always zero on a real run: real work is counted by
+   * monitorsCreated / monitorsFailed instead.
    */
   monitorsWouldCreate: number;
-  // Active Network Device monitors actually created and linked to a template.
+  // Active monitors actually created and linked to a template.
   monitorsCreated: number;
   /*
-   * Matched devices left alone because a Network Device monitor already
-   * watches them. Existing manual monitors count too: automation must never
-   * add a duplicate simply because it did not create the first one.
+   * Matched devices left alone because they already have the monitor: one
+   * from the same template, one of the same kind that checks the same thing
+   * (issue #9509), or - for a Network Device template - a Network Device
+   * monitor configured by hand. Automation must never add a duplicate simply
+   * because it did not create the first one.
    */
   monitorsSkippedAlreadyExisting: number;
   /*
@@ -121,7 +124,7 @@ export interface AutoImportRuleRunResult {
    * identical sentence. See OneUptime/oneuptime#3643.
    */
   deviceFailureReasons: Array<string>;
-  // Why active Network Device monitors could not be created. Same contract.
+  // Why active monitors could not be created. Same contract.
   monitorFailureReasons: Array<string>;
   /*
    * True when the run stopped ATTEMPTING monitor creates because the failure
@@ -240,10 +243,12 @@ function discoveredHosts(count: number): string {
   return `${count} discovered ${count === 1 ? "host" : "hosts"}`;
 }
 
+/*
+ * Monitors of any kind a rule's template makes: a Network Device template's,
+ * or a Ping, IP, Port or NTP template's (issue #9510).
+ */
 function activeMonitors(count: number): string {
-  return `${count} active Network Device ${
-    count === 1 ? "monitor" : "monitors"
-  }`;
+  return `${count} active ${count === 1 ? "monitor" : "monitors"}`;
 }
 
 /*
@@ -318,7 +323,7 @@ function mergeReasons(lists: Array<Array<string>>): Array<string> {
 
 /*
  * What a capped run left behind, as a phrase — "409 hosts still to import",
- * "409 active Network Device monitors still to create", or both.
+ * "409 active monitors still to create", or both.
  *
  * The two halves of the work have separate caps, so either can be the only
  * thing left over: an estate that is fully imported but unmonitored hits the
@@ -401,7 +406,7 @@ export class RuleRunResultUtil {
       /*
        * A backfill run over an estate that is ALREADY imported creates no
        * devices at all, and the flat "No devices were imported" read as a
-       * failure right above "Created 500 active Network Device monitors".
+       * failure right above "Created 500 active monitors".
        * Name what did not happen precisely instead.
        */
       lines.push(
@@ -439,13 +444,13 @@ export class RuleRunResultUtil {
     if (result.monitorsSkippedAlreadyExisting > 0) {
       const skippedRequestedMonitors: string = `${
         result.monitorsSkippedAlreadyExisting
-      } requested active Network Device ${
+      } requested active ${
         result.monitorsSkippedAlreadyExisting === 1 ? "monitor" : "monitors"
       }`;
       lines.push(
         `${skippedRequestedMonitors} ${
           result.monitorsSkippedAlreadyExisting === 1 ? "was" : "were"
-        } skipped because the device already had the requested automatic monitor or a manually configured Network Device monitor.`,
+        } skipped because the device already had one: from the same template, a monitor of the same kind that checks the same thing, or a Network Device monitor configured by hand.`,
       );
     }
 

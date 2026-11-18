@@ -8,7 +8,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Column from "Common/UI/Components/ModelTable/Column";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -21,8 +24,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Route from "Common/Types/API/Route";
+import { DEVICE_MONITOR_TEMPLATE_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -31,11 +38,17 @@ import React, {
 } from "react";
 import { Blue, Red } from "Common/Types/BrandColors";
 import {
+  AUTO_IMPORT_MONITOR_TEMPLATE_SELECT,
+  NO_DEVICE_MONITOR_TEMPLATE_YET,
   canSelectAutoImportMonitorTemplate,
+  getAutoImportMonitorTemplateOptions,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
 } from "./AutoImportRuleFormUtil";
 import { getPollingIntervalOptions } from "../../../Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels";
+import { LISTED_TEMPLATE_KINDS_RULE } from "../../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 const networkDeviceAutoImportDocumentation: string = `
 An auto import rule turns what a discovery scan finds into network devices for you: every host it matches is imported as the scan reports it, with no **Review Results** and **Import** by hand. Site, owner and label rules then apply to the new devices as usual.
@@ -64,12 +77,14 @@ Only hosts that answered SNMP are imported, unless you turn on **Include Ping-On
 
 ## Monitors for Imported Devices
 
-Pick a **Network Device Monitor Template** to give each imported device a monitor too, made from the template's criteria, probe agreement, custom fields and labels, with your monitor label and owner rules applied. It is the same choice **Review Results** offers. Without a template, a rule only adds devices to the inventory.
+Pick a **Monitor Template** to give each imported device a monitor too, made from the template's criteria, interval, probe agreement, custom field defaults and labels, with your monitor label and owner rules applied. It is the same choice **Review Results** offers. Without a template, a rule only adds devices to the inventory.
 
-- Each monitor is active, and may count towards your plan. The template must be this project's, of the **Network Device** monitor type.
-- A host that only answers ping gets a monitor too: its reachability check fires, and its SNMP checks wait until the device has credentials.
+- The template is a **Network Device** template, whose monitor reads what each device's polls find, or a **Ping**, **IP**, **Port** or **NTP** template, whose monitor checks each device's own address, from the probe that polls the device. Templates of other kinds cannot check a device and are not listed. **Manage templates** opens your templates in a new tab.
+- Each monitor is active, and may count towards your plan. The template must be this project's.
+- A host that only answers ping gets a monitor too: a Network Device template's reachability check fires, and its SNMP checks wait until the device has credentials.
 - A monitor is named after the device (its sysName, or its address). A template's **Default Monitor Name** is added after it (\`UN0660WANRTR01 - Unit Router\`), which tells two templates apart on one device.
-- Running a rule again adds a missing monitor, even for a device an earlier scan added, and leaves an existing Network Device monitor alone. Rules that pick the same template make one monitor; different templates make one each.
+- A device never gets a second monitor of the same kind. A device that already has a monitor from the template, or a Ping, IP, NTP or Port monitor that checks the same thing (a Port or NTP monitor on the same port), from another template or bound to it, is counted as already monitored. A monitor of another kind is still added: a Ping monitor beside a Network Device one.
+- Running a rule again adds a missing monitor, even for a device an earlier scan added, and leaves an existing Network Device monitor alone. Rules that pick the same template make one monitor; different Network Device templates make one each.
 - Changing a rule's template never deletes or rewrites the monitors it made before. Delete the old monitor and let the rule make the new one.
 
 SNMP health OIDs, interface walking and endpoint collection stay settings of the device itself.
@@ -108,9 +123,18 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
     new NetworkDeviceOidTemplate(),
   );
 
-  const fetchNetworkDeviceMonitorTemplates: () => Promise<
-    Array<DropdownOption>
-  > = async (): Promise<Array<DropdownOption>> => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * Every template a device's monitor can be made from (issue #9510): a
+   * Network Device one, whose monitor reads each device's polls, or a Ping,
+   * IP, Port or NTP one, whose monitor checks each device's address - the
+   * kinds Review Results offers. Read each time the Monitor step opens, so a
+   * template made in the tab Manage templates opens is there on coming back.
+   */
+  const fetchDeviceMonitorTemplates: () => Promise<
+    Array<DropdownOption | DropdownOptionGroup>
+  > = async (): Promise<Array<DropdownOption | DropdownOptionGroup>> => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
@@ -122,24 +146,17 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         modelType: MonitorTemplate,
         query: {
           projectId: projectId,
-          monitorType: MonitorType.NetworkDevice,
+          monitorType: new Includes([...DEVICE_MONITOR_TEMPLATE_TYPES]),
         },
-        select: {
-          _id: true,
-          templateName: true,
-        },
+        select: AUTO_IMPORT_MONITOR_TEMPLATE_SELECT,
         sort: { templateName: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
       });
 
-    return result.data.map((template: MonitorTemplate): DropdownOption => {
-      return {
-        value: template.id?.toString() || "",
-        label: template.templateName || "Unnamed Network Device template",
-        // Its own name as written; the word for none in the reader's words.
-        isUserContent: Boolean(template.templateName),
-      };
+    return getAutoImportMonitorTemplateOptions({
+      templates: result.data,
+      translator: translator,
     });
   };
 
@@ -502,15 +519,14 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             ? [
                 {
                   field: { monitorTemplate: true },
-                  title: "Network Device Monitor Template",
+                  /*
+                   * "Monitor Template", as the rules table's column says:
+                   * it is no longer a Network Device template only (issue
+                   * #9510).
+                   */
+                  title: "Monitor Template",
                   stepId: "monitor",
                   sectionTitle: "Optional Alerting",
-                  sectionDescription:
-                    "Leave it empty to import devices without monitors. A template gives each device a monitor, which may be billed.",
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
-                  required: false,
-                  placeholder: "Import device only (no monitor)",
                   /*
                    * The custom fields half names where they are SET, because
                    * that is what issue #3548 could not find: the values were
@@ -518,8 +534,23 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                    * device's monitor, and the template had nowhere to enter
                    * them until the Custom Field Defaults card existed.
                    */
-                  description:
-                    "Each monitor copies this template's criteria, interval, labels and custom field defaults.",
+                  sectionDescription:
+                    "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  fetchDropdownOptions: fetchDeviceMonitorTemplates,
+                  required: false,
+                  placeholder: "Import device only (no monitor)",
+                  // Which templates are listed, worded as Review Results words it.
+                  description: LISTED_TEMPLATE_KINDS_RULE,
+                  // How to make one, in a new tab so the form is kept.
+                  sideLink: {
+                    text: "Manage templates",
+                    url: RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,
+                    ),
+                    openLinkInNewTab: true,
+                  },
+                  noOptionsText: NO_DEVICE_MONITOR_TEMPLATE_YET,
                   showIf: canSelectAutoImportMonitorTemplate,
                 },
               ]

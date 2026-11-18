@@ -56964,6 +56964,8 @@
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.": "此人的会话可能早于这些数字保留的 {{count}} 个月，也可能已被清除。",
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased._one": "此人的会话可能早于这些数字保留的 {{count}} 个月，也可能已被清除。",
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "过去一小时内向此地址发送的邀请过多。您可以在 {{time}} 之后重新发送。",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "留空则只导入设备。每个监视器都会复制模板的条件、间隔、标签和自定义字段默认值，可能会产生费用。",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "还没有网络设备、Ping、IP、端口或 NTP 监视器模板。通过“管理模板”创建一个，回到此步骤时它就会出现在列表中。",
   "{{count}} months (default)": "{{count}} 个月（默认）",
   "{{count}} months (default)_one": "{{count}} 个月（默认）"
 }

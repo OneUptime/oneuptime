@@ -88,6 +88,14 @@ import useActiveDiscoveryImports, {
   ActiveDiscoveryImports,
 } from "../DiscoveryImport/useActiveDiscoveryImports";
 import AddDiscoveredDevicesDialog from "./AddDiscoveredDevicesDialog";
+import DeviceMonitorsLink from "../DeviceMonitorsLink";
+import {
+  DeviceMonitorsByKey,
+  DeviceMonitorsSummary,
+  emptyDeviceMonitorsByKey,
+  getMonitorsOfRow,
+  loadDeviceMonitors,
+} from "../DeviceMonitorsOfDevices";
 import DiscoveredDeviceFilterBar from "./DiscoveredDeviceFilterBar";
 import {
   DiscoveredDeviceChip,
@@ -145,6 +153,9 @@ import DiscoveredDeviceRetentionCopy, {
  *  - Add to monitoring: the discovery import's own pipeline and its
  *    Monitoring step (AddDiscoveredDevicesDialog). It runs on the server, so
  *    the dialog can be closed; the strip over the table says how far it got.
+ *    A row that is a device already is not offered it: it says Monitored,
+ *    links to the device and, when it has one, to its monitor - or to its
+ *    monitors - so nobody gives it a second (issue #9509).
  *  - Hide from map / Show on map: the map's own suppressions, written in one
  *    request for the whole selection. Nothing is deleted, and a monitored
  *    device is never hidden: the map draws it as the device it is.
@@ -396,6 +407,44 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
     useState<DiscoveredDeviceItem | null>(null);
 
   const activeImports: ActiveDiscoveryImports = useActiveDiscoveryImports();
+
+  /*
+   * The monitors of the page's monitored rows (issue #9509): read once per
+   * page of rows, as the reader. A read that fails leaves each row with its
+   * device's link alone.
+   */
+  const [deviceMonitors, setDeviceMonitors] = useState<DeviceMonitorsByKey>(
+    emptyDeviceMonitorsByKey(),
+  );
+  const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
+  const monitoredDeviceIdsOnPage: string = rows
+    .map((row: DiscoveredDeviceItem): string => {
+      return row.monitoredDevice?.id || "";
+    })
+    .filter((id: string): boolean => {
+      return Boolean(id);
+    })
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    if (!monitoredDeviceIdsOnPage) {
+      return;
+    }
+
+    monitorsRequestRef.current += 1;
+    const request: number = monitorsRequestRef.current;
+
+    loadDeviceMonitors({ deviceIds: monitoredDeviceIdsOnPage.split(",") })
+      .then((loaded: DeviceMonitorsByKey) => {
+        if (request === monitorsRequestRef.current) {
+          setDeviceMonitors(loaded);
+        }
+      })
+      .catch(() => {
+        // Each monitored row keeps its device's link.
+      });
+  }, [monitoredDeviceIdsOnPage, reloadToken]);
 
   const sort: {
     sort: DiscoveredDeviceSort;
@@ -1010,6 +1059,14 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       disableSort: true,
       getElement: (item: DiscoveredDeviceItem): ReactElement => {
         const state: DiscoveredDeviceState = getDiscoveredDeviceState(item);
+        // Its monitor, or monitors, when the device has any (issue #9509).
+        const monitors: DeviceMonitorsSummary | undefined =
+          state === DiscoveredDeviceState.Monitored
+            ? getMonitorsOfRow({
+                monitors: deviceMonitors,
+                deviceId: item.monitoredDevice?.id,
+              })
+            : undefined;
 
         return (
           <div className="space-y-0.5">
@@ -1032,6 +1089,17 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
                       DISCOVERED_DEVICES_COPY.viewDevice,
                     )}
                 </Link>
+              </div>
+            ) : (
+              <></>
+            )}
+            {monitors ? (
+              <div className="flex min-w-0">
+                <DeviceMonitorsLink
+                  summary={monitors}
+                  className="text-xs"
+                  dataTestId={`discovered-device-monitor-link-${item.id}`}
+                />
               </div>
             ) : (
               <></>

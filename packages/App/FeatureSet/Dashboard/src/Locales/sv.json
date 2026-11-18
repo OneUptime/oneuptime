@@ -56964,6 +56964,8 @@
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.": "Personens sessioner kan vara äldre än de {{count}} månader som de här siffrorna sparas, eller så kan de ha raderats.",
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased._one": "Personens sessioner kan vara äldre än den {{count}} månad som de här siffrorna sparas, eller så kan de ha raderats.",
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Lämna tomt för att bara importera enheter. Varje övervakning kopierar mallens kriterier, intervall, etiketter och standardvärden för anpassade fält, och kan debiteras.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ingen övervakningsmall för nätverksenheter, Ping, IP, Port eller NTP ännu. Skapa en med ”Hantera mallar”, så visas den när du kommer tillbaka till det här steget.",
   "{{count}} months (default)": "{{count}} månader (standard)",
   "{{count}} months (default)_one": "{{count}} månad (standard)"
 }
