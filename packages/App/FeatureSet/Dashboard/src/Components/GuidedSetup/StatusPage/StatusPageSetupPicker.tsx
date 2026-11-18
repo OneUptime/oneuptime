@@ -152,7 +152,7 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
           </div>
           {labelOptions.length > 0 ? (
             <div
-              className="min-w-0 sm:w-56"
+              className="min-w-0 sm:w-72"
               data-testid="guided-setup-label-filter"
             >
               <Dropdown
