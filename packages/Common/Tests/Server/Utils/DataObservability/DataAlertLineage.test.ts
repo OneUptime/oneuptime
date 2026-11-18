@@ -411,6 +411,7 @@ describe("the way up to the alert that caused it", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
     expect(nodeOf(lineage, tn(3))).toBeDefined();
     expect(lineage.depth).toBe(DEFAULT_DATA_LINEAGE_DEPTH);
@@ -556,6 +557,7 @@ describe("the way up to the alert that caused it", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
     expect(drawnNode(lineage, pn(1))).toMatchObject({
       kind: DataLineageNodeKind.Pipeline,
@@ -594,6 +596,7 @@ describe("the way up to the alert that caused it", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [p(1)],
       causeDataPipelineIds: [p(1)],
+      consequenceDataPipelineIds: [],
     });
     // Named on its arrows, as the drawing names a pipeline.
     expect(
@@ -765,6 +768,7 @@ describe("the ways down to the alerts it caused", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [p(2)],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [p(2)],
     });
   });
 
@@ -941,6 +945,7 @@ describe("an alert on a pipeline", () => {
       consequenceNodeIds: sorted([tn(2), tn(3)]),
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
     // Upstream keeps its one step; t4 is counted on t3's card.
     expect(nodeOf(lineage, tn(0))).toBeUndefined();
@@ -969,6 +974,7 @@ describe("an alert on a pipeline", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
     expect(drawnNode(lineage, tn(0)).depth).toBe(-2);
   });
@@ -990,6 +996,7 @@ describe("an alert on a pipeline", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
   });
 
@@ -1014,6 +1021,7 @@ describe("an alert on a pipeline", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [],
     });
   });
 
@@ -1040,6 +1048,7 @@ describe("an alert on a pipeline", () => {
       consequenceNodeIds: [],
       dataPipelineIds: [p(2)],
       causeDataPipelineIds: [],
+      consequenceDataPipelineIds: [p(2)],
     });
   });
 });
@@ -1086,6 +1095,7 @@ describe("the cause's pipeline, named apart from the other pipelines on the ways
       consequenceNodeIds: [],
       dataPipelineIds: sorted([p(1), p(2)]),
       causeDataPipelineIds: [p(1)],
+      consequenceDataPipelineIds: [p(2)],
     });
   });
 
@@ -1135,6 +1145,33 @@ describe("the cause's pipeline, named apart from the other pipelines on the ways
 
     expect(highlight.dataPipelineIds).toEqual([p(2)]);
     expect(highlight.causeDataPipelineIds).toEqual([]);
+    // Its arrows say Consequence instead (#6853).
+    expect(highlight.consequenceDataPipelineIds).toEqual([p(2)]);
+  });
+
+  test("a run that is both the cause and on a way down to an alert it caused is named on both lists: each arrow tells by its way", async () => {
+    const graph: MemoryGraph = newGraph();
+    const alerts: MemoryAlerts = newAlerts();
+
+    for (const index of [0, 2, 5]) {
+      table(graph, t(index));
+    }
+
+    pipeline(graph, p(1), { jobName: "dbt_build", lastRunState: "FAIL" });
+    pipeline(graph, p(3), { jobName: "orders_mart" });
+    feeds(graph, t(2), t(0), { dataPipelineId: p(1) });
+    feeds(graph, t(0), t(5), { dataPipelineId: p(3) });
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alertOn(alerts, a(0), { table: 0 }, a(1));
+    alertOn(alerts, a(5), { pipeline: 3 }, a(0));
+
+    const highlight: DataLineageHighlight = highlightOf(
+      (await drawingFor(graph, alerts)).lineage,
+    );
+
+    expect(highlight.causeDataPipelineIds).toEqual([p(1)]);
+    expect(highlight.consequenceDataPipelineIds).toEqual([p(3)]);
+    expect(highlight.dataPipelineIds).toEqual(sorted([p(1), p(3)]));
   });
 
   test("a cause on the pipeline loading the table from outside is its card: it names no arrow's pipeline", async () => {
