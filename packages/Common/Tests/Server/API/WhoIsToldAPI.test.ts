@@ -286,22 +286,25 @@ describe("POST /who-is-told/draft", () => {
 
   test("a form the server cannot read is refused, and nothing is worked out", async () => {
     const refused: Array<[JSONObject, string]> = [
-      [{ monitorSteps: STEPS }, "monitorType is required."],
+      [{ monitorSteps: STEPS }, "Send the monitor's type as monitorType."],
       [
         { monitorType: "Not a type", monitorSteps: STEPS },
-        "monitorType is required.",
+        "Send the monitor's type as monitorType.",
       ],
-      [{ monitorType: MonitorType.Website }, "monitorSteps is required."],
+      [
+        { monitorType: MonitorType.Website },
+        "Send the monitor's steps as monitorSteps.",
+      ],
       [
         { monitorType: MonitorType.Website, monitorSteps: [] },
-        "monitorSteps is required.",
+        "Send the monitor's steps as monitorSteps.",
       ],
       [
         {
           monitorType: MonitorType.Website,
           monitorSteps: { _type: "Something else" },
         },
-        "monitorSteps could not be read.",
+        "OneUptime could not read monitorSteps. Send them as the Dashboard's monitor form does.",
       ],
       [
         {
@@ -309,7 +312,7 @@ describe("POST /who-is-told/draft", () => {
           monitorSteps: STEPS,
           monitorId: "not-an-id",
         },
-        "monitorId is not a monitor's id.",
+        "Send monitorId as the monitor's ID, or leave it out for a monitor not saved yet.",
       ],
     ];
 
@@ -409,7 +412,7 @@ describe("reading the request", () => {
     ).toBe(MONITOR.toString());
     expect(() => {
       return readMonitorIdParam({ params: {} } as unknown as ExpressRequest);
-    }).toThrow("monitorId is required.");
+    }).toThrow("Name the monitor by its ID.");
   });
 
   test("refresh is asked only by true or 1", () => {
