@@ -17,10 +17,12 @@ export interface ComponentProps {
  * code spans. Shared by the report, an incident's AI conversation and Ask
  * AI, so a mark looks the same wherever OneUptime AI cites. Proportional
  * figures: Inter's tabular "1" has a foot, and drew "C1" as typewriter
- * text.
+ * text. 11px, the size a chip's framed word is readable at
+ * (ReadableTextContrastGuard): a footnote's mark is smaller than the 12px
+ * inline code beside it.
  */
 export const CITATION_CHIP_CLASS_NAME: string =
-  "mx-0.5 inline-flex h-4 min-w-[1.375rem] items-center justify-center rounded-full px-1.5 align-[0.1em] text-xs font-semibold leading-none bg-gray-100 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "mx-0.5 inline-flex h-4 min-w-[1.375rem] items-center justify-center rounded-full px-1.5 align-[0.1em] text-[11px] font-semibold leading-none bg-gray-100 text-gray-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * An inline "[C11]" marker in the report prose, turned into a small button
