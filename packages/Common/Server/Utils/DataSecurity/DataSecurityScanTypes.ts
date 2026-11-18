@@ -1,3 +1,4 @@
+import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { JSONObject } from "../../../Types/JSON";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
@@ -40,6 +41,13 @@ export interface LocationFindings {
   location: string;
   locationKind: DataStoreLocationKind;
   classifications: Array<FieldClassification>;
+  /*
+   * A telemetry scan's only: by data type, the records of the sample whose
+   * value here held it, the newest first (FindingSampleRecord) - kept with
+   * the finding so its records are read again exactly. Absent for every
+   * other scan, which leaves a finding's kept records as they are.
+   */
+  sampleRecords?: Record<string, Array<FindingSampleRecord>> | undefined;
 }
 
 export interface ContentScanLimits {

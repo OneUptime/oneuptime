@@ -5,6 +5,12 @@ import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTab
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import {
+  FindingSampleRecord,
+  getFindingSampleRecordKey,
+  MAX_FINDING_SAMPLE_RECORDS,
+  toFindingSampleRecord,
+} from "../../../../Types/DataSecurity/FindingSampleRecord";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -550,11 +556,49 @@ function appendText(
   statement.append(alias);
 }
 
+// The sources whose records carry the trace and span they were written in.
+const SOURCES_WITH_TRACES: ReadonlySet<TelemetrySampleSource> = new Set([
+  TelemetrySampleSource.Logs,
+  TelemetrySampleSource.Traces,
+  TelemetrySampleSource.Exceptions,
+  TelemetrySampleSource.AiConversations,
+  TelemetrySampleSource.RumLogs,
+  TelemetrySampleSource.RumSpans,
+]);
+
+/*
+ * When each record was written, to the millisecond, and the keys that tell
+ * it from its neighbours - its trace and span, its session: a finding keeps
+ * the records it was found in (FindingSampleRecord). Light columns only.
+ */
+function appendSampleRecordKeys(
+  statement: Statement,
+  source: SourceDefinition,
+): void {
+  statement.append(", toUnixTimestamp64Milli(toDateTime64(");
+  statement.append(source.timeColumn);
+  statement.append(", 3)) AS readRecordTime");
+
+  if (SOURCES_WITH_TRACES.has(source.source)) {
+    statement.append(", traceId AS readTraceId, spanId AS readSpanId");
+  }
+
+  // A session's own rows read their sessionId with their columns.
+  if (
+    source.source === TelemetrySampleSource.RumLogs ||
+    source.source === TelemetrySampleSource.RumSpans
+  ) {
+    statement.append(", sessionId AS readSessionId");
+  }
+}
+
 function appendColumnsRead(
   statement: Statement,
   source: SourceDefinition,
   caps: TelemetrySampleCaps,
 ): void {
+  appendSampleRecordKeys(statement, source);
+
   switch (source.source) {
     case TelemetrySampleSource.Logs:
       appendText(statement, "body", "readBody", caps.textLength);
@@ -980,6 +1024,16 @@ class StoreSample {
   public readonly collector: FieldCollector;
   public readonly locationKinds: Map<string, DataStoreLocationKind> = new Map();
   public readonly valueCounts: Map<string, number> = new Map();
+  /*
+   * The record each value the collector holds came from, in the same order
+   * as its values at that location (null for a record with no time): the
+   * collector keeps every value it is handed while addValue lets one
+   * through, so the two stay aligned.
+   */
+  public readonly recordsByLocation: Map<
+    string,
+    Array<FindingSampleRecord | null>
+  > = new Map();
   public readonly seenSessions: Set<string> = new Set();
   public readonly reads: Array<SourceRead> = [];
   public readonly warnings: Array<string> = [];
@@ -1014,12 +1068,16 @@ class StoreSample {
     }
   }
 
-  // One value at one location, unless the scan leaves it out or is full.
+  /*
+   * One value at one location, unless the scan leaves it out or is full,
+   * and the record it came from.
+   */
   public addValue(
     location: string,
     locationKind: DataStoreLocationKind,
     value: string,
     context: ScanContext,
+    record: FindingSampleRecord | null = null,
   ): void {
     if (
       !value ||
@@ -1054,7 +1112,69 @@ class StoreSample {
     this.bytesRead += value.length;
     this.valueCounts.set(location, count + 1);
     this.collector.addValue(location, value);
+
+    const records: Array<FindingSampleRecord | null> =
+      this.recordsByLocation.get(location) || [];
+
+    records.push(record);
+    this.recordsByLocation.set(location, records);
   }
+}
+
+/*
+ * A sampled row as a reference to its record: when it was written and the
+ * keys it carries (appendSampleRecordKeys). Null for a row with no time.
+ */
+export function readSampleRecord(row: JSONObject): FindingSampleRecord | null {
+  return toFindingSampleRecord({
+    time: Number(readText(row["readRecordTime"])),
+    traceId: readText(row["readTraceId"]),
+    spanId: readText(row["readSpanId"]),
+    sessionId: readText(row["readSessionId"]),
+  });
+}
+
+/*
+ * By data type, the records of a location's values that held it, the newest
+ * first and each once: the values the classifier named
+ * (matchedValueIndexes), mapped to the records they came from. None when the
+ * values and their records are not aligned, rather than the wrong records.
+ */
+export function getSampleRecordsByDataType(data: {
+  classifications: ReadonlyArray<FieldClassification>;
+  records: ReadonlyArray<FindingSampleRecord | null> | undefined;
+  valueCount: number;
+}): Record<string, Array<FindingSampleRecord>> {
+  const byDataType: Record<string, Array<FindingSampleRecord>> = {};
+
+  if (!data.records || data.records.length !== data.valueCount) {
+    return byDataType;
+  }
+
+  for (const classification of data.classifications) {
+    const records: Array<FindingSampleRecord> = [];
+    const seen: Set<string> = new Set();
+
+    for (const index of classification.matchedValueIndexes || []) {
+      const record: FindingSampleRecord | null | undefined =
+        data.records[index];
+
+      if (!record || records.length >= MAX_FINDING_SAMPLE_RECORDS) {
+        continue;
+      }
+
+      const key: string = getFindingSampleRecordKey(record);
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        records.push(record);
+      }
+    }
+
+    byDataType[classification.dataTypeId] = records;
+  }
+
+  return byDataType;
 }
 
 function storeKey(kind: DataStoreKind, ownerId: string): string {
@@ -1340,8 +1460,16 @@ function addRecord(data: {
     return false;
   }
 
+  const record: FindingSampleRecord | null = readSampleRecord(row);
+
   for (const value of values) {
-    sample.addValue(value.location, value.locationKind, value.value, context);
+    sample.addValue(
+      value.location,
+      value.locationKind,
+      value.value,
+      context,
+      record,
+    );
   }
 
   sample.rowsRead++;
@@ -1539,6 +1667,8 @@ function classifierOptionsOf(
     extraHints: options.extraHints,
     disabledDataTypeIds: options.disabledDataTypeIds,
     allowedValues: options.allowedValues,
+    // Which values held each type: their records are kept with the finding.
+    maxMatchedValueIndexes: MAX_FINDING_SAMPLE_RECORDS,
   };
 }
 
@@ -1676,7 +1806,21 @@ function toResult(data: {
         locationKind:
           sample.locationKinds.get(field.path) ||
           DataStoreLocationKind.Attribute,
-        classifications,
+        classifications: classifications.map(
+          (classification: FieldClassification): FieldClassification => {
+            // The indexes name this sample's values: they stay in the scan.
+            const written: FieldClassification = { ...classification };
+
+            delete written.matchedValueIndexes;
+
+            return written;
+          },
+        ),
+        sampleRecords: getSampleRecordsByDataType({
+          classifications,
+          records: sample.recordsByLocation.get(field.path),
+          valueCount: field.values.length,
+        }),
       });
     }
   }
