@@ -56782,5 +56782,7 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "لم يتحقق {{name}} من {{channels}} بعد، لذا استُبعدت تلك الخطوات، وتبقى خطواته الخاصة عبر {{kept}} إلى ذلك الحين.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا استُبعدت تلك الخطوات.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} في المناوبة لكن ليست لديه طريقة هاتفية مُتحقق منها، وهي ما يطلبه هذا المشروع من كل المناوبين.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "ثبّت التطبيق من App Store أو Google Play، وسجّل الدخول إلى {{serverUrl}}، واسمح بالإشعارات والتنبيهات الحرجة عندما يطلب التطبيق ذلك."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "ثبّت التطبيق من App Store أو Google Play، وسجّل الدخول إلى {{serverUrl}}، واسمح بالإشعارات والتنبيهات الحرجة عندما يطلب التطبيق ذلك.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "وصلت بيانات، لكنها لا تسمّي أي خدمة. اضبط {{attribute}} في تطبيقك لإنهاء هذه الخطوة.",
+  "The first data arrived.": "وصلت البيانات الأولى."
 }

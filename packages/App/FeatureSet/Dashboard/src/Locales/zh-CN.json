@@ -56782,5 +56782,7 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤，在此期间保留其自己的{{kept}}步骤。",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在值班，但没有此项目要求每位值班人员都具备的已验证电话联系方式。",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "从 App Store 或 Google Play 安装应用，登录 {{serverUrl}}，并在应用请求时允许通知和重要警报。"
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "从 App Store 或 Google Play 安装应用，登录 {{serverUrl}}，并在应用请求时允许通知和重要警报。",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "数据已送达，但未指明服务。请在应用中设置 {{attribute}} 以完成此步骤。",
+  "The first data arrived.": "第一批数据已送达。"
 }

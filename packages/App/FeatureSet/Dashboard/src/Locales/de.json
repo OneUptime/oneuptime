@@ -56782,5 +56782,7 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} hat {{channels}} noch nicht verifiziert, daher wurden diese Schritte ausgelassen, und die eigenen Schritte per {{kept}} bleiben vorerst erhalten.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} hat {{channels}} noch nicht verifiziert, daher wurden diese Schritte ausgelassen.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} ist im Bereitschaftsdienst, hat aber keine verifizierte Telefonmethode, die dieses Projekt von allen im Bereitschaftsdienst verlangt.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installieren Sie die App aus dem App Store oder von Google Play, melden Sie sich bei {{serverUrl}} an und erlauben Sie Benachrichtigungen und kritische Warnungen, wenn die App danach fragt."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installieren Sie die App aus dem App Store oder von Google Play, melden Sie sich bei {{serverUrl}} an und erlauben Sie Benachrichtigungen und kritische Warnungen, wenn die App danach fragt.",
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.": "Daten sind eingetroffen, nennen aber keinen Dienst. Setzen Sie {{attribute}} in Ihrer App, um diesen Schritt abzuschließen.",
+  "The first data arrived.": "Die ersten Daten sind eingetroffen."
 }
