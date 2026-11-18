@@ -9,6 +9,7 @@ import {
 import { getLineageCardRoute } from "./LineageGraph";
 import { LineagePlace, isLineageEmpty } from "./LineageGraphModel";
 import Route from "Common/Types/API/Route";
+import { getLineageColumnKey } from "Common/Types/DataObservability/DataLineageColumnTrail";
 import {
   DataAlertLineageAnswer,
   DataTableLineage,
@@ -111,6 +112,29 @@ export function getAlertLineageNotes(
   return notes;
 }
 
+/*
+ * The order an alert's column picker offers the columns in: the check's
+ * own first, then the table's others in its own order - each once,
+ * whatever their case. Nothing to order without a column.
+ */
+export function getAlertLineageColumnOrder(
+  column: string | null,
+  tableOrder: ReadonlyArray<string> | undefined,
+): Array<string> {
+  if (!column) {
+    return [];
+  }
+
+  const key: string = getLineageColumnKey(column);
+
+  return [
+    column,
+    ...(tableOrder || []).filter((other: string): boolean => {
+      return getLineageColumnKey(other) !== key;
+    }),
+  ];
+}
+
 // The same, as the sentences alone.
 export function getAlertLineageSentences(
   translator: Translator,
@@ -138,8 +162,8 @@ export function getAlertLineageSentences(
  * orders.customer_id - comes with the columns each arrow carries and the
  * column its check reads (DataAlertLineageAnswer.column): the drawing opens
  * with that column followed beside the alert's ways, first in the column
- * picker, as the table's Lineage tab follows it, and another can be picked
- * or none; said in a sentence under the alert's own, or, when no arrow
+ * picker - the table's others after it in the table's own order - as the
+ * table's Lineage tab follows it, and another can be picked or none; said in a sentence under the alert's own, or, when no arrow
  * names the column, that no arrow says where it comes from or goes. An
  * alert from a check on the whole table draws as before.
  */
@@ -158,10 +182,15 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
   const lineage: DataTableLineage | null = read.answer?.lineage || null;
   // An answer from before the check's column was sent names none.
   const column: string | null = read.answer?.column || null;
-  // The check's column first in the picker, the rest by name: this page has no table's own order to go by.
+  const tableOrder: Array<string> | undefined = read.answer?.columnOrder;
+  /*
+   * The check's column first in the picker, then the rest as its table
+   * orders them, as the table's own Lineage tab offers them (#6853); an
+   * answer from before the table's order was sent: the rest by name.
+   */
   const columnOrder: Array<string> = useMemo((): Array<string> => {
-    return column ? [column] : [];
-  }, [column]);
+    return getAlertLineageColumnOrder(column, tableOrder);
+  }, [column, tableOrder]);
 
   if (!read.isLoading && !read.error && (!lineage || isLineageEmpty(lineage))) {
     return <></>;

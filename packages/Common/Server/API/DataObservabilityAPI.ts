@@ -3,6 +3,7 @@ import {
   OBJECT_STORE_KINDS,
 } from "../../Types/DataObservability/StoragePaths";
 import Select from "../Types/Database/Select";
+import Query from "../Types/Database/Query";
 import DataAsset from "../../Models/DatabaseModels/DataAsset";
 import DataAssetFeed, {
   DataAssetFeedEventType,
@@ -31,11 +32,22 @@ import {
 import DataObservabilityAttentionReader, {
   DataObservabilityAttention,
 } from "../Utils/DataObservability/DataObservabilityAttentionReader";
+import DataObservabilityAttentionCount from "../Utils/DataObservability/DataObservabilityAttentionCount";
+import DataObservabilityIssues from "../Utils/DataObservability/DataObservabilityIssues";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+  withConditions,
+} from "../Utils/DataObservability/DataObservabilityReadScope";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityAiAppTable,
+  DataObservabilityAttentionCountResponse,
   DataObservabilityCheckHealthResponse,
+  DataObservabilityCollectNowResponse,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityIssuesRequest,
+  DataObservabilityIssuesResponse,
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
@@ -44,6 +56,8 @@ import {
   MAX_CHECK_HEALTH_IDS,
   SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "../../Types/DataObservability/DataObservabilityApiTypes";
+import Alert from "../../Models/DatabaseModels/Alert";
+import AlertService from "../Services/AlertService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -96,7 +110,11 @@ import DataTableLineageAnswerer, {
 } from "../Utils/DataObservability/DataTableLineageAnswer";
 import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
 import DataLineageMapReader from "../Utils/DataObservability/DataLineageMap";
-import { DataLineageMap } from "../../Types/DataObservability/DataLineageMap";
+import {
+  DataLineageMap,
+  DataLineageMapRequest,
+  readDataLineageMapRequest,
+} from "../../Types/DataObservability/DataLineageMap";
 import {
   DataLineageExpandRequest,
   DataLineageExpansion,
@@ -135,6 +153,12 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    collection went, for anyone who may read data assets - with what
  *    needs someone now, worst first (DataObservabilityAttentionReader),
  *    naming only the alerts its reader may see;
+ *  - how many things need someone now, counted from what each record
+ *    keeps (DataObservabilityAttentionCount): the menu's count beside
+ *    Overview, for the same people;
+ *  - a page of what needs someone, filtered by kind, database, owner and
+ *    whether anyone was told (DataObservabilityIssues): the Issues page,
+ *    for the same people;
  *  - how each of a page of checks stands now - passing, failing or could
  *    not run - for the same people, by the same alerts;
  *  - Collect Now on a store, for anyone who may edit data assets;
@@ -157,16 +181,28 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    (DataTableLineageAnswer): what the MCP server's get_data_table_lineage
  *    tool asks;
  *  - the project's lineage map (DataLineageMap): every flow it has seen,
- *    services, tables, pipelines and dashboards, for the same people and
- *    their API keys - what the Lineage Map page draws;
+ *    services, tables, pipelines and dashboards - or the flows of one
+ *    database, or of what a search of the whole project names - for the
+ *    same people and their API keys: what the Lineage Map page draws;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
  *
+ * Every read of tables, checks and pipelines here is narrowed by the
+ * caller's grants as the generic routes narrow them - a role limited to
+ * what its members own, or to some labels, answers about those records only,
+ * its counts counting the rows its lists show (DataObservabilityReadScope,
+ * #6553) - and a route about one table or check answers only for one the
+ * caller may read, or change. The lineage routes read through readers that
+ * narrow every row they read the same way (scopeDataLineageReader, #9526):
+ * a table or pipeline the caller may not read is not drawn, not named on
+ * an arrow and not counted, and a drawing about one is not found.
+ *
  * A data store is Data Security's record, readable by the Security tiers
  * only, so these read stores as OneUptime and hand back only what table
  * health needs - a name, a kind, how the last collection went - never a
- * store's findings or connection string. A store connected from here is
+ * store's findings or connection string; a caller whose reads are narrowed
+ * sees the stores holding a table they may read. A store connected from here is
  * watched for table health and not content-scanned: Data Observability
  * reads the catalog, so that no value leaves the database, and turning content scans
  * on is Data Security's call.
@@ -208,6 +244,17 @@ const MAX_STORES: number = 500;
 const MAX_ASSETS_READ: number = 50_000;
 const OVERVIEW_LIST_LENGTH: number = 10;
 
+// What needs someone now, with what it was worked out from (readAttentionState).
+export interface DataObservabilityAttentionState {
+  scope: DataObservabilityScope;
+  // The tables its reader may read, dropped ones among them.
+  assets: Array<DataAsset>;
+  stores: Array<DataObservabilityStoreSummary>;
+  // Every late table, most overdue first.
+  lateAssets: Array<DataObservabilityOverviewAsset>;
+  attention: DataObservabilityAttention;
+}
+
 const SCHEMA_CHANGE_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.ColumnAdded,
   DataAssetFeedEventType.ColumnRemoved,
@@ -234,6 +281,48 @@ export default class DataObservabilityAPI extends BaseAPI<
         // The alerts it names are the ones its reader may see.
         return (await DataObservabilityAPI.getOverview(
           projectId,
+          props,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * How many things need someone now: the menu's count beside Overview,
+     * drawn on every Data Observability page - counted, never read row by
+     * row (DataObservabilityAttentionCount).
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.attentionCount,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const response: DataObservabilityAttentionCountResponse = {
+          count: await DataObservabilityAttentionCount.count({
+            projectId,
+            now: OneUptimeDate.getCurrentDate(),
+            scope: await DataObservabilityReadScope.get(projectId, props),
+          }),
+        };
+
+        return response as unknown as JSONObject;
+      },
+    );
+
+    // A page of what needs someone, worst first, filtered: the Issues page.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.issues,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataObservabilityAPI.getIssues(
+          projectId,
+          (req.body || {}) as JSONObject,
           props,
         )) as unknown as JSONObject;
       },
@@ -321,11 +410,32 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.alertExplanation(":id"),
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const alertId: ObjectID = DataObservabilityAPI.readId(req);
+
+        /*
+         * Explained only to someone who may read the alert: a private alert
+         * is its owners' and the project's admins', and a grant limited to
+         * labels or to what its members own reads only those alerts.
+         */
+        const alert: Alert | null = await AlertService.findOneBy({
+          query: { _id: alertId, projectId },
+          select: { _id: true },
+          props,
+        });
+
+        if (!alert?.id) {
+          throw new BadDataException("Alert not found.");
+        }
+
         return {
           explanation: (await DataAlertExplanationReader.read({
             projectId,
-            alertId: DataObservabilityAPI.readId(req),
+            alertId,
           })) as unknown as JSONObject,
         };
       },
@@ -362,11 +472,16 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.stores,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         return {
           stores: (await DataObservabilityAPI.getStoreSummaries(
             projectId,
             OneUptimeDate.getCurrentDate(),
+            await DataObservabilityReadScope.get(projectId, props),
           )) as unknown as Array<JSONObject>,
         };
       },
@@ -380,11 +495,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           req,
         );
+        const requestedAt: Date = OneUptimeDate.getCurrentDate();
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
           data: {
-            nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate(),
+            nextTableHealthCollectionAt: requestedAt,
           } as never,
         });
 
@@ -396,7 +512,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           });
         }
 
-        return {};
+        // The page waits for the store's attemptedAt to pass it: the collection asked for has ended.
+        const response: DataObservabilityCollectNowResponse = {
+          requestedAt: requestedAt.toISOString(),
+        };
+
+        return response as unknown as JSONObject;
       },
     );
 
@@ -429,9 +550,17 @@ export default class DataObservabilityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
+        const checkId: ObjectID = DataObservabilityAPI.readId(req);
+
+        await DataObservabilityAPI.assertCanChangeCheck(
+          projectId,
+          checkId,
+          props,
+        );
+
         return (await DataCheckAlerts.sync({
           projectId,
-          checkId: DataObservabilityAPI.readId(req),
+          checkId,
           props,
         })) as unknown as JSONObject;
       },
@@ -467,6 +596,12 @@ export default class DataObservabilityAPI extends BaseAPI<
         if (!ObjectID.isValidUUID(dataAssetId)) {
           throw new BadDataException("Choose the table the check reads.");
         }
+
+        await DataObservabilityAPI.assertCanReadTable(
+          projectId,
+          new ObjectID(dataAssetId),
+          props,
+        );
 
         return (await DataCheckFromSentence.draft({
           projectId,
@@ -506,11 +641,28 @@ export default class DataObservabilityAPI extends BaseAPI<
 
         const now: Date = OneUptimeDate.getCurrentDate();
         const answers: Array<JSONObject> = [];
-
-        for (const table of await DataTableAnswerer.findTables(
+        const scope: DataObservabilityScope =
+          await DataObservabilityReadScope.get(projectId, props);
+        const tables: Array<DataAsset> = await DataTableAnswerer.findTables(
           projectId,
           reference,
-        )) {
+        );
+        // Only the tables the person, or key, who asked may read (#6553).
+        const readableIds: Set<string> | null = scope.isWholeProject
+          ? null
+          : await DataObservabilityReadScope.getReadableIds({
+              service: DataAssetService,
+              query: scope.assetQuery,
+              ids: tables
+                .map((table: DataAsset): string => {
+                  return table.id?.toString() || "";
+                })
+                .filter(Boolean),
+            });
+
+        for (const table of tables.filter((table: DataAsset): boolean => {
+          return !readableIds || readableIds.has(table.id?.toString() || "");
+        })) {
           // Its alerts as the person who asked may see them (DataTableAnswer).
           const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
             projectId,
@@ -587,7 +739,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const body: JSONObject = (req.body || {}) as JSONObject;
         const dataAssetId: string =
           typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
@@ -595,6 +751,12 @@ export default class DataObservabilityAPI extends BaseAPI<
         if (!ObjectID.isValidUUID(dataAssetId)) {
           throw new BadDataException("Name the table by its ID.");
         }
+
+        await DataObservabilityAPI.assertCanReadTable(
+          projectId,
+          new ObjectID(dataAssetId),
+          props,
+        );
 
         return {
           dashboards: await DataTableDashboards.find({
@@ -647,21 +809,31 @@ export default class DataObservabilityAPI extends BaseAPI<
      * The project's lineage map: every flow it has seen, newest first, as
      * many as one map draws - which services write and read which tables,
      * what each table is built from, the pipelines that load them and the
-     * dashboards built on them. Open alerts as the person who asked may
-     * see them.
+     * dashboards built on them - or, asked for, the flows of one database's
+     * tables, or of what a search of the whole project names (#6547). Only
+     * the tables and pipelines the person who asked may read (#9526), and
+     * open alerts as they may see them.
      */
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.lineageMap,
       READ_PERMISSIONS,
       async (
         projectId: ObjectID,
-        _req: ExpressRequest,
+        req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
+        const request: DataLineageMapRequest | string =
+          readDataLineageMapRequest(req.body);
+
+        if (typeof request === "string") {
+          throw new BadDataException(request);
+        }
+
         const map: DataLineageMap = await DataLineageMapReader.read({
           projectId,
           now: OneUptimeDate.getCurrentDate(),
           reader: props,
+          request,
         });
 
         return map as unknown as JSONObject;
@@ -792,6 +964,8 @@ export default class DataObservabilityAPI extends BaseAPI<
             ),
             now: OneUptimeDate.getCurrentDate(),
             reader: props,
+            // The columns its arrows carry only when asked: its page's column picker (#6854).
+            withColumns: body["withColumns"] === true,
           });
 
         if (!lineage) {
@@ -836,7 +1010,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.tableSensitivity,
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const body: JSONObject = (req.body || {}) as JSONObject;
         const dataAssetId: string =
           typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
@@ -844,6 +1022,12 @@ export default class DataObservabilityAPI extends BaseAPI<
         if (!ObjectID.isValidUUID(dataAssetId)) {
           throw new BadDataException("Name the table by its ID.");
         }
+
+        await DataObservabilityAPI.assertCanReadTable(
+          projectId,
+          new ObjectID(dataAssetId),
+          props,
+        );
 
         return {
           columns: await DataTableSensitivity.read({
@@ -1047,9 +1231,21 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.checkRunNow(":id"),
       OPERATE_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const checkId: ObjectID = DataObservabilityAPI.readId(req);
+
+        await DataObservabilityAPI.assertCanChangeCheck(
+          projectId,
+          checkId,
+          props,
+        );
+
         const check: DataCheck | null = await DataCheckService.findOneBy({
-          query: { _id: DataObservabilityAPI.readId(req), projectId },
+          query: { _id: checkId, projectId },
           select: { _id: true, dataStoreId: true },
           props: { isRoot: true },
         });
@@ -1093,7 +1289,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.tableErrors,
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const body: JSONObject = (req.body || {}) as JSONObject;
         const dataAssetId: string =
           typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
@@ -1101,6 +1301,12 @@ export default class DataObservabilityAPI extends BaseAPI<
         if (!ObjectID.isValidUUID(dataAssetId)) {
           throw new BadDataException("Name the table by its ID.");
         }
+
+        await DataObservabilityAPI.assertCanReadTable(
+          projectId,
+          new ObjectID(dataAssetId),
+          props,
+        );
 
         return (await DataTableErrors.read({
           projectId,
@@ -1113,11 +1319,38 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.aiAppTables,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
-        return {
-          tables: await DataAiAppTables.readLate(
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const tables: Array<DataObservabilityAiAppTable> =
+          await DataAiAppTables.readLate(
             projectId,
             OneUptimeDate.getCurrentDate(),
+          );
+        const scope: DataObservabilityScope =
+          await DataObservabilityReadScope.get(projectId, props);
+        // The late tables the person who asked may read (#6553).
+        const readableIds: Set<string> | null = scope.isWholeProject
+          ? null
+          : await DataObservabilityReadScope.getReadableIds({
+              service: DataAssetService,
+              query: scope.assetQuery,
+              ids: Array.from(
+                new Set(
+                  tables.map((table: DataObservabilityAiAppTable): string => {
+                    return table.dataAssetId;
+                  }),
+                ),
+              ),
+            });
+
+        return {
+          tables: tables.filter(
+            (table: DataObservabilityAiAppTable): boolean => {
+              return !readableIds || readableIds.has(table.dataAssetId);
+            },
           ),
         } as unknown as JSONObject;
       },
@@ -1126,7 +1359,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.databaseServerStores,
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const body: JSONObject = (req.body || {}) as JSONObject;
         const databaseServerId: string =
           typeof body["databaseServerId"] === "string"
@@ -1159,6 +1396,7 @@ export default class DataObservabilityAPI extends BaseAPI<
             await DataObservabilityAPI.getStoreSummaries(
               projectId,
               OneUptimeDate.getCurrentDate(),
+              await DataObservabilityReadScope.get(projectId, props),
             )
           ).filter((store: DataObservabilityStoreSummary) => {
             return ids.has(store.dataStoreId);
@@ -1329,9 +1567,19 @@ export default class DataObservabilityAPI extends BaseAPI<
     );
   }
 
+  /*
+   * The databases Data Observability reads, with how their last collection
+   * went. For a caller whose reads are narrowed (#6553), the ones holding a
+   * table they may read. The tables already read for the same request are
+   * passed in, so they are read once.
+   */
   public static async getStoreSummaries(
     projectId: ObjectID,
     now: Date,
+    scope: DataObservabilityScope = DataObservabilityReadScope.wholeProject(
+      projectId,
+    ),
+    readableAssets?: Array<DataAsset> | undefined,
   ): Promise<Array<DataObservabilityStoreSummary>> {
     const select: Select<DataStore> = {
       _id: true,
@@ -1343,6 +1591,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       tableHealthStatus: true,
       tableHealthMessage: true,
       tableHealthCollectedAt: true,
+      tableHealthAttemptedAt: true,
       tableHealthAssetCount: true,
       connectionString: true,
       cloudConnectionId: true,
@@ -1382,9 +1631,19 @@ export default class DataObservabilityAPI extends BaseAPI<
       await DataObservabilityAttentionReader.getAlertMonitorCountByStore(
         projectId,
       );
+    const assets: Array<DataAsset> =
+      readableAssets || (await this.readAssets(scope.assetQuery));
+    // The databases a narrowed caller sees: the ones holding a table they may read.
+    const storesWithReadableTables: Set<string> = new Set();
 
-    for (const asset of await this.readAssets(projectId)) {
-      if (asset.isDropped || !asset.dataStoreId) {
+    for (const asset of assets) {
+      if (!asset.dataStoreId) {
+        continue;
+      }
+
+      storesWithReadableTables.add(asset.dataStoreId.toString());
+
+      if (asset.isDropped) {
         continue;
       }
 
@@ -1407,7 +1666,12 @@ export default class DataObservabilityAPI extends BaseAPI<
      */
     return stores
       .filter((store: DataStore) => {
-        return Boolean(store.id) && isStoreConnected(store);
+        return (
+          Boolean(store.id) &&
+          isStoreConnected(store) &&
+          (scope.isWholeProject ||
+            storesWithReadableTables.has(store.id!.toString()))
+        );
       })
       .map((store: DataStore): DataObservabilityStoreSummary => {
         return {
@@ -1424,6 +1688,11 @@ export default class DataObservabilityAPI extends BaseAPI<
           collectedAt: store.tableHealthCollectedAt
             ? OneUptimeDate.fromString(
                 store.tableHealthCollectedAt,
+              ).toISOString()
+            : null,
+          attemptedAt: store.tableHealthAttemptedAt
+            ? OneUptimeDate.fromString(
+                store.tableHealthAttemptedAt,
               ).toISOString()
             : null,
           assetCount: store.tableHealthAssetCount || 0,
@@ -1463,8 +1732,15 @@ export default class DataObservabilityAPI extends BaseAPI<
       return { checks: {} };
     }
 
+    // A check the reader may not read is left out, as a check of another project is (#6553).
+    const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
+      projectId,
+      reader,
+    );
     const checks: Array<DataCheck> = await DataCheckService.findBy({
-      query: { projectId, _id: QueryHelper.any(ids) },
+      query: withConditions<DataCheck>(scope.checkQuery, {
+        _id: QueryHelper.any(ids),
+      }),
       select: {
         _id: true,
         checkType: true,
@@ -1492,42 +1768,38 @@ export default class DataObservabilityAPI extends BaseAPI<
     return response;
   }
 
-  public static async getOverview(
-    projectId: ObjectID,
-    // Whoever asked: the alerts named are the ones they may see. Read as nobody, none private.
-    reader: DatabaseCommonInteractionProps = {},
-  ): Promise<DataObservabilityOverview> {
-    const now: Date = OneUptimeDate.getCurrentDate();
+  /*
+   * What needs someone now, for whoever asked, with what it is worked out
+   * from: the Overview's figures and its Needs Attention, and the Issues
+   * page, read the same way.
+   */
+  public static async readAttentionState(data: {
+    projectId: ObjectID;
+    now: Date;
+    reader: DatabaseCommonInteractionProps;
+  }): Promise<DataObservabilityAttentionState> {
+    const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
+      data.projectId,
+      data.reader,
+    );
+    const assets: Array<DataAsset> = await this.readAssets(scope.assetQuery);
     const stores: Array<DataObservabilityStoreSummary> =
-      await this.getStoreSummaries(projectId, now);
-    const assets: Array<DataAsset> = await this.readAssets(projectId);
+      await this.getStoreSummaries(data.projectId, data.now, scope, assets);
     const lateAssets: Array<DataObservabilityOverviewAsset> = [];
-    let assetCount: number = 0;
-    let droppedAssetCount: number = 0;
-    let unusedAssetCount: number = 0;
-    let unusedSizeInBytes: number = 0;
 
     for (const asset of assets) {
-      if (asset.isDropped) {
-        droppedAssetCount++;
+      if (asset.isDropped || !asset.id) {
         continue;
-      }
-
-      assetCount++;
-
-      if (isDataAssetUnused({ unreadSince: asset.unreadSince, now })) {
-        unusedAssetCount++;
-        unusedSizeInBytes += asset.sizeInBytes || 0;
       }
 
       const result: DataAssetFreshnessResult = getDataAssetFreshness({
         kind: asset.assetKind,
         lastChangedAt: asset.lastChangedAt,
         updateIntervalInSeconds: asset.updateIntervalInSeconds,
-        now,
+        now: data.now,
       });
 
-      if (result.freshness === DataAssetFreshness.Late && asset.id) {
+      if (result.freshness === DataAssetFreshness.Late) {
         lateAssets.push({
           dataAssetId: asset.id.toString(),
           assetKey: asset.assetKey || "",
@@ -1551,16 +1823,100 @@ export default class DataObservabilityAPI extends BaseAPI<
       },
     );
 
+    const attention: DataObservabilityAttention =
+      await DataObservabilityAttentionReader.read({
+        projectId: data.projectId,
+        now: data.now,
+        reader: data.reader,
+        stores,
+        lateAssets,
+        scope,
+      });
+
+    return { scope, assets, stores, lateAssets, attention };
+  }
+
+  // A page of what needs someone, worst first, filtered: the Issues page.
+  public static async getIssues(
+    projectId: ObjectID,
+    body: JSONObject,
+    reader: DatabaseCommonInteractionProps,
+  ): Promise<DataObservabilityIssuesResponse> {
+    // A filter it cannot read is refused before anything is read.
+    const request: DataObservabilityIssuesRequest =
+      DataObservabilityIssues.readRequest(body);
+    const state: DataObservabilityAttentionState =
+      await this.readAttentionState({
+        projectId,
+        now: OneUptimeDate.getCurrentDate(),
+        reader,
+      });
+
+    return await DataObservabilityIssues.answer({
+      request,
+      items: state.attention.items,
+      storeIdByCheckId: state.attention.storeIdByCheckId,
+      stores: state.stores,
+      reader,
+    });
+  }
+
+  public static async getOverview(
+    projectId: ObjectID,
+    // Whoever asked: the alerts named are the ones they may see. Read as nobody, none private.
+    reader: DatabaseCommonInteractionProps = {},
+  ): Promise<DataObservabilityOverview> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const [state, owners]: [
+      DataObservabilityAttentionState,
+      { tableOwnerCount: number; ownerRuleCount: number },
+    ] = await Promise.all([
+      this.readAttentionState({ projectId, now, reader }),
+      DataObservabilityAttentionReader.getOwnerCounts(projectId),
+    ]);
+    const { scope, assets, stores, lateAssets, attention } = state;
+    let assetCount: number = 0;
+    let droppedAssetCount: number = 0;
+    let unusedAssetCount: number = 0;
+    let unusedSizeInBytes: number = 0;
+
+    for (const asset of assets) {
+      if (asset.isDropped) {
+        droppedAssetCount++;
+        continue;
+      }
+
+      assetCount++;
+
+      if (isDataAssetUnused({ unreadSince: asset.unreadSince, now })) {
+        unusedAssetCount++;
+        unusedSizeInBytes += asset.sizeInBytes || 0;
+      }
+    }
+
     // A length of time, the same on every server (issue #8236).
     const since: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -SCHEMA_CHANGE_WINDOW_IN_DAYS,
     );
+    // A narrowed caller sees the schema changes of the tables they may read (#6553).
+    const feedScope: Query<DataAssetFeed> = scope.isWholeProject
+      ? { projectId }
+      : {
+          projectId,
+          dataAssetId: QueryHelper.any(
+            assets
+              .map((asset: DataAsset): string => {
+                return asset.id?.toString() || "";
+              })
+              .filter(Boolean),
+          ),
+        };
 
     const schemaChangeCount: number = (
       await DataAssetFeedService.countBy({
         query: {
-          projectId,
+          ...feedScope,
           dataAssetFeedEventType: new Includes(SCHEMA_CHANGE_EVENTS),
           postedAt: QueryHelper.greaterThanEqualTo(since),
         },
@@ -1570,7 +1926,7 @@ export default class DataObservabilityAPI extends BaseAPI<
 
     const recentFeed: Array<DataAssetFeed> = await DataAssetFeedService.findBy({
       query: {
-        projectId,
+        ...feedScope,
         dataAssetFeedEventType: new Includes(SCHEMA_CHANGE_EVENTS),
       },
       select: {
@@ -1604,19 +1960,6 @@ export default class DataObservabilityAPI extends BaseAPI<
         };
       });
 
-    const [attention, owners]: [
-      DataObservabilityAttention,
-      { tableOwnerCount: number; ownerRuleCount: number },
-    ] = await Promise.all([
-      DataObservabilityAttentionReader.read({
-        projectId,
-        now,
-        reader,
-        stores,
-        lateAssets,
-      }),
-      DataObservabilityAttentionReader.getOwnerCounts(projectId),
-    ]);
     // A database nobody watches needs no alerts: the ones watched do.
     const watchedStores: Array<DataObservabilityStoreSummary> = stores.filter(
       (store: DataObservabilityStoreSummary) => {
@@ -1658,6 +2001,40 @@ export default class DataObservabilityAPI extends BaseAPI<
         ownerRuleCount: owners.ownerRuleCount,
       },
     };
+  }
+
+  // A route about one table answers only for a table its caller may read (#6553).
+  public static async assertCanReadTable(
+    projectId: ObjectID,
+    dataAssetId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (
+      !(await DataObservabilityReadScope.canReadTable({
+        projectId,
+        dataAssetId,
+        props,
+      }))
+    ) {
+      throw new BadDataException("Table not found.");
+    }
+  }
+
+  // An action on one check is taken only on a check its caller may change (#6553).
+  public static async assertCanChangeCheck(
+    projectId: ObjectID,
+    dataCheckId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (
+      !(await DataObservabilityReadScope.canChangeCheck({
+        projectId,
+        dataCheckId,
+        props,
+      }))
+    ) {
+      throw new BadDataException("Data check not found.");
+    }
   }
 
   public static async connectStore(
@@ -1817,11 +2194,12 @@ export default class DataObservabilityAPI extends BaseAPI<
     return { dataStoreId: known.id.toString() };
   }
 
+  // The tables of the project its caller may read: their scope's query (DataObservabilityReadScope).
   private static async readAssets(
-    projectId: ObjectID,
+    assetQuery: Query<DataAsset>,
   ): Promise<Array<DataAsset>> {
     return await DataAssetService.findBy({
-      query: { projectId },
+      query: assetQuery,
       select: {
         _id: true,
         assetKey: true,

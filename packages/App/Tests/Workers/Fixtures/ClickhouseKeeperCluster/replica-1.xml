@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+  Replica 1 of the Keeper-backed test cluster (docker-compose.yml beside it):
+  one shard, two replicas, as a replicated OneUptime install runs, for
+  Tests/Workers/RumProductAnalyticsErasureKeeperClickhouse.test.ts (#6627).
+
+  This replica also runs the cluster's ClickHouse Keeper, embedded, as the
+  bundled Clickhouse/config.d/cluster.xml does on a single node; replica 2
+  uses it too. The tables' Replicated engines take no arguments and rely on
+  the server's default_replica_path (/clickhouse/tables/{uuid}/{shard}) and
+  default_replica_name ({replica}), filled from the macros below.
+
+  A throwaway test server: the password is the one docker-compose.yml sets.
+-->
+<clickhouse>
+    <keeper_server>
+        <tcp_port>9181</tcp_port>
+        <server_id>1</server_id>
+        <log_storage_path>/var/lib/clickhouse/coordination/log</log_storage_path>
+        <snapshot_storage_path>/var/lib/clickhouse/coordination/snapshots</snapshot_storage_path>
+        <coordination_settings>
+            <operation_timeout_ms>10000</operation_timeout_ms>
+            <session_timeout_ms>30000</session_timeout_ms>
+            <raft_logs_level>warning</raft_logs_level>
+        </coordination_settings>
+        <raft_configuration>
+            <server>
+                <id>1</id>
+                <hostname>replica-1</hostname>
+                <port>9234</port>
+            </server>
+        </raft_configuration>
+    </keeper_server>
+
+    <zookeeper>
+        <node>
+            <host>replica-1</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+
+    <macros>
+        <shard>01</shard>
+        <replica>replica-1</replica>
+        <cluster>oneuptime</cluster>
+    </macros>
+
+    <!-- Where replica 2 fetches the parts this one writes. -->
+    <interserver_http_host>replica-1</interserver_http_host>
+
+    <remote_servers>
+        <oneuptime>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>replica-1</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                </replica>
+                <replica>
+                    <host>replica-2</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                </replica>
+            </shard>
+        </oneuptime>
+    </remote_servers>
+</clickhouse>

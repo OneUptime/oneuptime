@@ -23,6 +23,8 @@ Where the source names columns, a table's **Columns** tab says where each column
 
 On the **Lineage** tab, pick one of the table's columns in **Follow a column** to highlight where it comes from and where it goes: up the diagram to the columns it is built from, down to the columns built from it, each named on its table, even where it was renamed on the way. An arrow whose sources name no columns may carry it further than is highlighted, and the diagram says so.
 
+Every lineage view - a table's **Lineage** tab, a pipeline's, an alert's, the **Lineage Map**, and what OneUptime AI and the API tell - shows only the tables and pipelines your role lets you read. A role limited to what its members own, or to some labels, never sees another table or pipeline: it is not drawn, not named on an arrow, and not counted among the tables further away.
+
 ## Lineage Map
 
 **Data Observability > Lineage Map** draws every flow of data your project has seen on one page, so you can see who uses which data and where it goes without first picking a table. It shows:
@@ -36,7 +38,7 @@ Every arrow is something OneUptime recorded, never a guess. Cards sit left to ri
 
 Search for a table, service, pipeline or dashboard to keep what matches and everything upstream and downstream of it. Select a card to highlight its whole lineage, see what it comes from and what it goes to, and open its page; **Show Only Its Lineage** leaves only that on the map. The switches beside the search leave services, pipelines or dashboards off. **List** shows every arrow as a line, and is what a phone opens on.
 
-One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys.
+One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys. A map with more says how many tables it left out, each counted once, and can start somewhere else: pick a database to map the flows of its tables and the cards they join, or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service and dashboard whose name holds it, however old they are. **Show Whole Map** goes back. To start the API's map somewhere, send `{ "dataStoreId": "<database ID>" }` or `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -136,7 +138,9 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
 
-A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too.
+A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
+
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too. Pick one of the columns it writes to follow it across the pipeline: up to the column of each table it reads that it was built from, and down to each table it writes it to.
 
 ## One issue per cause
 
@@ -147,7 +151,7 @@ When a table goes stale, every table built from it goes stale too. Before a data
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
-Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline. The way up to the alert that caused it and down to each alert it caused is highlighted - the cause's table or pipeline marked **Cause**, each caused alert's marked **Consequence** - and the rest fades, so whoever opens it sees where in the chain the problem started. When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name. When the cause is about a whole database, or further up than the diagram reaches, the card says so in words. An alert from a check on one column, such as a Null Percent check on `customer_id`, opens with that column followed beside these ways, as on the table's **Lineage** tab: where it comes from and where it goes, named on each table. Pick another of the table's columns there, or clear it to see the ways alone. **Explore Lineage** opens the table's **Lineage** tab, or the pipeline's page.
+Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline. The way up to the alert that caused it and down to each alert it caused is highlighted - the cause's table or pipeline marked **Cause**, each caused alert's marked **Consequence** - and the rest fades, so whoever opens it sees where in the chain the problem started. When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name. When the cause is about a whole database, or further up than the diagram reaches, the card says so in words. An alert from a check on one column, such as a Null Percent check on `customer_id`, opens with that column followed beside these ways, as on the table's **Lineage** tab: where it comes from and where it goes, named on each table. Pick another of the table's columns there, or clear it to see the ways alone. **Explore Lineage** opens the table's **Lineage** tab, or the pipeline's page. An alert it caused on a pipeline drawn on an arrow says **Consequence** there in the same way, and the column picker offers the check's column first, then the table's other columns in its own order.
 
 Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted.
 

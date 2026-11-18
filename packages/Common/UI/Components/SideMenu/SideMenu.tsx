@@ -66,6 +66,8 @@ export interface SideMenuItemProps {
   showWarning?: boolean;
   badge?: number;
   badgeType?: BadgeType;
+  // What the badge's count means, for a screen reader, in the reader's language (SideMenuItem).
+  badgeLabel?: string | undefined;
   icon?: IconProp;
   className?: string;
   subItemLink?: Link | undefined;
@@ -722,6 +724,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       showWarning={item.showWarning}
                       badge={item.badge}
                       badgeType={item.badgeType}
+                      badgeLabel={item.badgeLabel}
                       icon={item.icon}
                       className={item.className}
                       subItemLink={item.subItemLink}
@@ -766,6 +769,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               showWarning={item.showWarning}
               badge={item.badge}
               badgeType={item.badgeType}
+              badgeLabel={item.badgeLabel}
               icon={item.icon}
               className={item.className}
               subItemLink={item.subItemLink}

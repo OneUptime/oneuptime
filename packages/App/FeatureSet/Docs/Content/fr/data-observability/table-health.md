@@ -17,6 +17,8 @@ Seul le catalogue est lu, et sur MongoDB les noms de champs des documents les pl
 
 Le **rythme** d'une table est la fréquence à laquelle elle change d'habitude, appris à partir du temps écoulé entre ses modifications. Une table qui dépasse nettement son rythme apparaît comme **En retard**, sur sa page et dans **Tables**, et indique de combien elle le dépasse. Sa fraîcheur est connue dès qu'elle a changé deux fois : une table chargée toutes les heures est apprise en quelques heures, une table chargée chaque nuit en quelques jours.
 
+Dans **Tables**, et dans l'onglet **Tables** d'une base de données, le filtre **Fraîcheur** montre seulement les tables en retard, ou seulement celles à jour, et le tri par **Fraîcheur** place les plus en retard en premier. **Tables en retard** dans la **Vue d'ensemble**, et sur la page d'une base de données, ouvre cette liste avec **Fraîcheur** sur **En retard**.
+
 Une vue ne contient aucune ligne propre : sa fraîcheur est donc celle de ses sources. Voir [Lignage et pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Un catalogue peut dire qu'une table a changé alors que seule son entretien interne a changé, ou ne rien dire du tout. Dans les **Paramètres** d'une table, nommez une **Colonne Freshness** comme `updated_at`, et sa dernière modification devient la valeur la plus récente de cette colonne. Le compte doit pouvoir lire la colonne, et elle est lue à chaque collecte, elle doit donc être indexée ; sur BigQuery et Athena, qui facturent selon ce qu'une requête lit, elle est lue une fois par heure. Les heures sans fuseau sont considérées comme UTC.
@@ -85,7 +87,7 @@ L'onglet **Propriétaires** d'une table nomme les personnes et les équipes auxq
 
 Vous ne devriez pas avoir à le faire des centaines de fois. Les **Règles de propriétaire** et les **Règles d'étiquettes** s'appliquent à chaque table dès son apparition, selon ses étiquettes, ou selon une expression régulière sur son nom, son schéma ou sa base de données : tout ce qui est dans `finance` va à l'équipe finance, et tout ce qui s'appelle `*_pii` reçoit une étiquette.
 
-Une autorisation limitée à `Owned` n'atteint que les tables dont son titulaire ou ses équipes sont propriétaires, ainsi que leurs contrôles, leur activité et les problèmes signalés. Être propriétaire d'une base de données ne rend pas propriétaire de ses tables : utilisez une règle de propriétaires pour confier toute une base de données à une équipe.
+Une autorisation limitée à `Owned` n'atteint que les tables dont son titulaire ou ses équipes sont propriétaires, ainsi que leurs contrôles, leur activité et les problèmes signalés. Être propriétaire d'une base de données ne rend pas propriétaire de ses tables : utilisez une règle de propriétaires pour confier toute une base de données à une équipe. La **Vue d'ensemble**, **Problèmes** et le nombre à côté de **Vue d'ensemble** comptent et listent seulement les tables qu'une telle autorisation atteint, comme le font **Tables** et **Vérifications**.
 
 ## Quand une alerte s'ouvre
 

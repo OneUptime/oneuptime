@@ -10,8 +10,8 @@ import Permission from "../../Types/Permission";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import RumApplication from "../DatabaseModels/RumApplication";
 import {
+  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_IDENTIFIED_PREFIX,
-  PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE,
   PRODUCT_ANALYTICS_VISITOR_PREFIX,
 } from "../../Types/Rum/ProductAnalytics";
@@ -26,7 +26,10 @@ import {
  * a session's rows into one, every measure by max (or by union for the
  * pages), so a later, fuller write always wins and a repeated one changes
  * nothing. The session's start is part of the key: ingest clamps it once and
- * every write of a session carries the same value.
+ * every write of a session carries the same value. The sessions an install
+ * recorded before it had the view were copied in once, with the view's own
+ * SELECT, by the BackfillProductAnalyticsFromKeptSessions data migration
+ * (issue #6624), as were their person-month rows.
  *
  * What is copied is the session's summary, never its recording: who (the
  * signed-in user's key - an HMAC, never the reference itself - and the
@@ -37,8 +40,8 @@ import {
  * copied at all: it stays on the recording's own header, under the
  * recording's retention (see RumProductAnalyticsUserV1).
  *
- * Kept for PRODUCT_ANALYTICS_RETENTION_MONTHS calendar months by monthly
- * partition, apart from the recording's own retention - the point of the
+ * Kept for the application's product analytics retention (13 calendar
+ * months by default, issue #6626), apart from the recording's own retention - the point of the
  * table is to answer "how many people came this month" and "when did this
  * person first come" after the recordings are gone. replayRetentionDate
  * says until when the recording itself is kept, so a page can offer to
@@ -72,8 +75,13 @@ export const PRODUCT_ANALYTICS_SOURCE_BROWSER_SQL: string = `if(recorderKind = '
 /* The family alone: a mobile app reports "iOS 17.2", the browser "iOS". */
 export const PRODUCT_ANALYTICS_SOURCE_OS_SQL: string = `multiIf(osName = 'Unknown', '', recorderKind = 'rn-view-tree', splitByChar(' ', toString(osName))[1], toString(osName))`;
 
-/* A mobile app reports its version as the browser version; a web page has none. */
-export const PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL: string = `if(recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')`;
+/*
+ * The app's version: the one a web page gave the browser recorder (its
+ * appVersion option, issue #6625), else a mobile app's, which it reports as
+ * the browser version. A web page that set none, and a session recorded
+ * before the option, have none ('').
+ */
+export const PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL: string = `multiIf(appVersion != '', toString(appVersion), recorderKind = 'rn-view-tree' AND browserVersion != 'unknown', toString(browserVersion), '')`;
 
 /*
  * The page a stored URL is, as product analytics names a page everywhere
@@ -111,8 +119,13 @@ export const PRODUCT_ANALYTICS_SOURCE_ENTRY_PAGE_SQL: string =
  */
 export const PRODUCT_ANALYTICS_SOURCE_FRUSTRATION_SQL: string = `toInt32(rageClickCount + deadClickCount + errorClickCount + refreshRageCount + customSignalFrustrationCount)`;
 
-/* TTL of both tables: the first day of the PRODUCT_ANALYTICS_RETENTION_MONTHS-th month after. */
-export const PRODUCT_ANALYTICS_SESSION_TTL: string = `toStartOfMonth(startTime) + INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
+/*
+ * TTL: the first day of the MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS-th month
+ * after, the longest retention an application can choose. A shorter choice
+ * is kept by Rum:EnforceProductAnalyticsRetention, which deletes the
+ * application's older rows every day (issue #6626).
+ */
+export const PRODUCT_ANALYTICS_SESSION_TTL: string = `toStartOfMonth(startTime) + INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
 
 /*
  * Reading product analytics is listing sessions: the same permissions as
@@ -233,7 +246,8 @@ const MEASURES: Array<MeasureDefinition> = [
   {
     key: "appVersion",
     title: "App Version",
-    description: "The mobile app's version; '' for a web page",
+    description:
+      "The app's version: a mobile app's own, or the web page's appVersion recorder option; '' when not reported",
     type: TableColumnType.Text,
     simpleAggregateFunction: "max",
   },
@@ -423,10 +437,14 @@ GROUP BY projectId, rumApplicationId, startTime, sessionId`,
       shardingKey: "cityHash64(projectId, sessionId)",
       /*
        * Every row of a monthly partition expires on the same day, so whole
-       * parts are dropped rather than rewritten row by row.
+       * parts are dropped rather than rewritten row by row. A MATERIALIZE
+       * TTL (as a TTL change queues) recalculates each part's expiry without
+       * rewriting the part (materialize_ttl_recalculate_only), so raising
+       * the TTL reaches the parts already on disk at the cost of reading
+       * the one column it names.
        */
       tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
+        "ttl_only_drop_parts = 1, materialize_ttl_recalculate_only = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: PRODUCT_ANALYTICS_SESSION_TTL,
       includeBaseColumns: false,
       defaultSortColumn: "startTime",

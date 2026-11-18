@@ -15,14 +15,18 @@ import {
   DataLineageMapTableRow,
   DataLineageMapTrace,
   DataLineageMapUsageRow,
+  DataLineageMapRequest,
   MAX_DATA_LINEAGE_MAP_DASHBOARDS,
   MAX_DATA_LINEAGE_MAP_NODES,
   MAX_DATA_LINEAGE_MAP_OPERATIONS,
+  MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH,
   assembleDataLineageMap,
   chooseDataLineageMapFlows,
   getLineageMapServiceNodeId,
   hasFailedLineageMapPipeline,
+  isFocusedDataLineageMapRequest,
   isLineageMapNodeInTrouble,
+  readDataLineageMapRequest,
   traceDataLineageMap,
 } from "../../../Types/DataObservability/DataLineageMap";
 
@@ -240,6 +244,168 @@ describe("chooseDataLineageMapFlows", () => {
         ],
       }).usages,
     ).toEqual([]);
+  });
+});
+
+/*
+ * HOW MANY TABLES A MAP LEAVES OUT (#6547): a map past its most cards says
+ * so, and how many of the tables its flows need it does not draw - each
+ * counted once however many flows need it, a drawn table never - so a
+ * person knows how much more a database or a search would show. When there
+ * were more rows than were read, there are at least that many.
+ */
+describe("the tables a map leaves out", () => {
+  test("each table the flows need and the map does not draw is counted once", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [
+        feeds("a", "b", { lastSeenAt: hoursAgo(1) }),
+        // Both need c; d once; b is drawn already.
+        feeds("b", "c", { lastSeenAt: hoursAgo(5) }),
+        feeds("c", "d", { lastSeenAt: hoursAgo(6) }),
+        feeds("d", "c", { lastSeenAt: hoursAgo(7) }),
+      ],
+      usages: [
+        usage("api", "e", DataAssetAccessKind.Read, {
+          lastSeenAt: hoursAgo(8),
+        }),
+      ],
+      maxNodes: 2,
+    });
+
+    expect(choice.dataAssetIds).toEqual(["a", "b"]);
+    expect(choice.hiddenTableCount).toBe(3);
+    expect(choice.isHiddenTableCountAtLeast).toBe(false);
+    expect(choice.isTruncated).toBe(true);
+  });
+
+  test("a service or pipeline left out is not a table: only tables are counted", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [
+        feeds("a", "b", { lastSeenAt: hoursAgo(1) }),
+        {
+          upstreamDataAssetId: null,
+          downstreamDataAssetId: "a",
+          dataPipelineId: "p1",
+          source: null,
+          lastSeenAt: hoursAgo(2),
+        },
+      ],
+      usages: [
+        usage("api", "b", DataAssetAccessKind.Write, {
+          lastSeenAt: hoursAgo(3),
+        }),
+      ],
+      maxNodes: 2,
+    });
+
+    expect(choice.isTruncated).toBe(true);
+    expect(choice.hiddenTableCount).toBe(0);
+  });
+
+  test("more rows than were read: at least that many", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [
+        feeds("a", "b", { lastSeenAt: hoursAgo(1) }),
+        feeds("c", "d", { lastSeenAt: hoursAgo(2) }),
+      ],
+      usages: [],
+      maxNodes: 2,
+      hadMoreRows: true,
+    });
+
+    expect(choice.hiddenTableCount).toBe(2);
+    expect(choice.isHiddenTableCountAtLeast).toBe(true);
+  });
+
+  test("a map that draws every flow leaves none out", () => {
+    const choice: DataLineageMapChoice = chooseDataLineageMapFlows({
+      lineage: [feeds("a", "b"), feeds("b", "c")],
+      usages: [usage("api", "c", DataAssetAccessKind.Read)],
+    });
+
+    expect(choice.hiddenTableCount).toBe(0);
+    expect(choice.isTruncated).toBe(false);
+  });
+
+  test("the map says what its choice counted", () => {
+    const map: DataLineageMap = assemble({
+      lineage: [
+        feeds("a", "b", { lastSeenAt: hoursAgo(1) }),
+        feeds("c", "d", { lastSeenAt: hoursAgo(2) }),
+      ],
+      tables: [table("a"), table("b"), table("c"), table("d")],
+      maxNodes: 2,
+    });
+
+    expect(map.hiddenTableCount).toBe(2);
+    expect(map.isHiddenTableCountAtLeast).toBe(false);
+    expect(map.isTruncated).toBe(true);
+  });
+});
+
+describe("where a map starts (readDataLineageMapRequest)", () => {
+  const STORE: string = "6e4f3c9a-1b2d-4c3e-8f5a-0123456789ab";
+
+  test.each([
+    [undefined, {}],
+    [null, {}],
+    [{}, {}],
+    [{ dataStoreId: STORE }, { dataStoreId: STORE }],
+    [{ dataStoreId: STORE.toUpperCase() }, { dataStoreId: STORE }],
+    [{ dataStoreId: "" }, {}],
+    [{ dataStoreId: null }, {}],
+    [{ search: "  orders  " }, { search: "orders" }],
+    [{ search: "   " }, {}],
+    [{ search: null }, {}],
+    [
+      { dataStoreId: STORE, search: "orders" },
+      { dataStoreId: STORE, search: "orders" },
+    ],
+    // Anything else it is sent is no part of where it starts.
+    [{ depth: 3 }, {}],
+  ])("%p starts it at %p", (body: unknown, request: DataLineageMapRequest) => {
+    expect(readDataLineageMapRequest(body)).toEqual(request);
+  });
+
+  test.each([["orders"], [42], [["a"]]])(
+    "a body that is no object (%p) is refused",
+    (body: unknown) => {
+      expect(readDataLineageMapRequest(body)).toBe(
+        "Send the map's request as an object.",
+      );
+    },
+  );
+
+  test.each([
+    [{ dataStoreId: "orders-db" }],
+    [{ dataStoreId: 42 }],
+    [{ dataStoreId: `${STORE}' OR '1'='1` }],
+  ])("a database not named by its ID is refused: %p", (body: unknown) => {
+    expect(readDataLineageMapRequest(body)).toBe(
+      "Name the database by its ID.",
+    );
+  });
+
+  test("a search that is no words, or longer than the most, is refused", () => {
+    expect(typeof readDataLineageMapRequest({ search: 7 })).toBe("string");
+    expect(
+      readDataLineageMapRequest({
+        search: "x".repeat(MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH),
+      }),
+    ).toEqual({ search: "x".repeat(MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH) });
+    expect(
+      readDataLineageMapRequest({
+        search: "x".repeat(MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH + 1),
+      }),
+    ).toBe(
+      `Search for at most ${MAX_DATA_LINEAGE_MAP_SEARCH_LENGTH} characters.`,
+    );
+  });
+
+  test("starts somewhere only with a database or a search", () => {
+    expect(isFocusedDataLineageMapRequest({})).toBe(false);
+    expect(isFocusedDataLineageMapRequest({ dataStoreId: STORE })).toBe(true);
+    expect(isFocusedDataLineageMapRequest({ search: "orders" })).toBe(true);
   });
 });
 

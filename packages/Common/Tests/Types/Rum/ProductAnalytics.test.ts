@@ -1,5 +1,11 @@
 import {
   DEFAULT_PRODUCT_ANALYTICS_DORMANT_AFTER_DAYS,
+  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
+  getProductAnalyticsMaxRangeDays,
+  getProductAnalyticsRetentionCutoff,
+  getProductAnalyticsRetentionMonths,
   DEFAULT_PRODUCT_ANALYTICS_PEOPLE_LIMIT,
   DEFAULT_PRODUCT_ANALYTICS_PERSON_SESSIONS_LIMIT,
   DEFAULT_PRODUCT_ANALYTICS_TIME_ZONE,
@@ -279,5 +285,84 @@ describe("the routes, ranges and lists", () => {
         }),
       ).size,
     ).toBe(buckets.length);
+  });
+});
+
+/*
+ * How long an application keeps its product analytics (issue #6626): one of
+ * four choices, 13 months by default, the tables' TTL keeping the longest.
+ */
+describe("product analytics retention", () => {
+  test("offers 3, 6, 13 and 25 months, 13 by default, the longest for the TTL", () => {
+    expect(PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS).toEqual([3, 6, 13, 25]);
+    expect(DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(13);
+    expect(PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(
+      DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+    );
+    expect(MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS).toBe(25);
+    expect(PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS).toContain(
+      DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+    );
+  });
+
+  test("an application's choice is kept as one of the options, the default for anything else", () => {
+    for (const months of PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS) {
+      expect(getProductAnalyticsRetentionMonths(months)).toBe(months);
+    }
+
+    for (const value of [undefined, null, 0, 12, 24, 26, -3, 6.5, "6", NaN]) {
+      expect(getProductAnalyticsRetentionMonths(value)).toBe(13);
+    }
+  });
+
+  test("the cutoff is the start of the month N - 1 months before the running one, in UTC", () => {
+    const now: Date = new Date("2026-11-18T10:30:00.000Z");
+
+    expect(getProductAnalyticsRetentionCutoff(13, now).toISOString()).toBe(
+      "2025-11-01T00:00:00.000Z",
+    );
+    expect(getProductAnalyticsRetentionCutoff(3, now).toISOString()).toBe(
+      "2026-09-01T00:00:00.000Z",
+    );
+    expect(getProductAnalyticsRetentionCutoff(6, now).toISOString()).toBe(
+      "2026-06-01T00:00:00.000Z",
+    );
+    expect(getProductAnalyticsRetentionCutoff(25, now).toISOString()).toBe(
+      "2024-11-01T00:00:00.000Z",
+    );
+  });
+
+  test("a month's rows go on the first day of the Nth month after it", () => {
+    /* October 2025 under 13 months: gone on 1 November 2026, not before. */
+    const lastDay: Date = new Date("2026-10-31T23:59:59.999Z");
+    const firstDay: Date = new Date("2026-11-01T00:00:00.000Z");
+    const october: Date = new Date("2025-10-15T12:00:00.000Z");
+
+    expect(
+      october.getTime() >=
+        getProductAnalyticsRetentionCutoff(13, lastDay).getTime(),
+    ).toBe(true);
+    expect(
+      october.getTime() <
+        getProductAnalyticsRetentionCutoff(13, firstDay).getTime(),
+    ).toBe(true);
+
+    /* Across a year's end too. */
+    expect(
+      getProductAnalyticsRetentionCutoff(
+        3,
+        new Date("2027-01-01T00:00:00.000Z"),
+      ).toISOString(),
+    ).toBe("2026-11-01T00:00:00.000Z");
+  });
+
+  test("a read covers 400 days, or 31 for each month an application keeps beyond the default", () => {
+    expect(getProductAnalyticsMaxRangeDays(3)).toBe(400);
+    expect(getProductAnalyticsMaxRangeDays(6)).toBe(400);
+    expect(getProductAnalyticsMaxRangeDays(13)).toBe(400);
+    expect(getProductAnalyticsMaxRangeDays(25)).toBe(775);
+    /* An unknown value reads as the default. */
+    expect(getProductAnalyticsMaxRangeDays(99)).toBe(400);
+    expect(PRODUCT_ANALYTICS_MAX_RANGE_DAYS).toBe(400);
   });
 });

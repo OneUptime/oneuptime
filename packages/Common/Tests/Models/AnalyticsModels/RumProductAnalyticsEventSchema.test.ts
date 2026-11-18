@@ -14,7 +14,7 @@ import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
-import { PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../../Types/Rum/ProductAnalytics";
+import { MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../../Types/Rum/ProductAnalytics";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -53,7 +53,7 @@ describe("RumProductAnalyticsEvent", () => {
     expect(model.materializedViews).toEqual([]);
   });
 
-  test("creates its Replicated local table ON CLUSTER, monthly, kept 13 months and dropped by whole parts", () => {
+  test("creates its Replicated local table ON CLUSTER, monthly, kept the longest retention and dropped by whole parts", () => {
     const statement: Statement = new StatementGenerator<AnalyticsBaseModel>({
       modelType: RumProductAnalyticsEvent,
       database: ClickhouseAppInstance,
@@ -66,9 +66,10 @@ describe("RumProductAnalyticsEvent", () => {
     expect(statement.query).toContain("PARTITION BY (toYYYYMM(time))");
     expect(statement.query).toContain(`TTL ${PRODUCT_ANALYTICS_EVENT_TTL}`);
     expect(PRODUCT_ANALYTICS_EVENT_TTL).toBe(
-      `toStartOfMonth(time) + INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
+      `toStartOfMonth(time) + INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
     );
     expect(statement.query).toContain("ttl_only_drop_parts = 1");
+    expect(statement.query).toContain("materialize_ttl_recalculate_only = 1");
   });
 
   test("the low-cardinality columns are LowCardinality, the maps are maps", () => {

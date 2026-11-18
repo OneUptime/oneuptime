@@ -34,6 +34,7 @@ import {
   ProductAnalyticsSummaryDto,
   ProductAnalyticsTrendDayDto,
   ProductAnalyticsTrendDto,
+  getProductAnalyticsRetentionMonths,
   isProductAnalyticsPersonKey,
   readProductAnalyticsPersonKind,
 } from "Common/Types/Rum/ProductAnalytics";
@@ -117,6 +118,17 @@ export function parseProductAnalyticsPeriod(
   };
 }
 
+/*
+ * How many months the application keeps its numbers (issue #6626), as the
+ * read says: one of the choices, or the default for an older server that
+ * says nothing.
+ */
+function readRetentionMonths(row: Record<string, unknown>): number {
+  return getProductAnalyticsRetentionMonths(
+    readDtoOptionalNumber(row, "retentionMonths"),
+  );
+}
+
 export function parseProductAnalyticsSummary(
   value: unknown,
 ): ProductAnalyticsSummaryDto {
@@ -136,6 +148,7 @@ export function parseProductAnalyticsSummary(
     dormantAfterDays: readDtoNumber(row, "dormantAfterDays"),
     dataStartedAt:
       dataStartedAt === undefined || dataStartedAt <= 0 ? null : dataStartedAt,
+    retentionMonths: readRetentionMonths(row),
   };
 }
 
@@ -252,6 +265,7 @@ export function parseProductAnalyticsPeople(
     people: people,
     hasMore: readDtoBoolean(row, "hasMore"),
     includesLabels: readDtoBoolean(row, "includesLabels"),
+    retentionMonths: readRetentionMonths(row),
   };
 }
 
@@ -288,6 +302,7 @@ export function parseProductAnalyticsPersonDetail(
     ),
     hasMore: readDtoBoolean(row, "hasMore"),
     includesLabels: readDtoBoolean(row, "includesLabels"),
+    retentionMonths: readRetentionMonths(row),
   };
 }
 

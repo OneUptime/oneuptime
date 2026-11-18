@@ -1,10 +1,13 @@
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   store: DataObservabilityStoreSummary;
+  // A collection someone asked for with Collect Now is running: it says so until it ends.
+  isCollecting?: boolean | undefined;
 }
 
 /*
@@ -22,12 +25,16 @@ export function isStoreWaitingForFirstRead(
   );
 }
 
-// How a database's table health collection stands: off, failing, collected, or not yet.
+// How a database's table health collection stands: off, collecting now, failing, collected, or not yet.
 const StoreStatusPill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.store.isTableHealthEnabled) {
     return <Pill text="Not watched" color={Gray500} />;
+  }
+
+  if (props.isCollecting) {
+    return <Pill text="Collecting" tone={PillTone.Info} isPulsing={true} />;
   }
 
   if (props.store.status === "Failed") {

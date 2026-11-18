@@ -90,6 +90,7 @@ The script at `/v1/recorder.js` is a small loader. It checks Do Not Track, fetch
 | `data-oneuptime-respect-do-not-track` | No | Defaults to honouring Do Not Track and Global Privacy Control. Set it to `"false"` to record regardless of the signal; see [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | No | `"true"` prints the recorder's decisions to the console. See [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | No | Set it to `"false"` to keep chunks recorded while the visitor is offline in memory only, instead of also in the browser's IndexedDB. See [Offline mode](#offline-mode). |
+| `data-oneuptime-app-version` | No | Your app's version, such as `2.3.1`, up to 64 characters. Product Analytics breaks users and sessions down by it. |
 
 The same options can be supplied on a global instead of the tag, which is what tag managers and bundled installs use:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ To satisfy a deletion request, file an erasure request through the OneUptime API
 
 Two honest limits on `ByIdentifiedUserKey`. The key is not shown anywhere in the dashboard: it comes back as `identifiedUserKey` on each row of the session list API (`POST /telemetry/rum/session-replay/list`), so today an erasure by user starts with a `user:` search there and a copy of that field. And a session recorded while **Capture end-user identity** was off has no key at all — nothing about the person was stored — so it can only be reached by session id, date range or application.
 
-Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording and the telemetry linked to those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found". The linked telemetry is:
+Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted`, `chunksDeleted` and `productAnalyticsRowsDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording and the telemetry linked to those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found". The linked telemetry is:
 
 - every span and exception stamped with the session's id, including the backend spans stamped [automatically](#correlating-with-your-other-telemetry) in every service that forwarded the trace context, and any log that carries the id itself;
 - the logs, exceptions and spans of every trace that belongs to the erased sessions alone: every stamped span in the trace carries one of their ids, and nothing in the trace started more than ten minutes before the first or after the last of those spans. That covers the backend logs of the requests your pages made to their own origin, which share a trace id with those stamped spans.

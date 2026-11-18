@@ -17,6 +17,10 @@ import {
   isRunningLineageRunState,
 } from "../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../Types/ObjectID";
+import DataAssetService from "../../Services/DataAssetService";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "./DataObservabilityReadScope";
 import DataTableAnswerer, { describeDuration } from "./DataTableAnswer";
 import DataTableLineageReader from "./DataTableLineage";
 
@@ -53,7 +57,10 @@ import DataTableLineageReader from "./DataTableLineage";
  * open alerts they may see; nobody in particular, or a run of OneUptime's
  * own read as root, only the alerts that are not private. No alert is
  * named here, only counted: the table's own answer (DataTableAnswer) names
- * the ones its reader may see.
+ * the ones its reader may see. It decides which tables and pipelines it
+ * tells of, too (#9526): a role limited to what its members own, or to some
+ * labels, is told only of those - never of another by name, nor in a count
+ * of what lies further.
  *
  * An investigation of a data alert reads the same answer around the
  * alert's table or pipeline (DataAlertContext), with where in the chain
@@ -174,14 +181,17 @@ export interface DataLineageAnswerSide {
   untoldProblemCount: number;
   untoldOtherCount: number;
   /*
-   * Tables next to the drawn ones that the drawing does not reach, counted
-   * on each drawn table that way: further than the steps asked for, or
-   * past the most drawn next to one table.
+   * Tables next to the drawn ones that the drawing does not reach: further
+   * than the steps asked for, or past the most drawn next to one table -
+   * each counted once.
    */
   hiddenCount: number;
   /*
-   * Whether more than one drawn table counts some: a table next to two of
-   * them is counted on each, so there are at most hiddenCount.
+   * Told of a drawing from before each side's tables not drawn were
+   * counted once (hiddenUpstreamTotal): whether more than one drawn table
+   * counts some - a table next to two of them is counted on each, so there
+   * are at most hiddenCount. False for a drawing that carries its totals:
+   * hiddenCount is then exact.
    */
   isHiddenCountAtMost: boolean;
 }
@@ -592,21 +602,30 @@ export function buildDataTableLineageAnswer(
       },
     );
     const isUpstream: boolean = side === DataLineageSide.Upstream;
+    // The side's own total: each table once, however many drawn cards count it (#6734).
+    const total: number | undefined = isUpstream
+      ? lineage.hiddenUpstreamTotal
+      : lineage.hiddenDownstreamTotal;
     let hiddenCount: number = 0;
     // The drawn tables that count some: a table next to two of them is counted on each.
     let countedOn: number = 0;
 
-    for (const node of lineage.nodes) {
-      if (node.side !== side && node.id !== lineage.focusNodeId) {
-        continue;
+    if (typeof total === "number") {
+      hiddenCount = Math.max(0, total);
+    } else {
+      // A drawing from before the totals: the sum of the cards' counts, at most that many.
+      for (const node of lineage.nodes) {
+        if (node.side !== side && node.id !== lineage.focusNodeId) {
+          continue;
+        }
+
+        const hidden: number = isUpstream
+          ? node.hiddenUpstreamCount || 0
+          : node.hiddenDownstreamCount || 0;
+
+        hiddenCount += hidden;
+        countedOn += hidden > 0 ? 1 : 0;
       }
-
-      const hidden: number = isUpstream
-        ? node.hiddenUpstreamCount || 0
-        : node.hiddenDownstreamCount || 0;
-
-      hiddenCount += hidden;
-      countedOn += hidden > 0 ? 1 : 0;
     }
 
     return {
@@ -1278,9 +1297,34 @@ export default class DataTableLineageAnswerer {
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
   }): Promise<Array<DataTableLineageAnswer>> {
-    const tables: Array<DataAsset> = await DataTableAnswerer.findTables(
+    const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
+      data.projectId,
+      data.reader,
+    );
+    const found: Array<DataAsset> = await DataTableAnswerer.findTables(
       data.projectId,
       data.reference,
+    );
+    /*
+     * Only the tables of that name its reader may read (#9526): one they
+     * may not read is not answered, nor counted - not even in how short
+     * each answer is kept when a name has several.
+     */
+    const readableIds: Set<string> | null = scope.isWholeProject
+      ? null
+      : await DataObservabilityReadScope.getReadableIds({
+          service: DataAssetService,
+          query: scope.assetQuery,
+          ids: found
+            .map((table: DataAsset): string => {
+              return table.id?.toString() || "";
+            })
+            .filter(Boolean),
+        });
+    const tables: Array<DataAsset> = found.filter(
+      (table: DataAsset): boolean => {
+        return !readableIds || readableIds.has(table.id?.toString() || "");
+      },
     );
     const limits: DataLineageAnswerLimits =
       tables.length > 1
@@ -1301,6 +1345,7 @@ export default class DataTableLineageAnswerer {
           depth: data.depth,
           now: data.now,
           reader: data.reader,
+          scope,
         });
 
       if (lineage) {

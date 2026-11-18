@@ -18,6 +18,8 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import DataAssetOwnerTeam from "../../../Models/DatabaseModels/DataAssetOwnerTeam";
 import DataAssetOwnerUser from "../../../Models/DatabaseModels/DataAssetOwnerUser";
+import DataPipelineOwnerTeam from "../../../Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerUser from "../../../Models/DatabaseModels/DataPipelineOwnerUser";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -29,6 +31,7 @@ import {
 import {
   DataAttentionItem,
   DataAttentionKind,
+  DataCheckHealth,
   DataObservabilitySetup,
   DataObservabilitySetupStep,
 } from "../../../Types/DataObservability/DataObservabilityAttention";
@@ -52,7 +55,16 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/OverviewSetupSteps";
 import { STORE_ALERT_STATUS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/StoreAlertStatus";
 import { PRODUCT_SHOWCASE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductShowcase";
-import DataObservabilityOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Overview";
+import DataObservabilityOverviewPage, {
+  FAILING_CHECKS_TILE_LINK_TEST_ID,
+  LATE_TABLES_TILE_LINK_TEST_ID,
+  NEEDS_ATTENTION_TILE_LINK_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Overview";
+import {
+  getChecksOfHealthRoute,
+  getLateTablesRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityListRoutes";
+import { getIssuesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/IssuesCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -1109,6 +1121,161 @@ describe("connecting a database", () => {
         PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS,
         MOCK_CONNECTED_STORE,
       ),
+    );
+  });
+});
+
+/*
+ * EACH COUNT OPENS ITS LIST, AND A PIPELINE IS ITS OWNERS' (#6549, #6550,
+ * #6551, #6554).
+ *
+ * Needs Attention opens the Issues page, Late Tables opens Tables with
+ * Freshness: Late, Failing Checks opens Checks filtered to failing - and a
+ * count of none opens nothing. A failed or late pipeline names its own
+ * owners, or says nobody owns it and opens its Owners tab to add one.
+ */
+describe("each count opens the list of what it counts", () => {
+  test("Needs Attention, Late Tables and Failing Checks: each a link to its list, already filtered", async () => {
+    await openPage();
+
+    expect(
+      (
+        await screen.findByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID)
+      ).getAttribute("href"),
+    ).toBe(getIssuesRoute().toString());
+    expect(
+      screen.getByTestId(LATE_TABLES_TILE_LINK_TEST_ID).getAttribute("href"),
+    ).toBe(getLateTablesRoute().toString());
+    expect(
+      screen.getByTestId(FAILING_CHECKS_TILE_LINK_TEST_ID).getAttribute("href"),
+    ).toBe(getChecksOfHealthRoute(DataCheckHealth.Failing).toString());
+    // The number is the link's own text: what it counts.
+    expect(
+      screen.getByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID),
+    ).toHaveTextContent("6");
+  });
+
+  test("a count of none opens nothing", async () => {
+    overviewAnswer = busyOverview({
+      attention: [],
+      attentionCount: 0,
+      lateAssetCount: 0,
+      failingCheckCount: 0,
+    });
+
+    await openPage();
+
+    await screen.findByTestId(NEEDS_ATTENTION_TEST_ID);
+
+    expect(screen.queryByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(LATE_TABLES_TILE_LINK_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(FAILING_CHECKS_TILE_LINK_TEST_ID)).toBeNull();
+    expect(tileValue("Needs Attention")).toBe("0");
+    // Nothing to list: no way to every issue either.
+    expect(screen.queryByRole("button", { name: /All Issues/ })).toBeNull();
+  });
+
+  test("All Issues opens the Issues page, where every one is listed with filters", async () => {
+    await openPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /All Issues/ }));
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy.mock.calls[0]![0]!.toString()).toBe(
+      getIssuesRoute().toString(),
+    );
+  });
+});
+
+describe("a pipeline's owners", () => {
+  // Pipeline owners as the project keeps them, beside the tables' and products' the suite reads.
+  function withPipelineOwners(data: {
+    users: Array<Record<string, unknown>>;
+    teams: Array<Record<string, unknown>>;
+  }): Array<OwnerQuery> {
+    const asked: Array<OwnerQuery> = [];
+    const spy: jest.SpiedFunction<typeof ModelAPI.getList> = getJestSpyOn(
+      ModelAPI,
+      "getList",
+    );
+    const others: ((...args: Array<unknown>) => unknown) | undefined =
+      spy.getMockImplementation() as
+        | ((...args: Array<unknown>) => unknown)
+        | undefined;
+
+    spy.mockImplementation((async (request: OwnerQuery): Promise<unknown> => {
+      if (request.modelType === DataPipelineOwnerUser) {
+        asked.push(request);
+        return list(
+          data.users.map((fields: Record<string, unknown>) => {
+            return owner(DataPipelineOwnerUser, fields);
+          }),
+        );
+      }
+
+      if (request.modelType === DataPipelineOwnerTeam) {
+        asked.push(request);
+        return list(
+          data.teams.map((fields: Record<string, unknown>) => {
+            return owner(DataPipelineOwnerTeam, fields);
+          }),
+        );
+      }
+
+      return await others!(request);
+    }) as never);
+
+    return asked;
+  }
+
+  test("a failed pipeline names the people and teams who own it", async () => {
+    const asked: Array<OwnerQuery> = withPipelineOwners({
+      users: [
+        {
+          dataPipelineId: new ObjectID(PIPELINE),
+          user: { _id: "u9", name: "Katherine Johnson" },
+        },
+      ],
+      teams: [
+        {
+          dataPipelineId: new ObjectID(PIPELINE),
+          team: { _id: "t9", name: "Ingestion" },
+        },
+      ],
+    });
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        within(itemNamed("nightly_load")).getByTestId(ATTENTION_OWNERS_TEST_ID),
+      ).toHaveTextContent("Katherine Johnson");
+    });
+    expect(
+      within(itemNamed("nightly_load")).getByTestId(ATTENTION_OWNERS_TEST_ID),
+    ).toHaveTextContent("Ingestion");
+
+    // Only the pipelines told of are asked about.
+    const pipelineQuery: Includes = asked.find((query: OwnerQuery): boolean => {
+      return query.modelType === DataPipelineOwnerUser;
+    })!.query["dataPipelineId"] as Includes;
+
+    expect([...pipelineQuery.values].map(String)).toEqual([PIPELINE]);
+  });
+
+  test("a pipeline nobody owns: No owner, and Add one opens its Owners tab", async () => {
+    withPipelineOwners({ users: [], teams: [] });
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        within(itemNamed("nightly_load")).getByText("No owner"),
+      ).toBeInTheDocument();
+    });
+
+    expect(hrefOf(within(itemNamed("nightly_load")).getByText("Add one"))).toBe(
+      routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, PIPELINE),
     );
   });
 });

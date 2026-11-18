@@ -9,18 +9,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. The root package is private repository tooling (lint, install and docs scripts) that no image installs. glob comes in through jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) and typeorm, which walks only for entities and migrations given as path strings; each walks this repository's own paths."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. The root package is private repository tooling (lint, install and docs scripts) that no image installs. picomatch comes in through jest's test lookup and haste map (jest-util, jest-message-util, jest-haste-map and its anymatch, fdir and @parcel/watcher) and typescript-eslint's tinyglobby, which globs only the TypeScript projects an ESLint configuration names; each matches patterns from this repository's own configuration."
-    }
-  ],
-  "Scripts": [
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - @types/jest, which brings jest's expect, jest-util and jest-message-util for their type declarations, and nothing here runs jest - so no production install has it."
     }
   ],
   "Scripts/TerraformProvider": [
@@ -33,11 +21,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and haste map (jest-util, jest-message-util, jest-haste-map and its anymatch, fdir and @parcel/watcher, through jest, ts-jest and @types/jest) - so no production install has it, and jest matches only the globs in this repository's own jest configuration."
     }
   ],
   "Scripts/CrossplaneProvider": [
@@ -50,11 +33,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and haste map (jest-util, jest-message-util, jest-haste-map and its anymatch, fdir and @parcel/watcher, through jest, ts-jest and @types/jest) - so no production install has it, and jest matches only the globs in this repository's own jest configuration."
     }
   ],
   "Tests/Ops": [
@@ -67,11 +45,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and haste map (jest-util, jest-message-util, jest-haste-map and its anymatch, fdir and @parcel/watcher, through jest) - so no production install has it, and jest matches only the globs in this repository's own jest configuration."
     }
   ],
   "agents/KubernetesAIAgent": [
@@ -79,11 +52,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
     }
   ],
   "agents/KubernetesCostAgent": [
@@ -91,11 +59,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
     }
   ],
   "agents/KubernetesLogTailer": [
@@ -103,11 +66,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
     }
   ],
   "agents/ResourceAIAgent": [
@@ -115,18 +73,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    }
-  ],
-  "ee": [
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest, ts-jest and @types/jest) - so no production install has it, and jest matches only the globs in this repository's own jest configuration."
     }
   ],
   "packages/App": [
@@ -134,11 +80,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - Tailwind (its micromatch and fast-glob, chokidar, and sucrase's tinyglobby), jest's test lookup (jest-util, micromatch and anymatch, through jest, ts-jest and @types/jest) and nodemon's file watcher (chokidar) - so no production install has it. Only the docs' CSS build (scripts/build-docs-tailwind.ts, run in the image build) runs Tailwind, as a PostCSS plugin over the fixed content globs of each site's configuration (Utils/DocsTailwind.ts); chokidar serves only its CLI's --watch mode and tinyglobby only sucrase's own command-line tool, neither of which the build runs. jest and nodemon match patterns from this repository's own configuration."
     }
   ],
   "packages/App/FeatureSet/Accounts": [
@@ -146,11 +87,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only the patterns in its nodemon.json."
     }
   ],
   "packages/App/FeatureSet/AdminDashboard": [
@@ -158,11 +94,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only the patterns in its nodemon.json."
     }
   ],
   "packages/App/FeatureSet/BrowserRecorder": [
@@ -175,11 +106,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. Here every affected copy is only reachable through devDependencies - jest's test lookup and coverage (@jest/reporters, jest-config, jest-runtime, test-exclude) - so no production install has it, and jest walks this repository's own test and coverage paths."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup and haste map (jest-util, jest-message-util, jest-haste-map and its anymatch, fdir and @parcel/watcher, through jest, ts-jest, @types/jest and jest-environment-jsdom) - so no production install has it, and jest matches only the globs in this repository's own jest configuration."
     }
   ],
   "packages/App/FeatureSet/Dashboard": [
@@ -187,18 +113,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only the patterns in its nodemon.json."
-    }
-  ],
-  "packages/App/FeatureSet/MobileRecorder": [
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. The package's own dependency is fflate alone; react-native and @react-native-async-storage/async-storage are peer dependencies that the app embedding it supplies, installed here only as devDependencies. Every copy is only reachable through those devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest, ts-jest and @types/jest), react-native's jest environment (jest-environment-node) and react-native's codegen scripts (tinyglobby, through @react-native/virtualized-lists' react-native) - so no production install has it, and each matches patterns from this repository's own configuration."
     }
   ],
   "packages/App/FeatureSet/PublicDashboard": [
@@ -206,11 +120,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only the patterns in its nodemon.json."
     }
   ],
   "packages/App/FeatureSet/StatusPage": [
@@ -218,11 +127,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and it matches only the patterns in its nodemon.json."
     }
   ],
   "packages/CLI": [
@@ -230,11 +134,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the line nodemon asks for: GHSA-g3hv-75wg-m249 covers every version from 7.0.0 before 11.0.1 (published 2026-10-27), and the latest 10.x release (10.2.6) is still affected (checked on 2026-11-18); nodemon 3.1.14, the latest, asks for ^10.2.1, and 11 is a new major that rewrites the matcher. Its globparts amplification needs a glob pattern somebody else writes. Here the only affected copy is nodemon's 10.2.6, only reachable through devDependencies - its file watcher, which only `npm run dev` starts - so no production install has it, and it matches only nodemon's default watch and ignore patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest, ts-jest and @types/jest) and nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it; jest matches only the globs in this repository's own jest configuration, and nodemon only its default watch and ignore patterns."
     }
   ],
   "packages/Common": [
@@ -247,11 +146,6 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. A production install has it only through archiver-utils, whose glob runs for archive.glob() and archive.directory(), while Common only appends buffers (MicrosoftTeamsAPI's app package), and through typeorm, whose glob loads entities and migrations given as path strings, while Common gives TypeORM classes: neither walk ever runs. jest's glob here (7.2.3) is not affected."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. A production install has it only through typeorm-extension > locter > fast-glob > micromatch, and locter's file search runs only when typeorm-extension has to find a data source itself: Common passes its options to createDatabase and dropDatabase (Server/Infrastructure/PostgresDatabase.ts) and uses neither its seeders nor its CLI, so that search never runs. The rest is development tooling - jest's test lookup (jest-util and micromatch, through jest, ts-jest and jest-environment-jsdom) and sass's @parcel/watcher, which only the sass CLI's --watch mode starts (the UI build calls sass.compile) - matching this repository's own patterns."
     }
   ],
   "packages/Home": [
@@ -259,11 +153,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - Tailwind (its micromatch and fast-glob, chokidar, and sucrase's tinyglobby), jest's test lookup (jest-util, micromatch and anymatch, through jest, ts-jest and @types/jest) and nodemon's file watcher (chokidar) - so no production install has it. Only the CSS build (Scripts/BuildTailwindCss.ts, run in the image build) runs Tailwind, as a PostCSS plugin over the fixed content globs in tailwind.config.ts; chokidar serves only its CLI's --watch mode and tinyglobby only sucrase's own command-line tool, neither of which the build runs. jest and nodemon match patterns from this repository's own configuration."
     }
   ],
   "packages/MobileApp": [
@@ -271,11 +160,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. The copy a production install has comes through Expo's build tooling (@expo/cli, @expo/metro-config, @expo/config-plugins and @expo/fingerprint, through glob), which runs on a developer's or the CI machine with this repository's own app config and is not part of the app's bundle. The rest is jest's tooling (jest-expo, @testing-library/react-native), development only."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. The copies a production install has come through Expo's and React Native's build tooling - @expo/cli, @expo/metro-config, Metro's file map (metro-file-map's micromatch, through @expo/metro), react-native's codegen scripts (tinyglobby) and its jest preset (@react-native/jest-preset, through jest-util) - which runs on a developer's or the CI machine with this repository's own app, Metro and jest configuration and is not part of the app's bundle. The rest is jest's tooling (jest, jest-expo, @testing-library/react-native) and babel-preset-expo's codegen plugin, development only."
     }
   ],
   "packages/Probe": [
@@ -283,11 +167,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest and ts-jest) and nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and each matches patterns from this repository's own configuration."
     }
   ],
   "packages/Runner": [
@@ -295,11 +174,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest and ts-jest) and nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and each matches patterns from this repository's own configuration."
     }
   ],
   "packages/TestServer": [
@@ -307,11 +181,6 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The rest is development tooling - jest's test lookup and coverage (glob, test-exclude) and nodemon's file watcher - matching this repository's own patterns."
-    },
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "expires": "2026-12-04",
-      "reason": "picomatch has no fixed release: GHSA-fc5q-39xc-vjpf covers every version through 4.0.7, the latest (published 2026-08-24), and its fix (micromatch/picomatch#194) is not merged (checked on 2026-11-18). Its ReDoS needs an extglob pattern such as +(*) that somebody else writes. Here every copy is only reachable through devDependencies - jest's test lookup (jest-util, micromatch and anymatch, through jest and ts-jest) and nodemon's file watcher (chokidar, anymatch and readdirp), which only `npm run dev` starts - so no production install has it, and each matches patterns from this repository's own configuration."
     }
   ]
 }

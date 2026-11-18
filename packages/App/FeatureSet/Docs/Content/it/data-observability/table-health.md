@@ -17,6 +17,8 @@ Viene letto solo il catalogo, e su MongoDB i nomi dei campi dei documenti più r
 
 Il **ritmo** di una tabella è la frequenza con cui cambia di solito, appresa dal tempo che passa tra una modifica e l'altra. Una tabella che va ben oltre il suo ritmo compare come **In ritardo**, sulla sua pagina e in **Tabelle**, e scrive di quanto lo ha superato. La sua freschezza è nota non appena è cambiata due volte: una tabella caricata ogni ora viene appresa in poche ore, una caricata ogni notte in pochi giorni.
 
+In **Tabelle**, e nella scheda **Tabelle** di un database, il filtro **Aggiornamento** mostra solo le tabelle in ritardo, o solo quelle aggiornate, e l'ordinamento per **Aggiornamento** mette per prime le più in ritardo. **Tabelle in ritardo** nella **Panoramica**, e nella pagina di un database, apre quell'elenco con **Aggiornamento** impostato su **In ritardo**.
+
 Una vista non contiene righe proprie, quindi la sua freschezza è quella delle sue origini: vedi [Lineage e pipeline](/docs/data-observability/lineage-and-pipelines).
 
 Un catalogo può dire che una tabella è cambiata quando è cambiata solo la sua manutenzione interna, oppure non dire nulla. In **Impostazioni** di una tabella, indica una **Colonna Freshness** come `updated_at`, e la sua ultima modifica diventa il valore più recente di quella colonna. L'utenza deve poter leggere la colonna, che viene letta a ogni raccolta, quindi dovrebbe essere indicizzata; su BigQuery e Athena, che fatturano in base a ciò che una query legge, viene letta una volta all'ora. Gli orari senza fuso orario sono considerati UTC.
@@ -85,7 +87,7 @@ La scheda **Proprietari** di una tabella indica le persone e i team a cui appart
 
 Non dovresti doverlo fare centinaia di volte. Le **Regole del proprietario** e le **Regole etichette** si applicano a ogni tabella quando compare per la prima volta, in base alle sue etichette, oppure a un'espressione regolare sul suo nome, schema o database: tutto ciò che è in `finance` va al team finance, e tutto ciò che si chiama `*_pii` riceve un'etichetta.
 
-Un'autorizzazione limitata a `Owned` raggiunge solo le tabelle di cui sono proprietari il suo titolare o i suoi team, con i relativi controlli, attività e problemi segnalati. Essere proprietario di un database non rende proprietario delle sue tabelle: usa una regola sui proprietari per affidare un intero database a un team.
+Un'autorizzazione limitata a `Owned` raggiunge solo le tabelle di cui sono proprietari il suo titolare o i suoi team, con i relativi controlli, attività e problemi segnalati. Essere proprietario di un database non rende proprietario delle sue tabelle: usa una regola sui proprietari per affidare un intero database a un team. La **Panoramica**, **Problemi** e il numero accanto a **Panoramica** contano ed elencano solo le tabelle che una tale autorizzazione raggiunge, come fanno **Tabelle** e **Controlli**.
 
 ## Quando si apre un avviso
 

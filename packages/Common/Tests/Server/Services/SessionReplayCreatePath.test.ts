@@ -255,6 +255,7 @@ describe("RumSessionErasureRequestService create path", () => {
     createBy.data.status = RumSessionErasureRequestStatus.Completed;
     createBy.data.sessionsDeleted = 9999;
     createBy.data.chunksDeleted = 9999;
+    createBy.data.productAnalyticsRowsDeleted = 9999;
     const spoofedRequestedAt: Date = OneUptimeDate.fromString(
       "2000-01-01T00:00:00.000Z",
     );
@@ -271,6 +272,7 @@ describe("RumSessionErasureRequestService create path", () => {
     );
     expect(onCreate.createBy.data.sessionsDeleted).toBe(0);
     expect(onCreate.createBy.data.chunksDeleted).toBe(0);
+    expect(onCreate.createBy.data.productAnalyticsRowsDeleted).toBe(0);
     expect(onCreate.createBy.data.requestedAt?.getTime() || 0).toBeGreaterThan(
       spoofedRequestedAt.getTime(),
     );

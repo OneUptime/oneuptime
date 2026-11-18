@@ -49,6 +49,7 @@ import {
   DataAssetFreshness,
   DataAssetFreshnessResult,
   getDataAssetFreshness,
+  getDataAssetLateAt,
 } from "../../../Types/DataObservability/DataAssetFreshness";
 import { JSONObject } from "../../../Types/JSON";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
@@ -884,6 +885,8 @@ export default class TableHealthIngest {
       id: store.id,
       data: {
         tableHealthCollectedAt: collectedAt,
+        // When this collection ended: Collect Now waits for it to pass the time it asked.
+        tableHealthAttemptedAt: OneUptimeDate.getCurrentDate(),
         tableHealthStatus: TableHealthStatus.Collected,
         tableHealthMessage:
           snapshot.warnings.length > 0
@@ -904,17 +907,31 @@ export default class TableHealthIngest {
     return result;
   }
 
+  /*
+   * A collection that failed, whether OneUptime's workers or a probe ran
+   * it: the store says why, and when, and is tried again in fifteen
+   * minutes. The reason is logged too, so a self-hosted server's logs say
+   * why its collections fail; it is never a credential
+   * (sanitizeErrorMessage took the connection's secrets out).
+   */
   public static async recordFailure(data: {
     storeId: ObjectID;
     error: string;
   }): Promise<void> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    logger.warn(
+      `Data Observability: the collection of store ${data.storeId.toString()} failed: ${data.error.slice(0, MAX_MESSAGE_LENGTH)}`,
+    );
+
     await DataStoreService.updateColumnsByIdWithoutHooks({
       id: data.storeId,
       data: {
         tableHealthStatus: TableHealthStatus.Failed,
         tableHealthMessage: data.error.slice(0, MAX_MESSAGE_LENGTH),
+        tableHealthAttemptedAt: now,
         nextTableHealthCollectionAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
+          now,
           FAILED_COLLECTION_RETRY_IN_MINUTES,
         ),
       } as never,
@@ -958,6 +975,17 @@ export default class TableHealthIngest {
       asset.lastChangedAt = plan.lastChangedAt;
     }
 
+    // When it is late without a change, once its rhythm is known (Tables' Late filter).
+    const lateAt: Date | null = getDataAssetLateAt({
+      kind: table.kind,
+      lastChangedAt: plan.lastChangedAt,
+      updateIntervalInSeconds: plan.updateIntervalInSeconds,
+    });
+
+    if (lateAt) {
+      asset.lateAt = lateAt;
+    }
+
     if (plan.reads.lastReadAt) {
       asset.lastReadAt = plan.reads.lastReadAt;
     }
@@ -998,6 +1026,12 @@ export default class TableHealthIngest {
       sizeInBytes: table.sizeInBytes as number,
       lastChangedAt: plan.lastChangedAt as Date,
       updateIntervalInSeconds: plan.updateIntervalInSeconds as number,
+      // Written with what it is worked out from, so a list asking for the late tables reads them right.
+      lateAt: getDataAssetLateAt({
+        kind: table.kind,
+        lastChangedAt: plan.lastChangedAt,
+        updateIntervalInSeconds: plan.updateIntervalInSeconds,
+      }) as Date,
       lastReadAt: plan.reads.lastReadAt as Date,
       unreadSince: plan.reads.unreadSince as Date,
       assetKind: table.kind,

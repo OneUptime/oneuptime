@@ -33,6 +33,46 @@ export interface DataAssetFreshnessResult {
   overdueBySeconds: number;
 }
 
+/*
+ * WHEN A TABLE BECOMES LATE WITHOUT A CHANGE - twice its usual interval after
+ * its last change, and at least fifteen minutes past it - or null when that
+ * cannot be said: a view, or a table whose rhythm is not known yet.
+ *
+ * Kept on the table as it is collected (DataAsset.lateAt), so a list can ask
+ * for the late tables - lateAt before now - and sort by how overdue they
+ * are, on the server, without the answer going stale between collections.
+ */
+export function getDataAssetLateAt(data: {
+  kind: DataAssetKind | undefined | null;
+  lastChangedAt: Date | string | undefined | null;
+  updateIntervalInSeconds: number | undefined | null;
+}): Date | null {
+  if (data.kind && !doesDataAssetKindHoldRows(data.kind)) {
+    return null;
+  }
+
+  if (
+    !data.lastChangedAt ||
+    !data.updateIntervalInSeconds ||
+    data.updateIntervalInSeconds <= 0
+  ) {
+    return null;
+  }
+
+  const changedAt: number = new Date(data.lastChangedAt).getTime();
+
+  if (!Number.isFinite(changedAt)) {
+    return null;
+  }
+
+  const allowedSeconds: number = Math.max(
+    data.updateIntervalInSeconds * 2,
+    data.updateIntervalInSeconds + MIN_LATENESS_SLACK_IN_SECONDS,
+  );
+
+  return new Date(changedAt + allowedSeconds * 1000);
+}
+
 export function getDataAssetFreshness(data: {
   kind: DataAssetKind | undefined | null;
   lastChangedAt: Date | undefined | null;
@@ -47,11 +87,9 @@ export function getDataAssetFreshness(data: {
     };
   }
 
-  if (
-    !data.lastChangedAt ||
-    !data.updateIntervalInSeconds ||
-    data.updateIntervalInSeconds <= 0
-  ) {
+  const lateAt: Date | null = getDataAssetLateAt(data);
+
+  if (!lateAt) {
     return {
       freshness: DataAssetFreshness.Unknown,
       lateAt: null,
@@ -59,13 +97,6 @@ export function getDataAssetFreshness(data: {
     };
   }
 
-  const allowedSeconds: number = Math.max(
-    data.updateIntervalInSeconds * 2,
-    data.updateIntervalInSeconds + MIN_LATENESS_SLACK_IN_SECONDS,
-  );
-  const lateAt: Date = new Date(
-    new Date(data.lastChangedAt).getTime() + allowedSeconds * 1000,
-  );
   const overdueBySeconds: number = Math.max(
     0,
     Math.floor((data.now.getTime() - lateAt.getTime()) / 1000),

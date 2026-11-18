@@ -47,6 +47,7 @@ import DeviceMonitorTemplateUtil, {
   isDeviceAddressMonitorType,
   isDeviceMonitorTemplateType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import { DeviceMonitorFacts } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
 import {
   buildDeviceName,
   buildFallbackDeviceName,
@@ -88,6 +89,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import DiscoveredDevices, {
   ClassifiedDiscoveredDevice,
 } from "../NetworkDevice/DiscoveredDevices";
+import DeviceMonitorDuplicateCheck from "../NetworkDevice/DeviceMonitorDuplicateCheck";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import ModelPermission from "../../Types/Database/Permissions/Index";
@@ -115,8 +117,9 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *   stop     stops it before its next hosts; what it created stays.
  *   retry    a new import of the hosts that failed, and only those. Nothing
  *            is ever created twice: a device is looked up at its address
- *            before it is created, and a monitor by the (device, template)
- *            pair every monitor made from a template carries.
+ *            before it is created, and a monitor is not made when the device
+ *            has one it would duplicate - from the same template, or of the
+ *            same kind checking the same thing (DeviceMonitorDuplicateCheck).
  *
  * ONE IMPORT OF A PROJECT RUNS AT A TIME. The worker's job is "run this
  * project's imports", queued once per project (the queue folds repeats into
@@ -275,9 +278,10 @@ export const DEVICE_NOT_REACHED_FAILED: string =
 
 /*
  * What the import reads of a device it created or found: its name and
- * address for its monitor, how its health is established, and the probe
- * that polls it - the probe a Ping, IP, Port or NTP monitor made for it
- * runs on.
+ * address for its monitor, how its health is established, the probe that
+ * polls it - the probe a Ping, IP, Port or NTP monitor made for it runs on -
+ * and the monitor bound to it, which a second Ping or IP monitor would
+ * duplicate (DeviceMonitorDuplicateCheck).
  */
 const IMPORTED_DEVICE_SELECT: {
   _id: true;
@@ -286,6 +290,7 @@ const IMPORTED_DEVICE_SELECT: {
   hostname: true;
   monitoringMethod: true;
   probeId: true;
+  monitorId: true;
 } = {
   _id: true,
   projectId: true,
@@ -293,6 +298,7 @@ const IMPORTED_DEVICE_SELECT: {
   hostname: true,
   monitoringMethod: true,
   probeId: true,
+  monitorId: true,
 };
 
 // The state one worker keeps while it imports one import's hosts.
@@ -2317,11 +2323,14 @@ export default class DiscoveryImportRunner {
   }
 
   /*
-   * One device's monitor from the template: found by the (device, template)
-   * pair if it is there - an alert policy using the same template may have
-   * made it the moment the device was created - else created. The person's
-   * own check runs on the monitor itself first; OneUptime then writes it,
-   * provenance and all.
+   * One device's monitor from the template, unless the device has one it
+   * would duplicate (issue #9509): one from the same template - an alert
+   * policy using it may have made it the moment the device was created - or,
+   * for a Ping, IP, Port or NTP template, one of the same kind that checks
+   * the same thing (DeviceMonitorDuplicates). That one is reported as the
+   * device's monitor, Already monitored; otherwise the monitor is created.
+   * The person's own check runs on the monitor itself first; OneUptime then
+   * writes it, provenance and all.
    *
    * A Network Device template's monitor reads the device's polls. A Ping,
    * IP or Port template's checks the device's address (#5145), run by the
@@ -2355,15 +2364,15 @@ export default class DiscoveryImportRunner {
       return;
     }
 
-    const existing: Monitor | null = await this.findTemplateMonitor(
+    const existing: DeviceMonitorFacts | null = await this.findExistingMonitor(
       state,
-      device.id!,
-      template.id,
+      device,
+      template,
     );
 
     if (existing?.id) {
       result.monitor = DiscoveryImportMonitorOutcome.AlreadyThere;
-      result.monitorId = existing.id.toString();
+      result.monitorId = existing.id;
       return;
     }
 
@@ -2415,37 +2424,73 @@ export default class DiscoveryImportRunner {
     monitor.createdByUserId = state.userId;
 
     try {
-      const created: Monitor = await MonitorService.create({
-        data: monitor,
-        ...(isDeviceAddressMonitorType(template.monitorType)
-          ? {
-              miscDataProps: this.getAddressMonitorProbes({
-                device: device,
-                scan: state.scan,
-              }),
+      /*
+       * Under the device's lock for a Ping, IP, Port or NTP template, and
+       * asked again inside it: an auto import rule may be giving the same
+       * device a monitor from another template this very moment, and no
+       * index can see that pair (DeviceMonitorDuplicateCheck).
+       */
+      const settled: { created?: Monitor; existing?: DeviceMonitorFacts } =
+        await DeviceMonitorDuplicateCheck.underDeviceLock(
+          { deviceId: device.id!, monitorType: template.monitorType },
+          async (): Promise<{
+            created?: Monitor;
+            existing?: DeviceMonitorFacts;
+          }> => {
+            if (
+              DeviceMonitorDuplicateCheck.needsDeviceLock(template.monitorType)
+            ) {
+              const meanwhile: DeviceMonitorFacts | null =
+                await this.findExistingMonitor(state, device, template);
+
+              if (meanwhile?.id) {
+                return { existing: meanwhile };
+              }
             }
-          : {}),
-        props: {
-          isRoot: true,
-          tenantId: state.projectId,
-        },
-      });
+
+            return {
+              created: await MonitorService.create({
+                data: monitor,
+                ...(isDeviceAddressMonitorType(template.monitorType)
+                  ? {
+                      miscDataProps: this.getAddressMonitorProbes({
+                        device: device,
+                        scan: state.scan,
+                      }),
+                    }
+                  : {}),
+                props: {
+                  isRoot: true,
+                  tenantId: state.projectId,
+                },
+              }),
+            };
+          },
+        );
+
+      if (settled.existing?.id) {
+        result.monitor = DiscoveryImportMonitorOutcome.AlreadyThere;
+        result.monitorId = settled.existing.id;
+        return;
+      }
 
       result.monitor = DiscoveryImportMonitorOutcome.Created;
-      result.monitorId = (created?.id || monitor.id)?.toString() || undefined;
+      result.monitorId =
+        (settled.created?.id || monitor.id)?.toString() || undefined;
       state.consecutiveMonitorFailures = 0;
       state.lastMonitorFailure = "";
     } catch (error) {
-      // Made by someone else meanwhile: the unique (device, template) pair.
-      const meanwhile: Monitor | null = await this.findTemplateMonitor(
-        state,
-        device.id!,
-        template.id,
-      );
+      /*
+       * Made by someone else meanwhile - the unique (device, template) pair
+       * refused this one, or another path held the device until it had made
+       * its monitor.
+       */
+      const meanwhile: DeviceMonitorFacts | null =
+        await this.findExistingMonitor(state, device, template);
 
       if (meanwhile?.id) {
         result.monitor = DiscoveryImportMonitorOutcome.AlreadyThere;
-        result.monitorId = meanwhile.id.toString();
+        result.monitorId = meanwhile.id;
         return;
       }
 
@@ -2454,21 +2499,15 @@ export default class DiscoveryImportRunner {
   }
 
   /*
-   * The probe a Ping, IP, Port or NTP monitor made for a device runs on: the one
-   * that polls the device, else the scan's - each reached the address. The
-   * project's default probes would be global ones, which cannot reach a
-   * device on a private network, so they are what a device with neither
-   * gets, and only then (the monitor create attaches them when no probe is
-   * named, MonitorService.addProbesToMonitor).
+   * The probe a Ping, IP, Port or NTP monitor made for a device runs on (the
+   * device's, else the scan's): see DeviceMonitorDuplicateCheck, which an
+   * auto import rule's monitors are given theirs by too.
    */
   public static getAddressMonitorProbes(data: {
     device: NetworkDevice;
     scan: NetworkDeviceDiscoveryScan | null;
   }): JSONObject {
-    const probeId: string =
-      data.device.probeId?.toString() || data.scan?.probeId?.toString() || "";
-
-    return probeId ? { probes: [probeId] } : {};
+    return DeviceMonitorDuplicateCheck.getAddressMonitorProbes(data);
   }
 
   private static recordMonitorFailure(
@@ -2496,21 +2535,20 @@ export default class DiscoveryImportRunner {
     }
   }
 
-  private static async findTemplateMonitor(
+  /*
+   * The monitor of the device's that the template's would duplicate - from
+   * the same template, or of the same kind checking the same thing - or
+   * null (DeviceMonitorDuplicateCheck).
+   */
+  private static async findExistingMonitor(
     state: ImportRunState,
-    deviceId: ObjectID,
-    templateId: ObjectID,
-  ): Promise<Monitor | null> {
-    return await MonitorService.findOneBy({
-      query: {
-        projectId: state.projectId,
-        monitorTemplateId: templateId,
-        autoProvisionedNetworkDeviceId: deviceId,
-      },
-      select: {
-        _id: true,
-      },
-      props: { isRoot: true },
+    device: NetworkDevice,
+    template: MonitorTemplate,
+  ): Promise<DeviceMonitorFacts | null> {
+    return await DeviceMonitorDuplicateCheck.findDuplicate({
+      projectId: state.projectId,
+      device: device,
+      template: template,
     });
   }
 

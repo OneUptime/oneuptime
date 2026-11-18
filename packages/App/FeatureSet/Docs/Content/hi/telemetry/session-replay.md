@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | नहीं | डिफ़ॉल्ट रूप से Do Not Track और Global Privacy Control का पालन करता है। सिग्नल की परवाह किए बिना रिकॉर्ड करने के लिए इसे `"false"` पर सेट करें; [Do Not Track](#do-not-track) देखें। |
 | `data-oneuptime-debug` | नहीं | `"true"` रिकॉर्डर के फ़ैसले कंसोल में प्रिंट करता है। [सेशन रीप्ले समस्या निवारण](/docs/rum/session-replay-troubleshooting) देखें। |
 | `data-oneuptime-offline-storage` | नहीं | विज़िटर के ऑफ़लाइन रहते रिकॉर्ड हुए चंक को ब्राउज़र के IndexedDB में भी रखने के बजाय केवल मेमोरी में रखने के लिए इसे `"false"` पर सेट करें। [ऑफ़लाइन मोड](#ऑफ़लाइन-मोड) देखें। |
+| `data-oneuptime-app-version` | नहीं | आपके ऐप का संस्करण, जैसे `2.3.1`, अधिकतम 64 अक्षर। प्रोडक्ट एनालिटिक्स उपयोगकर्ताओं और सेशन को इसके अनुसार बाँटता है। |
 
 वही विकल्प टैग के बजाय एक ग्लोबल पर भी दिए जा सकते हैं, जिसे टैग मैनेजर और बंडल किए गए इंस्टॉल इस्तेमाल करते हैं:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ SVG स्प्राइट फ़ाइल (`<use href="/icons.svg#close">`) �
 
 `ByIdentifiedUserKey` की दो ईमानदार सीमाएँ। कुंजी डैशबोर्ड में कहीं नहीं दिखती: यह सेशन सूची API (`POST /telemetry/rum/session-replay/list`) की हर पंक्ति पर `identifiedUserKey` के रूप में लौटती है, इसलिए आज उपयोगकर्ता के हिसाब से मिटाना वहाँ एक `user:` खोज और उस फ़ील्ड की कॉपी से शुरू होता है। और जो सेशन **अंतिम उपयोगकर्ता की पहचान कैप्चर करें** बंद रहते हुए रिकॉर्ड हुआ, उसकी कोई कुंजी नहीं है — व्यक्ति के बारे में कुछ नहीं सहेजा गया — इसलिए उस तक केवल सेशन ID, तारीख सीमा या एप्लिकेशन से पहुँचा जा सकता है।
 
-हर अनुरोध अपनी `status` (`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted` और `chunksDeleted` गिनती और कोई भी `failureReason` रिकॉर्ड करता है; `ReadRumSessionErasureRequest` किसी को इनकी समीक्षा करने देता है। मिटाना रिकॉर्डिंग और उन सेशन से जुड़ी टेलीमेट्री हटाता है, और अनुरोध पूरा होने पर अब भी रास्ते में चल रही कोई भी रिकॉर्डिंग लिखी जाने के बजाय फेंक दी जाती है। मिटाए गए सेशन का लिंक "not found" के बजाय "erased" जवाब देता है। जुड़ी हुई टेलीमेट्री है:
+हर अनुरोध अपनी `status` (`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted`, `chunksDeleted` और `productAnalyticsRowsDeleted` गिनती और कोई भी `failureReason` रिकॉर्ड करता है; `ReadRumSessionErasureRequest` किसी को इनकी समीक्षा करने देता है। मिटाना रिकॉर्डिंग और उन सेशन से जुड़ी टेलीमेट्री हटाता है, और अनुरोध पूरा होने पर अब भी रास्ते में चल रही कोई भी रिकॉर्डिंग लिखी जाने के बजाय फेंक दी जाती है। मिटाए गए सेशन का लिंक "not found" के बजाय "erased" जवाब देता है। जुड़ी हुई टेलीमेट्री है:
 
 - सेशन ID की मुहर वाला हर स्पैन और अपवाद, ट्रेस कॉन्टेक्स्ट आगे भेजने वाली हर सेवा में [अपने आप](#अपनी-बाकी-टेलीमेट्री-से-संबंध-जोड़ना) मुहर लगे बैकएंड स्पैन समेत, और हर वह लॉग जो खुद ID ले जाता है;
 - हर उस ट्रेस के लॉग, अपवाद और स्पैन जो केवल मिटाए गए सेशन का है: ट्रेस का हर मुहर लगा स्पैन उनकी किसी ID को ले जाता है, और ट्रेस में कुछ भी उन स्पैन में से पहले से दस मिनट से ज़्यादा पहले या आखिरी के दस मिनट से ज़्यादा बाद शुरू नहीं हुआ। इसमें आपके पेजों के अपने ओरिजिन पर किए अनुरोधों के बैकएंड लॉग आते हैं, जो उन मुहर लगे स्पैन के साथ ट्रेस ID साझा करते हैं।

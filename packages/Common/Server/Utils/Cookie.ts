@@ -754,6 +754,24 @@ export default class CookieUtil {
     );
   }
 
+  /*
+   * Clears every cookie a sign-in to one status page left in the browser -
+   * its access token, its refresh token, its sign-out cookie and its master
+   * password - each on the path, and with the attributes, it was set with,
+   * so the browser removes it. Another page's cookies, and the dashboards',
+   * are left as they are.
+   */
+  @CaptureSpan()
+  public static removeStatusPageSessionCookies(
+    res: ExpressResponse,
+    statusPageId: ObjectID,
+  ): void {
+    CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+    CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+    CookieUtil.removeStatusPageSessionSignOutCookie(res, statusPageId);
+    CookieUtil.removeStatusPageMasterPasswordCookie(res, statusPageId);
+  }
+
   @CaptureSpan()
   public static getStatusPageMasterPasswordKey(id: ObjectID): string {
     return `${CookieName.StatusPageMasterPassword}-${id.toString()}`;

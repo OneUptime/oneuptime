@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!--
+  Replica 2 of the Keeper-backed test cluster (docker-compose.yml beside it),
+  for Tests/Workers/RumProductAnalyticsErasureKeeperClickhouse.test.ts
+  (#6627). It coordinates through the Keeper replica 1 runs; the cluster
+  definition is the same on both.
+
+  A throwaway test server: the password is the one docker-compose.yml sets.
+-->
+<clickhouse>
+    <zookeeper>
+        <node>
+            <host>replica-1</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+
+    <macros>
+        <shard>01</shard>
+        <replica>replica-2</replica>
+        <cluster>oneuptime</cluster>
+    </macros>
+
+    <!-- Where replica 1 fetches the parts this one writes. -->
+    <interserver_http_host>replica-2</interserver_http_host>
+
+    <remote_servers>
+        <oneuptime>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>replica-1</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                </replica>
+                <replica>
+                    <host>replica-2</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                </replica>
+            </shard>
+        </oneuptime>
+    </remote_servers>
+</clickhouse>

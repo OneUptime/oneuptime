@@ -128,7 +128,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       monitorsCreated: 2,
     });
     expect(summary).toContain(
-      "Created 2 active Network Device monitors from the selected Monitor Template.",
+      "Created 2 active monitors from the selected Monitor Template.",
     );
   });
 
@@ -138,9 +138,30 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       hostsMatched: 2,
       monitorsWouldCreate: 2,
     });
+    expect(summary).toContain("It would also create 2 active monitors");
+  });
+
+  /*
+   * ISSUE #9510. A rule's template may be a Ping, IP, Port or NTP one now,
+   * so the report never calls its monitors Network Device monitors, and a
+   * skipped one says what the device already had.
+   */
+  it("names the monitors a rule makes, and why it skipped some, whatever the template's kind", () => {
+    const summary: string = describe_({
+      devicesCreated: 1,
+      hostsMatched: 3,
+      hostsSkippedAlreadyRegistered: 2,
+      monitorsCreated: 1,
+      monitorsSkippedAlreadyExisting: 2,
+    });
+
     expect(summary).toContain(
-      "It would also create 2 active Network Device monitors",
+      "Created 1 active monitor from the selected Monitor Template.",
     );
+    expect(summary).toContain(
+      "2 requested active monitors were skipped because the device already had one: from the same template, a monitor of the same kind that checks the same thing, or a Network Device monitor configured by hand.",
+    );
+    expect(summary).not.toContain("active Network Device");
   });
 
   it("reports exclusions, already-registered hosts, and failures", () => {
@@ -300,7 +321,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       });
 
       expect(summary).toContain(
-        "Stopped at the run cap with 409 active Network Device monitors still to create.",
+        "Stopped at the run cap with 409 active monitors still to create.",
       );
       // The device half is not claimed as pending — it was already imported.
       expect(summary).not.toContain("still to import");
@@ -316,7 +337,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
           monitorsPendingCreation: 3,
         }),
       ).toContain(
-        "12 hosts still to import and 3 active Network Device monitors still to create",
+        "12 hosts still to import and 3 active monitors still to create",
       );
     });
 
@@ -329,7 +350,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       });
 
       expect(summary).toContain("1 host still to import");
-      expect(summary).toContain("1 active Network Device monitor still to");
+      expect(summary).toContain("1 active monitor still to");
     });
 
     /*
@@ -383,7 +404,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       });
 
       expect(summary).toContain(
-        "Stopped at the run cap without creating anything, with 409 active Network Device monitors still to create.",
+        "Stopped at the run cap without creating anything, with 409 active monitors still to create.",
       );
       expect(summary).toContain("would repeat the same failures");
       expect(summary).not.toContain("Run again to continue");
@@ -404,7 +425,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
     /*
      * A monitor backfill over an already-imported estate creates no devices
      * at all. "No devices were imported" read as total failure directly
-     * above "Created 500 active Network Device monitors".
+     * above "Created 500 active monitors".
      */
     it("does not read a monitor backfill as an import that did nothing", () => {
       const summary: string = describe_({
@@ -417,7 +438,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
 
       expect(summary).toContain("No new network devices were imported.");
       expect(summary).toContain(
-        "Created 500 active Network Device monitors from the selected Monitor Template.",
+        "Created 500 active monitors from the selected Monitor Template.",
       );
     });
 
@@ -439,7 +460,7 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       );
 
       expect(progress).toContain(
-        "500 hosts imported, 500 active Network Device monitors created so far",
+        "500 hosts imported, 500 active monitors created so far",
       );
       expect(progress).toContain("leave this open");
     });

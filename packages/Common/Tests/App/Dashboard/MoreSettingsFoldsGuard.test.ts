@@ -133,6 +133,11 @@ const COVERED: Record<string, Coverage> = {
     suites: [MORE_SETTINGS_ONE_CARD, "TelemetryRetentionShells.test.tsx"],
     drawnBy: "Pages/Rum/View/Settings",
   },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsSettings.tsx":
+    {
+      suites: ["ProductAnalyticsRetentionSettings.test.tsx"],
+      drawnBy: "Pages/Rum/View/ProductAnalyticsSettings",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures.tsx": {
     suites: [MORE_SETTINGS_ONE_CARD],
     drawnBy: "Pages/Settings/AIFeatures",

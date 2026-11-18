@@ -102,8 +102,12 @@ export default class API extends BaseAPI {
     return new Route(`${basePath}/login`);
   }
 
-  public static override logoutUser(): void {
-    void UserUtil.logout(StatusPageUtil.getStatusPageId()!);
+  /*
+   * The reader's session on this page, ended on the server before the page
+   * goes to its sign-in (BaseAPI.handleError waits for it, issue #9508).
+   */
+  public static override logoutUser(): Promise<void> {
+    return UserUtil.logout(StatusPageUtil.getStatusPageId()!);
   }
 
   public static override getForbiddenRoute(): Route {

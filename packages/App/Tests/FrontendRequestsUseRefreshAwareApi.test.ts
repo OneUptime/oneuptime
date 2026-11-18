@@ -88,11 +88,6 @@ const BARE_CLIENT_ALLOWLIST: Array<AllowlistEntry> = [
       "GET /api/global-config/vars is anonymous by design and loads before any session exists, so there is nothing to refresh.",
   },
   {
-    file: "App/FeatureSet/StatusPage/src/Utils/User.ts",
-    reason:
-      "Logout is called from handleError; going through the status page client would recurse into handleError on a failed logout.",
-  },
-  {
     file: "App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookWebhookCard.tsx",
     reason:
       "Send Test Request calls the runbook's public webhook URL, whose key is the credential: no session rides on it, so there is nothing to refresh. The UI client's handleError would answer the webhook's own 403 (the runbook is turned off) by navigating to the Forbidden page, where the card should say why.",
@@ -104,6 +99,11 @@ const BARE_CLIENT_ALLOWLIST: Array<AllowlistEntry> = [
  * checks apply.
  */
 const RAW_TRANSPORT_ALLOWLIST: Array<AllowlistEntry> = [
+  {
+    file: "Common/UI/Utils/SignOutRequest.ts",
+    reason:
+      "The sign-out of the dashboards and of private status pages (issue #9508). The page changes right after it, and a browser cancels a request still on its way when the page changes - Firefox at once - so it needs fetch keepalive, which XMLHttpRequest has not. It ends a session rather than needing one: there is nothing to refresh, and a client that refreshed or signed out again on its failure would loop.",
+  },
   {
     file: "App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayPlayer.tsx",
     reason:

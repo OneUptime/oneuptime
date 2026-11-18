@@ -43,6 +43,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { fetchProductAnalyticsPeople } from "./ProductAnalyticsApi";
+import { readProductAnalyticsRetentionMonths } from "./ProductAnalyticsRetention";
 import useProductAnalyticsRead, {
   ProductAnalyticsRead,
 } from "./useProductAnalyticsRead";
@@ -152,7 +153,10 @@ function SeenAt(props: { at: number; isRelative: boolean }): ReactElement {
   );
 }
 
-function getPeopleColumns(translator: Translator): Columns<PersonRow> {
+function getPeopleColumns(
+  translator: Translator,
+  retentionMonths: number,
+): Columns<PersonRow> {
   return [
     {
       title: "Person",
@@ -224,8 +228,13 @@ function getPeopleColumns(translator: Translator): Columns<PersonRow> {
       key: "sessionsInRange",
       type: FieldType.Element,
       disableSort: true,
-      headerTooltip: translationKey(
-        "Their sessions in this range, and under it how many the last 13 months hold in all.",
+      headerTooltip: translator.translatePlural(
+        {
+          one: "Their sessions in this range, and under it how many the last {{count}} month holds in all.",
+          other:
+            "Their sessions in this range, and under it how many the last {{count}} months hold in all.",
+        },
+        retentionMonths,
       ),
       getElement: (row: PersonRow): ReactElement => {
         return (
@@ -449,9 +458,12 @@ const ProductAnalyticsPeopleCard: FunctionComponent<
     );
   }, [people, translator, rumApplicationId, props.linkSearch]);
 
+  /* How long the application keeps these numbers (issue #6626). */
+  const retentionMonths: number = readProductAnalyticsRetentionMonths(people);
+
   const columns: Columns<PersonRow> = useMemo((): Columns<PersonRow> => {
-    return getPeopleColumns(translator);
-  }, [translator]);
+    return getPeopleColumns(translator, retentionMonths);
+  }, [translator, retentionMonths]);
 
   const isSearchExpanded: boolean =
     isSearchOpen || searchText.trim().length > 0;

@@ -10,9 +10,11 @@ import IconProp from "Common/Types/Icon/IconProp";
  * The menu reads the same way:
  *
  *   Data Observability  the everyday pages: the Overview (what needs
- *                       someone now), every Table, the Pipelines that write
- *                       them, what changed in their Schemas, and where they
- *                       are read from - Databases and Storage Paths
+ *                       someone now, counted beside it), every Issue that
+ *                       does, filtered, every Table, the Pipelines that
+ *                       write them, what changed in their Schemas, and
+ *                       where they are read from - Databases and Storage
+ *                       Paths
  *   Quality             the rules the data must keep: Checks on what a
  *                       table holds, and Reconciliations of two tables that
  *                       must agree
@@ -58,6 +60,11 @@ export const DATA_OBSERVABILITY_MENU: Array<DataObservabilityMenuSection> = [
         page: PageMap.DATA_OBSERVABILITY_OVERVIEW,
         title: "Overview",
         icon: IconProp.Home,
+      },
+      {
+        page: PageMap.DATA_OBSERVABILITY_ISSUES,
+        title: "Issues",
+        icon: IconProp.Alert,
       },
       {
         page: PageMap.DATA_OBSERVABILITY_TABLES,
