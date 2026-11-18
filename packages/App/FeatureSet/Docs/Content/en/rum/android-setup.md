@@ -219,7 +219,7 @@ resource {
 }
 ```
 
-The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. Filter **Traces** and **Logs** on `@resource.host.name:` to see one device. A device that sends nothing for 30 days leaves **Inventory**.
+The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. The device's page in **Inventory** shows its own logs, traces and exceptions, and `@resource.host.name:` finds them in **Traces** and **Logs**. A device that sends nothing for 30 days leaves **Inventory**.
 
 ### Configure the fleet from your MDM
 

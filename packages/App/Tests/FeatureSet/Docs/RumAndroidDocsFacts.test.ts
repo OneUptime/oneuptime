@@ -307,6 +307,49 @@ describe("a kiosk named in host.name", () => {
     });
   });
 
+  it("has its own logs, traces and exceptions on its Inventory page: its rows carry its host's key", () => {
+    const resource: Record<string, string> = {
+      ...AGENT_RESOURCE,
+      ...kioskResourceFromPage(),
+    };
+    const projectId: string = "5f3e9c1a-0000-4000-8000-000000000001";
+    const host: ExtractedEntity | undefined = InventoryItem.extractEntities({
+      projectId,
+      attributes: resource,
+    }).find((entity: ExtractedEntity): boolean => {
+      return entity.entityType === EntityType.Host;
+    });
+
+    /*
+     * resolveTelemetryResource stamps every span, log and exception row of
+     * the batch with these keys, and the item's signal pages filter on its
+     * one key.
+     */
+    expect(
+      InventoryItem.extractEntityKeys({ projectId, attributes: resource }),
+    ).toContain(host!.entityKey);
+
+    for (const [page, filter] of [
+      ["Logs", "entityKeys: new Includes([signal.entityKey])"],
+      ["Traces", "entityKeysFilter={[signal.entityKey]}"],
+      ["Exceptions", "entityKeysFilter={[signal.entityKey]}"],
+    ] as Array<[string, string]>) {
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_DIR,
+            `packages/App/FeatureSet/Dashboard/src/Pages/Inventory/View/${page}.tsx`,
+          ),
+          "utf8",
+        ),
+      ).toContain(filter);
+    }
+
+    expect(section("### Name each device")).toContain(
+      "The device's page in **Inventory** shows its own logs, traces and exceptions",
+    );
+  });
+
   it("leaves Inventory after the days the page says, the discovered host's prune TTL", () => {
     expect(source("pruneStaleEntities")).toContain(
       "[EntityType.Host, 30 * 24],",
