@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "이메일 로그를 불러올 수 없습니다.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "이 서버에는 이메일이 설정되지 않아 이 이메일을 보내지 못했습니다. 서버 관리자에게 이메일 설정을 요청하세요.",
   "Outage Notifications": "중단 알림",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "이 서버의 이메일이 작동을 멈추거나 모든 글로벌 프로브가 보고를 멈추면 마스터 관리자에게 알리고, 다시 작동하면 한 번 더 알립니다. 멈춘 채널로는 절대 알리지 않으며 최대 한 시간에 한 번만 알립니다. 프로브에 대해서는 관리자 알림 이메일에도 알립니다.",
+  "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "이 서버의 이메일이 작동을 멈추거나, 모든 글로벌 프로브가 보고를 멈추거나, 그중 하나가 지연되면 마스터 관리자에게 알리고, 다시 정상이 되면 한 번 더 알립니다. 멈춘 채널로는 절대 알리지 않으며 최대 한 시간에 한 번만 알립니다.",
   "Edit Outage Notifications": "중단 알림 편집",
   "Text This Number": "이 번호로 SMS 보내기",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "이 서버의 SMS 설정을 통해 이 번호로 SMS를 보냅니다. 보내지 않으려면 비워 두세요.",
@@ -4230,5 +4230,7 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다.",
   "Behind": "지연됨",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}}이(가) 지연되고 있습니다. {{time}}부터 모니터가 확인 시각을 1분 넘게 기다리고 있어, 설정보다 덜 자주 확인됩니다.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "프로브에 CPU와 메모리를 더 주거나 한 번에 더 많은 모니터를 확인하게 하세요. config.env의 GLOBAL_PROBE_1_MONITORING_WORKERS 또는 Helm 값에서 프로브의 monitoringWorkers를 높이세요."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "프로브에 CPU와 메모리를 더 주거나 한 번에 더 많은 모니터를 확인하게 하세요. config.env의 GLOBAL_PROBE_1_MONITORING_WORKERS 또는 Helm 값에서 프로브의 monitoringWorkers를 높이세요.",
+  "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}}의 네트워크 디바이스 폴링이 지연되고 있습니다. {{time}}부터 디바이스가 폴링 시각을 1분 넘게 기다리고 있어, 설정보다 덜 자주 폴링됩니다.",
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "프로브가 한 번에 더 많은 디바이스를 폴링하게 하세요. config.env의 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY 또는 Helm 값에서 프로브의 networkDevicePollConcurrency를 높이고, 그에 맞는 CPU를 할당하세요."
 }

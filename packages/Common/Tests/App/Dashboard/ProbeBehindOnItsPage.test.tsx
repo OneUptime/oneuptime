@@ -11,8 +11,11 @@ import ProbeStatusElement from "../../../../App/FeatureSet/Dashboard/src/Compone
 import ProbeChecksElement, {
   PROBE_BEHIND_GUIDE_PATH,
   PROBE_CHECKS_COPY,
+  PROBE_DEVICE_POLL_CONCURRENCY_SETTING,
+  PROBE_DEVICE_POLLS_COPY,
   PROBE_WORKERS_SETTING,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeChecks";
+import { ProbeBehindWork } from "../../../Types/Probe/ProbeBehind";
 import Probe, {
   ProbeConnectionStatus,
 } from "../../../Models/DatabaseModels/Probe";
@@ -37,6 +40,11 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  *     under Monitor Checks whether it keeps up: On Time, or Behind with since
  *     when, why it matters, what to do, and the guide;
  *   - in every language the Dashboard speaks.
+ *
+ * And the same of the network devices it polls (#9499): the list says
+ * Behind when they wait past their poll time, and the probe's page shows
+ * Network Device Polls while it is behind on them, with the setting that
+ * lets it poll more at once.
  */
 
 const DASHBOARD: string = path.join(
@@ -46,13 +54,20 @@ const DASHBOARD: string = path.join(
 
 const MINUTE: number = 60 * 1000;
 
-function connectedProbe(data: { lateFor?: number | null } = {}): Probe {
+function connectedProbe(
+  data: { lateFor?: number | null; devicesLateFor?: number | null } = {},
+): Probe {
   const probe: Probe = new Probe();
   probe.connectionStatus = ProbeConnectionStatus.Connected;
 
   if (data.lateFor !== undefined && data.lateFor !== null) {
     probe.checksLastLateAt = new Date();
     probe.checksLateSince = new Date(Date.now() - data.lateFor);
+  }
+
+  if (data.devicesLateFor !== undefined && data.devicesLateFor !== null) {
+    probe.devicePollsLastLateAt = new Date();
+    probe.devicePollsLateSince = new Date(Date.now() - data.devicesLateFor);
   }
 
   return probe;
@@ -140,6 +155,31 @@ describe("the probe's status in the Custom Probes list", () => {
     expect(screen.getByText("Behind")).toBeInTheDocument();
   });
 
+  test("a connected probe whose network devices have waited for minutes is Behind too (#9499)", async () => {
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({ devicesLateFor: 3 * MINUTE })}
+      />,
+    );
+
+    expect(screen.getByText("Behind")).toBeInTheDocument();
+    expect(dotColor()).toBe("rgb(255, 191, 83)");
+  });
+
+  test("a row read as JSON whose network devices are late is Behind", async () => {
+    await draw(
+      <ProbeStatusElement
+        probe={{
+          connectionStatus: ProbeConnectionStatus.Connected,
+          devicePollsLateSince: new Date(Date.now() - 3 * MINUTE).toISOString(),
+          devicePollsLastLateAt: new Date().toISOString(),
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Behind")).toBeInTheDocument();
+  });
+
   test("on the probe's page, Connection Status says only whether it is connected", async () => {
     await draw(
       <ProbeStatusElement
@@ -218,6 +258,89 @@ describe("Monitor Checks, on the probe's page", () => {
   });
 });
 
+describe("Network Device Polls, on the probe's page (#9499)", () => {
+  test("says nothing of the monitors, and On Time while the devices keep up", async () => {
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ lateFor: 5 * MINUTE })}
+        work={ProbeBehindWork.DevicePolls}
+      />,
+    );
+
+    expect(screen.getByText("On Time")).toBeInTheDocument();
+    expect(screen.queryByTestId("probe-device-polls-behind")).toBeNull();
+  });
+
+  test("a probe behind on its devices says since when, why it matters, what to do and where to read more", async () => {
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ devicesLateFor: 5 * MINUTE })}
+        work={ProbeBehindWork.DevicePolls}
+      />,
+    );
+
+    const behind: HTMLElement = screen.getByTestId("probe-device-polls-behind");
+    const text: string = withoutIsolateMarks(behind.textContent || "");
+
+    expect(text).toContain("Behind");
+    expect(text).toMatch(
+      /Since .+, its network devices have waited more than a minute past their poll time, so they are polled less often than set\./,
+    );
+    expect(text).toContain(
+      "Update the probe, or let it poll more devices at once: raise PROBE_NETWORK_DEVICE_POLL_CONCURRENCY on the probe and restart it.",
+    );
+    expect(text).not.toContain("monitors have waited");
+
+    const setting: HTMLElement | null = behind.querySelector("code");
+    expect(setting?.textContent).toBe("PROBE_NETWORK_DEVICE_POLL_CONCURRENCY");
+    expect(PROBE_DEVICE_POLL_CONCURRENCY_SETTING).toBe(
+      "PROBE_NETWORK_DEVICE_POLL_CONCURRENCY",
+    );
+
+    const guide: HTMLElement = screen.getByRole("link", {
+      name: "Read the guide",
+    });
+    expect(guide.getAttribute("href")).toBe(PROBE_BEHIND_GUIDE_PATH);
+  });
+
+  test("Monitor Checks stays On Time for a probe behind only on its devices", async () => {
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ devicesLateFor: 5 * MINUTE })}
+      />,
+    );
+
+    expect(screen.getByText("On Time")).toBeInTheDocument();
+  });
+
+  test.each(["de", "fa", "ja"])("reads in %s", async (language: string) => {
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ devicesLateFor: 5 * MINUTE })}
+        work={ProbeBehindWork.DevicePolls}
+      />,
+    );
+
+    const locale: Record<string, string> = readDashboardLocale(language);
+    const text: string = withoutIsolateMarks(
+      screen.getByTestId("probe-device-polls-behind").textContent || "",
+    );
+
+    expect(text).toContain(locale[PROBE_DEVICE_POLLS_COPY.behind]!);
+    expect(text).toContain(
+      locale[PROBE_DEVICE_POLLS_COPY.behindFix]!.replace(
+        "{{setting}}",
+        PROBE_DEVICE_POLL_CONCURRENCY_SETTING,
+      ),
+    );
+    expect(text).not.toContain("network devices have waited");
+  });
+});
+
 describe("in every language the Dashboard speaks", () => {
   const WORDS: Array<string> = [
     PROBE_CHECKS_COPY.title,
@@ -230,6 +353,13 @@ describe("in every language the Dashboard speaks", () => {
     // The model's column titles, which lists and filters show.
     "Checks Late Since",
     "Checks Last Late At",
+    // The same of the network devices it polls (#9499).
+    PROBE_DEVICE_POLLS_COPY.title,
+    PROBE_DEVICE_POLLS_COPY.description,
+    PROBE_DEVICE_POLLS_COPY.behindWords,
+    PROBE_DEVICE_POLLS_COPY.behindFix,
+    "Device Polls Late Since",
+    "Device Polls Last Late At",
   ];
 
   test.each([...DASHBOARD_LANGUAGES])(
@@ -262,6 +392,9 @@ describe("in every language the Dashboard speaks", () => {
       expect(locale[PROBE_CHECKS_COPY.behindFix]).not.toContain(
         PROBE_WORKERS_SETTING,
       );
+      expect(locale[PROBE_DEVICE_POLLS_COPY.behindFix]).not.toContain(
+        PROBE_DEVICE_POLL_CONCURRENCY_SETTING,
+      );
     },
   );
 });
@@ -284,6 +417,22 @@ describe("the pages", () => {
     );
   });
 
+  test("the probe's page asks for its device polls too, and shows Network Device Polls only while it is connected and behind on them", () => {
+    const source: string = fs.readFileSync(
+      path.join(DASHBOARD, "Pages/Monitor/Settings/MonitorProbeView.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("devicePollsLastLateAt: true");
+    expect(source).toContain("devicePollsLateSince: true");
+    expect(source).toMatch(
+      /item\.connectionStatus === ProbeConnectionStatus\.Connected &&\s*ProbeBehindUtil\.isDevicePollsBehind\(item\)/,
+    );
+    expect(source).toMatch(
+      /<ProbeChecksElement\s+probe=\{item\}\s+work=\{ProbeBehindWork\.DevicePolls\}\s*\/>/,
+    );
+  });
+
   test("the Custom Probes list reads what says a probe is behind", () => {
     const source: string = fs.readFileSync(
       path.join(DASHBOARD, "Pages/Monitor/Settings/MonitorProbes.tsx"),
@@ -291,7 +440,7 @@ describe("the pages", () => {
     );
 
     expect(source).toMatch(
-      /selectMoreFields=\{\{\s*key: true,\s*iconFileId: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,/,
+      /selectMoreFields=\{\{\s*key: true,\s*iconFileId: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,/,
     );
   });
 });

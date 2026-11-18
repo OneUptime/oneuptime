@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "メールのログを読み込めませんでした。",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "このサーバーではメールが設定されていないため、このメールは送信されませんでした。サーバー管理者にメールの設定を依頼してください。",
   "Outage Notifications": "停止の通知",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "このサーバーのメールが動かなくなったとき、またはグローバルプローブがひとつも報告しなくなったとき、マスター管理者に知らせ、再び動くようになったときにもう一度知らせます。止まったチャネルでは知らせず、知らせるのは 1 時間に 1 回までです。プローブについては管理者通知メールにも知らせます。",
+  "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "このサーバーのメールが動かなくなったとき、グローバルプローブがひとつも報告しなくなったとき、またはいずれかが遅延したときにマスター管理者に知らせ、元に戻ったときにもう一度知らせます。止まったチャネルでは知らせず、知らせるのは 1 時間に 1 回までです。",
   "Edit Outage Notifications": "停止の通知を編集",
   "Text This Number": "この番号に SMS を送る",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "このサーバー自身の SMS 設定を使って、この番号に SMS を送ります。送らない場合は空のままにしてください。",
@@ -4230,5 +4230,7 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "マスター管理者が OneUptime アプリにサインインしているすべてのデバイスにプッシュ通知を送ります。",
   "Behind": "遅延中",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} は遅れています。{{time}} 以降、モニターがチェック時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかチェックされていません。",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "プローブに CPU とメモリを増やすか、一度にチェックするモニターを増やしてください。config.env の GLOBAL_PROBE_1_MONITORING_WORKERS、または Helm の値でプローブの monitoringWorkers を引き上げます。"
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "プローブに CPU とメモリを増やすか、一度にチェックするモニターを増やしてください。config.env の GLOBAL_PROBE_1_MONITORING_WORKERS、または Helm の値でプローブの monitoringWorkers を引き上げます。",
+  "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} はネットワークデバイスのポーリングが遅れています。{{time}} 以降、デバイスがポーリング時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかポーリングされていません。",
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "プローブが一度にポーリングするデバイスを増やしてください。config.env の GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY、または Helm の値でプローブの networkDevicePollConcurrency を引き上げ、それに見合う CPU を割り当てます。"
 }

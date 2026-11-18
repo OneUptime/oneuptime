@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "無法載入電子郵件日誌。",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此伺服器未設定電子郵件，因此這封郵件未寄出。請聯絡伺服器管理員設定電子郵件。",
   "Outage Notifications": "故障通知",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "當此伺服器的電子郵件停止運作，或所有全域探測器都停止回報時，會通知主要管理員，恢復正常時再通知一次：絕不透過已停止的管道，且每小時最多一次。探測器的狀況也會通知管理員通知電子郵件。",
+  "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "當此伺服器的電子郵件停止運作、所有全域探測器都停止回報，或其中一個探測器落後時，會通知主要管理員，恢復正常時再通知一次：絕不透過已停止的管道，且每小時最多一次。",
   "Edit Outage Notifications": "編輯故障通知",
   "Text This Number": "傳送簡訊到此號碼",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "透過此伺服器本身的簡訊設定傳送簡訊到此號碼。留空則不傳送。",
@@ -4230,5 +4230,7 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。",
   "Behind": "落後",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} 已落後：自 {{time}} 起，它的監測器已在檢查時間過後等待超過 1 分鐘，因此檢查頻率低於設定。",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "為探測器提供更多 CPU 和記憶體，或讓它一次檢查更多監測器：在 config.env 中調高 GLOBAL_PROBE_1_MONITORING_WORKERS，或在 Helm 值中調高該探測器的 monitoringWorkers。"
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "為探測器提供更多 CPU 和記憶體，或讓它一次檢查更多監測器：在 config.env 中調高 GLOBAL_PROBE_1_MONITORING_WORKERS，或在 Helm 值中調高該探測器的 monitoringWorkers。",
+  "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} 的網路裝置輪詢落後：自 {{time}} 起，這些裝置已在輪詢時間過後等待超過 1 分鐘，因此輪詢頻率低於設定。",
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "讓探測器一次輪詢更多裝置：在 config.env 中調高 GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY，或在 Helm 值中調高該探測器的 networkDevicePollConcurrency，並為它分配相應的 CPU。"
 }
