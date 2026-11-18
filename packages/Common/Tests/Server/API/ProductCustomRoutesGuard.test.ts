@@ -380,6 +380,20 @@ const FILES: Record<string, ProductRoutes> = {
         "Something outside OneUptime calls it: what already runs keeps running.",
     },
   },
+  // Passing a page on, acknowledging it again, an observer's page seen.
+  "Common/Server/API/OnCallPagePassOnAPI.ts": {
+    product: ProductKey.OnCall,
+    leftAlone: {},
+  },
+  // Testing a cluster's AI access and resetting its agent change it.
+  "Common/Server/API/KubernetesClusterAiAccessAPI.ts": {
+    product: ProductKey.Kubernetes,
+    leftAlone: {
+      '"/kubernetes-cluster/ai-access/status"': READ,
+      KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH: READ,
+      KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH: READ,
+    },
+  },
 };
 
 interface Registration {
@@ -497,6 +511,71 @@ describe("a switched-off product's own routes", () => {
       );
     },
   );
+
+  /*
+   * A public note's approval routes are registered by one helper for each
+   * kind of note: a decision, sending a note again and withdrawing an edit
+   * name the notes' product, which each kind's API hands it. Where each
+   * note stands and who approves are reads.
+   */
+  test("a public note's approval: its writes name the product each kind of note hands the helper", () => {
+    const helper: string = fs.readFileSync(
+      path.join(PACKAGES, "Common/Server/API/PublicNoteApprovalRoutes.ts"),
+      "utf8",
+    );
+    const registrations: Array<Registration> = readRegistrations(helper);
+    const guarded: Array<string> = registrations
+      .filter((registration: Registration): boolean => {
+        return registration.head.includes(
+          "ServerProductRoutes.refuseWhileOff(data.product)",
+        );
+      })
+      .map((registration: Registration): string => {
+        return registration.path;
+      });
+
+    expect(guarded.sort()).toEqual(
+      [
+        "`${data.basePath}/:noteId/${decision.route}`",
+        "`${data.basePath}/:noteId/resubmit`",
+        "`${data.basePath}/:noteId/discard-edit`",
+      ].sort(),
+    );
+    expect(
+      registrations
+        .filter((registration: Registration): boolean => {
+          return !guarded.includes(registration.path);
+        })
+        .map((registration: Registration): string => {
+          return registration.path;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "`${data.basePath}/approval/notes`",
+        "`${data.basePath}/approval/policy`",
+      ].sort(),
+    );
+
+    for (const [file, product] of [
+      ["Common/Server/API/IncidentPublicNoteAPI.ts", "Incidents"],
+      ["Common/Server/API/IncidentEpisodePublicNoteAPI.ts", "Incidents"],
+      [
+        "Common/Server/API/ScheduledMaintenancePublicNoteAPI.ts",
+        "ScheduledMaintenance",
+      ],
+    ] as Array<[string, string]>) {
+      const source: string = fs.readFileSync(path.join(PACKAGES, file), "utf8");
+
+      expect({
+        file,
+        names: source.includes(`product: ProductKey.${product},`),
+      }).toEqual({
+        file,
+        names: true,
+      });
+    }
+  });
 
   test("the routes named in the issue are among them", () => {
     // #7479: MonitorAPI's and StatusPageAPI's own routes, and /workflow/... runs.

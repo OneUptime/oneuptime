@@ -1,3 +1,4 @@
+import ProductKey from "../../Types/Product/ProductKey";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import File from "../../Models/DatabaseModels/File";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -40,6 +41,7 @@ export default class IncidentPublicNoteAPI extends BaseAPI<
     // Approve, reject, send again and withdraw an edit (PublicNoteApprovalRoutes).
     PublicNoteApprovalRoutes.register({
       router: this.router,
+      product: ProductKey.Incidents,
       basePath: new this.entityType().getCrudApiPath()?.toString() || "",
       getHost: () => {
         return IncidentPublicNoteService.getApprovalHost();
