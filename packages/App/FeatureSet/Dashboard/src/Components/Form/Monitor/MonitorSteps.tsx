@@ -110,7 +110,7 @@ export interface ComponentProps extends CustomElementProps {
   /*
    * The form creates a monitor (Create Monitor, not from a template): its
    * steps may have been handed in - the form's own, after a walk back to
-   * Monitor Info, or a link's - but criteria nobody has worked on yet are
+   * What to Monitor, or a link's - but criteria nobody has worked on yet are
    * set up afresh for the monitor type, a telemetry monitor's on its
    * recipe, and a telemetry monitor's recipes are offered.
    */
@@ -786,7 +786,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     /*
      * A new monitor's criteria nobody has worked on yet start afresh for
      * the type on screen: a recipe's rule, untouched (seeded here, or
-     * before a walk back to Monitor Info remounted this form), whatever the
+     * before a walk back to What to Monitor remounted this form), whatever the
      * type now is; and, for a telemetry monitor, the empty criteria a link
      * hands in with only a query, or another type's out-of-the-box
      * criteria. The repair below would keep such a rule's filters, half

@@ -87,13 +87,21 @@ export function parseMonitorAddress(data: {
 // A port is written in digits alone.
 const DIGITS_ONLY: RegExp = /^\d+$/;
 
-// A port typed, or undefined when it is not one.
+/*
+ * A port typed, or undefined when it is not one: from 1 to 65535, as the
+ * field's error says. Port itself holds a 0, which no check can reach.
+ */
 export function parseMonitorPort(
   port: string | number | undefined | null,
 ): Port | undefined {
   const text: string = String(port ?? "").trim();
 
-  if (!text || !DIGITS_ONLY.test(text) || !Port.isValid(text)) {
+  if (
+    !text ||
+    !DIGITS_ONLY.test(text) ||
+    Number(text) < 1 ||
+    !Port.isValid(text)
+  ) {
     return undefined;
   }
 

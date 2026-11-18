@@ -356,11 +356,11 @@ interface MetricViewThresholdSource {
 }
 
 /*
- * Monitor Info's More fields: the description and the labels, folded at the
- * end of the step. Neither is needed on the way to a first monitor - the
- * step asks only what to monitor and what to call it - and the section says
- * "Configured" once either is filled in (a template's labels, say). Built
- * once, so both fields fold under the one header.
+ * What to Monitor's More fields: the description and the labels, folded at
+ * the end of the step. Neither is needed on the way to a first monitor - the
+ * step asks only what to monitor, where it is and what to call it - and the
+ * section says "Configured" once either is filled in (a template's labels,
+ * say). Built once, so both fields fold under the one header.
  */
 const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =
   getAdvancedFormSection<Monitor>();
@@ -2165,7 +2165,7 @@ const MonitorCreate: FunctionComponent<
                            * Not a template's monitor: criteria nobody has
                            * worked on follow the monitor type picked, and a
                            * telemetry monitor offers its recipes - also
-                           * after a walk back to Monitor Info, and for a
+                           * after a walk back to What to Monitor, and for a
                            * metric chart's Create monitor.
                            */
                           isCreating={!monitorTemplateId}
