@@ -8,7 +8,11 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
-import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  boxesInOneFrame,
+  FrameBox,
+  joinPiecesByLine,
+} from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 import { dropdownIn } from "../SuiteHelpers/Dropdowns";
 
@@ -1874,25 +1878,18 @@ test.describe("the composer on a laptop and a tablet", () => {
       await open(page, notesPageCase, `lang=${language}`);
       const composer: Locator = await openComposer(page);
       const submit: Locator = composer.getByTestId("note-submit");
-      const label: Locator = submit.locator(":scope > span").first();
       const tools: Locator = composer.getByTestId("note-composer-tools");
 
-      const [composerBox, submitBox, labelBox, toolsBox, buttonsBox] =
+      const [composerBox, submitBox, toolsBox, buttonsBox] =
         await boxesInOneFrame([
           composer,
           submit,
-          label,
           tools,
           composer.getByTestId("note-composer-buttons"),
         ]);
-      const lineHeight: number = await label.evaluate(
-        (element: HTMLElement): number => {
-          return parseFloat(window.getComputedStyle(element).lineHeight);
-        },
-      );
 
       // The label is one line of words, and the button is in the composer.
-      expect(labelBox!.height).toBeLessThanOrEqual(lineHeight + 1);
+      expect(await buttonWordLines(submit)).toHaveLength(1);
       expect(submitBox!.x).toBeGreaterThanOrEqual(composerBox!.x);
       expect(submitBox!.x + submitBox!.width).toBeLessThanOrEqual(
         composerBox!.x + composerBox!.width + 0.5,
@@ -1919,6 +1916,43 @@ test.describe("the composer on a laptop and a tablet", () => {
     });
   }
 });
+
+/*
+ * The lines a button's words are drawn on, one box per line. The shared
+ * Button (the composer's Post since #9195) writes its words straight into
+ * the button, beside its icon and its keys' chip, in no element of their
+ * own: they are read from the button's own text.
+ */
+async function buttonWordLines(button: Locator): Promise<Array<FrameBox>> {
+  return joinPiecesByLine(
+    await button.evaluate((element: HTMLElement): Array<FrameBox> => {
+      const pieces: Array<FrameBox> = [];
+
+      for (const node of Array.from(element.childNodes)) {
+        if (
+          node.nodeType !== Node.TEXT_NODE ||
+          !(node.textContent || "").trim()
+        ) {
+          continue;
+        }
+
+        const range: Range = document.createRange();
+        range.selectNodeContents(node);
+
+        for (const rect of Array.from(range.getClientRects())) {
+          pieces.push({
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          });
+        }
+      }
+
+      return pieces;
+    }),
+  );
+}
 
 // A Dashboard locale file, as the fixture's page reads it.
 async function dashboardWords(
