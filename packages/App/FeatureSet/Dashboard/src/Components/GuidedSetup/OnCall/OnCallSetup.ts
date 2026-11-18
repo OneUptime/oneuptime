@@ -519,9 +519,11 @@ export interface PhoneChannelFacts {
   // OneUptime Cloud: the balance, in US cents; null while not known.
   balanceInUSDCents: number | null;
   /*
-   * Self-hosted: whether the server can send SMS and make calls, as a
-   * master admin reads it (ServerSendingStatus). Null when not known - for
-   * anyone else, and on OneUptime Cloud.
+   * Self-hosted: whether an SMS or a call can go anywhere - the project's
+   * own Twilio config, or the server's account or gateway - as any member
+   * of the project reads it (GET /project-can-send, #7151), or a master
+   * admin's sending status while that is not read. Null when not known;
+   * always yes on OneUptime Cloud.
    */
   serverCanSendSms: boolean | null;
   serverCanCall: boolean | null;

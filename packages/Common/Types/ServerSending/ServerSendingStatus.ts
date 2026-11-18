@@ -542,6 +542,16 @@ export default class ServerSendingStatusUtil {
   }
 
   /*
+   * Whether a send would go out now, as the people of a project are told it
+   * (#7151, #6880): not while the channel is not set up, nor while it fails.
+   * Said to signed-in members only, as a yes or no (ProjectCanSend): never
+   * why, which is the server's admins'.
+   */
+  public static canSendNow(status: { state: ServerSendingState }): boolean {
+    return !ServerSendingStatusUtil.needsAttention(status);
+  }
+
+  /*
    * Whether a master admin should be told, in the product, that this
    * channel does not work: not set up, or failing.
    */

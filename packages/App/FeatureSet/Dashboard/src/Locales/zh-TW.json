@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "目前已確認 {{count}} 個測試中的 {{acknowledged}} 個。",
   "{{acknowledged}} of {{count}} tests acknowledged.": "已確認 {{count}} 個測試中的 {{acknowledged}} 個。",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "已確認 {{count}} 個測試中的 {{acknowledged}} 個。",
-  "Backup Script Last Run": "備份指令碼最近執行"
+  "Backup Script Last Run": "備份指令碼最近執行",
+  "No email addresses yet.": "尚無電子郵件地址。",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此伺服器目前無法撥打電話，因此在伺服器管理員設定簡訊和電話、或此專案新增自己的 Twilio 設定之前，任何人都不會接到電話。",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法撥打電話，因此這些號碼不會接到電話。請聯絡伺服器管理員設定簡訊和電話。",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法撥打電話，因此這些號碼不會接到電話。請在 Admin Dashboard 中設定簡訊和電話。",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此伺服器目前無法傳送簡訊，因此在伺服器管理員設定簡訊和電話、或此專案新增自己的 Twilio 設定之前，任何人都不會收到簡訊。",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請聯絡伺服器管理員設定簡訊和電話。",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請在 Admin Dashboard 中設定簡訊和電話。",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請聯絡伺服器管理員設定電子郵件。",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請在 Admin Dashboard 中設定電子郵件。"
 }

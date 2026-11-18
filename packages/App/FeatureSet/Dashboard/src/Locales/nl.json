@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Tot nu toe bevestigde test: {{acknowledged}} van {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Bevestigde tests: {{acknowledged}} van {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "Bevestigde test: {{acknowledged}} van {{count}}.",
-  "Backup Script Last Run": "Laatste uitvoering van het back-upscript"
+  "Backup Script Last Run": "Laatste uitvoering van het back-upscript",
+  "No email addresses yet.": "Nog geen e-mailadressen.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Deze server kan nu niet bellen, dus niemand krijgt een oproep tot uw serverbeheerder sms en oproepen inricht, of dit project een eigen Twilio-configuratie toevoegt.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "Deze server kan nu niet bellen, dus deze nummers krijgen geen oproepen. Vraag uw serverbeheerder om sms en oproepen in te richten.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu niet bellen, dus deze nummers krijgen geen oproepen. Richt sms en oproepen in via het Admin Dashboard.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Deze server kan nu geen sms versturen, dus niemand krijgt er een tot uw serverbeheerder sms en oproepen inricht, of dit project een eigen Twilio-configuratie toevoegt.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Vraag uw serverbeheerder om sms en oproepen in te richten.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Richt sms en oproepen in via het Admin Dashboard.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Vraag uw serverbeheerder om e-mail in te stellen.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Stel e-mail in via het Admin Dashboard."
 }

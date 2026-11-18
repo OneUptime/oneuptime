@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "الاختبارات التي أُقرّ بها حتى الآن: {{acknowledged}} من {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "الاختبارات التي أُقرّ بها: {{acknowledged}} من {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "الاختبارات التي أُقرّ بها: {{acknowledged}} من {{count}}.",
-  "Backup Script Last Run": "آخر تشغيل للنص البرمجي للنسخ الاحتياطي"
+  "Backup Script Last Run": "آخر تشغيل للنص البرمجي للنسخ الاحتياطي",
+  "No email addresses yet.": "لا توجد عناوين بريد إلكتروني بعد.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "لا يستطيع هذا الخادم إجراء المكالمات الآن، لذا لن يتلقى أحد مكالمة حتى يُعدّ مسؤول الخادم الرسائل النصية والمكالمات، أو يضيف هذا المشروع إعداد Twilio خاصًا به.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إجراء المكالمات الآن، لذا لن تتلقى هذه الأرقام أي مكالمة. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إجراء المكالمات الآن، لذا لن تتلقى هذه الأرقام أي مكالمة. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يتلقى أحد رسالة حتى يُعدّ مسؤول الخادم الرسائل النصية والمكالمات، أو يضيف هذا المشروع إعداد Twilio خاصًا به.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن تتلقى هذه الأرقام أي رسالة نصية. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن تتلقى هذه الأرقام أي رسالة نصية. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني الآن، لذا لن يصل أي بريد إلى هذه العناوين. اطلب من مسؤول الخادم إعداد البريد الإلكتروني.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني الآن، لذا لن يصل أي بريد إلى هذه العناوين. أعِدّ البريد الإلكتروني في Admin Dashboard."
 }

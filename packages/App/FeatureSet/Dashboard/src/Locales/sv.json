@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Bekräftat test hittills: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Bekräftade test: {{acknowledged}} av {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "Bekräftat test: {{acknowledged}} av {{count}}.",
-  "Backup Script Last Run": "Senaste körning av säkerhetskopieringsskriptet"
+  "Backup Script Last Run": "Senaste körning av säkerhetskopieringsskriptet",
+  "No email addresses yet.": "Inga e-postadresser ännu.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Den här servern kan inte ringa just nu, så ingen får något samtal förrän serveradministratören konfigurerar sms och samtal, eller det här projektet lägger till en egen Twilio-konfiguration.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "Den här servern kan inte ringa just nu, så de här numren får inga samtal. Be serveradministratören att konfigurera sms och samtal.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan inte ringa just nu, så de här numren får inga samtal. Konfigurera sms och samtal i Admin Dashboard.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Den här servern kan inte skicka sms just nu, så ingen får något förrän serveradministratören konfigurerar sms och samtal, eller det här projektet lägger till en egen Twilio-konfiguration.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Den här servern kan inte skicka sms just nu, så de här numren får inga sms. Be serveradministratören att konfigurera sms och samtal.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan inte skicka sms just nu, så de här numren får inga sms. Konfigurera sms och samtal i Admin Dashboard.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Den här servern kan inte skicka e-post just nu, så de här adresserna får ingen e-post. Be serveradministratören att ställa in e-post.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Den här servern kan inte skicka e-post just nu, så de här adresserna får ingen e-post. Ställ in e-post i Admin Dashboard."
 }

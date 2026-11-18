@@ -17,6 +17,17 @@ import {
 } from "./NotificationMethod";
 import VerificationCodeModal from "./VerificationCodeModal";
 import { VerificationCodeChannel } from "./VerificationCodeChannels";
+import ServerCannotSendPanel, {
+  ServerCannotSendChannel,
+} from "./ServerCannotSendPanel";
+import { useProjectCanSend } from "Common/UI/Utils/ServerSending";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
+
+// The empty list's words while no email can be sent, so Add is not offered.
+export const NO_EMAIL_ADDRESSES_YET: string = translationKey(
+  "No email addresses yet.",
+);
 
 const Email: () => JSX.Element = (): ReactElement => {
   // The address whose verify dialog is open.
@@ -24,6 +35,15 @@ const Email: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );
+
+  /*
+   * Whether this server can send email (#6880). While it cannot, every
+   * address here would read as reached and none is: the list says so, with
+   * who can fix it, and offers no Add - an address is verified by an email
+   * its code would never come in.
+   */
+  const canSend: ProjectCanSendAnswer | null = useProjectCanSend();
+  const isServerUnableToSend: boolean = canSend?.email === false;
 
   /*
    * Deleting an email address cascades to every notification rule that uses it,
@@ -111,7 +131,13 @@ const Email: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > Emails"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={!isServerUnableToSend}
+        topContent={
+          <ServerCannotSendPanel
+            channel={ServerCannotSendChannel.Email}
+            canSend={canSend?.email}
+          />
+        }
         cardProps={{
           title: "Emails for Notifications",
           description:
@@ -125,7 +151,9 @@ const Email: () => JSX.Element = (): ReactElement => {
           "/docs/notifications/notification-methods",
         )}
         noItemsMessage={
-          "No email addresses yet. Add one to receive notifications."
+          isServerUnableToSend
+            ? NO_EMAIL_ADDRESSES_YET
+            : "No email addresses yet. Add one to receive notifications."
         }
         formFields={[
           {

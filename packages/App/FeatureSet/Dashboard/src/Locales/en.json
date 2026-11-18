@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "{{acknowledged}} of {{count}} test acknowledged so far.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "{{acknowledged}} of {{count}} tests acknowledged.",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "{{acknowledged}} of {{count}} test acknowledged.",
-  "Backup Script Last Run": "Backup Script Last Run"
+  "Backup Script Last Run": "Backup Script Last Run",
+  "No email addresses yet.": "No email addresses yet.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard."
 }

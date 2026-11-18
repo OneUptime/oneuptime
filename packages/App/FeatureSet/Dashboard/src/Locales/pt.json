@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "Teste confirmado até agora: {{acknowledged}} de {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged.": "Testes confirmados: {{acknowledged}} de {{count}}.",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "Teste confirmado: {{acknowledged}} de {{count}}.",
-  "Backup Script Last Run": "Última execução do script de backup"
+  "Backup Script Last Run": "Última execução do script de backup",
+  "No email addresses yet.": "Ainda não há endereços de e-mail.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Este servidor não consegue fazer chamadas agora, então ninguém recebe nenhuma até que o administrador do servidor configure SMS e chamadas, ou este projeto adicione a sua própria configuração do Twilio.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "Este servidor não consegue fazer chamadas agora, então estes números não recebem chamadas. Peça ao administrador do servidor para configurar SMS e chamadas.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "Este servidor não consegue fazer chamadas agora, então estes números não recebem chamadas. Configure SMS e chamadas no Admin Dashboard.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Este servidor não consegue enviar SMS agora, então ninguém recebe nenhum até que o administrador do servidor configure SMS e chamadas, ou este projeto adicione a sua própria configuração do Twilio.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Este servidor não consegue enviar SMS agora, então estes números não recebem SMS. Peça ao administrador do servidor para configurar SMS e chamadas.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Este servidor não consegue enviar SMS agora, então estes números não recebem SMS. Configure SMS e chamadas no Admin Dashboard.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Este servidor não consegue enviar e-mails agora, então estes endereços não recebem e-mail. Peça ao administrador do servidor para configurar o e-mail.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Este servidor não consegue enviar e-mails agora, então estes endereços não recebem e-mail. Configure o e-mail no Admin Dashboard."
 }

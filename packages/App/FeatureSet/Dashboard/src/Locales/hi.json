@@ -56718,5 +56718,14 @@
   "{{acknowledged}} of {{count}} tests acknowledged so far._one": "अब तक स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
   "{{acknowledged}} of {{count}} tests acknowledged.": "स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
   "{{acknowledged}} of {{count}} tests acknowledged._one": "स्वीकार किए गए परीक्षण: {{count}} में से {{acknowledged}}।",
-  "Backup Script Last Run": "बैकअप स्क्रिप्ट का अंतिम रन"
+  "Backup Script Last Run": "बैकअप स्क्रिप्ट का अंतिम रन",
+  "No email addresses yet.": "अभी तक कोई ईमेल पता नहीं है।",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "यह सर्वर अभी कॉल नहीं कर सकता, इसलिए किसी को कॉल नहीं मिलेगी जब तक आपका सर्वर एडमिन SMS और कॉल सेट नहीं करता, या यह प्रोजेक्ट अपना Twilio कॉन्फ़िगरेशन नहीं जोड़ता।",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी कॉल नहीं कर सकता, इसलिए इन नंबरों पर कोई कॉल नहीं आएगी। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी कॉल नहीं कर सकता, इसलिए इन नंबरों पर कोई कॉल नहीं आएगी। Admin Dashboard में SMS और कॉल सेट करें।",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए किसी को SMS नहीं मिलेगा जब तक आपका सर्वर एडमिन SMS और कॉल सेट नहीं करता, या यह प्रोजेक्ट अपना Twilio कॉन्फ़िगरेशन नहीं जोड़ता।",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए इन नंबरों पर कोई SMS नहीं आएगा। अपने सर्वर एडमिन से SMS और कॉल सेट करने के लिए कहें।",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "यह सर्वर अभी SMS नहीं भेज सकता, इसलिए इन नंबरों पर कोई SMS नहीं आएगा। Admin Dashboard में SMS और कॉल सेट करें।",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए इन पतों पर कोई ईमेल नहीं आएगा। अपने सर्वर एडमिन से ईमेल सेट अप करने के लिए कहें।",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए इन पतों पर कोई ईमेल नहीं आएगा। Admin Dashboard में ईमेल सेट अप करें।"
 }
