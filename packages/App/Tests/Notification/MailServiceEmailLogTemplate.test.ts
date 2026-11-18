@@ -339,6 +339,7 @@ describe("a project's Email Log row", () => {
         toEmail: new Email(RECIPIENT),
         subject: "A workflow's email",
         isSubjectLiteral: true,
+        vars: {},
         body: "<p>Hello</p>",
       },
       { projectId: PROJECT_ID },
