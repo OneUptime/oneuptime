@@ -132,7 +132,14 @@ function step(
   key: WelcomeStep,
   extra?: Partial<WelcomeChecklistStepState>,
 ): WelcomeChecklistStepState {
-  return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
+  return {
+    step: key,
+    isDone: false,
+    needsPlan: null,
+    isNext: false,
+    gap: null,
+    ...extra,
+  };
 }
 
 function answer(
