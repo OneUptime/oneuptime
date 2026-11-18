@@ -334,6 +334,18 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.onUpdateSuccess NetworkDevice": Why.FollowOn,
     "Service.refreshStampedMonitorStatus NetworkDevice": Why.Derived,
     /*
+     * The service's own hook-free write, as every caller of
+     * NetworkDeviceService.updateColumnsByIdWithoutHooks reaches it (#9363):
+     * it hands DatabaseService the write its caller asked for, unchanged -
+     * each such call a write of its own, decided above and in its own file
+     * where it is made - and then works the device's maker out again from
+     * the details written, as onUpdateSuccess does. Recording it here would
+     * put in the audit log every write its callers make - a refresh asked
+     * for, a poll's residue cleared, a site's rollup - whatever each was
+     * decided to be where it is made.
+     */
+    "Service.updateColumnsByIdWithoutHooks *": Why.Derived,
+    /*
      * A poll's verdict (#7389): reachability, when the device last answered
      * and its interface counts, as each poll reports them, in the one
      * compare-and-set statement that keeps an older poll's verdict from
