@@ -457,9 +457,10 @@ describe("what everyone who may see a data alert may read (forAudience)", () => 
   });
 
   test("tables read only for some labels: as the label rule weighs a table, by its database's labels; pipelines whole", () => {
-    const scope: DataObservabilityScope = DataObservabilityReadScope.forAudience(
-      audience({ labelledPermissions: [Permission.ReadDataAsset] }),
-    );
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({ labelledPermissions: [Permission.ReadDataAsset] }),
+      );
     const sql: string = sqlOf(scope.assetQuery._id, TABLE_ID);
 
     expect(scope.isWholeProject).toBe(false);
@@ -477,23 +478,25 @@ describe("what everyone who may see a data alert may read (forAudience)", () => 
   });
 
   test("tables read only by owner: none an owner sets apart, whatever labels they carry", () => {
-    const scope: DataObservabilityScope = DataObservabilityReadScope.forAudience(
-      audience({ ownedOnlyPermissions: [Permission.ReadDataAsset] }),
-    );
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({ ownedOnlyPermissions: [Permission.ReadDataAsset] }),
+      );
 
     expect(sqlOf(scope.assetQuery._id, TABLE_ID)).toContain(UNOWNED_TABLE);
-    expect(sqlOf(scope.checkQuery.dataAssetId, '"DataCheck"."dataAssetId"')).toContain(
-      'FROM "DataAsset" "record',
-    );
+    expect(
+      sqlOf(scope.checkQuery.dataAssetId, '"DataCheck"."dataAssetId"'),
+    ).toContain('FROM "DataAsset" "record');
   });
 
   test("the alert's own table is read whoever owns it", () => {
-    const scope: DataObservabilityScope = DataObservabilityReadScope.forAudience(
-      audience({
-        ownedOnlyPermissions: [Permission.ReadDataAsset],
-        named: { DataAsset: [TABLE_OWNED] },
-      }),
-    );
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.forAudience(
+        audience({
+          ownedOnlyPermissions: [Permission.ReadDataAsset],
+          named: { DataAsset: [TABLE_OWNED] },
+        }),
+      );
 
     expect(sqlOf(scope.assetQuery._id, TABLE_ID)).toContain(
       '"DataAsset"."_id" IN (:...',

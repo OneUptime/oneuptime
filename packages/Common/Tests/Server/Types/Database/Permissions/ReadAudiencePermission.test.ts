@@ -62,9 +62,8 @@ function sqlOf(condition: unknown, alias: string): string {
 }
 
 function parametersOf(condition: unknown): Record<string, unknown> {
-  return (
-    (condition as FindOperator<unknown>).objectLiteralParameters || {}
-  ) as Record<string, unknown>;
+  return ((condition as FindOperator<unknown>).objectLiteralParameters ||
+    {}) as Record<string, unknown>;
 }
 
 const UNOWNED_MONITOR: string =
@@ -169,9 +168,9 @@ describe("which kinds somebody reads only by owner or label", () => {
 
 describe("the records of a kind it keeps", () => {
   test("a kind nobody is narrowed on: every record, and no condition at all", () => {
-    expect(
-      ReadAudiencePermission.getConditions(Monitor, audience()),
-    ).toEqual([]);
+    expect(ReadAudiencePermission.getConditions(Monitor, audience())).toEqual(
+      [],
+    );
     expect(
       ReadAudiencePermission.getKeptCondition(Monitor, audience()),
     ).toBeNull();
@@ -219,12 +218,10 @@ describe("the records of a kind it keeps", () => {
     );
     const sql: string = sqlOf(kept, '"Monitor"."_id"');
 
-    expect(sql.startsWith(`((${UNLABELLED_MONITOR}) OR ("Monitor"."_id" IN (:...`)).toBe(
-      true,
-    );
-    expect(Object.values(parametersOf(kept))).toContainEqual([
-      SUBJECT_MONITOR,
-    ]);
+    expect(
+      sql.startsWith(`((${UNLABELLED_MONITOR}) OR ("Monitor"."_id" IN (:...`),
+    ).toBe(true);
+    expect(Object.values(parametersOf(kept))).toContainEqual([SUBJECT_MONITOR]);
     expect(
       ReadAudiencePermission.isNamed(
         Monitor,
@@ -306,7 +303,9 @@ describe("a record read through others", () => {
       '"MonitorStatusTimeline"."monitorId" IS NULL OR "MonitorStatusTimeline"."monitorId" NOT IN (SELECT "record',
     );
     expect(sql).toContain('FROM "Monitor" "record');
-    expect(sql).toContain('(NOT ((NOT EXISTS (SELECT 1 FROM "MonitorOwnerUser"');
+    expect(sql).toContain(
+      '(NOT ((NOT EXISTS (SELECT 1 FROM "MonitorOwnerUser"',
+    );
   });
 
   test("nothing narrowed: the timeline is read whole", () => {
@@ -506,10 +505,8 @@ describe("whose telemetry it reads", () => {
         }),
       );
 
-    const scope: TelemetryReadScope = await AnalyticsModelPermission.getReadScope(
-      Log,
-      props,
-    );
+    const scope: TelemetryReadScope =
+      await AnalyticsModelPermission.getReadScope(Log, props);
 
     expect(scope).toEqual({ readableIds: null, blockedIds: [blocked] });
     expect(
@@ -541,8 +538,8 @@ describe("whose telemetry it reads", () => {
       );
 
     expect(conditions).toHaveLength(1);
-    expect(Object.values(parametersOf(conditions[0]!.condition))).not.toContainEqual(
-      [OTHER_INCIDENT],
-    );
+    expect(
+      Object.values(parametersOf(conditions[0]!.condition)),
+    ).not.toContainEqual([OTHER_INCIDENT]);
   });
 });

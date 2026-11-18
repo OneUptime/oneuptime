@@ -22,10 +22,7 @@ import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
-import {
-  readAudienceOf,
-  readAudienceProps,
-} from "../../../Helpers/ReadAudienceFixtures";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
   afterEach,

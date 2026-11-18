@@ -745,12 +745,11 @@ export default class AIIncidentInvestigationRunner {
       // Direct cluster access — enrichment only, never a prerequisite.
       try {
         clusterStatuses = await InvestigationAccessForAudience.keepClusters({
-          statuses: await KubernetesClusterAiAccessService.getStatusesForSubject(
-            {
+          statuses:
+            await KubernetesClusterAiAccessService.getStatusesForSubject({
               projectId,
               incidentId,
-            },
-          ),
+            }),
           readAudience,
         });
       } catch (error) {

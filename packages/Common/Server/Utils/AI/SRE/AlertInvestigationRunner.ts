@@ -479,12 +479,11 @@ export default class AIAlertInvestigationRunner {
        */
       try {
         clusterStatuses = await InvestigationAccessForAudience.keepClusters({
-          statuses: await KubernetesClusterAiAccessService.getStatusesForSubject(
-            {
+          statuses:
+            await KubernetesClusterAiAccessService.getStatusesForSubject({
               projectId,
               alertId,
-            },
-          ),
+            }),
           readAudience,
         });
       } catch (error) {

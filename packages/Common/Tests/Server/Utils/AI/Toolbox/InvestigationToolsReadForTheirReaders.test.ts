@@ -105,22 +105,18 @@ describe("query_alerts, asked by an investigation", () => {
     jest
       .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
       .mockResolvedValue([ObjectID.generate()]);
-    jest
-      .spyOn(AlertService, "findBy")
-      .mockImplementation((async (findBy: {
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<Alert>> => {
-        reads.push(findBy.props);
-        return kept(findBy.props);
-      }) as never);
-    jest
-      .spyOn(AlertService, "countBy")
-      .mockImplementation((async (countBy: {
-        props: DatabaseCommonInteractionProps;
-      }): Promise<PositiveNumber> => {
-        reads.push(countBy.props);
-        return new PositiveNumber(kept(countBy.props).length);
-      }) as never);
+    jest.spyOn(AlertService, "findBy").mockImplementation((async (findBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Alert>> => {
+      reads.push(findBy.props);
+      return kept(findBy.props);
+    }) as never);
+    jest.spyOn(AlertService, "countBy").mockImplementation((async (countBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<PositiveNumber> => {
+      reads.push(countBy.props);
+      return new PositiveNumber(kept(countBy.props).length);
+    }) as never);
   });
 
   test("reads and counts with the run's readers", async () => {
@@ -173,20 +169,16 @@ describe("query_monitors, asked by an investigation", () => {
       });
     };
 
-    jest
-      .spyOn(MonitorService, "findBy")
-      .mockImplementation((async (findBy: {
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<Monitor>> => {
-        return kept(findBy.props);
-      }) as never);
-    jest
-      .spyOn(MonitorService, "countBy")
-      .mockImplementation((async (countBy: {
-        props: DatabaseCommonInteractionProps;
-      }): Promise<PositiveNumber> => {
-        return new PositiveNumber(kept(countBy.props).length);
-      }) as never);
+    jest.spyOn(MonitorService, "findBy").mockImplementation((async (findBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Monitor>> => {
+      return kept(findBy.props);
+    }) as never);
+    jest.spyOn(MonitorService, "countBy").mockImplementation((async (countBy: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<PositiveNumber> => {
+      return new PositiveNumber(kept(countBy.props).length);
+    }) as never);
   });
 
   test("a monitor set apart is neither named nor counted; one nobody set apart is", async () => {

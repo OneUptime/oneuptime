@@ -26,10 +26,7 @@ import AIRunType from "../../../../Types/AI/AIRunType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
-import {
-  readAudienceOf,
-  readAudienceProps,
-} from "../../../Helpers/ReadAudienceFixtures";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
 import {
   afterEach,
   beforeEach,

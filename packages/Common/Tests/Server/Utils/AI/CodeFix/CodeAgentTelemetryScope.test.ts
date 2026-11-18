@@ -411,7 +411,10 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
     jest
       .spyOn(ReadAudienceReader, "readNarrowingPermissions")
       .mockResolvedValue(
-        data?.narrowing || { ownedOnlyPermissions: [], labelledPermissions: [] },
+        data?.narrowing || {
+          ownedOnlyPermissions: [],
+          labelledPermissions: [],
+        },
       );
     jest
       .spyOn(CodeRepositoryService, "getResolvableRepositories")

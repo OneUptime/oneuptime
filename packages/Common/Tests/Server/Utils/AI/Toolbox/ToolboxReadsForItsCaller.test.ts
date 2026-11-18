@@ -83,16 +83,19 @@ describe("the toolbox reads with its caller's props", () => {
       return file.endsWith(".ts");
     });
 
-  test.each(files)("%s reads as OneUptime alone only where it is weighed", (file: string) => {
-    const source: string = fs.readFileSync(path.join(TOOLBOX, file), "utf8");
-    const allowed: { count: number; why: string } | undefined =
-      ROOT_READS_ALLOWED[file];
+  test.each(files)(
+    "%s reads as OneUptime alone only where it is weighed",
+    (file: string) => {
+      const source: string = fs.readFileSync(path.join(TOOLBOX, file), "utf8");
+      const allowed: { count: number; why: string } | undefined =
+        ROOT_READS_ALLOWED[file];
 
-    expect({ file, rootReads: rootReadCount(source) }).toEqual({
-      file,
-      rootReads: allowed ? allowed.count : 0,
-    });
-  });
+      expect({ file, rootReads: rootReadCount(source) }).toEqual({
+        file,
+        rootReads: allowed ? allowed.count : 0,
+      });
+    },
+  );
 
   test("every weighed file still exists, so the list never outlives its reason", () => {
     for (const file of Object.keys(ROOT_READS_ALLOWED)) {

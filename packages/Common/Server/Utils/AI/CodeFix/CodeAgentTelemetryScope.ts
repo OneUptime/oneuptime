@@ -532,11 +532,9 @@ export default class CodeAgentTelemetryScope {
       audience: data.readAudience,
     });
 
-    return data.services.filter(
-      (service: CodeAgentScopedService): boolean => {
-        return readable.has(normalizeId(service.id));
-      },
-    );
+    return data.services.filter((service: CodeAgentScopedService): boolean => {
+      return readable.has(normalizeId(service.id));
+    });
   }
 
   /*
@@ -619,7 +617,10 @@ export default class CodeAgentTelemetryScope {
           .toLowerCase();
 
         for (const service of data.services) {
-          if (serviceName && service.name.trim().toLowerCase() === serviceName) {
+          if (
+            serviceName &&
+            service.name.trim().toLowerCase() === serviceName
+          ) {
             ids.add(normalizeId(service.id));
           }
         }

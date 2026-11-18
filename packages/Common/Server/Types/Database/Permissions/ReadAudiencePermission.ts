@@ -239,9 +239,7 @@ export default class ReadAudiencePermission {
     modelType: ModelType,
     audience: ReadAudience,
   ): Array<string> {
-    return (
-      audience.named[ReadAudiencePermission.getKindName(modelType)] || []
-    );
+    return audience.named[ReadAudiencePermission.getKindName(modelType)] || [];
   }
 
   // Whether the subject names this record itself.
@@ -627,11 +625,13 @@ export default class ReadAudiencePermission {
     );
 
     if (declared?.name && declared.joinColumns?.[0]?.name) {
-      const fromDeclaration: { joinTableName: string; ownerColumnName: string } =
-        {
-          joinTableName: declared.name,
-          ownerColumnName: declared.joinColumns[0].name,
-        };
+      const fromDeclaration: {
+        joinTableName: string;
+        ownerColumnName: string;
+      } = {
+        joinTableName: declared.name,
+        ownerColumnName: declared.joinColumns[0].name,
+      };
 
       labelsJoinTableCache.set(modelType, fromDeclaration);
 

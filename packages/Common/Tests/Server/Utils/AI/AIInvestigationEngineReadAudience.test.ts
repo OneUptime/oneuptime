@@ -83,8 +83,9 @@ describe("AIInvestigationEngine.executeRun: who the tools read for", () => {
   }
 
   function toolProps(): DatabaseCommonInteractionProps {
-    return (answer.mock.calls[0]![0] as { props: DatabaseCommonInteractionProps })
-      .props;
+    return (
+      answer.mock.calls[0]![0] as { props: DatabaseCommonInteractionProps }
+    ).props;
   }
 
   beforeEach(() => {

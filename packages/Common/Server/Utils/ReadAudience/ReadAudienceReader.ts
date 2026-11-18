@@ -227,10 +227,11 @@ export default class ReadAudienceReader {
         alertId: subject.alertId,
       });
 
-      const dataNamed: DataLineageNamed = await DataAlertLineageReader.readNamed(
-        subject.projectId,
-        subject.alertId,
-      );
+      const dataNamed: DataLineageNamed =
+        await DataAlertLineageReader.readNamed(
+          subject.projectId,
+          subject.alertId,
+        );
 
       for (const id of dataNamed.dataAssetIds) {
         add(ReadAudiencePermission.getKindName(DataAsset), id);

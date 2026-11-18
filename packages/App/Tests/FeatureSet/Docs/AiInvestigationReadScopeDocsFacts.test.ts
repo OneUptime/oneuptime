@@ -68,25 +68,32 @@ describe("AI docs: what an investigation, an answer and a code fix read (#9576)"
     const index: number = englishLineWith(AI_SRE, INVESTIGATION_READS);
 
     // After the section's list of what it reads, before what its activity says.
-    expect(lines[index - 2]!.startsWith("- The project's resolved incidents")).toBe(
-      true,
-    );
+    expect(
+      lines[index - 2]!.startsWith("- The project's resolved incidents"),
+    ).toBe(true);
     expect(lines[index]).toBe(INVESTIGATION_READS);
     expect(
-      lines.slice(0, index).reverse().find((line: string): boolean => {
-        return line.startsWith("## ");
-      }),
+      lines
+        .slice(0, index)
+        .reverse()
+        .find((line: string): boolean => {
+          return line.startsWith("## ");
+        }),
     ).toBe("## What an investigation reads");
   });
 
   it("an answer in the shared thread, or in Slack or Microsoft Teams, reads what the person who asked may read", () => {
     expect(
-      linesOf("en", AI_SRE)[englishLineWith(AI_SRE, "**One shared thread.**")]!
-        .endsWith(THREAD_ANSWER),
+      linesOf("en", AI_SRE)[
+        englishLineWith(AI_SRE, "**One shared thread.**")
+      ]!.endsWith(THREAD_ANSWER),
     ).toBe(true);
     expect(
       linesOf("en", ASK_AI)[
-        englishLineWith(ASK_AI, "**Slack, Microsoft Teams and AI investigations.**")
+        englishLineWith(
+          ASK_AI,
+          "**Slack, Microsoft Teams and AI investigations.**",
+        )
       ]!.endsWith(CHANNEL_ANSWER),
     ).toBe(true);
   });
@@ -122,8 +129,9 @@ describe("AI docs: what an investigation, an answer and a code fix read (#9576)"
 
   describe.each(DOCS_LANGUAGES)("%s", (lang: string) => {
     it("says what an investigation reads where the English page says it", () => {
-      const line: string =
-        linesOf(lang, AI_SRE)[englishLineWith(AI_SRE, INVESTIGATION_READS)]!;
+      const line: string = linesOf(lang, AI_SRE)[
+        englishLineWith(AI_SRE, INVESTIGATION_READS)
+      ]!;
 
       expect({
         lang,

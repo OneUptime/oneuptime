@@ -63,7 +63,10 @@ interface PermissionRows {
 let rows: PermissionRows;
 let teamQueries: Array<Record<string, unknown>>;
 
-function teamRow(permission: Permission, isBlock: boolean = false): TeamPermission {
+function teamRow(
+  permission: Permission,
+  isBlock: boolean = false,
+): TeamPermission {
   const row: TeamPermission = new TeamPermission();
   row.permission = permission;
   row.isBlockPermission = isBlock;
@@ -274,9 +277,8 @@ describe("the audience of a subject", () => {
     // Hosts are read whole: nobody reads them only by owner or label.
     expect(findHosts).not.toHaveBeenCalled();
 
-    const sql: string = (
-      reads[0]!.query["_id"] as FindOperator<unknown>
-    ).getSql!('"Service"."_id"');
+    const sql: string = (reads[0]!.query["_id"] as FindOperator<unknown>)
+      .getSql!('"Service"."_id"');
 
     // Of the project, set apart by a label, and not the incident's own service.
     expect(sql).toContain('"Service"."projectId" IN (:...');
@@ -326,14 +328,12 @@ describe("which of some records the audience reads", () => {
     });
     const reads: Array<{ props: unknown }> = [];
 
-    jest
-      .spyOn(HostService, "findBy")
-      .mockImplementation((async (findBy: {
-        props: unknown;
-      }): Promise<Array<Host>> => {
-        reads.push(findBy);
-        return [new Host(new ObjectID(HOST_ID))];
-      }) as never);
+    jest.spyOn(HostService, "findBy").mockImplementation((async (findBy: {
+      props: unknown;
+    }): Promise<Array<Host>> => {
+      reads.push(findBy);
+      return [new Host(new ObjectID(HOST_ID))];
+    }) as never);
 
     const readable: Set<string> = await ReadAudienceReader.readReadableIds({
       service: HostService as never,

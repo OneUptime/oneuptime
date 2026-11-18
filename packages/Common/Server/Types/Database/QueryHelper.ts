@@ -1006,8 +1006,7 @@ export default class QueryHelper {
   public static notCondition(
     condition: FindWhereProperty<any>,
   ): FindWhereProperty<any> {
-    const getSql: (alias: string) => string =
-      QueryHelper.getRawSql(condition);
+    const getSql: (alias: string) => string = QueryHelper.getRawSql(condition);
 
     return Raw(
       (alias: string) => {
