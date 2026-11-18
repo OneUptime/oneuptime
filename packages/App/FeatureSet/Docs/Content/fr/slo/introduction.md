@@ -139,17 +139,19 @@ OneUptime donne un statut à chaque SLO évalué :
 | **Sain** | Il reste plus que le seuil à risque du budget. |
 | **À risque** | Le budget restant est tombé au seuil à risque ou en dessous : 20 % par défaut. |
 | **Budget épuisé** | Le budget est entièrement consommé, voire dépassé. |
-| **Mal configuré** | Le SLO ne peut pas être mesuré : il n'a aucun moniteur, ses moniteurs n'existent plus, rien ne les a encore vérifiés ou ils n'ont encore enregistré aucun statut dans sa fenêtre, ou son objectif est hors limites. Un SLO de requêtes est mal configuré sans services, sans seuil de latence, ou tant que ses services n'ont servi aucune requête dans sa fenêtre. |
+| **En attente** | Rien n'a encore vérifié ses moniteurs : un moniteur créé il y a une minute, ou une sonde auto-hébergée qui n'est pas connectée. Il est mesuré à partir de leur première vérification. |
+| **Mal configuré** | Le SLO ne peut pas être mesuré : il n'a aucun moniteur, ses moniteurs n'existent plus ou n'ont encore enregistré aucun statut dans sa fenêtre, ou son objectif est hors limites. Un SLO de requêtes est mal configuré sans services, sans seuil de latence, ou tant que ses services n'ont servi aucune requête dans sa fenêtre. |
 | **En pause** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée, à la main, par un incident manuel ou par une maintenance planifiée. Il reprend tout seul dès que l'un d'eux est de nouveau surveillé. |
 
-Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel quel ; la liste des SLO affiche à la place une pastille **Désactivé** ou **Archivé**. Les propriétaires d'un SLO sont notifiés quand le statut passe à **À risque** ou **Budget épuisé** : voir [Budgets d'erreur](/docs/slo/error-budget).
+Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel quel ; la liste des SLO affiche à la place une pastille **Désactivé** ou **Archivé**. Les propriétaires d'un SLO sont notifiés quand le statut passe à **À risque** ou **Budget épuisé** : voir [Budgets d'erreur](/docs/slo/error-budget). Une règle peut aussi publier les changements de statut dans Slack, Microsoft Teams ou Mattermost : voir [Changements de statut](/docs/slo/error-budget-policy#changements-de-statut).
 
 ## La liste des SLO
 
 La page **SLO** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
 
-- Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
-- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent, les archiver ou les supprimer, tous en même temps.
+- Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **En attente**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
+- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent ou la [politique de budget d'erreur recommandée](/docs/slo/error-budget-policy#la-politique-recommandée), les archiver ou les supprimer, tous en même temps.
+- Le filtre **Déploiements** affiche les SLO dont la politique de budget d'erreur gèle les déploiements en ce moment, ou ceux où elle les autorise. Affichez la colonne **Déploiements** depuis le sélecteur de colonnes de la liste pour voir depuis quand chacun est gelé : voir [Barrière de déploiement](/docs/slo/error-budget-policy#barrière-de-déploiement).
 - La section **Paramètres** du menu latéral contient **Règles d'étiquettes** et **Règles de propriétaire**, qui étiquettent les nouveaux SLO et leur donnent des propriétaires : voir [Règles d'étiquettes et de propriétaires](/docs/slo/label-and-owner-rules).
 - La section **Avancé** du menu latéral contient **Archivé**, la liste des SLO archivés.
 

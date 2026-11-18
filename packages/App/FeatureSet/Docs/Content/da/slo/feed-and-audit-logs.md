@@ -31,7 +31,7 @@ Feedet ligger på SLO'ets side **Feed**, og dets nyeste elementer under **Senest
 | SLO opdateret | Navnet, beskrivelsen, etiketterne, målet, compliancevinduet, tidszonen, risikotærsklen, tilstanden for flere monitorer eller nedetidsstatusserne ændres. Viser hver gammel og ny værdi. |
 | SLO aktiveret eller deaktiveret | Evalueringen slås til eller fra. |
 | SLO arkiveret eller gendannet | SLO'et arkiveres eller fjernes fra arkivet. |
-| Status ændret | En evaluering flytter SLO'et til en ny status. Viser den SLI, det fejlbudget, den forbrugsrate og den risikotærskel, der forklarer den, og årsagen ved **Sat på pause** eller **Forkert konfigureret**. |
+| Status ændret | En evaluering flytter SLO'et til en ny status. Viser den SLI, det fejlbudget, den forbrugsrate og den risikotærskel, der forklarer den, og årsagen ved **Venter**, **Sat på pause** eller **Forkert konfigureret**. |
 | Niveau i fejlbudgetpolitikken skiftet | En evaluering flytter SLO'et ind i et niveau i dets fejlbudgetpolitik, til et andet niveau eller ud af alle niveauer. Viser det niveau, det forlod, og det niveau, det gik ind i, det resterende budget, og hvad teamet har aftalt at gøre i det nye niveau, og siger, når skiftet frøs udrulninger eller tillod dem igen. Se [Fejlbudgetpolitik](/docs/slo/error-budget-policy). |
 | Udrulninger frosset eller tilladt igen | Nogen har slået **Frys udrulninger** til eller fra for det niveau, SLO'et er i, og den næste evaluering frøs udrulninger eller tillod dem igen. Når et skift af niveau gør det, siger elementet for det skift det i stedet. Se [Udrulningsspærre](/docs/slo/error-budget-policy#udrulningsspærre). |
 | Forbrugsrateadvarsel udløst | En forbrugsrateregel opretter en advarsel. Linker til den og viser de forbrugsrater, der udløste den. |

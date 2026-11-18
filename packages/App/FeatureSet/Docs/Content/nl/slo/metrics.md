@@ -36,7 +36,7 @@ Voor een SLO in de modus **Gemiddelde monitorseconden** telt `oneuptime.slo.erro
 ### Wanneer er geen punt wordt geschreven
 
 - Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus hij stuurt niets.
-- Een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, meet niets, dus hij stuurt alleen `oneuptime.slo.target.percent`, wat configuratie is en geen meting. Zijn grafieken voor SLI, budget, verbruikssnelheid en status tonen een gat.
+- Een SLO met de status **Wachten**, **Gepauzeerd** of **Verkeerd geconfigureerd** meet niets, dus hij stuurt alleen `oneuptime.slo.target.percent`, wat configuratie is en geen meting. Zijn grafieken voor SLI, budget, verbruikssnelheid en status tonen een gat.
 - Een waarde die geen echt getal is, zoals een verbruikssnelheid over een venster zonder gegevens, wordt overgeslagen en nooit als 0 geschreven.
 
 ### Attributen
@@ -115,7 +115,7 @@ Eén SLO-variabele in de werkbalk bepaalt de reikwijdte van het hele bord. Het i
 ## Problemen oplossen
 
 :::details Een SLO ontbreekt in de SLO-kiezer van de werkbalk
-De kiezer toont de SLO-namen die de afgelopen dag zijn verstuurd. Een nieuwe SLO verschijnt na zijn eerste evaluatie; een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, blijft kiesbaar omdat hij zijn doel nog verstuurt; een uitgeschakelde of gearchiveerde SLO verdwijnt ongeveer een dag na zijn laatste punt.
+De kiezer toont de SLO-namen die de afgelopen dag zijn verstuurd. Een nieuwe SLO verschijnt na zijn eerste evaluatie; een SLO met de status **Wachten**, **Gepauzeerd** of **Verkeerd geconfigureerd** blijft kiesbaar omdat hij zijn doel nog verstuurt; een uitgeschakelde of gearchiveerde SLO verdwijnt ongeveer een dag na zijn laatste punt.
 :::
 
 :::details Een naam kiezen toont twee SLO's

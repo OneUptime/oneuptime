@@ -36,7 +36,7 @@ For et SLO i modusen **Gjennomsnitt av monitorsekunder** teller `oneuptime.slo.e
 ### Når ingen punkter skrives
 
 - Et deaktivert eller arkivert SLO evalueres ikke, så det sender ingenting.
-- Et SLO som er **Pauset** eller **Feilkonfigurert**, måler ingenting, så det sender bare `oneuptime.slo.target.percent`, som er konfigurasjon og ikke en måling. Diagrammene for SLI, budsjett, forbruksrate og status viser et hull.
+- Et SLO med status **Venter**, **Pauset** eller **Feilkonfigurert** måler ingenting, så det sender bare `oneuptime.slo.target.percent`, som er konfigurasjon og ikke en måling. Diagrammene for SLI, budsjett, forbruksrate og status viser et hull.
 - En verdi som ikke er et reelt tall, som en forbruksrate over et vindu uten data, hoppes over og skrives aldri som 0.
 
 ### Attributter
@@ -115,7 +115,7 @@ Når du oppretter et dashbord, velger du malen **SLO Dashboard** for å få en f
 ## Feilsøking
 
 :::details Et SLO mangler i SLO-velgeren i verktøylinjen
-Velgeren viser SLO-navnene som er sendt det siste døgnet. Et nytt SLO dukker opp etter den første evalueringen; et SLO som er **Pauset** eller **Feilkonfigurert**, kan fortsatt velges fordi det fortsatt sender målet sitt; et deaktivert eller arkivert SLO forsvinner omtrent et døgn etter det siste punktet.
+Velgeren viser SLO-navnene som er sendt det siste døgnet. Et nytt SLO dukker opp etter den første evalueringen; et SLO med status **Venter**, **Pauset** eller **Feilkonfigurert** kan fortsatt velges fordi det fortsatt sender målet sitt; et deaktivert eller arkivert SLO forsvinner omtrent et døgn etter det siste punktet.
 :::
 
 :::details Å velge et navn viser to SLO-er

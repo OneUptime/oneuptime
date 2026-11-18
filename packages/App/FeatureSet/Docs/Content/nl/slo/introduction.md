@@ -139,17 +139,19 @@ OneUptime geeft elke geëvalueerde SLO een status:
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
 | **Risico** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
 | **Budget uitgeput** | Het budget is helemaal op, of overschreden. |
-| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer, zijn nog door niets gecontroleerd of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. Een SLO voor aanvragen is verkeerd geconfigureerd zonder services, zonder latentiedrempel, of zolang zijn services in zijn venster nog geen aanvraag hebben afgehandeld. |
+| **Wachten** | Nog niets heeft zijn monitoren gecontroleerd: een monitor die een minuut geleden is aangemaakt, of een zelfgehoste sonde die niet verbonden is. Hij wordt gemeten vanaf hun eerste controle. |
+| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. Een SLO voor aanvragen is verkeerd geconfigureerd zonder services, zonder latentiedrempel, of zolang zijn services in zijn venster nog geen aanvraag hebben afgehandeld. |
 | **Gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld, met de hand, door een handmatig incident of door gepland onderhoud. Hij gaat vanzelf verder zodra een van die monitoren weer wordt bewaakt. |
 
-Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget).
+Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget). Een regel kan statuswijzigingen ook in Slack, Microsoft Teams of Mattermost plaatsen: zie [Statuswijzigingen](/docs/slo/error-budget-policy#statuswijzigingen).
 
 ## De SLO-lijst
 
 De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren. De kolom **Wat het meet** toont bij een aanvraag-SLO de services waar hij bij een uptime-SLO de monitoren toont, en het filter **Services** vindt de SLO's die een service meten.
 
-- De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
-- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze de [aanbevolen regels voor verbruikssnelheid](/docs/slo/burn-rate-alerts#ze-aan-veel-slos-tegelijk-toevoegen) te geven die ze missen, ze te archiveren of ze te verwijderen.
+- De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Wachten**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
+- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze de [aanbevolen regels voor verbruikssnelheid](/docs/slo/burn-rate-alerts#ze-aan-veel-slos-tegelijk-toevoegen) te geven die ze missen of het [aanbevolen foutbudgetbeleid](/docs/slo/error-budget-policy#het-aanbevolen-beleid), ze te archiveren of ze te verwijderen.
+- Het filter **Implementaties** toont de SLO's waarvan het foutbudgetbeleid implementaties op dit moment bevriest, of de SLO's waar het ze toestaat. Toon de kolom **Implementaties** via de kolomkiezer van de lijst om te zien sinds wanneer elk ervan bevroren is: zie [Implementatiepoort](/docs/slo/error-budget-policy#implementatiepoort).
 - De sectie **Instellingen** van het zijmenu bevat **Labelregels** en **Eigenaarsregels**, die nieuwe SLO's labelen en eigenaren geven: zie [Label- en eigenaarsregels](/docs/slo/label-and-owner-rules).
 - De sectie **Geavanceerd** van het zijmenu bevat **Gearchiveerd**, de lijst met gearchiveerde SLO's.
 

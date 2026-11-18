@@ -36,7 +36,7 @@ Bei einem SLO im Modus **Durchschnitt der Monitorsekunden** zählt `oneuptime.sl
 ### Wann kein Punkt geschrieben wird
 
 - Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet und sendet daher nichts.
-- Ein SLO im Status **Pausiert** oder **Falsch konfiguriert** misst nichts und sendet daher nur `oneuptime.slo.target.percent`, das Konfiguration ist und keine Messung. Seine Diagramme für SLI, Budget, Burn-Rate und Status zeigen eine Lücke.
+- Ein SLO im Status **Wartet**, **Pausiert** oder **Falsch konfiguriert** misst nichts und sendet daher nur `oneuptime.slo.target.percent`, das Konfiguration ist und keine Messung. Seine Diagramme für SLI, Budget, Burn-Rate und Status zeigen eine Lücke.
 - Ein Wert, der keine echte Zahl ist, etwa eine Burn-Rate über ein Zeitfenster ohne Daten, wird übersprungen, nie als 0 geschrieben.
 
 ### Attribute
@@ -115,7 +115,7 @@ Eine SLO-Variable in der Werkzeugleiste grenzt die ganze Übersicht ein. Sie ist
 ## Fehlerbehebung
 
 :::details Ein SLO fehlt in der SLO-Auswahl der Werkzeugleiste
-Die Auswahl listet die SLO-Namen, die am letzten Tag gesendet wurden. Ein neues SLO erscheint nach seiner ersten Auswertung; ein SLO im Status **Pausiert** oder **Falsch konfiguriert** bleibt wählbar, weil es weiterhin sein Ziel sendet; ein abgeschaltetes oder archiviertes SLO verschwindet etwa einen Tag nach seinem letzten Punkt.
+Die Auswahl listet die SLO-Namen, die am letzten Tag gesendet wurden. Ein neues SLO erscheint nach seiner ersten Auswertung; ein SLO im Status **Wartet**, **Pausiert** oder **Falsch konfiguriert** bleibt wählbar, weil es weiterhin sein Ziel sendet; ein abgeschaltetes oder archiviertes SLO verschwindet etwa einen Tag nach seinem letzten Punkt.
 :::
 
 :::details Die Wahl eines Namens zeigt zwei SLOs

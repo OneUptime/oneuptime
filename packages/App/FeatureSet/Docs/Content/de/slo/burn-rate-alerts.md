@@ -252,7 +252,7 @@ Manche Änderungen lösen immer auf, was eine Regel offen hat, unabhängig von i
 - **Wenn sie auslöst** so zu ändern, dass die Warnung oder der Vorfall wegfällt, schließt, was diese Ausgabe geöffnet hat;
 - das Ausschalten oder Löschen der Regel;
 - das Ausschalten der Auswertung des SLO, das Archivieren oder Löschen des SLO;
-- das SLO wird **Pausiert** oder **Falsch konfiguriert**, weil es dann nichts misst;
+- das SLO bekommt den Status **Wartet**, **Pausiert** oder **Falsch konfiguriert**, weil es dann nichts misst;
 - die Regel verliert ihren Schwellenwert oder ihre Zeitfenster, oder das SLO hat kein volles langes Zeitfenster an Verlauf mehr.
 
 ## Geplante Wartung

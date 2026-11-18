@@ -36,7 +36,7 @@ Per uno SLO in modalità **Media dei secondi dei monitor**, `oneuptime.slo.error
 ### Quando non viene scritto nessun punto
 
 - Uno SLO disattivato o archiviato non viene valutato, quindi non pubblica nulla.
-- Uno SLO **In pausa** o **Configurato male** non misura nulla, quindi pubblica solo `oneuptime.slo.target.percent`, che è configurazione e non una misura. I suoi grafici di SLI, budget, tasso di consumo e stato mostrano un vuoto.
+- Uno SLO **In attesa**, **In pausa** o **Configurato male** non misura nulla, quindi pubblica solo `oneuptime.slo.target.percent`, che è configurazione e non una misura. I suoi grafici di SLI, budget, tasso di consumo e stato mostrano un vuoto.
 - Un valore che non è un numero reale, come un tasso di consumo su una finestra senza dati, viene saltato, mai scritto come 0.
 
 ### Attributi
@@ -115,7 +115,7 @@ Una variabile SLO nella barra degli strumenti delimita l'intera dashboard. È un
 ## Risoluzione dei problemi
 
 :::details Uno SLO manca dal selettore SLO della barra degli strumenti
-Il selettore elenca i nomi degli SLO pubblicati nell'ultimo giorno. Un nuovo SLO compare dopo la sua prima valutazione; uno SLO **In pausa** o **Configurato male** resta selezionabile perché pubblica ancora il suo obiettivo; uno SLO disattivato o archiviato sparisce circa un giorno dopo il suo ultimo punto.
+Il selettore elenca i nomi degli SLO pubblicati nell'ultimo giorno. Un nuovo SLO compare dopo la sua prima valutazione; uno SLO **In attesa**, **In pausa** o **Configurato male** resta selezionabile perché pubblica ancora il suo obiettivo; uno SLO disattivato o archiviato sparisce circa un giorno dopo il suo ultimo punto.
 :::
 
 :::details Scegliendo un nome compaiono due SLO

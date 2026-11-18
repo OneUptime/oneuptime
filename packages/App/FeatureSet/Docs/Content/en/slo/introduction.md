@@ -139,17 +139,19 @@ OneUptime gives every evaluated SLO a status:
 | **Healthy** | More than the at-risk threshold of the budget is left. |
 | **At Risk** | The budget left has dropped to the at-risk threshold or below: 20% by default. |
 | **Budget Exhausted** | The budget is fully spent, or overspent. |
-| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist, nothing has checked them yet or they have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
+| **Waiting** | Nothing has checked its monitors yet: a monitor created a minute ago, or a self-hosted probe that is not connected. It is measured from their first check. |
+| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist or have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
 | **Paused** | Every monitor it measures is archived or has active monitoring turned off, by hand, by a manual incident or by scheduled maintenance. It resumes by itself once one of them is monitored again. |
 
-A turned-off or archived SLO is not evaluated, so its status stays where it was; the SLO list shows a **Disabled** or **Archived** pill instead. SLO owners are notified when the status changes to **At Risk** or **Budget Exhausted**: see [Error Budgets](/docs/slo/error-budget).
+A turned-off or archived SLO is not evaluated, so its status stays where it was; the SLO list shows a **Disabled** or **Archived** pill instead. SLO owners are notified when the status changes to **At Risk** or **Budget Exhausted**: see [Error Budgets](/docs/slo/error-budget). A rule can post status changes to Slack, Microsoft Teams or Mattermost too: see [Status changes](/docs/slo/error-budget-policy#status-changes).
 
 ## The SLO list
 
 The **SLOs** page lists every SLO that is not archived, with its status, SLI, budget left, burn rate, target, window, monitors, labels and owners. Its **What It Measures** column names a request SLO's services where it names a monitor uptime SLO's monitors, and the **Services** filter finds the SLOs that measure a service.
 
-- The tiles above the list count SLOs by status: **Healthy**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Paused** and **Disabled**. They show once there is an SLO that is not archived. Click a tile to show only those SLOs, and click it again to show them all.
-- Select SLOs to add or remove labels and owners, enable or disable them, give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing, archive them or delete them, all at once.
+- The tiles above the list count SLOs by status: **Healthy**, **At Risk**, **Budget Exhausted**, **Waiting**, **Misconfigured**, **Paused** and **Disabled**. They show once there is an SLO that is not archived. Click a tile to show only those SLOs, and click it again to show them all.
+- Select SLOs to add or remove labels and owners, enable or disable them, give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing or the [recommended error budget policy](/docs/slo/error-budget-policy#the-recommended-policy), archive them or delete them, all at once.
+- The **Deployments** filter shows the SLOs whose error budget policy freezes deployments right now, or those it allows. Show the **Deployments** column from the list's column picker to see since when each one is frozen: see [Deployment gate](/docs/slo/error-budget-policy#deployment-gate).
 - The side menu's **Settings** section holds **Label Rules** and **Owner Rules**, which label new SLOs and give them owners: see [Label and Owner Rules](/docs/slo/label-and-owner-rules).
 - The side menu's **Advanced** section holds **Archived**, the list of archived SLOs.
 
