@@ -75,6 +75,8 @@ That's the whole create form. The **Status Pages** list shows **Name**, **Descri
 The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
 :::
 
+To be walked through it instead, from the monitors the page shows to what your customers see, click **Guided setup**: on the empty **Status Pages** list, or under **How it works**. See [Publish a Status Page](/docs/guides/status-page).
+
 A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
 
 Next, in rough order of usefulness:

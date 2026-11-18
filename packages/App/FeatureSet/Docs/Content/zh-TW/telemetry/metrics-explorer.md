@@ -36,7 +36,7 @@ flowchart TB
 
 ## 開始之前
 
-- **正在到達的指標。** 透過 [OpenTelemetry](/docs/telemetry/open-telemetry) 傳送，或者從代理程式傳送，例如 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。
+- **正在到達的指標。** 透過 [OpenTelemetry](/docs/telemetry/open-telemetry) 傳送，或者從代理程式傳送，例如 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。 在第一批資料抵達之前，此頁面會提供 **引導式設定**，引導你從第一批日誌、指標和追蹤一直到針對它們的警示；旁邊的 **傳送您的第一批指標** 只開啟設定指南。
 - **可以讀取遙測的角色。** 專案擁有者、專案管理員、專案成員、檢視者、遙測管理員、遙測成員或遙測檢視者，或者擁有 Read Metrics 權限的自訂角色。它能讀取哪些指標，請參閱 [遙測](/docs/permissions/index#遙測)。
 
 ## 尋找指標

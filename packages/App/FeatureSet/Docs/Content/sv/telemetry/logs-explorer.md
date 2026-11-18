@@ -36,7 +36,7 @@ Utforskaren har fem flikar:
 
 ## Innan du börjar
 
-- **Loggar som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fliken **Installationsguide** visar konfigurationen för ditt språk eller din collector.
+- **Loggar som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fliken **Installationsguide** visar konfigurationen för ditt språk eller din collector. Tills de första data kommer erbjuder den här sidan **Guidad installation**, som tar dig från dina första loggar, mätvärden och spår till larm på dem, bredvid **Skicka dina första loggar**, installationsguiden ensam.
 - **En roll som får läsa telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Logs. Dess omfång avgör vems loggar du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Hitta en loggrad

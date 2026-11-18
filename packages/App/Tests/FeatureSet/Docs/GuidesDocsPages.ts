@@ -242,6 +242,17 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Status page name",
       "What it shows",
       "Select all",
+      // The ways in from Status Pages itself (#7142).
+      "Status Pages",
+      "Guided setup",
+      "How it works",
+      // A project's own page, offered first (#7517).
+      "On the page",
+      "Status page",
+      "Make a new status page instead",
+      // A busy project's list (#7147).
+      "Search by name",
+      "All labels",
       "Create the status page",
       "This is what your customers see",
       "Public link",

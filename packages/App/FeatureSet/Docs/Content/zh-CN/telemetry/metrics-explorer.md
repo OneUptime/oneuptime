@@ -36,7 +36,7 @@ flowchart TB
 
 ## 开始之前
 
-- **正在到达的指标。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry) 发送，或者从代理发送，例如 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。
+- **正在到达的指标。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry) 发送，或者从代理发送，例如 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 或 [Kubernetes 代理](/docs/telemetry/kubernetes-agent)。 在第一批数据到达之前，此页面会提供 **引导式设置**，引导你从第一批日志、指标和追踪一直到针对它们的警报；旁边的 **发送您的第一批指标** 只打开设置指南。
 - **可以读取遥测的角色。** 项目所有者、项目管理员、项目成员、查看者、遥测管理员、遥测成员或遥测查看者，或者拥有 Read Metrics 权限的自定义角色。它能读取哪些指标，参见 [遥测](/docs/permissions/index#遥测)。
 
 ## 查找指标
