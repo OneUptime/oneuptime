@@ -56928,5 +56928,7 @@
   "Resend Invitation": "초대 다시 보내기",
   "Send their invitation email again?": "초대 이메일을 다시 보낼까요?",
   "Send their invitation email to {{email}} again?": "{{email}}(으)로 초대 이메일을 다시 보낼까요?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "비워 두면 디바이스만 가져옵니다. 각 모니터는 템플릿의 조건, 간격, 레이블, 사용자 지정 필드 기본값을 복사하며, 요금이 부과될 수 있습니다.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "아직 네트워크 장치, Ping, IP, 포트, NTP 모니터 템플릿이 없습니다. '템플릿 관리'에서 하나를 만들면 이 단계로 돌아올 때 목록에 표시됩니다."
 }

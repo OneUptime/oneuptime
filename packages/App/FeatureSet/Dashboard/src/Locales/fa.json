@@ -56928,5 +56928,7 @@
   "Resend Invitation": "ارسال دوبارهٔ دعوت",
   "Send their invitation email again?": "ایمیل دعوتش دوباره فرستاده شود؟",
   "Send their invitation email to {{email}} again?": "ایمیل دعوتش دوباره به {{email}} فرستاده شود؟",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "برای واردکردن فقط دستگاه‌ها خالی بگذارید. هر مانیتور معیارها، بازه، برچسب‌ها و پیش‌فرض‌های فیلدهای سفارشی قالب را کپی می‌کند و ممکن است هزینه داشته باشد.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "هنوز هیچ قالب مانیتور دستگاه شبکه، Ping، IP، پورت یا NTP وجود ندارد. با «مدیریت قالب‌ها» یکی بسازید؛ وقتی به این مرحله برگردید در فهرست دیده می‌شود."
 }

@@ -56928,5 +56928,7 @@
   "Resend Invitation": "Send invitasjon på nytt",
   "Send their invitation email again?": "Send invitasjonsmeldingen på nytt?",
   "Send their invitation email to {{email}} again?": "Send invitasjonsmeldingen til {{email}} på nytt?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "La det stå tomt for å importere bare enheter. Hver monitor kopierer malens kriterier, intervall, etiketter og standardverdier for egendefinerte felt, og kan bli fakturert.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ingen monitormal for nettverksenheter, Ping, IP, Port eller NTP ennå. Opprett en med «Administrer maler», så vises den når du kommer tilbake til dette trinnet."
 }

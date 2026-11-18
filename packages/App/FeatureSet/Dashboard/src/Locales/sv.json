@@ -56928,5 +56928,7 @@
   "Resend Invitation": "Skicka inbjudan igen",
   "Send their invitation email again?": "Skicka inbjudningsmejlet igen?",
   "Send their invitation email to {{email}} again?": "Skicka inbjudningsmejlet till {{email}} igen?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Lämna tomt för att bara importera enheter. Varje övervakning kopierar mallens kriterier, intervall, etiketter och standardvärden för anpassade fält, och kan debiteras.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ingen övervakningsmall för nätverksenheter, Ping, IP, Port eller NTP ännu. Skapa en med ”Hantera mallar”, så visas den när du kommer tillbaka till det här steget."
 }

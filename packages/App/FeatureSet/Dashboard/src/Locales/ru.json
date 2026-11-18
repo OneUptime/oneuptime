@@ -56928,5 +56928,7 @@
   "Resend Invitation": "Отправить приглашение повторно",
   "Send their invitation email again?": "Отправить письмо с приглашением ещё раз?",
   "Send their invitation email to {{email}} again?": "Отправить письмо с приглашением на {{email}} ещё раз?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Оставьте пустым, чтобы импортировать только устройства. Каждый монитор копирует критерии, интервал, метки и значения пользовательских полей по умолчанию из шаблона и может тарифицироваться.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Пока нет шаблона монитора сетевых устройств, Ping, IP, Порт или NTP. Создайте его в разделе «Управление шаблонами» — он появится в списке, когда вы вернётесь к этому шагу."
 }

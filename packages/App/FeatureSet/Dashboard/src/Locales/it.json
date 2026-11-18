@@ -56928,5 +56928,7 @@
   "Resend Invitation": "Invia di nuovo l'invito",
   "Send their invitation email again?": "Inviare di nuovo l'email di invito?",
   "Send their invitation email to {{email}} again?": "Inviare di nuovo l'email di invito a {{email}}?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Sono stati inviati troppi inviti a questo indirizzo nell'ultima ora. Potrai inviarlo di nuovo dopo le {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Sono stati inviati troppi inviti a questo indirizzo nell'ultima ora. Potrai inviarlo di nuovo dopo le {{time}}.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Lascialo vuoto per importare solo i dispositivi. Ogni monitor copia criteri, intervallo, etichette e valori predefiniti dei campi personalizzati del modello, e può essere fatturato.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ancora nessun modello di monitor per dispositivi di rete, Ping, IP, Porta o NTP. Creane uno con «Gestisci modelli»: sarà elencato quando tornerai a questo passaggio."
 }

@@ -56928,5 +56928,7 @@
   "Resend Invitation": "Uitnodiging opnieuw verzenden",
   "Send their invitation email again?": "De uitnodigingsmail opnieuw verzenden?",
   "Send their invitation email to {{email}} again?": "De uitnodigingsmail opnieuw naar {{email}} verzenden?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Laat leeg om alleen apparaten te importeren. Elke monitor neemt de criteria, het interval, de labels en de standaardwaarden voor aangepaste velden van het sjabloon over, en kan in rekening worden gebracht.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Nog geen netwerkapparaat-, Ping-, IP-, poort- of NTP-monitorsjabloon. Maak er een met 'Sjablonen beheren'; het staat in de lijst wanneer u terugkomt bij deze stap."
 }
