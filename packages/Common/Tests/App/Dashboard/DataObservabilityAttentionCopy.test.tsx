@@ -246,7 +246,7 @@ describe("the page where each is put right", () => {
     },
   );
 
-  test("a table's owners are named on its Owners page, a data product's in its Settings; nothing else has one", () => {
+  test("a table's owners are named on its Owners page, a pipeline's on its own (#6551), a data product's in its Settings; nothing else has one", () => {
     expect(
       getAttentionOwnersRoute(
         item(DataAttentionKind.TableLate, { dataAssetId: ID }),
@@ -264,9 +264,28 @@ describe("the page where each is put right", () => {
         item(DataAttentionKind.DataProductLate, { dataProductId: ID }),
       )?.toString(),
     ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS, ID));
+    // A failed or late run's owners are its pipeline's, on its Owners page.
     expect(
       getAttentionOwnersRoute(
         item(DataAttentionKind.PipelineFailed, { dataPipelineId: ID }),
+      )?.toString(),
+    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, ID));
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.PipelineLate, { dataPipelineId: ID }),
+      )?.toString(),
+    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, ID));
+    // A database and a reconciliation have none here.
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.CollectionFailed, { dataStoreId: ID }),
+      ),
+    ).toBeNull();
+    expect(
+      getAttentionOwnersRoute(
+        item(DataAttentionKind.ReconciliationDrifted, {
+          dataReconciliationId: ID,
+        }),
       ),
     ).toBeNull();
   });

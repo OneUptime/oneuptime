@@ -15,6 +15,7 @@ import DataStoreService from "../../../../Server/Services/DataStoreService";
 import DataCheckFromSentence, {
   buildCheckFromSentencePrompt,
 } from "../../../../Server/Utils/DataObservability/DataCheckFromSentence";
+import DataObservabilityReadScope from "../../../../Server/Utils/DataObservability/DataObservabilityReadScope";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -162,6 +163,10 @@ async function ask(
   jest.spyOn(DataStoreService, "findOneBy").mockResolvedValue({
     kind: DataStoreKind.PostgreSql,
   } as never);
+  // A table the member may read: the route drafts a check only for one (#6553).
+  jest
+    .spyOn(DataObservabilityReadScope, "canReadTable")
+    .mockResolvedValue(true);
 
   const asked: ReturnType<typeof jest.spyOn> = jest
     .spyOn(AIService, "executeWithLogging")

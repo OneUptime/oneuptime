@@ -835,7 +835,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
              * alert a check would raise sits with the alert it has open.
              */
             hideBelowLargeScreen: true,
-            foldInto: "lastRunStatus",
+            foldInto: "healthRank",
             showTitleWhenFolded: true,
             getExportValue: (check: DataCheck): string => {
               return check.alertCondition || "";
