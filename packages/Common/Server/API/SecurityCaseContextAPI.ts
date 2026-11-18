@@ -10,6 +10,10 @@ import {
   SecurityCaseImpactJson,
   SecurityCaseStoryJson,
 } from "../../Types/SecurityCase/SecurityCaseContext";
+import {
+  SECURITY_CASE_MATCHES_API_PATH,
+  SecurityCaseMatchesJson,
+} from "../../Types/SecurityCase/SecurityCaseMatches";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
@@ -19,6 +23,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import SecurityCaseImpact from "../Utils/SecurityCase/Context/SecurityCaseImpact";
+import SecurityCaseMatches from "../Utils/SecurityCase/Context/SecurityCaseMatches";
 import SecurityCaseStory from "../Utils/SecurityCase/Context/SecurityCaseStory";
 import CommonAPI from "./CommonAPI";
 
@@ -26,8 +31,11 @@ import CommonAPI from "./CommonAPI";
  * A security case as the rest of OneUptime tells it
  * (Server/Utils/SecurityCase/Context):
  *
- *   POST /security-case-context/story   { caseId }  what happened, in order
- *   POST /security-case-context/impact  { caseId }  what the case puts at risk
+ *   POST /security-case-context/story    { caseId }  what happened, in order
+ *   POST /security-case-context/impact   { caseId }  what the case puts at risk
+ *   POST /security-case-context/matches  { caseId }  why it was opened, and
+ *                                                     the events its
+ *                                                     detections matched
  *
  * Each takes the right to read security events - a case's detections and
  * events are what both are told from - and reads everything else with the
@@ -130,6 +138,41 @@ export default class SecurityCaseContextAPI {
             req,
             res,
             impact as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    router.post(
+      SECURITY_CASE_MATCHES_API_PATH,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          assertCanReadSecurityEvents(props);
+
+          const matches: SecurityCaseMatchesJson | null =
+            await SecurityCaseMatches.build({
+              projectId,
+              securityCaseId: readCaseId(readBody(req)),
+              props,
+            });
+
+          if (!matches) {
+            throw new NotFoundException("This case could not be found.");
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            matches as unknown as JSONObject,
           );
         } catch (error) {
           next(error);

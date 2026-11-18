@@ -604,6 +604,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     leftAlone: {
       SECURITY_CASE_STORY_API_PATH: READ,
       SECURITY_CASE_IMPACT_API_PATH: READ,
+      SECURITY_CASE_MATCHES_API_PATH: READ,
     },
   },
   "packages/Common/Server/API/SecurityAttackCampaignAPI.ts": {
