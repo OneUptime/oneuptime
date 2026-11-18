@@ -26,6 +26,12 @@
  * handed every one that is due, so none waits a minute past its time. Pure,
  * so the job, the Dashboard, the Admin Dashboard and OneUptime Health read
  * the same rules.
+ *
+ * The network devices a probe polls are read the same way, by the same
+ * rules, and kept beside the monitors' in two times of their own
+ * (devicePollsLateSince, devicePollsLastLateAt, OneUptime issue #9499), so
+ * a page can say which of the two falls behind and what lets it catch up.
+ * A probe is behind (isProbeBehind) when either is.
  */
 
 // A check that has waited this long past its check time is late.
@@ -50,6 +56,26 @@ export interface ProbeLateChecks {
 export interface ProbeLateChecksRead {
   checksLateSince?: Date | string | null | undefined;
   checksLastLateAt?: Date | string | null | undefined;
+}
+
+// What OneUptime keeps on the probe of the network devices it polls.
+export interface ProbeLateDevicePolls {
+  devicePollsLateSince: Date | null;
+  devicePollsLastLateAt: Date | null;
+}
+
+export interface ProbeLateDevicePollsRead {
+  devicePollsLateSince?: Date | string | null | undefined;
+  devicePollsLastLateAt?: Date | string | null | undefined;
+}
+
+// Everything that says whether a probe is behind: its monitors and its devices.
+export type ProbeBehindRead = ProbeLateChecksRead & ProbeLateDevicePollsRead;
+
+// What a probe can fall behind on.
+export enum ProbeBehindWork {
+  MonitorChecks = "monitorChecks",
+  DevicePolls = "devicePolls",
 }
 
 const toDate: (value: Date | string | null | undefined) => Date | null = (
@@ -157,5 +183,91 @@ export default class ProbeBehindUtil {
 
   public static isBehind(state: ProbeLateChecksRead): boolean {
     return ProbeBehindUtil.getBehindSince(state) !== null;
+  }
+
+  /*
+   * The device polls' two times in the shape the rules above read, so
+   * next, hasChanged and getBehindSince judge them as they judge checks.
+   */
+  public static devicePollsAsLateChecks(
+    state: ProbeLateDevicePollsRead,
+  ): ProbeLateChecksRead {
+    return {
+      checksLateSince: state.devicePollsLateSince,
+      checksLastLateAt: state.devicePollsLastLateAt,
+    };
+  }
+
+  // And back: what to keep of the device polls after a reading.
+  public static lateChecksAsDevicePolls(
+    lateChecks: ProbeLateChecks,
+  ): ProbeLateDevicePolls {
+    return {
+      devicePollsLateSince: lateChecks.checksLateSince,
+      devicePollsLastLateAt: lateChecks.checksLastLateAt,
+    };
+  }
+
+  // What to keep of the device polls for a probe that is not connected.
+  public static clearedDevicePolls(): ProbeLateDevicePolls {
+    return { devicePollsLateSince: null, devicePollsLastLateAt: null };
+  }
+
+  /*
+   * Since when the probe is behind on its network devices - polled later
+   * than their interval - or null when it is not.
+   */
+  public static getDevicePollsBehindSince(
+    state: ProbeLateDevicePollsRead,
+  ): Date | null {
+    return ProbeBehindUtil.getBehindSince(
+      ProbeBehindUtil.devicePollsAsLateChecks(state),
+    );
+  }
+
+  public static isDevicePollsBehind(state: ProbeLateDevicePollsRead): boolean {
+    return ProbeBehindUtil.getDevicePollsBehindSince(state) !== null;
+  }
+
+  /*
+   * Since when the probe is behind on anything - its monitors or its
+   * network devices, the earlier of the two - or null when it keeps up
+   * with both. What a probe's Status, a Probe Status monitor and the
+   * master admins' notifications read.
+   */
+  public static getProbeBehindSince(state: ProbeBehindRead): Date | null {
+    const times: Array<Date> = [
+      ProbeBehindUtil.getBehindSince(state),
+      ProbeBehindUtil.getDevicePollsBehindSince(state),
+    ].filter((time: Date | null): time is Date => {
+      return time !== null;
+    });
+
+    if (times.length === 0) {
+      return null;
+    }
+
+    return times.reduce((earliest: Date, time: Date): Date => {
+      return time.getTime() < earliest.getTime() ? time : earliest;
+    });
+  }
+
+  public static isProbeBehind(state: ProbeBehindRead): boolean {
+    return ProbeBehindUtil.getProbeBehindSince(state) !== null;
+  }
+
+  // What the probe is behind on, monitors first; empty when it keeps up.
+  public static getBehindWork(state: ProbeBehindRead): Array<ProbeBehindWork> {
+    const work: Array<ProbeBehindWork> = [];
+
+    if (ProbeBehindUtil.isBehind(state)) {
+      work.push(ProbeBehindWork.MonitorChecks);
+    }
+
+    if (ProbeBehindUtil.isDevicePollsBehind(state)) {
+      work.push(ProbeBehindWork.DevicePolls);
+    }
+
+    return work;
   }
 }

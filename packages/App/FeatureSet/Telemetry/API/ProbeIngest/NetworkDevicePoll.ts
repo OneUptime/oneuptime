@@ -38,30 +38,52 @@ import logger from "Common/Server/Utils/Logger";
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * How many devices one fetch hands to a probe, and therefore the CEILING on
- * how fast a probe's fleet can be polled: the probe fetches once a minute,
- * so a probe can never poll faster than this many devices per minute
- * however short the devices' configured intervals are.
+ * The most devices one fetch hands to a probe.
  *
- * That ceiling used to be 50, silently. A probe with 980 devices could
- * therefore only get all the way round its fleet every ~20 minutes — long
- * enough that a large share of a perfectly healthy fleet was always outside
- * the freshness window the UI called "up", which is how devices answering
- * SNMP fine came to be listed as Down (issue #3220). Reachability no longer
- * depends on poll recency, so a bound here can no longer manufacture an
- * outage, but it still throttles how current the data is — so the default
- * is sized for a real fleet and operators can raise it.
+ * A probe of this release asks for as many as it has room to poll - up to
+ * its PROBE_NETWORK_DEVICE_POLL_CONCURRENCY - and asks again while the
+ * batch it is handed is full (Probe's Jobs/NetworkDevice/FetchList, issue
+ * #9499), so for it this bounds only the work of one request.
  *
- * Raise it together with PROBE_NETWORK_DEVICE_POLL_CONCURRENCY on the probe:
- * claiming advances nextPollAt whether or not the walk actually happens, so
- * handing a probe more devices than it can walk inside a cycle does not
- * poll them sooner, it skips them.
+ * A probe from before #9499 sends no limit and fetches once a minute, so
+ * for it this is still the CEILING on how fast its fleet can be polled: it
+ * can never poll faster than this many devices a minute, however short the
+ * devices' intervals are. That ceiling used to be 50, silently. A probe
+ * with 980 devices could therefore only get all the way round its fleet
+ * every ~20 minutes — long enough that a large share of a perfectly healthy
+ * fleet was always outside the freshness window the UI called "up", which
+ * is how devices answering SNMP fine came to be listed as Down (issue
+ * #3220). Reachability no longer depends on poll recency, so a bound here
+ * can no longer manufacture an outage, but it still throttles how current
+ * an older probe's data is — so the default is sized for a real fleet and
+ * operators can raise it.
  */
 const DEVICE_POLL_FETCH_LIMIT: number = NumberUtil.parseNumberWithDefault({
   value: process.env["NETWORK_DEVICE_POLL_FETCH_LIMIT"],
   defaultValue: 250,
   min: 1,
 });
+
+/*
+ * How many devices this request may be handed: what the probe asked for
+ * (the room it has to poll them), never more than DEVICE_POLL_FETCH_LIMIT.
+ * A probe from before #9499 asks for nothing, and is handed up to
+ * DEVICE_POLL_FETCH_LIMIT, as it always was; so is one whose limit is not a
+ * whole number of at least one.
+ */
+export const getDevicePollRequestLimit: (requested: unknown) => number = (
+  requested: unknown,
+): number => {
+  if (
+    typeof requested !== "number" ||
+    !Number.isFinite(requested) ||
+    requested < 1
+  ) {
+    return DEVICE_POLL_FETCH_LIMIT;
+  }
+
+  return Math.min(Math.floor(requested), DEVICE_POLL_FETCH_LIMIT);
+};
 
 /*
  * The capability a probe advertises (in `probeCapabilities` on its list
@@ -103,6 +125,14 @@ const NETWORK_DEVICE_PING_CAPABILITY: string =
  * nextPollAt by the device's own polling interval, so no device stays
  * locked past it and the writes of its last poll's results never wait.
  *
+ * How many: the `limit` in the body - the room the probe has to poll them -
+ * up to DEVICE_POLL_FETCH_LIMIT (getDevicePollRequestLimit). The answer
+ * says `isFullBatch` when the claim filled that limit, so more devices may
+ * be due and the probe asks again (issue #9499): judged on what was
+ * claimed, not on what is handed out, since a claimed device can be kept
+ * back below. A probe from before #9499 sends no limit and reads no
+ * isFullBatch; it is handed up to DEVICE_POLL_FETCH_LIMIT once a minute.
+ *
  * This is how devices get polled — monitors play no part in it. Network
  * Device monitors are evaluated server-side when the poll results come
  * back (see NetworkDeviceWalkUtil).
@@ -136,14 +166,27 @@ router.post(
         );
       }
 
+      /*
+       * Whether this probe asks again while devices are due (#9499): it
+       * says how many it has room for. One that does not is from before.
+       */
+      const asksAgainWhileDue: boolean = typeof req.body["limit"] === "number";
+      const limit: number = getDevicePollRequestLimit(req.body["limit"]);
+
       const claimedDeviceIds: Array<ObjectID> =
         await NetworkDeviceService.claimDevicesForPolling({
           probeId: probeId,
-          limit: DEVICE_POLL_FETCH_LIMIT,
+          limit: limit,
         });
 
+      // More may be due: the claim filled the batch.
+      const isFullBatch: boolean = claimedDeviceIds.length >= limit;
+
       if (claimedDeviceIds.length === 0) {
-        return Response.sendJsonObjectResponse(req, res, { devices: [] });
+        return Response.sendJsonObjectResponse(req, res, {
+          devices: [],
+          isFullBatch: false,
+        });
       }
 
       const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
@@ -475,19 +518,23 @@ router.post(
       );
 
       /*
-       * A full batch means the cap, not the devices' own intervals, is
-       * deciding how often this fleet gets polled — the condition that used
-       * to be invisible while it quietly stretched a 5-minute interval into
-       * a 20-minute one. Say so, and name the knob.
+       * A full batch to a probe from before #9499, which asks once a
+       * minute, means the cap, not the devices' own intervals, is deciding
+       * how often its fleet gets polled — the condition that used to be
+       * invisible while it quietly stretched a 5-minute interval into a
+       * 20-minute one. Say so, and name the way out. A probe that asks
+       * again is handed full batches as a matter of course while it
+       * catches up: nothing to say.
        */
-      if (claimedDeviceIds.length >= DEVICE_POLL_FETCH_LIMIT) {
+      if (!asksAgainWhileDue && isFullBatch) {
         logger.warn(
-          `Probe ${probeId.toString()} claimed a full batch of ${DEVICE_POLL_FETCH_LIMIT} network device(s): more devices are due than one fetch can hand out, so this fleet is polling slower than its configured intervals. Raise NETWORK_DEVICE_POLL_FETCH_LIMIT (and the probe's PROBE_NETWORK_DEVICE_POLL_CONCURRENCY to match), or spread the devices across more probes.`,
+          `Probe ${probeId.toString()} claimed a full batch of ${limit} network device(s) and asks for devices only once a minute: more devices are due than one fetch can hand out, so this fleet is polling slower than its configured intervals. Update the probe: one of this release asks again while devices are due, polling up to its PROBE_NETWORK_DEVICE_POLL_CONCURRENCY at once. Or raise NETWORK_DEVICE_POLL_FETCH_LIMIT, or spread the devices across more probes.`,
         );
       }
 
       return Response.sendJsonObjectResponse(req, res, {
         devices: devicePollConfigs,
+        isFullBatch: isFullBatch,
       });
     } catch (err) {
       return next(err);

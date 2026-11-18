@@ -340,7 +340,7 @@ describe("POST /probe/network-device/list", () => {
     expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
       expect.anything(),
       mockResponse,
-      { devices: [] },
+      { devices: [], isFullBatch: false },
     );
   });
 
@@ -361,7 +361,7 @@ describe("POST /probe/network-device/list", () => {
       expect(DEVICE_POLL_FETCH_LIMIT).toBeGreaterThanOrEqual(250);
     });
 
-    test("a full batch warns that the cap, not the interval, is setting the cadence", async () => {
+    test("a full batch to a probe that asks once a minute warns that the cap, not the interval, is setting the cadence", async () => {
       const claimed: Array<ObjectID> = Array.from(
         { length: DEVICE_POLL_FETCH_LIMIT },
         () => {
@@ -376,8 +376,10 @@ describe("POST /probe/network-device/list", () => {
       expect(loggerMock.warn).toHaveBeenCalledTimes(1);
       const warning: string = loggerMock.warn.mock.calls[0]![0] as string;
 
-      // Names the condition and the knob, or it is not actionable.
+      // Names the condition and the way out, or it is not actionable.
       expect(warning).toContain("polling slower than its configured intervals");
+      expect(warning).toContain("asks for devices only once a minute");
+      expect(warning).toContain("Update the probe");
       expect(warning).toContain("NETWORK_DEVICE_POLL_FETCH_LIMIT");
       expect(warning).toContain("PROBE_NETWORK_DEVICE_POLL_CONCURRENCY");
     });
@@ -399,6 +401,159 @@ describe("POST /probe/network-device/list", () => {
       await callListEndpoint(makeRequest({ probeId }));
 
       expect(loggerMock.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A probe of this release asks for as many devices as it has room to
+   * poll, and again while the batch it is handed is full (issue #9499): a
+   * probe asked once a minute and was handed at most 250, so it polled at
+   * most 250 devices a minute however many were due.
+   */
+  describe("a probe that asks again while devices are due (#9499)", () => {
+    function claimed(count: number): Array<ObjectID> {
+      return Array.from({ length: count }, () => {
+        return ObjectID.generate();
+      });
+    }
+
+    function respondedPayload(): JSONObject {
+      expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+      return responseUtil.sendJsonObjectResponse.mock
+        .calls[0]![2] as JSONObject;
+    }
+
+    function claimedWithLimit(): number {
+      const claimArgs: JSONObject = deviceService.claimDevicesForPolling.mock
+        .calls[0]![0] as JSONObject;
+      return claimArgs["limit"] as number;
+    }
+
+    test("is handed no more than the room it asks for", async () => {
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 25 } }),
+      );
+
+      expect(claimedWithLimit()).toBe(25);
+    });
+
+    test("is never handed more than NETWORK_DEVICE_POLL_FETCH_LIMIT, however much it asks for", async () => {
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 5000 } }),
+      );
+
+      expect(claimedWithLimit()).toBe(DEVICE_POLL_FETCH_LIMIT);
+    });
+
+    test.each([
+      ["no limit (a probe from before #9499)", undefined],
+      ["zero", 0],
+      ["a negative number", -3],
+      ["text", "25"],
+      ["not a number", Number.NaN],
+      ["infinity", Number.POSITIVE_INFINITY],
+    ])(
+      "a limit that is %s is handed the whole batch, as before",
+      async (_label: string, limit: unknown) => {
+        await callListEndpoint(
+          makeRequest({
+            probeId,
+            body:
+              limit === undefined
+                ? { ...PING_CAPABLE_BODY }
+                : ({ ...PING_CAPABLE_BODY, limit: limit } as JSONObject),
+          }),
+        );
+
+        expect(claimedWithLimit()).toBe(DEVICE_POLL_FETCH_LIMIT);
+      },
+    );
+
+    test("a fraction is read down to a whole number of devices", async () => {
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 12.9 } }),
+      );
+
+      expect(claimedWithLimit()).toBe(12);
+    });
+
+    test("says the batch was full when the claim filled the limit", async () => {
+      deviceService.claimDevicesForPolling.mockResolvedValue(
+        claimed(25) as never,
+      );
+
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 25 } }),
+      );
+
+      expect(respondedPayload()["isFullBatch"]).toBe(true);
+    });
+
+    test("a claim short of the limit is not full: everything due was handed out", async () => {
+      deviceService.claimDevicesForPolling.mockResolvedValue(
+        claimed(24) as never,
+      );
+
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 25 } }),
+      );
+
+      expect(respondedPayload()["isFullBatch"]).toBe(false);
+    });
+
+    /*
+     * Fullness is the claim's, not the hand-out's: devices claimed and kept
+     * back (here, ping-only devices from a probe that cannot ping them) do
+     * not make a full claim read as the end of what is due.
+     */
+    test("a full claim is full though devices were kept back from the probe", async () => {
+      const ids: Array<ObjectID> = claimed(10);
+      deviceService.claimDevicesForPolling.mockResolvedValue(ids as never);
+      deviceService.findBy.mockResolvedValue(
+        ids.map((id: ObjectID) => {
+          return makeDevice({
+            id,
+            projectId,
+            hostname: "10.0.0.1",
+            snmpCommunityString: undefined,
+          });
+        }) as never,
+      );
+
+      // No probeCapabilities: ping-only devices are withheld.
+      await callListEndpoint(makeRequest({ probeId, body: { limit: 10 } }));
+
+      const payload: JSONObject = respondedPayload();
+      expect(payload["devices"]).toEqual([]);
+      expect(payload["isFullBatch"]).toBe(true);
+    });
+
+    test("a full batch to a probe that asks again is the usual case while it catches up, and warns about nothing", async () => {
+      deviceService.claimDevicesForPolling.mockResolvedValue(
+        claimed(25) as never,
+      );
+
+      await callListEndpoint(
+        makeRequest({ probeId, body: { ...PING_CAPABLE_BODY, limit: 25 } }),
+      );
+
+      expect(respondedPayload()["isFullBatch"]).toBe(true);
+      expect(loggerMock.warn).not.toHaveBeenCalled();
+    });
+
+    test("a probe from before #9499 is still told nothing it would misread: the answer keeps its devices list", async () => {
+      const id: ObjectID = ObjectID.generate();
+      deviceService.claimDevicesForPolling.mockResolvedValue([id] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({ id, projectId, hostname: "10.0.0.1" }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      const payload: JSONObject = respondedPayload();
+      expect(payload["devices"] as Array<JSONObject>).toHaveLength(1);
+      // An older probe reads `devices` only.
+      expect(Object.keys(payload).sort()).toEqual(["devices", "isFullBatch"]);
     });
   });
 
