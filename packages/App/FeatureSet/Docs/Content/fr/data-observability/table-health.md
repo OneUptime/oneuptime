@@ -91,7 +91,7 @@ Une autorisation limitée à `Owned` n'atteint que les tables dont son titulaire
 
 ## Quand une alerte s'ouvre
 
-L'alerte d'une table a une carte **Données** qui dit pourquoi elle s'est le plus probablement produite, classée : une alerte en amont, une exécution en échec, un déploiement d'un service qui y écrit, ses écritures en échec, une colonne qui a changé, la base de données elle-même ou le serveur sur lequel elle tourne. En dessous se trouve ce qui en dépend : les tables en aval dans son lignage, les tableaux de bord, les services et les personnes qui en sont propriétaires.
+L'alerte d'une table a une carte **Données** qui dit pourquoi elle s'est le plus probablement produite, classée : une alerte en amont, une exécution en échec, un déploiement d'un service qui y écrit, ses écritures en échec, une colonne qui a changé, la base de données elle-même ou le serveur sur lequel elle tourne. En dessous se trouve ce qui en dépend : les tables en aval dans son lignage, les tableaux de bord, les services et les personnes qui en sont propriétaires. Comme la carte **Lignage** de l'alerte, elle ne parle que des tables et des pipelines que votre rôle peut lire.
 
 Dites ce que vous en avez conclu :
 

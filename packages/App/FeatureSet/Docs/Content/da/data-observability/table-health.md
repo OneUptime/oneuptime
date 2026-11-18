@@ -91,7 +91,7 @@ En tilladelse begrænset til `Owned` når kun de tabeller, som dens indehaver el
 
 ## Når en advarsel åbnes
 
-En tabels advarsel har et **Data**-kort, der siger, hvorfor det mest sandsynligt skete, rangeret: en advarsel opstrøms, en mislykket kørsel, en udrulning af en tjeneste, der skriver til den, dens mislykkede skrivninger, en kolonne, der er ændret, databasen selv eller den server, den kører på. Under det står, hvad der afhænger af den: tabeller nedstrøms i dens afstamning, dashboards, tjenester og de personer, der ejer dem.
+En tabels advarsel har et **Data**-kort, der siger, hvorfor det mest sandsynligt skete, rangeret: en advarsel opstrøms, en mislykket kørsel, en udrulning af en tjeneste, der skriver til den, dens mislykkede skrivninger, en kolonne, der er ændret, databasen selv eller den server, den kører på. Under det står, hvad der afhænger af den: tabeller nedstrøms i dens afstamning, dashboards, tjenester og de personer, der ejer dem. Ligesom advarslens **Afstamning**-kort fortæller det kun om de tabeller og pipelines, din rolle må læse.
 
 Sig, hvad du udledte af den:
 

@@ -11,6 +11,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import DataAssetLineageService from "../../../Services/DataAssetLineageService";
 import DataDashboardService from "../../../Services/DataDashboardService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import { DataLineageReadable } from "../DataTableLineage";
 
 /*
  * THE DASHBOARDS BUILT ON A TABLE.
@@ -21,6 +22,11 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
  * alert lists the revenue dashboard that reads a model built from it. Each
  * says, where its tool does, how often it is opened and how its last
  * refresh went.
+ *
+ * Down the lineage, only the tables its reader may read are walked (#9526,
+ * #9562), as every lineage view walks them: a table they may not read is
+ * never named as the one a dashboard reads, and a dashboard reached only
+ * through one is not listed. The table itself is one they may read.
  */
 
 export interface TableDashboard {
@@ -61,6 +67,8 @@ export default class DataTableDashboards {
   public static async find(data: {
     projectId: ObjectID;
     dataAssetId: ObjectID;
+    // The tables its reader may read; left out or null, every table (a scope that narrows nothing).
+    readable?: DataLineageReadable | null | undefined;
   }): Promise<Array<TableDashboard>> {
     // Each table down the lineage, with the nearest name it was reached by.
     const via: Map<string, { dataAssetId: string; table: string } | null> =
@@ -92,11 +100,32 @@ export default class DataTableDashboards {
           props: { isRoot: true },
         });
       const next: Array<string> = [];
+      // Of the tables reached, the ones its reader may read: the walk goes on through those alone.
+      const readableIds: Set<string> | null = data.readable
+        ? await data.readable.readableTableIds(
+            Array.from(
+              new Set(
+                edges
+                  .map((edge: DataAssetLineage): string => {
+                    return edge.downstreamDataAssetId?.toString() || "";
+                  })
+                  .filter((id: string): boolean => {
+                    return Boolean(id) && !via.has(id);
+                  }),
+              ),
+            ),
+          )
+        : null;
 
       for (const edge of edges) {
         const id: string = edge.downstreamDataAssetId?.toString() || "";
 
-        if (!id || via.has(id) || via.size >= MAX_DOWNSTREAM_TABLES) {
+        if (
+          !id ||
+          via.has(id) ||
+          via.size >= MAX_DOWNSTREAM_TABLES ||
+          (readableIds && !readableIds.has(id))
+        ) {
           continue;
         }
 

@@ -46,6 +46,14 @@ export const KIND_COUNTS: Readonly<
     one: "{{count}} dashboard",
     other: "{{count}} dashboards",
   },
+  [DataLineageMapNodeKind.Dataset]: {
+    one: "{{count}} dataset",
+    other: "{{count}} datasets",
+  },
+  [DataLineageMapNodeKind.Source]: {
+    one: "{{count}} data source",
+    other: "{{count}} data sources",
+  },
 };
 
 // The kinds a reader can leave off the map, as the switches name them.
@@ -77,6 +85,11 @@ const MOVED_BY: string = translationKey("Moved by {{pipelines}}");
 const SERVICE: string = translationKey("Service");
 const PIPELINE: string = translationKey("Pipeline");
 const DASHBOARD: string = translationKey("Dashboard");
+const DATASET: string = translationKey("Dataset");
+const DATA_SOURCE: string = translationKey("Data source");
+
+// A data source that is no database: a file, or anything on the web (SharePoint, an API, a feed).
+const FILE_SOURCE_TYPES: RegExp = /file|folder/i;
 
 // As a table's lineage diagram draws them.
 const ASSET_KIND_ICONS: Readonly<Record<string, IconProp>> = {
@@ -93,6 +106,16 @@ export function getLineageMapNodeIcon(node: DataLineageMapNode): IconProp {
       return IconProp.Workflow;
     case DataLineageMapNodeKind.Dashboard:
       return IconProp.ChartBar;
+    case DataLineageMapNodeKind.Dataset:
+      return IconProp.Cube;
+    case DataLineageMapNodeKind.Source:
+      if (node.isDatabaseSource) {
+        return IconProp.Database;
+      }
+
+      return FILE_SOURCE_TYPES.test(node.sourceType || "")
+        ? IconProp.DocumentText
+        : IconProp.Globe;
     default:
       return ASSET_KIND_ICONS[node.assetKind || ""] || IconProp.TableCells;
   }
@@ -112,6 +135,14 @@ export function getLineageMapNodeSubtitle(
       );
     case DataLineageMapNodeKind.Dashboard:
       return node.tool || translator.translateText(DASHBOARD) || DASHBOARD;
+    case DataLineageMapNodeKind.Dataset:
+      // Its workspace, as Power BI groups it; or what it is.
+      return node.workspace || translator.translateText(DATASET) || DATASET;
+    case DataLineageMapNodeKind.Source:
+      // What it is: SQL Server, SharePoint, Excel file.
+      return (
+        node.sourceType || translator.translateText(DATA_SOURCE) || DATA_SOURCE
+      );
     default:
       return formatInline(
         [

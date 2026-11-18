@@ -47,6 +47,17 @@ export interface ToolContext {
    */
   pageContext?: AIChatPageContext | undefined;
   /*
+   * The alert a run of OneUptime's own investigates (AIInvestigationEngine,
+   * read as root), whose readers read what it writes: in the alert's feed,
+   * and in the Slack and Microsoft Teams channels it is posted to. A tool
+   * that tells such a run only what nobody in particular may read still
+   * tells it what the alert names itself - Data Observability's tools, the
+   * alert's own table or pipeline, whoever owns it (#9562). Never a
+   * permission: left out of every chat, where the person reads as
+   * themselves.
+   */
+  subjectAlertId?: ObjectID | undefined;
+  /*
    * The chat the tools run in: Ask AI's conversation, or an incident's or
    * alert's AI conversation (ChatAgentRunner). A pull request a chat opens
    * carries the chat's subject (#9186), read from it as OneUptime: the

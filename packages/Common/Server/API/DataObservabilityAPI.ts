@@ -103,7 +103,9 @@ import DataBiRefreshAlerts from "../Utils/DataObservability/Bi/DataBiRefreshAler
 import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
-import DataTableLineageReader from "../Utils/DataObservability/DataTableLineage";
+import DataTableLineageReader, {
+  DataLineageReadable,
+} from "../Utils/DataObservability/DataTableLineage";
 import DataTableLineageAnswerer, {
   DataTableLineageAnswer,
   formatDataTableLineageAnswer,
@@ -436,6 +438,8 @@ export default class DataObservabilityAPI extends BaseAPI<
           explanation: (await DataAlertExplanationReader.read({
             projectId,
             alertId,
+            // Of the tables and pipelines they may read alone, as its Lineage card (#9562).
+            reader: props,
           })) as unknown as JSONObject,
         };
       },
@@ -643,32 +647,37 @@ export default class DataObservabilityAPI extends BaseAPI<
         const answers: Array<JSONObject> = [];
         const scope: DataObservabilityScope =
           await DataObservabilityReadScope.get(projectId, props);
+        const readable: DataLineageReadable | null =
+          DataTableLineageReader.getNamedReadable(scope);
         const tables: Array<DataAsset> = await DataTableAnswerer.findTables(
           projectId,
           reference,
         );
         // Only the tables the person, or key, who asked may read (#6553).
-        const readableIds: Set<string> | null = scope.isWholeProject
-          ? null
-          : await DataObservabilityReadScope.getReadableIds({
-              service: DataAssetService,
-              query: scope.assetQuery,
-              ids: tables
+        const readableIds: Set<string> | null = readable
+          ? await readable.readableTableIds(
+              tables
                 .map((table: DataAsset): string => {
                   return table.id?.toString() || "";
                 })
                 .filter(Boolean),
-            });
+            )
+          : null;
 
         for (const table of tables.filter((table: DataAsset): boolean => {
           return !readableIds || readableIds.has(table.id?.toString() || "");
         })) {
-          // Its alerts as the person who asked may see them (DataTableAnswer).
+          /*
+           * Its alerts as the person who asked may see them, and its
+           * writers and dashboards as they may read pipelines and tables
+           * (DataTableAnswer, #9562).
+           */
           const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
             projectId,
             table.id!,
             now,
             props,
+            readable,
           );
 
           if (answer) {
@@ -762,6 +771,10 @@ export default class DataObservabilityAPI extends BaseAPI<
           dashboards: await DataTableDashboards.find({
             projectId,
             dataAssetId: new ObjectID(dataAssetId),
+            // Reached only through the tables they may read (#9562).
+            readable: DataTableLineageReader.getNamedReadable(
+              await DataObservabilityReadScope.get(projectId, props),
+            ),
           }),
         } as unknown as JSONObject;
       },

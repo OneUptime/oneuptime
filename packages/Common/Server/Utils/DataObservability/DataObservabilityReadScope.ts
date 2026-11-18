@@ -3,10 +3,13 @@ import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OwnedBy, { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
+import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import ObjectID from "../../../Types/ObjectID";
 import DataAssetService from "../../Services/DataAssetService";
 import DataCheckService from "../../Services/DataCheckService";
 import DatabaseService from "../../Services/DatabaseService";
+import OwnedByFilter from "../../Types/Database/OwnedByFilter";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import { CheckReadPermissionType } from "../../Types/Database/Permissions/ReadPermission";
 import Query from "../../Types/Database/Query";
@@ -37,7 +40,15 @@ import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
  * to a narrowed caller for the databases holding a table they may read.
  * Data products and reconciliations have no owners or labels, so every
  * reader of them reads all of them, here as on their lists.
+ *
+ * What OneUptime writes where many people read it - an investigation's
+ * report, in its alert's feed and channels - reads as nobody in
+ * particular (nobodyInParticular, #9562): only the tables and pipelines
+ * no owner or label sets apart.
  */
+
+// The name of the table every table's labels are kept in.
+const TABLE_LABELS_JOIN_TABLE: string = "DataAssetLabel";
 
 export interface DataObservabilityScope {
   // Whether the caller's grants narrow none of these reads: they read the whole project.
@@ -103,6 +114,64 @@ export default class DataObservabilityReadScope {
       assetQuery: { projectId },
       checkQuery: { projectId },
       pipelineQuery: { projectId },
+    };
+  }
+
+  /*
+   * WHAT NOBODY IN PARTICULAR MAY READ (#9562): the tables and pipelines
+   * nobody has set apart.
+   *
+   * Owners and labels are how a project sets a table or pipeline apart: a
+   * role limited to what its members own, or to some labels, reads only
+   * what is set apart for it, and a team blocked from a label never reads
+   * what carries it. A report OneUptime writes for everyone who may see an
+   * alert - an investigation's, in the alert's feed and in the Slack and
+   * Microsoft Teams channels it is posted to - is read by all of them at
+   * once, so it reads none of those:
+   *
+   *   - tables with no owner, person or team, and no label;
+   *   - pipelines with no owner (a pipeline has no labels);
+   *   - the checks of those tables.
+   *
+   * The alert names its own table or pipeline, which all its readers read
+   * on it already: a reader of its lineage adds those (withNamedReadable).
+   * A project that sets no table or pipeline apart reads every one of
+   * them, as before.
+   */
+  public static nobodyInParticular(
+    projectId: ObjectID,
+  ): DataObservabilityScope {
+    const unownedPipeline: FindWhereProperty<any> =
+      OwnedByFilter.getIdCondition(
+        DataPipeline,
+        new OwnedBy({ match: OwnedByMatch.NoOwner }),
+      ) as FindWhereProperty<any>;
+    const unmarkedTable: FindWhereProperty<any> = QueryHelper.allOfConditions([
+      {
+        condition: OwnedByFilter.getIdCondition(
+          DataAsset,
+          new OwnedBy({ match: OwnedByMatch.NoOwner }),
+        ),
+      },
+      {
+        condition: QueryHelper.noEntitiesInManyToMany({
+          joinTableName: TABLE_LABELS_JOIN_TABLE,
+          ownerColumnName: "dataAssetId",
+        }),
+      },
+    ]);
+
+    return {
+      isWholeProject: false,
+      assetQuery: { projectId, _id: unmarkedTable },
+      checkQuery: {
+        projectId,
+        dataAssetId: QueryHelper.inRecordsWhere({
+          tableName: new DataAsset().tableName || "DataAsset",
+          condition: unmarkedTable,
+        }),
+      },
+      pipelineQuery: { projectId, _id: unownedPipeline },
     };
   }
 

@@ -18,7 +18,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import DataBiTool from "../../Types/DataObservability/DataBiTool";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONArray } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -332,6 +332,20 @@ export default class DataBiConnection extends BaseModel {
     nullable: true,
   })
   public matchedTableCount?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Table Matching",
+    description:
+      "Why the last read's dashboards are, or are not, tied to watched tables: the tables they read and how many matched, the data sources behind them and whether OneUptime watches each, and what keeps the rest from matching, such as a Power BI tenant setting that is off.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public lineageSummary?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
