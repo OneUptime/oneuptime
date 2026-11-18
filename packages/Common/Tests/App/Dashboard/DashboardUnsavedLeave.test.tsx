@@ -913,6 +913,8 @@ describe("the toolbar says when the board has unsaved changes (issue #7403)", ()
     expect(isEditing()).toBe(false);
     expect(queryEditState()).toBeNull();
     expect(screen.queryByText("Unsaved changes")).toBeNull();
+    // Said once, in the corner, as edit mode ends.
+    expect(toastTitles()).toEqual(["Changes saved"]);
 
     await enterEditMode();
 
@@ -957,5 +959,7 @@ describe("the toolbar says when the board has unsaved changes (issue #7403)", ()
 
     expect(isEditing()).toBe(true);
     expect(queryEditState()).toHaveTextContent("Unsaved changes");
+    // Nothing was saved, and nothing says it was.
+    expect(toastTitles()).toEqual([]);
   });
 });

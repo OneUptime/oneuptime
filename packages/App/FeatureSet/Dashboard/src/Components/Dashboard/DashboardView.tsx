@@ -82,6 +82,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import Toast, { CHANGES_SAVED } from "Common/UI/Utils/Toast";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
@@ -132,6 +135,7 @@ type SaveDashboardViewConfigFunction = (
 const DashboardViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(
     DashboardMode.View,
   );
@@ -795,10 +799,21 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         hasUnsavedChanges={hasUnsavedChanges}
         isSaving={isSaving}
         onSaveClick={() => {
-          saveChanges().catch((err: Error) => {
-            // The board says why above itself, in edit mode, its work kept.
-            setSaveError(API.getFriendlyErrorMessage(err));
-          });
+          saveChanges()
+            .then(() => {
+              /*
+               * Said in the corner as edit mode ends, as a save says it
+               * worked anywhere (#9120); the toolbar said Unsaved changes
+               * until now (#7403). The leave question says it itself.
+               */
+              Toast.success(
+                translator.translateText(CHANGES_SAVED) || CHANGES_SAVED,
+              );
+            })
+            .catch((err: Error) => {
+              // The board says why above itself, in edit mode, its work kept.
+              setSaveError(API.getFriendlyErrorMessage(err));
+            });
         }}
         startAndEndDate={startAndEndDate}
         onStartAndEndDateChange={(

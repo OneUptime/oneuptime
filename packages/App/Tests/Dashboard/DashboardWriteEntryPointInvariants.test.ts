@@ -192,8 +192,16 @@ describe("every entry point into a dashboard write is permission-gated", () => {
     expect(source).toContain(
       "setSaveError(API.getFriendlyErrorMessage(err as Error)); setIsSaving(false); throw err;",
     );
-    // The toolbar's Save Changes and the leave question's both run that one save.
-    expect(source).toContain("saveChanges().catch((err: Error) => {");
+    /*
+     * The toolbar's Save Changes and the leave question's both run that one
+     * save; the toolbar's says it worked, and shows why it did not.
+     */
+    expect(source).toContain(
+      "onSaveClick={() => { saveChanges() .then(() => {",
+    );
+    expect(source).toContain(
+      "Toast.success( translator.translateText(CHANGES_SAVED) || CHANGES_SAVED, ); }) .catch((err: Error) => {",
+    );
     expect(source).toContain("onSaveChanges={saveChanges}");
     expect(source).not.toContain(
       "saveDashboardViewConfig().catch((err: Error) => { setError(",
