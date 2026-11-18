@@ -1590,7 +1590,7 @@ describe("an investigation's context section", () => {
       // It names no table, and counts none: it says the same of every alert.
       expect(DATA_ALERT_READ_SCOPE_LINE).not.toMatch(/\d/);
       expect(DATA_ALERT_READ_SCOPE_LINE).toBe(
-        "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart. Any other is left out, never named or counted.",
+        "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart from any of them. Any other is left out, never named or counted.",
       );
     });
 

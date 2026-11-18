@@ -1057,13 +1057,19 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The rule takes the place of the rule named, and the server steps the
+   * levels between aside, in one transaction (ModelAPI.moveInList). Writing
+   * the rule's `order` would place it alone, beside that rule rather than
+   * past it.
+   */
   const moveRule: (
     rule: OnCallDutyEscalationRule,
-    targetOrder: number,
+    placeOfId: ObjectID,
     levelOrderAfter: Array<string>,
   ) => Promise<void> = async (
     rule: OnCallDutyEscalationRule,
-    targetOrder: number,
+    placeOfId: ObjectID,
     levelOrderAfter: Array<string>,
   ): Promise<void> => {
     if (!rule.id) {
@@ -1072,12 +1078,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
     try {
       setReorderingRuleId(rule.id.toString());
-      await ModelAPI.updateById({
+      await ModelAPI.moveInList({
         modelType: OnCallDutyEscalationRule,
         id: rule.id,
-        data: {
-          order: targetOrder,
-        } as JSONObject,
+        placeOfId: placeOfId,
       });
       await renameRulesNamedAfterTheirLevel(levelOrderAfter);
       await loadData();
@@ -1536,7 +1540,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
      *
      * The rule takes its neighbour's place and the neighbour takes its own
      * (the server shifts the rules in between), so the levels after the move
-     * are the two swapped.
+     * are the two swapped. The neighbour is named by id: a policy numbered
+     * through the API can have two rules at one number, and they must still
+     * swap.
      */
     const moveTo: MoveToFunction = (
       neighbourIndex: number,
@@ -1545,14 +1551,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       const neighbour: OnCallDutyEscalationRule | undefined =
         rules[neighbourIndex];
 
-      if (!neighbour || neighbour.order === undefined) {
+      if (!neighbour || !neighbour.id) {
         onCompleteAction();
         return;
       }
 
       moveRule(
         rule,
-        neighbour.order,
+        neighbour.id,
         getEscalationRuleOrderAfterSwap({
           ids: getRuleIds(),
           index: index,

@@ -16,7 +16,6 @@ import OnCallPageTiming, {
 } from "../Utils/OnCall/OnCallPageTiming";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
-import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
@@ -34,6 +33,7 @@ import UserNotificationRuleService from "./UserNotificationRuleService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -319,17 +319,10 @@ export interface RuleExecutionOptions {
 }
 
 /*
- * A rule moved to another place by a non-root update: where it was, where it
- * goes, and its policy. Read before the update (onBeforeUpdate) and acted on
- * after it (onUpdateSuccess), only if the update wrote that rule.
+ * The columns that name the list a rule is numbered in: its on-call policy,
+ * in its project.
  */
-interface RuleMove {
-  ruleId: ObjectID;
-  previousOrder: number;
-  newOrder: number;
-  onCallDutyPolicyId: ObjectID;
-  projectId: ObjectID;
-}
+const ORDER_LIST_COLUMNS: Array<string> = ["onCallDutyPolicyId", "projectId"];
 
 // The two names of the policy a rule belongs to, ID column first.
 const ON_CALL_DUTY_POLICY_KEYS: Array<string> = [
@@ -362,13 +355,15 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   /*
    * A POLICY'S FIRST ESCALATION RULE (#9369): the level a pass of it starts
    * with - the lowest place, which need not be 1. Rules written through
-   * the API or by Terraform keep the place they are given, so a policy's
-   * only rule can be at 2 (ContiguousOrder moves nothing to fill a place
-   * no rule held), and a run that looked for order 1 found none and ended
-   * in "no escalation rules". A new run pages this rule, a page again with
-   * no place of its own starts over at it, and the test page, Readiness and
-   * When this goes down read who it reaches - by this rule, or, for levels
-   * already in hand, getOnCallPolicyFirstLevel, which picks the same one.
+   * the API or by Terraform keep the place they are given, and a deleted
+   * rule leaves its gap (ContiguousOrder moves no other rule), so a
+   * policy's only rule can be at 2, and a run that looked for order 1
+   * found none and ended in "no escalation rules". Of two rules at the
+   * lowest place, the one read first (by id). A new run pages this rule, a
+   * page again with no place of its own starts over at it, and the test
+   * page, Readiness and When this goes down read who it reaches - by this
+   * rule, or, for levels already in hand, getOnCallPolicyFirstLevel, which
+   * picks the same one.
    * Null when the policy has no escalation rules.
    */
   @CaptureSpan()
@@ -2418,23 +2413,6 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       throw new BadDataException("The new escalation rule has no ID.");
     }
 
-    /*
-     * The rules at the new rule's place and after it move one place down -
-     * now that it exists, so a create that is refused or fails leaves the
-     * policy's order as it was.
-     */
-    if (createdItem.onCallDutyPolicyId && createdItem.order) {
-      await ContiguousOrder.afterCreate({
-        service: this,
-        list: {
-          onCallDutyPolicyId: createdItem.onCallDutyPolicyId,
-          projectId: createdItem.projectId,
-        },
-        createdItemId: createdItem.id,
-        order: createdItem.order,
-      });
-    }
-
     // add people in escalation rule.
 
     /*
@@ -2669,19 +2647,24 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       }
     }
 
+    /*
+     * A rule created at a number keeps it, and moves no other rule
+     * (ContiguousOrder): one created without a number is the policy's last
+     * level.
+     */
     if (!createBy.data.order) {
-      const query: Query<Model> = {
+      const projectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
+
+      const list: Query<Model> = {
         onCallDutyPolicyId: onCallDutyPolicyId,
+        ...(projectId ? { projectId: projectId } : {}),
       };
 
-      const count: PositiveNumber = await this.countBy({
-        query: query,
-        props: {
-          isRoot: true,
-        },
+      createBy.data.order = await ContiguousOrder.getAppendOrder({
+        service: this,
+        list: list,
       });
-
-      createBy.data.order = count.toNumber() + 1;
     }
 
     /*
@@ -2830,9 +2813,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     if (!deleteBy.props.isRoot) {
       /*
-       * The one rule the delete removes, and the delete held to it:
-       * its users, teams and schedules go first, and the rules after
-       * it move up a place once it is gone.
+       * The one rule the delete removes, and the delete held to it: its
+       * users, teams and schedules go first. The rules after it keep their
+       * numbers (ContiguousOrder): the next level is the first after it,
+       * gap or none (OnCallRunLevel).
        */
       const found: { row: Model | null; deletesMore: boolean } =
         await this.findOneRowAndHoldDeleteToIt(deleteBy, {
@@ -2856,10 +2840,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       /*
        * The runs still paging on this level keep paging once it is gone
        * (issue #9036): the delete clears the rule from them (ON DELETE SET
-       * NULL), and each goes on from the place it recorded - to the level
-       * that moves up into this one's - once the wait it started is over.
-       * That place is written again from the rule as it is now, in case a
-       * level before it changed while they paged. Never in the way of the
+       * NULL), and each goes on from the place it recorded - to the first
+       * level at that place or after it - once the wait it started is over.
+       * That place is written again from the rule as it is now, in case it
+       * was given another number while they paged. Never in the way of the
        * delete: a run whose place could not be written goes on from the
        * place it recorded.
        */
@@ -2914,14 +2898,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
   }
 
-  /*
-   * The rules after a deleted one close its gap - only when the rule was
-   * actually deleted, within its own policy and project.
-   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
@@ -2932,27 +2912,6 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       deleteBy.props.tenantId,
     ]);
 
-    if (
-      !deleteBy.props.isRoot &&
-      resource &&
-      resource.id &&
-      resource.order &&
-      resource.onCallDutyPolicyId &&
-      resource.projectId &&
-      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
-        return id.toString() === resource.id!.toString();
-      })
-    ) {
-      await ContiguousOrder.afterDelete({
-        service: this,
-        list: {
-          onCallDutyPolicyId: resource.onCallDutyPolicyId,
-          projectId: resource.projectId,
-        },
-        order: resource.order,
-      });
-    }
-
     return {
       deleteBy: deleteBy,
       carryForward: null,
@@ -2960,90 +2919,51 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   }
 
   /*
-   * A rule moved to another place: where it is now is read here, and the
-   * rules it passes step aside once the update has moved it
-   * (onUpdateSuccess). Nothing is written before the update.
+   * A rule given another number takes it, and no other rule moves
+   * (ContiguousOrder): Terraform numbers a policy's rules one write each,
+   * all at once. Moving a rule past others is moveInList.
    */
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    await super.onBeforeUpdate(updateBy);
-
-    let move: RuleMove | null = null;
-
-    // The one row an update names by its id is the one it moves.
-    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
-
-    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
-      const resource: Model | null = await this.findOneBy({
-        query: {
-          _id: movedId,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          onCallDutyPolicyId: true,
-          projectId: true,
-          _id: true,
-        },
-      });
-
-      if (
-        resource &&
-        resource.id &&
-        resource.order &&
-        resource.onCallDutyPolicyId &&
-        resource.projectId
-      ) {
-        move = {
-          ruleId: resource.id,
-          previousOrder: resource.order,
-          newOrder: updateBy.data.order as number,
-          onCallDutyPolicyId: resource.onCallDutyPolicyId,
-          projectId: resource.projectId,
-        };
-      }
-    }
-
-    return { updateBy, carryForward: move };
-  }
-
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: Array<ObjectID>,
+    _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    const move: RuleMove | null = (onUpdate.carryForward as RuleMove) || null;
-
     // Its name or place, as the header shows them.
     await OnDutyPoliciesCache.forgetProjects([
-      move?.projectId,
       onUpdate.updateBy.props.tenantId,
     ]);
 
-    if (
-      move &&
-      move.ruleId &&
-      updatedItemIds.some((id: ObjectID): boolean => {
-        return id.toString() === move.ruleId.toString();
-      })
-    ) {
-      await ContiguousOrder.afterMove({
+    return onUpdate;
+  }
+
+  /*
+   * Moves a rule to the place another rule of its policy holds (POST
+   * /on-call-duty-policy-escalation-rule/:id/move,
+   * Types/Database/MoveInList): the rules between them step one place
+   * towards where it was, in one transaction holding the policy's rules.
+   * What the Dashboard's Move up and Move down send; a write of `order`
+   * places the rule alone. The levels the header shows change with it.
+   */
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const moved: { changedRows: Array<{ id: string; order: number }> } =
+      await ContiguousOrder.move({
         service: this,
-        list: {
-          onCallDutyPolicyId: move.onCallDutyPolicyId,
-          projectId: move.projectId,
-        },
-        movedItemId: move.ruleId,
-        previousOrder: move.previousOrder,
-        newOrder: move.newOrder,
+        rowId: data.id,
+        placeOfId: data.placeOfId,
+        listColumns: ORDER_LIST_COLUMNS,
+        props: data.props,
       });
+
+    if (moved.changedRows.length > 0) {
+      await OnDutyPoliciesCache.forgetProjects([data.props.tenantId]);
     }
 
-    return onUpdate;
+    return { changedRows: moved.changedRows };
   }
 }
 export default new Service();

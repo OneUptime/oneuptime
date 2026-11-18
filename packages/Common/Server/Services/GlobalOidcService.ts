@@ -19,6 +19,7 @@ import {
   loadTrustOnce,
 } from "../Utils/GlobalSsoAuthorization";
 import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
+import IdentityProviderSignOutCheck from "../Utils/IdentityProviderSignOutCheck";
 import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
@@ -113,6 +114,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    /*
+     * First, before any lock is taken: turning "Sign out of the identity
+     * provider too" on asks the provider's discovery document whether it
+     * can (Utils/IdentityProviderSignOutCheck), and is refused if not.
+     */
+    await IdentityProviderSignOutCheck.beforeUpdate<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
+
     await GlobalSsoProviderChanges.beforeProviderUpdate<Model>({
       providerType: SsoProviderType.GlobalOIDC,
       service: this,
@@ -284,6 +295,18 @@ export class Service extends DatabaseService<Model> {
 
     clearGlobalSsoAuthorizationCaches();
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: a provider created with "Sign
+   * out of the identity provider too" on is asked whether it can
+   * (Utils/IdentityProviderSignOutCheck), and refused if not.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await IdentityProviderSignOutCheck.beforeCreate(onCreate.createBy.data);
   }
 
   @CaptureSpan()

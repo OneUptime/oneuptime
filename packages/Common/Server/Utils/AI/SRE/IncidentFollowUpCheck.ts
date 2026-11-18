@@ -27,6 +27,9 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 import LinkedInfrastructureContext, {
   LinkedInfrastructureResource,
   describeActivityResource,
@@ -69,6 +72,11 @@ import LinkedInfrastructureContext, {
  *     cap. The monitor cooldown does not apply: it is the same incident, not
  *     a repeat one.
  *   - a private alert never triggers one: its title would reach the report.
+ *     Nor does an alert set apart by an owner or a label from somebody who
+ *     may see the incident, where some role reads alerts only by owner or
+ *     label (#9576): the check names its alert to every reader of the
+ *     incident, so it is checked again only for one they all may read
+ *     (isAlertReadByIncidentReaders).
  *
  * An incident an investigation rule made wait (issue #5074) is investigated
  * when the wait ends, with every alert that opened since it was declared
@@ -299,12 +307,19 @@ export default class IncidentFollowUpCheck {
         return null;
       }
 
+      // Everyone who may see the incident reads the check: its alert is one they all may read.
+      const readAudience: ReadAudience = await ReadAudienceReader.forSubject(
+        { projectId: data.projectId, incidentId: data.incidentId },
+        { withTelemetry: false },
+      );
+
       const alert: Alert | null = await IncidentFollowUpCheck.findFirstNewAlert(
         {
           projectId: data.projectId,
           resources,
           after: contextReadAt,
           until: windowEnd,
+          readAudience,
         },
       );
 
@@ -325,6 +340,7 @@ export default class IncidentFollowUpCheck {
         alertId: alert.id,
         alertOpenedAt: alert.createdAt,
         laneReason,
+        readAudience,
       });
     } catch (error) {
       logger.error(
@@ -353,6 +369,8 @@ export default class IncidentFollowUpCheck {
      * provider of the investigation before it may still answer.
      */
     laneReason?: InvestigationNotStartedCode | null | undefined;
+    // The incident's readers, when the caller worked them out already.
+    readAudience?: ReadAudience | undefined;
   }): Promise<ObjectID | null> {
     const incident: Incident | null = await IncidentService.findOneBy({
       query: { _id: data.incidentId.toString(), projectId: data.projectId },
@@ -411,6 +429,17 @@ export default class IncidentFollowUpCheck {
       return null;
     }
 
+    if (
+      !(await IncidentFollowUpCheck.isAlertReadByIncidentReaders({
+        projectId: data.projectId,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        readAudience: data.readAudience,
+      }))
+    ) {
+      return null;
+    }
+
     const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId: data.projectId,
       subjectIncidentId: data.incidentId,
@@ -431,6 +460,35 @@ export default class IncidentFollowUpCheck {
     }
 
     return runId;
+  }
+
+  /*
+   * Whether everyone who may see the incident may read the alert (#9576):
+   * the check names it on the incident's feed and channels, so an alert set
+   * apart from one of them by an owner or a label - where some role reads
+   * alerts only by owner or label - checks nothing again. A private alert
+   * never is one they may read.
+   */
+  public static async isAlertReadByIncidentReaders(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertId: ObjectID;
+    readAudience?: ReadAudience | undefined;
+  }): Promise<boolean> {
+    const readAudience: ReadAudience =
+      data.readAudience ||
+      (await ReadAudienceReader.forSubject(
+        { projectId: data.projectId, incidentId: data.incidentId },
+        { withTelemetry: false },
+      ));
+
+    return (
+      await ReadAudienceReader.readReadableIds({
+        service: AlertService,
+        ids: [data.alertId],
+        audience: readAudience,
+      })
+    ).has(data.alertId.toString().toLowerCase());
   }
 
   /*
@@ -464,7 +522,8 @@ export default class IncidentFollowUpCheck {
   /*
    * The follow-up's starting context: the alert, the incident's resources
    * it is on, and when the previous analysis finished. Null when the alert
-   * cannot be read (it was deleted) or is private.
+   * cannot be read (it was deleted), is private, or is set apart from
+   * somebody who may see the incident (`readAudience`, #9576).
    */
   @CaptureSpan()
   public static async readContext(data: {
@@ -472,6 +531,8 @@ export default class IncidentFollowUpCheck {
     incidentId: ObjectID;
     alertId: ObjectID;
     aiRunId?: ObjectID | undefined;
+    // Everyone who may see the incident: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<FollowUpCheckContext | null> {
     const [incident, alert]: [Incident | null, Alert | null] =
       await Promise.all([
@@ -495,7 +556,7 @@ export default class IncidentFollowUpCheck {
             rootCause: true,
             alertSeverity: { name: true },
           },
-          props: { isRoot: true },
+          props: ReadAudiencePermission.getReadProps(data.readAudience),
         }),
       ]);
 
@@ -974,13 +1035,15 @@ export default class IncidentFollowUpCheck {
 
   /*
    * The first alert that opened on `resources` after `after`, up to
-   * `until`, that is not private - the one the follow-up is about.
+   * `until`, that is not private, nor set apart from the incident's readers
+   * (`readAudience`) - the one the follow-up is about.
    */
   private static async findFirstNewAlert(data: {
     projectId: ObjectID;
     resources: Array<LinkedInfrastructureResource>;
     after: Date;
     until: Date;
+    readAudience: ReadAudience;
   }): Promise<Alert | null> {
     const alertModel: Alert = new Alert();
     let first: Alert | null = null;
@@ -1005,7 +1068,7 @@ export default class IncidentFollowUpCheck {
         // A few: the first may be private.
         limit: MAX_INCIDENTS_PER_ALERT,
         skip: 0,
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
 
       for (const alert of alerts) {

@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "De uitnodigingsmail opnieuw naar {{email}} verzenden?",
   "Send their invitation email again?": "De uitnodigingsmail opnieuw verzenden?",
   "Invitation sent to {{email}}": "Uitnodiging verzonden naar {{email}}",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden.",
+  "Sign Out of the Identity Provider Too": "Ook afmelden bij de identiteitsprovider",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "Afmelden bij OneUptime meldt mensen ook af bij deze provider en bij elke andere app die hem gebruikt. Zet dit aan voor gedeelde computers.",
+  "Sign-out Redirect URI:": "Omleidings-URI na afmelden:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "Registreer de omleidings-URI bij uw OIDC-identiteitsprovider, en ook de omleidings-URI na afmelden wanneer 'Ook afmelden bij de identiteitsprovider' aanstaat."
 }

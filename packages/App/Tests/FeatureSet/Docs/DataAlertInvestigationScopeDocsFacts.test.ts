@@ -7,10 +7,11 @@ import { readRepoFile } from "./InventoryAndApiDocsSupport";
  * and a table alert's Data card, read (#9562), in every language:
  *
  *  - the investigation's report is read by everyone who may see the alert,
- *    so it reads only the tables and pipelines nobody set apart with
- *    Owners or Labels, beside the alert's own, and never names or counts
- *    another (DataAlertContext, DataObservabilityReadScope
- *    .nobodyInParticular, and the data tools it calls);
+ *    so it reads only what all of them may read - where a role reads
+ *    tables or pipelines only by Owners or Labels, none those set apart -
+ *    beside the alert's own, and never names or counts another
+ *    (DataAlertContext, DataObservabilityReadScope.forAudience, and the
+ *    data tools it calls, #9576);
  *  - the Data card tells only of what the reader's role lets them read, as
  *    the alert's Lineage card does (DataAlertExplanation).
  *
@@ -23,7 +24,7 @@ const TABLE_HEALTH_PAGE: string = "data-observability/table-health";
 const AI_SRE_LINK: string = "(/docs/ai/ai-sre)";
 
 const INVESTIGATION_SCOPE: string =
-  "Everyone who may see the alert reads its report, so it reads only the tables and pipelines nobody has set apart with **Owners** or **Labels**, and the alert's own table or pipeline. It never names or counts any other, in what it starts from or in what it asks along the way.";
+  "Everyone who may see the alert reads its report, so it reads only what all of them may read: where a role reads tables or pipelines only by **Owners** or **Labels**, none that those set apart, beside the alert's own table or pipeline. It never names or counts any other, in what it starts from or in what it asks along the way.";
 const DATA_CARD_SCOPE: string =
   "Like the alert's **Lineage** card, it tells only of the tables and pipelines your role lets you read.";
 
@@ -88,7 +89,11 @@ describe("Data Observability docs: what an investigation and a Data card read (#
     );
   });
 
-  it("the investigation's scope is OneUptime's: the context and the tools read as nobody in particular", () => {
+  /*
+   * #9576: what all of them may read - nobody in particular, made exact
+   * where no role reads tables or pipelines only by owner or label.
+   */
+  it("the investigation's scope is its readers': the context and the tools read for them", () => {
     const context: string = readRepoFile(
       "Common/Server/Utils/DataObservability/DataAlertContext.ts",
     );
@@ -96,8 +101,8 @@ describe("Data Observability docs: what an investigation and a Data card read (#
       "Common/Server/Utils/AI/Toolbox/DataObservabilityTools.ts",
     );
 
-    expect(context).toContain("DataObservabilityReadScope.nobodyInParticular");
-    expect(tools).toContain("DataObservabilityReadScope.nobodyInParticular");
+    expect(context).toContain("DataObservabilityReadScope.forAudience");
+    expect(tools).toContain("DataObservabilityReadScope.forRootRun");
   });
 
   describe.each(DOCS_LANGUAGES)("%s", (lang: string) => {

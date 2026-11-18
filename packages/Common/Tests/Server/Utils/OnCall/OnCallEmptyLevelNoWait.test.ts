@@ -743,6 +743,49 @@ describe("however the run was started", () => {
     expect(world.sentAt(START)).toEqual(["Bob Smith @ 0"]);
     expect(world.run.onCallPolicyExecutionRepeatCount).toBe(2);
   });
+
+  /*
+   * A policy's first level need not be at place 1: a deleted level leaves
+   * its gap (issue #9573). "Later than the first level" was "later than
+   * place 1", so a page again that started at the first level, at place 3,
+   * was taken as one that had not been through the levels before it - and
+   * a pass that reached nobody went round again, paging nobody again.
+   */
+  test("a page again that starts at the first level, at a place after 1, is not a later level: its empty pass does not go round", async () => {
+    world.repeatsAllowed = 1;
+    world.members = new Set<string>([BOB.toString()]);
+    const first: OnCallDutyPolicyEscalationRule = world.addLevel({
+      order: 3,
+    });
+    const second: OnCallDutyPolicyEscalationRule = world.addLevel({
+      order: 4,
+    });
+
+    await world.startPageAgain({ startAtRule: first, acknowledgedBy: ANA });
+
+    expect(world.pagedNames()).toEqual([]);
+    expect(world.run.onCallPolicyExecutionRepeatCount).toBe(1);
+    // One pass: each level said it paged nobody once.
+    expect(
+      world.linesAbout(second).map((line: { message: string }) => {
+        return line.message;
+      }),
+    ).toEqual([ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE]);
+  });
+
+  test("a page again that starts at a later, empty level still goes round when the levels have gaps", async () => {
+    world.repeatsAllowed = 1;
+    world.members = new Set<string>([BOB.toString()]);
+    world.addLevel({ order: 3, users: [BOB] });
+    const later: OnCallDutyPolicyEscalationRule = world.addLevel({
+      order: 7,
+    });
+
+    await world.startPageAgain({ startAtRule: later, acknowledgedBy: ANA });
+
+    expect(world.sentAt(START)).toEqual(["Bob Smith @ 0"]);
+    expect(world.run.onCallPolicyExecutionRepeatCount).toBe(2);
+  });
 });
 
 describe("two moves landing together", () => {

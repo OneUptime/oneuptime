@@ -443,6 +443,23 @@ const DataObservabilityOverviewPage: FunctionComponent<
                         <span>{store.kind}</span>
                         <StoreAlertStatus store={store} />
                       </span>
+                      {/*
+                       * Why the collection failed, in the database's own
+                       * words, as the store's page says it: "Collection
+                       * failed" alone sent the reader to open each store
+                       * to find out (#9537).
+                       */}
+                      {store.status === "Failed" && store.message ? (
+                        <p
+                          data-testid="data-observability-store-failure"
+                          title={store.message}
+                          className="mt-0.5 line-clamp-2 text-xs text-red-700 [overflow-wrap:anywhere]"
+                        >
+                          <bdi>{store.message}</bdi>
+                        </p>
+                      ) : (
+                        <></>
+                      )}
                     </div>
                     <span
                       className={`text-sm [@container(min-width:24rem)]:flex-none ${

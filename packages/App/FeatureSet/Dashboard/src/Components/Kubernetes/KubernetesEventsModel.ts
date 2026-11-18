@@ -67,6 +67,16 @@ export type KubernetesEventsScope =
       workloadKind: KubernetesWorkloadKind;
       name: string;
       namespace?: string | undefined;
+    }
+  /*
+   * The Events about several objects of one kind, read at once: the pods a
+   * failed count lists, each with what Kubernetes reported about it lately.
+   * Names repeat across namespaces; a reader keeps each row's namespace.
+   */
+  | {
+      kind: "objects";
+      objectKind: string;
+      objectNames: Array<string>;
     };
 
 // Which types a view shows.
@@ -531,6 +541,11 @@ export function buildKubernetesEventsAttributes(data: {
     if (scope.namespace) {
       attributes[KubernetesEventAttribute.Namespace] = scope.namespace;
     }
+  } else if (scope.kind === "objects") {
+    attributes[KubernetesEventAttribute.ObjectKind] = scope.objectKind;
+    attributes[KubernetesEventAttribute.ObjectName] = new Includes(
+      scope.objectNames,
+    );
   }
 
   // A filter on what the scope already fixes is no filter.
@@ -557,6 +572,14 @@ export function keepRowsOfScope(
   rows: Array<KubernetesEventRow>,
   scope: KubernetesEventsScope,
 ): Array<KubernetesEventRow> {
+  if (scope.kind === "objects") {
+    // A record stored before ingest stamped its object matched no filter.
+    const names: Set<string> = new Set<string>(scope.objectNames);
+    return rows.filter((row: KubernetesEventRow): boolean => {
+      return row.objectKind === scope.objectKind && names.has(row.objectName);
+    });
+  }
+
   if (scope.kind !== "workload") {
     return rows;
   }

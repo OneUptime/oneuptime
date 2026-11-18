@@ -61,6 +61,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * ---------------------------------------------------------------------------
@@ -245,6 +246,7 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  treatEverySessionAsLive();
   // A session that says master admin is one whose person still is one.
   getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   getJestSpyOn(GlobalConfigService, "getRequireSsoForLogin").mockResolvedValue(

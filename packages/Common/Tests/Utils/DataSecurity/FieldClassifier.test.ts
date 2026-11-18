@@ -546,3 +546,120 @@ describe("the shapes a field is read by", () => {
     ).toBeUndefined();
   });
 });
+
+/*
+ * Which values held each type (issue #9549): the telemetry scan keeps the
+ * records those values came from with the finding, so its records are read
+ * again exactly. Asked for, never given otherwise.
+ */
+describe("the values that held each type", () => {
+  const EMAIL: string = "jane.doe@acme-corp.com";
+
+  test("are not named unless asked for", () => {
+    const results: Array<FieldClassification> = classifyField("user.email", [
+      EMAIL,
+      "anonymous",
+    ]);
+
+    expect(resultOf(results, "email-address")).toBeDefined();
+    expect(
+      Object.keys(resultOf(results, "email-address")!).includes(
+        "matchedValueIndexes",
+      ),
+    ).toBe(false);
+  });
+
+  test("are named by their place among the values given, empty ones counted, the first first", () => {
+    const results: Array<FieldClassification> = classifyField(
+      "body",
+      [
+        "",
+        `Signed up ${EMAIL}`,
+        null,
+        "nothing here",
+        `Paid with ${CARD}`,
+        "kai.wu@acme-corp.com wrote",
+      ],
+      { maxMatchedValueIndexes: 10 },
+    );
+
+    expect(resultOf(results, "email-address")!.matchedValueIndexes).toEqual([
+      1, 5,
+    ]);
+    expect(
+      resultOf(results, "credit-card-number")!.matchedValueIndexes,
+    ).toEqual([4]);
+  });
+
+  test("never more than asked for", () => {
+    const values: Array<string> = [];
+
+    for (let index: number = 0; index < 40; index++) {
+      values.push(`user${index}@acme-corp.com`);
+    }
+
+    expect(
+      resultOf(
+        classifyField("user.email", values, { maxMatchedValueIndexes: 3 }),
+        "email-address",
+      )!.matchedValueIndexes,
+    ).toEqual([0, 1, 2]);
+  });
+
+  test("a test value is never one; a type with only test values names none", () => {
+    const results: Array<FieldClassification> = classifyField(
+      "card",
+      ["4242 4242 4242 4242", CARD],
+      { maxMatchedValueIndexes: 10 },
+    );
+
+    expect(
+      resultOf(results, "credit-card-number")!.matchedValueIndexes,
+    ).toEqual([1]);
+    expect(
+      resultOf(
+        classifyField("card", ["4242 4242 4242 4242"], {
+          maxMatchedValueIndexes: 10,
+        }),
+        "credit-card-number",
+      )?.matchedValueIndexes || [],
+    ).toEqual([]);
+  });
+
+  test("a value found by its field's shape, or a name-found type's plausible value, is one", () => {
+    expect(
+      resultOf(
+        classifyField("card.cvv", ["123", "4567", "n/a"], {
+          maxMatchedValueIndexes: 10,
+        }),
+        "card-verification-code",
+      )!.matchedValueIndexes,
+    ).toEqual([0, 1]);
+    expect(
+      resultOf(
+        classifyField("user.first_name", ["Alice", "12345", "Bob"], {
+          maxMatchedValueIndexes: 10,
+        }),
+        "person-name",
+      )!.matchedValueIndexes,
+    ).toEqual([0, 2]);
+  });
+
+  test("asking changes nothing else the classification says", () => {
+    const values: Array<string> = [EMAIL, "nobody", `${EMAIL} again`];
+    const plain: Array<FieldClassification> = classifyField("body", values);
+    const named: Array<FieldClassification> = classifyField("body", values, {
+      maxMatchedValueIndexes: 5,
+    });
+
+    expect(
+      named.map((classification: FieldClassification): FieldClassification => {
+        const rest: FieldClassification = { ...classification };
+
+        delete rest.matchedValueIndexes;
+
+        return rest;
+      }),
+    ).toEqual(plain);
+  });
+});

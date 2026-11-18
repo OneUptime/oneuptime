@@ -25,9 +25,11 @@ import {
   buildTelemetrySampleStatement,
   foldAttributeKey,
   fromRawJsonValue,
+  getSampleRecordsByDataType,
   getTelemetrySource,
   isConversationContentKey,
   isExcludedLocation,
+  readSampleRecord,
   RESTRICTED_CONVERSATIONS_WARNING,
   scanProjectTelemetry,
   TELEMETRY_SCAN_MAX_TEXT_LENGTH,
@@ -37,6 +39,10 @@ import {
 import LlmConversationPrivacy from "../../../../../Server/Utils/LlmObservability/LlmConversationPrivacy";
 import logger from "../../../../../Server/Utils/Logger";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import {
+  FindingSampleRecord,
+  MAX_FINDING_SAMPLE_RECORDS,
+} from "../../../../../Types/DataSecurity/FindingSampleRecord";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { compileCustomDataType } from "../../../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -1141,5 +1147,250 @@ describe("a store whose Scan Content switch is off", () => {
         ).not.toContain(CHECKOUT);
       }
     }
+  });
+});
+
+/*
+ * THE RECORDS EACH FINDING WAS FOUND IN (issue #9549).
+ *
+ * A finding's records used to be looked for among the service's newest
+ * ones, where a type seen in one sampled line of four hundred was never
+ * found. The scan now keeps, by location and data type, which records of
+ * its sample held it - when each was written and its trace, span or
+ * session - so the issue's page reads those very records again.
+ */
+describe("the records a sample's findings were found in", () => {
+  const CAPS: {
+    textLength: number;
+    attributeValueLength: number;
+    attributesPerRecord: number;
+    eventsPerSpan: number;
+    attributesPerEvent: number;
+  } = {
+    textLength: 8192,
+    attributeValueLength: 4096,
+    attributesPerRecord: 128,
+    eventsPerSpan: 16,
+    attributesPerEvent: 32,
+  };
+
+  function sampleOf(source: TelemetrySampleSource): Statement {
+    return buildTelemetrySampleStatement({
+      projectId: PROJECT_ID,
+      since: new Date("2026-10-27T10:00:00.000Z"),
+      until: new Date("2026-10-27T11:00:00.000Z"),
+      source,
+      ownerIds: [source.startsWith("Rum") ? WEB_APP : CHECKOUT],
+      perOwner: 10,
+      total: 10,
+      caps: CAPS,
+    });
+  }
+
+  function recordsAt(
+    result: ContentScanResult,
+    location: string,
+    dataTypeId: string,
+  ): Array<FindingSampleRecord> | undefined {
+    return result.locations.find((entry: LocationFindings): boolean => {
+      return entry.location === location;
+    })?.sampleRecords?.[dataTypeId];
+  }
+
+  const T1: number = Date.UTC(2026, 9, 27, 10, 59, 58, 123);
+  const T2: number = Date.UTC(2026, 9, 27, 10, 58, 1, 7);
+  const T3: number = Date.UTC(2026, 9, 27, 10, 41, 0, 0);
+
+  test("every sample reads each record's time to the millisecond, and the keys that tell it apart", () => {
+    for (const source of [
+      TelemetrySampleSource.Logs,
+      TelemetrySampleSource.Traces,
+      TelemetrySampleSource.Exceptions,
+      TelemetrySampleSource.AiConversations,
+      TelemetrySampleSource.RumLogs,
+      TelemetrySampleSource.RumSpans,
+      TelemetrySampleSource.RumSessions,
+    ]) {
+      const query: string = sampleOf(source).query;
+      const timeColumn: string = getTelemetrySource(source).timeColumn;
+
+      expect(query).toContain(
+        `toUnixTimestamp64Milli(toDateTime64(${timeColumn}, 3)) AS readRecordTime`,
+      );
+      expect(
+        query.includes("traceId AS readTraceId, spanId AS readSpanId"),
+      ).toBe(source !== TelemetrySampleSource.RumSessions);
+      expect(query.includes("sessionId AS readSessionId")).toBe(
+        source.startsWith("Rum"),
+      );
+    }
+  });
+
+  test("each location's findings keep the records whose value held them, the newest first", async () => {
+    sampleRows[TelemetrySampleSource.Logs] = [
+      {
+        ownerId: CHECKOUT,
+        // ClickHouse quotes a 64-bit number in JSON.
+        readRecordTime: String(T1),
+        readTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        readSpanId: "00f067aa0ba902b7",
+        readBody: "Signed up jane.doe@acmecorp.io from the mobile app",
+        readAttributes: [["http.status_code", "200"]],
+      },
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T2),
+        readTraceId: "",
+        readSpanId: "",
+        readBody: "Health check ok",
+        readAttributes: [["http.status_code", "200"]],
+      },
+      {
+        ownerId: CHECKOUT,
+        readRecordTime: String(T3),
+        readTraceId: "a3ce929d0e0e47364bf92f3577b34da6",
+        readSpanId: "53995c3f42cd8ad8",
+        readBody: `Paid with card ${CARD} by kai.wu@acmecorp.io`,
+        readAttributes: [],
+      },
+    ];
+
+    const logs: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(recordsAt(logs.result, "body", "email-address")).toEqual([
+      {
+        time: new Date(T1).toISOString(),
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        spanId: "00f067aa0ba902b7",
+      },
+      {
+        time: new Date(T3).toISOString(),
+        traceId: "a3ce929d0e0e47364bf92f3577b34da6",
+        spanId: "53995c3f42cd8ad8",
+      },
+    ]);
+    expect(recordsAt(logs.result, "body", "credit-card-number")).toEqual([
+      {
+        time: new Date(T3).toISOString(),
+        traceId: "a3ce929d0e0e47364bf92f3577b34da6",
+        spanId: "53995c3f42cd8ad8",
+      },
+    ]);
+  });
+
+  test("the classifications written carry no index into the sample", async () => {
+    const logs: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    for (const location of logs.result.locations) {
+      for (const classification of location.classifications) {
+        expect(
+          Object.keys(classification).includes("matchedValueIndexes"),
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("a record with no time is classified, but kept as no reference", async () => {
+    // The fixture's rows carry no time: their findings are found, with no record.
+    const logs: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(typesAt(logs.result, "attributes.user.email")).toEqual([
+      "email-address",
+    ]);
+    expect(
+      recordsAt(logs.result, "attributes.user.email", "email-address"),
+    ).toEqual([]);
+  });
+
+  test("a session's records keep its id; the same record is kept once, ten at most", async () => {
+    const rows: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 14; index++) {
+      rows.push({
+        ownerId: WEB_APP,
+        readRecordTime: String(T1 - index * 1000),
+        readTraceId: `trace-${index}`,
+        readSpanId: `span-${index}`,
+        readSessionId: `session-${index % 3}`,
+        readAttributes: [["user.email", `user${index}@acmecorp.io`]],
+      });
+    }
+
+    sampleRows[TelemetrySampleSource.RumLogs] = rows;
+    ownerRows[TelemetrySampleSource.RumLogs] = [
+      { ownerId: WEB_APP, records: "14" },
+    ];
+
+    const replays: TelemetryStoreScan = storeOf(
+      await scan(),
+      DataStoreKind.TelemetrySessionReplays,
+      WEB_APP,
+    );
+    const records: Array<FindingSampleRecord> =
+      recordsAt(
+        replays.result,
+        "logs.attributes.user.email",
+        "email-address",
+      ) || [];
+
+    expect(records.length).toBe(MAX_FINDING_SAMPLE_RECORDS);
+    expect(records[0]).toEqual({
+      time: new Date(T1).toISOString(),
+      traceId: "trace-0",
+      spanId: "span-0",
+      sessionId: "session-0",
+    });
+  });
+
+  test("reading a row's keys, and mapping the values that held a type to their records", () => {
+    expect(
+      readSampleRecord({
+        readRecordTime: String(T1),
+        readTraceId: " t ",
+        readSpanId: "",
+        readSessionId: "s",
+      }),
+    ).toEqual({
+      time: new Date(T1).toISOString(),
+      traceId: "t",
+      sessionId: "s",
+    });
+    expect(readSampleRecord({ readRecordTime: "0" })).toBe(null);
+    expect(readSampleRecord({})).toBe(null);
+
+    const first: FindingSampleRecord = { time: new Date(T1).toISOString() };
+    const second: FindingSampleRecord = { time: new Date(T2).toISOString() };
+    const classification: FieldClassification = {
+      dataTypeId: "email-address",
+      matchedValueIndexes: [0, 2, 3, 4],
+    } as unknown as FieldClassification;
+
+    expect(
+      getSampleRecordsByDataType({
+        classifications: [classification],
+        records: [first, second, null, first, second],
+        valueCount: 5,
+      }),
+    ).toEqual({ "email-address": [first, second] });
+    // Values and records out of step: no records, rather than the wrong ones.
+    expect(
+      getSampleRecordsByDataType({
+        classifications: [classification],
+        records: [first, second],
+        valueCount: 5,
+      }),
+    ).toEqual({});
   });
 });

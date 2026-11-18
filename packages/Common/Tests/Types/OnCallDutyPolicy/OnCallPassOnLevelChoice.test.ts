@@ -245,6 +245,61 @@ describe("what escalating would do with a later level picked", () => {
   });
 });
 
+/*
+ * Two levels can share a place (issue #9573): a policy numbered by
+ * Terraform mid-apply, or a configuration that gives two levels one number.
+ * They come in the order of their rules' ids, as the levels are read, and
+ * picking the second skips the first - by place alone it was neither paged
+ * nor skipped.
+ */
+describe("levels that share a place", () => {
+  const TWIN_A: OnCallPassOnLevelChoice = {
+    escalationRuleId: "0fc00000-0000-4000-8000-00000000000a",
+    order: 3,
+    name: "DBA leads",
+  };
+
+  const TWIN_B: OnCallPassOnLevelChoice = {
+    escalationRuleId: "0fc00000-0000-4000-8000-00000000000b",
+    order: 3,
+    name: "Storage leads",
+  };
+
+  const WITH_TWINS: OnCallPassOnResult = {
+    ...PREVIEW,
+    ruleCount: 5,
+    levelChoices: [TWIN_B, LEVEL_2, LEVEL_4, TWIN_A],
+  };
+
+  test("are offered by their rules' ids, whatever order they come in", () => {
+    expect(getOnCallPassOnLevelChoices(WITH_TWINS)).toEqual([
+      LEVEL_2,
+      TWIN_A,
+      TWIN_B,
+      LEVEL_4,
+    ]);
+  });
+
+  test("picking the second skips the first", () => {
+    expect(
+      getOnCallPassOnPickedResult(WITH_TWINS, TWIN_B.escalationRuleId).skipped,
+    ).toEqual([
+      { order: 2, name: "Platform leads" },
+      { order: 3, name: "DBA leads" },
+    ]);
+  });
+
+  test("picking the level after them skips both", () => {
+    expect(
+      getOnCallPassOnPickedResult(WITH_TWINS, LEVEL_4.escalationRuleId).skipped,
+    ).toEqual([
+      { order: 2, name: "Platform leads" },
+      { order: 3, name: "DBA leads" },
+      { order: 3, name: "Storage leads" },
+    ]);
+  });
+});
+
 describe("a level picked that is not offered any more", () => {
   test("is refused, saying nothing was escalated and what to do", () => {
     expect(

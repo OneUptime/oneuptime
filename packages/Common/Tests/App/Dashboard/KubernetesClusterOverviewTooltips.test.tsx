@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import {
@@ -106,6 +107,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * The pods or nodes a count's dialog reads from the inventory's list
+ * (KubernetesProblemLoader), and what it asked for.
+ */
+let mockProblemRows: Array<Record<string, unknown>> = [];
+const mockProblemReads: Array<Record<string, unknown>> = [];
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -118,12 +126,33 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
           lastSeenAt: new Date(),
         });
       },
+      getList: (request: Record<string, unknown>) => {
+        mockProblemReads.push(request);
+        return Promise.resolve({
+          data: mockProblemRows,
+          count: mockProblemRows.length,
+          skip: 0,
+          limit: 200,
+        });
+      },
       getCommonHeaders: () => {
         return {};
       },
     },
   };
 });
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesEventsApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchKubernetesEvents: () => {
+        return Promise.resolve({ rows: [], hasMore: false });
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
@@ -265,12 +294,14 @@ const TEXT: typeof KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS =
   KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS;
 
 /*
- * A busy cluster: something in every pod phase, a node not ready and every
- * pressure condition, so every chip and badge the page can draw is drawn.
+ * A busy cluster: something in every pod status - a crash loop among them,
+ * which kubectl and the hero count under its word, never as Running - a
+ * node not ready and every pressure condition, so every chip and badge the
+ * page can draw is drawn.
  */
 const BUSY_SUMMARY: Record<string, unknown> = {
   nodeCount: 3,
-  podCount: 12,
+  podCount: 15,
   namespaceCount: 4,
   deploymentCount: 5,
   statefulSetCount: 1,
@@ -280,7 +311,21 @@ const BUSY_SUMMARY: Record<string, unknown> = {
   pvcCount: 2,
   pvCount: 2,
   containerCount: 20,
-  podPhaseCounts: { running: 8, pending: 2, failed: 1, succeeded: 1 },
+  podPhaseCounts: {
+    running: 10,
+    pending: 2,
+    failed: 1,
+    succeeded: 1,
+    unknown: 1,
+  },
+  podStatusCounts: {
+    running: 8,
+    pending: 2,
+    failed: 1,
+    succeeded: 1,
+    unknown: 1,
+    cannotRun: [{ reason: "CrashLoopBackOff", count: 2 }],
+  },
   nodeReadyCounts: { ready: 2, notReady: 1 },
   nodePressureCounts: { memoryPressure: 1, diskPressure: 1, pidPressure: 1 },
   degradedPods: [],
@@ -329,16 +374,13 @@ const QUIET_SUMMARY: Record<string, unknown> = {
 
 /*
  * Every (i) the busy overview draws, in page order, with the text it must
- * show. Twenty-four - every overview description in the record. Node
- * pressure has none of its own: a node under it is a row of Needs
- * attention, with why.
+ * show. Twenty-one; with the counts' dialogs below, every overview
+ * description in the record. Node pressure has none of its own: a node
+ * under it is a row of Needs attention, with why.
  */
 const EXPECTED: Array<[string, string]> = [
   ["Cluster inventory counts", TEXT.inventoryCounts],
   ["Running", TEXT.podsRunning],
-  ["Pending", TEXT.podsPending],
-  ["Failed", TEXT.podsFailed],
-  ["Nodes Not Ready", TEXT.nodesNotReady],
   ["Availability", TEXT.availability],
   ["CPU", TEXT.cpu],
   ["Memory", TEXT.memory],
@@ -359,6 +401,39 @@ const EXPECTED: Array<[string, string]> = [
   ["CPU Usage", TEXT.topCpuPods],
   ["Memory Usage", TEXT.topMemoryPods],
 ];
+
+/*
+ * The hero's counts of something wrong (#9537): each a button that opens
+ * which pods or nodes and why, its dialog saying what the count means where
+ * its (i) used to - by chip, in hero order.
+ */
+const COUNT_DIALOGS: Array<[string, string]> = [
+  ["CrashLoopBackOff", TEXT.podsCannotRun],
+  ["Pending", TEXT.podsPending],
+  ["Failed", TEXT.podsFailed],
+  ["Unknown", TEXT.podsUnknown],
+  ["Nodes Not Ready", TEXT.nodesNotReady],
+];
+
+function statusChip(name: string): HTMLElement {
+  const chip: HTMLElement | undefined = screen
+    .getAllByTestId("kubernetes-cluster-status-chip")
+    .find((element: HTMLElement): boolean => {
+      return element.getAttribute("data-chip") === name;
+    });
+  if (!chip) {
+    throw new Error(`No "${name}" chip on the hero.`);
+  }
+  return chip;
+}
+
+// What a count's dialog says under its title, once it is open.
+async function openCountDialog(name: string): Promise<HTMLElement> {
+  await act(async () => {
+    fireEvent.click(statusChip(name));
+  });
+  return screen.getByRole("dialog");
+}
 
 const ABOUT: RegExp = /^About /;
 
@@ -429,6 +504,8 @@ beforeEach(() => {
   mockAttention = BUSY_ATTENTION;
   mockAttentionError = "";
   mockAttentionReads.length = 0;
+  mockProblemRows = [];
+  mockProblemReads.length = 0;
 });
 
 afterEach(() => {
@@ -571,7 +648,7 @@ describe("titleWithTooltip", () => {
 });
 
 describe("the cluster overview page", () => {
-  test("every metric on a busy cluster carries an (i) - all twenty-four of them", async () => {
+  test("every metric on a busy cluster carries an (i) - all twenty-one of them; each count of something wrong opens its dialog instead", async () => {
     await renderOverview();
 
     const names: Array<string> = infoButtons().map(
@@ -609,10 +686,22 @@ describe("the cluster overview page", () => {
     await renderOverview();
 
     const shown: Set<string> = new Set(
-      EXPECTED.map((pair: [string, string]): string => {
+      [...EXPECTED, ...COUNT_DIALOGS].map((pair: [string, string]): string => {
         return pair[1];
       }),
     );
+
+    // Each count's dialog says what its count means.
+    for (const [chip, text] of COUNT_DIALOGS) {
+      const dialog: HTMLElement = await openCountDialog(chip);
+      expect({ chip, says: dialog.textContent?.includes(text) }).toEqual({
+        chip,
+        says: true,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+      });
+    }
 
     for (const [key, text] of Object.entries(TEXT)) {
       expect({ key, shown: shown.has(text) }).toEqual({
@@ -656,11 +745,12 @@ describe("the cluster overview page", () => {
 
     await screen.findByRole("button", { name: "About Memory Usage" });
 
-    for (const title of ["Running", "Pending", "Failed", "Nodes Not Ready"]) {
-      expect(
-        screen.queryByRole("button", { name: `About ${title}` }),
-      ).not.toBeInTheDocument();
-    }
+    expect(
+      screen.queryAllByTestId("kubernetes-cluster-status-chip"),
+    ).toHaveLength(0);
+    expect(
+      screen.queryByRole("button", { name: "About Running" }),
+    ).not.toBeInTheDocument();
 
     // What does not depend on those counts is still explained.
     for (const title of [
@@ -677,16 +767,200 @@ describe("the cluster overview page", () => {
     }
   });
 
-  test("a pending-pod chip and its (i) read as one unit", async () => {
+  test("a pending-pod chip is one button, its count and its word, that opens which pods and why", async () => {
     await renderOverview();
 
-    const info: HTMLElement = screen.getByRole("button", {
-      name: "About Pending",
-    });
-    const chip: HTMLElement | null = info.closest("span.rounded-full");
+    const chip: HTMLElement = statusChip("Pending");
 
-    expect(chip).not.toBeNull();
+    expect(chip.tagName).toBe("BUTTON");
     expect(chip).toHaveTextContent("2Pending");
+    expect(chip).toHaveAttribute("aria-haspopup", "dialog");
+    expect(chip).toHaveAccessibleDescription("Show which pods and why");
+    // Nothing inside it is another control: its (i) became its dialog.
+    expect(chip.querySelector("button, a")).toBeNull();
+
+    const dialog: HTMLElement = await openCountDialog("Pending");
+    expect(dialog).toHaveTextContent("2 pending pods");
+    expect(dialog).toHaveTextContent(TEXT.podsPending);
+    // Read from the inventory only once it is pressed.
+    expect(mockProblemReads[0]?.["query"]).toMatchObject({
+      kind: "Pod",
+      phase: "Pending",
+    });
+  });
+
+  test("Running stays a chip that is only explained: nothing is wrong with it", async () => {
+    await renderOverview();
+
+    const chip: HTMLElement = statusChip("Running");
+    expect(chip.tagName).toBe("SPAN");
+    expect(chip).toHaveTextContent("8Running");
+    expect(
+      within(chip).getByRole("button", { name: "About Running" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a crash-looping pod is counted under its word, never as Running, and opens those pods", async () => {
+    await renderOverview();
+
+    // 10 pods are in phase Running; 2 of them crash-loop.
+    expect(statusChip("Running")).toHaveTextContent("8Running");
+    const crash: HTMLElement = statusChip("CrashLoopBackOff");
+    expect(crash.tagName).toBe("BUTTON");
+    expect(crash).toHaveTextContent("2CrashLoopBackOff");
+    expect(crash).toHaveAttribute("data-tone", "danger");
+
+    const dialog: HTMLElement = await openCountDialog("CrashLoopBackOff");
+    expect(dialog).toHaveTextContent("2 pods in CrashLoopBackOff");
+    expect(mockProblemReads[0]?.["query"]).toMatchObject({
+      kind: "Pod",
+      healthSeverity: "critical",
+    });
+  });
+
+  test("3 Failed opens the failed pods: each named, why, which workload, since when, a step from its page", async () => {
+    mockSummary = {
+      ...BUSY_SUMMARY,
+      podStatusCounts: {
+        ...(BUSY_SUMMARY["podStatusCounts"] as Record<string, unknown>),
+        failed: 1,
+      },
+    };
+    mockProblemRows = [
+      {
+        kind: "Pod",
+        namespaceKey: "shop",
+        name: "api-7d9f8b6c5-x2k4q",
+        phase: "Failed",
+        labels: { "pod-template-hash": "7d9f8b6c5" },
+        ownerReferences: {
+          items: [{ kind: "ReplicaSet", name: "api-7d9f8b6c5", uid: "rs-1" }],
+        },
+        spec: { nodeName: "node-a", containers: [] },
+        status: {
+          phase: "Failed",
+          conditions: [
+            {
+              type: "Ready",
+              status: "False",
+              reason: "",
+              message: "",
+              lastTransitionTime: new Date(
+                Date.now() - 10 * 60 * 1000,
+              ).toISOString(),
+            },
+          ],
+          containerStatuses: [
+            {
+              name: "api",
+              ready: false,
+              restartCount: 0,
+              state: "terminated",
+              reason: "Error",
+              exitCode: 1,
+              message: "panic: config not found",
+            },
+          ],
+          initContainerStatuses: [],
+        },
+        lastSeenAt: new Date(),
+        resourceCreationTimestamp: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    ];
+
+    await renderOverview();
+    const dialog: HTMLElement = await openCountDialog("Failed");
+
+    expect(dialog).toHaveTextContent("1 failed pod");
+    const row: HTMLElement = await within(dialog).findByTestId(
+      "kubernetes-cluster-status-chip-dialog-item",
+    );
+    expect(row).toHaveTextContent("api-7d9f8b6c5-x2k4q");
+    expect(row).toHaveTextContent("Error, exit code 1");
+    expect(row).toHaveTextContent("panic: config not found");
+    expect(row).toHaveTextContent("Deployment api");
+    expect(row).toHaveTextContent("Failed 10 minutes ago");
+    const view: HTMLElement = within(row).getByTestId(
+      "kubernetes-cluster-status-chip-dialog-view",
+    );
+    expect(view.getAttribute("href")).toContain("api-7d9f8b6c5-x2k4q");
+    expect(view.getAttribute("href")).toContain("namespace=shop");
+  });
+
+  test("the health pill says Unhealthy and opens why: what needs attention, the most urgent first", async () => {
+    await renderOverview();
+
+    const pill: HTMLElement = screen.getByTestId("kubernetes-cluster-health");
+    expect(pill.tagName).toBe("BUTTON");
+    expect(pill).toHaveAttribute("data-health", "Unhealthy");
+    expect(pill).toHaveTextContent("Unhealthy");
+
+    await act(async () => {
+      fireEvent.click(pill);
+    });
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Why this cluster is Unhealthy");
+    const names: Array<string> = within(dialog)
+      .getAllByTestId("kubernetes-cluster-health-dialog-name")
+      .map((name: HTMLElement): string => {
+        return name.textContent || "";
+      });
+    expect(names).toEqual(["checkout", "node-c"]);
+    expect(dialog).toHaveTextContent("CrashLoopBackOff");
+    expect(dialog).toHaveTextContent("Disk pressure");
+  });
+
+  test("the Cluster Health card opens the same why", async () => {
+    await renderOverview();
+
+    const card: HTMLElement = screen.getByTestId(
+      "kubernetes-cluster-health-card",
+    );
+    await act(async () => {
+      fireEvent.click(
+        cardActivatorOf(
+          screen.getByRole("button", { name: "About Cluster Health" }),
+        ),
+      );
+    });
+
+    expect(card).toHaveTextContent("Unhealthy");
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Why this cluster is Unhealthy");
+    expect(
+      within(dialog).getAllByTestId(
+        "kubernetes-cluster-health-card-dialog-item",
+      ),
+    ).toHaveLength(2);
+  });
+
+  test("a Healthy cluster's pill and card open nothing", async () => {
+    mockAttention = { findings: [], isTruncated: false };
+
+    await renderOverview();
+
+    const pill: HTMLElement = screen.getByTestId("kubernetes-cluster-health");
+    expect(pill.tagName).toBe("SPAN");
+    expect(pill).toHaveAttribute("data-health", "Healthy");
+  });
+
+  test("an older server's phases still draw the chips, nothing counted as unable to run", async () => {
+    mockSummary = {
+      ...BUSY_SUMMARY,
+      podStatusCounts: undefined,
+    };
+
+    await renderOverview();
+
+    expect(statusChip("Running")).toHaveTextContent("10Running");
+    expect(
+      screen
+        .getAllByTestId("kubernetes-cluster-status-chip")
+        .map((chip: HTMLElement): string | null => {
+          return chip.getAttribute("data-chip");
+        }),
+    ).toEqual(["Running", "Pending", "Failed", "Nodes Not Ready"]);
   });
 
   test("a node under pressure is a row of Needs attention, named, with why - not a count in a banner", async () => {
@@ -710,12 +984,17 @@ describe("the cluster overview page", () => {
   test("one node not ready reads as one, many as many: never '1 Nodes Not Ready'", async () => {
     await renderOverview();
 
-    const one: HTMLElement | null = screen
-      .getByRole("button", { name: "About Nodes Not Ready" })
-      .closest("span.rounded-full");
+    const one: HTMLElement = statusChip("Nodes Not Ready");
     expect(one).toHaveTextContent("1 Node Not Ready");
     // The count stands out as the other chips' counts do.
-    expect(one!.querySelector(".font-semibold")).toHaveTextContent(/^1$/);
+    expect(one.querySelector(".font-semibold")).toHaveTextContent(/^1$/);
+
+    const dialog: HTMLElement = await openCountDialog("Nodes Not Ready");
+    expect(dialog).toHaveTextContent("1 node not ready");
+    expect(mockProblemReads[0]?.["query"]).toMatchObject({
+      kind: "Node",
+      isReady: false,
+    });
 
     cleanup();
     mockSummary = {
@@ -724,11 +1003,9 @@ describe("the cluster overview page", () => {
     };
     await renderOverview();
 
-    expect(
-      screen
-        .getByRole("button", { name: "About Nodes Not Ready" })
-        .closest("span.rounded-full"),
-    ).toHaveTextContent("2 Nodes Not Ready");
+    expect(statusChip("Nodes Not Ready")).toHaveTextContent(
+      "2 Nodes Not Ready",
+    );
   });
 
   test("when what needs attention cannot be read, its card says so with Refresh, which asks again", async () => {

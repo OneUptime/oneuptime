@@ -2,12 +2,15 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   getOnCallDeletedLevelLabel,
   getOnCallDeletedLevelWords,
+  getOnCallLevelAfter,
+  getOnCallLevelsBefore,
   getOnCallPolicyFirstLevel,
   getOnCallRunCurrentLevel,
   getOnCallRunLaterLevels,
   getOnCallRunNextLevel,
   hasOnCallRunStartedALevel,
   isOnCallRunLevelDeleted,
+  isOnCallRunPastFirstLevel,
   ON_CALL_DELETED_LEVEL_LABEL,
   OnCallPolicyLevel,
   OnCallRunPlace,
@@ -282,6 +285,228 @@ describe("a policy's levels", () => {
       ])?.name,
     ).toBe("Primary");
     expect(getOnCallPolicyFirstLevel([])).toBeNull();
+  });
+});
+
+/*
+ * LEVELS THAT SHARE A PLACE, AND GAPS (issue #9573).
+ *
+ * No write of a level moves another any more: a deleted level leaves its
+ * gap, and Terraform numbers a policy's levels one write each, so until
+ * every write of an apply has landed - or for good, when a configuration
+ * gives two levels one number - two levels can share a place. They come in
+ * the order of their ids, as the database reads them; the second of two is
+ * after the first, never skipped, and "next" goes by that order, never by
+ * the number one more.
+ */
+describe("levels that share a place", () => {
+  // L2 and L3 both at 2: L2 comes first, by id.
+  function withTwins(): Array<Level> {
+    return [
+      level(L3, 2, "Manager"),
+      level(L4, 5, "Director"),
+      level(L1, 1, "Primary"),
+      level(L2, 2, "Secondary"),
+    ];
+  }
+
+  test("come in the order of their ids, whatever order they are handed in", () => {
+    expect(names(sortOnCallPolicyLevels(withTwins()))).toEqual([
+      "Primary",
+      "Secondary",
+      "Manager",
+      "Director",
+    ]);
+    expect(names(sortOnCallPolicyLevels([...withTwins()].reverse()))).toEqual([
+      "Primary",
+      "Secondary",
+      "Manager",
+      "Director",
+    ]);
+  });
+
+  test("a run on the first of two goes on to the second, never past it", () => {
+    expect(
+      getOnCallRunNextLevel({ run: onLevel(L2, 2), levels: withTwins() })?.name,
+    ).toBe("Manager");
+    expect(
+      names(
+        getOnCallRunLaterLevels({ run: onLevel(L2, 2), levels: withTwins() }),
+      ),
+    ).toEqual(["Manager", "Director"]);
+  });
+
+  test("a run on the second of two goes on to the next place, over the gap", () => {
+    expect(
+      getOnCallRunNextLevel({ run: onLevel(L3, 2), levels: withTwins() })?.name,
+    ).toBe("Director");
+  });
+
+  test("a run on a level deleted at their place goes on to both, the first first", () => {
+    expect(
+      names(
+        getOnCallRunLaterLevels({
+          run: onLevel(null, 2),
+          levels: withTwins(),
+        }),
+      ),
+    ).toEqual(["Secondary", "Manager", "Director"]);
+  });
+
+  test("the first of two at the lowest place is the policy's first", () => {
+    expect(
+      getOnCallPolicyFirstLevel([
+        level(L2, 1, "Secondary"),
+        level(L1, 1, "Primary"),
+      ])?.name,
+    ).toBe("Primary");
+  });
+});
+
+describe("the levels before one", () => {
+  test("are the ones a run moved straight on to it passes over, in order", () => {
+    const levels: Array<Level> = sortOnCallPolicyLevels([
+      level(L1, 1, "Primary"),
+      level(L2, 2, "Secondary"),
+      level(L3, 2, "Manager"),
+      level(L4, 4, "Director"),
+    ]);
+
+    expect(
+      names(getOnCallLevelsBefore({ level: levels[3]!, levels: levels })),
+    ).toEqual(["Primary", "Secondary", "Manager"]);
+    // The second of two at one place passes over the first.
+    expect(
+      names(getOnCallLevelsBefore({ level: levels[2]!, levels: levels })),
+    ).toEqual(["Primary", "Secondary"]);
+    expect(
+      getOnCallLevelsBefore({ level: levels[0]!, levels: levels }),
+    ).toEqual([]);
+  });
+
+  test("of a level not among them are none", () => {
+    expect(
+      getOnCallLevelsBefore({
+        level: level(NEW, 2, "New"),
+        levels: policy(),
+      }),
+    ).toEqual([]);
+  });
+
+  test("find the level by its id, in any case", () => {
+    expect(
+      names(
+        getOnCallLevelsBefore({
+          level: level(new ObjectID(L3.toString().toUpperCase()), 3, "x"),
+          levels: policy(),
+        }),
+      ),
+    ).toEqual(["Primary", "Secondary"]);
+  });
+});
+
+describe("the level after one", () => {
+  test("is the next in the policy's order, whatever its number", () => {
+    const levels: Array<Level> = [
+      level(L1, 1, "Primary"),
+      level(L3, 7, "Manager"),
+    ];
+
+    expect(
+      getOnCallLevelAfter({ level: levels[0]!, levels: levels })?.name,
+    ).toBe("Manager");
+  });
+
+  test("of the first of two at one place is the second", () => {
+    expect(
+      getOnCallLevelAfter({
+        level: level(L2, 2, "Secondary"),
+        levels: [
+          level(L3, 2, "Manager"),
+          level(L2, 2, "Secondary"),
+          level(L4, 3, "Director"),
+        ],
+      })?.name,
+    ).toBe("Manager");
+  });
+
+  test("of the last, or of a level not in the policy, is none", () => {
+    expect(
+      getOnCallLevelAfter({
+        level: level(L4, 4, "Director"),
+        levels: policy(),
+      }),
+    ).toBeNull();
+    expect(
+      getOnCallLevelAfter({ level: level(NEW, 2, "New"), levels: policy() }),
+    ).toBeNull();
+  });
+});
+
+describe("whether a run is past its policy's first level", () => {
+  test("on the first level, it is not", () => {
+    expect(
+      isOnCallRunPastFirstLevel({ run: onLevel(L1, 1), levels: policy() }),
+    ).toBe(false);
+  });
+
+  /*
+   * The check used to be "past place 1", so a run on the first level of a
+   * policy whose first level is at 3 - its levels before it deleted - was
+   * taken as one that had not paged the levels before it, and a pass that
+   * reached nobody went round again.
+   */
+  test("on the first level at a later place than 1, it is not", () => {
+    expect(
+      isOnCallRunPastFirstLevel({
+        run: onLevel(L3, 3),
+        levels: [level(L3, 3, "Manager"), level(L4, 4, "Director")],
+      }),
+    ).toBe(false);
+  });
+
+  test("on a later level, it is", () => {
+    expect(
+      isOnCallRunPastFirstLevel({ run: onLevel(L3, 3), levels: policy() }),
+    ).toBe(true);
+  });
+
+  test("on the second of two at the lowest place, it is", () => {
+    const levels: Array<Level> = [
+      level(L1, 1, "Primary"),
+      level(L2, 1, "Secondary"),
+    ];
+
+    expect(
+      isOnCallRunPastFirstLevel({ run: onLevel(L2, 1), levels: levels }),
+    ).toBe(true);
+    expect(
+      isOnCallRunPastFirstLevel({ run: onLevel(L1, 1), levels: levels }),
+    ).toBe(false);
+  });
+
+  test("on a deleted level, it is when the place it recorded is after the first's", () => {
+    expect(
+      isOnCallRunPastFirstLevel({
+        run: onLevel(null, 2),
+        levels: withoutSecondary(),
+      }),
+    ).toBe(true);
+    expect(
+      isOnCallRunPastFirstLevel({
+        run: onLevel(null, 1),
+        levels: [level(L3, 3, "Manager"), level(L4, 4, "Director")],
+      }),
+    ).toBe(false);
+  });
+
+  test("on no level yet, or with no levels, it is not", () => {
+    expect(
+      isOnCallRunPastFirstLevel({ run: onLevel(null, null), levels: policy() }),
+    ).toBe(false);
+    expect(isOnCallRunPastFirstLevel({ run: onLevel(L2, 2), levels: [] })).toBe(
+      false,
+    );
   });
 });
 

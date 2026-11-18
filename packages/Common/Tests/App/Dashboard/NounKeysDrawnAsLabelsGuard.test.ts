@@ -193,10 +193,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
     ],
   },
   [`${DASHBOARD}/Pages/OpenStack/Utils/OpenStackHealth.ts`]: {
-    asLabel: "The kind of part on a Needs attention chip.",
+    asLabel:
+      "The kind of part on a Needs attention chip, and in the list a failed count opens: both draw the shared row.",
     drawnBy: [
       {
-        file: `${DASHBOARD}/Components/ResourcePart/NeedsAttentionCard.tsx`,
+        file: `${DASHBOARD}/Components/ResourcePart/ResourceAttentionRow.tsx`,
         call: /toLabelTerm\(tx\(item\.kind\), translator\.language\)/,
       },
     ],

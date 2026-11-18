@@ -141,7 +141,7 @@ beforeEach(() => {
   jest.spyOn(Math, "random").mockReturnValue(0.5);
 
   jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(USER_ID));
-  logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(undefined);
+  logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(null);
   navigateSpy = jest
     .spyOn(Navigation, "navigate")
     .mockImplementation((): void => {});
@@ -406,12 +406,13 @@ describe("a session the server ended for its length or its idle timeout", () => 
   test("the page is remembered before the client forgets who was signed in", async () => {
     let rememberedWhenLoggedOut: boolean = false;
 
-    logoutSpy.mockImplementation(async (): Promise<void> => {
+    logoutSpy.mockImplementation(async (): Promise<null> => {
       // As User.logout does: who was signed in is gone from here on.
       jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(""));
       rememberedWhenLoggedOut = document.cookie.includes(
         "oneuptime-page-after-sign-in=",
       );
+      return null;
     });
 
     sessionEndsWith({

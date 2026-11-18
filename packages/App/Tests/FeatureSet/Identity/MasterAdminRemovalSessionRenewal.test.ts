@@ -247,6 +247,14 @@ jest.mock("Common/Server/Services/UserSessionService", () => {
       createSession: (...args: Array<unknown>): unknown => {
         return createSession(...args);
       },
+      /*
+       * The sessions these sign-ins make are live, as the API reads each
+       * request's (readRequestSession); what an ended one does is
+       * Common's EndedSessionAccessToken.test.ts.
+       */
+      isSessionLive: (): Promise<boolean> => {
+        return Promise.resolve(true);
+      },
       findActiveSessionByRefreshToken: (...args: Array<unknown>): unknown => {
         return findActiveSessionByRefreshToken(...args);
       },

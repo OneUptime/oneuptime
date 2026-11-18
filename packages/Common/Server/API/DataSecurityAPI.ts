@@ -55,6 +55,7 @@ import {
   TELEMETRY_DATA_STORE_KINDS,
 } from "../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../Types/DataSecurity/DataStorePosture";
+import { readFindingSampleRecords } from "../../Types/DataSecurity/FindingSampleRecord";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CloudConnectionService from "../Services/CloudConnectionService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
@@ -783,10 +784,10 @@ export default class DataSecurityAPI extends BaseAPI<
   }
 
   /*
-   * The newest records a telemetry finding's data was seen in, for a
-   * reader who may read the store's telemetry; why there are none to show
-   * otherwise. A finding of another project, or in a data store, is not
-   * found.
+   * The records a telemetry finding's data was seen in - the very ones the
+   * last scan found it in, when the finding kept them - for a reader who
+   * may read the store's telemetry; why there are none to show otherwise.
+   * A finding of another project, or in a data store, is not found.
    */
   public static async getFindingOccurrences(data: {
     projectId: ObjectID;
@@ -802,6 +803,8 @@ export default class DataSecurityAPI extends BaseAPI<
           dataTypeId: true,
           location: true,
           dataStoreId: true,
+          sampleRecords: true,
+          lastSeenAt: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -869,6 +872,10 @@ export default class DataSecurityAPI extends BaseAPI<
       location: finding.location,
       dataTypeId: finding.dataTypeId,
       options: (await DataSecurityRunner.getScanSetup(data.projectId)).options,
+      sampleRecords: readFindingSampleRecords(finding.sampleRecords),
+      lastSeenAt: finding.lastSeenAt
+        ? OneUptimeDate.fromString(finding.lastSeenAt)
+        : null,
       now,
     });
   }

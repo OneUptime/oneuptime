@@ -38,15 +38,26 @@ import {
   OCCURRENCE_WINDOW_IN_DAYS,
   OccurrencePlan,
   planOccurrenceRead,
+  planOccurrenceSearch,
   readOccurrenceRows,
+  SAMPLE_WINDOW_IN_MINUTES,
+  SAMPLED_ROWS_PER_RECORD,
+  buildOccurrenceExcerptReader,
+  getOccurrencePrefilter,
+  OccurrenceSearch,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import logger from "../../../../../Server/Utils/Logger";
 import {
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceExcerptPart,
+  DataSecurityOccurrenceExcerptPartKind,
   DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesSource,
 } from "../../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import { FindingSampleRecord } from "../../../../../Types/DataSecurity/FindingSampleRecord";
+import { getDataTypePrefilter } from "../../../../../Utils/DataSecurity/DetectorPrefilter";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -1002,11 +1013,35 @@ describe("what a record holds, as the scan reads it", () => {
         location: "attributes.user.email",
         locationKind: "Attribute",
         value: EMAIL,
+        field: "user.email",
       },
       {
         location: "attributes.items[].sku",
         locationKind: "Attribute",
         value: "A-1",
+        // The key as the record has it, for a record's excerpt.
+        field: "items.0.sku",
+      },
+    ]);
+  });
+
+  test("a span event's attribute: its event's name and its key, for a record's excerpt", () => {
+    expect(
+      readTelemetryRecordValues(
+        TelemetrySampleSource.Traces,
+        {
+          readAttributes: [],
+          readEvents: [["login", [["token", `"${GITHUB_TOKEN}"`]]]],
+        },
+        CAPS,
+      ),
+    ).toEqual([
+      {
+        location: "events.login.token",
+        locationKind: "Attribute",
+        value: GITHUB_TOKEN,
+        field: "token",
+        event: "login",
       },
     ]);
   });
@@ -1183,12 +1218,25 @@ describe("findTelemetryFindingOccurrences", () => {
           spanId: "s",
           severity: "Info",
           maskedValue: MASKED_EMAIL,
+          excerpt: {
+            field: "user.email",
+            parts: [
+              {
+                kind: DataSecurityOccurrenceExcerptPartKind.Match,
+                text: MASKED_EMAIL,
+              },
+            ],
+            isCutAtStart: false,
+            isCutAtEnd: false,
+          },
         },
       ],
       since: "2026-10-27T12:00:00.000Z",
       until: "2026-11-03T12:00:00.000Z",
       recordsRead: 2,
       isComplete: true,
+      // No scan kept records for it, nor saw it: the newest of the last week.
+      source: DataSecurityOccurrencesSource.Recent,
     });
   });
 
@@ -1227,5 +1275,461 @@ describe("findTelemetryFindingOccurrences", () => {
       ),
     );
     expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHERE A FINDING'S RECORDS ARE READ (issue #9549).
+ *
+ * "None of the newest records with a value here carries it (300 read)":
+ * the records were looked for among a service's newest of the last week,
+ * whatever the finding - one last seen twelve days ago had none there, and
+ * a type seen in one sampled line of four hundred was not among a busy
+ * service's newest three hundred. Now they are read where the evidence
+ * is: the very records the last scan kept, or the hour it read, searched
+ * by the type's own patterns in the database.
+ */
+describe("where a finding's records are read", () => {
+  const KEPT_FIRST: FindingSampleRecord = {
+    time: "2026-10-22T11:59:58.123Z",
+    traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+    spanId: "00f067aa0ba902b7",
+  };
+  const KEPT_SECOND: FindingSampleRecord = {
+    time: "2026-10-22T11:41:00.000Z",
+  };
+
+  test("the records the last scan kept: their milliseconds, the newest's all of it", () => {
+    const search: OccurrenceSearch = planOccurrenceSearch({
+      now: NOW,
+      sampleRecords: [KEPT_FIRST, KEPT_SECOND],
+      lastSeenAt: new Date("2026-10-22T12:01:00.000Z"),
+    });
+
+    expect(search).toEqual({
+      source: DataSecurityOccurrencesSource.SampledRecords,
+      since: new Date("2026-10-22T11:41:00.000Z"),
+      until: new Date("2026-10-22T11:59:58.124Z"),
+      records: [KEPT_FIRST, KEPT_SECOND],
+    });
+  });
+
+  test("a finding from before scans kept records: the hour the last scan read, before it last saw it", () => {
+    const lastSeenAt: Date = new Date(NOW.getTime() - 12 * 86_400_000);
+
+    expect(planOccurrenceSearch({ now: NOW, lastSeenAt })).toEqual({
+      source: DataSecurityOccurrencesSource.SampleWindow,
+      since: new Date(lastSeenAt.getTime() - SAMPLE_WINDOW_IN_MINUTES * 60_000),
+      until: lastSeenAt,
+      records: [],
+    });
+    // The hour a scan reads, and the minutes it takes to write what it found.
+    expect(SAMPLE_WINDOW_IN_MINUTES).toBeGreaterThanOrEqual(60);
+  });
+
+  test("a finding no scan has seen: the newest records of the last week", () => {
+    expect(planOccurrenceSearch({ now: NOW })).toEqual({
+      source: DataSecurityOccurrencesSource.Recent,
+      since: new Date(NOW.getTime() - OCCURRENCE_WINDOW_IN_DAYS * 86_400_000),
+      until: NOW,
+      records: [],
+    });
+    expect(
+      planOccurrenceSearch({ now: NOW, lastSeenAt: new Date(NaN) }).source,
+    ).toBe(DataSecurityOccurrencesSource.Recent);
+  });
+
+  test("a lookup of kept records reads only their milliseconds, a few rows each", () => {
+    const planned: OccurrencePlan = plan(DataStoreKind.TelemetryLogs, "body");
+    const statement: Statement = buildTelemetryOccurrenceStatement({
+      projectId: PROJECT_ID,
+      since: new Date(KEPT_SECOND.time),
+      until: new Date(Date.parse(KEPT_FIRST.time) + 1),
+      plan: planned,
+      ownerId: SERVICE,
+      limit: getOccurrenceReadLimit(planned, [KEPT_FIRST, KEPT_SECOND]),
+      caps: CAPS,
+      records: [KEPT_FIRST, KEPT_SECOND],
+    });
+
+    expect(statement.query).toMatch(
+      /AND \(\(time >= \{(p\d+):DateTime64\(9\)\} AND time < \{(p\d+):DateTime64\(9\)\}\) OR \(time >= \{(p\d+):DateTime64\(9\)\} AND time < \{(p\d+):DateTime64\(9\)\}\)\)/,
+    );
+
+    const ranges: RegExpMatchArray = statement.query.match(
+      /AND \(\(time >= \{(p\d+):DateTime64\(9\)\} AND time < \{(p\d+):DateTime64\(9\)\}\) OR/,
+    )!;
+
+    expect(String(statement.query_params[ranges[1]!])).toBe(
+      "2026-10-22 11:59:58.123000000",
+    );
+    expect(String(statement.query_params[ranges[2]!])).toBe(
+      "2026-10-22 11:59:58.124000000",
+    );
+    expect(parameterAfter(statement, LIMIT)).toBe(2 * SAMPLED_ROWS_PER_RECORD);
+    expect(
+      getOccurrenceReadLimit(planned, new Array(500).fill(KEPT_FIRST)),
+    ).toBe(OCCURRENCE_RECORDS_PER_READ);
+  });
+
+  test("a search asks the database only for records whose value could hold the type", () => {
+    const ip: string = getDataTypePrefilter({ dataTypeId: "ip-address" })!;
+    const statementWith: (location: string) => Statement = (
+      location: string,
+    ): Statement => {
+      const planned: OccurrencePlan = plan(
+        location.startsWith("events.")
+          ? DataStoreKind.TelemetryTraces
+          : DataStoreKind.TelemetryLogs,
+        location,
+      );
+
+      return buildTelemetryOccurrenceStatement({
+        projectId: PROJECT_ID,
+        since: new Date(NOW.getTime() - 3_600_000),
+        until: NOW,
+        plan: planned,
+        ownerId: SERVICE,
+        limit: getOccurrenceReadLimit(planned),
+        caps: CAPS,
+        prefilter: ip,
+      });
+    };
+
+    // A log's body: its first 8,192 characters, as the scan reads it.
+    const body: Statement = statementWith("body");
+
+    expect(body.query).toMatch(
+      / AND body != '' AND match\(substringUTF8\(body, 1, \{p\d+:Int32\}\), \{p\d+:String\}\)/,
+    );
+    expect(parameterValues(body)).toContain(ip);
+    expect(parameterValues(body)).toContain(8192);
+    expect(body.query).not.toContain(ip);
+
+    // One attribute: its value under its key, the key bound.
+    expect(statementWith("attributes.client.addr").query).toMatch(
+      / AND mapContains\(attributes, \{p\d+:String\}\) AND match\(substringUTF8\(attributes\[\{p\d+:String\}\], 1, \{p\d+:Int32\}\), \{p\d+:String\}\)/,
+    );
+
+    // A folded key: a key it stands for, whose value could hold it.
+    expect(statementWith("attributes.peers[].addr").query).toMatch(
+      / AND arrayExists\(\(k, v\) -> match\(k, \{p\d+:String\}\) AND match\(substringUTF8\(v, 1, \{p\d+:Int32\}\), \{p\d+:String\}\), mapKeys\(attributes\), mapValues\(attributes\)\)/,
+    );
+
+    // A span's events are JSON text there: read as they were.
+    expect(statementWith("events.login.addr").query).not.toContain(
+      "match(substringUTF8",
+    );
+  });
+
+  test("the type's own patterns narrow a search, but not where the field's name says what it holds", () => {
+    expect(
+      getOccurrencePrefilter({
+        dataTypeId: "ip-address",
+        location: "body",
+        options: options(),
+      }),
+    ).toBe(getDataTypePrefilter({ dataTypeId: "ip-address" }));
+    // A cvv field's "123" counts by its shape: no pattern finds it.
+    expect(
+      getOccurrencePrefilter({
+        dataTypeId: "card-verification-code",
+        location: "attributes.card.cvv",
+        options: options(),
+      }),
+    ).toBe(null);
+    // A first name counts by the field's name alone.
+    expect(
+      getOccurrencePrefilter({
+        dataTypeId: "person-name",
+        location: "attributes.user.first_name",
+        options: options(),
+      }),
+    ).toBe(null);
+
+    const employee: ScanDetector | null = compileCustomDataType({
+      dataTypeId: "custom:employee",
+      pattern: "EMP-[0-9]{6}",
+    });
+
+    expect(
+      getOccurrencePrefilter({
+        dataTypeId: "custom:employee",
+        location: "body",
+        options: options({ customDetectors: [employee!] }),
+      }),
+    ).toBe("EMP\\x{2D}(?:[\\x{30}-\\x{39}]){6}");
+  });
+
+  test("each record carries its value at the location, cut around the data, every sensitive value masked", () => {
+    const result: {
+      occurrences: Array<DataSecurityFindingOccurrence>;
+      recordsRead: number;
+    } = readOccurrenceRows({
+      plan: plan(DataStoreKind.TelemetryLogs, "body"),
+      rows: [
+        rowAt(1, {
+          readSeverity: "Info",
+          readBody: `Ping to ${IP} by ${EMAIL} took 120 ms`,
+        }),
+      ],
+      location: "body",
+      ownerId: SERVICE,
+      caps: CAPS,
+      maskIfFound: matcherFor("ip-address", "body"),
+      excerptOf: buildOccurrenceExcerptReader({
+        dataTypeId: "ip-address",
+        location: "body",
+        options: options(),
+      }),
+      max: MAX_OCCURRENCES,
+    });
+
+    expect(result.occurrences[0]!.excerpt).toEqual({
+      parts: [
+        { kind: DataSecurityOccurrenceExcerptPartKind.Text, text: "Ping to " },
+        {
+          kind: DataSecurityOccurrenceExcerptPartKind.Match,
+          text: "81.***.***.***",
+        },
+        { kind: DataSecurityOccurrenceExcerptPartKind.Text, text: " by " },
+        {
+          kind: DataSecurityOccurrenceExcerptPartKind.Masked,
+          text: MASKED_EMAIL,
+        },
+        {
+          kind: DataSecurityOccurrenceExcerptPartKind.Text,
+          text: " took 120 ms",
+        },
+      ],
+      isCutAtStart: false,
+      isCutAtEnd: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(IP);
+    expect(JSON.stringify(result)).not.toContain(EMAIL);
+  });
+
+  test("a span event's record names its event and key; a folded key's record its own key", () => {
+    const event: DataSecurityFindingOccurrence = readOccurrenceRows({
+      plan: plan(DataStoreKind.TelemetryTraces, "events.login.token"),
+      rows: [
+        rowAt(1, {
+          readTraceId: "t",
+          readSpanId: "s",
+          readName: "login",
+          readEvents: [["login", [["token", `"${GITHUB_TOKEN}"`]]]],
+        }),
+      ],
+      location: "events.login.token",
+      ownerId: SERVICE,
+      caps: CAPS,
+      maskIfFound: matcherFor("github-token", "events.login.token"),
+      excerptOf: buildOccurrenceExcerptReader({
+        dataTypeId: "github-token",
+        location: "events.login.token",
+        options: options(),
+      }),
+      max: MAX_OCCURRENCES,
+    }).occurrences[0]!;
+
+    expect(event.excerpt?.event).toBe("login");
+    expect(event.excerpt?.field).toBe("token");
+
+    const prompt: DataSecurityFindingOccurrence = readOccurrenceRows({
+      plan: plan(
+        DataStoreKind.TelemetryAiConversations,
+        "gen_ai.prompt[].content",
+      ),
+      rows: [
+        rowAt(1, {
+          readAttributes: [["gen_ai.prompt.3.content", `Write to ${EMAIL}`]],
+        }),
+      ],
+      location: "gen_ai.prompt[].content",
+      ownerId: SERVICE,
+      caps: CAPS,
+      maskIfFound: matcherFor("email-address", "gen_ai.prompt[].content"),
+      excerptOf: buildOccurrenceExcerptReader({
+        dataTypeId: "email-address",
+        location: "gen_ai.prompt[].content",
+        options: options(),
+      }),
+      max: MAX_OCCURRENCES,
+    }).occurrences[0]!;
+
+    expect(prompt.excerpt?.field).toBe("gen_ai.prompt.3.content");
+    expect(
+      (prompt.excerpt?.parts || [])
+        .map((part: DataSecurityOccurrenceExcerptPart): string => {
+          return part.text;
+        })
+        .join(""),
+    ).toBe(`Write to ${MASKED_EMAIL}`);
+  });
+
+  describe("the read", () => {
+    let statements: Array<Statement> = [];
+    let answers: Array<Array<JSONObject> | Error> = [];
+
+    beforeEach(() => {
+      statements = [];
+      answers = [];
+      jest
+        .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+        .mockImplementation((async (statement: Statement): Promise<Results> => {
+          statements.push(statement);
+
+          const next: Array<JSONObject> | Error = answers.shift() || [];
+
+          if (next instanceof Error) {
+            throw next;
+          }
+
+          return {
+            json: (): Promise<unknown> => {
+              return Promise.resolve({ data: next });
+            },
+          } as unknown as Results;
+        }) as never);
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    async function findIn(data: {
+      location?: string | undefined;
+      dataTypeId?: string | undefined;
+      sampleRecords?: Array<FindingSampleRecord> | undefined;
+      lastSeenAt?: Date | undefined;
+    }): Promise<DataSecurityFindingOccurrences> {
+      const location: string = data.location || "body";
+
+      return await findTelemetryFindingOccurrences({
+        projectId: PROJECT_ID,
+        plan: plan(DataStoreKind.TelemetryLogs, location),
+        ownerId: SERVICE,
+        location,
+        dataTypeId: data.dataTypeId || "ip-address",
+        options: options(),
+        sampleRecords: data.sampleRecords,
+        lastSeenAt: data.lastSeenAt,
+        now: NOW,
+      });
+    }
+
+    test("the records the last scan kept are read by their milliseconds, unnarrowed, and say so", async () => {
+      const lastSeenAt: Date = new Date("2026-10-22T12:01:00.000Z");
+
+      answers.push([
+        {
+          ownerId: SERVICE,
+          recordTime: String(Date.parse(KEPT_FIRST.time)),
+          readTraceId: KEPT_FIRST.traceId!,
+          readSpanId: KEPT_FIRST.spanId!,
+          readSeverity: "Info",
+          readBody: `Ping to ${IP} succeeded`,
+        },
+      ]);
+
+      const result: DataSecurityFindingOccurrences = await findIn({
+        sampleRecords: [KEPT_FIRST],
+        lastSeenAt,
+      });
+
+      expect(statements.length).toBe(1);
+      expect(statements[0]!.query).toContain("AND ((time >= {");
+      expect(statements[0]!.query).not.toContain("match(substringUTF8(body");
+      expect(result.source).toBe(DataSecurityOccurrencesSource.SampledRecords);
+      expect(result.lastSeenAt).toBe(lastSeenAt.toISOString());
+      expect(result.since).toBe(KEPT_FIRST.time);
+      expect(result.occurrences.length).toBe(1);
+      expect(result.occurrences[0]!.traceId).toBe(KEPT_FIRST.traceId);
+    });
+
+    test("regression: a finding last seen twelve days ago is looked for when it was seen, not in the last week", async () => {
+      const lastSeenAt: Date = new Date(NOW.getTime() - 12 * 86_400_000);
+
+      answers.push([
+        rowAt(12 * 24 * 60 + 20, {
+          readSeverity: "Info",
+          readBody: `Probe 34.120.7.19 responded in 98 ms`,
+        }),
+      ]);
+
+      const result: DataSecurityFindingOccurrences = await findIn({
+        lastSeenAt,
+      });
+
+      expect(String(parameterAfter(statements[0]!, WINDOW_START))).toMatch(
+        /^2026-10-22 10:45:00/,
+      );
+      expect(String(parameterAfter(statements[0]!, WINDOW_END))).toMatch(
+        /^2026-10-22 12:00:00/,
+      );
+      expect(result.source).toBe(DataSecurityOccurrencesSource.SampleWindow);
+      expect(
+        result.occurrences.map(
+          (occurrence: DataSecurityFindingOccurrence): string => {
+            return occurrence.maskedValue;
+          },
+        ),
+      ).toEqual(["34.***.***.***"]);
+    });
+
+    test("regression: the search narrows by the type's patterns, so a busy service's newest lines do not crowd it out", async () => {
+      await findIn({ lastSeenAt: new Date(NOW.getTime() - 86_400_000) });
+
+      expect(statements[0]!.query).toContain(
+        " AND match(substringUTF8(body, 1, {",
+      );
+      expect(parameterValues(statements[0]!)).toContain(
+        getDataTypePrefilter({ dataTypeId: "ip-address" }),
+      );
+    });
+
+    test("a narrowed search the database refuses is read again, as it always was", async () => {
+      answers.push(new Error("Code: 427. DB::Exception: cannot compile re2"), [
+        rowAt(1, { readBody: `Ping to ${IP}` }),
+      ]);
+
+      const result: DataSecurityFindingOccurrences = await findIn({
+        lastSeenAt: new Date(NOW.getTime() - 3_600_000),
+      });
+
+      expect(statements.length).toBe(2);
+      expect(statements[0]!.query).toContain("match(substringUTF8(body");
+      expect(statements[1]!.query).not.toContain("match(substringUTF8(body");
+      expect(result.occurrences.length).toBe(1);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    test("a read that fails narrowed and again unnarrowed says so", async () => {
+      answers.push(
+        new Error("Timeout exceeded"),
+        new Error("Timeout exceeded"),
+      );
+
+      await expect(
+        findIn({ lastSeenAt: new Date(NOW.getTime() - 3_600_000) }),
+      ).rejects.toEqual(
+        new BadDataException(
+          "Could not read these records just now. Try again in a minute.",
+        ),
+      );
+      expect(statements.length).toBe(2);
+    });
+
+    test("a lookup of kept records that fails is not read again", async () => {
+      answers.push(new Error("Timeout exceeded"));
+
+      await expect(findIn({ sampleRecords: [KEPT_FIRST] })).rejects.toEqual(
+        new BadDataException(
+          "Could not read these records just now. Try again in a minute.",
+        ),
+      );
+      expect(statements.length).toBe(1);
+    });
   });
 });

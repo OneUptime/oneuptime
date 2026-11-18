@@ -26,7 +26,7 @@ Clique na sua foto, no canto superior direito do painel.
 | **Perfil** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, seu idioma, sua foto e a segurança do seu login. |
 | **Configurações de admin** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
 | **Tema** | Define o tema do painel: **Claro**, **Escuro** ou **Sistema**, que é claro ou escuro conforme a configuração do seu dispositivo. |
-| **Sair** | Encerra sua sessão. |
+| **Sair** | Encerra sua sessão, na hora, em todos os servidores do OneUptime. Onde o seu administrador configurou, encerra também a sua sessão no provedor de identidade. |
 
 **Perfil do usuário** tem o próprio menu lateral. **Básico** contém **Visão geral** e **Foto do perfil**. **Segurança** e **Zona de perigo** ficam recolhidas: clique no título de uma seção para abri-la.
 

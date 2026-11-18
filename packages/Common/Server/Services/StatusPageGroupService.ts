@@ -6,10 +6,11 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
 import Model from "../../Models/DatabaseModels/StatusPageGroup";
 
@@ -25,17 +26,11 @@ const PARENT_GROUP_KEYS: Array<string> = [
 ];
 
 /*
- * A group moved to another place by a non-root update: where it was, where it
- * goes, and its status page. Read before the update (onBeforeUpdate) and acted
- * on after it (onUpdateSuccess), only if the update wrote that group.
+ * The columns that name the list a group is numbered in: its status page,
+ * in its project. A status page numbers all of its groups in one sequence,
+ * whatever their parent; the tree draws each group's sub groups by it.
  */
-interface GroupMove {
-  groupId: ObjectID;
-  previousOrder: number;
-  newOrder: number;
-  statusPageId: ObjectID;
-  projectId: ObjectID;
-}
+const ORDER_LIST_COLUMNS: Array<string> = ["statusPageId", "projectId"];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -80,17 +75,22 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * A group created at a number keeps it, and moves no other group
+     * (ContiguousOrder): one created without a number goes after the last
+     * group of its status page.
+     */
     if (!createBy.data.order) {
-      const count: PositiveNumber = await this.countBy({
-        query: {
+      const projectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
+
+      createBy.data.order = await ContiguousOrder.getAppendOrder({
+        service: this,
+        list: {
           statusPageId: statusPageId,
-        },
-        props: {
-          isRoot: true,
+          ...(projectId ? { projectId: projectId } : {}),
         },
       });
-
-      createBy.data.order = count.toNumber() + 1;
     }
 
     return {
@@ -100,33 +100,28 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The groups at the new group's place and after it move one place down -
-   * now that it exists, so a create that is refused or fails leaves the
-   * status page's order as it was.
+   * Moves a group to the place another group of its status page holds (POST
+   * /status-page-group/:id/move, Types/Database/MoveInList): the groups
+   * between them step one place towards where it was, in one transaction
+   * holding the page's groups. What the Dashboard's Move up and Move down
+   * send; a write of `order` places the group alone.
    */
   @CaptureSpan()
-  protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
-    createdItem: Model,
-  ): Promise<Model> {
-    if (
-      createdItem.id &&
-      createdItem.order &&
-      createdItem.statusPageId &&
-      createdItem.projectId
-    ) {
-      await ContiguousOrder.afterCreate({
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const moved: { changedRows: Array<{ id: string; order: number }> } =
+      await ContiguousOrder.move({
         service: this,
-        list: {
-          statusPageId: createdItem.statusPageId,
-          projectId: createdItem.projectId,
-        },
-        createdItemId: createdItem.id,
-        order: createdItem.order,
+        rowId: data.id,
+        placeOfId: data.placeOfId,
+        listColumns: ORDER_LIST_COLUMNS,
+        props: data.props,
       });
-    }
 
-    return createdItem;
+    return { changedRows: moved.changedRows };
   }
 
   @CaptureSpan()
@@ -139,68 +134,24 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    let group: Model | null = null;
-
     if (!deleteBy.props.isRoot) {
       /*
-       * The one group the delete removes, and the delete held to it:
-       * the groups after it move up a place once it is gone.
+       * The one group the delete removes, and the delete held to it. The
+       * groups after it keep their numbers (ContiguousOrder): a gap is read
+       * past like any other.
        */
       const found: { row: Model | null; deletesMore: boolean } =
         await this.findOneRowAndHoldDeleteToIt(deleteBy, {
-          order: true,
-          statusPageId: true,
-          projectId: true,
+          _id: true,
         });
 
       if (found.deletesMore) {
         throw new BadDataException("Delete one status page group at a time.");
       }
-
-      group = found.row;
     }
 
     return {
       deleteBy,
-      carryForward: group,
-    };
-  }
-
-  /*
-   * The groups after a deleted one close its gap - only when the group was
-   * actually deleted, within its own status page and project.
-   */
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<Model>,
-    itemIdsBeforeDelete: ObjectID[],
-  ): Promise<OnDelete<Model>> {
-    const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
-    const group: Model | null = onDelete.carryForward;
-
-    if (
-      !deleteBy.props.isRoot &&
-      group &&
-      group.id &&
-      group.order &&
-      group.statusPageId &&
-      group.projectId &&
-      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
-        return id.toString() === group.id!.toString();
-      })
-    ) {
-      await ContiguousOrder.afterDelete({
-        service: this,
-        list: {
-          statusPageId: group.statusPageId,
-          projectId: group.projectId,
-        },
-        order: group.order,
-      });
-    }
-
-    return {
-      deleteBy: deleteBy,
       carryForward: null,
     };
   }
@@ -363,78 +314,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * A group moved to another place: where it is now is read here, and the
-     * groups it passes step aside once the update has moved it - only the
-     * groups strictly between its old and new place. Nothing is written
-     * before the update.
+     * A group given another number takes it, and no other group moves
+     * (ContiguousOrder): Terraform numbers a page's groups one write each,
+     * all at once. Moving a group past others is moveInList.
      */
-    let move: GroupMove | null = null;
-
-    // The one row an update names by its id is the one it moves.
-    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
-
-    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
-      const group: Model | null = await this.findOneBy({
-        query: {
-          _id: movedId,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          statusPageId: true,
-          projectId: true,
-          _id: true,
-        },
-      });
-
-      if (
-        group &&
-        group.id &&
-        group.order &&
-        group.statusPageId &&
-        group.projectId
-      ) {
-        move = {
-          groupId: group.id,
-          previousOrder: group.order,
-          newOrder: updateBy.data.order as number,
-          statusPageId: group.statusPageId,
-          projectId: group.projectId,
-        };
-      }
-    }
-
-    return { updateBy, carryForward: move };
-  }
-
-  @CaptureSpan()
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<Model>,
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<Model>> {
-    const move: GroupMove | null = (onUpdate.carryForward as GroupMove) || null;
-
-    if (
-      move &&
-      updatedItemIds.some((id: ObjectID): boolean => {
-        return id.toString() === move.groupId.toString();
-      })
-    ) {
-      await ContiguousOrder.afterMove({
-        service: this,
-        list: {
-          statusPageId: move.statusPageId,
-          projectId: move.projectId,
-        },
-        movedItemId: move.groupId,
-        previousOrder: move.previousOrder,
-        newOrder: move.newOrder,
-      });
-    }
-
-    return onUpdate;
+    return { updateBy, carryForward: null };
   }
 }
 export default new Service();

@@ -26,7 +26,7 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 | **Profil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, ditt språk, din bild och säkerheten för din inloggning. |
 | **Admin-inställningar** | Öppnar Admin Dashboard. Bara huvudadministratörer för en självhostad installation ser den. |
 | **Tema** | Väljer instrumentpanelens tema: **Ljust**, **Mörkt** eller **System**, som är ljust eller mörkt beroende på hur din enhet är inställd. |
-| **Logga ut** | Loggar ut dig. |
+| **Logga ut** | Loggar ut dig, direkt på varje OneUptime-server. Där din administratör har ställt in det loggar den även ut dig från din identitetsleverantör. |
 
 **Användarprofil** har en egen sidomeny. **Grundläggande** innehåller **Översikt** och **Profilbild**. **Säkerhet** och **Farozon** är hopfällda: klicka på ett avsnitts rubrik för att öppna det.
 

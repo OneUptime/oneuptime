@@ -129,10 +129,19 @@ describe("a database's Overview", () => {
   });
 
   test("its hero has the health pill, and Needs attention comes before any number", () => {
-    expect(code).toContain("health={getDatabaseHealthPill(assessment)}");
+    /*
+     * One list for both: the card's rows, and what a Degraded or Unhealthy
+     * pill opens (#9537).
+     */
+    expect(code).toContain(
+      "const attentionItems: Array<ResourceAttentionItem> = getDatabaseOwnAttentionItems({",
+    );
+    expect(code).toContain(
+      "health={getDatabaseHealthPillWithReasons( getDatabaseHealthPill(assessment), attentionItems, )}",
+    );
     const attention: string = between(code, "needsAttention={", "lastSeenAt=");
     expect(attention).toContain('testId="database-needs-attention"');
-    expect(attention).toContain("getDatabaseOwnAttentionItems({");
+    expect(attention).toContain("items={attentionItems}");
     expect(attention).toContain("showKind={false}");
   });
 

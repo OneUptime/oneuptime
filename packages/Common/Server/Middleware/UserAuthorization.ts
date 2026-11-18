@@ -4,6 +4,7 @@ import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import TeamMemberService from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
+import UserSessionService from "../Services/UserSessionService";
 import CookieUtil from "../Utils/Cookie";
 import {
   ExpressRequest,
@@ -72,6 +73,15 @@ import {
  */
 export const SESSION_LENGTH_ENDED_TOKEN_MESSAGE: string =
   "The session this access token belongs to has reached the server's session length or idle timeout.";
+
+/*
+ * Why readRequestSession calls a session "invalid" when it has ended - signed
+ * out, revoked, a new password, a block - while its access token has not
+ * expired yet (#9534): an expired access token, as the API answers it. The
+ * client renews, the renewal is refused, and the sign-in page says why.
+ */
+export const SESSION_ENDED_TOKEN_MESSAGE: string =
+  "The session this access token belongs to has ended: it was signed out or revoked.";
 
 /*
  * What a request's session is, as every route reads it (readRequestSession):
@@ -168,12 +178,14 @@ export default class UserMiddleware {
   /**
    * The session a request carries, read the one way every route reads it:
    * the access token (cookie or bearer), verified, of a user who is not
-   * blocked, and a master admin's only while their account still is one.
+   * blocked, naming a session that is still live (not signed out or
+   * revoked), and a master admin's only while their account still is one.
    * resolveRequestUser answers each kind for the API, the master-admin gates
    * (MasterAdminAuthorization, the Admin Dashboard's page) ask it too, and
    * routes that only need to know who is asking use getSessionUser. Throws
-   * when whether the user is blocked, or still a master admin, cannot be
-   * looked up: a lookup that fails is an error, not a pass.
+   * when whether the user is blocked, whether their session is live, or
+   * whether they are still a master admin, cannot be looked up: a lookup
+   * that fails is an error, not a pass.
    *
    * Only a session's own access token is a session
    * (JsonWebTokenPurpose.UserSession). Any other token OneUptime signed is
@@ -229,6 +241,32 @@ export default class UserMiddleware {
      */
     if (await UserService.isUserBlocked(session.userId)) {
       return { kind: "blocked", session: session };
+    }
+
+    /*
+     * The session the token names must still be live (#9534). Signing out,
+     * revoking a session, a new password, a block and the session lengths
+     * end it in the database, which stops its refresh token at once; its
+     * access token is stateless and would otherwise work on until it
+     * expires - after a sign-out whose answer was lost, for the next person
+     * at the computer, and for anyone who copied it. Such a token is an
+     * expired one: the client renews, the renewal is refused and says why.
+     * Kept per server, and dropped on every server when a session ends
+     * (UserSessionService.isSessionLive): one primary-key read per session
+     * per server a minute, not one per request. Every session token names
+     * its session (JSONWebToken.isFor refuses one that does not).
+     */
+    if (
+      session.sessionId &&
+      !(await UserSessionService.isSessionLive({
+        sessionId: session.sessionId,
+        userId: session.userId,
+      }))
+    ) {
+      return {
+        kind: "invalid",
+        error: new NotAuthenticatedException(SESSION_ENDED_TOKEN_MESSAGE),
+      };
     }
 
     /*
@@ -294,11 +332,11 @@ export default class UserMiddleware {
   /**
    * The signed-in user a request's session belongs to, decided exactly as
    * the API decides it (readRequestSession), or null: no session, one that
-   * does not verify or has expired, or a blocked user's. For routes that
+   * does not verify, has expired or has ended, or a blocked user's. For routes that
    * answer someone who is not signed in the same way as someone who may not
    * see what they asked for - the image routes (FileViewerAccess) - so an
    * expired session is no one, rather than a 401. Throws when the
-   * blocked-user lookup fails.
+   * blocked-user or the session lookup fails.
    */
   @CaptureSpan()
   public static async getSessionUser(

@@ -30,6 +30,26 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * THE RUNNERS WIRE THE RECENT CHANGES.
@@ -187,6 +207,8 @@ describe("the runners wire the recent changes", () => {
       subjectKind: "incident",
       subjectId: incidentId,
       linked: linked("incident"),
+      // For everyone who may see the incident (#9576).
+      readAudience: readAudienceOf({ projectId }),
     });
 
     const request: InvestigationRequest = sentRequest(executeRun);
@@ -225,6 +247,7 @@ describe("the runners wire the recent changes", () => {
       subjectKind: "alert",
       subjectId: alertId,
       linked: linked("alert"),
+      readAudience: readAudienceOf({ projectId }),
     });
     expect(sentRequest(executeRun).contextSummary).toContain(
       "(12 minutes before this alert)",

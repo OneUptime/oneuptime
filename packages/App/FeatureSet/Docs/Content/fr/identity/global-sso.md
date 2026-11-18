@@ -91,6 +91,12 @@ Deux questions du fournisseur modifient ce comportement, repliées sous **Plus d
 
 Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
 
+## Se déconnecter aussi du fournisseur d'identité
+
+Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, la personne suivante qui se connecte avec ce fournisseur entre donc à la place de celle qui est partie. Sur un fournisseur OpenID Connect, cliquez sur **Modifier la configuration** et activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** : une déconnexion de OneUptime met alors aussi fin à la session chez le fournisseur, et le fournisseur renvoie le navigateur vers la page de connexion de OneUptime. C'est désactivé par défaut, car sur un ordinateur portable personnel cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
+
+Enregistrez l'URI de redirection après déconnexion qu'affiche la carte **URL du fournisseur d'identité** auprès de votre fournisseur, comme post-logout redirect URI autorisée. Un fournisseur dont le document de découverte ne nomme aucun `end_session_endpoint`, comme Google, ne peut pas l'activer.
+
 ## Imposer le SSO
 
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, activez l'exigence pour un projet ou pour toute l'instance :
