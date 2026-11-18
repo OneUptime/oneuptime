@@ -173,6 +173,41 @@ describe("Recorder product analytics", (): void => {
     index.stop();
   });
 
+  /*
+   * A web app's own version (issue #6625): the appVersion option reaches
+   * every event's context, so Events breaks them down by release, and an
+   * app that sets none sends "" as before.
+   */
+  it("sends the page's app version in every event's context", async (): Promise<void> => {
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap({ ...INIT_OPTIONS, appVersion: "2.3.1" }, baseConfig());
+
+    index.track("Signed up");
+    await flushInterval();
+
+    expect(analyticsPosts().length).toBeGreaterThan(0);
+
+    for (const post of analyticsPosts()) {
+      expect(post.batch.context.appVersion).toBe("2.3.1");
+    }
+
+    index.stop();
+  });
+
+  it("sends no app version when the page sets none", async (): Promise<void> => {
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap(INIT_OPTIONS, baseConfig());
+
+    index.track("Signed up");
+    await flushInterval();
+
+    expect(analyticsPosts()[0]?.batch.context.appVersion).toBe("");
+
+    index.stop();
+  });
+
   it("files a recorded session's events under the recording's session", async (): Promise<void> => {
     const index: typeof import("../src/Index") = await importIndex();
 

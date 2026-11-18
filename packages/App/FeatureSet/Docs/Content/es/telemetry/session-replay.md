@@ -90,6 +90,7 @@ El script en `/v1/recorder.js` es un pequeño cargador. Comprueba Do Not Track, 
 | `data-oneuptime-respect-do-not-track` | No | Por defecto respeta Do Not Track y Global Privacy Control. Ponlo en `"false"` para grabar sin tener en cuenta la señal; consulta [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | No | `"true"` imprime las decisiones del grabador en la consola. Consulta [Solución de problemas de reproducción de sesiones](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | No | Ponlo en `"false"` para mantener solo en memoria los fragmentos grabados mientras el visitante está sin conexión, en lugar de guardarlos también en el IndexedDB del navegador. Consulta [Modo sin conexión](#modo-sin-conexión). |
+| `data-oneuptime-app-version` | No | La versión de tu aplicación, como `2.3.1`, hasta 64 caracteres. La Analítica de producto desglosa usuarios y sesiones por ella. |
 
 Las mismas opciones se pueden dar en un global en lugar de en la etiqueta, que es lo que usan los gestores de etiquetas y las instalaciones empaquetadas:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ Para atender una solicitud de borrado, presenta una solicitud de borrado mediant
 
 Dos límites honestos de `ByIdentifiedUserKey`. La clave no se muestra en ninguna parte del panel: vuelve como `identifiedUserKey` en cada fila de la API de la lista de sesiones (`POST /telemetry/rum/session-replay/list`), así que hoy un borrado por usuario empieza con una búsqueda `user:` ahí y una copia de ese campo. Y una sesión grabada mientras **Capturar la identidad del usuario final** estaba desactivado no tiene ninguna clave — no se almacenó nada sobre la persona —, así que solo se puede alcanzar por id de sesión, rango de fechas o aplicación.
 
-Cada solicitud registra su `status` (`Pending`, `InProgress`, `Completed`, `Failed`), los recuentos `sessionsDeleted` y `chunksDeleted` y cualquier `failureReason`; `ReadRumSessionErasureRequest` permite a alguien revisarlas. El borrado elimina la grabación y la telemetría vinculada a esas sesiones, y cualquier grabación que siga en tránsito cuando la solicitud termina se descarta en lugar de escribirse. Un enlace a una sesión borrada responde «erased» en lugar de «not found». La telemetría vinculada es:
+Cada solicitud registra su `status` (`Pending`, `InProgress`, `Completed`, `Failed`), los recuentos `sessionsDeleted`, `chunksDeleted` y `productAnalyticsRowsDeleted` y cualquier `failureReason`; `ReadRumSessionErasureRequest` permite a alguien revisarlas. El borrado elimina la grabación y la telemetría vinculada a esas sesiones, y cualquier grabación que siga en tránsito cuando la solicitud termina se descarta en lugar de escribirse. Un enlace a una sesión borrada responde «erased» en lugar de «not found». La telemetría vinculada es:
 
 - cada span y cada excepción marcados con el id de la sesión, incluidos los spans del backend marcados [automáticamente](#correlacionar-con-el-resto-de-tu-telemetría) en cada servicio que reenvió el contexto de traza, y cualquier registro que lleve él mismo el id;
 - los registros, las excepciones y los spans de cada traza que pertenece solo a las sesiones borradas: cada span marcado de la traza lleva uno de sus ids, y nada en la traza empezó más de diez minutos antes del primero o después del último de esos spans. Eso cubre los registros del backend de las solicitudes que tus páginas hicieron a su propio origen, que comparten un id de traza con esos spans marcados.

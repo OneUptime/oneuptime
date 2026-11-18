@@ -38,6 +38,7 @@ import {
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_VISITOR_ID_PATTERN,
+  toSessionReplayAppVersion,
 } from "./SessionReplay";
 
 /* ---- Where the recorders post. ---- */
@@ -266,7 +267,10 @@ export interface ProductAnalyticsWireContext {
   deviceType: string;
   browserName: string;
   osName: string;
-  /* A mobile app's version; "" for a web page. */
+  /*
+   * The app's version: a mobile app's own, or the one a web page gave the
+   * browser recorder (its appVersion option, issue #6625); "" when unset.
+   */
   appVersion: string;
 }
 
@@ -535,7 +539,8 @@ export function toProductAnalyticsContext(
     deviceType: DEVICE_TYPES.includes(deviceType) ? deviceType : "",
     browserName: toContextValue(record["browserName"]),
     osName: toContextValue(record["osName"]),
-    appVersion: toContextValue(record["appVersion"]),
+    /* As the recorder keeps it: a value with a control character is dropped. */
+    appVersion: toSessionReplayAppVersion(record["appVersion"]),
   };
 }
 

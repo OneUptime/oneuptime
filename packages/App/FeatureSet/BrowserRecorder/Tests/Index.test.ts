@@ -236,4 +236,56 @@ describe("Index bootstrap ordering", (): void => {
 
     index.stop();
   });
+
+  /*
+   * The page's own app version (issue #6625) rides the session's metadata,
+   * which the replay ingest keeps on the session row for Product Analytics'
+   * Sessions page; a page that sets none sends a chunk without it, as
+   * before the option existed.
+   */
+  it("sends the app version with the session's metadata", async (): Promise<void> => {
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap(
+      { ...INIT_OPTIONS, appVersion: "2.3.1" },
+      { ...baseConfig(), samplePercentage: 100 },
+      [],
+    );
+
+    await tick();
+    await tick();
+
+    expect(fetchMock).toHaveBeenCalled();
+
+    const chunkZero: SessionReplayChunkEnvelope = envelopeOf(
+      fetchMock.mock.calls[0] as Array<unknown>,
+    );
+
+    expect(chunkZero.chunkIndex).toBe(0);
+    expect(chunkZero.meta?.appVersion).toBe("2.3.1");
+
+    index.stop();
+  });
+
+  it("leaves the app version out of the metadata when the page sets none", async (): Promise<void> => {
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap(
+      INIT_OPTIONS,
+      { ...baseConfig(), samplePercentage: 100 },
+      [],
+    );
+
+    await tick();
+    await tick();
+
+    const chunkZero: SessionReplayChunkEnvelope = envelopeOf(
+      fetchMock.mock.calls[0] as Array<unknown>,
+    );
+
+    expect(chunkZero.meta).toBeDefined();
+    expect(Object.keys(chunkZero.meta || {})).not.toContain("appVersion");
+
+    index.stop();
+  });
 });

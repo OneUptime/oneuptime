@@ -233,6 +233,7 @@ import {
   purgeErasedSessionsFromActivitySet,
   ResolvedErasureTargets,
   resolveTargetSessionIds,
+  SessionBatchErasureResult,
   writeErasureTombstones,
 } from "../../FeatureSet/Workers/Jobs/Rum/ProcessSessionErasureRequests";
 import {
@@ -694,6 +695,19 @@ describe("Rum:ProcessSessionErasureRequests activity purge", () => {
     jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(resultSetOf([]) as never);
+
+    /* Product analytics' counts before its deletes (issue #6628). */
+    for (const service of [
+      RumProductAnalyticsSessionService,
+      RumProductAnalyticsEventService,
+    ]) {
+      jest
+        .spyOn(
+          service as unknown as { executeQuery: () => Promise<unknown> },
+          "executeQuery",
+        )
+        .mockResolvedValue(resultSetOf([{ paRows: 0 }]) as never);
+    }
 
     for (const service of [
       RumSessionChunkService,
@@ -1520,6 +1534,17 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(resultSetOf([]) as never);
 
+    /*
+     * Product analytics counts what each delete is about to remove (issue
+     * #6628): a summary of each of the two sessions, three events.
+     */
+    jest
+      .spyOn(RumProductAnalyticsSessionService, "executeQuery")
+      .mockResolvedValue(resultSetOf([{ paRows: 2 }]) as never);
+    jest
+      .spyOn(RumProductAnalyticsEventService, "executeQuery")
+      .mockResolvedValue(resultSetOf([{ paRows: 3 }]) as never);
+
     const analyticsServices: Array<{ name: string; service: unknown }> = [
       { name: "chunks", service: RumSessionChunkService },
       { name: "headers", service: RumSessionService },
@@ -1550,13 +1575,16 @@ describe("Rum:ProcessSessionErasureRequests removes pins", () => {
       }) as never) as unknown as ReturnType<typeof jest.fn>;
 
     try {
-      const chunksDeleted: number = await eraseSessionBatch({
+      const erased: SessionBatchErasureResult = await eraseSessionBatch({
         databaseName: databaseName,
         projectId: projectId,
         sessionIds: [sessionId, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
       });
 
-      expect(chunksDeleted).toBe(7);
+      expect(erased).toEqual({
+        chunksDeleted: 7,
+        productAnalyticsRowsDeleted: 5,
+      });
       /*
        * The header goes last of the ClickHouse deletes: three of the four
        * request types find a session through it, so a run that dies

@@ -38,6 +38,18 @@ import { PRODUCT_ANALYTICS_IDENTIFIED_PREFIX } from "../../../Types/Rum/ProductA
  *
  * Every filter starts with the project, and with the application when the
  * request names one.
+ *
+ * A request says how many rows it removed (productAnalyticsRowsDeleted,
+ * issue #6628). A ClickHouse delete returns no count, so each filter's rows
+ * are counted with a SELECT under the same WHERE just before its delete is
+ * queued (buildProductAnalyticsCountStatement): a session summary once,
+ * however many writes of it are still unmerged, a person's month once, and
+ * each event. A delete only lands later, so two deletes of one request must
+ * never match the same rows or those rows would count twice. The batches'
+ * deletes are therefore cut to what the request's last deletes do not take
+ * (buildProductAnalyticsBatchFilters): an application's batches leave
+ * product analytics to its application-wide deletes, and a date range's
+ * leave the summaries and the events inside the range to its range deletes.
  */
 
 /* Sessions one mutation names, as the job's own deletes do. */
@@ -57,6 +69,35 @@ export interface ProductAnalyticsErasureSubject {
    * sessions buildProductAnalyticsUserSessionLookup found.
    */
   sessionIds?: Array<string> | undefined;
+  /*
+   * ByIdentifiedUserKey only. False on a pass whose lookup filled its page,
+   * so more of the user's sessions remain for the next pass: the user's
+   * monthly rows and the events that name them by key wait for the pass
+   * that finds the last of their sessions. Removed earlier, the events by
+   * key would take with them the only rows a later pass finds a session
+   * by, and leave that session's events from before identify() behind.
+   * Left out, the pass is the last.
+   */
+  isFinalPass?: boolean | undefined;
+}
+
+/*
+ * What a batch of the job's (the sessions it found, erased by id with their
+ * recordings) takes from product analytics, by the request that found it:
+ *
+ *  - a list of sessions or a user: their summaries and their events, by id;
+ *  - an application: nothing - its application-wide deletes, last, take
+ *    every row of it, and the batches' would match the same rows again;
+ *  - a date range: the events of its sessions that happened outside the
+ *    range, by id. The sessions started in the range, so their summaries,
+ *    and their events inside it, go with the range deletes.
+ */
+export interface ProductAnalyticsBatchScope {
+  projectId: ObjectID;
+  requestType: RumSessionErasureRequestType;
+  sessionIds: Array<string>;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
 }
 
 /* The product analytics tables that hold rows by session id. */
@@ -86,11 +127,14 @@ function applicationClause(rumApplicationId: string): Statement {
   }}`;
 }
 
-function scopedTo(subject: ProductAnalyticsErasureSubject): Statement {
-  const statement: Statement = projectClause(subject.projectId);
+function scopedTo(scope: {
+  projectId: ObjectID;
+  rumApplicationId?: ObjectID | undefined;
+}): Statement {
+  const statement: Statement = projectClause(scope.projectId);
 
-  if (subject.rumApplicationId) {
-    statement.append(applicationClause(subject.rumApplicationId.toString()));
+  if (scope.rumApplicationId) {
+    statement.append(applicationClause(scope.rumApplicationId.toString()));
   }
 
   return statement;
@@ -106,23 +150,47 @@ function chunk(values: Array<string>, size: number): Array<Array<string>> {
   return chunks;
 }
 
+function distinctSessionIds(
+  sessionIds: Array<string> | undefined,
+): Array<string> {
+  return Array.from(new Set<string>(sessionIds || [])).filter(
+    (sessionId: string): boolean => {
+      return sessionId.length > 0;
+    },
+  );
+}
+
 function bySessionIds(
   subject: ProductAnalyticsErasureSubject,
 ): Array<ProductAnalyticsErasureFilter> {
-  const sessionIds: Array<string> = Array.from(
-    new Set<string>(subject.sessionIds || []),
-  ).filter((sessionId: string): boolean => {
-    return sessionId.length > 0;
+  return buildProductAnalyticsSessionIdFilters({
+    projectId: subject.projectId,
+    rumApplicationId: subject.rumApplicationId,
+    sessionIds: subject.sessionIds || [],
   });
+}
 
+/*
+ * Sessions removed by id, from the summaries and the events (or the tables
+ * named), in mutations of at most PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION
+ * ids. `extra` is appended to every filter's WHERE.
+ */
+export function buildProductAnalyticsSessionIdFilters(data: {
+  projectId: ObjectID;
+  rumApplicationId?: ObjectID | undefined;
+  sessionIds: Array<string>;
+  tableNames?: ReadonlyArray<AnalyticsTableName> | undefined;
+  extra?: (() => Statement) | undefined;
+}): Array<ProductAnalyticsErasureFilter> {
   const filters: Array<ProductAnalyticsErasureFilter> = [];
 
   for (const ids of chunk(
-    sessionIds,
+    distinctSessionIds(data.sessionIds),
     PRODUCT_ANALYTICS_ERASURE_IDS_PER_MUTATION,
   )) {
-    for (const tableName of PRODUCT_ANALYTICS_SESSION_ID_TABLES) {
-      const where: Statement = scopedTo(subject);
+    for (const tableName of data.tableNames ||
+      PRODUCT_ANALYTICS_SESSION_ID_TABLES) {
+      const where: Statement = scopedTo(data);
 
       where.append(
         SQL` AND sessionId IN ${{
@@ -131,11 +199,97 @@ function bySessionIds(
         }}`,
       );
 
+      if (data.extra) {
+        where.append(data.extra());
+      }
+
       filters.push({ tableName: tableName, where: where });
     }
   }
 
   return filters;
+}
+
+/*
+ * What one batch of the job's takes from product analytics (see
+ * ProductAnalyticsBatchScope). Pinned to the project; the ids are the
+ * batch's, which only ever name sessions of the request's subject.
+ */
+export function buildProductAnalyticsBatchFilters(
+  scope: ProductAnalyticsBatchScope,
+): Array<ProductAnalyticsErasureFilter> {
+  switch (scope.requestType) {
+    case RumSessionErasureRequestType.ByRumApplication:
+      return [];
+
+    case RumSessionErasureRequestType.ByDateRange: {
+      if (!scope.startDate || !scope.endDate) {
+        throw new Error("ByDateRange erasure request has no start or end date");
+      }
+
+      const startDate: Date = scope.startDate;
+      const endDate: Date = scope.endDate;
+
+      return buildProductAnalyticsSessionIdFilters({
+        projectId: scope.projectId,
+        sessionIds: scope.sessionIds,
+        tableNames: [AnalyticsTableName.RumProductAnalyticsEvent],
+        extra: (): Statement => {
+          return SQL` AND (time < ${{
+            type: TableColumnType.DateTime64,
+            value: startDate,
+          }} OR time > ${{
+            type: TableColumnType.DateTime64,
+            value: endDate,
+          }})`;
+        },
+      });
+    }
+
+    default:
+      return buildProductAnalyticsSessionIdFilters({
+        projectId: scope.projectId,
+        sessionIds: scope.sessionIds,
+      });
+  }
+}
+
+/*
+ * How one table's rows are counted: a session summary once however many of
+ * its writes are still unmerged (the provisional, finished and pinned rows
+ * of a session fold into one), a person's month once, and every event.
+ */
+const COUNTED_ROWS_SQL: Record<string, string> = {
+  [AnalyticsTableName.RumProductAnalyticsSession]: "uniqExact(sessionId)",
+  [AnalyticsTableName.RumProductAnalyticsUser]: "uniqExact(personKey, month)",
+  [AnalyticsTableName.RumProductAnalyticsEvent]: "count()",
+};
+
+/*
+ * The rows one filter's delete is about to remove, counted under the same
+ * WHERE across the cluster (the Distributed table), as paRows. Run just
+ * before the delete is queued: a delete only lands later, and a count after
+ * it would find the rows still there or gone depending on how far the
+ * mutation got.
+ */
+export function buildProductAnalyticsCountStatement(data: {
+  databaseName: string;
+  filter: ProductAnalyticsErasureFilter;
+}): Statement {
+  const counted: string | undefined = COUNTED_ROWS_SQL[data.filter.tableName];
+
+  if (!counted) {
+    throw new Error(
+      `${data.filter.tableName} is not a product analytics table erasure counts`,
+    );
+  }
+
+  return SQL`SELECT toFloat64(`
+    .append(counted)
+    .append(
+      SQL`) AS paRows FROM ${data.databaseName}.${data.filter.tableName} WHERE `,
+    )
+    .append(data.filter.where);
 }
 
 /*
@@ -155,6 +309,14 @@ export function buildProductAnalyticsErasureFilters(
 
       if (!userKey) {
         throw new Error("ByIdentifiedUserKey erasure request has no user key");
+      }
+
+      /*
+       * More of the user's sessions remain: only the ones found go now,
+       * and the rows by key wait for the last pass (isFinalPass).
+       */
+      if (subject.isFinalPass === false) {
+        return bySessionIds(subject);
       }
 
       const months: Statement = scopedTo(subject);

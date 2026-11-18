@@ -13,7 +13,7 @@ Die Produktanalyse zählt die Menschen, die eine RUM-Anwendung nutzen, wie ihre 
 
 ## Wie Personen gezählt werden
 
-Das Seitenmenü einer Anwendung hat einen Abschnitt **Produktanalyse**: **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse** und **Analyseeinstellungen**. **Benutzer** und **Sitzungen** zählen die Sitzungen, die die Sitzungswiedergabe aufzeichnet: Sie beginnen also, wenn der Recorder der Anwendung beginnt, und eine Sitzung, die die Wiedergaberichtlinie nicht aufzeichnet, wird nicht gezählt. Jede Sitzung zählt für eine Person oder für niemanden:
+Das Seitenmenü einer Anwendung hat einen Abschnitt **Produktanalyse**: **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse** und **Analyseeinstellungen**. **Benutzer** und **Sitzungen** zählen die Sitzungen, die die Sitzungswiedergabe aufzeichnet: Sie beginnen also, wenn der Recorder der Anwendung beginnt, und eine Sitzung, die die Wiedergaberichtlinie nicht aufzeichnet, wird nicht gezählt. Auf einer Installation, die von einer Version ohne Produktanalyse aktualisiert wurde, kopiert das Upgrade die Sitzungen hinein, die die Sitzungswiedergabe noch aufbewahrte, sodass sie mit der ältesten noch aufbewahrten Aufzeichnung beginnen. Jede Sitzung zählt für eine Person oder für niemanden:
 
 ```mermaid title="Für wen eine Sitzung zählt"
 flowchart TB
@@ -42,12 +42,12 @@ Tage werden in Ihrer eigenen Zeitzone gezählt.
 | **Neue Benutzer** | Aktive Benutzer, deren erster Besuch im Zeitraum lag. |
 | **Wiederkehrende Benutzer** | Aktive Benutzer, die schon vor Beginn des Zeitraums gekommen waren. |
 | **Angemeldete Benutzer** | Aktive Benutzer, die Ihre App mit `identify()` angemeldet hat, und ihr Anteil an allen aktiven Benutzern. |
-| **Benutzer insgesamt** | Alle, die die Anwendung in den letzten 13 Monaten gesehen hat. |
+| **Benutzer insgesamt** | Alle, die die Anwendung in den Monaten gesehen hat, für die ihre Zahlen aufbewahrt werden (standardmäßig 13). |
 | **Inaktive Benutzer** | Personen, die früher gekommen sind, aber nicht in den letzten 30 Tagen, oder in den 7, 14, 60 oder 90 Tagen, die Sie wählen. |
 
 Die ersten drei zeigen auch, wie sie sich gegenüber dem Zeitraum davor verändert haben. Unter den Kacheln zeichnet **Aktive Benutzer** für jeden Tag die Personen, die an diesem Tag gekommen sind, die in den 7 Tagen bis dahin und die in den 30 Tagen bis dahin, und **Neue und wiederkehrende Benutzer** teilt die Personen jedes Tages in zwei.
 
-**Personen** listet alle, die die Kacheln zählen, eine Zeile pro Person, zuletzt gesehene zuerst, und sein Filter zeigt die Personen einer Kachel, die anonymen Besucher oder alle. Öffnen Sie eine Person, um ihren ersten und letzten Besuch und jede ihrer Sitzungen aus den letzten 13 Monaten zu sehen, mit **Ansehen** bei jeder, deren Aufzeichnung noch aufbewahrt wird.
+**Personen** listet alle, die die Kacheln zählen, eine Zeile pro Person, zuletzt gesehene zuerst, und sein Filter zeigt die Personen einer Kachel, die anonymen Besucher oder alle. Öffnen Sie eine Person, um ihren ersten und letzten Besuch und jede ihrer Sitzungen aus den aufbewahrten Monaten zu sehen, mit **Ansehen** bei jeder, deren Aufzeichnung noch aufbewahrt wird.
 
 ## Sitzungen
 
@@ -55,7 +55,7 @@ Die ersten drei zeigen auch, wie sie sich gegenüber dem Zeitraum davor verände
 
 - **Sitzungen nach Gerät** zeichnet die Sitzungen jedes Tages von Desktops, Telefonen und Tablets. Die Sitzung einer mobilen App auf einem Bildschirm, dessen kürzere Seite 600 Punkte oder mehr misst, zählt als die eines Tablets.
 - **Sitzungsdauer** ordnet die beendeten Sitzungen danach, wie lange sie gedauert haben, von unter 10 Sekunden bis über 30 Minuten. Eine Sitzung, die noch aufgezeichnet wird, hat noch keine Dauer.
-- **Aufschlüsselung** reiht Benutzer und Sitzungen nach Gerätetyp, Browser, Betriebssystem, Land, App-Version, Einstiegsseite oder Seite, die meisten Benutzer zuerst.
+- **Aufschlüsselung** reiht Benutzer und Sitzungen nach Gerätetyp, Browser, Betriebssystem, Land, App-Version, Einstiegsseite oder Seite, die meisten Benutzer zuerst. Die Version einer Web-App ist die, die ihre Seite der Option `appVersion` des Recorders übergibt; eine mobile App meldet ihre eigene.
 
 ## Ereignisse und Metriken senden
 
@@ -138,9 +138,9 @@ Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf
 
 ## Datenschutz und Aufbewahrung
 
-- **13 Monate.** Die Zahlen eines Monats werden am ersten Tag des 13. Monats danach entfernt, sodass die letzten 12 vollen Monate immer da sind, unabhängig von der eigenen Aufbewahrung der Aufzeichnungen (standardmäßig 7 Tage). Ereignisse werden ebenso aufbewahrt.
+- **13 Monate.** Die Zahlen eines Monats werden am ersten Tag des 13. Monats danach entfernt, sodass die letzten 12 vollen Monate immer da sind, unabhängig von der eigenen Aufbewahrung der Aufzeichnungen (standardmäßig 7 Tage). Ereignisse werden ebenso aufbewahrt. 13 Monate sind der Standard: Eine Anwendung kann stattdessen 3, 6 oder 25 aufbewahren, gewählt in **Aufbewahrung der Produktanalyse** unter **Weitere Einstellungen** auf ihrer Seite **Analyseeinstellungen**, und eine kürzere Wahl entfernt die älteren Monate innerhalb eines Tages.
 - **Keine gespeicherten Namen.** Die Zahlen bewahren den Einweg-Schlüssel eines angemeldeten Benutzers und die Besucher-ID eines Browsers auf, nie die Referenz oder eine IP-Adresse, und von den Merkmalen nur die Benutzereigenschaften, die Sie auflisten. Eine Zeile nennt einen angemeldeten Benutzer nur, solange eine seiner Aufzeichnungen noch aufbewahrt wird, und nur einer Rolle, die die Identität lesen darf; sonst steht dort **Angemeldeter Benutzer** oder **Anonymer Besucher** und der Anfang der ID.
-- **Auf Anfrage gelöscht.** Eine Löschanfrage entfernt auch hier die passenden Zahlen und Ereignisse (siehe [Sitzungen löschen](/docs/telemetry/session-replay#sitzungen-löschen)).
+- **Auf Anfrage gelöscht.** Eine Löschanfrage entfernt auch hier die passenden Zahlen und Ereignisse (siehe [Sitzungen löschen](/docs/telemetry/session-replay#sitzungen-löschen)). Ihr Zähler `productAnalyticsRowsDeleted` sagt, wie viele Zeilen sie hier entfernt hat.
 
 ## Wer sie sehen kann
 
@@ -148,7 +148,7 @@ Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadR
 
 Gespeicherte Trichter und Bindungstabellen zu speichern, umzubenennen und zu löschen erfordert dieselben Berechtigungen wie das Lesen dieser Seiten, und ein Dashboard-Widget zeigt sie nur einem Leser, der sie hat.
 
-Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle Projektinhaber, Projektadministrator oder Projektmitglied. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird.
+Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle Projektinhaber, Projektadministrator oder Projektmitglied. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird. Festzulegen, wie lange die Zahlen aufbewahrt werden, erfordert dasselbe wie das Ein- oder Ausschalten der Ereignisse.
 
 ## Nächste Schritte
 

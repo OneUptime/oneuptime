@@ -1,0 +1,48 @@
+# A ClickHouse cluster of one shard and two replicas, coordinated by
+# ClickHouse Keeper, as a replicated OneUptime install runs: for
+# Tests/Workers/RumProductAnalyticsErasureKeeperClickhouse.test.ts (#6627),
+# which runs session replay erasure's product analytics deletes ON CLUSTER
+# and checks both replicas. Throwaway: no volumes, password "test", ports on
+# 127.0.0.1 only.
+#
+#   docker compose -f Tests/Workers/Fixtures/ClickhouseKeeperCluster/docker-compose.yml up -d --wait
+#   TEST_CLICKHOUSE_KEEPER_CLUSTER_URL=http://default:test@localhost:18461 \
+#     npx jest Tests/Workers/RumProductAnalyticsErasureKeeperClickhouse.test.ts
+#   docker compose -f Tests/Workers/Fixtures/ClickhouseKeeperCluster/docker-compose.yml down
+#
+# CLICKHOUSE_IMAGE picks another version (24.8 is the oldest OneUptime
+# supports): CLICKHOUSE_IMAGE=clickhouse/clickhouse-server:24.8 docker compose ...
+name: oneuptime-clickhouse-keeper-test
+
+x-replica: &replica
+  image: ${CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:26.7}
+  environment:
+    CLICKHOUSE_PASSWORD: test
+  ulimits:
+    nofile:
+      soft: 262144
+      hard: 262144
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://localhost:8123/ping"]
+    interval: 2s
+    timeout: 5s
+    retries: 60
+
+services:
+  replica-1:
+    <<: *replica
+    hostname: replica-1
+    ports:
+      - "127.0.0.1:18461:8123"
+    volumes:
+      - ./replica-1.xml:/etc/clickhouse-server/config.d/keeper-cluster.xml:ro
+
+  replica-2:
+    <<: *replica
+    hostname: replica-2
+    ports:
+      - "127.0.0.1:18462:8123"
+    volumes:
+      - ./replica-2.xml:/etc/clickhouse-server/config.d/keeper-cluster.xml:ro
+    depends_on:
+      - replica-1

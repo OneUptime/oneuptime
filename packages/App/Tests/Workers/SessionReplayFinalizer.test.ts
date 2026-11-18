@@ -884,6 +884,7 @@ function makeProvisionalHeader(
     recorderKind: "dom",
     recorderVersion: "1.0.0",
     rrwebVersion: "2.1.0",
+    appVersion: "",
     countryCode: "GB",
     identifiedUserKey: "a".repeat(32),
     identifiedUserLabel: "",
@@ -1628,6 +1629,23 @@ describe("Rum:FinalizeSessions header row", () => {
    *     the second load, because a new page load mints a new tabId and
    *     therefore a second chunkIndex === 0.
    */
+  /*
+   * A web page's own app version (issue #6625) is a fact of the session the
+   * ingest stored, like the browser beside it: the finalized row carries
+   * the provisional header's, and a session with no header has none.
+   */
+  test("carries the web page's app version from the provisional header", () => {
+    const rows: Array<RawChunkRow> = [makeChunkRow({ chunkIndex: 0 })];
+
+    expect(
+      rowFor(rows, makeProvisionalHeader({ appVersion: "2.3.1" }))[
+        "appVersion"
+      ],
+    ).toBe("2.3.1");
+    expect(rowFor(rows, makeProvisionalHeader())["appVersion"]).toBe("");
+    expect(rowFor(rows, null)["appVersion"]).toBe("");
+  });
+
   describe("entry, exit and route derivation", () => {
     const HOME: string = "https://shop.example.com/";
     const CART: string = "https://shop.example.com/cart";
@@ -2675,6 +2693,19 @@ describe("Rum:FinalizeSessions row parsing", () => {
     expect(
       parseProvisionalHeaderRow(headerRowOf({ visitorId: "" })).visitorId,
     ).toBe("");
+  });
+
+  test("the provisional header's app version is mapped, and a row that predates the column reads as empty", () => {
+    expect(
+      parseProvisionalHeaderRow(headerRowOf({ appVersion: "2.3.1" }))
+        .appVersion,
+    ).toBe("2.3.1");
+
+    /* A header written before the column (#6625) has no version at all. */
+    const legacy: JSONObject = headerRowOf();
+    delete legacy["appVersion"];
+
+    expect(parseProvisionalHeaderRow(legacy).appVersion).toBe("");
   });
 });
 
