@@ -38,15 +38,19 @@ export interface DataBiSource {
   location: string | null;
 }
 
-// A dataset a dashboard charts (a Power BI semantic model).
+// A dataset a dashboard charts (a Power BI semantic model), and where its data comes from.
 export interface DataDashboardDataset {
+  // Its id in the tool, in lower case: one dataset is charted by many dashboards.
+  id: string | null;
   name: string;
   workspace: string | null;
+  sources: Array<DataBiSource>;
 }
 
 // What a dashboard is built on, as its tool says (DataDashboard.upstream).
 export interface DataDashboardUpstream {
   datasets: Array<DataDashboardDataset>;
+  // Every dataset's sources together, each once.
   sources: Array<DataBiSource>;
 }
 
@@ -82,6 +86,13 @@ export interface DataBiLineageSource extends DataBiSource {
   // The watched database it is, when it is one.
   dataStoreId: string | null;
   dataStoreName: string | null;
+  /*
+   * A database OneUptime could watch and does not: the kind to connect it
+   * as (a DataStoreKind), and a connection string to start from, its user
+   * and password placeholders.
+   */
+  connectKind?: string | null | undefined;
+  connectionExample?: string | null | undefined;
 }
 
 // What Power BI's scan said of the datasets behind the dashboards.
@@ -177,7 +188,15 @@ export function readDataDashboardUpstream(
         const name: string | null = readText(dataset?.["name"]);
 
         return name
-          ? { name, workspace: readText(dataset?.["workspace"]) }
+          ? {
+              id: readText(dataset?.["id"])?.toLowerCase() || null,
+              name,
+              workspace: readText(dataset?.["workspace"]),
+              sources: readArray(dataset?.["sources"])
+                .map(readDataBiSource)
+                .filter(isPresent)
+                .slice(0, MAX_DATA_DASHBOARD_SOURCES),
+            }
           : null;
       })
       .filter(isPresent)
@@ -234,6 +253,8 @@ export function readDataBiLineageSummary(
               matchedTableCount: readCount(fields["matchedTableCount"]),
               dataStoreId: readText(fields["dataStoreId"]),
               dataStoreName: readText(fields["dataStoreName"]),
+              connectKind: readText(fields["connectKind"]),
+              connectionExample: readText(fields["connectionExample"]),
             }
           : null;
       })
@@ -270,4 +291,21 @@ export function getDataBiSourceName(source: DataBiSource): string {
 // Whether a source is a database OneUptime could watch: one it names an engine of.
 export function isDataBiDatabaseSource(source: DataBiSource): boolean {
   return Boolean(source.engine);
+}
+
+/*
+ * Whether a tool's dashboards were read but are on no watched table, for a
+ * reason its summary names: what the Lineage Map tells of when it cannot
+ * draw them on tables.
+ */
+export function isDataBiToolOffTables(data: {
+  dashboardCount?: number | null | undefined;
+  matchedTableCount?: number | null | undefined;
+  summary: DataBiLineageSummary | null;
+}): boolean {
+  return (
+    (data.dashboardCount || 0) > 0 &&
+    (data.matchedTableCount || 0) === 0 &&
+    Boolean(data.summary && data.summary.problems.length > 0)
+  );
 }

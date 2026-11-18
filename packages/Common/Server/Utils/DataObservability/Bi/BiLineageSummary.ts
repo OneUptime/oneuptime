@@ -8,10 +8,12 @@ import {
   MAX_DATA_BI_LINEAGE_SOURCES,
   MAX_DATA_BI_UNWATCHED_TABLES,
 } from "../../../../Types/DataObservability/DataBiLineage";
+import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import { getCollectorEngineOfKind } from "../DataObservabilityEngines";
+import { buildConnectionExample } from "../DataSourceSuggestions";
 import { ProjectCatalog } from "../OpenLineageIngest";
 import { UsageAsset, UsageStore } from "../TableUsageMatching";
-import { isSameBiHost, matchBiTable } from "./BiMatching";
+import { isSameBiHost, matchBiTable, readBiHost } from "./BiMatching";
 import { BiSourceRead, collectBiSources } from "./BiSources";
 import { BiTableRef, getBiTableKey, getBiTableName } from "./BiTables";
 
@@ -51,6 +53,55 @@ function isSameEngine(a: string, b: string): boolean {
   };
 
   return alike(a) === alike(b);
+}
+
+// Each engine OneUptime watches, as the kind a database of it is connected as.
+const KIND_OF_ENGINE: Readonly<Record<string, DataStoreKind>> = {
+  sqlserver: DataStoreKind.SqlServer,
+  postgresql: DataStoreKind.PostgreSql,
+  mysql: DataStoreKind.MySql,
+  redshift: DataStoreKind.AwsRedshiftCluster,
+  snowflake: DataStoreKind.Snowflake,
+  bigquery: DataStoreKind.GcpBigQueryDataset,
+  clickhouse: DataStoreKind.ClickHouse,
+  databricks: DataStoreKind.Databricks,
+  athena: DataStoreKind.AwsAthena,
+  oracle: DataStoreKind.Oracle,
+  mongodb: DataStoreKind.MongoDb,
+  dataverse: DataStoreKind.Dataverse,
+};
+
+const PORT: RegExp = /[:,](\d{2,5})(?:$|[/\\;])/;
+
+/*
+ * How to connect a database OneUptime does not watch yet: the kind it is,
+ * and a connection string to start from, with its user and password
+ * placeholders. Nothing for a source that is no database.
+ */
+export function getConnectHint(source: DataBiSource): {
+  connectKind: string | null;
+  connectionExample: string | null;
+} {
+  const kind: DataStoreKind | undefined = source.engine
+    ? KIND_OF_ENGINE[source.engine]
+    : undefined;
+
+  if (!kind) {
+    return { connectKind: null, connectionExample: null };
+  }
+
+  const host: string = readBiHost(source.server);
+  const port: RegExpMatchArray | null = (source.server || "").match(PORT);
+
+  return {
+    connectKind: kind,
+    connectionExample: buildConnectionExample({
+      kind,
+      host: host || null,
+      port: port ? Number(port[1]) : null,
+      databaseName: source.database,
+    }),
+  };
 }
 
 // The project's database a source is, where it is one OneUptime watches.
@@ -244,6 +295,10 @@ export function summarizeBiLineage(data: {
         dataStoreName: store
           ? data.catalog.storeNames.get(store.dataStoreId) || null
           : null,
+        // Watched already: nothing to connect.
+        ...(store
+          ? { connectKind: null, connectionExample: null }
+          : getConnectHint(read.source)),
       };
     })
     .sort((a: DataBiLineageSource, b: DataBiLineageSource): number => {

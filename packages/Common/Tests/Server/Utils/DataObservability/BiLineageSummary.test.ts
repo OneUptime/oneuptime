@@ -7,6 +7,7 @@ import {
 import {
   findBiSourceStore,
   getBiLineageProblems,
+  getConnectHint,
   summarizeBiLineage,
 } from "../../../../Server/Utils/DataObservability/Bi/BiLineageSummary";
 import {
@@ -235,6 +236,85 @@ describe("whether OneUptime watches a source", () => {
   });
 });
 
+describe("how to connect a database OneUptime does not watch", () => {
+  test("its kind, and a connection string to start from, user and password left to fill in", () => {
+    expect(
+      getConnectHint(
+        getBiDatabaseSource(
+          "sqlserver",
+          "tcp:sql01.corp.acme.com,1433",
+          "Facilities",
+        ),
+      ),
+    ).toEqual({
+      connectKind: DataStoreKind.SqlServer,
+      connectionExample:
+        "mssql://USER:PASSWORD@sql01.corp.acme.com:1433/Facilities",
+    });
+    expect(
+      getConnectHint(
+        getBiDatabaseSource("postgresql", "pg.acme.com:6543", "shop"),
+      ),
+    ).toEqual({
+      connectKind: DataStoreKind.PostgreSql,
+      connectionExample:
+        "postgres://USER:PASSWORD@pg.acme.com:6543/shop?sslmode=require",
+    });
+    // A warehouse connects by its own form, from its kind.
+    expect(
+      getConnectHint(
+        getBiDatabaseSource("snowflake", "acme.snowflakecomputing.com", null),
+      ),
+    ).toEqual({
+      connectKind: DataStoreKind.Snowflake,
+      connectionExample: null,
+    });
+    expect(getConnectHint(SHAREPOINT)).toEqual({
+      connectKind: null,
+      connectionExample: null,
+    });
+    expect(
+      getConnectHint(getBiDatabaseSource("teradata", "td01", null)),
+    ).toEqual({
+      connectKind: null,
+      connectionExample: null,
+    });
+  });
+
+  test("a database not connected says so in the summary; a watched one does not", () => {
+    const summary: DataBiLineageSummary = summarizeBiLineage({
+      dashboards: [{ tables: [] }],
+      catalog: catalog(),
+      sources: collectBiSources([
+        {
+          sources: [getBiDatabaseSource("sqlserver", "sql03", "Billing")],
+          tables: [],
+        },
+        { sources: [SQL01_SALES], tables: [] },
+      ]),
+    });
+
+    // As many readers each, so by name.
+    expect(summary.sources).toEqual([
+      expect.objectContaining({
+        database: "Sales",
+        dataStoreId: "store-sales",
+        connectKind: null,
+        connectionExample: null,
+      }),
+      expect.objectContaining({
+        database: "Billing",
+        dataStoreId: null,
+        connectKind: DataStoreKind.SqlServer,
+        connectionExample: "mssql://USER:PASSWORD@sql03:1433/Billing",
+      }),
+    ]);
+    expect(summary.problems).toEqual([
+      DataBiLineageProblem.DatabasesNotConnected,
+    ]);
+  });
+});
+
 describe("what keeps dashboards off their tables", () => {
   function problems(
     data: Partial<Parameters<typeof getBiLineageProblems>[0]>,
@@ -366,6 +446,8 @@ describe("a tool's summary", () => {
           matchedTableCount: 1,
           dataStoreId: "store-sales",
           dataStoreName: "Sales DB",
+          connectKind: null,
+          connectionExample: null,
         },
         {
           ...SHAREPOINT,
@@ -374,6 +456,9 @@ describe("a tool's summary", () => {
           matchedTableCount: 0,
           dataStoreId: null,
           dataStoreName: null,
+          // No database: nothing to connect.
+          connectKind: null,
+          connectionExample: null,
         },
       ],
       moreSourceCount: 0,
@@ -491,6 +576,8 @@ describe("a tool's summary", () => {
           matchedTableCount: 0,
           dataStoreId: null,
           dataStoreName: null,
+          connectKind: null,
+          connectionExample: null,
         },
       ],
       moreSourceCount: 0,
@@ -499,11 +586,16 @@ describe("a tool's summary", () => {
     });
     expect(
       readDataDashboardUpstream({
-        datasets: [{ name: "Sales" }, { workspace: "x" }],
+        datasets: [
+          { name: "Sales", id: "ABC", sources: [SHAREPOINT, { type: "" }] },
+          { workspace: "x" },
+        ],
         sources: [SHAREPOINT, { location: "no type" }],
       }),
     ).toEqual({
-      datasets: [{ name: "Sales", workspace: null }],
+      datasets: [
+        { id: "abc", name: "Sales", workspace: null, sources: [SHAREPOINT] },
+      ],
       sources: [SHAREPOINT],
     });
   });
@@ -535,7 +627,14 @@ describe("the read keeps the summary on the tool, and what each dashboard is bui
       changedAt: null,
       tables: [sqlTable("Orders")],
       upstream: {
-        datasets: [{ name: "Sales Model", workspace: "Finance" }],
+        datasets: [
+          {
+            id: "ds1",
+            name: "Sales Model",
+            workspace: "Finance",
+            sources: [SQL01_SALES],
+          },
+        ],
         sources: [SQL01_SALES],
       },
     };
@@ -572,7 +671,14 @@ describe("the read keeps the summary on the tool, and what each dashboard is bui
       .data as DataDashboard;
 
     expect(readDataDashboardUpstream(created.upstream)).toEqual({
-      datasets: [{ name: "Sales Model", workspace: "Finance" }],
+      datasets: [
+        {
+          id: "ds1",
+          name: "Sales Model",
+          workspace: "Finance",
+          sources: [SQL01_SALES],
+        },
+      ],
       sources: [SQL01_SALES],
     });
 

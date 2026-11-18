@@ -267,7 +267,8 @@ export default class DataBiSync {
           lastSyncWarning: getWarningText(read.warnings, credentialsText),
           dashboardCount: result.dashboardCount,
           matchedTableCount: result.matchedTableCount,
-          lineageSummary: lineageSummary as unknown as JSONObject,
+          // JSON, as failedRefreshes below: its type is too deep for an update's.
+          lineageSummary: lineageSummary as never,
           ...(read.usage
             ? {
                 usageReadFrom: new Date(read.usage.range.from),

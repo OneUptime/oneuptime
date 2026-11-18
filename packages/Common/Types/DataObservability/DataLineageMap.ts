@@ -6,6 +6,14 @@ import {
 import DataAssetKind from "./DataAssetKind";
 import DataAssetLineageSource from "./DataAssetLineageSource";
 import { DataAssetAccessKind } from "./DataAssetUsage";
+import {
+  DataBiLineageSummary,
+  DataBiSource,
+  DataDashboardDataset,
+  DataDashboardUpstream,
+  getDataBiSourceName,
+  isDataBiDatabaseSource,
+} from "./DataBiLineage";
 
 /*
  * THE PROJECT'S LINEAGE MAP: WHO WRITES AND READS WHICH DATA, AND WHERE IT
@@ -26,6 +34,15 @@ import { DataAssetAccessKind } from "./DataAssetUsage";
  *    Read), or a BI dashboard or reverse ETL sync is built on it
  *    (DataDashboard's tables).
  *
+ * A dashboard needs no other flow to be drawn: one built on watched tables
+ * that nothing else touches is drawn with them, in the room the flows
+ * leave. And a dashboard built on no watched table is drawn with what its
+ * tool says it is built on (DataDashboard.upstream, Power BI): its
+ * datasets, and the data sources they are loaded from - a database
+ * OneUptime does not watch, a file, a web page - so a project whose BI
+ * tool reads data OneUptime does not watch still sees where it comes
+ * from.
+ *
  * A project can have tens of thousands of tables, and a drawing past a few
  * hundred cards is read by nobody, so the map holds the flows seen most
  * recently first, at most MAX_DATA_LINEAGE_MAP_NODES cards, and says when
@@ -41,6 +58,10 @@ export enum DataLineageMapNodeKind {
   Table = "Table",
   Pipeline = "Pipeline",
   Dashboard = "Dashboard",
+  // A BI tool's model a dashboard charts: a Power BI dataset.
+  Dataset = "Dataset",
+  // Where a dataset's data comes from, as its BI tool says, when OneUptime watches none of its tables.
+  Source = "Source",
 }
 
 export enum DataLineageMapEdgeKind {
@@ -85,6 +106,17 @@ export const MAX_DATA_LINEAGE_MAP_DASHBOARDS: number = 100;
 // The most operations an arrow from a service names.
 export const MAX_DATA_LINEAGE_MAP_OPERATIONS: number = 6;
 
+// The most BI tools the map tells of whose dashboards are on no watched table.
+export const MAX_DATA_LINEAGE_MAP_BI_TOOLS: number = 20;
+
+// The most BI dashboards read to fill the room the flows leave: more than are drawn, to pass those drawn already.
+export const MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS: number = 300;
+
+// The most tables drawn for a dashboard no flow draws, and datasets and sources for one on no watched table.
+export const MAX_DATA_LINEAGE_MAP_TABLES_PER_DASHBOARD: number = 10;
+export const MAX_DATA_LINEAGE_MAP_DATASETS_PER_DASHBOARD: number = 5;
+export const MAX_DATA_LINEAGE_MAP_SOURCES_PER_DATASET: number = 5;
+
 export interface DataLineageMapPipeline {
   dataPipelineId: string;
   name: string;
@@ -120,6 +152,13 @@ export interface DataLineageMapNode {
   dataDashboardId?: string | undefined;
   tool?: string | null | undefined;
   url?: string | null | undefined;
+
+  // A dataset's: its workspace.
+  workspace?: string | null | undefined;
+
+  // A data source's: what it is (SQL Server, SharePoint, Excel file...), and whether it is a database.
+  sourceType?: string | null | undefined;
+  isDatabaseSource?: boolean | undefined;
 }
 
 export interface DataLineageMapEdge {
@@ -143,6 +182,20 @@ export interface DataLineageMap {
   edges: Array<DataLineageMapEdge>;
   // More flows than one map holds: the newest are drawn.
   isTruncated: boolean;
+  /*
+   * The BI tools whose dashboards were read but are on no watched table,
+   * each with why (DataBiLineageSummary): what the map says it cannot
+   * draw on tables. Left out when there are none.
+   */
+  biToolsOffTables?: Array<DataLineageMapBiTool> | undefined;
+}
+
+export interface DataLineageMapBiTool {
+  dataBiConnectionId: string;
+  name: string;
+  tool: string | null;
+  dashboardCount: number;
+  summary: DataBiLineageSummary;
 }
 
 // One DataAssetLineage row, as the map reads it.
@@ -191,6 +244,8 @@ export interface DataLineageMapDashboardRow {
   url: string | null;
   // The tables it is built on, of those asked about.
   dataAssetIds: Array<string>;
+  // What its tool says it is built on (Power BI): its datasets and their data sources.
+  upstream?: DataDashboardUpstream | null | undefined;
 }
 
 // What was chosen to draw, before the tables, pipelines and dashboards are read.
@@ -201,6 +256,22 @@ export interface DataLineageMapChoice {
   dataPipelineIds: Array<string>;
   // Cards left for dashboards.
   dashboardRoom: number;
+  // Cards the flows draw.
+  nodeCount: number;
+  isTruncated: boolean;
+}
+
+/*
+ * The dashboards drawn in the room the flows leave: those on watched
+ * tables no flow draws, and those on no watched table, with what their
+ * tool says they are built on.
+ */
+export interface DataLineageMapBiChoice {
+  // Each with the tables drawn for it: at most MAX_DATA_LINEAGE_MAP_TABLES_PER_DASHBOARD.
+  tableDashboards: Array<DataLineageMapDashboardRow>;
+  upstreamDashboards: Array<DataLineageMapDashboardRow>;
+  // The tables they need drawn that no flow draws.
+  dataAssetIds: Array<string>;
   isTruncated: boolean;
 }
 
@@ -214,6 +285,101 @@ export function getLineageMapPipelineNodeId(dataPipelineId: string): string {
 
 export function getLineageMapDashboardNodeId(dataDashboardId: string): string {
   return `dashboard:${dataDashboardId}`;
+}
+
+// A dataset by its id in its tool; one with none by its name and workspace.
+export function getLineageMapDatasetNodeId(
+  dataset: Pick<DataDashboardDataset, "id" | "name" | "workspace">,
+): string {
+  return dataset.id
+    ? `dataset:${dataset.id.toLowerCase()}`
+    : `dataset-name:${[dataset.workspace, dataset.name]
+        .map((part: string | null): string => {
+          return (part || "").trim().toLowerCase();
+        })
+        .join("|")}`;
+}
+
+// A data source by what it is and where.
+export function getLineageMapSourceNodeId(source: DataBiSource): string {
+  return `source:${[
+    source.type,
+    source.server,
+    source.database,
+    source.location,
+  ]
+    .map((part: string | null): string => {
+      return (part || "").trim().toLowerCase();
+    })
+    .join("|")}`;
+}
+
+// The cards a dashboard on no watched table is drawn with: its datasets, each with its sources.
+export interface DataLineageMapUpstreamCards {
+  datasets: Array<{
+    nodeId: string;
+    dataset: DataDashboardDataset;
+    sources: Array<{ nodeId: string; source: DataBiSource }>;
+  }>;
+  // Sources a tool names with no dataset between: drawn reading straight into the dashboard.
+  sources: Array<{ nodeId: string; source: DataBiSource }>;
+}
+
+export function getLineageMapUpstreamCards(
+  upstream: DataDashboardUpstream | null | undefined,
+): DataLineageMapUpstreamCards {
+  const sourceCard: (source: DataBiSource) => {
+    nodeId: string;
+    source: DataBiSource;
+  } = (source: DataBiSource) => {
+    return { nodeId: getLineageMapSourceNodeId(source), source };
+  };
+
+  if (!upstream) {
+    return { datasets: [], sources: [] };
+  }
+
+  const datasets: DataLineageMapUpstreamCards["datasets"] = upstream.datasets
+    .slice(0, MAX_DATA_LINEAGE_MAP_DATASETS_PER_DASHBOARD)
+    .map((dataset: DataDashboardDataset) => {
+      return {
+        nodeId: getLineageMapDatasetNodeId(dataset),
+        dataset,
+        sources: dataset.sources
+          .slice(0, MAX_DATA_LINEAGE_MAP_SOURCES_PER_DATASET)
+          .map(sourceCard),
+      };
+    });
+
+  return {
+    datasets,
+    sources:
+      datasets.length > 0
+        ? []
+        : upstream.sources
+            .slice(0, MAX_DATA_LINEAGE_MAP_SOURCES_PER_DATASET)
+            .map(sourceCard),
+  };
+}
+
+function getUpstreamNodeIds(cards: DataLineageMapUpstreamCards): Array<string> {
+  return Array.from(
+    new Set([
+      ...cards.datasets.flatMap(
+        (entry: DataLineageMapUpstreamCards["datasets"][number]) => {
+          return [
+            entry.nodeId,
+            ...entry.sources.map((source: { nodeId: string }): string => {
+              return source.nodeId;
+            }),
+          ];
+        },
+      ),
+      ...cards.sources.map((source: { nodeId: string }): string => {
+        return source.nodeId;
+      }),
+    ]),
+  );
 }
 
 // A service by its id; one known only by name, by its name.
@@ -385,6 +551,106 @@ export function chooseDataLineageMapFlows(data: {
       0,
       Math.min(MAX_DATA_LINEAGE_MAP_DASHBOARDS, maxNodes - drawn.size),
     ),
+    nodeCount: drawn.size,
+    isTruncated,
+  };
+}
+
+/*
+ * Which more dashboards fit in the room the flows and the dashboards on
+ * their tables leave: first those on watched tables nothing else draws -
+ * each with its tables, as many as fit - then those on no watched table,
+ * with their datasets and data sources. Each in the order read; one too
+ * big for the room left is passed over, and the map says there were more.
+ */
+export function chooseDataLineageMapBiDashboards(data: {
+  // The project's dashboards, the most to draw first.
+  rows: Array<DataLineageMapDashboardRow>;
+  drawnDataAssetIds: ReadonlySet<string>;
+  drawnDashboardIds: ReadonlySet<string>;
+  nodeRoom: number;
+  dashboardRoom: number;
+  // More dashboards than were read.
+  hadMoreRows?: boolean | undefined;
+}): DataLineageMapBiChoice {
+  const drawn: Set<string> = new Set(data.drawnDataAssetIds);
+  const drawnUpstream: Set<string> = new Set();
+  const dataAssetIds: Set<string> = new Set();
+  const tableDashboards: Array<DataLineageMapDashboardRow> = [];
+  const upstreamDashboards: Array<DataLineageMapDashboardRow> = [];
+  let nodeRoom: number = data.nodeRoom;
+  let dashboardRoom: number = data.dashboardRoom;
+  let isTruncated: boolean = Boolean(data.hadMoreRows);
+  const candidates: Array<DataLineageMapDashboardRow> = data.rows.filter(
+    (row: DataLineageMapDashboardRow): boolean => {
+      return !data.drawnDashboardIds.has(row.dataDashboardId);
+    },
+  );
+
+  for (const row of candidates) {
+    const tables: Array<string> = Array.from(new Set(row.dataAssetIds)).slice(
+      0,
+      MAX_DATA_LINEAGE_MAP_TABLES_PER_DASHBOARD,
+    );
+
+    if (tables.length === 0) {
+      continue;
+    }
+
+    const needed: Array<string> = tables.filter((id: string): boolean => {
+      return !drawn.has(id);
+    });
+
+    if (dashboardRoom <= 0 || needed.length + 1 > nodeRoom) {
+      isTruncated = true;
+      continue;
+    }
+
+    for (const id of needed) {
+      drawn.add(id);
+      dataAssetIds.add(id);
+    }
+
+    nodeRoom -= needed.length + 1;
+    dashboardRoom--;
+    tableDashboards.push({ ...row, dataAssetIds: tables });
+  }
+
+  for (const row of candidates) {
+    if (row.dataAssetIds.length > 0) {
+      continue;
+    }
+
+    const ids: Array<string> = getUpstreamNodeIds(
+      getLineageMapUpstreamCards(row.upstream),
+    );
+
+    if (ids.length === 0) {
+      continue;
+    }
+
+    const needed: Array<string> = ids.filter((id: string): boolean => {
+      return !drawnUpstream.has(id);
+    });
+
+    if (dashboardRoom <= 0 || needed.length + 1 > nodeRoom) {
+      isTruncated = true;
+      continue;
+    }
+
+    for (const id of needed) {
+      drawnUpstream.add(id);
+    }
+
+    nodeRoom -= needed.length + 1;
+    dashboardRoom--;
+    upstreamDashboards.push(row);
+  }
+
+  return {
+    tableDashboards,
+    upstreamDashboards,
+    dataAssetIds: Array.from(dataAssetIds).sort(),
     isTruncated,
   };
 }
@@ -422,6 +688,8 @@ export function assembleDataLineageMap(data: {
   tables: Array<DataLineageMapTableRow>;
   pipelines: Array<DataLineageMapPipelineRow>;
   dashboards: Array<DataLineageMapDashboardRow>;
+  // The dashboards drawn in the room left (chooseDataLineageMapBiDashboards).
+  bi?: DataLineageMapBiChoice | undefined;
   openAlertCounts: Map<string, number>;
   now: Date;
 }): DataLineageMap {
@@ -689,6 +957,122 @@ export function assembleDataLineageMap(data: {
         lastSeenAt: null,
       });
     }
+  }
+
+  const addDashboard: (dashboard: DataLineageMapDashboardRow) => string = (
+    dashboard: DataLineageMapDashboardRow,
+  ): string => {
+    const id: string = getLineageMapDashboardNodeId(dashboard.dataDashboardId);
+
+    nodes.set(id, {
+      id,
+      kind: DataLineageMapNodeKind.Dashboard,
+      name: dashboard.name || dashboard.dataDashboardId,
+      dataDashboardId: dashboard.dataDashboardId,
+      tool: dashboard.tool,
+      url: dashboard.url,
+    });
+
+    return id;
+  };
+
+  const addSource: (card: {
+    nodeId: string;
+    source: DataBiSource;
+  }) => void = (card: { nodeId: string; source: DataBiSource }): void => {
+    if (!nodes.has(card.nodeId)) {
+      nodes.set(card.nodeId, {
+        id: card.nodeId,
+        kind: DataLineageMapNodeKind.Source,
+        name: getDataBiSourceName(card.source),
+        sourceType: card.source.type,
+        isDatabaseSource: isDataBiDatabaseSource(card.source),
+      });
+    }
+  };
+
+  // On watched tables no flow draws: drawn with them.
+  for (const dashboard of data.bi?.tableDashboards || []) {
+    const tableIds: Array<string> = dashboard.dataAssetIds.filter(
+      (id: string): boolean => {
+        return addTable(id) !== null;
+      },
+    );
+
+    if (tableIds.length === 0) {
+      continue;
+    }
+
+    const dashboardNodeId: string = addDashboard(dashboard);
+
+    for (const tableId of tableIds) {
+      addEdge({
+        kind: DataLineageMapEdgeKind.Reads,
+        source: getLineageMapTableNodeId(tableId),
+        target: dashboardNodeId,
+        evidence: DataLineageMapEvidence.BiTool,
+        lastSeenAt: null,
+      });
+    }
+  }
+
+  // On no watched table: drawn with what its tool says it is built on.
+  for (const dashboard of data.bi?.upstreamDashboards || []) {
+    const cards: DataLineageMapUpstreamCards = getLineageMapUpstreamCards(
+      dashboard.upstream,
+    );
+
+    if (cards.datasets.length === 0 && cards.sources.length === 0) {
+      continue;
+    }
+
+    const dashboardNodeId: string = addDashboard(dashboard);
+
+    for (const entry of cards.datasets) {
+      if (!nodes.has(entry.nodeId)) {
+        nodes.set(entry.nodeId, {
+          id: entry.nodeId,
+          kind: DataLineageMapNodeKind.Dataset,
+          name: entry.dataset.name,
+          tool: dashboard.tool,
+          workspace: entry.dataset.workspace,
+        });
+      }
+
+      addEdge({
+        kind: DataLineageMapEdgeKind.Reads,
+        source: entry.nodeId,
+        target: dashboardNodeId,
+        evidence: DataLineageMapEvidence.BiTool,
+        lastSeenAt: null,
+      });
+
+      for (const source of entry.sources) {
+        addSource(source);
+        addEdge({
+          kind: DataLineageMapEdgeKind.Feeds,
+          source: source.nodeId,
+          target: entry.nodeId,
+          evidence: DataLineageMapEvidence.BiTool,
+          lastSeenAt: null,
+        });
+      }
+    }
+
+    for (const source of cards.sources) {
+      addSource(source);
+      addEdge({
+        kind: DataLineageMapEdgeKind.Reads,
+        source: source.nodeId,
+        target: dashboardNodeId,
+        evidence: DataLineageMapEvidence.BiTool,
+        lastSeenAt: null,
+      });
+    }
+  }
+
+  if (data.bi?.isTruncated) {
+    isTruncated = true;
   }
 
   // A failed run first on each arrow, as a table's diagram orders them.

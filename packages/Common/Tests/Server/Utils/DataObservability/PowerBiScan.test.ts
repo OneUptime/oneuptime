@@ -468,16 +468,33 @@ describe("reading a scan", () => {
     ).toEqual(["DB.DB_SCHEMA.DB_SCHEMA_ITEM"]);
     expect(getPowerBiUpstream(scan.datasets, board.datasetIds)).toEqual({
       datasets: [
-        { name: "ExportB", workspace: "Facilities" },
         {
+          id: "e7e8a355-e77b-4418-a7b8-ae5972fdaa03",
+          name: "ExportB",
+          workspace: "Facilities",
+          sources: [
+            expect.objectContaining({ database: "DB" }),
+            expect.objectContaining({ database: "Archive" }),
+            expect.objectContaining({
+              type: "Dataflow",
+              location: "Azure SQL",
+            }),
+          ],
+        },
+        {
+          id: "6d1b0b4e-9a5e-4a0b-8b7a-2c1c1f0e9d33",
           name: "15 29 EMG NUO Master Checklist- GANTT View",
           workspace: "Facilities",
+          sources: [expect.objectContaining({ type: "SharePoint" })],
         },
       ],
-      sources: expect.arrayContaining([
-        expect.objectContaining({ type: "SharePoint" }),
+      // Every dataset's sources together, each once.
+      sources: [
+        expect.objectContaining({ database: "DB" }),
+        expect.objectContaining({ database: "Archive" }),
         expect.objectContaining({ type: "Dataflow", location: "Azure SQL" }),
-      ]),
+        expect.objectContaining({ type: "SharePoint" }),
+      ],
     });
   });
 
@@ -663,22 +680,24 @@ describe("Power BI's reader", () => {
       "Site Composite: plans.public.targets, DB.DB_SCHEMA.DB_SCHEMA_ITEM",
       "Facilities Board: DB.DB_SCHEMA.DB_SCHEMA_ITEM",
     ]);
+    const sharePoint: DataBiSource = {
+      type: "SharePoint",
+      engine: null,
+      server: null,
+      database: null,
+      location: "https://contoso.sharepoint.com/sites/facilities",
+    };
+
     expect(read.dashboards[1]!.upstream).toEqual({
       datasets: [
         {
+          id: "6d1b0b4e-9a5e-4a0b-8b7a-2c1c1f0e9d33",
           name: "15 29 EMG NUO Master Checklist- GANTT View",
           workspace: "Facilities",
+          sources: [sharePoint],
         },
       ],
-      sources: [
-        {
-          type: "SharePoint",
-          engine: null,
-          server: null,
-          database: null,
-          location: "https://contoso.sharepoint.com/sites/facilities",
-        },
-      ],
+      sources: [sharePoint],
     });
     expect(read.datasetFacts).toEqual({
       count: 3,

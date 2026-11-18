@@ -27,6 +27,7 @@ import {
   filterLineageMap,
   getLineageMapNodeTone,
   isLineageMapEmpty,
+  isLineageMapKindHidden,
   layoutLineageMap,
 } from "../../FeatureSet/Dashboard/src/Components/DataObservability/LineageMapModel";
 
@@ -410,6 +411,8 @@ describe("the map's counts and tones", () => {
       [DataLineageMapNodeKind.Table]: 4,
       [DataLineageMapNodeKind.Pipeline]: 1,
       [DataLineageMapNodeKind.Dashboard]: 1,
+      [DataLineageMapNodeKind.Dataset]: 0,
+      [DataLineageMapNodeKind.Source]: 0,
     });
     expect(isLineageMapEmpty(MAP)).toBe(false);
     expect(
@@ -462,5 +465,114 @@ describe("the map's counts and tones", () => {
     expect(
       getLineageMapNodeTone(node("service:s", DataLineageMapNodeKind.Service)),
     ).toBe(LineageTone.Neutral);
+  });
+});
+
+/*
+ * Power BI's own lineage on the map (#9507): a report on no watched table
+ * is drawn with the datasets it charts and the data sources they load
+ * from. Those cards go with the dashboards when the Dashboards switch is
+ * off, and say what they are.
+ */
+describe("a dashboard's datasets and data sources", () => {
+  const BI_MAP: DataLineageMap = {
+    nodes: [
+      node(
+        "source:sql server|sql01|facilities|",
+        DataLineageMapNodeKind.Source,
+        {
+          name: "sql01 / Facilities",
+          sourceType: "SQL Server",
+          isDatabaseSource: true,
+        },
+      ),
+      node(
+        "source:excel file|||c:\\targets.xlsx",
+        DataLineageMapNodeKind.Source,
+        {
+          name: "C:\\targets.xlsx",
+          sourceType: "Excel file",
+          isDatabaseSource: false,
+        },
+      ),
+      node(
+        "source:sharepoint|||https://acme.sharepoint.com",
+        DataLineageMapNodeKind.Source,
+        {
+          name: "https://acme.sharepoint.com",
+          sourceType: "SharePoint",
+          isDatabaseSource: false,
+        },
+      ),
+      node("dataset:ds1", DataLineageMapNodeKind.Dataset, {
+        name: "Facilities Model",
+        tool: "Power BI",
+        workspace: "New Unit Readiness",
+      }),
+      node("dashboard:checklist", DataLineageMapNodeKind.Dashboard, {
+        tool: "Power BI",
+      }),
+      node("table:orders"),
+    ],
+    edges: [
+      edge(
+        "source:sql server|sql01|facilities|",
+        "dataset:ds1",
+        DataLineageMapEdgeKind.Feeds,
+        {
+          seenIn: [DataLineageMapEvidence.BiTool],
+        },
+      ),
+      edge("dataset:ds1", "dashboard:checklist", DataLineageMapEdgeKind.Reads, {
+        seenIn: [DataLineageMapEvidence.BiTool],
+      }),
+    ],
+    isTruncated: false,
+  };
+
+  test("the Dashboards switch leaves them off with the dashboards; tables stay", () => {
+    const found: DataLineageMap = filterLineageMap(BI_MAP, {
+      ...EMPTY_LINEAGE_MAP_FILTER,
+      hiddenKinds: new Set([DataLineageMapNodeKind.Dashboard]),
+    });
+
+    expect(ids(found)).toEqual(["table:orders"]);
+    expect(found.edges).toEqual([]);
+    expect(
+      isLineageMapKindHidden(
+        DataLineageMapNodeKind.Source,
+        new Set([DataLineageMapNodeKind.Dashboard]),
+      ),
+    ).toBe(true);
+    expect(
+      isLineageMapKindHidden(
+        DataLineageMapNodeKind.Source,
+        new Set([DataLineageMapNodeKind.Service]),
+      ),
+    ).toBe(false);
+  });
+
+  test("a search for a report keeps where its data comes from", () => {
+    expect(
+      ids(
+        filterLineageMap(BI_MAP, {
+          ...EMPTY_LINEAGE_MAP_FILTER,
+          search: "checklist",
+        }),
+      ),
+    ).toEqual([
+      "dashboard:checklist",
+      "dataset:ds1",
+      "source:sql server|sql01|facilities|",
+    ]);
+  });
+
+  test("they are counted, and are neither in trouble nor healthy", () => {
+    expect(countLineageMapKinds(BI_MAP)).toMatchObject({
+      [DataLineageMapNodeKind.Dataset]: 1,
+      [DataLineageMapNodeKind.Source]: 3,
+    });
+    expect(getLineageMapNodeTone(BI_MAP.nodes[3]!)).toBe(LineageTone.Neutral);
+    expect(getLineageMapNodeTone(BI_MAP.nodes[0]!)).toBe(LineageTone.Neutral);
   });
 });

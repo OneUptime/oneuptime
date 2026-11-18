@@ -23,12 +23,26 @@ import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../../Types/DataObservability/DataAssetLineageSource";
 import { DataAssetAccessKind } from "../../../../Types/DataObservability/DataAssetUsage";
 import {
+  DataBiLineageProblem,
+  DataBiSource,
+  readDataBiLineageSummary,
+} from "../../../../Types/DataObservability/DataBiLineage";
+import DataBiTool from "../../../../Types/DataObservability/DataBiTool";
+import { JSONObject } from "../../../../Types/JSON";
+import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
+import DataBiConnectionService from "../../../../Server/Services/DataBiConnectionService";
+import {
   DataLineageMap,
+  DataLineageMapBiTool,
+  DataLineageMapDashboardRow,
   DataLineageMapLineageRow,
   DataLineageMapNode,
   DataLineageMapUsageRow,
+  MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS,
+  MAX_DATA_LINEAGE_MAP_BI_TOOLS,
   MAX_DATA_LINEAGE_MAP_LINEAGE_ROWS,
   MAX_DATA_LINEAGE_MAP_USAGE_ROWS,
+  getLineageMapSourceNodeId,
 } from "../../../../Types/DataObservability/DataLineageMap";
 import { DATA_OBSERVABILITY_API_ROUTES } from "../../../../Types/DataObservability/DataObservabilityApiTypes";
 import ObjectID from "../../../../Types/ObjectID";
@@ -269,6 +283,320 @@ describe("DataLineageMapReader.build", () => {
 
     expect(map.isTruncated).toBe(true);
     expect(map.edges).toHaveLength(1);
+  });
+});
+
+/*
+ * A project whose only lineage is its BI tool's still has a map (#9507):
+ * it said "No lineage yet" while hundreds of Power BI reports were read,
+ * because a dashboard was drawn only on tables another flow drew.
+ */
+describe("DataLineageMapReader.build, with BI dashboards no flow draws", () => {
+  const SHAREPOINT: DataBiSource = {
+    type: "SharePoint",
+    engine: null,
+    server: null,
+    database: null,
+    location: "https://acme.sharepoint.com/sites/facilities",
+  };
+
+  function withBi(
+    r: Readers,
+    rows: Array<DataLineageMapDashboardRow>,
+  ): { flows: DataLineageMapFlowReader; limits: Array<number> } {
+    const limits: Array<number> = [];
+
+    return {
+      limits,
+      flows: {
+        ...r.flows,
+        readBiDashboards: async (limit: number) => {
+          limits.push(limit);
+          return rows.slice(0, limit);
+        },
+      },
+    };
+  }
+
+  test("a project with only a BI tool: its dashboards with their watched tables, and Power BI's own lineage", async () => {
+    const r: Readers = readers({
+      lineage: [],
+      usages: [],
+      tables: [tableRow("orders")],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "revenue",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+          upstream: null,
+        },
+        {
+          dataDashboardId: "checklist",
+          name: "15 29 EMG NUO Master Checklist- GANTT View.xlsx",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: [],
+          upstream: {
+            datasets: [
+              {
+                id: "ds-checklist",
+                name: "Master Checklist",
+                workspace: "New Unit Readiness",
+                sources: [SHAREPOINT],
+              },
+            ],
+            sources: [SHAREPOINT],
+          },
+        },
+      ]);
+
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(bi.limits).toEqual([MAX_DATA_LINEAGE_MAP_BI_DASHBOARD_ROWS + 1]);
+    // Only the tables on the map are read, with their open alerts.
+    expect(r.asked.tables).toEqual([["orders"]]);
+    expect(r.asked.alerts).toEqual([["orders"]]);
+    expect(
+      map.nodes.map((node: DataLineageMapNode): string => {
+        return node.id;
+      }),
+    ).toEqual([
+      "dashboard:checklist",
+      "dashboard:revenue",
+      "dataset:ds-checklist",
+      getLineageMapSourceNodeId(SHAREPOINT),
+      "table:orders",
+    ]);
+    expect(
+      map.edges.map((edge: { id: string }): string => {
+        return edge.id;
+      }),
+    ).toEqual([
+      `Feeds:${getLineageMapSourceNodeId(SHAREPOINT)}>dataset:ds-checklist`,
+      "Reads:dataset:ds-checklist>dashboard:checklist",
+      "Reads:table:orders>dashboard:revenue",
+    ]);
+    expect(map.isTruncated).toBe(false);
+  });
+
+  test("dashboards the flows draw already are not drawn twice", async () => {
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+      dashboards: [
+        {
+          dataDashboardId: "d1",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+      ],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "d1",
+          name: "Revenue",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: ["orders"],
+        },
+      ]);
+
+    const map: DataLineageMap = await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+    });
+
+    expect(
+      map.nodes.filter((node: DataLineageMapNode): boolean => {
+        return node.id === "dashboard:d1";
+      }),
+    ).toHaveLength(1);
+    expect(r.asked.tables).toEqual([["orders", "raw"]]);
+  });
+
+  test("a full map reads no BI dashboards", async () => {
+    const r: Readers = readers({
+      lineage: [
+        {
+          upstreamDataAssetId: "raw",
+          downstreamDataAssetId: "orders",
+          dataPipelineId: null,
+          source: DataAssetLineageSource.QueryHistory,
+          lastSeenAt: NOW,
+        },
+      ],
+      usages: [],
+      tables: [tableRow("raw"), tableRow("orders")],
+    });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, []);
+
+    await DataLineageMapReader.build({
+      flows: bi.flows,
+      details: r.details,
+      now: NOW,
+      maxNodes: 2,
+    });
+
+    expect(bi.limits).toEqual([]);
+  });
+
+  test("BI dashboards on nothing - no table, no dataset - draw nothing, and read nothing more", async () => {
+    const r: Readers = readers({ lineage: [], usages: [], tables: [] });
+    const bi: { flows: DataLineageMapFlowReader; limits: Array<number> } =
+      withBi(r, [
+        {
+          dataDashboardId: "empty",
+          name: "Empty",
+          tool: "Power BI",
+          url: null,
+          dataAssetIds: [],
+          upstream: { datasets: [], sources: [] },
+        },
+      ]);
+
+    expect(
+      await DataLineageMapReader.build({
+        flows: bi.flows,
+        details: r.details,
+        now: NOW,
+      }),
+    ).toEqual({ nodes: [], edges: [], isTruncated: false });
+    expect(r.asked.tables).toEqual([]);
+  });
+});
+
+/*
+ * The BI tools the map tells of (#9507): each whose dashboards were read
+ * but are on no watched table, with why; the map carries them, so the page
+ * says why it cannot draw them on tables without asking twice.
+ */
+describe("the BI tools the map tells of", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function connection(fields: Partial<DataBiConnection>): DataBiConnection {
+    const model: DataBiConnection = new DataBiConnection();
+
+    model._id = ObjectID.generate().toString();
+    Object.assign(model, fields);
+
+    return model;
+  }
+
+  const SUMMARY: JSONObject = {
+    dashboardCount: 783,
+    tableCount: 0,
+    matchedTableCount: 0,
+    datasets: { count: 59, withTables: 0, withQueries: 0 },
+    sources: [],
+    problems: [DataBiLineageProblem.NoTablesFromTool],
+  };
+
+  test("a tool whose dashboards were read but matched no table, with why; no other", async () => {
+    const off: DataBiConnection = connection({
+      name: "Oneuptime PBI Data Observability",
+      tool: DataBiTool.PowerBI,
+      dashboardCount: 783,
+      matchedTableCount: 0,
+      lineageSummary: SUMMARY,
+    });
+    const find: jest.SpyInstance = jest
+      .spyOn(DataBiConnectionService, "findBy")
+      .mockResolvedValue([
+        off,
+        // On watched tables already.
+        connection({
+          name: "Metabase",
+          dashboardCount: 12,
+          matchedTableCount: 3,
+          lineageSummary: SUMMARY,
+        }),
+        // Never read, or read before a summary was kept, or with nothing in the way.
+        connection({ name: "New", dashboardCount: 0, matchedTableCount: 0 }),
+        connection({ name: "Old", dashboardCount: 5, matchedTableCount: 0 }),
+        connection({
+          name: "Fine",
+          dashboardCount: 5,
+          matchedTableCount: 0,
+          lineageSummary: { ...SUMMARY, problems: [] },
+        }),
+      ] as never) as unknown as jest.SpyInstance;
+
+    const tools: Array<DataLineageMapBiTool> =
+      await DataLineageMapReader.readBiToolsOffTables(PROJECT_ID);
+
+    expect(tools).toEqual([
+      {
+        dataBiConnectionId: off.id!.toString(),
+        name: "Oneuptime PBI Data Observability",
+        tool: DataBiTool.PowerBI,
+        dashboardCount: 783,
+        summary: expect.objectContaining({
+          dashboardCount: 783,
+          problems: [DataBiLineageProblem.NoTablesFromTool],
+        }),
+      },
+    ]);
+    expect(find.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      limit: MAX_DATA_LINEAGE_MAP_BI_TOOLS,
+    });
+  });
+
+  test("the map carries them, and leaves them out when there are none", async () => {
+    const drawn: DataLineageMap = { nodes: [], edges: [], isTruncated: false };
+    const tool: DataLineageMapBiTool = {
+      dataBiConnectionId: "77777777-7777-4777-8777-000000000001",
+      name: "Power BI",
+      tool: DataBiTool.PowerBI,
+      dashboardCount: 783,
+      summary: readDataBiLineageSummary(SUMMARY)!,
+    };
+
+    jest.spyOn(DataLineageMapReader, "build").mockResolvedValue(drawn);
+    const readTools: jest.SpyInstance = jest
+      .spyOn(DataLineageMapReader, "readBiToolsOffTables")
+      .mockResolvedValueOnce([tool])
+      .mockResolvedValueOnce([]) as unknown as jest.SpyInstance;
+
+    expect(
+      await DataLineageMapReader.read({
+        projectId: PROJECT_ID,
+        now: NOW,
+        reader: null,
+      }),
+    ).toEqual({ ...drawn, biToolsOffTables: [tool] });
+    expect(
+      await DataLineageMapReader.read({
+        projectId: PROJECT_ID,
+        now: NOW,
+        reader: null,
+      }),
+    ).toEqual(drawn);
+    expect(readTools).toHaveBeenCalledWith(PROJECT_ID);
   });
 });
 

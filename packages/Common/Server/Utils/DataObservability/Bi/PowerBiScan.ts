@@ -2,6 +2,7 @@ import {
   DataBiDatasetFacts,
   DataBiSource,
   DataDashboardDataset,
+  DataDashboardUpstream,
   MAX_DATA_DASHBOARD_DATASETS,
   MAX_DATA_DASHBOARD_SOURCES,
 } from "../../../../Types/DataObservability/DataBiLineage";
@@ -578,7 +579,7 @@ export function getPowerBiTables(
 export function getPowerBiUpstream(
   datasets: Map<string, PowerBiDataset>,
   datasetIds: Array<string>,
-): { datasets: Array<DataDashboardDataset>; sources: Array<DataBiSource> } {
+): DataDashboardUpstream {
   const found: Array<PowerBiDataset> = datasetIds
     .map((datasetId: string): PowerBiDataset | undefined => {
       return datasets.get(datasetId);
@@ -592,7 +593,12 @@ export function getPowerBiUpstream(
   return {
     datasets: found
       .map((dataset: PowerBiDataset): DataDashboardDataset => {
-        return { name: dataset.name, workspace: dataset.workspace };
+        return {
+          id: dataset.datasetId.toLowerCase(),
+          name: dataset.name,
+          workspace: dataset.workspace,
+          sources: dataset.sources.slice(0, MAX_DATA_DASHBOARD_SOURCES),
+        };
       })
       .slice(0, MAX_DATA_DASHBOARD_DATASETS),
     sources: uniqueSources(
