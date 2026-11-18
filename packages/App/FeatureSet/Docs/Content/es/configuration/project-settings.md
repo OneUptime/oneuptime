@@ -1,6 +1,6 @@
 # Ajustes del proyecto
 
-Los ajustes del proyecto contienen lo que se aplica al proyecto entero: su nombre, las herramientas a las que se conecta, sus claves, cómo inician sesión las personas, su facturación y su registro de auditoría. Casi todo se configura una vez y se revisa pocas veces. Esta página es un mapa de ellos, y cubre los ajustes que no tienen página propia: los detalles del proyecto, las etiquetas, los feature flags y la eliminación del proyecto.
+Los ajustes del proyecto contienen lo que se aplica al proyecto entero: su nombre, las herramientas a las que se conecta, sus claves, cómo inician sesión las personas, su facturación y su registro de auditoría. Casi todo se configura una vez y se revisa pocas veces. Esta página es un mapa de ellos, y cubre los ajustes que no tienen página propia: los detalles del proyecto, las etiquetas y la eliminación del proyecto.
 
 :::cards
 - [Encontrar un ajuste](#encontrar-un-ajuste): Qué contiene cada sección del menú lateral.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetría y APM** | **Claves de ingesta**, **Retención de datos**, **Uso** | [Claves de ingesta](/docs/telemetry/ingestion-keys), [Retención de datos](/docs/telemetry/data-retention), [Uso de telemetría](/docs/telemetry/usage) |
 | **Notificaciones** | **Canales de notificación**, **Registros de notificación**, **Aplicaciones móviles** | [Notificaciones](#notificaciones) |
 | **IA** | **Funciones de IA**, **Proveedores de LLM**, **Servidores MCP externos**, **Créditos de IA**, **Resultados de IA**, **Registros de IA**, **Servidor MCP** | [Proveedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#control-de-costes) |
-| **Avanzado** | **Dominios**, **Claves de API**, **Feature flags**, **Importar desde otra herramienta** | [Dominios personalizados](/docs/status-pages/branding-and-domains#dominios-personalizados), [Claves de API](/docs/permissions/index#claves-de-api), [Feature flags](#feature-flags), [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie) y las demás guías de migración |
+| **Avanzado** | **Dominios**, **Claves de API**, **Importar desde otra herramienta** | [Dominios personalizados](/docs/status-pages/branding-and-domains#dominios-personalizados), [Claves de API](/docs/permissions/index#claves-de-api), [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie) y las demás guías de migración |
 | **Seguridad** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturación y facturas** | **Facturación**, **Facturas** | [Facturación y uso](/docs/configuration/billing) |
 | **Registros de auditoría** | **Registros de auditoría**, **Ajustes**, **Exportar** | [Registros de auditoría](/docs/configuration/audit-logs), [Exportación del registro de auditoría](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Cada producto dice lo que es para este proyecto: **En uso**, **Sin configurar** 
 
 Los Propietarios del proyecto, los Administradores del proyecto y quien pueda editar el proyecto la cambian; los demás miembros del proyecto pueden verla.
 
+Bajo **Monitores**, el interruptor **Grupos de monitores** añade los grupos de monitores al menú Monitores. Está desactivado en un proyecto nuevo, se guarda al moverlo y desactivarlo no elimina ningún grupo. Cambiarlo requiere el rol Propietario del proyecto, o un rol personalizado con el permiso Edit Project o Manage Billing. Consulte [Grupos de monitores](/docs/monitor/monitor-groups).
+
 ## Etiquetas
 
 Las etiquetas son marcas que pone en monitores, incidentes, páginas de estado y otros recursos. Filtran y agrupan las listas, y limitan hasta dónde llegan los permisos de un equipo y las reglas del proyecto.
@@ -101,10 +103,6 @@ Para retirar una etiqueta, archívela desde el menú **⋯** de su fila en lugar
 - **Canales de notificación**: la tarjeta **Canales de notificación** activa o desactiva SMS, llamadas telefónicas, WhatsApp y Telegram para el proyecto. Los cuatro empiezan desactivados. Los activa un Propietario del proyecto, un **Administrador de facturación** o alguien con **Manage Billing**. La página también contiene, plegados en **Más ajustes**, cómo se avisa por defecto a los miembros, en **Secuencia predeterminada para nuevos miembros** y **Teléfono para las personas de guardia** (consulte [La secuencia predeterminada](/docs/notifications/on-call-rules#la-secuencia-predeterminada)), los servidores de correo propios del proyecto, en **Configuraciones de SMTP personalizado** (consulte [SMTP](/docs/emails/smtp)), y su propia cuenta de Twilio (consulte [Integración de Twilio](/docs/self-hosted/twilio-integration)). En OneUptime Cloud, contiene el saldo con el que se pagan estos mensajes: consulte [Saldos prepagados](/docs/configuration/billing#saldos-prepagados).
 - **Registros de notificación**: cada notificación que envió el proyecto, con una pestaña por canal: **Correo electrónico**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Llamada**, **Push** y **Espacio de trabajo**. La pestaña **Webhook** guarda de cada dirección solo el esquema y el host: el resto es el secreto del webhook.
 - **Aplicaciones móviles**: dónde conseguir las aplicaciones para iOS y Android. Consulte [Visión general de las aplicaciones](/docs/mobile-desktop-apps/index).
-
-## Feature flags
-
-**Ajustes del proyecto → Avanzado → Feature flags** activa o desactiva funciones opcionales para el proyecto. Cada una es un interruptor que se guarda al moverlo. Hoy contiene **Grupos de monitores**, desactivado en un proyecto nuevo: actívelo para añadir los grupos de monitores al menú Monitores. Desactivarlo no elimina ningún grupo. Consulte [Grupos de monitores](/docs/monitor/monitor-groups).
 
 ## Eliminar el proyecto
 

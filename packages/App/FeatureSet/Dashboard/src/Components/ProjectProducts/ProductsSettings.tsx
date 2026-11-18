@@ -1,6 +1,9 @@
 import ProductSwitchRow, { ProductSwitchSaveState } from "./ProductSwitchRow";
+import MonitorGroupsSwitchRow from "../MonitorGroup/MonitorGroupsSwitchRow";
+import Project from "Common/Models/DatabaseModels/Project";
 import {
   getProductSwitchTestId,
+  MONITORS_WITH_GROUPS_TEST_ID,
   PRODUCTS_SETTINGS_TEST_ID,
   ProductsSettingsCopy,
   SHOW_EVERY_PRODUCT_TEST_ID,
@@ -53,9 +56,22 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * Everyone in the project can read the page; someone who may edit the
  * project changes it (the server checks it too). Each switch saves the
  * moment it is flipped; Show Every Product undoes every choice at once.
+ *
+ * Under Monitors, the Monitor Groups switch (#7324), which adds Monitor
+ * Groups to the Monitors menu: it was the one switch of Settings > Advanced
+ * > Feature Flags, the other place that changed what the menus show. See
+ * MonitorGroupsSwitchRow. It needs the selected project, which the page
+ * hands in; with Monitors off on the server it is not drawn.
  */
 
-const ProductsSettings: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  // The dashboard's selected project, for the Monitor Groups switch.
+  currentProject?: Project | null | undefined;
+}
+
+const ProductsSettings: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const navigation: DashboardNavigationItems = useDashboardNavigationItems();
   const products: ProjectProductsState = useLoadedProjectProducts();
@@ -199,7 +215,7 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
       return <React.Fragment key={key} />;
     }
 
-    return (
+    const row: ReactElement = (
       <ProductSwitchRow
         key={key}
         title={item.title}
@@ -223,6 +239,30 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
         }}
       />
     );
+
+    /*
+     * Monitor Groups sits under Monitors, lined up with its name: one row
+     * with it, no line between them.
+     */
+    if (
+      product === ProductKey.Monitors &&
+      props.currentProject &&
+      !answer.offOnServer[product]
+    ) {
+      return (
+        <div key={key} data-testid={MONITORS_WITH_GROUPS_TEST_ID}>
+          {row}
+          <div className="-mt-2 pl-8 sm:pl-14">
+            <MonitorGroupsSwitchRow
+              project={props.currentProject}
+              iconColor={item.iconColor}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    return row;
   };
 
   return (

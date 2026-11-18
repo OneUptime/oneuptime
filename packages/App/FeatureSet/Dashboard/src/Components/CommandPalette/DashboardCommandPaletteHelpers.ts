@@ -56,7 +56,7 @@ export const PALETTE_ENTITY_SEARCH_LIMIT: number = 5;
  * an action done on one, such as Delete Project), then a setting on a page,
  * then the palette's own actions and quick links. "pager" opens On-Call
  * Duty, then On-Call Policies, then My On-Call Policies; "monitor groups"
- * opens the Monitor Groups page, then the Feature Flags switch that turns
+ * opens the Monitor Groups page, then the switch on Products that turns
  * them on. On a record's page, that record's own pages come before the
  * pages of the same name that open without a record (#9204): "settings" on
  * a status page opens its Settings before Project Settings' pages.

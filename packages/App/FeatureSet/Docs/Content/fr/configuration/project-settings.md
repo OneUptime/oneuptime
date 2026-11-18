@@ -1,6 +1,6 @@
 # Paramètres du projet
 
-Les paramètres du projet contiennent ce qui s'applique au projet entier : son nom, les outils auxquels il se connecte, ses clés, la façon dont les personnes se connectent, sa facturation et sa piste d'audit. Vous réglez l'essentiel une fois et y revenez rarement. Cette page en est une carte, et couvre les paramètres qui n'ont pas de page à eux : les détails du projet, les étiquettes, les drapeaux de fonctionnalités et la suppression du projet.
+Les paramètres du projet contiennent ce qui s'applique au projet entier : son nom, les outils auxquels il se connecte, ses clés, la façon dont les personnes se connectent, sa facturation et sa piste d'audit. Vous réglez l'essentiel une fois et y revenez rarement. Cette page en est une carte, et couvre les paramètres qui n'ont pas de page à eux : les détails du projet, les étiquettes et la suppression du projet.
 
 :::cards
 - [Trouver un paramètre](#trouver-un-paramètre): Ce que contient chaque section du menu latéral.
@@ -36,7 +36,7 @@ flowchart LR
 | **Télémétrie & APM** | **Clés d'ingestion**, **Rétention des données**, **Utilisation** | [Clés d'ingestion](/docs/telemetry/ingestion-keys), [Rétention des données](/docs/telemetry/data-retention), [Utilisation de la télémétrie](/docs/telemetry/usage) |
 | **Notifications** | **Canaux de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
 | **IA** | **Fonctionnalités IA**, **Fournisseurs LLM**, **Serveurs MCP externes**, **Crédits IA**, **Résultats IA**, **Journaux IA**, **Serveur MCP** | [Fournisseurs LLM](/docs/ai/llm-provider), [Serveurs MCP externes](/docs/ai/external-mcp-servers), [Serveur MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#maîtrise-des-coûts) |
-| **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités**, **Importer depuis un autre outil** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
+| **Avancé** | **Domaines**, **Clés API**, **Importer depuis un autre outil** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
 | **Journaux d'audit** | **Journaux d'audit**, **Paramètres**, **Export** | [Journaux d'audit](/docs/configuration/audit-logs), [Export du journal d'audit](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non config
 
 Les Propriétaires du projet, les Administrateurs du projet et toute personne autorisée à modifier le projet la changent ; tous les autres membres du projet peuvent la consulter.
 
+Sous **Moniteurs**, l'interrupteur **Groupes de moniteurs** ajoute les groupes de moniteurs au menu Moniteurs. Il est désactivé dans un nouveau projet, s'enregistre quand vous le basculez, et le désactiver ne supprime aucun groupe. Le modifier demande le rôle Propriétaire du projet, ou un rôle personnalisé avec l'autorisation Edit Project ou Manage Billing. Voir [Groupes de moniteurs](/docs/monitor/monitor-groups).
+
 ## Étiquettes
 
 Les étiquettes sont des marqueurs que vous posez sur les moniteurs, les incidents, les pages de statut et d'autres ressources. Elles filtrent et regroupent les listes, et elles restreignent la portée des autorisations d'une équipe et des règles du projet.
@@ -101,10 +103,6 @@ Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au l
 - **Canaux de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Propriétaire du projet, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, la façon dont les membres sont alertés par défaut, dans **Séquence par défaut pour les nouveaux membres** et **Téléphone des personnes d'astreinte** (voir [La séquence par défaut](/docs/notifications/on-call-rules#la-séquence-par-défaut)), les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
 - **Journaux de notification** : chaque notification que le projet a envoyée, avec un onglet par canal : **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Appel**, **Push** et **Espace de travail**. L'onglet **Webhook** ne garde de chaque adresse que le schéma et l'hôte : le reste est le secret du webhook.
 - **Applications mobiles** : où obtenir les applications iOS et Android. Voir [Vue d'ensemble des applications](/docs/mobile-desktop-apps/index).
-
-## Drapeaux de fonctionnalités
-
-**Paramètres du projet → Avancé → Drapeaux de fonctionnalités** active ou désactive des fonctionnalités facultatives pour le projet. Chacune est un interrupteur qui s'enregistre quand vous le basculez. Aujourd'hui, la page contient **Groupes de moniteurs**, désactivé dans un nouveau projet : activez-le pour ajouter les groupes de moniteurs au menu Moniteurs. Le désactiver ne supprime aucun groupe. Voir [Groupes de moniteurs](/docs/monitor/monitor-groups).
 
 ## Supprimer le projet
 

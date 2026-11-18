@@ -566,7 +566,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "more products",
               "customize menu",
               "show every product",
+              /*
+               * Feature Flags' one switch, Monitor Groups, is here now, under
+               * Monitors (#7324): the page's old name still finds it.
+               */
+              "feature flags",
             ],
+            settings: ["Monitor Groups"],
           },
           {
             page: PageMap.SETTINGS_LABELS,
@@ -914,13 +920,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "create api key",
               "new api key",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_FEATURE_FLAGS,
-            title: "Feature Flags",
-            icon: IconProp.Flag,
-            keywords: ["beta features", "experimental", "early access"],
-            settings: ["Monitor Groups"],
           },
           // Last in Advanced, as the side menu lists it.
           {

@@ -138,7 +138,7 @@ Consulta [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Grupo de monitores
 
-Varios monitores reunidos en un solo estado, el peor de todos ellos, con su propia disponibilidad. Una página de estado puede mostrar todo el grupo como una sola fila. Activa los grupos de monitores en **Ajustes del proyecto → Avanzado → Feature flags**.
+Varios monitores reunidos en un solo estado, el peor de todos ellos, con su propia disponibilidad. Una página de estado puede mostrar todo el grupo como una sola fila. Activa los grupos de monitores en **Ajustes del proyecto → Básico → Productos**.
 
 Consulta [Grupos de monitores](/docs/monitor/monitor-groups).
 

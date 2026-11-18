@@ -49,6 +49,11 @@ export interface ComponentProps {
   // Locked, saying why (an English sentence): who may not change it.
   lockedReason?: string | undefined;
   /*
+   * Locked, saying nothing: while who may change it is not known yet
+   * (PermissionGate's "do not accuse the user" answer).
+   */
+  isLocked?: boolean | undefined;
+  /*
    * The locked reason is in the reader's words already: drawn as given,
    * never looked up again (#8423). Left unset, it is English, looked up by
    * the switch.
@@ -217,6 +222,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
             description={props.description}
             value={props.isShown}
             disabled={
+              Boolean(props.isLocked) ||
               Boolean(props.lockedReason) ||
               props.saveState === ProductSwitchSaveState.Saving
             }

@@ -46,7 +46,7 @@ Alle tre samler ting, men for forskellige læsere. De fungerer også sammen: en 
 | [Tjeneste](/docs/telemetry/services) | En applikation, OneUptime fandt i din telemetri, med dens logs, traces, metrikker, hændelser og ejere på én side. | Du vil have alt om én applikation samlet ét sted. Den dukker op af sig selv ud fra sin `service.name`. |
 | [Etiket](/docs/configuration/label-and-owner-rules) | Et mærke, du sætter på monitorer og de fleste andre poster. En post kan have mange. | Du vil filtrere lister, begrænse et teams tilladelser eller udvælge poster i regler. |
 
-Monitorgrupper er slået fra fra start: slå dem til under **Projektindstillinger → Avanceret → Funktionsflag**.
+Monitorgrupper er slået fra fra start: slå dem til under **Projektindstillinger → Grundlæggende → Produkter**.
 
 ## Sonde, agent, collector eller Runner?
 

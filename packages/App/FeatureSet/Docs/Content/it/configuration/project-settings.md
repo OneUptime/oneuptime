@@ -1,6 +1,6 @@
 # Impostazioni del progetto
 
-Le impostazioni del progetto raccolgono ciò che vale per l'intero progetto: il nome, gli strumenti a cui si collega, le chiavi, come accedono le persone, la fatturazione e la traccia di audit. Quasi tutto lo configuri una volta e ci torni di rado. Questa pagina ne è una mappa e copre le impostazioni senza una pagina propria: i dettagli del progetto, le etichette, i flag delle funzionalità e l'eliminazione del progetto.
+Le impostazioni del progetto raccolgono ciò che vale per l'intero progetto: il nome, gli strumenti a cui si collega, le chiavi, come accedono le persone, la fatturazione e la traccia di audit. Quasi tutto lo configuri una volta e ci torni di rado. Questa pagina ne è una mappa e copre le impostazioni senza una pagina propria: i dettagli del progetto, le etichette e l'eliminazione del progetto.
 
 :::cards
 - [Trovare un'impostazione](#trovare-unimpostazione): Che cosa contiene ogni sezione del menu laterale.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetria e APM** | **Chiavi di acquisizione**, **Conservazione dei dati**, **Utilizzo** | [Chiavi di acquisizione](/docs/telemetry/ingestion-keys), [Conservazione dei dati](/docs/telemetry/data-retention), [Utilizzo della telemetria](/docs/telemetry/usage) |
 | **Notifiche** | **Canali di notifica**, **Log di notifica**, **App mobili** | [Notifiche](#notifiche) |
 | **IA** | **Funzionalità IA**, **Provider LLM**, **Server MCP esterni**, **Crediti IA**, **Risultati IA**, **Log IA**, **Server MCP** | [Provider LLM](/docs/ai/llm-provider), [Server MCP esterni](/docs/ai/external-mcp-servers), [Server MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controllo-dei-costi) |
-| **Avanzato** | **Domini**, **Chiavi API**, **Flag delle funzionalità**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Flag delle funzionalità](#flag-delle-funzionalità), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
+| **Avanzato** | **Domini**, **Chiavi API**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fatturazione e fatture** | **Fatturazione**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
 | **Log di audit** | **Log di audit**, **Impostazioni**, **Esporta** | [Log di audit](/docs/configuration/audit-logs), [Esportazione del log di audit](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Ogni prodotto dice cosa è per questo progetto: **In uso**, **Non configurato** 
 
 I Proprietari del progetto, gli Amministratori del progetto e chiunque possa modificare il progetto la cambiano; tutti gli altri nel progetto possono vederla.
 
+Sotto **Monitor**, l'interruttore **Gruppi di monitor** aggiunge i gruppi di monitor al menu Monitor. È disattivato in un nuovo progetto, si salva quando lo sposti, e disattivarlo non elimina nessun gruppo. Cambiarlo richiede il ruolo Proprietario del progetto, oppure un ruolo personalizzato con il permesso Edit Project o Manage Billing. Vedi [Gruppi di monitor](/docs/monitor/monitor-groups).
+
 ## Etichette
 
 Le etichette sono contrassegni che metti su monitor, incidenti, pagine di stato e altre risorse. Filtrano e raggruppano gli elenchi, e limitano fin dove arrivano i permessi di un team e le regole del progetto.
@@ -101,10 +103,6 @@ Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di 
 - **Canali di notifica**: la scheda **Canali di notifica** attiva o disattiva SMS, chiamate telefoniche, WhatsApp e Telegram per il progetto. Tutti e quattro partono disattivati. Li attiva un Proprietario del progetto, un **Amministratore della fatturazione** o chi ha **Manage Billing**. La pagina contiene anche, chiusi in **Altre impostazioni**, come vengono chiamati i membri per impostazione predefinita, in **Sequenza predefinita per i nuovi membri** e **Telefono per le persone reperibili** (vedi [La sequenza predefinita](/docs/notifications/on-call-rules#la-sequenza-predefinita)), i server di posta del progetto, in **Configurazioni SMTP personalizzate** (vedi [SMTP](/docs/emails/smtp)), e il suo account Twilio (vedi [Integrazione Twilio](/docs/self-hosted/twilio-integration)). Su OneUptime Cloud contiene il saldo con cui si pagano questi messaggi: vedi [Saldi prepagati](/docs/configuration/billing#saldi-prepagati).
 - **Log di notifica**: ogni notifica inviata dal progetto, con una scheda per canale: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chiamata**, **Push** e **Area di lavoro**. La scheda **Webhook** conserva di ogni indirizzo solo lo schema e l'host: il resto è il segreto del webhook.
 - **App mobili**: dove trovare le app per iOS e Android. Vedi [Panoramica delle app](/docs/mobile-desktop-apps/index).
-
-## Flag delle funzionalità
-
-**Impostazioni del progetto → Avanzato → Flag delle funzionalità** attiva o disattiva funzionalità facoltative per il progetto. Ognuna è un interruttore che si salva quando lo sposti. Oggi contiene **Gruppi di monitor**, disattivato in un nuovo progetto: attivalo per aggiungere i gruppi di monitor al menu Monitor. Disattivarlo non elimina nessun gruppo. Vedi [Gruppi di monitor](/docs/monitor/monitor-groups).
 
 ## Eliminare il progetto
 

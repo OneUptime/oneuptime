@@ -291,13 +291,12 @@ const Home: FunctionComponent<ComponentProps> = (
       loadedAt={overview.loadedAt}
       now={now}
       onRefresh={refresh}
-      canCreateMonitor={
-        !offProducts.includes(ProductKey.Monitors) &&
-        isCreateFirstMonitorShown({
-          canCreateMonitor: gates.canCreateMonitor,
-          welcome: welcome,
-        })
-      }
+      canCreateMonitor={isCreateFirstMonitorShown({
+        // Monitors switched off on the server: no monitor to create (#7478).
+        canCreateMonitor:
+          gates.canCreateMonitor && !offProducts.includes(ProductKey.Monitors),
+        welcome: welcome,
+      })}
     />
   );
 

@@ -138,7 +138,7 @@ Zie [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Monitorgroep
 
-Meerdere monitoren samengevoegd tot één status, de slechtste onder hen, met een eigen beschikbaarheid. Een statuspagina kan de hele groep als één rij tonen. Zet monitorgroepen aan onder **Projectinstellingen → Geavanceerd → Functievlaggen**.
+Meerdere monitoren samengevoegd tot één status, de slechtste onder hen, met een eigen beschikbaarheid. Een statuspagina kan de hele groep als één rij tonen. Zet monitorgroepen aan onder **Projectinstellingen → Basis → Producten**.
 
 Zie [Monitorgroepen](/docs/monitor/monitor-groups).
 

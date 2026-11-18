@@ -946,7 +946,7 @@ describe("the helpers, on these pages' shapes", () => {
       dashboardPaths(MONITOR_GROUPS).map((segments: Array<string>): string => {
         return segments.join(PATH_SEPARATOR);
       }),
-    ).toContain("Project Settings → Advanced → Feature Flags");
+    ).toContain("Project Settings → Basic → Products");
   });
 
   it("read the numbers a row states, in any digits, code left out", () => {
