@@ -85,6 +85,10 @@ Every method you verify later gets the same rules: a rule for every severity, se
 | **Nothing can reach you yet** | None of your methods can be used: none is verified, or each verified one is on a channel this project has turned off |
 | **You are set up, and not on call right now** | Everything is ready for the day a policy names you |
 
+While a step is left, **User Settings** opens on this checklist, and on **Notification Methods** once nothing essential is left. A link to any other page of **User Settings** still opens that page.
+
+When you are on an on-call policy and your setup is not finished, the bell at the top of every page says **Finish setting up your notifications**, and why: nothing can reach you, a severity has no rule, or your project asks for a phone method you have not verified. It opens this checklist, or **How to Reach Me** for the phone. **Hide for a week** puts it away in this browser, and it goes by itself once your setup is finished.
+
 ## When no rule matches
 
 A page can reach you for a kind and severity you have no rule for: a severity added after you joined, say. OneUptime still pages you, on what you have verified:

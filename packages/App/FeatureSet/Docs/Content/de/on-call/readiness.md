@@ -81,6 +81,7 @@ Ein Weg, den jemand nicht verifiziert hat, wird ausgelassen, und an seiner Stell
 - Auf den **Eskalationsregeln** einer Richtlinie sagt eine Stufe auf ihrer Karte, wenn nicht alle ihre Bearbeiter alarmiert werden können. Siehe [Die Eskalationsübersicht](/docs/on-call/escalation-rules#die-eskalationsübersicht).
 - Öffnen Sie unter **Benutzer** ein Mitglied, dann **Einsatzbereitschaft** im Abschnitt **Bereitschaft**: sein Status, seine Methoden und sein Abdeckungsraster.
 - Für Ihre eigene Einrichtung führt Sie **Benutzereinstellungen → Einrichtungs-Checkliste** hindurch. Siehe [Die Einrichtungs-Checkliste](/docs/notifications/index#die-einrichtungs-checkliste).
+- Wer in einer Richtlinie steht und die eigene Einrichtung nicht fertig hat, sieht in der Glocke oben auf jeder Seite **Richten Sie Ihre Benachrichtigungen fertig ein**, das die eigene Einrichtungs-Checkliste öffnet.
 
 ## Die wöchentliche E-Mail zur Einsatzbereitschaft
 

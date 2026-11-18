@@ -58,6 +58,8 @@ Después, la aplicación registra el iPhone o iPad en cada uno de sus proyectos.
 
 La aplicación muestra un proyecto a la vez: toque el nombre del proyecto en la parte superior de una pantalla para cambiar. Un proyecto que exige inicio de sesión único aparece como **SSO Required** en **Settings → Manage Projects** hasta que toque allí **Authenticate with SSO**.
 
+En una instalación nueva, la aplicación abre después **Get Ready for On-Call** una vez: tres pasos para que un aviso llegue al dispositivo, incluso de noche en modo silencio. Permita las notificaciones, toque **Turn On Critical Alerts** y después **Send Test Page**, y reconozca el aviso de prueba desde su notificación. **Not Now** cierra la pantalla, y **Settings → Get Ready for On-Call** la vuelve a abrir cuando quiera. Si las alertas críticas deben permitirse en los Ajustes de iOS, se activan en cuanto vuelva a la aplicación.
+
 ## Comprobar que los avisos llegan al dispositivo
 
 :::steps

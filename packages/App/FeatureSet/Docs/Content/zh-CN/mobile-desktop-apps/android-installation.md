@@ -68,6 +68,8 @@ flowchart TB
 
 应用一次显示一个项目：点按屏幕顶部的项目名称即可切换。要求单点登录的项目会在 **Settings → Manage Projects** 中显示 **SSO Required**，直到你在那里点按 **Authenticate with SSO**。
 
+全新安装时，应用随后会打开一次 **Get Ready for On-Call**：三个步骤，让呼叫即使在夜间开启勿扰模式时也能送达手机。允许通知，点按 **Turn On Critical Alerts**，然后点按 **Send Test Page**，并从通知中确认这次测试呼叫。 **Not Now** 会关闭它， **Settings → Get Ready for On-Call** 可随时再次打开它。如果需要在 Android 设置中允许勿扰权限，回到应用后关键提醒会立即开启。
+
 ## 确认呼叫能送达手机
 
 :::steps

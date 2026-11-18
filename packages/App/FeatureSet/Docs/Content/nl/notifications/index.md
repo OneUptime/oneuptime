@@ -85,6 +85,10 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 | **Nog niets kan je bereiken** | Geen van je methoden is bruikbaar: geen enkele is geverifieerd, of elke geverifieerde zit op een kanaal dat dit project heeft uitgezet |
 | **Je bent ingesteld en hebt nu geen dienst** | Alles is klaar voor de dag dat een beleid je noemt |
 
+Zolang er een stap openstaat, openen de **Gebruikersinstellingen** op deze checklist, en op **Meldingsmethoden** zodra er niets wezenlijks meer openstaat. Een link naar een andere pagina van de **Gebruikersinstellingen** opent nog steeds die pagina.
+
+Als je in een bereikbaarheidsbeleid staat en je instellingen niet af zijn, toont de bel bovenaan elke pagina **Rond het instellen van je meldingen af**, en waarom: niets kan je bereiken, een ernstniveau heeft geen regel, of je project vraagt om een telefoonmethode die je niet hebt geverifieerd. Hij opent deze checklist, of **Hoe ik bereikbaar ben** voor de telefoon. **Een week verbergen** verbergt hem in deze browser, en hij verdwijnt vanzelf zodra je instellingen af zijn.
+
 ## Als geen regel past
 
 Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel hebt: bijvoorbeeld een ernst die is toegevoegd nadat je lid werd. OneUptime roept je toch op, via wat je hebt geverifieerd:

@@ -47,6 +47,8 @@ Haz clic en **Guardar cambios**, que aparece en cuanto algo ha cambiado. Escribe
 
 **Prueba tus avisos**, al pie de la página, te envía un aviso de prueba a través de ellas.
 
+Cuando tu servidor no puede enviar ahora mismo correos, SMS ni llamadas telefónicas, un paso de ese tipo aparece marcado con **No se envía ahora mismo**, y la página dice una sola vez quién puede configurarlo.
+
 Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades**, el botón junto al título, abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**. La página sigue abriéndose en tus pasos y, debajo de ellos, lista cada tarjeta que difiere y qué hace en su lugar. **Guardar cambios** deja esas tarjetas como están; **Usar esta secuencia para cada gravedad**, al final de esa lista, les da también tu secuencia, después de nombrar las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
 
 Una política de guardia decide a quién se avisa y cuándo llega su siguiente nivel. Cómo se te contacta es esta secuencia, para cada política que te avisa.
@@ -87,6 +89,8 @@ Un proyecto puede tener una secuencia predeterminada: cómo se avisa a un miembr
 Con una secuencia predeterminada, un método que verificas recibe una regla en cada paso de su canal, en cada tarjeta de cada pestaña, y un canal que la secuencia deja fuera no recibe ninguna. Las reglas que ya tienes nunca cambian, y un aviso que no encuentra ninguna regla sigue recurriendo a tus métodos verificados.
 
 Para dársela a miembros que ya tienen reglas, un administrador usa **Aplicar secuencia predeterminada** en la página Preparación: consulta [Aplicar la secuencia predeterminada](/docs/on-call/readiness#aplicar-la-secuencia-predeterminada). Cada uno de ellos recibe un correo.
+
+Para seguirla tú mismo, haz clic en **Partir de la secuencia predeterminada**, junto a **Distinto para algunas gravedades**. Tus pasos pasan a ser los de la secuencia, con tus propios métodos verificados: una forma que no has verificado queda fuera y se nombra, y conservas tus propios pasos en su lugar. Nada cambia hasta que haces clic en **Guardar cambios**.
 
 **Teléfono para las personas de guardia**, a su lado, pide a todas las personas de guardia un número verificado de SMS, llamada telefónica o WhatsApp. Mientras no tengas ninguno, esta página lo dice encima de **Añadir tu teléfono**, y Preparación y Salud de la configuración te nombran. Nadie queda bloqueado.
 

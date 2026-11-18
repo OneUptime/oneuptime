@@ -85,6 +85,10 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 | **Todavía nada puede contactarte** | Ninguno de tus métodos se puede usar: ninguno está verificado, o cada uno verificado está en un canal que este proyecto ha desactivado |
 | **Ya lo tienes todo configurado y ahora no estás de guardia** | Todo está listo para el día en que una política te nombre |
 
+Mientras quede un paso, los **Ajustes de usuario** se abren en esta lista, y en **Métodos de notificación** cuando ya no queda nada esencial. Un enlace a cualquier otra página de los **Ajustes de usuario** sigue abriendo esa página.
+
+Cuando estás en una política de guardia y tu configuración no está terminada, la campana de la parte superior de cada página muestra **Termina de configurar tus notificaciones**, y por qué: nada puede contactarte, una gravedad no tiene regla, o tu proyecto pide un método telefónico que no has verificado. Abre esta lista, o **Cómo contactarme** para el teléfono. **Ocultar durante una semana** la oculta en este navegador, y desaparece sola en cuanto tu configuración está terminada.
+
 ## Cuando ninguna regla coincide
 
 Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla: por ejemplo, una gravedad añadida después de que te unieras. OneUptime te avisa igualmente, por lo que tienes verificado:

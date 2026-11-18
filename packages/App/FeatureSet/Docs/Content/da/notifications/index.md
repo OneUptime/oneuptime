@@ -85,6 +85,10 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 | **Intet kan nå dig endnu** | Ingen af dine metoder kan bruges: ingen er bekræftet, eller hver bekræftet metode er på en kanal, dette projekt har slået fra |
 | **Du er sat op og har ikke vagt lige nu** | Alt er klar til den dag, en politik nævner dig |
 
+Så længe et trin mangler, åbner **Brugerindstillinger** på denne tjekliste, og på **Notifikationsmetoder**, når intet væsentligt mangler. Et link til en anden side i **Brugerindstillinger** åbner stadig den side.
+
+Når du er med i en vagtpolitik, og din opsætning ikke er færdig, viser klokken øverst på hver side **Gør opsætningen af dine notifikationer færdig**, og hvorfor: intet kan nå dig, en alvorlighed har ingen regel, eller dit projekt beder om en telefonmetode, du ikke har bekræftet. Den åbner denne tjekliste, eller **Sådan når man mig** for telefonen. **Skjul i en uge** lægger den væk i denne browser, og den forsvinder af sig selv, når din opsætning er færdig.
+
 ## Når ingen regel passer
 
 Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for: for eksempel en alvorlighed, der er tilføjet, efter du blev medlem. OneUptime tilkalder dig alligevel, via det, du har bekræftet:

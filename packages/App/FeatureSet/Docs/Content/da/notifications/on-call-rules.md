@@ -47,6 +47,8 @@ Klik på **Gem ændringer**, som vises, så snart noget er ændret. Det skriver 
 
 **Test dine kald**, nederst på siden, sender dig et testkald gennem dem.
 
+Når din server ikke kan sende e-mail, sms eller telefonopkald lige nu, er et trin af den slags markeret **Sendes ikke lige nu**, og siden siger én gang, hvem der kan sætte det op.
+
 Når en alvorlighed fortjener noget andet, åbner **Anderledes for nogle alvorligheder**, knappen ved siden af titlen, fanerne og kortene, der er beskrevet nedenfor. Et kort, der afviger fra din rækkefølge, er markeret med **Afviger fra rækkefølgen**. Siden åbner stadig på dine trin og viser under dem hvert kort, der afviger, og hvad det gør i stedet. **Gem ændringer** lader de kort være, som de er; **Brug denne rækkefølge for alle alvorligheder**, sidst i listen, giver dem også din rækkefølge, efter at have nævnt de kort, der mister deres afvigelse. En alvorlighed, dit projekt har arkiveret, beholder sine egne regler.
 
 En vagtpolitik bestemmer, hvem der kaldes, og hvornår dens næste niveau kommer. Hvordan du nås, er denne rækkefølge, for hver politik, der kalder dig.
@@ -87,6 +89,8 @@ Et projekt kan have en standardrækkefølge: hvordan et medlem tilkaldes, når d
 Med en standardrækkefølge får en metode, du bekræfter, en regel ved hvert af sin kanals trin, på hvert kort på hver fane, og en kanal, som rækkefølgen udelader, får ingen. Regler, du allerede har, ændres aldrig, og et tilkald, der ikke finder nogen regel, falder stadig tilbage på dine bekræftede metoder.
 
 For at give den til medlemmer, der allerede har regler, bruger en administrator **Anvend standardrækkefølge** på siden Parathed: se [Anvend standardrækkefølgen](/docs/on-call/readiness#anvend-standardrækkefølgen). Hver af dem får én e-mail.
+
+For selv at følge den skal du klikke på **Start fra projektets standardrækkefølge** ved siden af **Anderledes for nogle alvorligheder**. Dine trin bliver standardens, med dine egne bekræftede metoder: en måde, du ikke har bekræftet, udelades og nævnes, og du beholder dine egne trin i stedet. Intet ændres, før du klikker på **Gem ændringer**.
 
 **Telefon for folk på vagt**, ved siden af, beder alle på vagt om at have et bekræftet nummer til sms, telefonopkald eller WhatsApp. Så længe du ikke har et, siger denne side det over **Tilføj din telefon**, og Parathed og Opsætningens tilstand nævner dig. Ingen bliver låst ude.
 

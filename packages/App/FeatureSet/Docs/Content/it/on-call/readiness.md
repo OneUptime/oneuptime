@@ -81,6 +81,7 @@ Un modo che qualcuno non ha verificato viene escluso, e al suo posto quella pers
 - Nelle **Regole di escalation** di una policy, un livello i cui destinatari non possono essere avvisati tutti lo indica sulla sua scheda. Vedi [Il riepilogo dell'escalation](/docs/on-call/escalation-rules#il-riepilogo-dellescalation).
 - In **Utenti**, aprite un membro e poi **Prontezza** nella sezione **Reperibilità**: il suo stato, i suoi metodi e la sua griglia di copertura.
 - Per la vostra configurazione, **Impostazioni utente → Elenco di configurazione** vi guida. Vedi [L'elenco di configurazione](/docs/notifications/index#lelenco-di-configurazione).
+- Chi è in una politica e non ha finito la propria configurazione vede **Completa la configurazione delle tue notifiche** nella campanella in alto in ogni pagina, che apre il suo elenco di configurazione.
 
 ## L'e-mail settimanale sulla prontezza
 

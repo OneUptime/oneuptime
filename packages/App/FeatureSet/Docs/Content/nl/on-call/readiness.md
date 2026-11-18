@@ -81,6 +81,7 @@ Een manier die iemand niet heeft geverifieerd, wordt weggelaten, en die persoon 
 - Op de **Escalatieregels** van een beleid zegt een niveau op zijn kaart wanneer niet al zijn responders kunnen worden opgeroepen. Zie [Het escalatieoverzicht](/docs/on-call/escalation-rules#het-escalatieoverzicht).
 - Open onder **Gebruikers** een lid, en dan **Gereedheid** in de sectie **Bereikbaarheid**: de status, de methoden en het dekkingsraster van die persoon.
 - Voor je eigen instellingen leidt **Gebruikersinstellingen → Instellingschecklist** je erdoorheen. Zie [De instellingschecklist](/docs/notifications/index#de-instellingschecklist).
+- Wie in een beleid staat en de eigen instellingen niet af heeft, ziet **Rond het instellen van je meldingen af** in de bel bovenaan elke pagina, die de eigen instellingschecklist opent.
 
 ## De wekelijkse e-mail over gereedheid
 

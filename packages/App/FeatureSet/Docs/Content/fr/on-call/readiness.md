@@ -81,6 +81,7 @@ Un moyen qu'une personne n'a pas vérifié est laissé de côté, et elle garde 
 - Sur les **Règles d'escalade** d'une politique, un niveau dont les intervenants ne peuvent pas tous être alertés l'indique sur sa carte. Voir [Le résumé de l'escalade](/docs/on-call/escalation-rules#le-résumé-de-lescalade).
 - Sous **Utilisateurs**, ouvrez un membre, puis **Disponibilité** dans la section **Astreinte** : son statut, ses méthodes et sa grille de couverture.
 - Pour votre propre configuration, **Paramètres utilisateur → Liste de configuration** vous guide. Voir [La liste de configuration](/docs/notifications/index#la-liste-de-configuration).
+- Toute personne dans une politique dont la configuration n'est pas terminée voit **Terminez la configuration de vos notifications** dans la cloche en haut de chaque page, qui ouvre sa liste de configuration.
 
 ## L'e-mail hebdomadaire de disponibilité
 

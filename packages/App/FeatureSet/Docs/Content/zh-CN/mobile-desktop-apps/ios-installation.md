@@ -58,6 +58,8 @@ flowchart TB
 
 应用一次显示一个项目：轻点屏幕顶部的项目名称即可切换。要求单点登录的项目会在 **Settings → Manage Projects** 中显示 **SSO Required**，直到你在那里轻点 **Authenticate with SSO**。
 
+全新安装时，应用随后会打开一次 **Get Ready for On-Call**：三个步骤，让呼叫即使在夜间静音时也能送达设备。允许通知，轻点 **Turn On Critical Alerts**，然后轻点 **Send Test Page**，并从通知中确认这次测试呼叫。 **Not Now** 会关闭它， **Settings → Get Ready for On-Call** 可随时再次打开它。如果需要在 iOS 设置中允许关键提醒，回到应用后它们会立即开启。
+
 ## 确认呼叫能送达设备
 
 :::steps
