@@ -127,6 +127,7 @@ import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 if (
   typeof (globalThis as unknown as { setImmediate?: unknown }).setImmediate !==
@@ -559,6 +560,7 @@ beforeEach(() => {
     .spyOn(ProjectService, "updateLastActive")
     .mockResolvedValue(undefined as never);
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  treatEverySessionAsLive();
   jest
     .spyOn(UserService, "isUserMasterAdmin")
     .mockResolvedValue(false as never);

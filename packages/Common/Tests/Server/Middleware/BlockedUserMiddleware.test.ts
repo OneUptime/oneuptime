@@ -23,6 +23,7 @@ import { UserGlobalAccessPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
 
 /*
  * A BLOCKED USER'S ACCESS TOKEN STOPS WORKING, NOT JUST THEIR NEXT SIGN-IN.
@@ -157,6 +158,7 @@ beforeEach(() => {
   isUserBlocked = getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(
     false,
   );
+  treatEverySessionAsLive();
   isUserMasterAdmin = getJestSpyOn(
     UserService,
     "isUserMasterAdmin",

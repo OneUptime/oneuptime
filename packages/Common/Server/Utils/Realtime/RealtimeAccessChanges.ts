@@ -500,17 +500,7 @@ export default class RealtimeAccessChanges {
            * sessions are refused here from their next request, not when
            * they expire (UserSessionService.isSessionLive, #9534).
            */
-          if (change.sessionIds) {
-            RealtimeAccessChanges.getUserSessionService().forgetEndedSessions(
-              change.sessionIds,
-            );
-          }
-
-          if (change.userId) {
-            RealtimeAccessChanges.getUserSessionService().forgetSessionsOfUser(
-              change.userId,
-            );
-          }
+          RealtimeAccessChanges.refuseEndedSessions(change);
 
           RealtimeSessions.endWhere({
             userId: change.userId,
@@ -579,6 +569,36 @@ export default class RealtimeAccessChanges {
       }
     } catch (err) {
       logger.error("Realtime: an access change could not be applied here.");
+      logger.error(err);
+    }
+  }
+
+  /*
+   * The access tokens of sessions that ended are refused on this server
+   * from their next request (UserSessionService.forgetEndedSessions,
+   * forgetSessionsOfUser). A step of its own: should it fail, the live
+   * updates still end, and the sessions are read again here within
+   * LIVE_SESSION_CACHE_TTL_MS.
+   */
+  private static refuseEndedSessions(change: {
+    userId?: string | undefined;
+    sessionIds?: Array<string> | undefined;
+  }): void {
+    try {
+      const userSessionService: UserSessionServiceType =
+        RealtimeAccessChanges.getUserSessionService();
+
+      if (change.sessionIds) {
+        userSessionService.forgetEndedSessions(change.sessionIds);
+      }
+
+      if (change.userId) {
+        userSessionService.forgetSessionsOfUser(change.userId);
+      }
+    } catch (err) {
+      logger.error(
+        "Realtime: ended sessions could not be refused here at once; this server refuses them once it reads them again.",
+      );
       logger.error(err);
     }
   }
