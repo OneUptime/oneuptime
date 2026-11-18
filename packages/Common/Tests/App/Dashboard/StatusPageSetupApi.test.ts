@@ -890,7 +890,7 @@ describe("the project's status pages this person may change (#7517)", () => {
           (call[0] as { modelType: unknown }).modelType === StatusPageOwnerUser
         );
       },
-    )![0] as Record<string, unknown>;
+    )![0] as unknown as Record<string, unknown>;
     expect(
       (ownerUserArgs["query"] as Record<string, unknown>)["userId"],
     ).toEqual(USER);
@@ -901,7 +901,7 @@ describe("the project's status pages this person may change (#7517)", () => {
           (call[0] as { modelType: unknown }).modelType === StatusPageOwnerTeam
         );
       },
-    )![0] as Record<string, unknown>;
+    )![0] as unknown as Record<string, unknown>;
     const teams: Includes = (ownerTeamArgs["query"] as Record<string, unknown>)[
       "teamId"
     ] as Includes;
