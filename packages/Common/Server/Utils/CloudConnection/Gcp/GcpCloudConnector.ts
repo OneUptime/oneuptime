@@ -3,7 +3,9 @@ import {
   GCP_ALIGNMENT_PERIOD_SECONDS,
   GCP_KEY_METRICS,
   GcpKeyMetric,
+  GcpTypeKeyMetrics,
   getGcpKeyMetricTypes,
+  getGcpResourceTypesOfMetric,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import {
@@ -115,10 +117,13 @@ import { JSONObject } from "../../../../Types/JSON";
  * GOOGLE CLOUD: the projects a service account may read, from Cloud
  * Monitoring.
  *
- * Every read asks each project for each key metric (CloudKeyMetrics) since
+ * Every read asks each project for the key metrics (CloudKeyMetrics) since
  * the last read, aligned to a minute: one call per metric type returns it
  * for every resource of the project, so a VM, a Cloud SQL instance, a
- * Cloud Run service is found the moment it reports. Each series becomes
+ * Cloud Run service is found the moment it reports. Each resource type's
+ * first metric is asked of every project; its others only of the projects
+ * that have such a resource (getGcpMetricTypesToAsk) - in the same read for
+ * one found just now. Each series becomes
  * the export the googlecloudmonitoring receiver sends: the monitored
  * resource's type and labels on the OTel resource, the metric's labels on
  * its datapoints, the metric named by its type.
@@ -145,6 +150,78 @@ function isOlderThan(
 }
 // A test looks back this far, for the first metric of each resource type.
 const TEST_LOOK_BACK_MS: number = 30 * 60 * 1000;
+
+/*
+ * How long a project counts as having a resource type after it last
+ * reported a key metric of it: a day, so a quiet night or a paused
+ * service does not drop its metrics from the reads.
+ */
+export const GCP_RESOURCE_TYPE_SEEN_MS: number = DAY_MS;
+
+// Each resource type's first key metric: asked of every project, every read.
+const GCP_PROBE_METRIC_TYPES: ReadonlySet<string> = new Set<string>(
+  GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics): string => {
+    return entry.metrics[0]!.metricType;
+  }),
+);
+
+/*
+ * WHICH KEY METRICS A READ ASKS ONE PROJECT FOR.
+ *
+ * One call per metric type answers it for every resource of the project,
+ * whether the project has such a resource or not - so asking every key
+ * metric of every resource type would cost a project with a few VMs and a
+ * bucket as many calls as one with every service. A read asks each
+ * resource type's first metric of every project (a resource of the type
+ * reports it: it is how a new one is found), and a type's other metrics
+ * only of the projects that reported one of its metrics in the last
+ * GCP_RESOURCE_TYPE_SEEN_MS (`seenResourceTypes`). A metric type two
+ * resource types report is asked once, when either is there.
+ *
+ * `asked`: the metric types this read has asked the project already - a
+ * second pass for the resource types its first pass found asks only the
+ * rest.
+ */
+export function getGcpMetricTypesToAsk(data: {
+  seenResourceTypes: ReadonlySet<string>;
+  asked?: ReadonlySet<string> | undefined;
+}): Array<GcpKeyMetric & { resourceType: string }> {
+  return getGcpKeyMetricTypes().filter(
+    (metric: GcpKeyMetric & { resourceType: string }): boolean => {
+      if (data.asked?.has(metric.metricType)) {
+        return false;
+      }
+
+      return (
+        (!data.asked && GCP_PROBE_METRIC_TYPES.has(metric.metricType)) ||
+        getGcpResourceTypesOfMetric(metric.metricType).some(
+          (resourceType: string): boolean => {
+            return data.seenResourceTypes.has(resourceType);
+          },
+        )
+      );
+    },
+  );
+}
+
+/*
+ * The resource types a project reported within GCP_RESOURCE_TYPE_SEEN_MS
+ * of `now`, from the read state's per-type times.
+ */
+export function getGcpSeenResourceTypes(data: {
+  seen: Record<string, string> | undefined;
+  now: Date;
+}): Set<string> {
+  const types: Set<string> = new Set<string>();
+
+  for (const [resourceType, at] of Object.entries(data.seen || {})) {
+    if (!isOlderThan(at, GCP_RESOURCE_TYPE_SEEN_MS, data.now)) {
+      types.add(resourceType);
+    }
+  }
+
+  return types;
+}
 
 interface ParsedKey {
   projectId: string;
@@ -1369,118 +1446,244 @@ export default class GcpCloudConnector implements CloudConnector {
 
     const resources: Map<string, CloudDiscoveredResource> = new Map();
     const groups: Map<string, CloudMetricGroup> = new Map();
+    /*
+     * Per project, the resource types it reported lately
+     * (getGcpMetricTypesToAsk): the ones the state kept, less those quiet
+     * for a day, plus what this read finds.
+     */
+    const seenByProject: Record<string, Record<string, string>> = {};
+
+    for (const projectId of Array.from(
+      new Set<string>([
+        ...projects,
+        ...Object.keys(state.gcpResourceTypesSeen || {}),
+      ]),
+    )) {
+      const kept: Record<string, string> = {};
+
+      for (const resourceType of getGcpSeenResourceTypes({
+        seen: state.gcpResourceTypesSeen?.[projectId],
+        now,
+      })) {
+        kept[resourceType] =
+          state.gcpResourceTypesSeen![projectId]![resourceType]!;
+      }
+
+      // A project quiet for a day is forgotten.
+      if (Object.keys(kept).length > 0 || projects.includes(projectId)) {
+        seenByProject[projectId] = kept;
+      }
+    }
 
     if (window) {
-      const asks: Array<{
+      type GcpAsk = {
         projectId: string;
         metric: GcpKeyMetric & { resourceType: string };
-      }> = [];
+      };
+
+      // Each project's metric types asked so far, this read.
+      const askedByProject: Map<string, Set<string>> = new Map();
+      const knownResourceTypes: ReadonlySet<string> = new Set<string>(
+        GCP_KEY_METRICS.map((entry: GcpTypeKeyMetrics): string => {
+          return entry.resourceType;
+        }),
+      );
+
+      const ask: (asks: Array<GcpAsk>) => Promise<{
+        outcomes: Array<Settled<Array<GcpTimeSeries>>>;
+        asks: Array<GcpAsk>;
+      }> = async (
+        asks: Array<GcpAsk>,
+      ): Promise<{
+        outcomes: Array<Settled<Array<GcpTimeSeries>>>;
+        asks: Array<GcpAsk>;
+      }> => {
+        for (const item of asks) {
+          const asked: Set<string> =
+            askedByProject.get(item.projectId) || new Set<string>();
+          asked.add(item.metric.metricType);
+          askedByProject.set(item.projectId, asked);
+        }
+
+        return {
+          asks,
+          outcomes: await mapWithConcurrency(
+            asks,
+            CONCURRENCY,
+            async (item: GcpAsk): Promise<Array<GcpTimeSeries>> => {
+              return await monitoring.listTimeSeries({
+                projectId: item.projectId,
+                metricType: item.metric.metricType,
+                aligner: item.metric.aligner,
+                alignmentPeriodSeconds: GCP_ALIGNMENT_PERIOD_SECONDS,
+                start: window.start,
+                end: window.end,
+              });
+            },
+          ),
+        };
+      };
+
+      // 1. Every resource type's first metric, and the others of the types each project has.
+      const firstPass: Array<GcpAsk> = [];
 
       for (const projectId of projects) {
-        for (const metric of getGcpKeyMetricTypes()) {
-          asks.push({ projectId, metric });
+        for (const metric of getGcpMetricTypesToAsk({
+          seenResourceTypes: new Set<string>(
+            Object.keys(seenByProject[projectId] || {}),
+          ),
+        })) {
+          firstPass.push({ projectId, metric });
         }
       }
 
-      const outcomes: Array<Settled<Array<GcpTimeSeries>>> =
-        await mapWithConcurrency(
-          asks,
-          CONCURRENCY,
-          async (ask: {
-            projectId: string;
-            metric: GcpKeyMetric;
-          }): Promise<Array<GcpTimeSeries>> => {
-            return await monitoring.listTimeSeries({
-              projectId: ask.projectId,
-              metricType: ask.metric.metricType,
-              aligner: ask.metric.aligner,
-              alignmentPeriodSeconds: GCP_ALIGNMENT_PERIOD_SECONDS,
-              start: window.start,
-              end: window.end,
-            });
-          },
-        );
+      const passes: Array<{
+        outcomes: Array<Settled<Array<GcpTimeSeries>>>;
+        asks: Array<GcpAsk>;
+      }> = [await ask(firstPass)];
+
+      /*
+       * 2. A resource type a project reported for the first time in a day:
+       * its other metrics, for the same window, so its first minutes are
+       * read whole.
+       */
+      const secondPass: Array<GcpAsk> = [];
+      const newlySeen: Map<string, Set<string>> = new Map();
+
+      passes[0]!.outcomes.forEach(
+        (outcome: Settled<Array<GcpTimeSeries>>, index: number) => {
+          if (!outcome.ok) {
+            return;
+          }
+
+          const projectId: string = passes[0]!.asks[index]!.projectId;
+
+          for (const series of outcome.value) {
+            if (
+              knownResourceTypes.has(series.resourceType) &&
+              !seenByProject[projectId]?.[series.resourceType]
+            ) {
+              const types: Set<string> =
+                newlySeen.get(projectId) || new Set<string>();
+              types.add(series.resourceType);
+              newlySeen.set(projectId, types);
+            }
+          }
+        },
+      );
+
+      for (const [projectId, types] of newlySeen) {
+        for (const metric of getGcpMetricTypesToAsk({
+          seenResourceTypes: types,
+          asked: askedByProject.get(projectId),
+        })) {
+          secondPass.push({ projectId, metric });
+        }
+      }
+
+      if (secondPass.length > 0) {
+        passes.push(await ask(secondPass));
+      }
 
       let succeeded: number = 0;
       let failedMetrics: number = 0;
       let firstError: unknown = undefined;
 
-      outcomes.forEach(
-        (outcome: Settled<Array<GcpTimeSeries>>, index: number) => {
-          if (!outcome.ok) {
-            if (outcome.error instanceof CloudReadBudgetSpent) {
-              return;
-            }
-
-            if (
-              outcome.error instanceof LlmProviderError &&
-              (outcome.error.kind ===
-                CloudConnectionFailureKind.Authentication ||
-                outcome.error.kind === CloudConnectionFailureKind.Settings)
-            ) {
-              throw outcome.error;
-            }
-
-            failedMetrics++;
-            firstError = firstError || outcome.error;
+      const collect: (
+        outcome: Settled<Array<GcpTimeSeries>>,
+        item: GcpAsk,
+      ) => void = (
+        outcome: Settled<Array<GcpTimeSeries>>,
+        item: GcpAsk,
+      ): void => {
+        if (!outcome.ok) {
+          if (outcome.error instanceof CloudReadBudgetSpent) {
             return;
           }
 
-          succeeded++;
-          const ask: { metric: GcpKeyMetric } = asks[index]!;
+          if (
+            outcome.error instanceof LlmProviderError &&
+            (outcome.error.kind === CloudConnectionFailureKind.Authentication ||
+              outcome.error.kind === CloudConnectionFailureKind.Settings)
+          ) {
+            throw outcome.error;
+          }
 
-          for (const series of outcome.value) {
-            const resource: CloudMonitoredResource | null =
-              this.resolve(series);
+          failedMetrics++;
+          firstError = firstError || outcome.error;
+          return;
+        }
 
-            if (!resource) {
-              continue;
-            }
+        succeeded++;
+        const askedMetric: GcpKeyMetric = item.metric;
 
-            if (!resources.has(resource.identityKey)) {
-              resources.set(resource.identityKey, {
-                resource,
-                displayName: series.metadataName || undefined,
-              });
-            }
+        for (const series of outcome.value) {
+          if (knownResourceTypes.has(series.resourceType)) {
+            const seen: Record<string, string> =
+              seenByProject[item.projectId] || {};
+            seen[series.resourceType] = now.toISOString();
+            seenByProject[item.projectId] = seen;
+          }
+        }
 
-            let group: CloudMetricGroup | undefined = groups.get(
-              resource.identityKey,
-            );
+        for (const series of outcome.value) {
+          const resource: CloudMonitoredResource | null = this.resolve(series);
 
-            if (!group) {
-              group = {
-                resourceAttributes: this.resourceAttributes({
-                  serviceName: options.serviceName,
-                  connectionId: options.connectionId,
-                  series,
-                }),
-                metrics: [],
-              };
-              groups.set(resource.identityKey, group);
-            }
+          if (!resource) {
+            continue;
+          }
 
-            let metric: CloudMetricGroup["metrics"][number] | undefined =
-              group.metrics.find((candidate: { name: string }): boolean => {
-                return candidate.name === series.metricType;
-              });
-
-            if (!metric) {
-              metric = {
-                name: series.metricType,
-                unit: ask.metric.unit,
-                datapointSets: [],
-              };
-              group.metrics.push(metric);
-            }
-
-            metric.datapointSets.push({
-              attributes: this.datapointAttributes(series),
-              points: series.points,
+          if (!resources.has(resource.identityKey)) {
+            resources.set(resource.identityKey, {
+              resource,
+              displayName: series.metadataName || undefined,
             });
           }
-        },
-      );
+
+          let group: CloudMetricGroup | undefined = groups.get(
+            resource.identityKey,
+          );
+
+          if (!group) {
+            group = {
+              resourceAttributes: this.resourceAttributes({
+                serviceName: options.serviceName,
+                connectionId: options.connectionId,
+                series,
+              }),
+              metrics: [],
+            };
+            groups.set(resource.identityKey, group);
+          }
+
+          let metric: CloudMetricGroup["metrics"][number] | undefined =
+            group.metrics.find((candidate: { name: string }): boolean => {
+              return candidate.name === series.metricType;
+            });
+
+          if (!metric) {
+            metric = {
+              name: series.metricType,
+              unit: askedMetric.unit,
+              datapointSets: [],
+            };
+            group.metrics.push(metric);
+          }
+
+          metric.datapointSets.push({
+            attributes: this.datapointAttributes(series),
+            points: series.points,
+          });
+        }
+      };
+
+      for (const pass of passes) {
+        pass.outcomes.forEach(
+          (outcome: Settled<Array<GcpTimeSeries>>, index: number) => {
+            collect(outcome, pass.asks[index]!);
+          },
+        );
+      }
 
       if (succeeded === 0 && firstError) {
         throw firstError;
@@ -1505,6 +1708,7 @@ export default class GcpCloudConnector implements CloudConnector {
     state.cursors = cursors;
     state.accounts = projects;
     state.inventoryAt = now.toISOString();
+    state.gcpResourceTypesSeen = seenByProject;
 
     const tooMany: string | null = this.isOrganization(settings)
       ? getOrganizationLimitWarning({

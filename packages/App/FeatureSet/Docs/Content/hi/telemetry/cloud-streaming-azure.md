@@ -77,14 +77,7 @@ flowchart TB
 
 स्ट्रीम वे मुख्य मेट्रिक्स लाती है जिन्हें कनेक्शन हर मिनट पढ़ता है। बाकी को रीडिंग अपने शेड्यूल पर लिखती रहती हैं: वह मेट्रिक जिसे वे अधिक मोटे अंतराल पर पढ़ती हैं, जैसे किसी कंटेनर रजिस्ट्री का इस्तेमाल किया गया स्टोरेज, और हर वह मुख्य मेट्रिक जिसे डायग्नोस्टिक सेटिंग नहीं भेज सकती, जिसे Azure Monitor की समर्थित मेट्रिक्स की सूची DS Export कॉलम में एक्सपोर्ट न हो सकने वाला बताती है:
 
-- वर्चुअल मशीनें और स्केल सेट: `Network In Total`, `Network Out Total`।
-- डिस्क: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`।
-- Azure Cosmos DB खाते: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`।
-- स्टोरेज खाते: `UsedCapacity`।
-- AKS क्लस्टर: `kube_pod_status_ready`।
-- ऐप्लिकेशन गेटवे: `ApplicationGatewayTotalTime`, `Throughput`।
-- फ़ायरवॉल: `Throughput`।
-- NAT गेटवे: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`।
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Service Bus या Event Hubs नेमस्पेस कोई मेट्रिक स्ट्रीम नहीं करता। रीडिंग उसके मुख्य मेट्रिक्स हर क्यू, टॉपिक और इवेंट हब के लिए पढ़ती हैं, और नेमस्पेस के अपने कुल योग उन्हें जोड़ते हैं, जबकि डायग्नोस्टिक सेटिंग केवल नेमस्पेस के कुल योग भेजती है, और Service Bus नेमस्पेस के 6 मुख्य मेट्रिक्स में से 4, या Event Hubs नेमस्पेस के 4 में से 2 बिल्कुल नहीं भेजती। इसलिए रीडिंग उन सभी को लिखती हैं, स्ट्रीम हो या न हो, और कोई संदेश दो बार नहीं गिना जाता।
 

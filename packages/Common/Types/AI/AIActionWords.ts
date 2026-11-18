@@ -1108,6 +1108,7 @@ export const AI_READ_CARD_SLO_STATUSES: Record<SloStatus, string> = {
   [SloStatus.Healthy]: translationKey("Healthy"),
   [SloStatus.AtRisk]: translationKey("At Risk"),
   [SloStatus.BudgetExhausted]: translationKey("Budget Exhausted"),
+  [SloStatus.Waiting]: translationKey("Waiting"),
   [SloStatus.Misconfigured]: translationKey("Misconfigured"),
   [SloStatus.Paused]: translationKey("Paused"),
 };

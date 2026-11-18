@@ -252,7 +252,7 @@ Sommige wijzigingen lossen altijd op wat een regel heeft geopend, wat de instell
 - **Wanneer hij afgaat** zo wijzigen dat de waarschuwing of het incident wegvalt, sluit wat die uitvoer had geopend;
 - de regel uitzetten of verwijderen;
 - de evaluatie van de SLO uitzetten, de SLO archiveren of verwijderen;
-- de SLO die naar **Gepauzeerd** of **Verkeerd geconfigureerd** gaat, omdat hij dan niets meet;
+- de SLO die naar **Wachten**, **Gepauzeerd** of **Verkeerd geconfigureerd** gaat, omdat hij dan niets meet;
 - de regel die zijn drempel of vensters kwijtraakt, of de SLO die geen volledig lang venster aan geschiedenis meer heeft.
 
 ## Gepland onderhoud

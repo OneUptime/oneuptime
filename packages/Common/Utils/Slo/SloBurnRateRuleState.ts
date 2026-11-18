@@ -20,7 +20,9 @@
  * so the ordering edges are unit-testable without a DOM.
  */
 
-import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
+import SloStatus, {
+  isSloUnmeasuredStatus,
+} from "../../Types/ServiceLevelObjective/SloStatus";
 
 export interface SloBurnRateRuleAlertState {
   lastAlertCreatedAt?: Date | undefined | null;
@@ -138,8 +140,6 @@ export const canSloFireBurnRateRules: CanSloFireBurnRateRulesFunction = (
     return false;
   }
 
-  return (
-    slo.sloStatus !== SloStatus.Misconfigured &&
-    slo.sloStatus !== SloStatus.Paused
-  );
+  // The worker's guards measure nothing, so no rule of theirs fires.
+  return !isSloUnmeasuredStatus(slo.sloStatus);
 };

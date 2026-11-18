@@ -139,17 +139,19 @@ OneUptime da un estado a cada SLO evaluado:
 | **En buen estado** | Queda más presupuesto que el umbral de riesgo. |
 | **En riesgo** | El presupuesto restante ha bajado al umbral de riesgo o por debajo: el 20 % de forma predeterminada. |
 | **Presupuesto agotado** | El presupuesto se ha gastado por completo, o se ha superado. |
-| **Mal configurado** | El SLO no se puede medir: no tiene monitores, sus monitores ya no existen, nada los ha comprobado todavía o todavía no han registrado ningún estado en su ventana, o su objetivo está fuera de rango. Un SLO de solicitudes está mal configurado si no tiene servicios, si no tiene umbral de latencia o mientras sus servicios no hayan servido ninguna solicitud en su ventana. |
+| **Esperando** | Todavía no se ha comprobado ninguno de sus monitores: un monitor creado hace un minuto o una sonda autoalojada que no está conectada. Se mide a partir de su primera comprobación. |
+| **Mal configurado** | El SLO no se puede medir: no tiene monitores, sus monitores ya no existen o todavía no han registrado ningún estado en su ventana, o su objetivo está fuera de rango. Un SLO de solicitudes está mal configurado si no tiene servicios, si no tiene umbral de latencia o mientras sus servicios no hayan servido ninguna solicitud en su ventana. |
 | **Pausado** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada, a mano, por un incidente manual o por un mantenimiento programado. Se reanuda solo en cuanto alguno de ellos vuelve a supervisarse. |
 
-Un SLO desactivado o archivado no se evalúa, así que su estado se queda como estaba; la lista de SLO muestra en su lugar una etiqueta **Deshabilitado** o **Archivado**. Se notifica a los propietarios de un SLO cuando el estado cambia a **En riesgo** o **Presupuesto agotado**: consulta [Presupuestos de errores](/docs/slo/error-budget).
+Un SLO desactivado o archivado no se evalúa, así que su estado se queda como estaba; la lista de SLO muestra en su lugar una etiqueta **Deshabilitado** o **Archivado**. Se notifica a los propietarios de un SLO cuando el estado cambia a **En riesgo** o **Presupuesto agotado**: consulta [Presupuestos de errores](/docs/slo/error-budget). Una regla también puede publicar los cambios de estado en Slack, Microsoft Teams o Mattermost: consulta [Cambios de estado](/docs/slo/error-budget-policy#cambios-de-estado).
 
 ## La lista de SLO
 
 La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios. Su columna **Qué mide** muestra los servicios de un SLO de solicitudes donde muestra los monitores de un SLO de disponibilidad, y el filtro **Servicios** encuentra los SLO que miden un servicio.
 
-- Los mosaicos sobre la lista cuentan los SLO por estado: **En buen estado**, **En riesgo**, **Presupuesto agotado**, **Mal configurado**, **Pausado** y **Deshabilitado**. Aparecen en cuanto hay un SLO que no está archivado. Haz clic en un mosaico para ver solo esos SLO, y otra vez para verlos todos.
-- Selecciona SLO para añadir o quitar etiquetas y propietarios, activarlos o desactivarlos, darles las [reglas de tasa de consumo recomendadas](/docs/slo/burn-rate-alerts#añadirlas-a-muchos-slo-a-la-vez) que les faltan, archivarlos o eliminarlos, todos a la vez.
+- Los mosaicos sobre la lista cuentan los SLO por estado: **En buen estado**, **En riesgo**, **Presupuesto agotado**, **Esperando**, **Mal configurado**, **Pausado** y **Deshabilitado**. Aparecen en cuanto hay un SLO que no está archivado. Haz clic en un mosaico para ver solo esos SLO, y otra vez para verlos todos.
+- Selecciona SLO para añadir o quitar etiquetas y propietarios, activarlos o desactivarlos, darles las [reglas de tasa de consumo recomendadas](/docs/slo/burn-rate-alerts#añadirlas-a-muchos-slo-a-la-vez) que les faltan o la [política de presupuesto de errores recomendada](/docs/slo/error-budget-policy#la-política-recomendada), archivarlos o eliminarlos, todos a la vez.
+- El filtro **Despliegues** muestra los SLO cuya política de presupuesto de errores congela los despliegues en este momento, o los que los permiten. Muestra la columna **Despliegues** desde el selector de columnas de la lista para ver desde cuándo está congelado cada uno: consulta [Barrera de despliegue](/docs/slo/error-budget-policy#barrera-de-despliegue).
 - La sección **Ajustes** del menú lateral contiene **Reglas de etiquetas** y **Reglas del propietario**, que etiquetan los SLO nuevos y les asignan propietarios: consulta [Reglas de etiquetas y propietarios](/docs/slo/label-and-owner-rules).
 - La sección **Avanzado** del menú lateral contiene **Archivado**, la lista de SLO archivados.
 

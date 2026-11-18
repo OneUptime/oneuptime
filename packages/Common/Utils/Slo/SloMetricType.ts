@@ -46,9 +46,10 @@ export const SERVICE_LEVEL_OBJECTIVE_NAMES_METRIC_ATTRIBUTE: string =
 
 /*
  * Numeric encoding of the Status series. Ordered by severity so the Max
- * aggregation surfaces the worst state inside a chart bucket. Misconfigured
- * and Paused have no entry: those guard paths measure nothing, so they post
- * no point rather than a number that would read as a real health state.
+ * aggregation surfaces the worst state inside a chart bucket. Waiting,
+ * Misconfigured and Paused have no entry: those guard paths measure nothing,
+ * so they post no point rather than a number that would read as a real
+ * health state.
  */
 const STATUS_METRIC_VALUES: Array<{ status: SloStatus; value: number }> = [
   { status: SloStatus.Healthy, value: 0 },
@@ -210,8 +211,8 @@ class SloMetricTypeUtil {
 
   /*
    * The value posted on the Status series, or null for a status that must not
-   * post one (the Misconfigured and Paused guards, and a status the worker
-   * has not computed yet).
+   * post one (the Waiting, Misconfigured and Paused guards, and a status the
+   * worker has not computed yet).
    */
   public static getStatusMetricValue(
     status: SloStatus | undefined | null,

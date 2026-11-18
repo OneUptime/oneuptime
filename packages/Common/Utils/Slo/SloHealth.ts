@@ -233,6 +233,29 @@ const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
   };
 };
 
+/*
+ * Nothing has checked the SLO's monitors yet (#9089, #9354): a monitor
+ * created a minute ago, or a self-hosted probe not connected yet. The SLO is
+ * set up right, and is measured from their first check, so it says so
+ * rather than sending the owner to look for a mistake.
+ */
+type GetWaitingForFirstCheckNoticeFunction = () => SloNotice;
+
+const getWaitingForFirstCheckNotice: GetWaitingForFirstCheckNoticeFunction =
+  (): SloNotice => {
+    return {
+      type: SloNoticeType.Info,
+      title: translationKey("Waiting for the first check"),
+      body: translationKey(
+        "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
+      ),
+      action: {
+        label: translationKey("View monitors"),
+        target: SloNoticeActionTarget.Monitors,
+      },
+    };
+  };
+
 type GetNoServicesNoticeFunction = (
   sliType: SliType | undefined | null,
 ) => SloNotice;
@@ -348,8 +371,10 @@ const getRequestSetupNotice: GetRequestSetupNoticeFunction = (
  *   or no requests in its window -> Misconfigured
  *   monitorCount == 0    -> Misconfigured
  *   target outside (0,100) -> Misconfigured
- *   no time measured, nothing has checked its monitors yet -> Misconfigured,
- *                           said as "Waiting for the first check"
+ *   no time measured, nothing has checked its monitors yet -> Waiting,
+ *                           said as "Waiting for the first check" (and so is
+ *                           an SLO stored as Misconfigured for that reason
+ *                           before Waiting existed, until its next evaluation)
  *   all monitors disabled -> Paused
  */
 export type GetSloNoticeFunction = (data: SloNoticeData) => SloNotice | null;
@@ -389,6 +414,15 @@ export const getSloNotice: GetSloNoticeFunction = (
 
   // Counted in events, from traces or from a metric (#8445).
   const isRequestSli: boolean = isEventSliType(data.sliType);
+
+  /*
+   * The status of its own the worker gives an SLO whose monitors nothing
+   * has checked yet (#9354): the same notice an SLO it stored as
+   * Misconfigured for that reason, before that status existed, gets below.
+   */
+  if (data.sloStatus === SloStatus.Waiting) {
+    return getWaitingForFirstCheckNotice();
+  }
 
   if (data.sloStatus === SloStatus.Misconfigured) {
     // The SLI type is chosen in Settings, What It Measures.
@@ -472,23 +506,12 @@ export const getSloNotice: GetSloNoticeFunction = (
     }
 
     /*
-     * Nothing has checked its monitors yet (#9089): a monitor created a
-     * minute ago, or a self-hosted probe not connected yet. The SLO is set
-     * up right, and is measured from their first check, so it says so
-     * rather than sending the owner to look for a mistake.
+     * Nothing has checked its monitors yet (#9089), on an SLO the worker
+     * stored as Misconfigured for it before it had Waiting (#9354): its
+     * next evaluation moves it to Waiting, and it says so already.
      */
     if (data.isWaitingForFirstCheck === true) {
-      return {
-        type: SloNoticeType.Info,
-        title: translationKey("Waiting for the first check"),
-        body: translationKey(
-          "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
-        ),
-        action: {
-          label: translationKey("View monitors"),
-          target: SloNoticeActionTarget.Monitors,
-        },
-      };
+      return getWaitingForFirstCheckNotice();
     }
 
     /*

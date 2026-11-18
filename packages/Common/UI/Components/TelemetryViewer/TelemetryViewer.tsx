@@ -120,6 +120,9 @@ export const TELEMETRY_VIEWER_SELECT_ROW_TEST_ID: string =
   "telemetry-viewer-select-row";
 export const TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID: string =
   "telemetry-viewer-select-page-words";
+// A section's heading in the list (renderGroupHeading).
+export const TELEMETRY_VIEWER_GROUP_HEADING_TEST_ID: string =
+  "telemetry-viewer-group-heading";
 
 /*
  * Where a row's box sits: at the row's start, level with the row's first
@@ -182,6 +185,16 @@ export interface TelemetryViewerProps<T> {
   renderRow: (item: T, index: number) => ReactElement;
   /** Unique key accessor per row (used for React keys). */
   getRowKey: (item: T, index: number) => string;
+  /*
+   * A heading drawn above a row that starts a section of the list (a cloud
+   * resource's Traffic, Errors, Latency...), in the reader's language;
+   * null for a row that does not. Its own list item, presentation only: a
+   * screen reader reads it as the heading it is, and a row's selection and
+   * keys are the row's alone. Unset: no headings.
+   */
+  renderGroupHeading?:
+    | ((item: T, index: number) => ReactElement | null)
+    | undefined;
 
   // -- Toolbar: search --
   searchValue: string;
@@ -939,11 +952,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {props.items.map((item: T, index: number) => {
+                    const heading: ReactElement | null =
+                      props.renderGroupHeading
+                        ? props.renderGroupHeading(item, index)
+                        : null;
+                    const headingItem: ReactElement | null = heading ? (
+                      <li
+                        key={`heading-${props.getRowKey(item, index)}`}
+                        role="presentation"
+                        data-testid={TELEMETRY_VIEWER_GROUP_HEADING_TEST_ID}
+                      >
+                        {heading}
+                      </li>
+                    ) : null;
+
                     if (!bulk) {
                       return (
-                        <li key={props.getRowKey(item, index)}>
-                          {props.renderRow(item, index)}
-                        </li>
+                        <React.Fragment key={props.getRowKey(item, index)}>
+                          {headingItem}
+                          <li>{props.renderRow(item, index)}</li>
+                        </React.Fragment>
                       );
                     }
 
@@ -959,63 +987,67 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                     );
 
                     return (
-                      <li
-                        key={props.getRowKey(item, index)}
-                        className={`flex items-start${
-                          isSelected ? ` ${TABLE_SELECTED_ROW_CLASS_NAME}` : ""
-                        }`}
-                        data-selected={isSelected ? "true" : "false"}
-                      >
-                        <div className={TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME}>
-                          <CheckboxElement
-                            dataTestId={TELEMETRY_VIEWER_SELECT_ROW_TEST_ID}
-                            value={isSelected}
-                            ariaLabel={translateTemplate("Select {{name}}", {
-                              name: bulk.itemToString(item),
-                            })}
-                            isAriaLabelTranslated={true}
-                            outerDivClassName="[&>div:last-child]:ml-0"
-                            onChange={(value: boolean) => {
-                              /*
-                               * A row of every match unticked: the
-                               * selection is the page's ticked rows again,
-                               * as a mail list does - "all but one", over
-                               * rows out of sight, is not what the line
-                               * said it held.
-                               */
-                              const isLeavingEveryMatch: boolean =
-                                Boolean(everyMatch) && !value;
+                      <React.Fragment key={props.getRowKey(item, index)}>
+                        {headingItem}
+                        <li
+                          className={`flex items-start${
+                            isSelected
+                              ? ` ${TABLE_SELECTED_ROW_CLASS_NAME}`
+                              : ""
+                          }`}
+                          data-selected={isSelected ? "true" : "false"}
+                        >
+                          <div className={TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME}>
+                            <CheckboxElement
+                              dataTestId={TELEMETRY_VIEWER_SELECT_ROW_TEST_ID}
+                              value={isSelected}
+                              ariaLabel={translateTemplate("Select {{name}}", {
+                                name: bulk.itemToString(item),
+                              })}
+                              isAriaLabelTranslated={true}
+                              outerDivClassName="[&>div:last-child]:ml-0"
+                              onChange={(value: boolean) => {
+                                /*
+                                 * A row of every match unticked: the
+                                 * selection is the page's ticked rows again,
+                                 * as a mail list does - "all but one", over
+                                 * rows out of sight, is not what the line
+                                 * said it held.
+                                 */
+                                const isLeavingEveryMatch: boolean =
+                                  Boolean(everyMatch) && !value;
 
-                              if (isLeavingEveryMatch) {
-                                everyMatchReadRef.current++;
-                                setEveryMatch(null);
-                              }
+                                if (isLeavingEveryMatch) {
+                                  everyMatchReadRef.current++;
+                                  setEveryMatch(null);
+                                }
 
-                              setSelectedItems(
-                                (selected: Array<T>): Array<T> => {
-                                  const changed: Array<T> = setRowSelected(
-                                    selected,
-                                    item,
-                                    value,
-                                    bulk.getItemId,
-                                  );
+                                setSelectedItems(
+                                  (selected: Array<T>): Array<T> => {
+                                    const changed: Array<T> = setRowSelected(
+                                      selected,
+                                      item,
+                                      value,
+                                      bulk.getItemId,
+                                    );
 
-                                  return isLeavingEveryMatch
-                                    ? keepSelectedOnPage(
-                                        changed,
-                                        props.items,
-                                        bulk.getItemId,
-                                      )
-                                    : changed;
-                                },
-                              );
-                            }}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          {props.renderRow(item, index)}
-                        </div>
-                      </li>
+                                    return isLeavingEveryMatch
+                                      ? keepSelectedOnPage(
+                                          changed,
+                                          props.items,
+                                          bulk.getItemId,
+                                        )
+                                      : changed;
+                                  },
+                                );
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {props.renderRow(item, index)}
+                          </div>
+                        </li>
+                      </React.Fragment>
                     );
                   })}
                 </ul>

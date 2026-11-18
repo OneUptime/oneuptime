@@ -1,4 +1,10 @@
-import { Gray500, Green, Red, Yellow } from "../../../Types/BrandColors";
+import {
+  Blue500,
+  Gray500,
+  Green,
+  Red,
+  Yellow,
+} from "../../../Types/BrandColors";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
@@ -295,11 +301,12 @@ describe("SloListWidgetFormat", () => {
       }
     });
 
-    test("colours the three reliability states and greys the rest", () => {
+    test("colours the three reliability states, Waiting blue, and greys the rest", () => {
       const colours: Array<[SloStatus, string]> = [
         [SloStatus.Healthy, Green.toString()],
         [SloStatus.AtRisk, Yellow.toString()],
         [SloStatus.BudgetExhausted, Red.toString()],
+        [SloStatus.Waiting, Blue500.toString()],
         [SloStatus.Misconfigured, Gray500.toString()],
         [SloStatus.Paused, Gray500.toString()],
       ];
@@ -360,6 +367,7 @@ describe("SloListWidgetFormat", () => {
         SloStatus.BudgetExhausted,
         SloStatus.AtRisk,
         SloStatus.Healthy,
+        SloStatus.Waiting,
         SloStatus.Misconfigured,
         SloStatus.Paused,
         SLO_NOT_EVALUATED_STATUS_LABEL,

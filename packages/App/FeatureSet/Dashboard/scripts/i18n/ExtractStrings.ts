@@ -738,6 +738,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The sections a cloud resource's metrics read in - Availability,
+   * Traffic, Errors, Latency and the rest - on its Overview's Metrics card
+   * and its Metrics tab, each heading in the reader's language. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudKeyMetricGroup.ts",
+    kind: "keys",
+  },
+  /*
    * What the clouds cost and how to spend less: the kinds of saving the
    * Savings page and its strip name. Only the words the file marks are
    * read: the server keeps the clouds' own words for a recommendation.

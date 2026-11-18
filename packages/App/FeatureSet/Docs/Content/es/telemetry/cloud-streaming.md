@@ -24,7 +24,7 @@ flowchart TB
 
 - **Una pila en cada región.** El comando despliega una pila de CloudFormation en cada región desde la que transmites. Su flujo de métricas y sus filtros de suscripción de registros pasan todo a dos flujos de Firehose, y Firehose lo entrega a OneUptime por HTTPS.
 - **La clave de flujo dice de quién es.** Firehose envía la clave de flujo de la conexión con cada entrega. La clave nombra la conexión, y por tanto el proyecto: nada en una entrega decide dónde se escribe. OneUptime solo guarda el SHA-256 de la clave.
-- **Las lecturas dejan las métricas transmitidas al flujo.** Mientras un flujo entrega un espacio de nombres de una región, las lecturas de la conexión dejan de escribir las métricas de ese espacio de nombres, así que ningún punto de datos se cuenta dos veces. Las lecturas siguen encontrando recursos, su estado y sus cambios, y retoman un espacio de nombres tras 15 minutos sin entregas.
+- **Las lecturas dejan las métricas transmitidas al flujo.** Mientras un flujo entrega un espacio de nombres de una región, las lecturas de la conexión dejan de escribir las métricas de ese espacio de nombres, así que ningún punto de datos se cuenta dos veces. Siguen escribiendo las métricas clave que un flujo les deja, como el tamaño diario de un bucket de S3 y las métricas clave añadidas después de que empezaran los flujos, que una pila más antigua no incluye. Las lecturas siguen encontrando recursos, su estado y sus cambios, y retoman un espacio de nombres tras 15 minutos sin entregas.
 - **No se pierde nada mientras OneUptime no puede aceptarlo.** Firehose vuelve a enviar un lote rechazado durante una hora como máximo y luego lo guarda 30 días en el bucket de S3 de la pila.
 
 ## Antes de empezar

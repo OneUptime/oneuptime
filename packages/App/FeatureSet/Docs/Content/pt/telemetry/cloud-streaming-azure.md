@@ -77,14 +77,7 @@ Quando a primeira assinatura não é aquela em que o OneUptime lê os hubs de ev
 
 O fluxo leva as métricas principais que a conexão lê minuto a minuto. As leituras continuam gravando o resto no seu agendamento: uma métrica que elas leem em uma granularidade maior, como o armazenamento usado de um registro de contêiner, e cada métrica principal que uma configuração de diagnóstico não pode enviar, que a lista de métricas compatíveis do Azure Monitor marca como não exportável na coluna DS Export:
 
-- Máquinas virtuais e conjuntos de dimensionamento: `Network In Total`, `Network Out Total`.
-- Discos: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Contas do Azure Cosmos DB: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Contas de armazenamento: `UsedCapacity`.
-- Clusters do AKS: `kube_pod_status_ready`.
-- Gateways de aplicativo: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- Gateways NAT: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Um namespace do Service Bus ou do Event Hubs não transmite métricas. As leituras leem as métricas principais dele para cada fila, tópico e hub de eventos, e os totais próprios do namespace as somam, enquanto uma configuração de diagnóstico envia só os totais do namespace, e não envia 4 das 6 métricas principais de um namespace do Service Bus, nem 2 das 4 de um namespace do Event Hubs. Então as leituras gravam todas elas, com ou sem fluxo, e nenhuma mensagem é contada duas vezes.
 

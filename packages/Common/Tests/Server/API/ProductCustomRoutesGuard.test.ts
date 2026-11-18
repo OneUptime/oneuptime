@@ -314,11 +314,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${basePath}${SLO_BULK_RECOMMENDED_BURN_RATE_RULES_ROUTE}`": READ,
     },
   },
+  /*
+   * Use the recommended policy, for one SLO and for many (#6358): what each
+   * SLO would get only reads; adding the tiers is refused while SLOs are off.
+   */
   "packages/Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI.ts":
     {
       products: [ProductKey.Slos],
       leftAlone: {
         "`${basePath}${SLO_RECOMMENDED_POLICY_ROUTE}`": READ,
+        "`${basePath}${SLO_BULK_RECOMMENDED_POLICY_ROUTE}`": READ,
       },
     },
   "packages/Common/Server/API/TelemetryExceptionAPI.ts": {

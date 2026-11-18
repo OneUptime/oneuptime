@@ -150,6 +150,48 @@ describe("a read's payload while a stream delivers", () => {
     expect(result.leftOut).toBe(0);
   });
 
+  /*
+   * A stack of the key metrics carries the ones every stack has carried
+   * since streams began; a key metric added since (AwsKeyMetric.isStreamed
+   * false) comes through no stack made before it, so the read keeps
+   * writing it while the namespace streams - and a stream of every metric
+   * that brings it leaves it to the read (CloudWatchMetricStream).
+   */
+  test("keeps a key metric added since streams began even when its namespace streams", () => {
+    const credits: string = "amazonaws.com/AWS/EC2/CPUCreditBalance";
+    const ebs: string = "amazonaws.com/AWS/EC2/EBSReadBytes";
+    const result: { payload: JSONObject | null; leftOut: number } =
+      withoutStreamedMetrics({
+        payload: {
+          resourceMetrics: [
+            resource({
+              accountId: "123456789012",
+              region: "us-east-1",
+              metrics: [
+                gauge(EC2, [point("AWS/EC2", 10)]),
+                gauge(credits, [point("AWS/EC2", 144)]),
+                gauge(ebs, [point("AWS/EC2", 2048), point("AWS/EC2", 4096)]),
+              ],
+            }),
+          ],
+        } as unknown as JSONObject,
+        streamedKeys: keys([
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespace: "AWS/EC2",
+          },
+        ]),
+      });
+
+    expect(namesOf(result.payload)).toEqual([
+      `us-east-1 ${credits} x1`,
+      `us-east-1 ${ebs} x2`,
+    ]);
+    // Only the streamed key metric's point is the stream's.
+    expect(result.leftOut).toBe(1);
+  });
+
   test("is nothing to write once every datapoint is a stream's", () => {
     const result: { payload: JSONObject | null; leftOut: number } =
       withoutStreamedMetrics({

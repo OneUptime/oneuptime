@@ -269,7 +269,7 @@ Der Befehl einer niedrigeren Stufe ersetzt die AWS-Richtlinie durch die der nied
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Ressourcen | Jede Ressource der Typen, die OneUptime kennt, in jeder Region, die Sie nutzen, aus Cloud Control | Jede Ressource in den Abonnements, aus Resource Graph | Jede Ressource in den Projekten, aus Cloud Asset Inventory |
-| Metriken | Die wichtigsten Metriken jedes Dienstes, etwa CPU, Netzwerk und Statusprüfungen einer Instanz | Bis zu 8 wichtige Metriken pro Ressource | Die wichtigsten Metriken jedes Ressourcentyps |
+| Metriken | Die wichtigsten Metriken jedes Dienstes, etwa CPU, Netzwerk und Statusprüfungen einer Instanz | Bis zu 20 wichtige Metriken pro Ressource | Die wichtigsten Metriken jedes Ressourcentyps |
 | Änderungen | Verwaltungsereignisse von CloudTrail | Die administrativen Ereignisse des Aktivitätsprotokolls | Das Audit-Log Admin Activity |
 | Integritätsereignisse | AWS Health | Service Health und Resource Health | Service Health |
 | Kosten | Die jedes Tages, nach Dienst und Region, und mit Kosten pro Ressource nach Ressource, aus Cost Explorer | Die jedes Tages, nach Ressource und Dienst, aus Cost Management | Die jedes Tages, nach Dienst, Region und Ressource, aus Ihrem Abrechnungsexport nach BigQuery |

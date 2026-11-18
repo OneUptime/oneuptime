@@ -116,9 +116,12 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.SecurityHunt]: translationKey(
     "Conditions are checked each time a scheduled run of a hunt finds security events.",
   ),
-  // What there is to post about an SLO: SloWorkspaceNotifications.
+  /*
+   * What there is to post about an SLO: SloWorkspaceNotifications. Status
+   * changes only for a rule that picks them (SloRuleChanges, #6596).
+   */
   [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
-    "Conditions are checked each time an SLO's error budget policy changes: when the SLO enters a tier, recovers to a less severe one or leaves every tier, and when its deployments are frozen or allowed again.",
+    "Conditions are checked each time an SLO's error budget policy changes, and, for a rule with an SLO Status Change condition, each time its status changes.",
   ),
 };
 
@@ -325,6 +328,7 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("SLOs"),
   translationKey("SLO Labels"),
   translationKey("Error Budget Policy Change"),
+  translationKey("SLO Status Change"),
   translationKey("Incident Owner"),
   translationKey("Alert Owner"),
   translationKey("Incident Episode Owner"),
@@ -347,6 +351,16 @@ export const ERROR_BUDGET_POLICY_CHANGE_WORDS: ReadonlyArray<string> = [
   translationKey("Left every tier"),
   translationKey("Deployments frozen"),
   translationKey("Deployments allowed again"),
+];
+
+/*
+ * And what its SLO Status Change condition offers (SloStatusChange, #6596):
+ * how the SLO's status changed. A test holds the list to the enum.
+ */
+export const SLO_STATUS_CHANGE_WORDS: ReadonlyArray<string> = [
+  translationKey("Became At Risk"),
+  translationKey("Budget exhausted"),
+  translationKey("Healthy again"),
 ];
 
 export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
@@ -428,7 +442,7 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   ),
   // What there is to post about an SLO: SloWorkspaceNotifications.
   [NotificationRuleEventType.ServiceLevelObjective]: translationKey(
-    "Each rule picks the SLOs it is for, then posts to channels you have when an SLO enters a tier of its error budget policy, recovers or leaves every tier, and when its deployments are frozen or allowed again.",
+    "Each rule picks the SLOs it is for, then posts to channels you have when an SLO's error budget policy changes, and, if the rule picks them, when its status changes.",
   ),
 };
 

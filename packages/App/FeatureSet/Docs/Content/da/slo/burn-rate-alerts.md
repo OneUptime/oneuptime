@@ -252,7 +252,7 @@ Nogle ændringer løser altid det, en regel har åbnet, uanset hvad dens indstil
 - at ændre **Når den udløses**, så advarslen eller hændelsen udelades, lukker det, det output havde åbnet;
 - at slå reglen fra eller slette den;
 - at slå SLO'ets evaluering fra, arkivere SLO'et eller slette det;
-- at SLO'et skifter til **Sat på pause** eller **Forkert konfigureret**, fordi det så ikke måler noget;
+- at SLO'et skifter til **Venter**, **Sat på pause** eller **Forkert konfigureret**, fordi det så ikke måler noget;
 - at reglen mister sin tærskel eller sine vinduer, eller at SLO'et ikke længere har et helt langt vindue af historik.
 
 ## Planlagt vedligeholdelse

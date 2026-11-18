@@ -39,7 +39,7 @@ describe("reads per month", () => {
 
 describe("key metrics per read", () => {
   test("AWS counts each type's namespace's key metrics", () => {
-    // EC2: 4 key metrics; RDS: 6.
+    // EC2: 7 key metrics; RDS: 12.
     expect(
       countKeyMetrics({
         provider: CloudProvider.AWS,
@@ -48,7 +48,7 @@ describe("key metrics per read", () => {
           { type: "AWS::RDS::DBInstance", count: 2 },
         ],
       }),
-    ).toBe(10 * 4 + 2 * 6);
+    ).toBe(10 * 7 + 2 * 12);
   });
 
   test("a type with no key metrics adds nothing", () => {
@@ -77,13 +77,16 @@ describe("the monthly estimate", () => {
       readIntervalInMinutes: 10,
     });
 
-    expect(estimate.monthlyUnits).toBe(100 * 4 * 4320);
+    expect(estimate.monthlyUnits).toBe(100 * 7 * 4320);
     expect(estimate.monthlyCostUsd).toBeCloseTo(
-      ((100 * 4 * 4320) / 1000) * AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
+      ((100 * 7 * 4320) / 1000) * AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
       6,
     );
-    // About $17 a month for a hundred instances read every ten minutes.
-    expect(estimate.monthlyCostUsd).toBeCloseTo(17.28, 2);
+    /*
+     * About $30 a month for a hundred instances read every ten minutes, at
+     * most: an instance that is not burstable has no CPU credits to read.
+     */
+    expect(estimate.monthlyCostUsd).toBeCloseTo(30.24, 2);
   });
 
   test("AWS read less often costs less", () => {
@@ -152,7 +155,7 @@ describe("the monthly estimate", () => {
       readIntervalInMinutes: 5,
     });
 
-    expect(small.monthlyUnits).toBe(10 * 3 * 8640);
+    expect(small.monthlyUnits).toBe(10 * 9 * 8640);
     expect(small.monthlyCostUsd).toBe(0);
 
     const large: CloudConnectionCostEstimate = estimateCloudConnectionCost({
@@ -162,7 +165,7 @@ describe("the monthly estimate", () => {
     });
 
     expect(large.monthlyCostUsd).toBeCloseTo(
-      ((200 * 3 * 8640 - GCP_FREE_TIME_SERIES_PER_MONTH) / 1000000) *
+      ((200 * 9 * 8640 - GCP_FREE_TIME_SERIES_PER_MONTH) / 1000000) *
         GCP_USD_PER_MILLION_TIME_SERIES,
       6,
     );

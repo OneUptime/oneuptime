@@ -412,10 +412,13 @@ export function readMetricResourceFacts(
  *
  * So a key metric is one series of one point type whichever way it came,
  * and a resource's charts, its monitors and its pages read it as before: a
- * summary's value is its sum, which a gauge of an Average is not. Every
- * other metric stays the stream's summary - no read writes it - and its
- * series of no resource are kept: they are an account's own metrics, in
- * its own namespaces too, which no resource's filter matches.
+ * summary's value is its sum, which a gauge of an Average is not. A key
+ * metric the read writes whether the account streams or not (one added
+ * since streams began: AwsKeyMetric.isStreamed false) is left out of a
+ * delivery altogether, so it too is one series - the read's. Every other
+ * metric stays the stream's summary - no read writes it - and its series
+ * of no resource are kept: they are an account's own metrics, in its own
+ * namespaces too, which no resource's filter matches.
  */
 
 export interface StreamedKeyMetric {
@@ -434,6 +437,10 @@ export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics as ReadonlyArray<AwsKeyMetric>) {
+        if (!metric.isStreamed) {
+          continue;
+        }
+
         const name: string = getAwsStoredMetricName(
           namespace.namespace,
           metric.metricName,
@@ -450,6 +457,30 @@ export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
 
     return keyMetrics;
   })();
+
+/*
+ * The key metrics the connection's read writes whether or not a stream
+ * delivers them (AwsKeyMetric.isStreamed false), by stored name, lower
+ * case: a stream of every metric that brings one leaves it to the read,
+ * so it is one series of one shape - the read's gauge - never the read's
+ * and the stream's summary beside it.
+ */
+export const READ_ONLY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
+  (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
+    (namespace: AwsNamespaceKeyMetrics): Array<string> => {
+      return (namespace.metrics as ReadonlyArray<AwsKeyMetric>)
+        .filter((metric: AwsKeyMetric): boolean => {
+          return !metric.isStreamed;
+        })
+        .map((metric: AwsKeyMetric): string => {
+          return getAwsStoredMetricName(
+            namespace.namespace,
+            metric.metricName,
+          ).toLowerCase();
+        });
+    },
+  ),
+);
 
 // A number as OTLP/JSON writes it: a fixed64 count or a time is a string of digits.
 function readNumberLike(value: unknown): number | null {
@@ -832,6 +863,12 @@ export async function shapeStreamedMetrics(data: {
 
         if (!metric["summary"]) {
           metrics.push(metric);
+          continue;
+        }
+
+        // A key metric the read writes: never the stream too.
+        if (READ_ONLY_KEY_METRICS.has(readText(metric["name"]).toLowerCase())) {
+          isChanged = true;
           continue;
         }
 

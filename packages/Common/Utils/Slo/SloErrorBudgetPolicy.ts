@@ -620,6 +620,108 @@ export const getMissingSloRecommendedPolicyTiers: GetMissingSloRecommendedPolicy
     });
   };
 
+export type IsSloRecommendedPolicyTierFunction = (
+  tier: SloExistingPolicyTier,
+) => boolean;
+
+/*
+ * Whether a tier stands for one of the recommended tiers: it has a
+ * recommended tier's name - the team may have moved its threshold, as
+ * getMissingSloRecommendedPolicyTiers counts it - or a recommended tier's
+ * threshold - the team may have reworded its name. A tier of neither is the
+ * team's own.
+ */
+export const isSloRecommendedPolicyTier: IsSloRecommendedPolicyTierFunction = (
+  tier: SloExistingPolicyTier,
+): boolean => {
+  return SLO_RECOMMENDED_POLICY_TIERS.some(
+    (recommended: SloRecommendedPolicyTier): boolean => {
+      return (
+        normalizeName(tier.name) === normalizeName(recommended.name) ||
+        readSloPolicyTierThreshold(tier.thresholdPercentage) ===
+          recommended.thresholdPercentage
+      );
+    },
+  );
+};
+
+/*
+ * Where an SLO's policy stands against the recommended one, from every tier
+ * it has (#7351, #6358):
+ *
+ *   - None: it has no tier. The Error Budget Policy page's empty state
+ *     offers the whole recommended policy, and so does the SLO list's
+ *     Use the recommended policy.
+ *   - Partial: every tier it has stands for a recommended one, and some are
+ *     missing - such as the Caution and Reliability first #6978 left without
+ *     Budget exhausted, the tier that freezes deployments. The page offers
+ *     the rest above its tiers, and the list adds it.
+ *   - Complete: it has every recommended tier, whatever else it has.
+ *   - OwnPolicy: it has a tier of the team's own, and some recommended tier
+ *     is missing. A policy the team built is never nagged: nothing is
+ *     offered, and the list leaves it as it is.
+ */
+export enum SloRecommendedPolicyState {
+  None = "None",
+  Partial = "Partial",
+  Complete = "Complete",
+  OwnPolicy = "OwnPolicy",
+}
+
+export interface SloRecommendedPolicyStanding {
+  state: SloRecommendedPolicyState;
+  // The recommended tiers it does not have, in the recommended order.
+  missingTiers: Array<SloRecommendedPolicyTier>;
+}
+
+export type GetSloRecommendedPolicyStandingFunction = (data: {
+  existingTiers: ReadonlyArray<SloExistingPolicyTier>;
+}) => SloRecommendedPolicyStanding;
+
+export const getSloRecommendedPolicyStanding: GetSloRecommendedPolicyStandingFunction =
+  (data: {
+    existingTiers: ReadonlyArray<SloExistingPolicyTier>;
+  }): SloRecommendedPolicyStanding => {
+    const missingTiers: Array<SloRecommendedPolicyTier> =
+      getMissingSloRecommendedPolicyTiers({
+        existingTiers: data.existingTiers,
+      });
+
+    if (data.existingTiers.length === 0) {
+      return {
+        state: SloRecommendedPolicyState.None,
+        missingTiers: missingTiers,
+      };
+    }
+
+    if (missingTiers.length === 0) {
+      return {
+        state: SloRecommendedPolicyState.Complete,
+        missingTiers: [],
+      };
+    }
+
+    return {
+      state: data.existingTiers.every(isSloRecommendedPolicyTier)
+        ? SloRecommendedPolicyState.Partial
+        : SloRecommendedPolicyState.OwnPolicy,
+      missingTiers: missingTiers,
+    };
+  };
+
+/*
+ * Whether the recommended policy is offered to an SLO in this state: one
+ * with no policy, or with part of the recommended one.
+ */
+export const isSloRecommendedPolicyOffered: (
+  state: SloRecommendedPolicyState,
+) => boolean = (state: SloRecommendedPolicyState): boolean => {
+  return (
+    state === SloRecommendedPolicyState.None ||
+    state === SloRecommendedPolicyState.Partial
+  );
+};
+
 // A recommended tier as the API answers with it.
 export interface SloRecommendedPolicyTierToAdd
   extends SloRecommendedPolicyTier {

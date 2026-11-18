@@ -709,15 +709,131 @@ describe("the Firehose streams and the bucket", () => {
   });
 });
 
+/*
+ * What every stack of the key metrics carries, from the first: a stack is
+ * made once and kept, so a metric added to these would come from new
+ * stacks only, while the reads of an account with an older one stopped
+ * writing it (CloudStreamedMetrics). A key metric added since is read,
+ * whatever the account streams (AwsKeyMetric.isStreamed false), and these
+ * stay as they are.
+ */
+const FILTERS_EVERY_STACK_CARRIES: Record<string, Array<string>> = {
+  "AWS/EC2": ["CPUUtilization", "NetworkIn", "NetworkOut", "StatusCheckFailed"],
+  "AWS/EBS": ["VolumeReadOps", "VolumeWriteOps", "VolumeQueueLength"],
+  "AWS/ELB": [
+    "RequestCount",
+    "Latency",
+    "HTTPCode_Backend_5XX",
+    "UnHealthyHostCount",
+  ],
+  "AWS/ApplicationELB": [
+    "RequestCount",
+    "TargetResponseTime",
+    "HTTPCode_Target_5XX_Count",
+    "HTTPCode_ELB_5XX_Count",
+  ],
+  "AWS/NetworkELB": ["ActiveFlowCount", "NewFlowCount", "ProcessedBytes"],
+  "AWS/NATGateway": [
+    "ActiveConnectionCount",
+    "BytesOutToDestination",
+    "ErrorPortAllocation",
+  ],
+  "AWS/VPN": ["TunnelState", "TunnelDataIn", "TunnelDataOut"],
+  "AWS/CloudFront": [
+    "Requests",
+    "4xxErrorRate",
+    "5xxErrorRate",
+    "BytesDownloaded",
+  ],
+  "AWS/Route53": ["HealthCheckStatus", "HealthCheckPercentageHealthy"],
+  "AWS/EFS": ["ClientConnections", "PercentIOLimit"],
+  "AWS/ECS": ["CPUUtilization", "MemoryUtilization"],
+  "AWS/Lambda": ["Invocations", "Errors", "Duration", "Throttles"],
+  "AWS/States": ["ExecutionsStarted", "ExecutionsFailed", "ExecutionTime"],
+  "AWS/RDS": [
+    "CPUUtilization",
+    "DatabaseConnections",
+    "FreeStorageSpace",
+    "FreeableMemory",
+    "ReadLatency",
+    "WriteLatency",
+  ],
+  "AWS/DocDB": ["CPUUtilization", "DatabaseConnections", "FreeableMemory"],
+  "AWS/DynamoDB": [
+    "ConsumedReadCapacityUnits",
+    "ConsumedWriteCapacityUnits",
+    "ReadThrottleEvents",
+    "WriteThrottleEvents",
+  ],
+  "AWS/ElastiCache": [
+    "CPUUtilization",
+    "CurrConnections",
+    "Evictions",
+    "DatabaseMemoryUsagePercentage",
+  ],
+  "AWS/Redshift": [
+    "CPUUtilization",
+    "PercentageDiskSpaceUsed",
+    "DatabaseConnections",
+  ],
+  "AWS/ES": ["CPUUtilization", "FreeStorageSpace", "ClusterStatus.red"],
+  "AWS/SQS": [
+    "ApproximateNumberOfMessagesVisible",
+    "ApproximateAgeOfOldestMessage",
+    "NumberOfMessagesSent",
+  ],
+  "AWS/SNS": ["NumberOfMessagesPublished", "NumberOfNotificationsFailed"],
+  "AWS/Kinesis": ["IncomingRecords", "GetRecords.IteratorAgeMilliseconds"],
+  "AWS/Firehose": ["IncomingRecords", "DeliveryToS3.Success"],
+  "AWS/ApiGateway": ["Count", "5XXError", "Latency"],
+  "AWS/Events": ["Invocations", "FailedInvocations"],
+  "AWS/AmazonMQ": ["CpuUtilization"],
+  "AWS/Kafka": ["ActiveControllerCount"],
+};
+
 describe("the metric stream's filters", () => {
-  test("are the key metrics of every namespace, but those read less often than every five minutes", () => {
+  test("are the ones every stack has carried since streams began: a key metric added since is read instead", () => {
+    const filters: Record<string, Array<string>> = {};
+
+    for (const filter of getCloudStreamKeyMetricFilters()) {
+      filters[filter.Namespace] = filter.MetricNames;
+    }
+
+    expect(filters).toEqual(FILTERS_EVERY_STACK_CARRIES);
+
+    // Every other key metric read every five minutes is the read's own.
+    for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+      for (const metric of namespace.metrics) {
+        const carried: boolean = (
+          FILTERS_EVERY_STACK_CARRIES[namespace.namespace] || []
+        ).includes(metric.metricName);
+
+        if (metric.periodSeconds < HOURLY_PERIOD_SECONDS) {
+          expect({
+            namespace: namespace.namespace,
+            metric: metric.metricName,
+            isStreamed: metric.isStreamed,
+          }).toEqual({
+            namespace: namespace.namespace,
+            metric: metric.metricName,
+            isStreamed: carried,
+          });
+        }
+      }
+    }
+  });
+
+  test("are the key metrics of every namespace a stream writes, but those read less often than every five minutes", () => {
     const filters: Array<{ Namespace: string; MetricNames: Array<string> }> =
       getCloudStreamKeyMetricFilters();
     const expected: Map<string, Set<string>> = new Map();
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics) {
-        if (metric.periodSeconds >= HOURLY_PERIOD_SECONDS) {
+        if (
+          !metric.isStreamed ||
+          metric.periodSeconds >= HOURLY_PERIOD_SECONDS
+        ) {
           continue;
         }
 

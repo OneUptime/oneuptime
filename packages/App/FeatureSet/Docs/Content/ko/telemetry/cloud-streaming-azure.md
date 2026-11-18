@@ -77,14 +77,7 @@ flowchart TB
 
 스트림은 연결이 1분 단위로 읽는 핵심 메트릭을 전달합니다. 나머지는 읽기가 일정대로 계속 기록합니다. 컨테이너 레지스트리의 사용 스토리지처럼 더 긴 간격으로 읽는 메트릭과, 진단 설정이 보낼 수 없는 모든 핵심 메트릭입니다. 후자는 Azure Monitor의 지원되는 메트릭 목록에서 DS Export 열이 내보낼 수 없다고 표시한 메트릭으로, 다음과 같습니다.
 
-- 가상 머신 및 확장 집합: `Network In Total`, `Network Out Total`.
-- 디스크: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Azure Cosmos DB 계정: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- 스토리지 계정: `UsedCapacity`.
-- AKS 클러스터: `kube_pod_status_ready`.
-- 애플리케이션 게이트웨이: `ApplicationGatewayTotalTime`, `Throughput`.
-- 방화벽: `Throughput`.
-- NAT 게이트웨이: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Service Bus 또는 Event Hubs 네임스페이스는 메트릭을 하나도 스트리밍하지 않습니다. 읽기는 그 핵심 메트릭을 큐, 토픽, 이벤트 허브마다 읽고 네임스페이스 자체의 합계는 이를 더한 값인 반면, 진단 설정은 네임스페이스의 합계만 보내며 Service Bus 네임스페이스의 핵심 메트릭 6개 중 4개, Event Hubs 네임스페이스의 4개 중 2개는 아예 보내지 않습니다. 그래서 스트리밍 여부와 관계없이 읽기가 이를 모두 기록하며, 어떤 메시지도 두 번 집계되지 않습니다.
 

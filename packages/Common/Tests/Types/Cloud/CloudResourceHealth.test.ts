@@ -2,15 +2,16 @@ import { describe, expect, test } from "@jest/globals";
 import {
   AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
-  AZURE_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
   DAILY_PERIOD_SECONDS,
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
   getAwsStoredMetricName,
+  getAzureKeyMetricNames,
   getAzureStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -201,7 +202,7 @@ describe("CloudResourceHealth", () => {
     }
 
     for (const entry of AZURE_KEY_METRICS as ReadonlyArray<AzureTypeKeyMetrics>) {
-      for (const name of entry.metrics) {
+      for (const name of getAzureKeyMetricNames(entry.type)) {
         readKeys["azure"]!.add(
           getCloudReadingKey(
             "azure",

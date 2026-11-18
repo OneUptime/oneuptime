@@ -77,14 +77,7 @@ Quando la prima sottoscrizione non è quella in cui OneUptime legge gli hub even
 
 Il flusso porta le metriche chiave che la connessione legge minuto per minuto. Le letture continuano a scrivere il resto secondo la loro pianificazione: una metrica che leggono con una granularità più ampia, come lo spazio di archiviazione usato di un registro contenitori, e ogni metrica chiave che un'impostazione di diagnostica non può inviare, che l'elenco delle metriche supportate di Azure Monitor segna come non esportabile nella colonna DS Export:
 
-- Macchine virtuali e set di scalabilità: `Network In Total`, `Network Out Total`.
-- Dischi: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Account di Azure Cosmos DB: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Account di archiviazione: `UsedCapacity`.
-- Cluster AKS: `kube_pod_status_ready`.
-- Gateway applicazione: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewall: `Throughput`.
-- Gateway NAT: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Un namespace di Service Bus o Event Hubs non trasmette metriche. Le letture leggono le sue metriche chiave per ogni coda, topic e hub eventi, e i totali propri del namespace le sommano, mentre un'impostazione di diagnostica invia solo i totali del namespace, e non invia affatto 4 delle 6 metriche chiave di un namespace di Service Bus, né 2 delle 4 di uno di Event Hubs. Quindi le letture le scrivono tutte, con o senza flusso, e nessun messaggio viene contato due volte.
 

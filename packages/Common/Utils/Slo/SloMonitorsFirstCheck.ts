@@ -10,13 +10,14 @@ import MonitorPauseState, {
  * A MONITOR UPTIME SLO WAITING FOR ITS MONITORS' FIRST CHECK (issue #9089).
  *
  * An SLO leaves out the time before each monitor's first check (#9031), so
- * an SLO whose monitors nothing has checked yet measures no time, and the
- * evaluation worker marks it Misconfigured (EvaluateSlos, the zero-data
- * guard in measureMonitorSlo). Nothing is set up wrong: the SLO is measured
- * from their first check. This is the one rule the worker's reason for that
- * status and the SLO page's banner both read, so the page never says
- * "waiting for the first check" of an SLO the worker stopped for another
- * reason, or the other way round.
+ * an SLO whose monitors nothing has checked yet measures no time. Nothing is
+ * set up wrong: the SLO is measured from their first check, so the
+ * evaluation worker gives it a status of its own, Waiting (#9354;
+ * EvaluateSlos, the zero-data guard in measureMonitorSlo), where it was
+ * Misconfigured before. This is the one rule the worker's status and reason
+ * and the SLO page's banner all read, so the page never says "waiting for
+ * the first check" of an SLO the worker stopped for another reason, or the
+ * other way round.
  *
  * Waiting: at least one attached monitor is not paused (archived or with
  * active monitoring off - an SLO whose monitors are all paused is Paused,

@@ -47,6 +47,15 @@ export const DEPLOYMENTS_FROZEN_SINCE_TEMPLATE: string = translationKey(
 export const DEPLOYMENTS_FROZEN_TEXT: string =
   translationKey("Deployments frozen");
 
+/*
+ * The SLO list's Deployments column (#6377), whose title already says what
+ * is frozen: "Frozen since Sep 11 2026, 12:00 UTC", or Frozen alone when the
+ * time is not known.
+ */
+export const FROZEN_SINCE_TEMPLATE: string = translationKey(
+  "Frozen since {{time}}",
+);
+
 // A tier's Deployments cell on the Error Budget Policy page.
 export const POLICY_TIER_DEPLOYMENTS_FROZEN_TEXT: string =
   translationKey("Frozen");

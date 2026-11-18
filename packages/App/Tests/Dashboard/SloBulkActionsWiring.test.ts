@@ -256,35 +256,72 @@ describe("Add recommended rules goes to the live SLO list alone", () => {
     expect(folded).not.toContain("recommendedRulesBulkActions");
   });
 
-  test("the SLO list offers it, between the owners and Archive", () => {
+  test("the SLO list offers it and Use the recommended policy, between the owners and Archive", () => {
     expect(readCode(...SLOS_PAGE)).toContain(
       squash(
-        "buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ],",
+        "buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...recommendedPolicyBulkActions, ...archiveBulkActions, ],",
       ),
     );
   });
 
-  test("the Archived page and the monitor's SLOs tab do not", () => {
-    expect(readCode(...ARCHIVED_SLOS_PAGE)).not.toContain(
-      "recommendedRulesBulkActions",
-    );
-    expect(readCode(...MONITOR_SLOS_PAGE)).not.toContain(
-      "recommendedRulesBulkActions",
-    );
+  test("the Archived page and the monitor's SLOs tab offer neither", () => {
+    for (const page of [ARCHIVED_SLOS_PAGE, MONITOR_SLOS_PAGE]) {
+      expect(readCode(...page)).not.toContain("recommendedRulesBulkActions");
+      expect(readCode(...page)).not.toContain("recommendedPolicyBulkActions");
+    }
   });
 
-  test("it asks before it adds, with what it would add read when its dialog opens", () => {
-    const action: string = readCode(
-      "Components",
-      "Slo",
-      "useSloRecommendedRulesBulkAction.tsx",
+  /*
+   * Use the recommended policy (#6358) is handed back on its own too: an
+   * archived SLO's policy never applies.
+   */
+  test("the shared hook builds Use the recommended policy with its own hook and hands it back on its own", () => {
+    expect(HOOK_CODE).toContain(
+      'import useSloRecommendedPolicyBulkAction from "./useSloRecommendedPolicyBulkAction";',
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        "const recommendedPolicyBulkActions: Array< BulkActionButtonSchema<ServiceLevelObjective> > = useSloRecommendedPolicyBulkAction();",
+      ),
+    );
+    expect(HOOK_CODE).toContain(
+      "recommendedPolicyBulkActions: recommendedPolicyBulkActions,",
     );
 
-    expect(action).toContain("confirmDetails: (");
-    expect(action).toContain("<SloBulkRecommendedRulesDetails");
-    expect(action).toContain("await runSloRecommendedRulesBulkAdd({");
-    // Through the shared runner, so the progress and the result read as every bulk run's.
-    expect(action).toContain(
+    const folded: string =
+      HOOK_CODE.split("bulkActions: [")[1]!.split("],")[0]!;
+
+    expect(folded).not.toContain("recommendedPolicyBulkActions");
+  });
+
+  test.each([
+    [
+      "useSloRecommendedRulesBulkAction.tsx",
+      "<SloBulkRecommendedRulesDetails",
+      "await runSloRecommendedRulesBulkAdd({",
+      "return await runSloBulkAdd<SloBulkRecommendedRulesResult>({",
+    ],
+    [
+      "useSloRecommendedPolicyBulkAction.tsx",
+      "<SloBulkRecommendedPolicyDetails",
+      "await runSloRecommendedPolicyBulkAdd({",
+      "return await runSloBulkAdd<SloBulkRecommendedPolicyResult>({",
+    ],
+  ])(
+    "%s asks before it adds, with what it would add read when its dialog opens",
+    (file: string, details: string, run: string, shared: string) => {
+      const action: string = readCode("Components", "Slo", file);
+
+      expect(action).toContain("confirmDetails: (");
+      expect(action).toContain(details);
+      expect(action).toContain(run);
+      expect(action).toContain(shared);
+    },
+  );
+
+  // Through the shared runner, so the progress and the result read as every bulk run's.
+  test("their one run goes through the shared runner", () => {
+    expect(readCode("Components", "Slo", "SloBulkAddRun.ts")).toContain(
       "return await runBulkAction<ServiceLevelObjective>({",
     );
   });
@@ -418,9 +455,9 @@ const CONSUMER_CASES: Array<ConsumerCase> = [
     "Pages/Slo/Slos.tsx",
     SLOS_PAGE,
     "../../Components/Slo/useSloBulkActions",
-    "const { bulkActions, archiveBulkActions, recommendedRulesBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
+    "const { bulkActions, archiveBulkActions, recommendedRulesBulkActions, recommendedPolicyBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
     // Bulk Delete says first what still uses the SLOs (#7435).
-    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], deleteConfirmationDetails: usedBy.deleteConfirmationDetails, }}",
+    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...recommendedPolicyBulkActions, ...archiveBulkActions, ], deleteConfirmationDetails: usedBy.deleteConfirmationDetails, }}",
     "actionButtons={[...rowActions, ...archiveRowActions]}",
   ],
   [

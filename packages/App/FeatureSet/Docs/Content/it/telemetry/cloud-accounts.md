@@ -269,7 +269,7 @@ Il comando di un livello inferiore sostituisce la policy AWS con quella del live
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Risorse | Ogni risorsa dei tipi che OneUptime conosce, in ogni regione che usi, da Cloud Control | Ogni risorsa delle sottoscrizioni, da Resource Graph | Ogni risorsa dei progetti, da Cloud Asset Inventory |
-| Metriche | Le metriche principali di ogni servizio, come CPU, rete e controlli di stato di un'istanza | Fino a 8 metriche principali per risorsa | Le metriche principali di ogni tipo di risorsa |
+| Metriche | Le metriche principali di ogni servizio, come CPU, rete e controlli di stato di un'istanza | Fino a 20 metriche principali per risorsa | Le metriche principali di ogni tipo di risorsa |
 | Modifiche | Gli eventi di gestione di CloudTrail | Gli eventi amministrativi del log attività | Il log di audit Admin Activity |
 | Eventi di stato | AWS Health | Service Health e Resource Health | Service Health |
 | Costi | Quelli di ogni giorno, per servizio e regione, e per risorsa con Costi per risorsa attivo, da Cost Explorer | Quelli di ogni giorno, per risorsa e servizio, da Cost Management | Quelli di ogni giorno, per servizio, regione e risorsa, dalla tua esportazione della fatturazione verso BigQuery |

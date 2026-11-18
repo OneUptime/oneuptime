@@ -38,7 +38,9 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
-import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
+import SloStatus, {
+  isSloUnmeasuredStatus,
+} from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
@@ -156,6 +158,7 @@ import {
   getSloFeedChatMarkdown,
   getSloPolicyTierChangedFeedParts,
   getSloStatusChangedFeedMarkdown,
+  getSloStatusChangedFeedParts,
   toSloFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import SloWorkspaceNotifications from "Common/Server/Utils/Slo/SloWorkspaceNotifications";
@@ -711,11 +714,16 @@ async function measureMonitorSlo(data: {
    * A monitor nothing has checked yet has no time either (issue #9031): its
    * status is only the operational one every monitor is created in, which
    * the timelines leave out until its first check (fetchPerMonitorTimelines).
-   * An SLO of such monitors says it waits for their first check.
+   * An SLO of such monitors is set up right and waits for their first check,
+   * so it is Waiting, a status of its own (#9354), never Misconfigured: the
+   * SLO list counts it apart from the SLOs that are set up wrong.
    */
   if (sli.totalSeconds === 0) {
+    const noTimelineDataGuard: SloGuardOutcome =
+      getNoTimelineDataGuard(monitors);
+
     logger.debug(
-      `Slo:EvaluateSlos - SLO ${sloId.toString()} has no timeline data in its window; marking Misconfigured instead of a healthy 100% SLI.`,
+      `Slo:EvaluateSlos - SLO ${sloId.toString()} has no timeline data in its window; marking ${noTimelineDataGuard.status} instead of a healthy 100% SLI.`,
       {
         projectId: projectId.toString(),
         sloId: sloId.toString(),
@@ -726,10 +734,10 @@ async function measureMonitorSlo(data: {
       slo: slo,
       sloId: sloId,
       projectId: projectId,
-      status: SloStatus.Misconfigured,
+      status: noTimelineDataGuard.status,
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
-      reason: getNoTimelineDataReason(monitors),
+      reason: noTimelineDataGuard.reason,
     });
     return null;
   }
@@ -1384,17 +1392,15 @@ async function commitSloEvaluation(
     evaluation.isSloStillEvaluated;
 
   /*
-   * Status with hysteresis. Misconfigured / Paused are set by the guards
-   * above, never by the math — treat them as Healthy on re-entry so the SLO
-   * classifies purely from the remaining budget.
+   * Status with hysteresis. Waiting / Misconfigured / Paused are set by the
+   * guards above, never by the math — treat them as Healthy on re-entry so
+   * the SLO classifies purely from the remaining budget.
    */
   const previousStatus: SloStatus = slo.sloStatus || SloStatus.Healthy;
 
-  const hysteresisInputStatus: SloStatus =
-    previousStatus === SloStatus.Misconfigured ||
-    previousStatus === SloStatus.Paused
-      ? SloStatus.Healthy
-      : previousStatus;
+  const hysteresisInputStatus: SloStatus = isSloUnmeasuredStatus(previousStatus)
+    ? SloStatus.Healthy
+    : previousStatus;
 
   const newStatus: SloStatus = SloUtil.computeSloStatus({
     budgetRemainingPercentage: budget.budgetRemainingPercentage,
@@ -1553,23 +1559,26 @@ async function commitSloEvaluation(
    * evaluated as Healthy, so a first evaluation into Healthy stays silent;
    * the item itself names the stored status, which is what the reader saw.
    */
+  // The numbers behind the status, for its feed item and its channel post.
+  const statusMeasurement: SloFeedStatusMeasurement = {
+    sliPercentage: evaluation.sliPercentage,
+    targetPercentage: targetPercentage,
+    errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
+    errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
+    requestBudget: evaluation.requestBudget,
+    currentBurnRate: currentBurnRate,
+    currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
+    atRiskThresholdPercentage:
+      slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+  };
+
   if (newStatus !== previousStatus) {
     await postSloStatusChangedFeedItem({
       slo: slo,
       previousStatus: slo.sloStatus,
       newStatus: newStatus,
       now: now,
-      measurement: {
-        sliPercentage: evaluation.sliPercentage,
-        targetPercentage: targetPercentage,
-        errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
-        errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
-        requestBudget: evaluation.requestBudget,
-        currentBurnRate: currentBurnRate,
-        currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
-        atRiskThresholdPercentage:
-          slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-      },
+      measurement: statusMeasurement,
     });
   }
 
@@ -1589,6 +1598,23 @@ async function commitSloEvaluation(
     budget: budget,
     requestBudget: evaluation.requestBudget,
     now: now,
+  });
+
+  /*
+   * And the status, to the Slack, Microsoft Teams and Mattermost rules
+   * that pick status changes (#6596): this evaluation's transition, or one
+   * an earlier evaluation held back so a flapping SLO cannot flood a
+   * channel - asked on every measured evaluation for that reason
+   * (SloStatusPosts). After the write, like the feed item: a failed write
+   * posts nothing. Owners' notifications below keep their own rate limit:
+   * a channel also hears "Healthy again", which owners are never sent.
+   */
+  await postStatusChangeToWorkspaces({
+    slo: slo,
+    previousStatus: slo.sloStatus,
+    newStatus: newStatus,
+    now: now,
+    measurement: statusMeasurement,
   });
 
   // History rows (unrounded values, minute-floored bucket). Non-fatal.
@@ -2207,6 +2233,66 @@ async function postPolicyChangeToWorkspaces(data: {
 }
 
 /*
+ * The SLO's status, posted to the Slack, Microsoft Teams and Mattermost
+ * channels and chats of the project's Service Level Objective rules that
+ * pick status changes (SloWorkspaceNotifications.postStatusChange), in the
+ * StatusChanged feed item's own words, said against the status the channels
+ * last heard. The link is only built when there is something to post.
+ *
+ * Never throws: a workspace that is down or slow to refuse is logged, and
+ * the evaluation goes on to its history, metrics, owners and outputs.
+ */
+async function postStatusChangeToWorkspaces(data: {
+  slo: ServiceLevelObjective;
+  previousStatus: SloStatus | undefined;
+  newStatus: SloStatus;
+  now: Date;
+  measurement: SloFeedStatusMeasurement;
+}): Promise<void> {
+  if (!data.slo.id || !data.slo.projectId) {
+    return;
+  }
+
+  const sloId: ObjectID = data.slo.id;
+  const projectId: ObjectID = data.slo.projectId;
+
+  try {
+    await SloWorkspaceNotifications.postStatusChange({
+      projectId: projectId,
+      sloId: sloId,
+      previousStatus: data.previousStatus,
+      newStatus: data.newStatus,
+      now: data.now,
+      buildMarkdown: async (from: SloStatus | null): Promise<MarkdownText> => {
+        const sloMarkdownLink: MarkdownText =
+          await ServiceLevelObjectiveService.getSloMarkdownLink({
+            projectId: projectId,
+            sloId: sloId,
+            sloName: data.slo.name || "",
+          });
+
+        return getSloFeedChatMarkdown(
+          getSloStatusChangedFeedParts({
+            sloMarkdownLink: sloMarkdownLink,
+            previousStatus: from,
+            newStatus: data.newStatus,
+            measurement: data.measurement,
+          }),
+        );
+      },
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the status change of SLO ${sloId.toString()} to Slack, Microsoft Teams or Mattermost: ${err}`,
+      {
+        projectId: projectId.toString(),
+        sloId: sloId.toString(),
+      } as LogAttributes,
+    );
+  }
+}
+
+/*
  * What the tiers of the error budget policy raise and resolve, after the SLO
  * was put in its tier (context.policyTier).
  *
@@ -2305,7 +2391,7 @@ async function evaluatePolicyTierOutputs(data: {
 
 /*
  * Commits sloStatus, and only when it actually changed — used by the
- * Misconfigured / Paused guards, which skip evaluation entirely.
+ * Waiting / Misconfigured / Paused guards, which skip evaluation entirely.
  *
  * Stays on the HOOKED update path: a status transition is exactly the event
  * customer workflows and the realtime dashboard care about.
@@ -2359,16 +2445,31 @@ const SLO_MONITORS_NOT_CHECKED_YET_REASON: string =
 const SLO_NO_TIMELINE_DATA_REASON: string =
   "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.";
 
+// The status a guard gives an SLO, and why, for its StatusChanged feed item.
+interface SloGuardOutcome {
+  status: SloStatus;
+  reason: string;
+}
+
 /*
- * The SLO page's banner reads the same rule (SloMonitorsFirstCheck), so it
- * says "Waiting for the first check" exactly when this reason is given.
+ * What a Monitor Uptime SLO that measured no time in its window is: Waiting
+ * when nothing has checked its monitors yet (#9354), Misconfigured when they
+ * were checked and recorded no status in it. The SLO page's banner reads the
+ * same rule (SloMonitorsFirstCheck), so it says "Waiting for the first
+ * check" exactly when this status is given.
  */
-function getNoTimelineDataReason(monitors: Array<Monitor>): string {
+function getNoTimelineDataGuard(monitors: Array<Monitor>): SloGuardOutcome {
   if (areSloMonitorsWaitingForFirstCheck(monitors)) {
-    return SLO_MONITORS_NOT_CHECKED_YET_REASON;
+    return {
+      status: SloStatus.Waiting,
+      reason: SLO_MONITORS_NOT_CHECKED_YET_REASON,
+    };
   }
 
-  return SLO_NO_TIMELINE_DATA_REASON;
+  return {
+    status: SloStatus.Misconfigured,
+    reason: SLO_NO_TIMELINE_DATA_REASON,
+  };
 }
 
 /*
@@ -2452,13 +2553,13 @@ async function postSloStatusChangedFeedItem(data: {
 }
 
 /*
- * Guard exit path (Paused / Misconfigured): set the status and, ON THE
+ * Guard exit path (Waiting / Misconfigured / Paused): set the status and, ON THE
  * TRANSITION ONLY, resolve everything this SLO's burn-rate rules have open —
  * the Alerts they raised and the Incidents they declared.
  *
  * Why: the guards return before the burn-rate rule loop, so a record that is
  * already open (possibly with an on-call escalation attached) would otherwise
- * never be resolved while the SLO sits Paused/Misconfigured — the rule loop
+ * never be resolved while the SLO sits Waiting, Misconfigured or Paused — the rule loop
  * that owns resolution is simply not reached. Resolving here is safe because
  * nothing NEW can be declared while the SLO is in one of these states, and
  * doing it only on the transition keeps it from re-resolving the same records
@@ -2483,7 +2584,7 @@ async function postSloStatusChangedFeedItem(data: {
  *
  * The error budget policy's tier, and the deploy gate read off it
  * (deploymentsAllowed), are left exactly as they were: an unmeasured budget
- * is not a recovered one, so a Paused or Misconfigured SLO keeps the answer
+ * is not a recovered one, so a Waiting, Paused or Misconfigured SLO keeps the answer
  * it gave CI/CD - a nightly maintenance pause neither lifts a freeze nor
  * starts one.
  */

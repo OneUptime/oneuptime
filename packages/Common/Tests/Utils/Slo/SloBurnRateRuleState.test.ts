@@ -409,7 +409,14 @@ describe("SloBurnRateRuleState", () => {
       ).toBe(false);
     });
 
-    it("is false for the two guard statuses that resolve without stamping", () => {
+    it("is false for the guard statuses that resolve without stamping", () => {
+      // Waiting for its monitors' first check measures nothing either (#9354).
+      expect(
+        canSloFireBurnRateRules({
+          isEnabled: true,
+          sloStatus: SloStatus.Waiting,
+        }),
+      ).toBe(false);
       expect(
         canSloFireBurnRateRules({
           isEnabled: true,
