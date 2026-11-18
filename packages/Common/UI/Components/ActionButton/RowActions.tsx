@@ -2,6 +2,8 @@ import ActionButtonSchema, {
   RowActionConfirmation,
 } from "./ActionButtonSchema";
 import { startsNewMenuGroup } from "./ActionMenuGroup";
+import RowActionDialogs from "./RowActionDialogs";
+import RowActionsStore, { RowActionOpener } from "./RowActionsStore";
 import { isShortTitleInName } from "../Button/ShortButtonWords";
 import splitActionButtons, {
   ActionButtonLock,
@@ -12,57 +14,28 @@ import splitActionButtons, {
 } from "./SplitActionButtons";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
-import ConfirmModal from "../Modal/ConfirmModal";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import { getMoreMenuBareTriggerClassName } from "../MoreMenu/MoreMenuTriggerStyle";
 import MoreMenuDivider from "../MoreMenu/Divider";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import GenericObject from "../../../Types/GenericObject";
-import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { ReactElement, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import React, {
+  ReactElement,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * The actions of one row - a table row, a list card: one button, and a ⋯ menu
  * holding everything else. SplitActionButtons decides which action is which,
  * and whether it is locked on this row; this only draws the result.
  */
-
-/*
- * Where a row's dialogs - an action's question, an error - are drawn: in
- * the page's body (or the element shown full screen, which hides everything
- * outside it), never inside the row. Drawn in the row, a dialog sat inside
- * the table's sticky Actions cell: its sentences took the cell's no-wrap and
- * ran off its right edge, the other rows' Actions cells were drawn over its
- * backdrop and could still be pressed, and a click on its text reached the
- * row, which opened the record and took the dialog away. The row's click
- * (RowClick) leaves alone a click that lands outside it, as it does for the
- * ⋯ menu, which is drawn in the body too.
- */
-export const getRowDialogTarget: () => HTMLElement | null =
-  (): HTMLElement | null => {
-    if (typeof document === "undefined") {
-      return null;
-    }
-
-    const fullscreenElement: Element | null = document.fullscreenElement;
-
-    return fullscreenElement instanceof HTMLElement
-      ? fullscreenElement
-      : document.body;
-  };
-
-const drawRowDialog: (dialog: ReactElement) => ReactElement = (
-  dialog: ReactElement,
-): ReactElement => {
-  const target: HTMLElement | null = getRowDialogTarget();
-
-  return target ? createPortal(dialog, target) : dialog;
-};
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -79,7 +52,20 @@ export interface ComponentProps<T extends GenericObject> {
    * a screen reader's list of buttons.
    */
   itemLabel?: string | undefined;
+  /*
+   * Where what these actions open - an action's question, an error, the ⋯
+   * menu - is kept: by the table the row is in (RowActionsStore), under
+   * this key, and the table draws the dialogs, outside its rows. A table
+   * draws every row again as it changes how it fits (rows, folded, cards),
+   * and a row that kept them itself lost them then (#9513). Without both,
+   * the row keeps its own, as a List's card does.
+   */
+  store?: RowActionsStore<T> | undefined;
+  rowKey?: string | undefined;
 }
+
+// The key a row's actions keep their own store under: the only row in it.
+const OWN_ROW_KEY: string = "row";
 
 /*
  * The row's one button is the plain bordered button whatever outline style
@@ -111,32 +97,75 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
 
-  const [error, setError] = useState<string>("");
+  /*
+   * What these actions have open - an action's question, an error, the ⋯
+   * menu - and which of them are running: kept by the table the row is in,
+   * or by the row itself, in a store of its own (RowActionsStore), whose
+   * dialogs it then draws (RowActionDialogs).
+   */
+  const [ownStore] = useState<RowActionsStore<T>>(() => {
+    return new RowActionsStore<T>();
+  });
+
+  const isKeptByTable: boolean = Boolean(
+    props.store && props.rowKey !== undefined,
+  );
+  const store: RowActionsStore<T> =
+    isKeptByTable && props.store ? props.store : ownStore;
+  const rowKey: string =
+    isKeptByTable && props.rowKey !== undefined ? props.rowKey : OWN_ROW_KEY;
 
   /*
-   * The action whose question is open (getConfirmation), what it asks, and
-   * whether the action it confirms is running - the dialog stays open, its
-   * button busy, until the action is done, and shows in place why it could
-   * not be.
+   * Which actions are mid-flight, by their index in props.actionButtons:
+   * read whenever the row renders but never a reason of its own to render
+   * it, as the rows always have. Plenty of action handlers navigate away or
+   * open a modal without ever calling onCompleteAction, and a spinner that
+   * forced its own render would spin on those forever. Kept with the rest,
+   * so a row drawn again by a change of fit still shows an action running.
    */
-  const [confirming, setConfirming] = useState<{
-    entry: IndexedActionButton<T>;
-    confirmation: RowActionConfirmation;
-  } | null>(null);
-  const [isConfirmedActionRunning, setIsConfirmedActionRunning] =
-    useState<boolean>(false);
-  const [confirmationError, setConfirmationError] = useState<string>("");
+  const loadingActionIndexes: Array<boolean> =
+    store.getLoadingActionIndexes(rowKey);
+
+  // The row's button's box, and its ⋯: what a dialog gives the focus back to.
+  const rowButtonBoxRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const moreButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
 
   /*
-   * Which actions are mid-flight, by their index in props.actionButtons. Held
-   * in a ref, as the rows always have: it is read whenever the row renders but
-   * never forces a render of its own. Plenty of action handlers navigate away
-   * or open a modal without ever calling onCompleteAction, and a spinner that
-   * forced its own render would spin on those forever.
+   * Focuses what opened a dialog - the row's button, or its ⋯ - or the
+   * other when the row no longer draws it (a phone's card leaves out the
+   * actions marked hideOnMobile).
    */
-  const loadingActionIndexes: React.MutableRefObject<Array<boolean>> = useRef<
-    Array<boolean>
-  >([]);
+  const focusOpener: (openedFrom: RowActionOpener) => boolean = useCallback(
+    (openedFrom: RowActionOpener): boolean => {
+      const rowButton: HTMLButtonElement | null =
+        rowButtonBoxRef.current?.querySelector("button") || null;
+      const moreButton: HTMLButtonElement | null = moreButtonRef.current;
+      const target: HTMLElement | null =
+        openedFrom === RowActionOpener.Menu
+          ? moreButton || rowButton
+          : rowButton || moreButton;
+
+      if (!target || !target.isConnected) {
+        return false;
+      }
+
+      target.focus();
+
+      return true;
+    },
+    [],
+  );
+
+  /*
+   * Drawn: the store knows the row is, and how to give the focus back to
+   * it. A layout effect, so that a row drawn again by a change of fit
+   * says so in the commit that takes the old one away (RowActionsStore).
+   */
+  useLayoutEffect(() => {
+    return store.drawRow(rowKey, focusOpener);
+  }, [store, rowKey, focusOpener]);
 
   const { primary, moreMenu }: SplitActionButtonsResult<T> =
     splitActionButtons<T>({
@@ -158,11 +187,32 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       }),
   );
 
-  if (!primary && moreMenu.length === 0 && !error && !confirming) {
-    return <></>;
+  /*
+   * A ⋯ menu this row does not draw now - every action it held left out,
+   * as a phone's card leaves out those marked hideOnMobile - is closed: it
+   * does not open by itself when the row draws one again.
+   */
+  const hasMoreMenu: boolean = moreMenu.length > 0;
+
+  useLayoutEffect(() => {
+    if (!hasMoreMenu) {
+      store.setMenuOpen(rowKey, false);
+    }
+  }, [hasMoreMenu, store, rowKey]);
+
+  // The row's own dialogs, when no table keeps them.
+  const ownDialogs: ReactElement | null = isKeptByTable ? null : (
+    <RowActionDialogs<T> store={ownStore} />
+  );
+
+  if (!primary && !hasMoreMenu) {
+    return <>{ownDialogs}</>;
   }
 
-  type RunActionFunction = (entry: IndexedActionButton<T>) => void;
+  type RunActionFunction = (
+    entry: IndexedActionButton<T>,
+    openedFrom: RowActionOpener,
+  ) => void;
 
   /*
    * An action that asks first opens its question; any other runs at once.
@@ -170,6 +220,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
    */
   const runAction: RunActionFunction = (
     entry: IndexedActionButton<T>,
+    openedFrom: RowActionOpener,
   ): void => {
     const { button, index } = entry;
 
@@ -180,54 +231,41 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     const confirmation: RowActionConfirmation | undefined =
       button.getConfirmation?.(props.item);
 
+    /*
+     * Asked about this row as it is now, and answered on it: the question
+     * holds the row it names (RowActionDialogs).
+     */
     if (confirmation) {
-      setConfirmationError("");
-      setIsConfirmedActionRunning(false);
-      setConfirming({ entry: entry, confirmation: confirmation });
+      store.openQuestion({
+        rowKey: rowKey,
+        item: props.item,
+        action: entry,
+        confirmation: confirmation,
+        openedFrom: openedFrom,
+      });
       return;
     }
 
-    loadingActionIndexes.current[index] = true;
+    loadingActionIndexes[index] = true;
 
     button.onClick(
       props.item,
       () => {
-        loadingActionIndexes.current[index] = false;
+        loadingActionIndexes[index] = false;
       },
       (err: Error) => {
-        loadingActionIndexes.current[index] = false;
-        setError((err as Error).message);
-      },
-    );
-  };
+        loadingActionIndexes[index] = false;
 
-  // The question was answered yes: run the action it asked about.
-  const runConfirmedAction: VoidFunction = (): void => {
-    if (!confirming || isConfirmedActionRunning) {
-      return;
-    }
+        // An error with no words opens nothing, as it never has.
+        const message: string = (err as Error).message;
 
-    const { button, index } = confirming.entry;
-
-    loadingActionIndexes.current[index] = true;
-    setConfirmationError("");
-    setIsConfirmedActionRunning(true);
-
-    button.onClick(
-      props.item,
-      () => {
-        loadingActionIndexes.current[index] = false;
-        setIsConfirmedActionRunning(false);
-        setConfirming(null);
-      },
-      (err: Error) => {
-        loadingActionIndexes.current[index] = false;
-        setIsConfirmedActionRunning(false);
-        setConfirmationError(
-          (err as Error).message ||
-            translateString("Something went wrong. Please try again.") ||
-            "Something went wrong. Please try again.",
-        );
+        if (message) {
+          store.openError({
+            rowKey: rowKey,
+            message: message,
+            openedFrom: openedFrom,
+          });
+        }
       },
     );
   };
@@ -285,7 +323,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
         tooltip={translateString(lock.tooltip)}
         isTooltipTranslated={true}
         onClick={() => {
-          runAction(entry);
+          runAction(entry, RowActionOpener.Menu);
         }}
       />,
     );
@@ -297,45 +335,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       className={`flex items-center gap-2 ${props.className || "justify-end"}`}
       data-testid="row-actions"
     >
-      {error &&
-        drawRowDialog(
-          <div className="text-align-left" data-testid="row-actions-dialog">
-            <ConfirmModal
-              title={`Error`}
-              description={error}
-              submitButtonText={"Close"}
-              onSubmit={() => {
-                return setError("");
-              }}
-            />
-          </div>,
-        )}
-
-      {confirming &&
-        drawRowDialog(
-          <div className="text-align-left" data-testid="row-actions-dialog">
-            <ConfirmModal
-              title={confirming.confirmation.title}
-              description={confirming.confirmation.description}
-              submitButtonText={confirming.confirmation.submitButtonText}
-              submitButtonType={confirming.confirmation.submitButtonType}
-              isLoading={isConfirmedActionRunning}
-              error={confirmationError || undefined}
-              onClose={() => {
-                // An action already running finishes either way.
-                if (isConfirmedActionRunning) {
-                  return;
-                }
-
-                setConfirming(null);
-                setConfirmationError("");
-              }}
-              onSubmit={runConfirmedAction}
-            >
-              {confirming.confirmation.details}
-            </ConfirmModal>
-          </div>,
-        )}
+      {ownDialogs}
 
       {primary && (
         /*
@@ -351,7 +351,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
          * It also keeps the row's button the same on every table - View and
          * Edit never drew one, a few custom actions did.
          */
-        <div className="shrink-0">
+        <div className="shrink-0" ref={rowButtonBoxRef}>
           <Button
             buttonSize={ButtonSize.Small}
             title={
@@ -361,11 +361,11 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
             }
             ariaLabel={isPrimaryShortened ? primary.button.title : undefined}
             buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
-            isLoading={loadingActionIndexes.current[primary.index]}
+            isLoading={loadingActionIndexes[primary.index]}
             disabled={primaryLock?.isDisabled}
             tooltip={primaryLock?.tooltip}
             onClick={() => {
-              runAction(primary);
+              runAction(primary, RowActionOpener.Button);
             }}
           />
         </div>
@@ -374,6 +374,14 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       {menuItems.length > 0 && (
         <MoreMenu
           isMenuPortaled={true}
+          /*
+           * Open again on this row when the table draws it again with its
+           * menu open - a change of how the table fits (RowActionsStore).
+           */
+          isInitiallyOpen={store.isMenuOpen(rowKey)}
+          onOpenChange={(isOpen: boolean) => {
+            store.setMenuOpen(rowKey, isOpen);
+          }}
           /*
            * One sentence around the row's name, in the reader's words and
            * their order here - Japanese puts the name first - never English's
@@ -390,6 +398,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
           isAriaLabelTranslated={Boolean(props.itemLabel)}
           elementToBeShownInsteadOfButton={
             <button
+              ref={moreButtonRef}
               type="button"
               data-testid="row-actions-more-button"
               // A bare ⋯, as MoreMenu draws its own (MoreMenuTriggerStyle).

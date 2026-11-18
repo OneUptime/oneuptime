@@ -261,7 +261,8 @@ const NOTICES: Record<string, NoticeEntry> = {
     count: 1,
     why: WHY.error,
   },
-  "packages/Common/UI/Components/ActionButton/RowActions.tsx": {
+  // A row action that ran at once and failed (a table draws it, #9513).
+  "packages/Common/UI/Components/ActionButton/RowActionDialogs.tsx": {
     count: 1,
     why: WHY.error,
   },
