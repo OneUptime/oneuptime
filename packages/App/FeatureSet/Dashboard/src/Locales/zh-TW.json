@@ -56852,5 +56852,13 @@
   "Is Sample Project": "是否為範例專案",
   "Sample Project": "範例專案",
   "Sample Project ID": "範例專案 ID",
-  "Your changes were not saved.": "您的變更未儲存。"
+  "Your changes were not saved.": "您的變更未儲存。",
+  "Remove them from your teams on their Teams page instead.": "請改為在此人的「團隊」頁面中將其從您的團隊中移除。",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "您的角色無法將人員從其中 {{count}} 個團隊中移除，因此此人仍會留在此專案中。",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "您的角色無法將人員從其中 {{count}} 個團隊中移除，因此此人仍會留在此專案中。",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "您的角色無法將人員從 {{teams}} 中移除，因此此人仍會留在此專案中。",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "所選人員中有 {{count}} 人會留在此專案中，因為您的角色無法將他們從其所有團隊中移除：",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "所選人員中有 {{count}} 人會留在此專案中，因為您的角色無法將他們從其所有團隊中移除：",
+  "{{teams}} and {{count}} other teams": "{{teams}} 及另外 {{count}} 個團隊",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} 及另外 {{count}} 個團隊"
 }

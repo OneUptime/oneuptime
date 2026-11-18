@@ -56852,5 +56852,13 @@
   "Is Sample Project": "هل هو مشروع تجريبي",
   "Sample Project": "مشروع تجريبي",
   "Sample Project ID": "معرّف المشروع التجريبي",
-  "Your changes were not saved.": "لم يتم حفظ تغييراتك."
+  "Your changes were not saved.": "لم يتم حفظ تغييراتك.",
+  "Remove them from your teams on their Teams page instead.": "بدلاً من ذلك، أزل هذا الشخص من فرقك في صفحة الفرق الخاصة به.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "لا يستطيع دورك إزالة الأشخاص من {{count}} من فرقهم، لذا سيبقى هذا الشخص في هذا المشروع.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "لا يستطيع دورك إزالة الأشخاص من {{count}} من فرقهم، لذا سيبقى هذا الشخص في هذا المشروع.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "لا يستطيع دورك إزالة الأشخاص من {{teams}}، لذا سيبقى هذا الشخص في هذا المشروع.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "سيبقى {{count}} من الأشخاص المحددين في هذا المشروع، لأن دورك لا يستطيع إزالتهم من كل فرقهم:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "سيبقى {{count}} من الأشخاص المحددين في هذا المشروع، لأن دورك لا يستطيع إزالته من كل فرقه:",
+  "{{teams}} and {{count}} other teams": "{{teams}} و{{count}} من الفرق الأخرى",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} و{{count}} فريق آخر"
 }

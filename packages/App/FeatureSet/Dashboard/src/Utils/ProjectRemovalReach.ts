@@ -18,6 +18,7 @@ import API from "Common/UI/Utils/API/API";
 import GrantablePermission from "Common/UI/Utils/GrantablePermission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { joinSentences } from "Common/UI/Utils/SentenceSeparator";
 import {
   composedValue,
   translationKey,
@@ -230,11 +231,12 @@ export const getProjectRemovalLockReason: (
     return keeps;
   }
 
-  // Two whole sentences, side by side.
-  return `${keeps} ${
+  // Two whole sentences, side by side, as the reader's script runs them.
+  return joinSentences([
+    keeps,
     translator.translateText(PROJECT_REMOVAL_LOCK_COPY.goToTeams) ||
-    PROJECT_REMOVAL_LOCK_COPY.goToTeams
-  }`;
+      PROJECT_REMOVAL_LOCK_COPY.goToTeams,
+  ]);
 };
 
 export interface ProjectRemovalReach {

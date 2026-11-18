@@ -56852,5 +56852,13 @@
   "Is Sample Project": "پروژه نمونه است",
   "Sample Project": "پروژه نمونه",
   "Sample Project ID": "شناسه پروژه نمونه",
-  "Your changes were not saved.": "تغییرات شما ذخیره نشد."
+  "Your changes were not saved.": "تغییرات شما ذخیره نشد.",
+  "Remove them from your teams on their Teams page instead.": "به‌جای آن، این فرد را در صفحهٔ تیم‌های او از تیم‌های خود حذف کنید.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "نقش شما نمی‌تواند افراد را از {{count}} تیم از تیم‌هایشان حذف کند، پس این فرد در این پروژه می‌ماند.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "نقش شما نمی‌تواند افراد را از {{count}} تیم از تیم‌هایشان حذف کند، پس این فرد در این پروژه می‌ماند.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "نقش شما نمی‌تواند افراد را از {{teams}} حذف کند، پس این فرد در این پروژه می‌ماند.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} نفر از افراد انتخاب‌شده در این پروژه می‌مانند، چون نقش شما نمی‌تواند آن‌ها را از همهٔ تیم‌هایشان حذف کند:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} نفر از افراد انتخاب‌شده در این پروژه می‌ماند، چون نقش شما نمی‌تواند او را از همهٔ تیم‌هایش حذف کند:",
+  "{{teams}} and {{count}} other teams": "{{teams}} و {{count}} تیم دیگر",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} و {{count}} تیم دیگر"
 }

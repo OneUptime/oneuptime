@@ -56852,5 +56852,13 @@
   "Is Sample Project": "Är ett exempelprojekt",
   "Sample Project": "Exempelprojekt",
   "Sample Project ID": "Exempelprojekt-ID",
-  "Your changes were not saved.": "Dina ändringar sparades inte."
+  "Your changes were not saved.": "Dina ändringar sparades inte.",
+  "Remove them from your teams on their Teams page instead.": "Ta i stället bort personen från dina team på personens sida Team.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Din roll kan inte ta bort personer från {{count}} av deras team, så personen skulle stanna i det här projektet.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Din roll kan inte ta bort personer från {{count}} av deras team, så personen skulle stanna i det här projektet.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Din roll kan inte ta bort personer från {{teams}}, så personen skulle stanna i det här projektet.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} av de valda personerna stannar i det här projektet, eftersom din roll inte kan ta bort dem från alla deras team:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} av de valda personerna stannar i det här projektet, eftersom din roll inte kan ta bort personen från alla dess team:",
+  "{{teams}} and {{count}} other teams": "{{teams}} och {{count}} andra team",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} och {{count}} annat team"
 }

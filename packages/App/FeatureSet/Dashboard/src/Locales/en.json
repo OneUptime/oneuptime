@@ -56852,5 +56852,13 @@
   "Is Sample Project": "Is Sample Project",
   "Sample Project": "Sample Project",
   "Sample Project ID": "Sample Project ID",
-  "Your changes were not saved.": "Your changes were not saved."
+  "Your changes were not saved.": "Your changes were not saved.",
+  "Remove them from your teams on their Teams page instead.": "Remove them from your teams on their Teams page instead.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Your role can't remove people from {{count}} of their teams, so they would stay in this project.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Your role can't remove people from {{count}} of their teams, so they would stay in this project.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Your role can't remove people from {{teams}}, so they would stay in this project.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} of the selected people stays in this project, because your role can't remove them from all of their teams:",
+  "{{teams}} and {{count}} other teams": "{{teams}} and {{count}} other teams",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} and {{count}} other team"
 }

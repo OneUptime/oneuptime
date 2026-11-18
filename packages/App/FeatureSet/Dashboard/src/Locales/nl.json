@@ -56852,5 +56852,13 @@
   "Is Sample Project": "Is een voorbeeldproject",
   "Sample Project": "Voorbeeldproject",
   "Sample Project ID": "ID van voorbeeldproject",
-  "Your changes were not saved.": "Uw wijzigingen zijn niet opgeslagen."
+  "Your changes were not saved.": "Uw wijzigingen zijn niet opgeslagen.",
+  "Remove them from your teams on their Teams page instead.": "Verwijder deze persoon in plaats daarvan uit uw teams op diens pagina Teams.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Uw rol kan geen personen verwijderen uit {{count}} van hun teams, dus deze persoon zou in dit project blijven.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Uw rol kan geen personen verwijderen uit {{count}} van hun teams, dus deze persoon zou in dit project blijven.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Uw rol kan geen personen verwijderen uit {{teams}}, dus deze persoon zou in dit project blijven.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} van de geselecteerde personen blijven in dit project, omdat uw rol hen niet uit al hun teams kan verwijderen:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} van de geselecteerde personen blijft in dit project, omdat uw rol deze persoon niet uit al diens teams kan verwijderen:",
+  "{{teams}} and {{count}} other teams": "{{teams}} en {{count}} andere teams",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} en {{count}} ander team"
 }

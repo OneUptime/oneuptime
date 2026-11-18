@@ -56852,5 +56852,13 @@
   "Is Sample Project": "नमूना प्रोजेक्ट है",
   "Sample Project": "नमूना प्रोजेक्ट",
   "Sample Project ID": "नमूना प्रोजेक्ट ID",
-  "Your changes were not saved.": "आपके बदलाव सहेजे नहीं गए।"
+  "Your changes were not saved.": "आपके बदलाव सहेजे नहीं गए।",
+  "Remove them from your teams on their Teams page instead.": "इसके बजाय, उनके टीमें पेज पर उन्हें अपनी टीमों से हटाएँ।",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "आपकी भूमिका लोगों को उनकी {{count}} टीमों से नहीं हटा सकती, इसलिए वे इस प्रोजेक्ट में बने रहेंगे।",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "आपकी भूमिका लोगों को उनकी {{count}} टीम से नहीं हटा सकती, इसलिए वे इस प्रोजेक्ट में बने रहेंगे।",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "आपकी भूमिका लोगों को {{teams}} से नहीं हटा सकती, इसलिए वे इस प्रोजेक्ट में बने रहेंगे।",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "चुने गए लोगों में से {{count}} इस प्रोजेक्ट में बने रहेंगे, क्योंकि आपकी भूमिका उन्हें उनकी सभी टीमों से नहीं हटा सकती:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "चुने गए लोगों में से {{count}} इस प्रोजेक्ट में बना रहेगा, क्योंकि आपकी भूमिका उन्हें उनकी सभी टीमों से नहीं हटा सकती:",
+  "{{teams}} and {{count}} other teams": "{{teams}} और {{count}} अन्य टीमें",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} और {{count}} अन्य टीम"
 }

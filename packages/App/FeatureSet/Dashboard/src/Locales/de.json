@@ -56852,5 +56852,13 @@
   "Is Sample Project": "Ist ein Beispielprojekt",
   "Sample Project": "Beispielprojekt",
   "Sample Project ID": "Beispielprojekt-ID",
-  "Your changes were not saved.": "Ihre Änderungen wurden nicht gespeichert."
+  "Your changes were not saved.": "Ihre Änderungen wurden nicht gespeichert.",
+  "Remove them from your teams on their Teams page instead.": "Entfernen Sie die Person stattdessen auf ihrer Seite Teams aus Ihren Teams.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Ihre Rolle kann Personen nicht aus {{count}} ihrer Teams entfernen, daher bliebe die Person in diesem Projekt.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Ihre Rolle kann Personen nicht aus {{count}} ihrer Teams entfernen, daher bliebe die Person in diesem Projekt.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Ihre Rolle kann Personen nicht aus {{teams}} entfernen, daher bliebe die Person in diesem Projekt.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} der ausgewählten Personen bleiben in diesem Projekt, da Ihre Rolle sie nicht aus allen ihren Teams entfernen kann:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} der ausgewählten Personen bleibt in diesem Projekt, da Ihre Rolle sie nicht aus allen ihren Teams entfernen kann:",
+  "{{teams}} and {{count}} other teams": "{{teams}} und {{count}} weiteren Teams",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} und {{count}} weiteren Team"
 }
