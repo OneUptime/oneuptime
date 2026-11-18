@@ -56807,5 +56807,9 @@
   "Server Alert State": "サーバーアラートの状態",
   "Server Alerts by Push": "プッシュによるサーバーアラート",
   "Server Email Log": "サーバーのメールのログ",
-  "Server Email Logs": "サーバーのメールのログ"
+  "Server Email Logs": "サーバーのメールのログ",
+  "Finish setting up your notifications": "通知の設定を完了してください",
+  "Hide for a week": "1週間非表示にする",
+  "Nothing can reach you yet.": "まだ連絡を受け取れる方法がありません。",
+  "Some severities have no notification rule yet.": "一部の重大度にはまだ通知ルールがありません。"
 }

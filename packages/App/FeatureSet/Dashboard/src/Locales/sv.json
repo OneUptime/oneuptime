@@ -56807,5 +56807,9 @@
   "Server Alert State": "Tillstånd för serverlarm",
   "Server Alerts by Push": "Serverlarm via push",
   "Server Email Log": "Serverns e-postlogg",
-  "Server Email Logs": "Serverns e-postloggar"
+  "Server Email Logs": "Serverns e-postloggar",
+  "Finish setting up your notifications": "Slutför inställningen av dina aviseringar",
+  "Hide for a week": "Dölj i en vecka",
+  "Nothing can reach you yet.": "Inget kan nå dig än.",
+  "Some severities have no notification rule yet.": "Vissa allvarlighetsgrader har ännu ingen aviseringsregel."
 }

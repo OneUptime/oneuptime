@@ -47,7 +47,8 @@ import { ListGroup, ListItem } from "../components/ListGroup";
 import ScreenIntro from "../components/ScreenIntro";
 import type { SettingsStackParamList } from "../navigation/types";
 import { getCriticalAlertSoundOption } from "../notifications/criticalAlertSounds";
-import { CriticalAlertSettingsPlace } from "../notifications/criticalAlerts";
+import { getPhoneSettingsActionLabel } from "../notifications/criticalAlerts";
+import { GET_READY_TEXT } from "../onboarding/getReady";
 import type { CriticalAlertSoundChoice } from "../storage/preferences";
 import { getInitials } from "../utils/text";
 
@@ -354,24 +355,6 @@ function GroupFootnote({
   );
 }
 
-/*
- * The action under "Off in iOS Settings" and the like: where it opens. None
- * for an app the App Store has to update - the words say so.
- */
-function phoneSettingsActionLabel(
-  place: CriticalAlertSettingsPlace,
-): string | undefined {
-  if (place === CriticalAlertSettingsPlace.IosAppSettings) {
-    return "Open iOS Settings";
-  }
-
-  if (place === CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess) {
-    return "Open Do Not Disturb access";
-  }
-
-  return undefined;
-}
-
 export default function SettingsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { logout, user } = useAuth();
@@ -566,7 +549,7 @@ export default function SettingsScreen(): React.JSX.Element {
               : "warning"
           }
           title={criticalAlerts.offInPhoneSettings.title}
-          actionLabel={phoneSettingsActionLabel(
+          actionLabel={getPhoneSettingsActionLabel(
             criticalAlerts.offInPhoneSettings.place,
           )}
           onAction={() => {
@@ -606,19 +589,34 @@ export default function SettingsScreen(): React.JSX.Element {
     </ListGroup>
   ) : null;
 
-  const onCall: React.JSX.Element | null = calendarFeed.isAvailable ? (
+  /*
+   * The app's first steps (#7041) open from here whenever the person wants:
+   * the app opens them by itself only once, on a new install's first launch.
+   */
+  const onCall: React.JSX.Element = (
     <ListGroup title="On-Call" testID="settings-section-oncall">
       <ListItem
-        testID="settings-row-calendar-feed"
-        title="Calendar feed"
-        subtitle="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
-        icon="calendar-outline"
+        testID="settings-row-get-ready"
+        title={GET_READY_TEXT.settingsRowTitle}
+        subtitle="Notifications, critical alerts and a test page"
+        icon="checkmark-done-outline"
         onPress={() => {
-          navigation.navigate("OnCallCalendarFeed");
+          navigation.navigate("GetReady");
         }}
       />
+      {calendarFeed.isAvailable ? (
+        <ListItem
+          testID="settings-row-calendar-feed"
+          title="Calendar feed"
+          subtitle="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
+          icon="calendar-outline"
+          onPress={() => {
+            navigation.navigate("OnCallCalendarFeed");
+          }}
+        />
+      ) : null}
     </ListGroup>
-  ) : null;
+  );
 
   const account: React.JSX.Element = (
     <ListGroup title="Account" testID="settings-section-account">

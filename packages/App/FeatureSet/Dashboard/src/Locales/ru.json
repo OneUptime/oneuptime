@@ -56807,5 +56807,9 @@
   "Server Alert State": "Состояние оповещений сервера",
   "Server Alerts by Push": "Оповещения сервера через push",
   "Server Email Log": "Журнал писем сервера",
-  "Server Email Logs": "Журналы писем сервера"
+  "Server Email Logs": "Журналы писем сервера",
+  "Finish setting up your notifications": "Завершите настройку уведомлений",
+  "Hide for a week": "Скрыть на неделю",
+  "Nothing can reach you yet.": "Пока с вами нельзя связаться.",
+  "Some severities have no notification rule yet.": "Для некоторых уровней серьёзности ещё нет правила уведомлений."
 }

@@ -56807,5 +56807,9 @@
   "Server Alert State": "सर्वर अलर्ट की स्थिति",
   "Server Alerts by Push": "पुश से सर्वर अलर्ट",
   "Server Email Log": "सर्वर ईमेल लॉग",
-  "Server Email Logs": "सर्वर ईमेल लॉग"
+  "Server Email Logs": "सर्वर ईमेल लॉग",
+  "Finish setting up your notifications": "अपनी सूचनाओं का सेटअप पूरा करें",
+  "Hide for a week": "एक सप्ताह के लिए छिपाएं",
+  "Nothing can reach you yet.": "अभी तक आप तक कुछ भी नहीं पहुँच सकता।",
+  "Some severities have no notification rule yet.": "कुछ गंभीरता स्तरों के लिए अभी तक कोई सूचना नियम नहीं है।"
 }

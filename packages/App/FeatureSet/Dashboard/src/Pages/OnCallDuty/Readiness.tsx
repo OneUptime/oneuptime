@@ -30,6 +30,7 @@ import {
 } from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadder";
 import { APPLY_DEFAULT_LADDER_COPY } from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadderWords";
 import { PagingLadderDefaultStep } from "Common/Types/NotificationRule/PagingLadderDefault";
+import { hasNotificationSetupToFinish } from "Common/Types/OnCallDutyPolicy/NotificationSetupToFinish";
 import UserElement from "../../Components/User/User";
 import SendTestPageModal from "../../Components/OnCallTestPage/SendTestPageModal";
 import { canSendTestPageToMember } from "../../Components/OnCallTestPage/OnCallTestPageAccess";
@@ -809,17 +810,15 @@ const buildResponderRow: (readiness: UserReadinessWire) => ResponderRow = (
  * of. The server agrees - it answers SkippedNothingMissing for them rather than
  * mailing a claim they could disprove in ten seconds - so locking the checkbox
  * here is not a second rule, it is the same rule made visible before the click
- * instead of explained after it. Unless their project asks people on call for
- * a phone method and they have none (#7449): that is something to set up, and
- * the server reminds them of it.
+ * instead of explained after it: hasNotificationSetupToFinish, which the
+ * reminder and the bell read too (#7040). Unless their project asks people on
+ * call for a phone method and they have none (#7449): that is something to
+ * set up, and the server reminds them of it.
  */
 const isRemindable: (row: ResponderRow) => boolean = (
   row: ResponderRow,
 ): boolean => {
-  return (
-    row.status !== READINESS_STATUS_READY ||
-    row.readiness.isMissingPhoneMethod === true
-  );
+  return hasNotificationSetupToFinish(row.readiness);
 };
 
 const NOT_REMINDABLE_REASON: string = translationKey(

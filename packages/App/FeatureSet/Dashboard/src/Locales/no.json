@@ -56807,5 +56807,9 @@
   "Server Alert State": "Tilstand for servervarsler",
   "Server Alerts by Push": "Servervarsler via push",
   "Server Email Log": "Serverens e-postlogg",
-  "Server Email Logs": "Serverens e-postlogger"
+  "Server Email Logs": "Serverens e-postlogger",
+  "Finish setting up your notifications": "Fullfør oppsettet av varslene dine",
+  "Hide for a week": "Skjul i en uke",
+  "Nothing can reach you yet.": "Ingenting kan nå deg ennå.",
+  "Some severities have no notification rule yet.": "Noen alvorlighetsgrader har ennå ingen varslingsregel."
 }

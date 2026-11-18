@@ -28,6 +28,7 @@ import UserSettingsSlackIntegration from "../Pages/UserSettings/SlackIntegration
 import UserSettingsIncomingCallPhoneNumbers from "../Pages/UserSettings/IncomingCallPhoneNumbers";
 
 import UserSettingsSetup from "../Pages/UserSettings/Setup";
+import UserSettingsLanding from "../Pages/UserSettings/Landing";
 
 import UserSettingsOnCallCalendarFeed from "../Pages/UserSettings/OnCallCalendarFeed";
 
@@ -39,21 +40,28 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
   return (
     <Routes>
       <PageRoute element={<UserSettingsLayout {...props} />}>
+        {/*
+         * User Settings' own address (PageMap.USER_SETTINGS), where the nav
+         * bar's User Settings, Search and the "User Settings" crumb go: on
+         * to the setup checklist while essential steps are left, and to
+         * Notification Methods - its own address, as always - after
+         * (#7039). It drew an empty page.
+         */}
+        <PageRoute
+          index
+          element={
+            <UserSettingsLanding
+              {...props}
+              pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
+            />
+          }
+        />
         <PageRoute
           path={UserSettingsRoutePath[PageMap.USER_SETTINGS_SETUP] || ""}
           element={
             <UserSettingsSetup
               {...props}
               pageRoute={RouteMap[PageMap.USER_SETTINGS_SETUP] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={UserSettingsRoutePath[PageMap.USER_SETTINGS] || ""}
-          element={
-            <UserSettingsNotificationMethods
-              {...props}
-              pageRoute={RouteMap[PageMap.USER_SETTINGS] as Route}
             />
           }
         />

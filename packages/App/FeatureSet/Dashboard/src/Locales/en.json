@@ -56807,5 +56807,9 @@
   "Server Alert State": "Server Alert State",
   "Server Alerts by Push": "Server Alerts by Push",
   "Server Email Log": "Server Email Log",
-  "Server Email Logs": "Server Email Logs"
+  "Server Email Logs": "Server Email Logs",
+  "Finish setting up your notifications": "Finish setting up your notifications",
+  "Hide for a week": "Hide for a week",
+  "Nothing can reach you yet.": "Nothing can reach you yet.",
+  "Some severities have no notification rule yet.": "Some severities have no notification rule yet."
 }

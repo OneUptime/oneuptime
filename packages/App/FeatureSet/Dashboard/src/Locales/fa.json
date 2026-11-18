@@ -56807,5 +56807,9 @@
   "Server Alert State": "حالت هشدارهای سرور",
   "Server Alerts by Push": "هشدارهای سرور با پوش",
   "Server Email Log": "گزارش ایمیل سرور",
-  "Server Email Logs": "گزارش‌های ایمیل سرور"
+  "Server Email Logs": "گزارش‌های ایمیل سرور",
+  "Finish setting up your notifications": "راه‌اندازی اعلان‌های خود را کامل کنید",
+  "Hide for a week": "پنهان کردن برای یک هفته",
+  "Nothing can reach you yet.": "هنوز هیچ راهی برای رسیدن به شما نیست.",
+  "Some severities have no notification rule yet.": "برخی سطح‌های شدت هنوز قاعدهٔ اعلان ندارند."
 }

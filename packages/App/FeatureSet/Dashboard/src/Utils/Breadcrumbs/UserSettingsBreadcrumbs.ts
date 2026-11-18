@@ -7,6 +7,14 @@ export function getUserSettingsBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
+    /*
+     * User Settings' own address, while it picks the first page (#7039,
+     * Pages/UserSettings/Landing).
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS, [
+      "Project",
+      "User Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_SETUP, [
       "Project",
       "User Settings",

@@ -56807,5 +56807,9 @@
   "Server Alert State": "حالة تنبيهات الخادم",
   "Server Alerts by Push": "تنبيهات الخادم عبر الإشعارات الفورية",
   "Server Email Log": "سجل البريد الإلكتروني للخادم",
-  "Server Email Logs": "سجلات البريد الإلكتروني للخادم"
+  "Server Email Logs": "سجلات البريد الإلكتروني للخادم",
+  "Finish setting up your notifications": "أكمل إعداد إشعاراتك",
+  "Hide for a week": "إخفاء لمدة أسبوع",
+  "Nothing can reach you yet.": "لا يمكن أن يصل إليك أي شيء بعد.",
+  "Some severities have no notification rule yet.": "بعض درجات الخطورة ليس لها قاعدة إشعارات بعد."
 }

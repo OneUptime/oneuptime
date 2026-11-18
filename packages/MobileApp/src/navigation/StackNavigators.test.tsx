@@ -219,6 +219,10 @@ jest.mock("../screens/TestPageScreen", () => {
   return mockScreenStub("screen-test-page");
 });
 
+jest.mock("../screens/GetReadyScreen", () => {
+  return mockScreenStub("screen-get-ready");
+});
+
 jest.mock("../screens/SettingsScreen", () => {
   return mockScreenStub("screen-settings-list");
 });
@@ -457,6 +461,16 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     title: "Test Page",
     keepsIosLargeTitle: false,
   },
+
+  /*
+   * The app's first steps (#7041): a sheet, opened by itself on a new
+   * install's first launch, so it keeps the compact header.
+   */
+  GetReady: {
+    testID: "screen-get-ready",
+    title: "Get Ready for On-Call",
+    keepsIosLargeTitle: false,
+  },
 };
 
 const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
@@ -502,6 +516,16 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
   CriticalAlertSound: {
     testID: "screen-critical-alert-sound",
     title: "Alarm Sound",
+    keepsIosLargeTitle: true,
+  },
+
+  /*
+   * The app's first steps (#7041), pushed from Settings' On-Call row: the
+   * same screen the On-Call stack opens as a sheet on a first launch.
+   */
+  GetReady: {
+    testID: "screen-get-ready",
+    title: "Get Ready for On-Call",
     keepsIosLargeTitle: true,
   },
 };

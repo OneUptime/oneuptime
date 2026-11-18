@@ -29,6 +29,7 @@ import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
 import ProjectSwitcher from "../components/ProjectSwitcher";
 import ProjectNavigationSync from "./ProjectNavigationSync";
+import GetReadyFirstRun from "./GetReadyFirstRun";
 
 const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> =
   createBottomTabNavigator<MainTabParamList>();
@@ -118,6 +119,8 @@ export default function MainTabNavigator(): React.JSX.Element {
   return (
     <SafeAreaInsetsContext.Provider value={contentInsets}>
       <ProjectNavigationSync />
+      {/* The first steps, opened by themselves on a new install's first launch. */}
+      <GetReadyFirstRun />
       <Tab.Navigator
         safeAreaInsets={rail && insets ? insets : undefined}
         screenOptions={{

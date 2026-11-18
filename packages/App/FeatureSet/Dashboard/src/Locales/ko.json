@@ -56807,5 +56807,9 @@
   "Server Alert State": "서버 경고 상태",
   "Server Alerts by Push": "푸시로 받는 서버 경고",
   "Server Email Log": "서버 이메일 로그",
-  "Server Email Logs": "서버 이메일 로그"
+  "Server Email Logs": "서버 이메일 로그",
+  "Finish setting up your notifications": "알림 설정을 마무리하세요",
+  "Hide for a week": "1주일 동안 숨기기",
+  "Nothing can reach you yet.": "아직 연락받을 수 있는 방법이 없습니다.",
+  "Some severities have no notification rule yet.": "일부 심각도에 아직 알림 규칙이 없습니다."
 }

@@ -56807,5 +56807,9 @@
   "Server Alert State": "服务器警报状态",
   "Server Alerts by Push": "通过推送发送的服务器警报",
   "Server Email Log": "服务器电子邮件日志",
-  "Server Email Logs": "服务器电子邮件日志"
+  "Server Email Logs": "服务器电子邮件日志",
+  "Finish setting up your notifications": "完成通知设置",
+  "Hide for a week": "隐藏一周",
+  "Nothing can reach you yet.": "目前还无法联系到您。",
+  "Some severities have no notification rule yet.": "部分严重程度还没有通知规则。"
 }

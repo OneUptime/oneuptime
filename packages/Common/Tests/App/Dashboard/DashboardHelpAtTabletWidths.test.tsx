@@ -86,6 +86,23 @@ const WIDEST_IN_PX: number = 1920;
 const countMock: MockFunction = getJestMockFunction();
 const getMock: MockFunction = getJestMockFunction();
 
+/*
+ * The bell's "Finish setting up your notifications" reads the person's own
+ * readiness through API.get as well; NotificationSetupBell covers it, so
+ * here it asks nothing and shows nothing.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Header/useNotificationSetupNudge",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return { reason: null, hide: () => {} };
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

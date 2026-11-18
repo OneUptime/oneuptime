@@ -116,7 +116,7 @@ export const PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE: string =
   "Only a Project Admin, or someone who may edit members' notification rules, can apply the project's default ladder to members.";
 
 export const PAGING_LADDER_NO_DEFAULT_MESSAGE: string =
-  "This project has no default ladder yet. Set one in Project Settings > Notification Channels, then apply it.";
+  "This project has no default ladder yet. Set one in Project Settings > Notifications > Notification Channels, then apply it.";
 
 export const PAGING_LADDER_DEFAULT_FAILED_MESSAGE: string =
   "The default ladder could not be applied to this member. Try again, or open their How to Reach Me.";

@@ -14,6 +14,7 @@ import { useProject } from "../hooks/useProject";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import { processPendingNotification } from "../notifications/handlers";
+import { isFirstRunOfThisInstall } from "../onboarding/firstRun";
 import AuthStackNavigator from "./AuthStackNavigator";
 import MainTabNavigator from "./MainTabNavigator";
 import BiometricLockScreen from "../screens/BiometricLockScreen";
@@ -66,6 +67,16 @@ export default function RootNavigator(): React.JSX.Element {
   const [biometricPassed, setBiometricPassed] = useState(false);
 
   usePushNotifications(navigationRef);
+
+  /*
+   * Whether this is a new install's first launch, decided now - before
+   * anybody signs in or the phone registers for pushes, which leave the
+   * marks it reads (onboarding/firstRun.ts). GetReadyFirstRun reads the
+   * answer once the person is signed in to a project.
+   */
+  useEffect((): void => {
+    void isFirstRunOfThisInstall();
+  }, []);
 
   /*
    * Passing the lock is a property of the SESSION, not of the process.

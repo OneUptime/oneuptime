@@ -56807,5 +56807,9 @@
   "Server Alert State": "Estado de las alertas del servidor",
   "Server Alerts by Push": "Alertas del servidor por push",
   "Server Email Log": "Registro de correos del servidor",
-  "Server Email Logs": "Registros de correos del servidor"
+  "Server Email Logs": "Registros de correos del servidor",
+  "Finish setting up your notifications": "Termina de configurar tus notificaciones",
+  "Hide for a week": "Ocultar durante una semana",
+  "Nothing can reach you yet.": "Todavía nada puede contactarte.",
+  "Some severities have no notification rule yet.": "Algunas gravedades aún no tienen una regla de notificación."
 }

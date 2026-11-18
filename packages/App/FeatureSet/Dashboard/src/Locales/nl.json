@@ -56807,5 +56807,9 @@
   "Server Alert State": "Status van serverwaarschuwingen",
   "Server Alerts by Push": "Serverwaarschuwingen via push",
   "Server Email Log": "E-maillogboek van de server",
-  "Server Email Logs": "E-maillogboeken van de server"
+  "Server Email Logs": "E-maillogboeken van de server",
+  "Finish setting up your notifications": "Rond het instellen van je meldingen af",
+  "Hide for a week": "Een week verbergen",
+  "Nothing can reach you yet.": "Nog niets kan je bereiken.",
+  "Some severities have no notification rule yet.": "Sommige ernstniveaus hebben nog geen meldingsregel."
 }
