@@ -46,10 +46,16 @@ import AthenaApi, {
 } from "./AthenaApi";
 import DataverseApi, {
   asSentence,
+  DATAVERSE_CORE_TABLES,
+  DataverseRequestError,
+  DataverseSkippedTables,
   DataverseTable,
+  DataverseTablesRead,
   DataverseThrottledError,
   inlineDataverseSqlParameters,
   isCountedDataverseTable,
+  isServerSideDataverseError,
+  isTableLevelDataverseError,
   readDataverseConnection,
   selectDataverseTables,
 } from "./DataverseApi";
@@ -371,6 +377,12 @@ interface CatalogRead {
   secondsSinceStatsReset: number | null;
   // Tables ("schema.table" keys) whose columns could not be read this time: unknown, not dropped.
   columnsUnknown?: Array<string> | undefined;
+  /*
+   * True when the engine could not list every table this time (Dataverse's
+   * table list failed and its tables were read in groups): a table missing
+   * from the read is unread, never dropped.
+   */
+  isTableListPartial?: boolean | undefined;
 }
 
 interface LineageRead {
@@ -4936,15 +4948,74 @@ function isNetworkError(error: unknown): boolean {
   );
 }
 
+// How many tables a warning about tables left out names before "...".
+const MAX_TABLES_NAMED_IN_WARNING: number = 5;
+// The most of Dataverse's answer a warning keeps, so the whole warning fits.
+const MAX_DATAVERSE_REASON_LENGTH: number = 240;
+// After this many tables in a row get no answer at all, the rest are left to the next collection.
+const MAX_DATAVERSE_OUTAGES_IN_A_ROW: number = 3;
+
+// What Dataverse answered when a read failed, for a warning that names the tables itself.
+function dataverseReasonOf(error: unknown): string {
+  return (
+    error instanceof DataverseRequestError ? error.reason : describeError(error)
+  ).slice(0, MAX_DATAVERSE_REASON_LENGTH);
+}
+
+function countDataverseTables(count: number): string {
+  return count === 1 ? "1 table" : `${count} tables`;
+}
+
+// The tables a warning names: the first few, then "...".
+function nameDataverseTables(names: Array<string>): string {
+  return `${names.slice(0, MAX_TABLES_NAMED_IN_WARNING).join(", ")}${names.length > MAX_TABLES_NAMED_IN_WARNING ? ", ..." : ""}`;
+}
+
+/*
+ * One warning for the tables a read left out: how many, which, and the
+ * first answer Dataverse gave about them. Null when it left none out.
+ */
+export function describeSkippedDataverseTables(
+  what: string,
+  skipped: Array<DataverseSkippedTables>,
+): string | null {
+  const names: Array<string> = skipped.flatMap(
+    (entry: DataverseSkippedTables): Array<string> => {
+      return entry.logicalNames;
+    },
+  );
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return `${what} of ${countDataverseTables(names.length)} could not be read (${nameDataverseTables(names)}): ${skipped[0]!.reason.slice(0, MAX_DATAVERSE_REASON_LENGTH)}`;
+}
+
+// The tables a collection reads definitions of: its definitions, whether they are all of them, and the tables Dataverse could not describe.
+interface DataverseDefinitionList {
+  definitions: Array<JSONObject>;
+  isPartial: boolean;
+  unread: Set<string>;
+}
+
 /*
  * Microsoft Dataverse, an environment at a time (DataverseApi). Every
  * collection reads the tables' definitions, rows and newest changes from
  * the Web API, and the columns once an hour - when the query history of
  * the other engines is read, and at a store's first collection. Each read
  * is a request against the app's limits, so an excluded table is left out
- * before anything of it is read, and a 429 leaves the rest of the reads to
- * the next collection. A table's change time is its newest modifiedon, its
+ * before anything of it is read, and a 429 Dataverse asks the collection
+ * to wait out for longer than it waits leaves the rest of the reads to the
+ * next collection. A table's change time is its newest modifiedon, its
  * data's own time: a table not read this time keeps the last one.
+ *
+ * Only a table list that cannot be read at all, or an app Dataverse
+ * refuses, fails a collection. When Dataverse fails the list, its tables
+ * are read in smaller requests (listDefinitions); a table whose rows,
+ * newest row or columns Dataverse fails is left out of that read alone.
+ * The collection's warnings say which tables were left out and why, in
+ * Dataverse's own words.
  *
  * A data check runs on the TDS endpoint, opened only when one is due, as
  * read-only SQL in SQL Server's dialect, its values written in.
@@ -4985,6 +5056,117 @@ class DataverseCatalog implements CatalogSession {
     return true;
   }
 
+  // Says what a read of many tables left out, and notes the throttle that stopped it, if one did.
+  private noteTablesRead(
+    what: string,
+    read: Omit<DataverseTablesRead<unknown>, "result">,
+    warnings: Array<string>,
+  ): void {
+    const warning: string | null = describeSkippedDataverseTables(
+      what,
+      read.skipped,
+    );
+
+    if (warning) {
+      warnings.push(warning);
+    }
+
+    if (read.throttle) {
+      this.noteThrottled(read.throttle, warnings);
+    }
+  }
+
+  /*
+   * Every table's definition, from the one list Dataverse gives. When it
+   * fails that list (a 5xx or a timeout, after its tries), the core tables
+   * and the tables the connection names are read twenty at a time - one at
+   * a time where a group fails - and the custom tables on their own, so a
+   * table Dataverse cannot describe leaves out only itself. Such a list is
+   * partial: a table missing from it is not taken for dropped. When it
+   * holds no table at all, the list's own failure fails the collection.
+   */
+  private async listDefinitions(
+    warnings: Array<string>,
+  ): Promise<DataverseDefinitionList> {
+    try {
+      return {
+        definitions: await this.api.listTables(),
+        isPartial: false,
+        unread: new Set(),
+      };
+    } catch (error) {
+      if (!isServerSideDataverseError(error)) {
+        throw error;
+      }
+
+      const wanted: Array<string> = [
+        ...DATAVERSE_CORE_TABLES,
+        ...this.api.namedTables,
+      ];
+      const named: DataverseTablesRead<Array<JSONObject>> =
+        await this.api.readTableDefinitions(wanted);
+      const definitions: Array<JSONObject> = [...named.result];
+      const unread: Set<string> = new Set();
+      let customError: unknown = null;
+
+      for (const entry of named.skipped) {
+        for (const name of entry.logicalNames) {
+          unread.add(name);
+        }
+      }
+
+      if (named.throttle) {
+        this.noteThrottled(named.throttle, warnings);
+
+        // A table not asked about before the throttle is unread, not missing.
+        const found: Set<string> = new Set(
+          definitions.map((definition: JSONObject): string => {
+            return String(definition["LogicalName"] || "").toLowerCase();
+          }),
+        );
+
+        for (const name of wanted) {
+          if (!found.has(name)) {
+            unread.add(name);
+          }
+        }
+      } else {
+        try {
+          definitions.push(...(await this.api.listCustomTables()));
+        } catch (listError) {
+          if (!this.noteThrottled(listError, warnings)) {
+            customError = listError;
+          }
+        }
+      }
+
+      if (definitions.length === 0) {
+        throw error;
+      }
+
+      warnings.push(
+        `Listing every table failed, so tables were read in smaller requests and none is marked dropped: ${dataverseReasonOf(error)}`,
+      );
+
+      const skippedWarning: string | null = describeSkippedDataverseTables(
+        "The definitions",
+        named.skipped,
+      );
+
+      if (skippedWarning) {
+        warnings.push(skippedWarning);
+      }
+
+      if (customError) {
+        warnings.push(
+          `The environment's own custom tables could not be listed: ${dataverseReasonOf(customError)}`,
+        );
+      }
+
+      return { definitions, isPartial: true, unread };
+    }
+  }
+
   private async readRows(
     watched: Array<DataverseTable>,
     warnings: Array<string>,
@@ -4995,17 +5177,20 @@ class DataverseCatalog implements CatalogSession {
         return table.logicalName;
       });
 
-    if (counted.length === 0) {
+    if (counted.length === 0 || this.isThrottled) {
       return new Map();
     }
 
     try {
-      return await this.api.countRows(counted);
+      const read: DataverseTablesRead<Map<string, number>> =
+        await this.api.countRows(counted);
+
+      this.noteTablesRead("The row counts", read, warnings);
+
+      return read.result;
     } catch (error) {
       if (!this.noteThrottled(error, warnings)) {
-        warnings.push(
-          `Row counts were left out: ${describeError(error).slice(0, 200)}`,
-        );
+        warnings.push(`Row counts were left out: ${dataverseReasonOf(error)}`);
       }
 
       return new Map();
@@ -5022,9 +5207,15 @@ class DataverseCatalog implements CatalogSession {
     const failed: Array<string> = [];
     let firstError: string = "";
     let next: number = 0;
+    // Tables in a row Dataverse could not be asked about at all: no answer of its own, as when a network is down.
+    let outagesInARow: number = 0;
 
     const readNext: () => Promise<void> = async (): Promise<void> => {
-      while (!this.isThrottled && next < watched.length) {
+      while (
+        !this.isThrottled &&
+        outagesInARow < MAX_DATAVERSE_OUTAGES_IN_A_ROW &&
+        next < watched.length
+      ) {
         const table: DataverseTable = watched[next]!;
 
         next++;
@@ -5034,6 +5225,7 @@ class DataverseCatalog implements CatalogSession {
             table.entitySetName,
           );
 
+          outagesInARow = 0;
           ages.set(
             table.logicalName,
             changedAt
@@ -5048,8 +5240,12 @@ class DataverseCatalog implements CatalogSession {
             return;
           }
 
+          // A table Dataverse fails is left out alone; one that timed out may be only slow.
           failed.push(table.logicalName);
-          firstError = firstError || describeError(error);
+          firstError = firstError || dataverseReasonOf(error);
+          outagesInARow = isTableLevelDataverseError(error)
+            ? 0
+            : outagesInARow + 1;
         }
       }
     };
@@ -5064,8 +5260,10 @@ class DataverseCatalog implements CatalogSession {
     );
 
     if (failed.length > 0) {
+      const unasked: number = this.isThrottled ? 0 : watched.length - next;
+
       warnings.push(
-        `When ${failed.length === 1 ? "1 table" : `${failed.length} tables`} last changed could not be read (${failed.slice(0, 10).join(", ")}${failed.length > 10 ? ", ..." : ""}): ${firstError.slice(0, 200)}`,
+        `When ${countDataverseTables(failed.length)} last changed could not be read (${nameDataverseTables(failed)}): ${firstError}${unasked > 0 ? ` ${countDataverseTables(unasked)} more were not asked this time.` : ""}`,
       );
     }
 
@@ -5089,15 +5287,19 @@ class DataverseCatalog implements CatalogSession {
     let definitions: Map<string, Array<JSONObject>>;
 
     try {
-      definitions = await this.api.listColumns(
-        watched.map((table: DataverseTable): string => {
-          return table.logicalName;
-        }),
-      );
+      const read: DataverseTablesRead<Map<string, Array<JSONObject>>> =
+        await this.api.listColumns(
+          watched.map((table: DataverseTable): string => {
+            return table.logicalName;
+          }),
+        );
+
+      this.noteTablesRead("The columns", read, warnings);
+      definitions = read.result;
     } catch (error) {
       if (!this.noteThrottled(error, warnings)) {
         warnings.push(
-          `Columns were not read this time: ${describeError(error).slice(0, 200)}`,
+          `Columns were not read this time: ${dataverseReasonOf(error)}`,
         );
       }
 
@@ -5135,12 +5337,20 @@ class DataverseCatalog implements CatalogSession {
     const now: Date = new Date();
     const warnings: Array<string> = [];
     const excluded: Set<string> = readExclusions(options.exclusions);
+    const listed: DataverseDefinitionList =
+      await this.listDefinitions(warnings);
     const selection: ReturnType<typeof selectDataverseTables> =
-      selectDataverseTables(await this.api.listTables(), this.api.namedTables);
+      selectDataverseTables(listed.definitions, this.api.namedTables);
+    // A named table Dataverse could not describe this time is unread, not missing.
+    const unknownNames: Array<string> = selection.unknownNames.filter(
+      (name: string): boolean => {
+        return !listed.unread.has(name);
+      },
+    );
 
-    if (selection.unknownNames.length > 0) {
+    if (unknownNames.length > 0) {
       warnings.push(
-        `The connection names tables this environment does not have, or that cannot be watched: ${selection.unknownNames.slice(0, 20).join(", ")}${selection.unknownNames.length > 20 ? ", ..." : ""}.`,
+        `The connection names tables this environment does not have, or that cannot be watched: ${unknownNames.slice(0, 20).join(", ")}${unknownNames.length > 20 ? ", ..." : ""}.`,
       );
     }
 
@@ -5195,6 +5405,7 @@ class DataverseCatalog implements CatalogSession {
       warnings,
       secondsSinceStatsReset: null,
       columnsUnknown,
+      isTableListPartial: listed.isPartial,
     };
   }
 
@@ -5413,7 +5624,9 @@ export function assembleSnapshot(data: {
     engine: data.engine,
     collectedAt: data.collectedAt.toISOString(),
     tables,
-    isComplete: data.read.tables.length < data.options.maxTables,
+    isComplete:
+      data.read.tables.length < data.options.maxTables &&
+      data.read.isTableListPartial !== true,
     warnings: warnings.slice(0, MAX_COLLECTION_WARNINGS),
     secondsSinceStatsReset: data.read.secondsSinceStatsReset,
   };
