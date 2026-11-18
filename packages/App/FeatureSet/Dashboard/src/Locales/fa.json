@@ -56810,6 +56810,9 @@
   "Server Email Logs": "گزارش‌های ایمیل سرور",
   "Finish setting up your notifications": "راه‌اندازی اعلان‌های خود را کامل کنید",
   "Hide for a week": "پنهان کردن برای یک هفته",
+  "Moving from another tool?": "از ابزار دیگری می‌آیید؟",
   "Nothing can reach you yet.": "هنوز هیچ راهی برای رسیدن به شما نیست.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "{{policy}} را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید سیاست به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "سیاستی را که منتقل کرده‌اید انتخاب کنید و آن را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
   "Some severities have no notification rule yet.": "برخی سطح‌های شدت هنوز قاعدهٔ اعلان ندارند."
 }

@@ -56810,6 +56810,9 @@
   "Server Email Logs": "서버 이메일 로그",
   "Finish setting up your notifications": "알림 설정을 마무리하세요",
   "Hide for a week": "1주일 동안 숨기기",
+  "Moving from another tool?": "다른 도구에서 옮겨 오시나요?",
   "Nothing can reach you yet.": "아직 연락받을 수 있는 방법이 없습니다.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "인시던트 없이 {{policy}}을(를) 한 번 호출해 정책이 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "가져온 정책을 골라 인시던트 없이 한 번 호출해 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
   "Some severities have no notification rule yet.": "일부 심각도에 아직 알림 규칙이 없습니다."
 }

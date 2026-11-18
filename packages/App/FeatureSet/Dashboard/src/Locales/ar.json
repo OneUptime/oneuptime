@@ -56810,6 +56810,9 @@
   "Server Email Logs": "سجلات البريد الإلكتروني للخادم",
   "Finish setting up your notifications": "أكمل إعداد إشعاراتك",
   "Hide for a week": "إخفاء لمدة أسبوع",
+  "Moving from another tool?": "هل تنتقل من أداة أخرى؟",
   "Nothing can reach you yet.": "لا يمكن أن يصل إليك أي شيء بعد.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "استدعِ {{policy}} مرة واحدة، دون حادثة، لترى أن السياسة تصل إلى الأشخاص. تقول كل رسالة اختبار.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "اختر سياسة نقلتها واستدعها مرة واحدة، دون حادثة، لترى أنها تصل إلى الأشخاص. تقول كل رسالة اختبار.",
   "Some severities have no notification rule yet.": "بعض درجات الخطورة ليس لها قاعدة إشعارات بعد."
 }

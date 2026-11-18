@@ -56810,6 +56810,9 @@
   "Server Email Logs": "Registros de correos del servidor",
   "Finish setting up your notifications": "Termina de configurar tus notificaciones",
   "Hide for a week": "Ocultar durante una semana",
+  "Moving from another tool?": "¿Vienes de otra herramienta?",
   "Nothing can reach you yet.": "Todavía nada puede contactarte.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Avisa a {{policy}} una vez, sin una incidencia, para ver que la política llega a las personas. Cada mensaje dice PRUEBA.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Elige una política que trajiste y avísala una vez, sin una incidencia, para ver que llega a las personas. Cada mensaje dice PRUEBA.",
   "Some severities have no notification rule yet.": "Algunas gravedades aún no tienen una regla de notificación."
 }

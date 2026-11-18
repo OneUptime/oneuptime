@@ -56810,6 +56810,9 @@
   "Server Email Logs": "Server Email Logs",
   "Finish setting up your notifications": "Finish setting up your notifications",
   "Hide for a week": "Hide for a week",
+  "Moving from another tool?": "Moving from another tool?",
   "Nothing can reach you yet.": "Nothing can reach you yet.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.",
   "Some severities have no notification rule yet.": "Some severities have no notification rule yet."
 }

@@ -94,7 +94,7 @@ Open elke monitor onder **Monitoren** en controleer de eerste resultaten. Een he
 Voeg eigenaren toe aan uw monitoren, of bereikbaarheidsbeleid onder **Bereikbaarheid** > **Bereikbaarheidsbeleid** aan de incidenten die ze openen, zodat de juiste mensen het horen als er iets uitvalt.
 
 ### Laat het adres van uw statuspagina naar OneUptime wijzen
-Open de pagina onder **Statuspagina's**, voeg uw domein toe onder **Aangepaste domeinen** en wijzig daarna het DNS-record. Uw bezoekers en abonnees komen dan op de nieuwe pagina.
+Open de pagina onder **Statuspagina's**, voeg uw domein toe onder **Aangepaste domeinen** en wijzig daarna het DNS-record. Uw bezoekers en abonnees komen dan op de nieuwe pagina. Tot die tijd toont het rapport waar elke overgenomen pagina live staat op OneUptime, met **Link kopiëren**.
 
 ### Schakel de controles in UptimeRobot uit
 Zodra OneUptime hetzelfde controleert, pauzeert u de controles in UptimeRobot, zodat niemand twee keer bericht krijgt.

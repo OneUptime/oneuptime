@@ -56810,6 +56810,9 @@
   "Server Email Logs": "Server-E-Mail-Logs",
   "Finish setting up your notifications": "Richten Sie Ihre Benachrichtigungen fertig ein",
   "Hide for a week": "Eine Woche ausblenden",
+  "Moving from another tool?": "Sie wechseln von einem anderen Tool?",
   "Nothing can reach you yet.": "Noch kann Sie nichts erreichen.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Alarmieren Sie {{policy}} einmal ohne Vorfall, um zu sehen, dass die Richtlinie Personen erreicht. Jede Nachricht sagt TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Wählen Sie eine übernommene Richtlinie und alarmieren Sie sie einmal ohne Vorfall, um zu sehen, dass sie Personen erreicht. Jede Nachricht sagt TEST.",
   "Some severities have no notification rule yet.": "Für einige Schweregrade gibt es noch keine Benachrichtigungsregel."
 }

@@ -56810,6 +56810,9 @@
   "Server Email Logs": "サーバーのメールのログ",
   "Finish setting up your notifications": "通知の設定を完了してください",
   "Hide for a week": "1週間非表示にする",
+  "Moving from another tool?": "別のツールから移行しますか？",
   "Nothing can reach you yet.": "まだ連絡を受け取れる方法がありません。",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "インシデントなしで {{policy}} を一度呼び出し、ポリシーが担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "取り込んだポリシーを選び、インシデントなしで一度呼び出して、担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
   "Some severities have no notification rule yet.": "一部の重大度にはまだ通知ルールがありません。"
 }

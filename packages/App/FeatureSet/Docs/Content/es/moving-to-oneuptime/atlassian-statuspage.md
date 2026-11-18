@@ -82,7 +82,7 @@ Una vista previa se guarda un día. Solo la persona que leyó la cuenta puede ma
 En **Páginas de estado**, abre cada página y compárala con la de Statuspage. Cada componente es un monitor manual: cambia su estado en OneUptime cuando algo cambie.
 
 ### Apunta la dirección de tu página de estado a OneUptime
-En **Páginas de estado**, abre la página, añade tu dominio en **Dominios personalizados** y luego cambia su registro DNS. Así tus visitantes y suscriptores llegarán a la nueva página.
+En **Páginas de estado**, abre la página, añade tu dominio en **Dominios personalizados** y luego cambia su registro DNS. Así tus visitantes y suscriptores llegarán a la nueva página. Hasta entonces, el informe muestra dónde está en línea en OneUptime cada página que trajiste, con **Copiar enlace**.
 
 ### Desactiva tu página en Atlassian Statuspage
 Cuando tu dominio apunte a OneUptime, cierra la página en Statuspage para que sus suscriptores no reciban dos avisos.

@@ -94,7 +94,7 @@ Apri ciascuno in **Monitor** e controlla i primi risultati. Un monitor heartbeat
 Aggiungi dei proprietari ai tuoi monitor, o una policy di reperibilità in **Reperibilità** > **Policy di reperibilità** agli incidenti che aprono, così le persone giuste sanno quando qualcosa si guasta.
 
 ### Fai puntare l'indirizzo della tua pagina di stato a OneUptime
-In **Pagine di stato**, apri la pagina, aggiungi il tuo dominio in **Domini personalizzati**, poi cambia il suo record DNS. I visitatori e gli iscritti arriveranno così alla nuova pagina.
+In **Pagine di stato**, apri la pagina, aggiungi il tuo dominio in **Domini personalizzati**, poi cambia il suo record DNS. I visitatori e gli iscritti arriveranno così alla nuova pagina. Fino ad allora, il report mostra dove ogni pagina importata è online su OneUptime, con **Copia link**.
 
 ### Disattiva i controlli in Better Stack
 Quando OneUptime controlla le stesse cose, mettile in pausa in Better Stack così nessuno viene avvisato due volte.

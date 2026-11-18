@@ -56810,6 +56810,9 @@
   "Server Email Logs": "E-maillogboeken van de server",
   "Finish setting up your notifications": "Rond het instellen van je meldingen af",
   "Hide for a week": "Een week verbergen",
+  "Moving from another tool?": "Stapt u over van een andere tool?",
   "Nothing can reach you yet.": "Nog niets kan je bereiken.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Roep {{policy}} één keer op, zonder incident, om te zien dat het beleid mensen bereikt. Elk bericht zegt TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Kies een overgenomen beleid en roep het één keer op, zonder incident, om te zien dat het mensen bereikt. Elk bericht zegt TEST.",
   "Some severities have no notification rule yet.": "Sommige ernstniveaus hebben nog geen meldingsregel."
 }

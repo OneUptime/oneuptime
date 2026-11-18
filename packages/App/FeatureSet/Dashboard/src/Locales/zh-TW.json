@@ -56810,6 +56810,9 @@
   "Server Email Logs": "伺服器電子郵件日誌",
   "Finish setting up your notifications": "完成通知設定",
   "Hide for a week": "隱藏一週",
+  "Moving from another tool?": "從其他工具移轉過來？",
   "Nothing can reach you yet.": "目前還無法聯絡到您。",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "在沒有事件的情況下呼叫 {{policy}} 一次，確認此策略能通知到人。每則訊息都會註明「測試」。",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "選擇一個匯入的策略，在沒有事件的情況下呼叫一次，確認它能通知到人。每則訊息都會註明「測試」。",
   "Some severities have no notification rule yet.": "部分嚴重程度還沒有通知規則。"
 }

@@ -56810,6 +56810,9 @@
   "Server Email Logs": "Serverens e-mail-logs",
   "Finish setting up your notifications": "Gør opsætningen af dine notifikationer færdig",
   "Hide for a week": "Skjul i en uge",
+  "Moving from another tool?": "Skifter du fra et andet værktøj?",
   "Nothing can reach you yet.": "Intet kan nå dig endnu.",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Tilkald {{policy}} én gang, uden en hændelse, for at se, at politikken når ud til folk. Hver besked siger TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST.",
   "Some severities have no notification rule yet.": "Nogle alvorligheder har endnu ingen notifikationsregel."
 }

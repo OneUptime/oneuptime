@@ -82,7 +82,7 @@ A preview is kept for a day. Only the person who read the account can tick and s
 Under **Status Pages**, open each page and compare it with the one in Statuspage. Each component is a manual monitor: set its status in OneUptime when something changes.
 
 ### Point your status page's address at OneUptime
-Under **Status Pages**, open the page, add your domain under **Custom Domains**, then change its DNS record. Your visitors and subscribers then reach the new page.
+Under **Status Pages**, open the page, add your domain under **Custom Domains**, then change its DNS record. Your visitors and subscribers then reach the new page. Until then, the report shows where each page you brought over is live on OneUptime, with **Copy link**.
 
 ### Turn off your page in Atlassian Statuspage
 Once your domain points at OneUptime, close the page in Statuspage so its subscribers are not told twice.

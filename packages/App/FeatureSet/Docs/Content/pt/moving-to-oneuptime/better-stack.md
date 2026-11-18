@@ -94,7 +94,7 @@ Abra cada um em **Monitores** e confira os primeiros resultados. Um monitor de h
 Adicione proprietários aos seus monitores, ou uma política de plantão em **Plantão** > **Políticas de plantão** aos incidentes que eles abrem, para que as pessoas certas saibam quando algo cair.
 
 ### Aponte o endereço da sua página de status para o OneUptime
-Em **Páginas de status**, abra a página, adicione seu domínio em **Domínios personalizados** e depois altere o registro DNS dele. Assim, seus visitantes e assinantes chegam à nova página.
+Em **Páginas de status**, abra a página, adicione seu domínio em **Domínios personalizados** e depois altere o registro DNS dele. Assim, seus visitantes e assinantes chegam à nova página. Até lá, o relatório mostra onde cada página que você trouxe está no ar no OneUptime, com **Copiar link**.
 
 ### Desative as verificações no Better Stack
 Quando o OneUptime verificar as mesmas coisas, pause as verificações no Better Stack para ninguém ser avisado duas vezes.

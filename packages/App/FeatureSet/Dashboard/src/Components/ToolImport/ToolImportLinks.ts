@@ -11,8 +11,9 @@ import ToolImportSource, {
  * The importer lives in Project Settings > Advanced, where a person who
  * learned it there finds it. Someone arriving from PagerDuty or UptimeRobot
  * meets it earlier (issue #6809): on Home's Welcome checklist, under an
- * empty Monitors, On-Call or Status Pages list, and in Search by the tool's
- * name. Each link says on the importer's address
+ * empty Monitors, On-Call or Status Pages list, in those products' "How it
+ * works" (#7033), and in Search by the tool's name. Each link says on the
+ * importer's address
  *
  *   ?from=  where it was opened from, sent once with importer/opened
  *           (ProductEvent) - "settings" when it says nothing;
@@ -33,13 +34,18 @@ export const IMPORTER_TOOL_QUERY_PARAM: string = "tool";
 /*
  * Where the importer was opened from, as importer/opened's `from` says it.
  * Home's Welcome checklist sends "welcome" (WelcomeChecklistCatalog), and
- * Project Settings' own menu nothing ("settings").
+ * Project Settings' own menu nothing ("settings"). A product's "How it
+ * works" names its product (#7033): the dialog opens on a busy list as well
+ * as an empty one, so it is told apart from the empty list's own link.
  */
 export enum ToolImportEntryPoint {
   MonitorsEmpty = "monitors-empty",
   OnCallPoliciesEmpty = "on-call-policies-empty",
   OnCallSchedulesEmpty = "on-call-schedules-empty",
   StatusPagesEmpty = "status-pages-empty",
+  MonitorsHowItWorks = "monitors-how-it-works",
+  OnCallHowItWorks = "on-call-how-it-works",
+  StatusPagesHowItWorks = "status-pages-how-it-works",
   Search = "search",
 }
 
