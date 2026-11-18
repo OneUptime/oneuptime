@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // Tailwind's md: below it a page is laid out for a phone.
 export const PHONE_BELOW_WIDTH_IN_PX: number = 768;
@@ -25,9 +25,30 @@ const useIsBelowWidth: (width: number) => boolean = (
     return isWindowBelowWidth(width);
   });
 
+  /*
+   * What was last asked for, which every read is compared with: the first
+   * read, and each of the window's resize events, mostly find the window on
+   * the same side of the width, and ask for nothing then. Asked for all the
+   * same, an unchanged answer stayed in React's queue at the priority it was
+   * asked at - a resize's is above a page's - and the next update at a lower
+   * one (rows arriving from the server) passed it by, then drew the
+   * component once more to take it up: after a window was resized, every
+   * table, its header and each of its rows drew their next page twice
+   * (#7707).
+   */
+  const askedIsBelow: React.MutableRefObject<boolean> =
+    useRef<boolean>(isBelow);
+
   useEffect(() => {
     const read: () => void = (): void => {
-      setIsBelow(isWindowBelowWidth(width));
+      const next: boolean = isWindowBelowWidth(width);
+
+      if (next === askedIsBelow.current) {
+        return;
+      }
+
+      askedIsBelow.current = next;
+      setIsBelow(next);
     };
 
     read();

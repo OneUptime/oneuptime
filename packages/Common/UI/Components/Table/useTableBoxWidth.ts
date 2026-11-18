@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 
 /*
  * The width of the box a table is drawn in, and the window's.
@@ -34,6 +34,18 @@ const useTableBoxWidth: (
     return { boxWidth: null, windowWidth: getWindowWidth() };
   });
 
+  /*
+   * The width last asked for, which every read is compared with: a read
+   * that finds the box as it was asks for nothing. Asked for all the same,
+   * an unchanged width stayed in React's queue at the priority it was asked
+   * at - the first read's, in a layout effect, the highest there is - and
+   * the table's next update at a lower one (its rows, or its failure,
+   * arriving from the server) passed it by, then drew the whole table once
+   * more in the same task to take it up (#7707).
+   */
+  const askedWidth: React.MutableRefObject<TableBoxWidth> =
+    useRef<TableBoxWidth>(width);
+
   useLayoutEffect(() => {
     const box: HTMLElement | null = boxRef.current;
 
@@ -45,17 +57,17 @@ const useTableBoxWidth: (
       const measured: number = Math.floor(box.getBoundingClientRect().width);
       const boxWidth: number | null = measured > 0 ? measured : null;
       const windowWidth: number = getWindowWidth();
+      const current: TableBoxWidth = askedWidth.current;
 
-      setWidth((current: TableBoxWidth): TableBoxWidth => {
-        if (
-          current.boxWidth === boxWidth &&
-          (boxWidth !== null || current.windowWidth === windowWidth)
-        ) {
-          return current;
-        }
+      if (
+        current.boxWidth === boxWidth &&
+        (boxWidth !== null || current.windowWidth === windowWidth)
+      ) {
+        return;
+      }
 
-        return { boxWidth: boxWidth, windowWidth: windowWidth };
-      });
+      askedWidth.current = { boxWidth: boxWidth, windowWidth: windowWidth };
+      setWidth(askedWidth.current);
     };
 
     read();
