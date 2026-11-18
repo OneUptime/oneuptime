@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on.",
   "Behind": "Behind",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.",
+  "Search people or teams...": "Search people or teams...",
+  "Owners": "Owners",
+  "Is any of": "Is any of",
+  "Is none of": "Is none of",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is any of {{count}} selected people or teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is any of {{count}} selected person or team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is none of {{count}} selected people or teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team"
 }

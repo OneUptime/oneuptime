@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "En push-varsling går til hver enhet der en hovedadministrator er logget inn i OneUptime-appen.",
   "Behind": "På etterskudd",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} er på etterskudd: siden {{time}} har monitorene ventet mer enn ett minutt etter sjekktidspunktet sitt, så de sjekkes sjeldnere enn innstilt.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Gi sonden mer CPU og minne, eller la den sjekke flere monitorer samtidig: øk GLOBAL_PROBE_1_MONITORING_WORKERS i config.env, eller sondens monitoringWorkers i Helm-verdiene."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Gi sonden mer CPU og minne, eller la den sjekke flere monitorer samtidig: øk GLOBAL_PROBE_1_MONITORING_WORKERS i config.env, eller sondens monitoringWorkers i Helm-verdiene.",
+  "Search people or teams...": "Søk etter personer eller team ...",
+  "Owners": "Eiere",
+  "Is any of": "Er en av",
+  "Is none of": "Er ingen av",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} er en av {{count}} valgte personer eller team",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} er {{count}} valgt person eller team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} er ingen av {{count}} valgte personer eller team",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team"
 }

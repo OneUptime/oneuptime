@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Push-уведомление приходит на каждое устройство, на котором главный администратор вошёл в приложение OneUptime.",
   "Behind": "Отстаёт",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} отстаёт: с {{time}} его мониторы ждут больше минуты после своего времени проверки, поэтому они проверяются реже, чем задано.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Дайте зонду больше CPU и памяти или позвольте ему проверять больше мониторов одновременно: увеличьте GLOBAL_PROBE_1_MONITORING_WORKERS в config.env или monitoringWorkers зонда в значениях Helm."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Дайте зонду больше CPU и памяти или позвольте ему проверять больше мониторов одновременно: увеличьте GLOBAL_PROBE_1_MONITORING_WORKERS в config.env или monitoringWorkers зонда в значениях Helm.",
+  "Search people or teams...": "Поиск людей или команд...",
+  "Owners": "Владельцы",
+  "Is any of": "Равно одному из",
+  "Is none of": "Не равно ни одному из",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}: ни один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}: ни один из выбранных людей или команд ({{count}})"
 }

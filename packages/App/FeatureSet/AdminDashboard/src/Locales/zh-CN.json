@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推送通知会发送到主管理员登录了 OneUptime 应用的每台设备。",
   "Behind": "滞后",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} 已滞后：自 {{time}} 起，它的监视器已在检查时间过后等待超过 1 分钟，因此检查频率低于设置。",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "为探测器提供更多 CPU 和内存，或让它一次检查更多监视器：在 config.env 中调高 GLOBAL_PROBE_1_MONITORING_WORKERS，或在 Helm 值中调高该探测器的 monitoringWorkers。"
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "为探测器提供更多 CPU 和内存，或让它一次检查更多监视器：在 config.env 中调高 GLOBAL_PROBE_1_MONITORING_WORKERS，或在 Helm 值中调高该探测器的 monitoringWorkers。",
+  "Search people or teams...": "搜索人员或团队...",
+  "Owners": "所有者",
+  "Is any of": "是以下任一项",
+  "Is none of": "不是以下任一项",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个"
 }

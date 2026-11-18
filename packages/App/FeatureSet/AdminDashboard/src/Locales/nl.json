@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld.",
   "Behind": "Loopt achter",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} loopt achter: sinds {{time}} wachten de monitoren meer dan een minuut na hun controletijd, dus worden ze minder vaak gecontroleerd dan ingesteld.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Geef de sonde meer CPU en geheugen, of laat hem meer monitoren tegelijk controleren: verhoog GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, of de monitoringWorkers van de sonde in de Helm-waarden."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Geef de sonde meer CPU en geheugen, of laat hem meer monitoren tegelijk controleren: verhoog GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, of de monitoringWorkers van de sonde in de Helm-waarden.",
+  "Search people or teams...": "Personen of teams zoeken...",
+  "Owners": "Eigenaren",
+  "Is any of": "Is een van",
+  "Is none of": "Is geen van",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is een van {{count}} geselecteerde personen of teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is {{count}} geselecteerde persoon of team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is geen van {{count}} geselecteerde personen of teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is niet {{count}} geselecteerde persoon of team"
 }

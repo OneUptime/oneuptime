@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Se envía una notificación push a cada dispositivo en el que un administrador maestro inició sesión en la app de OneUptime.",
   "Behind": "Con retraso",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} va con retraso: desde {{time}}, sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Dale a la sonda más CPU y memoria, o deja que compruebe más monitores a la vez: aumenta GLOBAL_PROBE_1_MONITORING_WORKERS en config.env, o el monitoringWorkers de la sonda en los valores de Helm."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Dale a la sonda más CPU y memoria, o deja que compruebe más monitores a la vez: aumenta GLOBAL_PROBE_1_MONITORING_WORKERS en config.env, o el monitoringWorkers de la sonda en los valores de Helm.",
+  "Search people or teams...": "Buscar personas o equipos...",
+  "Owners": "Propietarios",
+  "Is any of": "Es cualquiera de",
+  "Is none of": "No es ninguno de",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} es cualquiera de las {{count}} personas o equipos seleccionados",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} es {{count}} persona o equipo seleccionado",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} no es ninguno de las {{count}} personas o equipos seleccionados",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} no es {{count}} persona o equipo seleccionado"
 }

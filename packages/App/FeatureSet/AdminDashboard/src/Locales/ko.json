@@ -4230,5 +4230,13 @@
   "A push notification goes to every device a master admin signed in to the OneUptime app on.": "마스터 관리자가 OneUptime 앱에 로그인한 모든 기기로 푸시 알림을 보냅니다.",
   "Behind": "지연됨",
   "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}}이(가) 지연되고 있습니다. {{time}}부터 모니터가 확인 시각을 1분 넘게 기다리고 있어, 설정보다 덜 자주 확인됩니다.",
-  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "프로브에 CPU와 메모리를 더 주거나 한 번에 더 많은 모니터를 확인하게 하세요. config.env의 GLOBAL_PROBE_1_MONITORING_WORKERS 또는 Helm 값에서 프로브의 monitoringWorkers를 높이세요."
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "프로브에 CPU와 메모리를 더 주거나 한 번에 더 많은 모니터를 확인하게 하세요. config.env의 GLOBAL_PROBE_1_MONITORING_WORKERS 또는 Helm 값에서 프로브의 monitoringWorkers를 높이세요.",
+  "Search people or teams...": "사람 또는 팀 검색...",
+  "Owners": "소유자",
+  "Is any of": "다음 중 하나임",
+  "Is none of": "다음 중 어느 것도 아님",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님"
 }
