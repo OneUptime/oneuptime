@@ -8,6 +8,15 @@ import VideoCallTranscriptReader, {
   VideoCallTranscriptReaderCall,
 } from "../../../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
 import VideoCallHttpClient from "../../../../../Server/Utils/VideoCall/VideoCallHttpClient";
+import ZoomTranscriptClient from "../../../../../Server/Utils/VideoCall/Transcripts/ZoomTranscriptClient";
+import TranscriptText from "../../../../../Utils/VideoCall/TranscriptText";
+import {
+  ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE,
+  ZOOM_OAUTH_RECORDING_FILES_SCOPE,
+} from "../../../../../Types/VideoCall/VideoCallProviderCatalog";
+
+// A sign-in granted both transcript scopes.
+const ZOOM_TRANSCRIPT_SCOPES: string = `meeting:write:meeting user:read:user ${ZOOM_OAUTH_RECORDING_FILES_SCOPE} ${ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE}`;
 import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -55,6 +64,7 @@ function connectionOf(data: {
   provider: VideoCallProvider;
   authMethod?: VideoCallAuthMethod;
   connectedAccount?: string;
+  connectedAccountId?: string;
 }): VideoCallConnection {
   const connection: VideoCallConnection = new VideoCallConnection();
   connection.id = CONNECTION;
@@ -69,6 +79,10 @@ function connectionOf(data: {
     connection.connectedAccount = data.connectedAccount;
   }
 
+  if (data.connectedAccountId) {
+    connection.connectedAccountId = data.connectedAccountId;
+  }
+
   return connection;
 }
 
@@ -78,6 +92,7 @@ function useSettings(data: {
   secrets: JSONObject;
   authMethod?: VideoCallAuthMethod;
   connectedAccount?: string;
+  connectedAccountId?: string;
 }): void {
   const connection: VideoCallConnection = connectionOf(data);
 
@@ -356,6 +371,117 @@ describe("VideoCallTranscriptReader - Zoom", () => {
     }
 
     expect(thrown).toBeInstanceOf(APIException);
+  });
+});
+
+/*
+ * A transcript read through someone's sign-in names the account that read
+ * it, so the call keeps it and the account removing OneUptime deletes the
+ * transcript (#9289). One read with a project's own app names none.
+ */
+describe("VideoCallTranscriptReader - whose sign-in read it", () => {
+  const ZOOM_CALL: VideoCallTranscriptReaderCall = {
+    provider: VideoCallProvider.Zoom,
+    videoCallConnectionId: CONNECTION,
+    externalMeetingId: "85746065432",
+  };
+  const FOUND: VideoCallTranscriptRead = {
+    found: true,
+    lines: [{ offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolled back." }],
+    format: TranscriptText.detectFormat("WEBVTT"),
+  };
+
+  function signedIn(): void {
+    useSettings({
+      provider: VideoCallProvider.Zoom,
+      authMethod: VideoCallAuthMethod.OAuth,
+      connectedAccount: "incidents@acme.com",
+      connectedAccountId: "KdYKjnimT4KPd8FFgQt9FQ",
+      config: {},
+      secrets: { refreshToken: "refresh", scope: ZOOM_TRANSCRIPT_SCOPES },
+    });
+    jest.spyOn(VideoCallConnectionService, "getOAuthAccess").mockReturnValue({
+      accountLabel: "incidents@acme.com",
+      getAccessToken: async () => {
+        return { accessToken: "user-token", apiBaseUrl: "https://api.zoom.us" };
+      },
+    });
+  }
+
+  test("found through a sign-in: the account the connection is signed in as", async () => {
+    signedIn();
+    jest.spyOn(ZoomTranscriptClient, "readTranscript").mockResolvedValue(FOUND);
+
+    const { result } = await read(ZOOM_CALL, []);
+
+    expect(result).toEqual({
+      ...FOUND,
+      signInAccountId: "KdYKjnimT4KPd8FFgQt9FQ",
+    });
+  });
+
+  test("found with a project's own app: no account", async () => {
+    useSettings({
+      provider: VideoCallProvider.Zoom,
+      config: {
+        accountId: "acct_123",
+        clientId: "client_abc",
+        hostEmail: "incidents@example.com",
+      },
+      secrets: { clientSecret: "secret" },
+    });
+    jest.spyOn(ZoomTranscriptClient, "readTranscript").mockResolvedValue(FOUND);
+
+    const { result } = await read(ZOOM_CALL, [
+      {
+        status: 200,
+        body: { access_token: "s2s-token", api_url: "https://api.zoom.us" },
+      },
+    ]);
+
+    expect(result).toEqual(FOUND);
+    expect(result).not.toHaveProperty("signInAccountId");
+  });
+
+  test("nothing found through a sign-in: the answer, as it was", async () => {
+    signedIn();
+    jest.spyOn(ZoomTranscriptClient, "readTranscript").mockResolvedValue({
+      found: false,
+      unavailable: {
+        reason: VideoCallTranscriptUnavailableReason.NotReady,
+        message: "Zoom is still preparing it.",
+      },
+    });
+
+    const { result } = await read(ZOOM_CALL, []);
+
+    expect(result).toEqual({
+      found: false,
+      unavailable: {
+        reason: VideoCallTranscriptUnavailableReason.NotReady,
+        message: "Zoom is still preparing it.",
+      },
+    });
+  });
+
+  test("withSignIn names the account only on a transcript found, and only when there is one", () => {
+    expect(VideoCallTranscriptReader.withSignIn(FOUND, "acct")).toEqual({
+      ...FOUND,
+      signInAccountId: "acct",
+    });
+    expect(VideoCallTranscriptReader.withSignIn(FOUND, undefined)).toBe(FOUND);
+
+    const notFound: VideoCallTranscriptRead = {
+      found: false,
+      unavailable: {
+        reason: VideoCallTranscriptUnavailableReason.NotTranscribed,
+        message: "No transcript.",
+      },
+    };
+
+    expect(VideoCallTranscriptReader.withSignIn(notFound, "acct")).toBe(
+      notFound,
+    );
   });
 });
 

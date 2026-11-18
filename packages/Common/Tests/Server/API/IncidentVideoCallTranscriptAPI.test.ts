@@ -6,6 +6,7 @@ import IncidentVideoCallService from "../../../Server/Services/IncidentVideoCall
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentCallSummary from "../../../Server/Utils/AI/CallSummary/IncidentCallSummary";
 import IncidentCallTranscriptSave from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
+import IncidentCallTranscriptRemoval from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptRemoval";
 import VideoCallTranscriptReader from "../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
@@ -138,6 +139,7 @@ let props: DatabaseCommonInteractionProps;
 let call: IncidentVideoCall | null;
 let next: jest.Mock;
 let writes: Array<JSONObject>;
+let removeByPerson: ReturnType<typeof jest.spyOn>;
 /*
  * Whether the call's incident is private and owned by none of the caller's
  * teams that may work on its calls - what the private record rule asks of
@@ -270,6 +272,13 @@ beforeEach(() => {
   });
 
   jest.spyOn(IncidentFeedService, "createIncidentFeedItem").mockResolvedValue();
+  removeByPerson = jest
+    .spyOn(IncidentCallTranscriptRemoval, "removeByPerson")
+    .mockResolvedValue({
+      removed: true,
+      messagesLeftIn: [],
+      mayHaveMessagesLeft: false,
+    });
   jest.spyOn(IncidentService, "updateOneById").mockResolvedValue(1);
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
@@ -580,6 +589,53 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
     );
   });
 
+  /*
+   * Read through someone's sign-in, a transcript names that account, so the
+   * account removing OneUptime from Zoom deletes it (#9289).
+   */
+  test("found through a sign-in: stored with the account whose sign-in read it", async () => {
+    jest.spyOn(VideoCallTranscriptReader, "read").mockResolvedValue({
+      found: true,
+      lines: [
+        { offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolling back." },
+      ],
+      format: TranscriptText.detectFormat(""),
+      signInAccountId: "KdYKjnimT4KPd8FFgQt9FQ",
+    });
+
+    await handlerOf("post", PROVIDER_ROUTE)(request(), res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(writes[0]!["transcriptSignInAccountId"]).toBe(
+      "KdYKjnimT4KPd8FFgQt9FQ",
+    );
+  });
+
+  test("found with a project's own app: no account is named", async () => {
+    jest.spyOn(VideoCallTranscriptReader, "read").mockResolvedValue({
+      found: true,
+      lines: [
+        { offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolling back." },
+      ],
+      format: TranscriptText.detectFormat(""),
+    });
+
+    await handlerOf("post", PROVIDER_ROUTE)(request(), res, next);
+
+    expect(writes[0]).not.toHaveProperty("transcriptSignInAccountId");
+  });
+
+  test("a transcript a person adds names no account, and leaves the call's as it was", async () => {
+    await handlerOf("post", TRANSCRIPT_ROUTE)(
+      request({ text: ZOOM_VTT, fileName: "zoom.transcript.vtt" }),
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(writes[0]).not.toHaveProperty("transcriptSignInAccountId");
+  });
+
   test("a Teams call is read with the calendar event its meeting belongs to, and when it started", async () => {
     const started: Date = new Date("2026-10-19T08:30:00.000Z");
     call!.provider = VideoCallProvider.MicrosoftTeams;
@@ -696,27 +752,55 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
 });
 
 describe("DELETE /incident-video-call/:callId/transcript", () => {
-  test("removes the transcript and everything read in it", async () => {
+  /*
+   * The dialog says the transcript and what OneUptime AI read in it are
+   * removed from the incident (#9290): from the call, its feed and its
+   * channels, which IncidentCallTranscriptRemoval does - as the person who
+   * asked, whom the feed's line names.
+   */
+  test("removes the transcript and what was read in it, everywhere it went, as the person who asked", async () => {
     await handlerOf("delete", TRANSCRIPT_ROUTE)(request(), res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(writes).toEqual([
-      {
-        transcript: null,
-        transcriptSource: null,
-        transcriptInfo: null,
-        transcriptAddedAt: null,
-        transcriptAddedByUserId: null,
-        callSummary: null,
-        callSummaryStatus: null,
-        callSummaryStatusMessage: null,
-        callSummaryUpdatedAt: null,
-        rootCauseSuggestionStatus: null,
-        rootCauseSuggestionReviewedAt: null,
-        rootCauseSuggestionReviewedByUserId: null,
-      },
-    ]);
-    expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+    expect(removeByPerson).toHaveBeenCalledWith({
+      callId: CALL,
+      userId: USER,
+    });
+    expect(sentJson()).toEqual({
+      removed: true,
+      messagesLeftIn: [],
+      mayHaveMessagesLeft: false,
+    });
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+  });
+
+  test("says where a message stays that OneUptime could not delete, for the dialog to say", async () => {
+    removeByPerson.mockResolvedValue({
+      removed: true,
+      messagesLeftIn: ["#inc-42 (Slack)"],
+      mayHaveMessagesLeft: true,
+    });
+
+    await handlerOf("delete", TRANSCRIPT_ROUTE)(request(), res, next);
+
+    expect(sentJson()).toEqual({
+      removed: true,
+      messagesLeftIn: ["#inc-42 (Slack)"],
+      mayHaveMessagesLeft: true,
+    });
+  });
+
+  test("a second removal finds nothing to remove, and says so", async () => {
+    removeByPerson.mockResolvedValue({
+      removed: false,
+      messagesLeftIn: [],
+      mayHaveMessagesLeft: false,
+    });
+
+    await handlerOf("delete", TRANSCRIPT_ROUTE)(request(), res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(sentJson()["removed"]).toBe(false);
   });
 
   test("needs what adding one needs", async () => {
@@ -726,6 +810,16 @@ describe("DELETE /incident-video-call/:callId/transcript", () => {
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect(writes).toHaveLength(0);
+    expect(removeByPerson).not.toHaveBeenCalled();
+  });
+
+  test("a call the caller cannot see is not found, and nothing is removed", async () => {
+    call = null;
+
+    await handlerOf("delete", TRANSCRIPT_ROUTE)(request(), res, next);
+
+    expect(thrownBy()).toBeInstanceOf(NotFoundException);
+    expect(removeByPerson).not.toHaveBeenCalled();
   });
 });
 
@@ -995,6 +1089,7 @@ describe("a call of a private incident none of the caller's teams that may work 
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect(writes).toHaveLength(0);
+    expect(removeByPerson).not.toHaveBeenCalled();
   });
 
   test("reading it again is refused, and no reading starts", async () => {
