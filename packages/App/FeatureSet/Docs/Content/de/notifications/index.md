@@ -61,7 +61,7 @@ Wenn Sie einem Projekt mit einer verifizierten Anmelde-E-Mail beitreten, richtet
 2. Für jeden Schweregrad, auf jedem der vier Tabs der **Wie ich erreichbar bin**, schickt Ihnen eine Regel eine E-Mail, sobald Sie alarmiert werden.
 3. Eine Reihe von Neuigkeiten zu dem, was Ihnen gehört, und zu Ihren Schichten ist per E-Mail eingeschaltet. Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings#was-für-ein-neues-mitglied-eingeschaltet-ist).
 
-Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten).
+Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel für jeden Schweregrad, die gesendet wird, sobald Sie alarmiert werden. Eine Telefonnummer für SMS zu verifizieren heißt also, dass jeder Alarm Ihnen auch eine SMS schickt. Um SMS nur für kritische Alarme zu behalten, löschen Sie die SMS-Regeln der anderen Schweregrade. Siehe [Wie ich erreichbar bin](/docs/notifications/on-call-rules#die-regeln-mit-denen-sie-starten). Hat Ihr Projekt einen Standardablauf, folgen Ihre E-Mail und jede Methode, die Sie verifizieren, stattdessen ihm: siehe [Der Standardablauf](/docs/notifications/on-call-rules#der-standardablauf).
 
 ## Die Einrichtungs-Checkliste
 

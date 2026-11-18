@@ -61,7 +61,7 @@ Når du bliver medlem af et projekt med en bekræftet login-e-mail, sætter OneU
 2. For hver alvorlighed, på hver af de fire faner i **Sådan når man mig**, sender en regel dig en e-mail, så snart du bliver tilkaldt.
 3. En række nyheder om det, du ejer, og om dine vagter, er slået til via e-mail. Se [Notifikationsindstillinger](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
-Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvorlighed, sendt så snart du bliver tilkaldt. At bekræfte et telefonnummer til sms betyder altså, at hvert tilkald også sender dig en sms. Vil du kun have sms ved kritiske tilkald, så slet sms-reglerne for de andre alvorligheder. Se [Sådan når man mig](/docs/notifications/on-call-rules#de-regler-du-starter-med).
+Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvorlighed, sendt så snart du bliver tilkaldt. At bekræfte et telefonnummer til sms betyder altså, at hvert tilkald også sender dig en sms. Vil du kun have sms ved kritiske tilkald, så slet sms-reglerne for de andre alvorligheder. Se [Sådan når man mig](/docs/notifications/on-call-rules#de-regler-du-starter-med). Når dit projekt har en standardrækkefølge, følger din e-mail og hver metode, du bekræfter, den i stedet: se [Standardrækkefølgen](/docs/notifications/on-call-rules#standardrækkefølgen).
 
 ## Opsætningstjeklisten
 

@@ -34,7 +34,7 @@ Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Sl
 :::steps
 ### Add a way to reach you
 
-Click **Add** on a step to send one of your verified methods at that step's time, or **Add Step** to start a new step after the last one. A number or an address still waiting for its code is listed under **Not verified yet**, with **Verify**.
+Click **Add** on a step to send one of your verified methods at that step's time, or **Add Step** to start a new step after the last one. A number or an address still waiting for its code is listed under **Not verified yet**, with **Verify**. Without leaving the page, **Add your phone** under the steps texts your number a code, and once it is verified the number pages you by SMS and by phone call; **Use this browser** and **Get the app** add push the same way.
 
 ### Choose when it is used
 
@@ -68,7 +68,7 @@ A severity your project has archived comes after the others, marked **Archived**
 
 ## The rules you start with
 
-Every method you verify gets a rule on every card of every tab, sent as soon as you are paged. Your sign-in email has them from the day you join, so a page always reaches you. Verify a phone number for SMS, and every page texts you too.
+Every method you verify gets a rule on every card of every tab, sent as soon as you are paged. Your sign-in email has them from the day you join, so a page always reaches you. Verify a phone number for SMS, and every page texts you too. When your project has a default ladder, a method you verify follows it instead: see [The default ladder](#the-default-ladder).
 
 That is a safe start, and usually too much. Trim it to what each severity deserves:
 
@@ -79,6 +79,16 @@ That is a safe start, and usually too much. Trim it to what each severity deserv
 | Minor or low | Email at once |
 
 Your own rules have no quiet hours: keep low severities on email, or on a push rule set to **Standard**, so they never wake you. To make a low-severity page wait for working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).
+
+## The default ladder
+
+A project can have a default ladder: how a member is paged once they verify a way to be reached. A Project Owner or Project Admin sets it in **Default Ladder for New Members**, folded under **More settings** on **Project Settings → Notifications → Notification Channels**, with channels rather than anyone's own devices: push at once and a phone call after 5 minutes, for example.
+
+With a default ladder, a method you verify gets a rule at each step of its channel, on every card of every tab, and a channel the ladder leaves out gets none. Rules you already have are never changed, and a page that finds no rule still falls back to your verified methods.
+
+To give it to members who already have rules, an admin uses **Apply Default Ladder** on the Readiness page: see [Apply the default ladder](/docs/on-call/readiness#apply-the-default-ladder). Each of them gets one email.
+
+**Phone for People on Call**, beside it, asks everyone on call to have a verified SMS, phone call or WhatsApp number. While you have none, this page says so above **Add your phone**, and Readiness and Setup Health name you. Nobody is locked out.
 
 ## Add a rule
 

@@ -34,7 +34,7 @@ Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrich
 :::steps
 ### Eine Möglichkeit hinzufügen, Sie zu erreichen
 
-Klicken Sie bei einem Schritt auf **Hinzufügen**, um eine Ihrer verifizierten Methoden zum Zeitpunkt dieses Schritts zu senden, oder auf **Schritt hinzufügen**, um nach dem letzten Schritt einen neuen zu beginnen. Eine Nummer oder Adresse, die noch auf ihren Code wartet, steht unter **Noch nicht verifiziert**, mit **Verifizieren**.
+Klicken Sie bei einem Schritt auf **Hinzufügen**, um eine Ihrer verifizierten Methoden zum Zeitpunkt dieses Schritts zu senden, oder auf **Schritt hinzufügen**, um nach dem letzten Schritt einen neuen zu beginnen. Eine Nummer oder Adresse, die noch auf ihren Code wartet, steht unter **Noch nicht verifiziert**, mit **Verifizieren**. Ohne die Seite zu verlassen, schickt **Telefon hinzufügen** unter den Schritten Ihrer Nummer einen Code, und sobald sie verifiziert ist, alarmiert die Nummer Sie per SMS und per Telefonanruf; **Diesen Browser verwenden** und **App herunterladen** fügen Push auf dieselbe Weise hinzu.
 
 ### Festlegen, wann sie verwendet wird
 
@@ -68,7 +68,7 @@ Ein Schweregrad, den Ihr Projekt archiviert hat, steht nach den anderen, markier
 
 ## Die Regeln, mit denen Sie starten
 
-Jede Methode, die Sie verifizieren, erhält eine Regel auf jeder Karte jedes Tabs, die gesendet wird, sobald Sie alarmiert werden. Ihre Anmelde-E-Mail hat sie seit dem Tag Ihres Beitritts, damit ein Alarm Sie immer erreicht. Verifizieren Sie eine Telefonnummer für SMS, und jeder Alarm schickt Ihnen auch eine SMS.
+Jede Methode, die Sie verifizieren, erhält eine Regel auf jeder Karte jedes Tabs, die gesendet wird, sobald Sie alarmiert werden. Ihre Anmelde-E-Mail hat sie seit dem Tag Ihres Beitritts, damit ein Alarm Sie immer erreicht. Verifizieren Sie eine Telefonnummer für SMS, und jeder Alarm schickt Ihnen auch eine SMS. Hat Ihr Projekt einen Standardablauf, folgt eine Methode, die Sie verifizieren, stattdessen ihm: siehe [Der Standardablauf](#der-standardablauf).
 
 Das ist ein sicherer Start und meist zu viel. Kürzen Sie es auf das, was jeder Schweregrad verdient:
 
@@ -79,6 +79,16 @@ Das ist ein sicherer Start und meist zu viel. Kürzen Sie es auf das, was jeder 
 | Gering oder niedrig | Sofort eine E-Mail |
 
 Ihre eigenen Regeln haben keine Ruhezeiten: Lassen Sie niedrige Schweregrade bei E-Mail, oder bei einer Push-Regel auf **Normal**, damit sie Sie nie wecken. Damit eine Alarmierung mit niedrigem Schweregrad für alle auf die Arbeitszeiten wartet, stellen Sie die Bereitschaftsregel, die sie auslöst, auf **Nur während der Arbeitszeiten**: siehe [Bereitschaftsregeln](/docs/alerts/settings#bereitschaftsregeln).
+
+## Der Standardablauf
+
+Ein Projekt kann einen Standardablauf haben: wie ein Mitglied alarmiert wird, sobald es einen Weg verifiziert, über den es erreichbar ist. Ein Projektinhaber oder Projektadministrator legt ihn in **Standardablauf für neue Mitglieder** fest, eingeklappt unter **Weitere Einstellungen** auf **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle**, mit Kanälen statt mit den Geräten einzelner Personen: zum Beispiel sofort Push und nach 5 Minuten ein Telefonanruf.
+
+Mit einem Standardablauf erhält eine Methode, die Sie verifizieren, eine Regel bei jedem Schritt ihres Kanals, auf jeder Karte jedes Tabs, und ein Kanal, den der Ablauf auslässt, erhält keine. Regeln, die Sie bereits haben, werden nie geändert, und ein Alarm, der keine Regel findet, fällt weiterhin auf Ihre verifizierten Methoden zurück.
+
+Um ihn Mitgliedern zu geben, die bereits Regeln haben, verwendet ein Administrator **Standardablauf anwenden** auf der Seite Einsatzbereitschaft: siehe [Den Standardablauf anwenden](/docs/on-call/readiness#den-standardablauf-anwenden). Jedes von ihnen erhält eine E-Mail.
+
+**Telefon für Personen im Bereitschaftsdienst**, daneben, verlangt von allen im Bereitschaftsdienst eine verifizierte Nummer für SMS, Telefonanrufe oder WhatsApp. Solange Sie keine haben, sagt diese Seite es über **Telefon hinzufügen**, und Einsatzbereitschaft und Einrichtungsstatus nennen Sie. Niemand wird ausgesperrt.
 
 ## Eine Regel hinzufügen
 
