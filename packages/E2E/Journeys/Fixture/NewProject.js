@@ -64,6 +64,7 @@ import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import Service from "Common/Models/DatabaseModels/Service";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
@@ -817,6 +818,10 @@ export function dashboardHooks(project) {
      * Outside the product, the person puts the key in their app and starts
      * it: its first telemetry arrives at once, and the service it names
      * reports (lastSeenAt) - what the setup guide's last step waits for.
+     * The app sends traces, metrics and logs, as the guide sets it up, and
+     * the server keeps the project's first data of each kind once it is
+     * stored (TelemetryMilestones): what the telemetry pages and the
+     * guided setup's Get alerted read.
      */
     TelemetryIngestionKey: async (key) => {
       // The secret the server makes for every new key.
@@ -829,6 +834,23 @@ export function dashboardHooks(project) {
         lastSeenAt: store.NOW,
         serviceColor: new Color("#6366f1"),
       });
+      for (const milestone of [
+        "first_traces_received",
+        "first_metrics_received",
+        "first_logs_received",
+      ]) {
+        if (
+          !store.table(ProjectMilestone).some((mark) => {
+            return mark.milestone === milestone;
+          })
+        ) {
+          store.create(ProjectMilestone, {
+            milestone: milestone,
+            reachedAt: store.NOW,
+            wasBackfilled: false,
+          });
+        }
+      }
     },
 
     /*
