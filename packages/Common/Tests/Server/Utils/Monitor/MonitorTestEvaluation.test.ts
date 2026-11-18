@@ -22,6 +22,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT A TEST MONITOR RUN'S CRITERIA MAKE OF IT (#7074), by the real
@@ -77,7 +78,7 @@ function criteriaOf(
 
 function monitorTest(
   monitorSteps: MonitorSteps,
-  overrides: Partial<MonitorTest> = {},
+  overrides: { [Key in keyof MonitorTest]?: MonitorTest[Key] | undefined } = {},
 ): MonitorTest {
   return Object.assign(new MonitorTest(), {
     _id: TEST_ID.toString(),
@@ -233,7 +234,7 @@ describe("A Test Monitor run is judged by its criteria", () => {
 describe("Read only, and never in the result's way", () => {
   test("it writes no match history, and judges a new monitor by the test's own id", async () => {
     const monitorSteps: MonitorSteps = websiteSteps();
-    const processMonitorStep: jest.SpiedFunction<
+    const processMonitorStep: SpyInstance<
       typeof MonitorCriteriaEvaluator.processMonitorStep
     > = jest.spyOn(MonitorCriteriaEvaluator, "processMonitorStep");
 
@@ -268,7 +269,7 @@ describe("Read only, and never in the result's way", () => {
 
   test("a saved monitor's test is judged as that monitor, so its history counts", async () => {
     const monitorSteps: MonitorSteps = websiteSteps();
-    const processMonitorStep: jest.SpiedFunction<
+    const processMonitorStep: SpyInstance<
       typeof MonitorCriteriaEvaluator.processMonitorStep
     > = jest.spyOn(MonitorCriteriaEvaluator, "processMonitorStep");
 
