@@ -91,7 +91,7 @@ Un'autorizzazione limitata a `Owned` raggiunge solo le tabelle di cui sono propr
 
 ## Quando si apre un avviso
 
-L'avviso di una tabella ha una scheda **Dati** che dice perché è più probabilmente successo, in ordine di probabilità: un avviso a monte, un'esecuzione non riuscita, un deploy di un servizio che la scrive, le sue scritture in errore, una colonna che è cambiata, il database stesso o il server su cui gira. Sotto c'è ciò che ne dipende: le tabelle più a valle nella sua derivazione, le dashboard, i servizi e le persone che ne sono proprietarie.
+L'avviso di una tabella ha una scheda **Dati** che dice perché è più probabilmente successo, in ordine di probabilità: un avviso a monte, un'esecuzione non riuscita, un deploy di un servizio che la scrive, le sue scritture in errore, una colonna che è cambiata, il database stesso o il server su cui gira. Sotto c'è ciò che ne dipende: le tabelle più a valle nella sua derivazione, le dashboard, i servizi e le persone che ne sono proprietarie. Come la scheda **Derivazione** dell'avviso, parla solo delle tabelle e delle pipeline che il tuo ruolo può leggere.
 
 Dì cosa ne hai concluso:
 

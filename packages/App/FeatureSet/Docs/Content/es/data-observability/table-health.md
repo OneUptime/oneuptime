@@ -91,7 +91,7 @@ Un permiso limitado a `Owned` solo alcanza las tablas de las que son propietario
 
 ## Cuando se abre una alerta
 
-La alerta de una tabla tiene una tarjeta **Datos** que dice por qué ocurrió con más probabilidad, ordenado: una alerta anterior, una ejecución fallida, un despliegue de un servicio que escribe en ella, sus escrituras fallidas, una columna que cambió, la propia base de datos o el servidor en el que se ejecuta. Debajo está lo que depende de ella: tablas más abajo en su linaje, paneles, servicios y las personas que son sus propietarias.
+La alerta de una tabla tiene una tarjeta **Datos** que dice por qué ocurrió con más probabilidad, ordenado: una alerta anterior, una ejecución fallida, un despliegue de un servicio que escribe en ella, sus escrituras fallidas, una columna que cambió, la propia base de datos o el servidor en el que se ejecuta. Debajo está lo que depende de ella: tablas más abajo en su linaje, paneles, servicios y las personas que son sus propietarias. Como la tarjeta **Linaje** de la alerta, solo habla de las tablas y los pipelines que tu rol puede leer.
 
 Indica qué opinas de ella:
 

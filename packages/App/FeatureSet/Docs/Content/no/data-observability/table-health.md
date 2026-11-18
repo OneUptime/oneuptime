@@ -91,7 +91,7 @@ En tillatelse begrenset til `Owned` når bare tabellene som innehaveren eller te
 
 ## Når et varsel åpnes
 
-Et varsel på en tabell har et **Data**-kort som sier hvorfor det mest sannsynlig skjedde, rangert: et varsel oppstrøms, en mislykket kjøring, en utrulling av en tjeneste som skriver til den, de mislykkede skrivingene, en kolonne som endret seg, databasen selv eller serveren den kjører på. Under det står det som avhenger av den: tabeller nedover avstamningen, dashbord, tjenester og menneskene som eier dem.
+Et varsel på en tabell har et **Data**-kort som sier hvorfor det mest sannsynlig skjedde, rangert: et varsel oppstrøms, en mislykket kjøring, en utrulling av en tjeneste som skriver til den, de mislykkede skrivingene, en kolonne som endret seg, databasen selv eller serveren den kjører på. Under det står det som avhenger av den: tabeller nedover avstamningen, dashbord, tjenester og menneskene som eier dem. Som varselets **Opphav**-kort forteller det bare om tabellene og pipelinene rollen din kan lese.
 
 Si hva du gjorde ut av det:
 
