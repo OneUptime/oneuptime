@@ -6591,6 +6591,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * Posts a record's workflow event - its On Create, On Update or On
+   * Delete - to the workflow service, which starts the project's workflows
+   * that listen to it. A create, an update and a delete call it once the row
+   * is written (triggerWorkflowAfterWrite), and so do the writes that go
+   * round them: a held public note published, a reminder moved on, a
+   * subscriber unsubscribed. A read it cannot make does not make it throw
+   * (#8861, #9209), and the post is not waited for: what fails of it is
+   * logged.
+   */
   @CaptureSpan()
   public async onTriggerWorkflow(
     id: ObjectID,
@@ -6626,8 +6636,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * nor on anything of one (#8914): its steps see no private record
        * (shouldBypassRecordPrivacy), and the event itself hands the run
        * what an update changed. See isAboutPrivateRecord.
+       *
+       * Nor on a record that read cannot tell about - a dropped connection,
+       * a timeout (#9209): the event carries the record's id and what an
+       * update changed, and a private record's must never reach a workflow
+       * because a read failed. The write the event follows is done, and
+       * stays done: why is logged, and its realtime event and audit log
+       * entry still go.
        */
-      if (await this.isAboutPrivateRecord(id)) {
+      let isKeptFromWorkflows: boolean = true;
+
+      try {
+        isKeptFromWorkflows = await this.isAboutPrivateRecord(id);
+      } catch (err) {
+        logger.error(
+          `Could not read whether ${this.getModel().tableName} ${String(id)} is a private record or part of one, so its ${triggerType} workflow event was not posted and no workflow starts on it: ${String(err)}`,
+          {
+            projectId: projectId?.toString(),
+          } as LogAttributes,
+        );
+      }
+
+      if (isKeptFromWorkflows) {
         return;
       }
 
@@ -6676,6 +6706,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The workflow event of a create, an update or a delete whose row is
+   * written (onTriggerWorkflow), which never fails the write (#9209): its
+   * caller is told the write was done, and its realtime event and audit log
+   * entry - and, for an update or a delete of several rows, the rows after
+   * it - still follow. Whatever fails here - a service's own
+   * onTriggerWorkflow, the post, what the event hands the run, worked out
+   * here (`getMiscData`) for that reason - is logged, and no event is
+   * posted. A service's write that goes round them, once it is committed,
+   * posts its event the same way (StatusPageSubscriberService.unsubscribe).
+   */
+  protected async triggerWorkflowAfterWrite(data: {
+    id: ObjectID;
+    projectId: ObjectID;
+    triggerType: DatabaseTriggerType;
+    getMiscData?: (() => JSONObject) | undefined;
+  }): Promise<void> {
+    try {
+      await this.onTriggerWorkflow(
+        data.id,
+        data.projectId,
+        data.triggerType,
+        data.getMiscData?.(),
+      );
+    } catch (err) {
+      logger.error(
+        `Could not post the ${data.triggerType} workflow event of ${this.getModel().tableName} ${String(data.id)}, so no workflow starts on it; the write itself is done: ${String(err)}`,
+        {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
    * The columns of this table's rows naming the private records they are,
    * or are a part of (PrivateRecordPermission.getPrivateRecordColumns): none
    * for a table that has nothing to do with one.
@@ -6693,6 +6757,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * Project Admin but is never lent the sight of private records, and an On
    * Update event hands the run the values the update wrote. A record that
    * cannot be read at all hands on nothing but its id, and is let through.
+   * A read that fails throws, so whoever asks can refuse: onTriggerWorkflow
+   * posts no event then (#9209), and the trigger step does not run.
    */
   public async isAboutPrivateRecord(id: ObjectID): Promise<boolean> {
     const columns: Array<PrivateRecordColumn> = this.getPrivateRecordColumns();
@@ -7477,9 +7543,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         );
       }
 
-      // hit workflow.;
+      // hit workflow, never failing the create, whose row is written. See the helper.
       if (this.getModel().enableWorkflowOn?.create && tenantId) {
-        await this.onTriggerWorkflow(createBy.data.id!, tenantId, "on-create");
+        await this.triggerWorkflowAfterWrite({
+          id: createBy.data.id!,
+          projectId: tenantId,
+          triggerType: "on-create",
+        });
       }
 
       if (tenantId) {
@@ -9456,7 +9526,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             }
 
             if (tenantId) {
-              await this.onTriggerWorkflow(item.id!, tenantId, "on-delete");
+              // Never failing the delete, whose rows are gone. See the helper.
+              await this.triggerWorkflowAfterWrite({
+                id: item.id!,
+                projectId: tenantId,
+                triggerType: "on-delete",
+              });
               await this.onTriggerRealtime(
                 item.id!,
                 tenantId,
@@ -11725,11 +11800,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             /*
              * The fields the update changed, not every field it sent: a
              * workflow's Fields to watch hear a field that changed, never
-             * one written back as it was.
+             * one written back as it was. Never failing the update, whose
+             * row is written, nor keeping it from the rows after it. See
+             * the helper.
              */
-            await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
-              updatedFields: JSONFunctions.serialize(changedColumns),
-              ...this.getChangedCustomFields(rowWrite, changedColumns),
+            await this.triggerWorkflowAfterWrite({
+              id: item.id!,
+              projectId: tenantId,
+              triggerType: "on-update",
+              getMiscData: (): JSONObject => {
+                return {
+                  updatedFields: JSONFunctions.serialize(changedColumns),
+                  ...this.getChangedCustomFields(rowWrite, changedColumns),
+                };
+              },
             });
 
             await this.onTriggerRealtime(
