@@ -94,7 +94,7 @@ Ouvrez chacun d'eux sous **Moniteurs** et vérifiez ses premiers résultats. Un 
 Ajoutez des propriétaires à vos moniteurs, ou une politique d'astreinte sous **Astreinte** > **Politiques d'astreinte** aux incidents qu'ils ouvrent, pour que les bonnes personnes soient prévenues quand quelque chose tombe en panne.
 
 ### Faire pointer l'adresse de votre page de statut vers OneUptime
-Sous **Pages de statut**, ouvrez la page, ajoutez votre domaine dans **Domaines personnalisés**, puis modifiez son enregistrement DNS. Vos visiteurs et abonnés arrivent alors sur la nouvelle page.
+Sous **Pages de statut**, ouvrez la page, ajoutez votre domaine dans **Domaines personnalisés**, puis modifiez son enregistrement DNS. Vos visiteurs et abonnés arrivent alors sur la nouvelle page. D'ici là, le rapport indique où chaque page importée est en ligne sur OneUptime, avec **Copier le lien**.
 
 ### Désactiver les vérifications dans UptimeRobot
 Dès que OneUptime vérifie les mêmes choses, mettez-les en pause dans UptimeRobot pour que personne ne soit prévenu deux fois.
