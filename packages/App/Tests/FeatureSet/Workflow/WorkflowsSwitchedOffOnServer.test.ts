@@ -150,12 +150,10 @@ describe("QueueWorkflow while the server has Workflows off", () => {
 
 describe("a step that writes a record of a product that is off", () => {
   test("is said in the run log, naming the step, with who can switch it on", () => {
-    const error: ProductSwitchedOffException = new ProductSwitchedOffException(
-      {
-        product: ProductKey.Incidents,
-        reason: ServerProductOffReason.SwitchedOff,
-      },
-    );
+    const error: ProductSwitchedOffException = new ProductSwitchedOffException({
+      product: ProductKey.Incidents,
+      reason: ServerProductOffReason.SwitchedOff,
+    });
 
     expect(
       describeRefusal({

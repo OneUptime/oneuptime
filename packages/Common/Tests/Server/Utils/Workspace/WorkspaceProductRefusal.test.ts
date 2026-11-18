@@ -33,7 +33,14 @@ import ProductSwitchedOffException from "../../../../Types/Exception/ProductSwit
 import ObjectID from "../../../../Types/ObjectID";
 import ProductKey from "../../../../Types/Product/ProductKey";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -77,7 +84,9 @@ afterEach(() => {
 describe("WorkspaceProductRefusal", () => {
   test("a command acts in its product", () => {
     expect(
-      WorkspaceProductRefusal.getProductOfCommand(WorkspaceCommandName.Incident),
+      WorkspaceProductRefusal.getProductOfCommand(
+        WorkspaceCommandName.Incident,
+      ),
     ).toBe(ProductKey.Incidents);
     expect(
       WorkspaceProductRefusal.getProductOfCommand(
@@ -196,8 +205,9 @@ describe("Slack", () => {
   test("a press of a product that is on goes on, with nothing sent", async () => {
     switchOff([ProductKey.Alerts]);
 
-    const sendText: jest.SpiedFunction<typeof Response.sendTextResponse> =
-      jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
+    const sendText: jest.SpiedFunction<typeof Response.sendTextResponse> = jest
+      .spyOn(Response, "sendTextResponse")
+      .mockImplementation(() => {});
     const sendRefusal: jest.SpiedFunction<
       typeof SlackActionAuthorization.sendRefusal
     > = jest
@@ -433,7 +443,9 @@ describe("each app asks before it routes a press to its product", () => {
     );
 
     expect(gate).toBeGreaterThan(-1);
-    expect(gate).toBeLessThan(source.indexOf("case SlackActionType.NewIncident:"));
+    expect(gate).toBeLessThan(
+      source.indexOf("case SlackActionType.NewIncident:"),
+    );
   });
 
   test("Microsoft Teams' presses and commands, before their handlers", () => {

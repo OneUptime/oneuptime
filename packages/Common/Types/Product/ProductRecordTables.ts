@@ -837,26 +837,28 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
   ]);
 
 // Table -> the products it serves, built once.
-const PRODUCTS_OF_TABLE: ReadonlyMap<string, ReadonlyArray<ProductKey>> =
-  ((): Map<string, Array<ProductKey>> => {
-    const map: Map<string, Array<ProductKey>> = new Map();
+const PRODUCTS_OF_TABLE: ReadonlyMap<
+  string,
+  ReadonlyArray<ProductKey>
+> = ((): Map<string, Array<ProductKey>> => {
+  const map: Map<string, Array<ProductKey>> = new Map();
 
-    for (const product of Object.keys(PRODUCT_RECORD_TABLES) as Array<
-      keyof typeof PRODUCT_RECORD_TABLES
-    >) {
-      for (const table of PRODUCT_RECORD_TABLES[product] || []) {
-        const products: Array<ProductKey> = map.get(table) || [];
+  for (const product of Object.keys(PRODUCT_RECORD_TABLES) as Array<
+    keyof typeof PRODUCT_RECORD_TABLES
+  >) {
+    for (const table of PRODUCT_RECORD_TABLES[product] || []) {
+      const products: Array<ProductKey> = map.get(table) || [];
 
-        if (!products.includes(product)) {
-          products.push(product);
-        }
-
-        map.set(table, products);
+      if (!products.includes(product)) {
+        products.push(product);
       }
-    }
 
-    return map;
-  })();
+      map.set(table, products);
+    }
+  }
+
+  return map;
+})();
 
 /*
  * The products whose records a table holds - one, or the few that share it

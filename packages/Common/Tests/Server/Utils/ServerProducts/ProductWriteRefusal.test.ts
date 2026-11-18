@@ -25,7 +25,14 @@ import ProductKey from "../../../../Types/Product/ProductKey";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * NO WRITE OF A PRODUCT THAT IS OFF GOES THROUGH (#7479).
@@ -205,9 +212,9 @@ describe("ProductWriteRefusal", () => {
 
   test("refuses nothing without a database to read the products from", async () => {
     switchOff([ProductKey.StatusPages]);
-    (
-      PostgresAppInstance.isConnected as unknown as jest.Mock
-    ).mockReturnValue(false);
+    (PostgresAppInstance.isConnected as unknown as jest.Mock).mockReturnValue(
+      false,
+    );
 
     await expect(
       ProductWriteRefusal.refuseWhileProductIsOff({
@@ -366,8 +373,20 @@ describe("ServerProductRoutes", () => {
     product: ProductKey,
   ): Promise<{ calledWith: Array<unknown> }> => {
     const calledWith: Array<unknown> = [];
+    // An Express handler is typed as returning nothing; this one is async.
+    const handler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = ServerProductRoutes.refuseWhileOff(
+      product,
+    ) as unknown as (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void>;
 
-    await ServerProductRoutes.refuseWhileOff(product)(
+    await handler(
       {} as ExpressRequest,
       {} as ExpressResponse,
       ((err?: unknown): void => {

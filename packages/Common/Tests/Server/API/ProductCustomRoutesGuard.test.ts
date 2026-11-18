@@ -429,10 +429,7 @@ const readRegistrations: (source: string) => Array<Registration> = (
 describe("a switched-off product's own routes", () => {
   for (const [file, routes] of Object.entries(FILES)) {
     test(`${file}: every route but its reads names ${routes.product}`, () => {
-      const source: string = fs.readFileSync(
-        path.join(PACKAGES, file),
-        "utf8",
-      );
+      const source: string = fs.readFileSync(path.join(PACKAGES, file), "utf8");
       const registrations: Array<Registration> = readRegistrations(source);
       const unaccounted: Array<string> = [];
       const wrongProduct: Array<string> = [];

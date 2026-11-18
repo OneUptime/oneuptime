@@ -158,7 +158,10 @@ describe("every table says whose records it holds", () => {
   test("only a product a server can switch off has tables here", () => {
     for (const product of Object.keys(PRODUCT_RECORD_TABLES)) {
       expect(PRODUCT_KEYS).toContain(product);
-      expect({ product, switchable: isSwitchableProduct(product as ProductKey) }).toEqual({
+      expect({
+        product,
+        switchable: isSwitchableProduct(product as ProductKey),
+      }).toEqual({
         product,
         switchable: true,
       });
@@ -182,9 +185,9 @@ describe("every table says whose records it holds", () => {
     expect(getProductsOfRecordTable("OnCallDutyPolicySchedule")).toEqual([
       ProductKey.OnCall,
     ]);
-    expect(getProductsOfRecordTable("OnCallDutyPolicyEscalationRule")).toEqual(
-      [ProductKey.OnCall],
-    );
+    expect(getProductsOfRecordTable("OnCallDutyPolicyEscalationRule")).toEqual([
+      ProductKey.OnCall,
+    ]);
     expect(getProductsOfRecordTable("MonitorGroup")).toEqual([
       ProductKey.Monitors,
     ]);

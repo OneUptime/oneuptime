@@ -129,11 +129,13 @@ describe("BaseAnalyticsAPI", () => {
         updateOneById: jest.fn(),
         deleteOneById: jest.fn(),
       };
-      const api: BaseAnalyticsAPI<Log, AnalyticsDatabaseService<Log>> =
-        new BaseAnalyticsAPI<Log, AnalyticsDatabaseService<Log>>(
-          Log,
-          service as unknown as AnalyticsDatabaseService<Log>,
-        );
+      const api: BaseAnalyticsAPI<
+        Log,
+        AnalyticsDatabaseService<Log>
+      > = new BaseAnalyticsAPI<Log, AnalyticsDatabaseService<Log>>(
+        Log,
+        service as unknown as AnalyticsDatabaseService<Log>,
+      );
 
       await expect(
         (

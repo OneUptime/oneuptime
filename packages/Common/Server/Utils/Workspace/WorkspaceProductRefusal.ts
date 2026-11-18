@@ -66,7 +66,9 @@ export default class WorkspaceProductRefusal {
   }
 
   // A write refused because its product is off, to be told where it was made.
-  public static isRefusal(error: unknown): error is ProductSwitchedOffException {
+  public static isRefusal(
+    error: unknown,
+  ): error is ProductSwitchedOffException {
     return ProductSwitchedOffException.isException(error);
   }
 }
