@@ -26,6 +26,7 @@ import ObjectID from "Common/Types/ObjectID";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Toast, { ToastAction } from "Common/UI/Utils/Toast";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   PluralTemplate,
@@ -81,6 +82,19 @@ export interface ComponentProps {
    * the other one, as the link under Add Monitor's does.
    */
   canSwitchTarget?: boolean | undefined;
+  /*
+   * The dialog's title and the sentence under it, in English, where it is
+   * opened for a job of its own: a new status page's first monitors, from
+   * its Overview (StatusPageFirstStep, #7466). Left out: Add Multiple
+   * Monitors, as Resources' Add Multiple opens it.
+   */
+  title?: string | undefined;
+  description?: string | undefined;
+  /*
+   * What the toast that says the monitors were added offers next, in the
+   * reader's words already: on a status page's Overview, View Status Page.
+   */
+  addedToastAction?: ToastAction | undefined;
   onClose: () => void;
   onComplete: (result: BulkAddStatusPageResult) => void;
 }
@@ -120,6 +134,8 @@ const ADVANCED_SECTION: FormFieldCollapsibleSection<StatusPageResource> =
  * noun, or puts it elsewhere, could not word.
  */
 interface BulkAddCopy {
+  // The toast of an add that went as asked: "3 monitors added".
+  addedToast: PluralTemplate;
   resultTitle: string;
   resultWithFailuresTitle: string;
   addedOfSelected: PluralTemplate;
@@ -128,7 +144,11 @@ interface BulkAddCopy {
   unknownName: string;
 }
 
-const MONITOR_COPY: BulkAddCopy = {
+export const MONITOR_COPY: BulkAddCopy = {
+  addedToast: {
+    one: "{{count}} monitor added",
+    other: "{{count}} monitors added",
+  },
   resultTitle: translationKey("Monitors Added"),
   resultWithFailuresTitle: translationKey("Monitor Add Results"),
   addedOfSelected: {
@@ -146,7 +166,11 @@ const MONITOR_COPY: BulkAddCopy = {
   unknownName: translationKey("Unknown monitor"),
 };
 
-const MONITOR_GROUP_COPY: BulkAddCopy = {
+export const MONITOR_GROUP_COPY: BulkAddCopy = {
+  addedToast: {
+    one: "{{count}} monitor group added",
+    other: "{{count}} monitor groups added",
+  },
   resultTitle: translationKey("Monitor Groups Added"),
   resultWithFailuresTitle: translationKey("Monitor Group Add Results"),
   addedOfSelected: {
@@ -240,13 +264,13 @@ const inPickedOrder: InPickedOrderFunction = <
 };
 
 // One row of the summary: something added, skipped, or that failed.
-interface SummaryEntry {
+export interface SummaryEntry {
   key: string;
   name: string | undefined;
   error?: unknown;
 }
 
-interface BulkAddSummary {
+export interface BulkAddSummary {
   succeeded: Array<SummaryEntry>;
   skipped: Array<SummaryEntry>;
   failed: Array<SummaryEntry>;
@@ -272,6 +296,32 @@ const toEntry: ToEntryFunction = (
     error: error,
   };
 };
+
+/*
+ * Whether the add went as asked: everything picked was added, and a group
+ * asked to keep up with its labels does. Then a toast says so and the
+ * dialog closes (#7466). Otherwise it gives way to its report, to read
+ * before going on: what it added, what it skipped as on the page already,
+ * and what it could not add, and why.
+ */
+export const isAddedAsAsked: (summary: BulkAddSummary) => boolean = (
+  summary: BulkAddSummary,
+): boolean => {
+  return (
+    summary.succeeded.length > 0 &&
+    summary.skipped.length === 0 &&
+    summary.failed.length === 0 &&
+    !summary.monitorRuleError
+  );
+};
+
+// What a group that keeps up with the labels picked by says it does.
+const LABEL_SYNC_SENTENCE: string = translationKey(
+  "This group now stays in sync with the labels you used. Monitors given one of those labels later are added here automatically.",
+);
+
+// The toast of an add that went as asked.
+export const BULK_ADD_TOAST_TEST_ID: string = "bulk-add-status-page-toast";
 
 type ToSummaryFunction = (result: BulkAddStatusPageResult) => BulkAddSummary;
 
@@ -761,10 +811,29 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       const bulkResult: BulkAddStatusPageResult = isMonitorGroup
         ? await addMonitorGroups(targetIds, values)
         : await addMonitors(targetIds, values);
+      const summary: BulkAddSummary = toSummary(bulkResult);
+
+      /*
+       * Added as asked: a toast says so and the dialog closes, back on the
+       * page it was opened from. It used to give way to a second dialog,
+       * "Monitors Added", "Added 1 of 1 selected monitor.", with Done to
+       * click away (#7466). What failed, or adding nothing at all, is still
+       * a report to read before going on.
+       */
+      if (isAddedAsAsked(summary)) {
+        showAddedToast({
+          summary: summary,
+          copy: isMonitorGroup ? MONITOR_GROUP_COPY : MONITOR_COPY,
+        });
+        setIsLoading(false);
+        props.onComplete(bulkResult);
+        props.onClose();
+        return;
+      }
 
       setResult({
         targetType: submittedTargetType,
-        summary: toSummary(bulkResult),
+        summary: summary,
       });
       props.onComplete(bulkResult);
     } catch (err) {
@@ -772,6 +841,34 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
+  };
+
+  type ShowAddedToastFunction = (data: {
+    summary: BulkAddSummary;
+    copy: BulkAddCopy;
+  }) => void;
+
+  /*
+   * "3 monitors added", and under it, for a group filled from labels, that
+   * it now keeps up with them.
+   */
+  const showAddedToast: ShowAddedToastFunction = (data: {
+    summary: BulkAddSummary;
+    copy: BulkAddCopy;
+  }): void => {
+    Toast.success(
+      translator.translatePlural(
+        data.copy.addedToast,
+        data.summary.succeeded.length,
+      ),
+      {
+        description: data.summary.monitorRule
+          ? translator.translateText(LABEL_SYNC_SENTENCE)
+          : undefined,
+        action: props.addedToastAction,
+        dataTestId: BULK_ADD_TOAST_TEST_ID,
+      },
+    );
   };
 
   if (result) {
@@ -817,9 +914,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         <div className="space-y-4">
           {summary.monitorRule && !summary.monitorRuleError ? (
             <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-              {translator.translateText(
-                "This group now stays in sync with the labels you used. Monitors given one of those labels later are added here automatically.",
-              )}
+              {translator.translateText(LABEL_SYNC_SENTENCE)}
             </div>
           ) : null}
 
@@ -904,12 +999,13 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       title={
         isMonitorGroupPicker
           ? "Add Multiple Monitor Groups"
-          : "Add Multiple Monitors"
+          : props.title || "Add Multiple Monitors"
       }
       description={
         isMonitorGroupPicker
           ? "Add monitor groups to this status page. Each resource gets its display name and description from its monitor group."
-          : "Add monitors to this status page. Each resource gets its display name and description from its monitor."
+          : props.description ||
+            "Add monitors to this status page. Each resource gets its display name and description from its monitor."
       }
       modalWidth={ModalWidth.Medium}
       submitButtonText={

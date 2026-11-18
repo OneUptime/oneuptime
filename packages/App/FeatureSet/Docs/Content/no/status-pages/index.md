@@ -72,7 +72,7 @@ Det er hele skjemaet. Listen **Statussider** viser **Navn**, **Beskrivelse**, **
 
 ### Åpne den nye siden
 
-Den nye siden åpnes på skjermen **Oversikt**. Til siden har en ressurs, begynner skjermen med **Ingenting på denne statussiden ennå** og **Legg til monitorer**, som åpner skjermen **Ressurser**. Deretter kommer to kort: **Lenke til statussiden**, med lenken til selve siden og **Kopier lenke**, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
+Den nye siden åpnes på skjermen **Oversikt**. Til siden har en ressurs, begynner skjermen med **Ingenting på denne statussiden ennå** og **Legg til monitorer**, som åpner en dialog rett der, der du velger monitorene besøkende ser. Deretter kommer to kort: **Lenke til statussiden**, med lenken til selve siden og **Kopier lenke**, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
 :::
 
 Vil du heller bli veiledet steg for steg, fra monitorene siden viser til det kundene dine ser, klikker du på **Veiledet oppsett**: på den tomme listen **Statussider** eller under **Slik fungerer det**. Se [Publiser en statusside](/docs/guides/status-page).

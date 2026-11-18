@@ -72,7 +72,7 @@ Ese es todo el formulario. La lista **Páginas de estado** muestra **Nombre**, *
 
 ### Abrir la página nueva
 
-La página nueva se abre en su pantalla **Vista general**. Mientras la página no tiene ningún recurso, la pantalla empieza con **Aún no hay nada en esta página de estado** y **Añadir monitores**, que abre su pantalla **Recursos**. Después vienen dos tarjetas: **Enlace de la página de estado**, con el enlace a la propia página y **Copiar enlace**, y **Detalles de la página de estado**, donde puedes editar el nombre, la descripción y las etiquetas que acabas de definir. Cuando el proyecto tiene campos personalizados de páginas de estado, les sigue una tarjeta **Campos personalizados**.
+La página nueva se abre en su pantalla **Vista general**. Mientras la página no tiene ningún recurso, la pantalla empieza con **Aún no hay nada en esta página de estado** y **Añadir monitores**, que abre ahí mismo un diálogo para elegir los monitores que ven los visitantes. Después vienen dos tarjetas: **Enlace de la página de estado**, con el enlace a la propia página y **Copiar enlace**, y **Detalles de la página de estado**, donde puedes editar el nombre, la descripción y las etiquetas que acabas de definir. Cuando el proyecto tiene campos personalizados de páginas de estado, les sigue una tarjeta **Campos personalizados**.
 :::
 
 Para que te guíen paso a paso, desde los monitores que muestra la página hasta lo que ven tus clientes, haz clic en **Configuración guiada**: en la lista vacía de **Páginas de estado** o en **Cómo funciona**. Consulta [Publicar una página de estado](/docs/guides/status-page).

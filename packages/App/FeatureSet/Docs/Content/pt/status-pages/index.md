@@ -72,7 +72,7 @@ Esse é o formulário inteiro. A lista **Páginas de status** mostra **Nome**, *
 
 ### Abrir a nova página
 
-A nova página abre na tela **Visão geral** dela. Enquanto a página não tem nenhum recurso, a tela começa com **Ainda não há nada nesta página de status** e **Adicionar monitores**, que abre a tela **Recursos** dela. Depois vêm dois cartões: **Link da página de status**, com o link para a própria página e **Copiar link**, e **Detalhes da página de status**, onde você pode editar o nome, a descrição e os rótulos que acabou de definir. Quando o projeto tem campos personalizados de páginas de status, um cartão **Campos personalizados** vem em seguida.
+A nova página abre na tela **Visão geral** dela. Enquanto a página não tem nenhum recurso, a tela começa com **Ainda não há nada nesta página de status** e **Adicionar monitores**, que abre ali mesmo uma caixa de diálogo para escolher os monitores que os visitantes veem. Depois vêm dois cartões: **Link da página de status**, com o link para a própria página e **Copiar link**, e **Detalhes da página de status**, onde você pode editar o nome, a descrição e os rótulos que acabou de definir. Quando o projeto tem campos personalizados de páginas de status, um cartão **Campos personalizados** vem em seguida.
 :::
 
 Para ser guiado passo a passo, dos monitores que a página mostra até o que seus clientes veem, clique em **Configuração guiada**: na lista vazia de **Páginas de status** ou em **Como funciona**. Veja [Publicar uma página de status](/docs/guides/status-page).

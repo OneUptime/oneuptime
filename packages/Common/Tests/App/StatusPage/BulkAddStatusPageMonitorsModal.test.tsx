@@ -114,7 +114,11 @@ import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorsResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitors";
 import BulkAddStatusPageMonitorsModal, {
+  BULK_ADD_TOAST_TEST_ID,
   BulkAddStatusPageResult,
+  BulkAddSummary,
+  isAddedAsAsked,
+  SummaryEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitorsModal";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -122,6 +126,7 @@ import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMoni
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
 import {
   getByTextOutsideFoldedHeaders,
   hasSetChip,
@@ -257,6 +262,27 @@ const advancedHeader: AdvancedHeaderFunction = async (
 
 const callOrder: Array<string> = [];
 
+// What each toast the dialog showed says, and offers.
+type AddedToastsFunction = () => Array<{
+  title: string;
+  description: unknown;
+  action: string | undefined;
+}>;
+
+const addedToasts: AddedToastsFunction = (): Array<{
+  title: string;
+  description: unknown;
+  action: string | undefined;
+}> => {
+  return Toast.getToasts().map((toast: ToastItem) => {
+    return {
+      title: toast.title,
+      description: toast.description,
+      action: toast.action?.title,
+    };
+  });
+};
+
 /** The StatusPageMonitorRule the modal asked ModelAPI to create, if any. */
 type CreatedRuleFunction = () => StatusPageMonitorRule | null;
 
@@ -269,6 +295,7 @@ const createdRule: CreatedRuleFunction = (): StatusPageMonitorRule | null => {
 describe("BulkAddStatusPageMonitorsModal", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Toast.dismissAll();
 
     mockLists();
 
@@ -449,8 +476,135 @@ describe("BulkAddStatusPageMonitorsModal", () => {
 
     await waitFor(() => {
       expect(onComplete).toHaveBeenCalledTimes(1);
-      expect(view.getByText("Added 2 of 2 selected monitors.")).toBeVisible();
     });
+
+    // Added as asked: a toast says so, and no second dialog asks for Done.
+    expect(addedToasts()).toEqual([
+      { title: "2 monitors added", description: undefined, action: undefined },
+    ]);
+    expect(
+      view.queryByText("Added 2 of 2 selected monitors."),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #7466: a walk that added one monitor ended in a second dialog, "Monitors
+   * Added", "Added 1 of 1 selected monitor.", with Done to click away, where
+   * a toast would do.
+   */
+  test("closes once the monitors are added, and a toast says how many", async () => {
+    const onClose: () => void = jest.fn((): void => {});
+    const onComplete: (result: BulkAddStatusPageResult) => void = jest.fn(
+      (_result: BulkAddStatusPageResult): void => {},
+    );
+    const view: ReturnType<typeof render> = renderModal({
+      onClose,
+      onComplete,
+    });
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await submit(view);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    // No report to click away: the page that opened it closes it.
+    expect(view.queryByText("Monitors Added")).not.toBeInTheDocument();
+    expect(view.queryByRole("button", { name: "Done" })).toBeNull();
+    expect(Toast.getToasts()).toHaveLength(1);
+    expect(Toast.getToasts()[0]!.type).toBe(ToastType.Success);
+    expect(Toast.getToasts()[0]!.dataTestId).toBe(BULK_ADD_TOAST_TEST_ID);
+    expect(Toast.getToasts()[0]!.title).toBe("2 monitors added");
+  });
+
+  test("says one monitor in its one form", async () => {
+    mockBulkAdd.mockImplementationOnce(
+      async (
+        options: BulkAddStatusPageMonitorsOptions,
+      ): Promise<BulkAddStatusPageMonitorsResult> => {
+        return { succeeded: [options.monitors[0]!], failed: [], skipped: [] };
+      },
+    );
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await submit(view);
+
+    await waitFor(() => {
+      expect(addedToasts()).toEqual([
+        { title: "1 monitor added", description: undefined, action: undefined },
+      ]);
+    });
+  });
+
+  test("the toast offers what the page that opened it hands it, such as View Status Page", async () => {
+    const onClick: () => void = jest.fn((): void => {});
+    const view: ReturnType<typeof render> = renderModal({
+      addedToastAction: { title: "View Status Page", onClick: onClick },
+    });
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await submit(view);
+
+    await waitFor(() => {
+      expect(Toast.getToasts()).toHaveLength(1);
+    });
+
+    expect(Toast.getToasts()[0]!.action?.title).toBe("View Status Page");
+    Toast.getToasts()[0]!.action?.onClick();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  test("is titled and described by the page that opened it, where it says so", async () => {
+    const view: ReturnType<typeof render> = renderModal({
+      title: "Add Monitors",
+      description:
+        "Add the monitors visitors should see. Each one shows its live status and uptime.",
+    });
+
+    expect(
+      await view.findByRole("heading", { name: "Add Monitors" }),
+    ).toBeVisible();
+    expect(
+      view.getByText(
+        "Add the monitors visitors should see. Each one shows its live status and uptime.",
+      ),
+    ).toBeVisible();
+    expect(view.queryByText("Add Multiple Monitors")).not.toBeInTheDocument();
+  });
+
+  test("is Add Multiple Monitors where nothing names it otherwise", async () => {
+    const view: ReturnType<typeof render> = renderModal();
+
+    expect(
+      await view.findByRole("heading", { name: "Add Multiple Monitors" }),
+    ).toBeVisible();
+  });
+
+  test("an add that went as asked is one that added everything picked, and kept its labels", () => {
+    const entry: SummaryEntry = { key: "a-0", name: "Checkout API" };
+    const clean: BulkAddSummary = {
+      succeeded: [entry],
+      skipped: [],
+      failed: [],
+      monitorRule: null,
+      monitorRuleError: null,
+    };
+
+    expect(isAddedAsAsked(clean)).toBe(true);
+    // What it skipped is a report to read: what it added, what it skipped.
+    expect(isAddedAsAsked({ ...clean, skipped: [entry] })).toBe(false);
+    // Nothing added: why nothing happened is read in the dialog.
+    expect(isAddedAsAsked({ ...clean, succeeded: [], skipped: [entry] })).toBe(
+      false,
+    );
+    expect(isAddedAsAsked({ ...clean, failed: [entry] })).toBe(false);
+    expect(
+      isAddedAsAsked({ ...clean, monitorRuleError: new Error("Refused") }),
+    ).toBe(false);
   });
 
   test("requires and submits a shared grid placement", async () => {
@@ -595,11 +749,16 @@ describe("BulkAddStatusPageMonitorsModal", () => {
       ).toBeVisible();
     });
 
-    // Skipped monitors are not an error, so the summary is the "Monitors Added" one.
+    /*
+     * Skipped monitors are not an error, so the summary is the "Monitors
+     * Added" one - a report of what it added and what it skipped, to read
+     * before going on, so no toast.
+     */
     expect(view.getByText("Monitors Added")).toBeVisible();
     expect(view.getByText("Added (1)")).toBeVisible();
     expect(view.getByText("Already Added (1)")).toBeVisible();
     expect(view.queryByText(/^Failed/)).not.toBeInTheDocument();
+    expect(Toast.getToasts()).toHaveLength(0);
   });
 
   test("says nothing was added when every selected monitor is already on the page", async () => {
@@ -749,6 +908,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
 describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Toast.dismissAll();
     callOrder.length = 0;
 
     mockLists();
@@ -975,9 +1135,17 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
     await submit(view);
 
-    expect(
-      await view.findByText(/stays in sync with the labels you used/),
-    ).toBeVisible();
+    // In the toast that says the monitors were added, under how many.
+    await waitFor(() => {
+      expect(addedToasts()).toEqual([
+        {
+          title: "2 monitors added",
+          description:
+            "This group now stays in sync with the labels you used. Monitors given one of those labels later are added here automatically.",
+          action: undefined,
+        },
+      ]);
+    });
   });
 
   /*
