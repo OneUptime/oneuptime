@@ -265,6 +265,84 @@ export interface DataLineageReadable {
 }
 
 /*
+ * The tables and pipelines a record names itself (#9562): a data alert's
+ * own table, or its pipeline. Everyone who may see the alert reads their
+ * names on it, so what is written for all of them - an investigation's
+ * report - may name them, whoever owns them and whatever labels they carry.
+ */
+export interface DataLineageNamed {
+  dataAssetIds: Array<string>;
+  dataPipelineIds: Array<string>;
+}
+
+export const NOTHING_NAMED: DataLineageNamed = {
+  dataAssetIds: [],
+  dataPipelineIds: [],
+};
+
+/*
+ * A scope, with what the record it reads for names itself besides
+ * (DataLineageNamed). Only those: every other table and pipeline is the
+ * scope's to answer for.
+ */
+export function withNamedReadable(
+  readable: DataLineageReadable,
+  named: DataLineageNamed,
+): DataLineageReadable {
+  const namedTables: Set<string> = new Set(named.dataAssetIds);
+  const namedPipelines: Set<string> = new Set(named.dataPipelineIds);
+  const readableOf: (data: {
+    ids: Array<string>;
+    named: Set<string>;
+    read: (ids: Array<string>) => Promise<Set<string>>;
+  }) => Promise<Set<string>> = async (data: {
+    ids: Array<string>;
+    named: Set<string>;
+    read: (ids: Array<string>) => Promise<Set<string>>;
+  }): Promise<Set<string>> => {
+    const others: Array<string> = data.ids.filter((id: string): boolean => {
+      return !data.named.has(id);
+    });
+    const found: Set<string> = new Set(
+      others.length > 0 ? await data.read(others) : [],
+    );
+
+    for (const id of data.ids) {
+      if (data.named.has(id)) {
+        found.add(id);
+      }
+    }
+
+    return found;
+  };
+
+  return {
+    readableTableIds: async (
+      dataAssetIds: Array<string>,
+    ): Promise<Set<string>> => {
+      return await readableOf({
+        ids: dataAssetIds,
+        named: namedTables,
+        read: (ids: Array<string>): Promise<Set<string>> => {
+          return readable.readableTableIds(ids);
+        },
+      });
+    },
+    readablePipelineIds: async (
+      dataPipelineIds: Array<string>,
+    ): Promise<Set<string>> => {
+      return await readableOf({
+        ids: dataPipelineIds,
+        named: namedPipelines,
+        read: (ids: Array<string>): Promise<Set<string>> => {
+          return readable.readablePipelineIds(ids);
+        },
+      });
+    },
+  };
+}
+
+/*
  * What a reader may read of the tables and pipelines its reads name, asked
  * once each and remembered for the reader's life - one request - and the
  * rule a row of lineage is kept by (#9526):
@@ -533,6 +611,48 @@ export function scopeDataLineageReader(
   };
 }
 
+/*
+ * Of the rows that say a pipeline writes a table, read on their own rather
+ * than by a walk - a table's writers, as its freshness answer and an
+ * investigation tell them - the ones its reader may be told of, by the
+ * rule every lineage read keeps rows by (DataLineageReadableCache, #9526,
+ * #9562): a pipeline it may not read is never named, nor one whose only
+ * rows into the table come from a table it may not read. Every row, for a
+ * reader whose scope narrows nothing (null), as before.
+ */
+export async function keepReadableWrites(
+  edges: Array<DataAssetLineage>,
+  readable: DataLineageReadable | null,
+): Promise<Array<DataAssetLineage>> {
+  if (!readable || edges.length === 0) {
+    return edges;
+  }
+
+  const rows: Array<DataLineageEdgeRow & { edge: DataAssetLineage }> = edges
+    .filter((edge: DataAssetLineage): boolean => {
+      return Boolean(edge.downstreamDataAssetId && edge.dataPipelineId);
+    })
+    .map((edge: DataAssetLineage) => {
+      return {
+        upstreamDataAssetId: edge.upstreamDataAssetId?.toString() || null,
+        downstreamDataAssetId: edge.downstreamDataAssetId!.toString(),
+        dataPipelineId: edge.dataPipelineId!.toString(),
+        source: null,
+        lastSeenAt: null,
+        edge,
+      };
+    });
+
+  return (await new DataLineageReadableCache(readable).keepRows(rows))
+    .filter((row: DataLineageEdgeRow & { edge: DataAssetLineage }): boolean => {
+      // A row kept without its pipeline names no writer.
+      return Boolean(row.dataPipelineId);
+    })
+    .map((row: DataLineageEdgeRow & { edge: DataAssetLineage }) => {
+      return row.edge;
+    });
+}
+
 function uniqueIds(ids: Array<string | null | undefined>): Array<string> {
   return Array.from(
     new Set(
@@ -712,6 +832,8 @@ export default class DataTableLineageReader {
     withColumns?: boolean | undefined;
     // What its reader may read, when the caller has worked it out already.
     scope?: DataObservabilityScope | undefined;
+    // Read whatever the scope says: what the alert it is read for names itself (#9562).
+    named?: DataLineageNamed | undefined;
   }): Promise<DataTableLineage | null> {
     return await this.build({
       focusDataAssetId: data.dataAssetId.toString(),
@@ -721,6 +843,7 @@ export default class DataTableLineageReader {
         data.projectId,
         data.reader,
         data.scope,
+        data.named,
       ),
       withColumns: data.withColumns,
     });
@@ -2914,27 +3037,48 @@ export default class DataTableLineageReader {
   }
 
   /*
+   * What a scope reads, with what the record it reads for names itself
+   * (withNamedReadable, #9562): null for a scope that narrows nothing,
+   * which reads every table and pipeline.
+   */
+  public static getNamedReadable(
+    scope: DataObservabilityScope,
+    named?: DataLineageNamed | undefined,
+  ): DataLineageReadable | null {
+    if (scope.isWholeProject) {
+      return null;
+    }
+
+    const readable: DataLineageReadable = this.getReadable(scope);
+
+    return named ? withNamedReadable(readable, named) : readable;
+  }
+
+  /*
    * The reader of the project's own rows for `reader`: as their scope
    * narrows their reads (scopeDataLineageReader), or every row of the
    * project for a caller it narrows nothing for - exactly as before - and
    * for OneUptime's own reads. Throws what the scope throws for a caller
-   * who may not read tables at all.
+   * who may not read tables at all. What an alert it is read for names
+   * itself is read whatever the scope says of it (#9562): everyone who may
+   * see the alert reads those names on it.
    */
   public static async getScopedDatabaseReader(
     projectId: ObjectID,
     reader: DatabaseCommonInteractionProps | null,
     scope?: DataObservabilityScope | undefined,
+    named?: DataLineageNamed | undefined,
   ): Promise<DataPipelineLineageReader> {
     const base: DataPipelineLineageReader = this.getDatabaseReader(
       projectId,
       reader,
     );
-    const readScope: DataObservabilityScope =
-      scope || (await DataObservabilityReadScope.get(projectId, reader));
+    const readable: DataLineageReadable | null = this.getNamedReadable(
+      scope || (await DataObservabilityReadScope.get(projectId, reader)),
+      named,
+    );
 
-    return readScope.isWholeProject
-      ? base
-      : scopeDataLineageReader(base, this.getReadable(readScope));
+    return readable ? scopeDataLineageReader(base, readable) : base;
   }
 
   // The reader of the project's own rows, counting alerts as `reader` may see them.

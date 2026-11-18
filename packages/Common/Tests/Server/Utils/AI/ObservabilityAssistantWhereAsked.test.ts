@@ -195,3 +195,98 @@ describe("an autonomous run", () => {
     expect(prompt).not.toContain("Ask to act");
   });
 });
+
+/*
+ * An autonomous run's report is read by everyone who may see the alert it
+ * investigates (#9562), so its tools are told which alert that is
+ * (ToolContext.subjectAlertId): Data Observability's tools tell such a run
+ * only what nobody in particular may read, and what that alert names
+ * itself. A person reads as themselves, and their tools are told no alert.
+ */
+describe("the alert an autonomous run investigates, for its tools", () => {
+  const ALERT_ID: ObjectID = new ObjectID(
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  );
+
+  async function toolContextOf(data: {
+    props: { isRoot?: boolean; tenantId: ObjectID; userId?: ObjectID };
+    alertId?: ObjectID;
+  }): Promise<ToolContext> {
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValueOnce(
+        response({
+          stopReason: "tool_use",
+          toolCalls: [
+            {
+              id: "call-1",
+              name: "get_data_table_lineage",
+              arguments: { table: "public.orders" },
+            },
+          ],
+        }) as never,
+      )
+      .mockResolvedValue(response({ content: "Report." }) as never);
+
+    const contexts: Array<ToolContext> = [];
+
+    jest.spyOn(AIToolbox, "executeTool").mockImplementation((async (call: {
+      ctx: ToolContext;
+    }): Promise<ToolCallOutcome> => {
+      contexts.push(call.ctx);
+
+      return {
+        success: true,
+        textForLlm: "public.orders is built from staging.orders.",
+        result: {
+          dataForLlm: "public.orders is built from staging.orders.",
+          rowCount: 1,
+          citationLabel: "Lineage of public.orders",
+          redactionCount: 0,
+          isTruncated: false,
+        },
+      };
+    }) as never);
+
+    await ObservabilityAssistant.answerQuestion({
+      projectId: PROJECT_ID,
+      props: data.props,
+      ...(data.alertId ? { alertId: data.alertId } : {}),
+      question: "Investigate alert ALT-7.",
+      feature: "AI Alert Investigation",
+      aiContext: null,
+    });
+
+    expect(contexts).toHaveLength(1);
+
+    return contexts[0]!;
+  }
+
+  test("an investigation of an alert, read as root, tells its tools which alert", async () => {
+    const ctx: ToolContext = await toolContextOf({
+      props: { isRoot: true, tenantId: PROJECT_ID },
+      alertId: ALERT_ID,
+    });
+
+    expect(ctx.subjectAlertId).toBe(ALERT_ID);
+    expect(ctx.props.isRoot).toBe(true);
+  });
+
+  test("a run about no alert tells its tools of none", async () => {
+    const ctx: ToolContext = await toolContextOf({
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    });
+
+    expect(ctx.subjectAlertId).toBeUndefined();
+  });
+
+  test("a person reads as themselves: an alert is never handed to their tools", async () => {
+    const ctx: ToolContext = await toolContextOf({
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+      alertId: ALERT_ID,
+    });
+
+    expect(ctx.subjectAlertId).toBeUndefined();
+    expect("subjectAlertId" in ctx).toBe(false);
+  });
+});

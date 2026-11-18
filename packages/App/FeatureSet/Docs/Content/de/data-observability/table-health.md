@@ -91,7 +91,7 @@ Eine auf `Owned` beschränkte Berechtigung erreicht nur die Tabellen, die ihrem 
 
 ## Wenn eine Warnung sich öffnet
 
-Die Warnung einer Tabelle hat eine Karte **Daten**, die sagt, warum es am wahrscheinlichsten passiert ist, nach Rang geordnet: eine vorgelagerte Warnung, ein fehlgeschlagener Lauf, ein Deployment eines Dienstes, der in sie schreibt, ihre fehlschlagenden Schreibvorgänge, eine Spalte, die sich geändert hat, die Datenbank selbst oder der Server, auf dem sie läuft. Darunter steht, was von ihr abhängt: Tabellen in ihrer Lineage, Dashboards, Dienste und die Personen, denen sie gehören.
+Die Warnung einer Tabelle hat eine Karte **Daten**, die sagt, warum es am wahrscheinlichsten passiert ist, nach Rang geordnet: eine vorgelagerte Warnung, ein fehlgeschlagener Lauf, ein Deployment eines Dienstes, der in sie schreibt, ihre fehlschlagenden Schreibvorgänge, eine Spalte, die sich geändert hat, die Datenbank selbst oder der Server, auf dem sie läuft. Darunter steht, was von ihr abhängt: Tabellen in ihrer Lineage, Dashboards, Dienste und die Personen, denen sie gehören. Wie die Karte **Datenherkunft** der Warnung nennt sie nur die Tabellen und Pipelines, die Ihre Rolle lesen darf.
 
 Sagen Sie, was Sie davon halten:
 

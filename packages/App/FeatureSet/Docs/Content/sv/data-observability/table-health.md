@@ -91,7 +91,7 @@ En behörighet begränsad till `Owned` når bara de tabeller som dess innehavare
 
 ## När ett larm öppnas
 
-Ett tabellarm har ett kort **Data** som säger varför det troligast hände, rangordnat: ett larm uppströms, en misslyckad körning, en driftsättning av en tjänst som skriver till den, dess misslyckade skrivningar, en kolumn som ändrades, databasen själv eller servern den körs på. Under det står vad som beror på den: tabeller nedåt i dess härkomst, instrumentpaneler, tjänster och de personer som äger dem.
+Ett tabellarm har ett kort **Data** som säger varför det troligast hände, rangordnat: ett larm uppströms, en misslyckad körning, en driftsättning av en tjänst som skriver till den, dess misslyckade skrivningar, en kolumn som ändrades, databasen själv eller servern den körs på. Under det står vad som beror på den: tabeller nedåt i dess härkomst, instrumentpaneler, tjänster och de personer som äger dem. Precis som larmets kort **Härkomst** berättar det bara om de tabeller och pipelines som din roll får läsa.
 
 Säg vad du drog för slutsats:
 

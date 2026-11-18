@@ -91,7 +91,7 @@ A permission scoped to `Owned` reaches only the tables its holder or their teams
 
 ## When an alert opens
 
-A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database itself or the server it runs on. Below that is what depends on it: tables down its lineage, dashboards, services and the people who own them.
+A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database itself or the server it runs on. Below that is what depends on it: tables down its lineage, dashboards, services and the people who own them. Like the alert's **Lineage** card, it tells only of the tables and pipelines your role lets you read.
 
 Say what you made of it:
 

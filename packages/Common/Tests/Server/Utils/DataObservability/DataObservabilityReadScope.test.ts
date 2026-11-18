@@ -307,3 +307,111 @@ describe("one record a route is about", () => {
     });
   });
 });
+
+/*
+ * WHAT NOBODY IN PARTICULAR MAY READ (#9562): what OneUptime writes for
+ * everyone who may see an alert - its investigation's report - reads only
+ * the tables and pipelines no owner or label sets apart. Each condition is
+ * the one the owners filter and the label rules write (QueryHelper.ownedBy,
+ * QueryHelper.noEntitiesInManyToMany), read here as Postgres reads it.
+ */
+describe("what nobody in particular may read (nobodyInParticular)", () => {
+  const TABLE_ID: string = '"DataAsset"."_id"';
+  const UNOWNED_TABLE: string =
+    '(NOT EXISTS (SELECT 1 FROM "DataAssetOwnerUser" WHERE "DataAssetOwnerUser"."dataAssetId" = "DataAsset"."_id" AND "DataAssetOwnerUser"."deletedAt" IS NULL) AND NOT EXISTS (SELECT 1 FROM "DataAssetOwnerTeam" WHERE "DataAssetOwnerTeam"."dataAssetId" = "DataAsset"."_id" AND "DataAssetOwnerTeam"."deletedAt" IS NULL))';
+  const UNLABELLED_TABLE: string =
+    '("DataAsset"."_id" NOT IN (SELECT "DataAssetLabel"."dataAssetId" FROM "DataAssetLabel" WHERE "DataAssetLabel"."dataAssetId" IS NOT NULL))';
+
+  function sqlOf(condition: unknown, alias: string): string {
+    expect(condition).toBeInstanceOf(FindOperator);
+
+    return (condition as FindOperator<unknown>).getSql!(alias);
+  }
+
+  test("a table with no owner, person or team, and no label: never the whole project, and no grant asked", () => {
+    narrowWith({});
+
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.nobodyInParticular(PROJECT);
+
+    expect(scope.isWholeProject).toBe(false);
+    expect(Object.keys(scope.assetQuery).sort()).toEqual(["_id", "projectId"]);
+    expect(scope.assetQuery.projectId).toBe(PROJECT);
+    expect(sqlOf(scope.assetQuery._id, TABLE_ID)).toBe(
+      `(${UNOWNED_TABLE} AND ${UNLABELLED_TABLE})`,
+    );
+    // Nobody in particular has no grants to ask about.
+    expect(checkedModels).toEqual([]);
+  });
+
+  test("a pipeline with no owner, person or team (a pipeline carries no labels)", () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.nobodyInParticular(PROJECT);
+
+    expect(Object.keys(scope.pipelineQuery).sort()).toEqual([
+      "_id",
+      "projectId",
+    ]);
+    expect(sqlOf(scope.pipelineQuery._id, '"DataPipeline"."_id"')).toBe(
+      '(NOT EXISTS (SELECT 1 FROM "DataPipelineOwnerUser" WHERE "DataPipelineOwnerUser"."dataPipelineId" = "DataPipeline"."_id" AND "DataPipelineOwnerUser"."deletedAt" IS NULL) AND NOT EXISTS (SELECT 1 FROM "DataPipelineOwnerTeam" WHERE "DataPipelineOwnerTeam"."dataPipelineId" = "DataPipeline"."_id" AND "DataPipelineOwnerTeam"."deletedAt" IS NULL))',
+    );
+  });
+
+  test("a check of a table nobody set apart, by its table", () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.nobodyInParticular(PROJECT);
+    const sql: string = sqlOf(
+      scope.checkQuery.dataAssetId,
+      '"DataCheck"."dataAssetId"',
+    );
+    // The table's own alias in the subquery, so its id is never the check's.
+    const recordAlias: RegExp = /FROM "DataAsset" "(record\w+)"/;
+    const record: string = recordAlias.exec(sql)![1]!;
+    const unmarked: string = `(${UNOWNED_TABLE} AND ${UNLABELLED_TABLE})`
+      .split(TABLE_ID)
+      .join(`"${record}"."_id"`);
+
+    expect(sql).toBe(
+      `("DataCheck"."dataAssetId" IN (SELECT "${record}"."_id" FROM "DataAsset" "${record}" WHERE ${unmarked}))`,
+    );
+  });
+
+  test("a read of some tables keeps its condition beside theirs, and leaves the scope as it was", async () => {
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.nobodyInParticular(PROJECT);
+    const findBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await DataObservabilityReadScope.getReadableIds({
+      service: DataAssetService,
+      query: scope.assetQuery,
+      ids: [TABLE_OWNED, TABLE_NOT_OWNED],
+    });
+
+    const read: { query: Record<string, unknown>; props: unknown } = findBy.mock
+      .calls[0]![0] as { query: Record<string, unknown>; props: unknown };
+    const id: FindOperator<unknown> = read.query[
+      "_id"
+    ] as FindOperator<unknown>;
+
+    // AND-ed, never one in the other's place.
+    expect(id).toBeInstanceOf(FindOperator);
+    expect(id.type).toBe("and");
+
+    const [nobody, asked] = id.value as unknown as [
+      FindOperator<unknown>,
+      FindOperator<unknown>,
+    ];
+
+    expect(nobody).toBe(scope.assetQuery._id);
+    expect(asked.getSql!(TABLE_ID)).toMatch(
+      /^\("DataAsset"\."_id" IN \(:\.\.\.\w+\)\)$/,
+    );
+    expect(Object.values(asked.objectLiteralParameters || {})).toEqual([
+      [TABLE_OWNED, TABLE_NOT_OWNED],
+    ]);
+    expect(read.props).toEqual({ isRoot: true });
+    expect(Object.keys(scope.assetQuery).sort()).toEqual(["_id", "projectId"]);
+  });
+});

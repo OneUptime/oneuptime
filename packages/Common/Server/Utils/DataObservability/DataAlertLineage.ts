@@ -30,11 +30,13 @@ import { applyAlertRelatedRecordPrivacyFilter } from "../Alert/AlertPrivacyFilte
 import DataTableLineageReader, {
   DataLineageDirection,
   DataLineageEdgeRow,
+  DataLineageNamed,
   DataLineagePins,
   DataLineageReader,
   DataPipelineLineageReader,
   DataPipelineTables,
   MAX_DATA_LINEAGE_EDGE_ROWS,
+  NOTHING_NAMED,
 } from "./DataTableLineage";
 
 /*
@@ -171,6 +173,22 @@ function countsOwnTableAlerts(answer: DataAlertLineageAnswer): boolean {
       own.kind === DataLineageNodeKind.Table &&
       (own.openAlertCount || 0) > 0,
   );
+}
+
+/*
+ * What a data alert names itself (#9562): its table, or its pipeline. Its
+ * title and its page name them to everyone who may see it, so what is
+ * written for all of them - its investigation's report - may name them,
+ * whoever owns them and whatever labels they carry (DataLineageNamed).
+ */
+export function getDataAlertNamed(row: {
+  dataAssetId?: ObjectID | undefined;
+  dataPipelineId?: ObjectID | undefined;
+}): DataLineageNamed {
+  return {
+    dataAssetIds: row.dataAssetId ? [row.dataAssetId.toString()] : [],
+    dataPipelineIds: row.dataPipelineId ? [row.dataPipelineId.toString()] : [],
+  };
 }
 
 function toAlertRow(row: DataAlert): DataAlertLineageRow {
@@ -871,6 +889,25 @@ export default class DataAlertLineageReader {
       causes,
       consequences,
     };
+  }
+
+  /*
+   * What a data alert names itself (getDataAlertNamed): nothing, for an
+   * alert that is no data alert of the project's. Read as OneUptime: asked
+   * for the alert a run of OneUptime's own investigates, whose report its
+   * readers read (#9562).
+   */
+  public static async readNamed(
+    projectId: ObjectID,
+    alertId: ObjectID,
+  ): Promise<DataLineageNamed> {
+    const row: DataAlert | null = await DataAlertService.findOneBy({
+      query: { projectId, alertId },
+      select: { dataAssetId: true, dataPipelineId: true },
+      props: { isRoot: true },
+    });
+
+    return row ? getDataAlertNamed(row) : NOTHING_NAMED;
   }
 
   /*

@@ -9,12 +9,15 @@ import {
 import type { Mock } from "jest-mock";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import DataObservabilityAPI from "../../../Server/API/DataObservabilityAPI";
+import DataAlertService from "../../../Server/Services/DataAlertService";
 import DataAssetLineageService from "../../../Server/Services/DataAssetLineageService";
 import DataAssetService from "../../../Server/Services/DataAssetService";
 import DataAssetUsageService from "../../../Server/Services/DataAssetUsageService";
+import DataBiConnectionService from "../../../Server/Services/DataBiConnectionService";
 import DataDashboardService from "../../../Server/Services/DataDashboardService";
 import DataPipelineService from "../../../Server/Services/DataPipelineService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import DataTableDashboards from "../../../Server/Utils/DataObservability/Bi/DataTableDashboards";
 import DataAlertLineageReader, {
   DataAlertLineageRow,
   DataAlertRowReader,
@@ -40,6 +43,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
@@ -396,6 +400,8 @@ function stubWarehouse(): void {
       });
   }) as never);
   jest.spyOn(DataDashboardService, "findBy").mockResolvedValue([] as never);
+  // No BI tool connected: the map draws no Power BI dataset behind a report (#9559).
+  jest.spyOn(DataBiConnectionService, "findBy").mockResolvedValue([] as never);
 
   // The whole project's newest rows, for a whole map read by someone who may read it all.
   jest
@@ -884,6 +890,330 @@ describe("OneUptime AI's data tools, for a role limited to what its members own"
 
     expect(await askTool("get_data_table_freshness", "salaries")).toContain(
       "public.salaries",
+    );
+  });
+});
+
+/*
+ * A run of OneUptime's own - an investigation, read as root - writes its
+ * report where everyone who may see its alert reads it, so its data tools
+ * tell of what nobody in particular may read (#9562): none of HR's tables
+ * or pipelines, which their owners and labels set apart - beside what the
+ * alert it investigates names itself. Its own table is told whoever set it
+ * apart; nothing else of HR's is.
+ */
+describe("OneUptime AI's data tools, in a run of OneUptime's own: nothing an owner or a label sets apart", () => {
+  const SYSTEM_RUN: DatabaseCommonInteractionProps = {
+    isRoot: true,
+    tenantId: PROJECT,
+  };
+  const NOBODY_CONDITION: ReturnType<typeof QueryHelper.any> = QueryHelper.any([
+    ORDERS,
+    STAGING,
+    RAW,
+    REVENUE,
+  ]);
+  const NOBODY: Grant = {
+    name: "nobody in particular",
+    tables: new Set([ORDERS, STAGING, RAW, REVENUE]),
+    pipelines: new Set([ORDERS_ETL]),
+    scope: {
+      isWholeProject: false,
+      assetQuery: { projectId: PROJECT, _id: NOBODY_CONDITION },
+      checkQuery: { projectId: PROJECT, dataAssetId: NOBODY_CONDITION },
+      pipelineQuery: {
+        projectId: PROJECT,
+        _id: QueryHelper.any([ORDERS_ETL]),
+      },
+    },
+  };
+
+  let nobody: ReturnType<typeof jest.spyOn>;
+  let alertRead: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    grant = NOBODY;
+    nobody = jest
+      .spyOn(DataObservabilityReadScope, "nobodyInParticular")
+      .mockReturnValue(NOBODY.scope);
+    // As the scope is worked out: OneUptime's own root reads are the whole project's.
+    jest.spyOn(DataObservabilityReadScope, "get").mockImplementation((async (
+      _projectId: ObjectID,
+      props: DatabaseCommonInteractionProps,
+    ) => {
+      return props.isRoot
+        ? DataObservabilityReadScope.wholeProject(PROJECT)
+        : OWNED.scope;
+    }) as never);
+    // The alert an investigation is about: on HR's salaries.
+    alertRead = jest
+      .spyOn(DataAlertService, "findOneBy")
+      .mockImplementation((async () => {
+        const row: DataAlert = new DataAlert();
+        row.alertId = new ObjectID(ALERT_ON_SALARIES);
+        row.dataAssetId = new ObjectID(SALARIES);
+        return row;
+      }) as never);
+    jest.spyOn(DataTableAnswerer, "answer").mockImplementation((async (
+      _projectId: ObjectID,
+      id: ObjectID,
+    ) => {
+      const row: { dataAssetId: string; assetKey: string } | undefined =
+        graph.tables.get(id.toString());
+
+      if (!row) {
+        return null;
+      }
+
+      const answer: DataTableAnswer = {
+        dataAssetId: row.dataAssetId,
+        table: row.assetKey,
+        database: "Warehouse",
+        freshness: DataAssetFreshness.Fresh,
+        lastChangedAt: null,
+        usualIntervalInSeconds: null,
+        lateBySeconds: 0,
+        rowCount: null,
+        isDropped: false,
+        openAlerts: [],
+        writerPipelines: [],
+        dataProducts: [],
+      };
+
+      return answer;
+    }) as never);
+  });
+
+  async function askTool(data: {
+    name: string;
+    table: string;
+    props: DatabaseCommonInteractionProps;
+    subjectAlertId?: string;
+  }): Promise<string> {
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: data.name,
+      args: { table: data.table },
+      ctx: {
+        projectId: PROJECT,
+        props: data.props,
+        ...(data.subjectAlertId
+          ? { subjectAlertId: new ObjectID(data.subjectAlertId) }
+          : {}),
+      },
+    });
+
+    expect(outcome.success).toBe(true);
+
+    return outcome.textForLlm;
+  }
+
+  test("get_data_table_lineage tells an investigation of what nobody set apart alone", async () => {
+    const text: string = await askTool({
+      name: "get_data_table_lineage",
+      table: ORDERS,
+      props: SYSTEM_RUN,
+    });
+
+    expect(text).toContain("public.orders");
+    expect(text).toContain("staging.orders");
+
+    for (const secret of SECRETS) {
+      expect(text).not.toContain(secret);
+    }
+
+    // Read as nobody in particular, never as the run's own root reads of the whole project.
+    expect(nobody).toHaveBeenCalledWith(PROJECT);
+    expect(DataObservabilityReadScope.get).not.toHaveBeenCalled();
+  });
+
+  test("get_data_table_freshness never answers an investigation for HR's table of a name", async () => {
+    const text: string = await askTool({
+      name: "get_data_table_freshness",
+      table: "salaries",
+      props: SYSTEM_RUN,
+    });
+
+    expect(text).toContain("No table Data Observability watches is called");
+    expect(text).not.toContain("public.salaries");
+    expect(DataTableAnswerer.answer).not.toHaveBeenCalled();
+  });
+
+  test("the table the investigated alert names is told, whoever set it apart, and nothing else of HR's", async () => {
+    const freshness: string = await askTool({
+      name: "get_data_table_freshness",
+      table: "salaries",
+      props: SYSTEM_RUN,
+      subjectAlertId: ALERT_ON_SALARIES,
+    });
+
+    expect(freshness).toContain("public.salaries");
+
+    const lineage: string = await askTool({
+      name: "get_data_table_lineage",
+      table: SALARIES,
+      props: SYSTEM_RUN,
+      subjectAlertId: ALERT_ON_SALARIES,
+    });
+
+    expect(lineage).toContain("public.salaries");
+    // Built into their orders, which nobody set apart; built from HR's raw payroll, by HR's pipeline: never told.
+    expect(lineage).toContain("public.orders");
+
+    for (const secret of [
+      PAYROLL_RAW,
+      HEADCOUNT,
+      PAYROLL_SYNC,
+      HR_DASHBOARD,
+      "hr.payroll_raw",
+      "hr.headcount",
+      "payroll_sync",
+      "HR Headcount",
+    ]) {
+      expect(lineage).not.toContain(secret);
+    }
+
+    expect(alertRead).toHaveBeenCalled();
+  });
+
+  test("its writers and dashboards are asked of the same scope, the alert's own table read whatever sets it apart", async () => {
+    const answer: ReturnType<typeof jest.spyOn> =
+      DataTableAnswerer.answer as never;
+
+    await askTool({
+      name: "get_data_table_freshness",
+      table: "salaries",
+      props: SYSTEM_RUN,
+      subjectAlertId: ALERT_ON_SALARIES,
+    });
+
+    expect(answer).toHaveBeenCalledTimes(1);
+
+    const readable: {
+      readableTableIds: (ids: Array<string>) => Promise<Set<string>>;
+      readablePipelineIds: (ids: Array<string>) => Promise<Set<string>>;
+    } = answer.mock.calls[0]![4] as never;
+
+    expect(
+      Array.from(
+        await readable.readableTableIds([SALARIES, PAYROLL_RAW, ORDERS]),
+      ).sort(),
+    ).toEqual([ORDERS, SALARIES].sort());
+    expect(
+      Array.from(
+        await readable.readablePipelineIds([PAYROLL_SYNC, ORDERS_ETL]),
+      ),
+    ).toEqual([ORDERS_ETL]);
+  });
+
+  test("a person reads as themselves: an alert never widens what they are told", async () => {
+    grant = OWNED;
+
+    const text: string = await askTool({
+      name: "get_data_table_freshness",
+      table: "salaries",
+      props: READER,
+      subjectAlertId: ALERT_ON_SALARIES,
+    });
+
+    expect(text).toContain("No table Data Observability watches is called");
+    expect(text).not.toContain("public.salaries");
+    expect(nobody).not.toHaveBeenCalled();
+    expect(alertRead).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The table-freshness route (what the MCP server asks) and the table's
+ * dashboards name the table's writers and the tables built from it that a
+ * dashboard reads: only those its caller may read (#9562), as every
+ * lineage view tells them since #9526.
+ */
+describe("a table's freshness and dashboards, for a role limited to what its members own", () => {
+  test("the table-freshness route reads its writers and dashboards with the caller's scope", async () => {
+    grant = OWNED;
+
+    const answer: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataTableAnswerer, "answer")
+      .mockResolvedValue(null as never);
+    const outcome: RouteOutcome = await callRoute({
+      path: DATA_OBSERVABILITY_API_ROUTES.tableFreshness,
+      body: { table: "public.orders" },
+    });
+
+    expect(outcome.error).toBeNull();
+    expect(
+      answer.mock.calls.map((call: Array<unknown>): string => {
+        return String(call[1]);
+      }),
+    ).toEqual([ORDERS]);
+
+    const readable: {
+      readableTableIds: (ids: Array<string>) => Promise<Set<string>>;
+      readablePipelineIds: (ids: Array<string>) => Promise<Set<string>>;
+    } = answer.mock.calls[0]![4] as never;
+
+    expect(
+      Array.from(
+        await readable.readableTableIds([ORDERS, SALARIES, HEADCOUNT]),
+      ),
+    ).toEqual([ORDERS]);
+    expect(
+      Array.from(
+        await readable.readablePipelineIds([ORDERS_ETL, PAYROLL_SYNC]),
+      ),
+    ).toEqual([ORDERS_ETL]);
+  });
+
+  test("a caller whose grants narrow nothing reads every writer and dashboard, as before", async () => {
+    grant = null;
+
+    const answer: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataTableAnswerer, "answer")
+      .mockResolvedValue(null as never);
+
+    await callRoute({
+      path: DATA_OBSERVABILITY_API_ROUTES.tableFreshness,
+      body: { table: "salaries" },
+    });
+
+    expect(answer).toHaveBeenCalledTimes(1);
+    expect(answer.mock.calls[0]![4]).toBeNull();
+  });
+
+  test("the table's dashboards are reached only through the tables the caller may read", async () => {
+    grant = OWNED;
+    jest
+      .spyOn(DataObservabilityAPI, "assertCanReadTable")
+      .mockResolvedValue(undefined as never);
+
+    const find: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataTableDashboards, "find")
+      .mockResolvedValue([] as never);
+    const outcome: RouteOutcome = await callRoute({
+      path: DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      body: { dataAssetId: ORDERS },
+    });
+
+    expect(outcome.error).toBeNull();
+
+    const readable: {
+      readableTableIds: (ids: Array<string>) => Promise<Set<string>>;
+    } = (find.mock.calls[0]![0] as { readable: never }).readable;
+
+    expect(
+      Array.from(await readable.readableTableIds([REVENUE, HEADCOUNT])),
+    ).toEqual([REVENUE]);
+
+    grant = null;
+    find.mockClear();
+
+    await callRoute({
+      path: DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      body: { dataAssetId: ORDERS },
+    });
+
+    expect((find.mock.calls[0]![0] as { readable: unknown }).readable).toBe(
+      null,
     );
   });
 });

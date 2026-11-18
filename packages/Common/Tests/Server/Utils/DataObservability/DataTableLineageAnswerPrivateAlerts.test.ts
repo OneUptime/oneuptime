@@ -17,6 +17,7 @@ import DataAssetLineageService from "../../../../Server/Services/DataAssetLineag
 import DataAssetService from "../../../../Server/Services/DataAssetService";
 import DataDashboardService from "../../../../Server/Services/DataDashboardService";
 import DataPipelineService from "../../../../Server/Services/DataPipelineService";
+import DataObservabilityReadScope from "../../../../Server/Utils/DataObservability/DataObservabilityReadScope";
 import AIToolbox, {
   ToolCallOutcome,
 } from "../../../../Server/Utils/AI/Toolbox/Index";
@@ -795,11 +796,24 @@ describe("the get_data_table_lineage tool, as Ask AI, Slack and Microsoft Teams 
     ).toContain("- raw.orders, 1 step up: fresh; 1 open alert.");
   });
 
+  /*
+   * It reads as nobody in particular (#9562): no table or pipeline an owner
+   * or a label sets apart. This project sets none apart, so nobody in
+   * particular reads every table - the scope's own conditions are read as
+   * Postgres reads them in DataObservabilityReadScope.test.ts.
+   */
   test("a run of OneUptime's own, whose report everyone who may see its subject reads, is counted no private alert", async () => {
+    const nobody: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataObservabilityReadScope, "nobodyInParticular")
+      .mockReturnValue({
+        ...DataObservabilityReadScope.wholeProject(PROJECT_ID),
+        isWholeProject: false,
+      });
     const text: string = await askTool(SYSTEM_RUN);
 
     expect(text).toContain("public.orders (Orders DB): fresh. Its lineage");
     expect(text).toContain("- raw.orders, 1 step up: fresh; 1 open alert.");
+    expect(nobody).toHaveBeenCalledWith(PROJECT_ID);
   });
 
   test("cites the table's Lineage tab, by its name", async () => {

@@ -91,7 +91,7 @@ Uma permissão limitada a `Owned` alcança apenas as tabelas de que seu titular 
 
 ## Quando um alerta é aberto
 
-O alerta de uma tabela tem um cartão **Dados** que diz por que ele provavelmente aconteceu, em ordem de probabilidade: um alerta a montante, uma execução com falha, uma implantação de um serviço que escreve nela, as escritas dela que falham, uma coluna que mudou, o próprio banco de dados ou o servidor em que ele roda. Abaixo está o que depende dela: tabelas a jusante na linhagem, painéis, serviços e as pessoas que são proprietárias deles.
+O alerta de uma tabela tem um cartão **Dados** que diz por que ele provavelmente aconteceu, em ordem de probabilidade: um alerta a montante, uma execução com falha, uma implantação de um serviço que escreve nela, as escritas dela que falham, uma coluna que mudou, o próprio banco de dados ou o servidor em que ele roda. Abaixo está o que depende dela: tabelas a jusante na linhagem, painéis, serviços e as pessoas que são proprietárias deles. Como o cartão **Linhagem** do alerta, ele só fala das tabelas e dos pipelines que sua função pode ler.
 
 Diga o que você concluiu:
 

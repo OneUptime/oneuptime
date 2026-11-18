@@ -91,7 +91,7 @@ Een machtiging beperkt tot `Owned` bereikt alleen de tabellen waarvan de houder 
 
 ## Wanneer een waarschuwing opent
 
-De waarschuwing van een tabel heeft een kaart **Gegevens** die zegt waarom het waarschijnlijk is gebeurd, gerangschikt: een waarschuwing stroomopwaarts, een mislukte uitvoering, een deploy van een service die ernaar schrijft, haar mislukte schrijfacties, een kolom die is gewijzigd, de database zelf of de server waarop ze draait. Daaronder staat wat ervan afhangt: tabellen verderop in haar herkomst, dashboards, services en de mensen die ze beheren.
+De waarschuwing van een tabel heeft een kaart **Gegevens** die zegt waarom het waarschijnlijk is gebeurd, gerangschikt: een waarschuwing stroomopwaarts, een mislukte uitvoering, een deploy van een service die ernaar schrijft, haar mislukte schrijfacties, een kolom die is gewijzigd, de database zelf of de server waarop ze draait. Daaronder staat wat ervan afhangt: tabellen verderop in haar herkomst, dashboards, services en de mensen die ze beheren. Net als de kaart **Herkomst** van de waarschuwing vertelt ze alleen over de tabellen en pipelines die uw rol mag lezen.
 
 Zeg wat je ervan vond:
 
