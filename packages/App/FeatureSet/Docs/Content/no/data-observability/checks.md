@@ -42,7 +42,7 @@ Sett **Varsle når** for å varsle på en sjekk:
 
 Når du lagrer sjekken, opprettes en målingsmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.
 
-**Status** for en sjekk, under **Sjekker** og på fanen **Sjekker** for tabellen, sier hvordan den står: **Feiler** mens varselet er åpent, **Består** mens det ikke er det, og **Kunne ikke kjøre** når spørringen feilet. En sjekk uten varsel viser bare **Kjørte**: spørringen virket. En sjekk som feiler, og en som ikke kunne kjøre, står også på **Oversikt**.
+**Status** for en sjekk, under **Sjekker** og på fanen **Sjekker** for tabellen, sier hvordan den står: **Feiler** mens varselet er åpent, **Består** mens det ikke er det, og **Kunne ikke kjøre** når spørringen feilet. En sjekk uten varsel viser bare **Kjørte**: spørringen virket. En sjekk som feiler, og en som ikke kunne kjøre, står også på **Oversikt**. **Sjekker** viser sjekkene som feiler først, så de som ikke kunne kjøre, så de som består, og filteret **Status** viser sjekkene med én status. **Sjekker som feiler** på **Oversikt** åpner **Sjekker** med bare de som feiler.
 
 ## Hva en sjekk koster
 

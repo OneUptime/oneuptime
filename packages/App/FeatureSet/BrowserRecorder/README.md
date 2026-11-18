@@ -50,6 +50,7 @@ Or, if you prefer configuring before the tag loads:
     token: "YOUR_TELEMETRY_INGESTION_KEY",
     appIdentifier: "YOUR_RUM_APP_IDENTIFIER",
     userRef: "user-1234", // optional, hashed server-side
+    appVersion: "2.3.1", // optional, the app version Product Analytics breaks down by
   };
 </script>
 <script
@@ -163,6 +164,13 @@ live in `Common/Types/Rum/ProductAnalyticsEvents.ts`.
   events and 100 metric points each. A failed batch is retried with backoff
   up to 5 minutes (a `Retry-After` is honoured up to 300 seconds); a 204, 400
   or 403 stops the channel for the page, with `analytics-stopped` saying why.
+- **The app's version.** `data-oneuptime-app-version` on the tag, or
+  `appVersion` on the global (issue #6625), names the web app's version.
+  It is trimmed, held to 64 characters and dropped if it holds a control
+  character (`toSessionReplayAppVersion`), goes with every session event and
+  with each recording chunk's metadata, and is what Product Analytics breaks
+  users and sessions down by for a web app; a page that sets none has none.
+  Optional: an older page, and an older recorder, change nothing.
 - **Diagnostics.** `getDiagnostics().productAnalytics` reports `state`,
   `pending` and `dropped`; the codes (`analytics-started`,
   `analytics-stopped`, `metric-analytics-off`, `metric-name-refused`,

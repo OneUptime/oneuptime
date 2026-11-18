@@ -195,6 +195,92 @@ describe("Config", (): void => {
         }
       });
     });
+
+    /*
+     * The page's own app version (issue #6625): optional, and kept as the
+     * server keeps it - trimmed, 64 characters at most, and dropped whole
+     * when it holds a control character - so a version nobody typed never
+     * reaches Product Analytics' breakdowns.
+     */
+    describe("app version", (): void => {
+      function setGlobal(appVersion: unknown): void {
+        (window as unknown as Record<string, unknown>)[
+          "__ONEUPTIME_SESSION_REPLAY__"
+        ] = {
+          host: "https://oneuptime.com",
+          token: "tok",
+          appIdentifier: "app",
+          appVersion: appVersion,
+        };
+      }
+
+      it("is absent when the page says nothing, so the options are what they always were", (): void => {
+        document.head.innerHTML =
+          '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
+
+        const options: RecorderInitOptions | null = Config.readInitOptions();
+
+        expect(options).not.toBeNull();
+        expect(Object.keys(options || {})).not.toContain("appVersion");
+      });
+
+      it("is read from data-oneuptime-app-version", (): void => {
+        document.head.innerHTML =
+          '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-app-version="2.3.1"></script>';
+
+        expect(Config.readInitOptions()?.appVersion).toBe("2.3.1");
+      });
+
+      it("is read from appVersion on the init global", (): void => {
+        setGlobal("2026.11.18-rc1+build.5");
+
+        expect(Config.readInitOptions()?.appVersion).toBe(
+          "2026.11.18-rc1+build.5",
+        );
+      });
+
+      it("is trimmed and cut to 64 characters", (): void => {
+        setGlobal(`  ${"9".repeat(80)}  `);
+
+        expect(Config.readInitOptions()?.appVersion).toBe("9".repeat(64));
+      });
+
+      it("keeps a version written in any script", (): void => {
+        setGlobal("1.0.0-β (версия)");
+
+        expect(Config.readInitOptions()?.appVersion).toBe("1.0.0-β (версия)");
+      });
+
+      it("drops a value holding a control character, an empty one, and anything not a string", (): void => {
+        for (const value of [
+          "2.3.1\n<script>",
+          "1.0\u0000",
+          "v\u007f2",
+          "   ",
+          "",
+          2.31,
+          null,
+          { version: "1" },
+        ]) {
+          setGlobal(value);
+
+          const options: RecorderInitOptions | null = Config.readInitOptions();
+
+          expect(options).not.toBeNull();
+          expect(options?.appVersion).toBeUndefined();
+        }
+      });
+
+      it("never stops the recorder from starting", (): void => {
+        document.head.innerHTML =
+          '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-app-version="&#9;"></script>';
+
+        const options: RecorderInitOptions | null = Config.readInitOptions();
+
+        expect(options?.appIdentifier).toBe("a");
+        expect(options?.appVersion).toBeUndefined();
+      });
+    });
   });
 
   describe("validateConfig", (): void => {

@@ -220,3 +220,76 @@ describe("the identify() traits product analytics keeps", () => {
     );
   });
 });
+
+/*
+ * How long product analytics keeps the application (issue #6626): one of
+ * the choices the page offers, refused otherwise - stored as the default,
+ * a value nobody chose would keep data longer, or shorter, than meant.
+ */
+describe("how long product analytics keeps an application", () => {
+  const RETENTION: string = "productAnalyticsRetentionInMonths";
+
+  async function storedRetentionAfterUpdate(value: unknown): Promise<unknown> {
+    const data: Record<string, unknown> = { [RETENTION]: value };
+    await hooks.onBeforeUpdate(serverUpdate(data));
+    return data[RETENTION];
+  }
+
+  test("each of the choices is kept as it is", async () => {
+    for (const months of [3, 6, 13, 25]) {
+      expect(await storedRetentionAfterUpdate(months)).toBe(months);
+    }
+  });
+
+  test("a write that leaves it out is not judged on it", async () => {
+    const data: Record<string, unknown> = { name: "Storefront" };
+
+    await hooks.onBeforeUpdate(serverUpdate(data));
+
+    expect(RETENTION in data).toBe(false);
+  });
+
+  test("cleared (null), it goes back to the default 13 months", async () => {
+    expect(await storedRetentionAfterUpdate(null)).toBe(13);
+  });
+
+  test("any other value is refused, with the choices named", async () => {
+    for (const value of [0, 1, 12, 24, 26, 120, -6, 6.5, "6", true, [6]]) {
+      await expect(storedRetentionAfterUpdate(value)).rejects.toThrow(
+        BadDataException,
+      );
+    }
+
+    await expect(storedRetentionAfterUpdate(12)).rejects.toThrow(
+      "Product analytics can be kept for 3, 6, 13 or 25 months. Choose one of these.",
+    );
+  });
+
+  test("is judged the same way on a create, and left to the column's default when unset", async () => {
+    const chosen: RumApplication = newApplication();
+    chosen.productAnalyticsRetentionInMonths = 6;
+    await hooks.onBeforeCreate(serverCreate(chosen));
+    expect(chosen.productAnalyticsRetentionInMonths).toBe(6);
+
+    const unset: RumApplication = newApplication();
+    await hooks.onBeforeCreate(serverCreate(unset));
+    expect(unset.productAnalyticsRetentionInMonths).toBeUndefined();
+
+    const wrong: RumApplication = newApplication();
+    wrong.productAnalyticsRetentionInMonths = 7;
+    await expect(hooks.onBeforeCreate(serverCreate(wrong))).rejects.toThrow(
+      "Product analytics can be kept for 3, 6, 13 or 25 months.",
+    );
+  });
+
+  test("the column defaults to 13 months, what every application kept before it could choose", () => {
+    const column: {
+      defaultValue?: unknown;
+      type?: unknown;
+      required?: boolean;
+    } = new RumApplication().getTableColumnMetadata(RETENTION) as never;
+
+    expect(column.defaultValue).toBe(13);
+    expect(column.required).toBe(true);
+  });
+});

@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
 import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
+import { getLateTablesRoute } from "../../../Components/DataObservability/DataObservabilityListRoutes";
 import StoreCollectionMessage from "../../../Components/DataObservability/StoreCollectionMessage";
 import StoreStatusPill from "../../../Components/DataObservability/StoreStatusPill";
 import StoreAlertStatus, {
@@ -34,6 +36,9 @@ import React, {
   useState,
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+
+export const STORE_LATE_TABLES_TILE_LINK_TEST_ID: string =
+  "data-observability-store-late-tables-tile-link";
 
 /*
  * One database at a glance: how many of its tables are watched and late,
@@ -101,7 +106,20 @@ const StoreOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           label="Late Tables"
-          value={translator.formatNumber(store.lateAssetCount)}
+          value={
+            // Opens this database's Tables, showing the late ones (#6550).
+            store.lateAssetCount > 0 ? (
+              <AppLink
+                to={getLateTablesRoute(dataStoreId)}
+                className="hover:text-indigo-700 hover:underline"
+                dataTestId={STORE_LATE_TABLES_TILE_LINK_TEST_ID}
+              >
+                {translator.formatNumber(store.lateAssetCount)}
+              </AppLink>
+            ) : (
+              translator.formatNumber(store.lateAssetCount)
+            )
+          }
           icon={IconProp.Clock}
           description={translator.translateText(
             "Tables that have gone well past their usual interval without a change.",

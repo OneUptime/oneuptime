@@ -90,6 +90,7 @@ Scriptet på `/v1/recorder.js` er en lille loader. Den tjekker Do Not Track, hen
 | `data-oneuptime-respect-do-not-track` | Nej | Respekterer som standard Do Not Track og Global Privacy Control. Sæt den til `"false"` for at optage uanset signalet; se [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Nej | `"true"` udskriver optagerens beslutninger i konsollen. Se [Fejlfinding af sessionsafspilning](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Nej | Sæt den til `"false"` for kun at holde chunks, der optages, mens den besøgende er offline, i hukommelsen i stedet for også at gemme dem i browserens IndexedDB. Se [Offlinetilstand](#offlinetilstand). |
+| `data-oneuptime-app-version` | Nej | Din apps version, for eksempel `2.3.1`, op til 64 tegn. Produktanalyse opdeler brugere og sessioner efter den. |
 
 De samme indstillinger kan gives i en global i stedet for på tagget, og det er det, tag managers og bundlede installationer bruger:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ For at efterkomme en sletteanmodning skal du indsende en sletteanmodning via One
 
 To ærlige begrænsninger ved `ByIdentifiedUserKey`. Nøglen vises intetsteds i dashboardet: den kommer tilbage som `identifiedUserKey` på hver række i sessionslistens API (`POST /telemetry/rum/session-replay/list`), så i dag starter en sletning pr. bruger med en søgning `user:` der og en kopi af det felt. Og en session, der blev optaget, mens **Registrér slutbrugerens identitet** var slået fra, har slet ingen nøgle — intet om personen blev gemt —, så den kan kun nås via sessions-id, datointerval eller applikation.
 
-Hver anmodning registrerer sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), tallene `sessionsDeleted` og `chunksDeleted` og en eventuel `failureReason`; `ReadRumSessionErasureRequest` lader nogen gennemgå dem. Sletning fjerner optagelsen og den telemetri, der er kædet sammen med de sessioner, og enhver optagelse, der stadig er undervejs, når anmodningen fuldføres, smides væk i stedet for at blive skrevet. Et link til en slettet session svarer «erased» i stedet for «not found». Den sammenkædede telemetri er:
+Hver anmodning registrerer sin `status` (`Pending`, `InProgress`, `Completed`, `Failed`), tallene `sessionsDeleted`, `chunksDeleted` og `productAnalyticsRowsDeleted` og en eventuel `failureReason`; `ReadRumSessionErasureRequest` lader nogen gennemgå dem. Sletning fjerner optagelsen og den telemetri, der er kædet sammen med de sessioner, og enhver optagelse, der stadig er undervejs, når anmodningen fuldføres, smides væk i stedet for at blive skrevet. Et link til en slettet session svarer «erased» i stedet for «not found». Den sammenkædede telemetri er:
 
 - hvert span og hver undtagelse, der er markeret med sessionens id, inklusive de backend-spans, der er markeret [automatisk](#korrelér-med-resten-af-din-telemetri) i hver tjeneste, der videresendte sporingskonteksten, og enhver log, der selv bærer id'et;
 - logs, undtagelser og spans i hvert spor, der kun tilhører de slettede sessioner: hvert markeret span i sporet bærer et af deres id'er, og intet i sporet startede mere end ti minutter før det første eller efter det sidste af de spans. Det dækker backend-logs fra de forespørgsler, dine sider foretog til deres egen oprindelse, som deler et sporings-id med de markerede spans.

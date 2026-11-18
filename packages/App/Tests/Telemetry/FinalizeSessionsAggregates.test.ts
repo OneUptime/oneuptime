@@ -127,6 +127,7 @@ function header(
     recorderKind: "dom",
     recorderVersion: "1.0.0",
     rrwebVersion: "2.1.0",
+    appVersion: "",
     countryCode: "",
     identifiedUserKey: "",
     identifiedUserLabel: "",

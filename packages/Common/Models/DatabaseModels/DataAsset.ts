@@ -616,6 +616,28 @@ export default class DataAsset extends BaseModel {
   })
   public updateIntervalInSeconds?: number = undefined;
 
+  /*
+   * Written with its last change and its usual interval
+   * (getDataAssetLateAt), so the tables late now are the ones whose lateAt
+   * has passed: Tables filters and sorts by it on the server (#6550), and
+   * the menu counts them without reading a row (#6552).
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Late At",
+    description:
+      "When the table is late if it has not changed by then: twice its usual interval after its last change, and at least fifteen minutes past it. Empty for a view, or a table whose rhythm is not known yet.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lateAt?: Date = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.Date,

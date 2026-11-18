@@ -13,7 +13,7 @@ Product Analytics counts the people who use a RUM application, how their session
 
 ## How people are counted
 
-An application's side menu has a **Product Analytics** section: **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows** and **Analytics Settings**. **Users** and **Sessions** count the sessions Session Replay records, so they start when the application's recorder does, and a session the replay policy leaves unrecorded is not counted. Each session counts for one person, or for nobody:
+An application's side menu has a **Product Analytics** section: **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows** and **Analytics Settings**. **Users** and **Sessions** count the sessions Session Replay records, so they start when the application's recorder does, and a session the replay policy leaves unrecorded is not counted. On an installation that upgraded from a version without Product Analytics, the upgrade copies in the sessions Session Replay still kept, so they start with the oldest recording kept. Each session counts for one person, or for nobody:
 
 ```mermaid title="Who a session counts for"
 flowchart TB
@@ -42,12 +42,12 @@ Days are counted in your own time zone.
 | **New users** | Active users whose first visit was in the range. |
 | **Returning users** | Active users who had come before the range began. |
 | **Signed-in users** | Active users your app signed in with `identify()`, and their share of all active users. |
-| **Total users** | Everyone the application has seen in the last 13 months. |
+| **Total users** | Everyone the application has seen in the months it keeps its numbers, 13 by default. |
 | **Dormant users** | People who came before but not in the last 30 days, or the 7, 14, 60 or 90 days you choose. |
 
 The first three also say how they changed on the period before the range. Under the tiles, **Active users** charts, for each day, the people who came that day, in the 7 days up to it and in the 30 days up to it, and **New and returning users** splits each day's people in two.
 
-**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the last 13 months, with **Watch** on each one whose recording is still kept.
+**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the months the numbers are kept, with **Watch** on each one whose recording is still kept.
 
 ## Sessions
 
@@ -55,7 +55,7 @@ The first three also say how they changed on the period before the range. Under 
 
 - **Sessions by device** charts each day's sessions from desktops, phones and tablets. A mobile app's session on a screen whose shorter side is 600 points or more counts as a tablet's.
 - **Session length** sorts the finished sessions by how long they lasted, from under 10 seconds to over 30 minutes. A session that is still recording has no length yet.
-- **Breakdown** ranks users and sessions by device type, browser, operating system, country, app version, entry page or page, most users first.
+- **Breakdown** ranks users and sessions by device type, browser, operating system, country, app version, entry page or page, most users first. A web app's version is the one its page gives the recorder's `appVersion` option; a mobile app reports its own.
 
 ## Send events and metrics
 
@@ -138,9 +138,9 @@ A saved funnel or retention table goes on a dashboard too: the **Funnel** and **
 
 ## Privacy and retention
 
-- **13 months.** A month's numbers are removed on the first day of the 13th month after it, so the last 12 full months are always there, whatever the recordings' own retention (7 days by default). Events are kept the same way.
+- **13 months.** A month's numbers are removed on the first day of the 13th month after it, so the last 12 full months are always there, whatever the recordings' own retention (7 days by default). Events are kept the same way. 13 months is the default: an application can keep 3, 6 or 25 instead, chosen in **Product Analytics Retention** under **More settings** on its **Analytics Settings** page, and a shorter choice removes the older months within a day.
 - **No names stored.** The numbers keep a signed-in user's one-way key and a browser's visitor id, never the reference or an IP address, and of the traits only the user properties you list. A row names a signed-in user only while one of their recordings is still kept, and only to a role that may read identity; otherwise it reads **Signed-in user** or **Anonymous visitor** and the start of the id.
-- **Erased on request.** An erasure request removes the matching numbers and events here too (see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions)).
+- **Erased on request.** An erasure request removes the matching numbers and events here too (see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions)). Its `productAnalyticsRowsDeleted` count says how many rows it removed here.
 
 ## Who can see it
 
@@ -148,7 +148,7 @@ Reading these pages takes what reading the session list takes: `ReadRumSessionRe
 
 Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.
 
-Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or the Project Owner, Project Admin or Project Member role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people.
+Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or the Project Owner, Project Admin or Project Member role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people. Choosing how long the numbers are kept takes the same as turning the events on or off.
 
 ## Next steps
 

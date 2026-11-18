@@ -136,6 +136,8 @@ Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con s
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
 - **Pipeline Is Late**: no ha empezado ninguna ejecución en más tiempo del que permite su programación.
 
+La pestaña **Propietarios** de una canalización nombra a las personas y los equipos que se ocupan de ella, y sus alertas les llegan a ellos. La **Vista general** y **Problemas** nombran a los propietarios de una canalización que falló o va con retraso, o muestran **Sin propietario**, con una forma de añadir uno.
+
 La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**. Un número de tablas sin dibujar, en la tarjeta del pipeline o en la de una tabla, dibuja más en su sitio aquí también.
 
 ## Una incidencia por causa

@@ -1800,6 +1800,15 @@ API.post = async (options) => {
     return { data: { checks } };
   }
 
+  /*
+   * The count beside Overview in the Data Observability menu, which every
+   * page of it asks once (DataObservabilityApi.getAttentionCount, #6552).
+   * The checks' own page stands alone here: nothing is counted.
+   */
+  if (address.endsWith(DATA_OBSERVABILITY_API_ROUTES.attentionCount)) {
+    return { data: { count: 0 } };
+  }
+
   window.__fixture.unmodelled.push(
     `API.post ${options && options.url ? options.url.toString() : ""}`,
   );

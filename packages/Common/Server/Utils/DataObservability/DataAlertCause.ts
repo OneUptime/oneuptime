@@ -5,6 +5,10 @@ import DataAssetOwnerTeam from "../../../Models/DatabaseModels/DataAssetOwnerTea
 import DataAssetOwnerUser from "../../../Models/DatabaseModels/DataAssetOwnerUser";
 import DataStoreOwnerTeam from "../../../Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "../../../Models/DatabaseModels/DataStoreOwnerUser";
+import DataPipelineOwnerTeam from "../../../Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerUser from "../../../Models/DatabaseModels/DataPipelineOwnerUser";
+import DataPipelineOwnerTeamService from "../../Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerUserService from "../../Services/DataPipelineOwnerUserService";
 import AlertOwnerTeamService from "../../Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "../../Services/AlertOwnerUserService";
 import DataAssetOwnerTeamService from "../../Services/DataAssetOwnerTeamService";
@@ -330,9 +334,10 @@ export default class DataAlertCause {
 
   // What the new alert is about, and - with a cause - its place beside it.
   /*
-   * A data alert goes to who owns what it is about: the table's owners, else
-   * the database's. An owner the alert already has is left as it is, and one
-   * that cannot be added never stops the alert.
+   * A data alert goes to who owns what it is about: a failed or late
+   * pipeline's owners (#6551), the table's owners, else the database's. An
+   * owner the alert already has is left as it is, and one that cannot be
+   * added never stops the alert.
    */
   private static async addOwners(data: {
     alert: Alert;
@@ -345,7 +350,41 @@ export default class DataAlertCause {
       let userIds: Array<ObjectID> = [];
       let teamIds: Array<ObjectID> = [];
 
-      if (data.subject.dataAssetId) {
+      if (data.subject.dataPipelineId) {
+        const query: { dataPipelineId: ObjectID; projectId: ObjectID } = {
+          dataPipelineId: data.subject.dataPipelineId,
+          projectId,
+        };
+
+        userIds = (
+          await DataPipelineOwnerUserService.findBy({
+            query,
+            select: { userId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataPipelineOwnerUser): ObjectID => {
+          return owner.userId!;
+        });
+        teamIds = (
+          await DataPipelineOwnerTeamService.findBy({
+            query,
+            select: { teamId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataPipelineOwnerTeam): ObjectID => {
+          return owner.teamId!;
+        });
+      }
+
+      if (
+        userIds.length === 0 &&
+        teamIds.length === 0 &&
+        data.subject.dataAssetId
+      ) {
         const query: { dataAssetId: ObjectID; projectId: ObjectID } = {
           dataAssetId: data.subject.dataAssetId,
           projectId,

@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing, a server of the release before ignores it, and a store that has
  * not been collected since reads as one that never said.
  */
-export class AddTableHealthAttemptedAt1809183900000
+export class AddTableHealthAttemptedAt1809184570000
   implements MigrationInterface
 {
-  public name: string = "AddTableHealthAttemptedAt1809183900000";
+  public name: string = "AddTableHealthAttemptedAt1809184570000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

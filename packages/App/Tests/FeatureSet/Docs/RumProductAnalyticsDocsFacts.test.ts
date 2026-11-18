@@ -384,9 +384,15 @@ describe("Product Analytics: the Users page", () => {
 
   it("counts total users over the months the numbers are kept", () => {
     expect(rows[4]?.[1]).toBe(
-      `Everyone the application has seen in the last ${PRODUCT_ANALYTICS_RETENTION_MONTHS} months.`,
+      `Everyone the application has seen in the months it keeps its numbers, ${PRODUCT_ANALYTICS_RETENTION_MONTHS} by default.`,
     );
-    expect(source("usersPage")).toContain('sublabel: "In the last 13 months",');
+    // The tile says the application's own months (#6626), 13 by default.
+    expect(source("usersPage")).toContain(
+      'other: "In the last {{count}} months",',
+    );
+    expect(source("usersPage")).toContain(
+      "const retentionMonths: number = readProductAnalyticsRetentionMonths(summary);",
+    );
   });
 
   it("names the two charts and the windows the active-users chart counts over", () => {
@@ -440,10 +446,10 @@ describe("Product Analytics: the Users page", () => {
       '{translator.translateText("Recording no longer kept")}',
     );
     expect(person).toContain(
-      'description="Every session of theirs the last 13 months hold, newest first."',
+      '"Every session of theirs the last {{count}} months hold, newest first.",',
     );
     expect(lineStartingWith(users, "**People**")).toBe(
-      "**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the last 13 months, with **Watch** on each one whose recording is still kept.",
+      "**People** lists everyone the tiles count, one row per person, most recently seen first, and its filter shows one tile's people, the anonymous visitors, or everyone. Open a person for their first and last visit and every session of theirs from the months the numbers are kept, with **Watch** on each one whose recording is still kept.",
     );
   });
 });

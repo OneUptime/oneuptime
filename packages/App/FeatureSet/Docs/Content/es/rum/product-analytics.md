@@ -13,7 +13,7 @@ La analítica de producto cuenta a las personas que usan una aplicación RUM, c�
 
 ## Cómo se cuenta a las personas
 
-El menú lateral de una aplicación tiene una sección **Analítica de producto**: **Usuarios**, **Sesiones**, **Eventos**, **Embudos**, **Retención de usuarios**, **Flujos de usuarios** y **Ajustes de analítica**. **Usuarios** y **Sesiones** cuentan las sesiones que graba la Reproducción de sesiones, así que empiezan cuando empieza el grabador de la aplicación, y una sesión que la política de reproducción deja sin grabar no se cuenta. Cada sesión cuenta para una persona, o para nadie:
+El menú lateral de una aplicación tiene una sección **Analítica de producto**: **Usuarios**, **Sesiones**, **Eventos**, **Embudos**, **Retención de usuarios**, **Flujos de usuarios** y **Ajustes de analítica**. **Usuarios** y **Sesiones** cuentan las sesiones que graba la Reproducción de sesiones, así que empiezan cuando empieza el grabador de la aplicación, y una sesión que la política de reproducción deja sin grabar no se cuenta. En una instalación actualizada desde una versión sin Analítica de producto, la actualización copia las sesiones que la Reproducción de sesiones aún conservaba, así que empiezan con la grabación más antigua que se conserva. Cada sesión cuenta para una persona, o para nadie:
 
 ```mermaid title="Para quién cuenta una sesión"
 flowchart TB
@@ -42,12 +42,12 @@ Los días se cuentan en tu propia zona horaria.
 | **Usuarios nuevos** | Usuarios activos cuya primera visita fue en el intervalo. |
 | **Usuarios recurrentes** | Usuarios activos que ya habían venido antes de que empezara el intervalo. |
 | **Usuarios con sesión iniciada** | Usuarios activos a los que tu aplicación identificó con `identify()`, y su parte de todos los usuarios activos. |
-| **Usuarios totales** | Todos los que la aplicación ha visto en los últimos 13 meses. |
+| **Usuarios totales** | Todos los que la aplicación ha visto en los meses en que conserva sus cifras, 13 de forma predeterminada. |
 | **Usuarios inactivos** | Personas que vinieron antes pero no en los últimos 30 días, o en los 7, 14, 60 o 90 días que elijas. |
 
 Los tres primeros también dicen cómo cambiaron respecto al periodo anterior. Bajo los indicadores, **Usuarios activos** traza, para cada día, las personas que vinieron ese día, las que vinieron en los 7 días hasta ese día y las que vinieron en los 30 días hasta ese día, y **Usuarios nuevos y recurrentes** divide en dos a las personas de cada día.
 
-**Personas** lista a todos los que cuentan los indicadores, una fila por persona, primero los vistos más recientemente, y su filtro muestra a las personas de un indicador, a los visitantes anónimos o a todos. Abre una persona para ver su primera y su última visita y cada una de sus sesiones de los últimos 13 meses, con **Ver** en cada una cuya grabación aún se conserva.
+**Personas** lista a todos los que cuentan los indicadores, una fila por persona, primero los vistos más recientemente, y su filtro muestra a las personas de un indicador, a los visitantes anónimos o a todos. Abre una persona para ver su primera y su última visita y cada una de sus sesiones de los meses en que se conservan las cifras, con **Ver** en cada una cuya grabación aún se conserva.
 
 ## Sesiones
 
@@ -55,7 +55,7 @@ Los tres primeros también dicen cómo cambiaron respecto al periodo anterior. B
 
 - **Sesiones por dispositivo** traza las sesiones de cada día desde ordenadores, teléfonos y tabletas. La sesión de una aplicación móvil en una pantalla cuyo lado corto mide 600 puntos o más cuenta como de tableta.
 - **Duración de las sesiones** ordena las sesiones terminadas según cuánto duraron, desde menos de 10 segundos hasta más de 30 minutos. Una sesión que todavía se está grabando aún no tiene duración.
-- **Desglose** clasifica usuarios y sesiones por tipo de dispositivo, navegador, sistema operativo, país, versión de la aplicación, página de entrada o página, primero los de más usuarios.
+- **Desglose** clasifica usuarios y sesiones por tipo de dispositivo, navegador, sistema operativo, país, versión de la aplicación, página de entrada o página, primero los de más usuarios. La versión de una aplicación web es la que su página da a la opción `appVersion` del grabador; una aplicación móvil informa la suya.
 
 ## Enviar eventos y métricas
 
@@ -138,9 +138,9 @@ Un embudo o una tabla de retención guardados también van a un panel: los widge
 
 ## Privacidad y retención
 
-- **13 meses.** Las cifras de un mes se eliminan el primer día del 13.º mes posterior, así que los últimos 12 meses completos siempre están, sea cual sea la retención propia de las grabaciones (7 días por defecto). Los eventos se guardan de la misma forma.
+- **13 meses.** Las cifras de un mes se eliminan el primer día del 13.º mes posterior, así que los últimos 12 meses completos siempre están, sea cual sea la retención propia de las grabaciones (7 días por defecto). Los eventos se guardan de la misma forma. 13 meses es el valor predeterminado: una aplicación puede conservar 3, 6 o 25, elegidos en **Retención de la analítica de producto** bajo **Más ajustes** en su página **Ajustes de analítica**, y una elección más corta elimina los meses más antiguos en un día.
 - **Ningún nombre guardado.** Las cifras guardan la clave unidireccional de un usuario con sesión iniciada y el ID de visitante de un navegador, nunca la referencia ni una dirección IP, y de los rasgos solo las propiedades de usuario que enumeres. Una fila nombra a un usuario con sesión iniciada solo mientras se conserve alguna de sus grabaciones, y solo para un rol que pueda leer la identidad; si no, muestra **Usuario con sesión iniciada** o **Visitante anónimo** y el principio del ID.
-- **Borrado a petición.** Una solicitud de borrado también elimina aquí las cifras y los eventos correspondientes (consulta [Borrar sesiones](/docs/telemetry/session-replay#borrar-sesiones)).
+- **Borrado a petición.** Una solicitud de borrado también elimina aquí las cifras y los eventos correspondientes (consulta [Borrar sesiones](/docs/telemetry/session-replay#borrar-sesiones)). Su recuento `productAnalyticsRowsDeleted` dice cuántas filas eliminó aquí.
 
 ## Quién puede verla
 
@@ -148,7 +148,7 @@ Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSes
 
 Guardar, renombrar y eliminar embudos y tablas de retención guardados requiere los mismos permisos que leer estas páginas, y un widget de panel solo muestra uno a quien los tenga.
 
-Activar o desactivar los eventos requiere `EditRumApplication` (_Edit RUM Application_) o el rol Propietario del proyecto, Administrador del proyecto o Miembro del proyecto. Enumerar propiedades de usuario requiere `EditRumApplication` o el rol de propietario o administrador, porque decide qué se guarda sobre las personas con sesión iniciada.
+Activar o desactivar los eventos requiere `EditRumApplication` (_Edit RUM Application_) o el rol Propietario del proyecto, Administrador del proyecto o Miembro del proyecto. Enumerar propiedades de usuario requiere `EditRumApplication` o el rol de propietario o administrador, porque decide qué se guarda sobre las personas con sesión iniciada. Elegir cuánto tiempo se conservan las cifras requiere lo mismo que activar o desactivar los eventos.
 
 ## Próximos pasos
 

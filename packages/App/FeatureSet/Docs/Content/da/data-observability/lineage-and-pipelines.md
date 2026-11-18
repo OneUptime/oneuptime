@@ -136,6 +136,8 @@ Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sin
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
 
+En pipelines fane **Ejere** nævner de personer og teams, der passer den, og dens advarsler går til dem. **Oversigt** og **Problemer** nævner ejerne af en pipeline, der fejlede eller er forsinket, eller viser **Ingen ejer** med en måde at tilføje en på.
+
 En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet.
 
 ## Én advarsel pr. årsag

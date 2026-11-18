@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddTableHealthAttemptedAt1809183900000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183900000-AddTableHealthAttemptedAt";
+import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -23,12 +23,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809183900000";
+const MIGRATION_TIMESTAMP: string = "1809184570000";
 const MIGRATION_BASE_NAME: string = "AddTableHealthAttemptedAt";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddEmailLogTemplateType1809183830000";
-const PREVIOUS_TIMESTAMP: number = 1809183830000;
+const PREVIOUS_MIGRATION: string = "AddDataCheckMonitorIdIndex1809184560000";
+const PREVIOUS_TIMESTAMP: number = 1809184560000;
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddTableHealthAttemptedAt1809183900000();
+    new AddTableHealthAttemptedAt1809184570000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddTableHealthAttemptedAt1809183900000", () => {
+describe("AddTableHealthAttemptedAt1809184570000", () => {
   test("adds when the last collection ended to DataStore, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataStore" ADD "tableHealthAttemptedAt" TIMESTAMP WITH TIME ZONE`,
@@ -107,7 +107,7 @@ describe("AddTableHealthAttemptedAt1809183900000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddTableHealthAttemptedAt1809183900000().name).toBe(
+    expect(new AddTableHealthAttemptedAt1809184570000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

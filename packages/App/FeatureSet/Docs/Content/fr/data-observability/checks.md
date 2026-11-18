@@ -42,7 +42,7 @@ Renseignez **Alerter quand** pour déclencher une alerte sur un contrôle :
 
 L'enregistrement du contrôle crée un moniteur de métrique pour lui, en votre nom et avec vos autorisations. Vider la condition supprime le moniteur.
 
-Le **Statut** d'un contrôle, dans **Vérifications** et dans l'onglet **Vérifications** de sa table, dit où il en est : **En échec** tant que son alerte est ouverte, **Réussi** tant qu'elle ne l'est pas, et **Exécution impossible** quand sa requête a échoué. Un contrôle sans alerte affiche seulement **Exécuté** : sa requête a fonctionné. Un contrôle en échec, et un contrôle qui n'a pas pu s'exécuter, figurent aussi dans la **Vue d'ensemble**.
+Le **Statut** d'un contrôle, dans **Vérifications** et dans l'onglet **Vérifications** de sa table, dit où il en est : **En échec** tant que son alerte est ouverte, **Réussi** tant qu'elle ne l'est pas, et **Exécution impossible** quand sa requête a échoué. Un contrôle sans alerte affiche seulement **Exécuté** : sa requête a fonctionné. Un contrôle en échec, et un contrôle qui n'a pas pu s'exécuter, figurent aussi dans la **Vue d'ensemble**. **Vérifications** liste d'abord les contrôles en échec, puis ceux qui n'ont pas pu s'exécuter, puis ceux qui réussissent, et son filtre **Statut** montre les contrôles d'un statut. **Vérifications en échec** dans la **Vue d'ensemble** ouvre **Vérifications** avec seulement les contrôles en échec.
 
 ## Ce que coûte un contrôle
 

@@ -52,7 +52,9 @@ import {
  * over several parameters. The ALTER itself is ON CLUSTER and needs a
  * Keeper and a cluster definition a disposable server does not have; that
  * part, with the max_query_size the queued DDL needs, was checked against
- * a keeper-backed 24.8 and 26.7 by hand.
+ * a keeper-backed 24.8 and 26.7 by hand. Product analytics' deletes run ON
+ * CLUSTER against one in RumProductAnalyticsErasureKeeperClickhouse.test.ts,
+ * an opt-in suite with the cluster it needs in Fixtures/ClickhouseKeeperCluster.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server,
  * credentials in the URL:
@@ -510,6 +512,27 @@ integration(
           return Promise.resolve({ data: [{ chunkCount: 0 }] });
         },
       } as never);
+
+      /*
+       * Product analytics' counts before its deletes (issue #6628). This
+       * suite has none of its tables; the Keeper-backed suite
+       * (RumProductAnalyticsErasureKeeperClickhouse) runs them for real.
+       */
+      for (const service of [
+        RumProductAnalyticsSessionService,
+        RumProductAnalyticsEventService,
+      ]) {
+        jest
+          .spyOn(
+            service as unknown as { executeQuery: () => Promise<unknown> },
+            "executeQuery",
+          )
+          .mockResolvedValue({
+            json: (): Promise<{ data: Array<JSONObject> }> => {
+              return Promise.resolve({ data: [{ paRows: 0 }] });
+            },
+          } as never);
+      }
 
       /* The deletes are ON CLUSTER; capture them instead of running them. */
       for (const service of [

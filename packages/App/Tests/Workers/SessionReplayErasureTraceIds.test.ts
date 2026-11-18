@@ -322,6 +322,22 @@ function installHarness(data: {
     return Promise.resolve(resultSetOf(data.traceIdRows || []));
   }) as never);
 
+  /*
+   * Product analytics counts what each of its deletes is about to remove
+   * (issue #6628); nothing here reads the number.
+   */
+  for (const service of [
+    RumProductAnalyticsSessionService,
+    RumProductAnalyticsEventService,
+  ]) {
+    jest
+      .spyOn(
+        service as unknown as { executeQuery: () => Promise<unknown> },
+        "executeQuery",
+      )
+      .mockResolvedValue(resultSetOf([{ paRows: 0 }]) as never);
+  }
+
   const services: Array<{ label: DeleteLabel; service: unknown }> = [
     { label: "chunks", service: RumSessionChunkService },
     { label: "headers", service: RumSessionService },

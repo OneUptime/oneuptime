@@ -348,7 +348,7 @@
       "button: ذخیره و ادامه"
     ],
     "width": 768,
-    "height": 302
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -540,7 +540,7 @@
       "link: مستندات"
     ],
     "width": 417,
-    "height": 292
+    "height": 328
   },
   "escalation-rule-paged-after": {
     "text": [
