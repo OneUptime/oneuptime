@@ -106,7 +106,7 @@ vapid:
 
 자체 호스팅 OneUptime 서버는 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true`와 자신의 `EXPO_ACCESS_TOKEN`이 있을 때만 다른 서버의 푸시를 릴레이합니다. 이 설정이 없으면 그 주소에서 404로 응답합니다. 다른 OneUptime 서버들이 푸시를 보낼 때 거치는 서버에서만 이 설정을 켜고, 그 주소에는 그 서버들만 접근할 수 있게 하세요.
 
-Web Push의 경우 팀이 쓰는 브라우저의 실제 구독 엔드포인트 호스트를 허용하세요. OneUptime은 `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com`, `push.apple.com`을 하위 도메인까지 포함해 허용합니다. 대표적인 예는 `updates.push.services.mozilla.com`과 `web.push.apple.com`입니다. 대상은 [브라우저의 푸시 구독](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)이 제공하며, Expo나 OneUptime 릴레이만 허용해서는 Web Push가 동작하지 않습니다.
+Web Push의 경우 팀이 쓰는 브라우저의 실제 구독 엔드포인트 호스트를 허용하세요. OneUptime은 `fcm.googleapis.com`, `android.googleapis.com`, `jmt17.google.com`, `push.services.mozilla.com`, `notify.windows.com`, `push.apple.com`을 하위 도메인까지 포함해 허용합니다. 대표적인 예는 `updates.push.services.mozilla.com`과 `web.push.apple.com`입니다. 대상은 [브라우저의 푸시 구독](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)이 제공하며, Expo나 OneUptime 릴레이만 허용해서는 Web Push가 동작하지 않습니다.
 
 알림을 보내는 OneUptime 프로세스에서 DNS 조회와 나가는 TLS를 허용하세요. 그 신뢰 저장소는 대상의 인증서를 검증할 수 있어야 하고, 프록시는 대화형 인증 없이 API 요청을 통과시켜야 합니다. 푸시 공급자는 OneUptime 서버의 웹훅을 호출하지 않으므로, 사용자 기기가 VPN이나 다른 사설 연결로 접근할 수 있다면 서버를 비공개로 둘 수 있습니다. 릴레이나 외부 푸시 서비스에 접근할 수 없는 서버는 이 알림을 배달할 수 없습니다.
 

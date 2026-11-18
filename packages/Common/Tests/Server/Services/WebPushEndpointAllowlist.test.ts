@@ -26,6 +26,7 @@ describe("Web push endpoint allowlist accepts the real push services", () => {
     "https://fcm.googleapis.com/fcm/send/abc123",
     "https://fcm.googleapis.com/wp/abc123",
     "https://android.googleapis.com/gcm/send/abc123",
+    "https://jmt17.google.com/fcm/send/abc123",
     "https://web.push.apple.com/QLtc-abc123",
     "https://par02p.notify.windows.com/w/?token=abc",
     "https://notify.windows.com/w/?token=abc",
@@ -62,8 +63,10 @@ describe("Web push endpoint allowlist resists lookalike hosts", () => {
     // Suffix matching must be anchored on a dot.
     "https://evilfcm.googleapis.com/fcm/send/x",
     "https://notfcm.googleapis.com/fcm/send/x",
+    "https://eviljmt17.google.com/fcm/send/x",
     // The allowed name as a prefix of an attacker's domain.
     "https://fcm.googleapis.com.attacker.example/fcm/send/x",
+    "https://jmt17.google.com.attacker.example/fcm/send/x",
     "https://push.apple.com.attacker.example/x",
     // The allowed name in the path or the query, not the host.
     "https://attacker.example/fcm.googleapis.com",
