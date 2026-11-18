@@ -256,6 +256,11 @@ function startButton(scope: Page | Locator): Locator {
   return scope.getByTestId("resource-showcase-add-button");
 }
 
+// A product's guided setup, first on the explanation's row where it has one.
+function setupButton(scope: Page | Locator): Locator {
+  return scope.getByTestId("resource-showcase-setup-button");
+}
+
 function aboutButton(page: Page): Locator {
   return page.getByTestId("product-about-button");
 }
@@ -671,10 +676,15 @@ test("a new project's Monitors list says what monitors are for, then explains th
 
   await screenshot(page, "monitors-first-run-1440");
 
-  // The button starts its row, level with the steps (no dialog footer's margin).
+  /*
+   * The guided setup starts the row, level with the steps (no dialog
+   * footer's margin): the one primary button, Create Monitor beside it
+   * (#7054).
+   */
+  await expect(setupButton(showcase(page))).toHaveText("Guided setup");
   const [stepsBox, buttonBox]: Array<FrameBox> = await boxesInOneFrame([
     showcase(page).getByTestId("resource-showcase-steps"),
-    startButton(showcase(page)),
+    setupButton(showcase(page)),
   ]);
   expect(Math.abs(buttonBox!.x - stepsBox!.x)).toBeLessThanOrEqual(1);
 
@@ -1750,10 +1760,10 @@ test("in Persian, dark: right to left, How it works before the title's end, the 
   ]);
   expect(aboutBox!.x + aboutBox!.width).toBeLessThanOrEqual(titleBox!.x);
 
-  // The button starts its row at the right, level with the steps.
+  // The guided setup starts the row at the right, level with the steps.
   const [stepsBox, buttonBox]: Array<FrameBox> = await boxesInOneFrame([
     showcase(page).getByTestId("resource-showcase-steps"),
-    startButton(showcase(page)),
+    setupButton(showcase(page)),
   ]);
   expect(
     Math.abs(buttonBox!.x + buttonBox!.width - (stepsBox!.x + stepsBox!.width)),
