@@ -246,7 +246,6 @@
   "packages/Common/Server/API/UserWebhookAPI.ts": 3,
   "packages/Common/Server/API/VMwareResourceAPI.ts": 3,
   "packages/Common/Server/API/WelcomeChecklistAPI.ts": 1,
-  "packages/Common/Server/API/WhoIsToldAPI.ts": 1,
   "packages/Common/Server/API/WorkspaceChannelMembersAPI.ts": 1,
   "packages/Common/Server/API/WorkspaceUserGroupAPI.ts": 1,
   "packages/Common/Server/DatabaseConfig.ts": 1,

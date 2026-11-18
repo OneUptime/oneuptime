@@ -69,7 +69,7 @@ export function readProjectMemberSearchText(body: unknown): string {
   const raw: unknown = (body as JSONObject)["text"];
 
   if (typeof raw !== "string") {
-    throw new BadDataException("text must be what was typed, as text.");
+    throw new BadDataException("Send what was typed as text, a string.");
   }
 
   const text: string = raw

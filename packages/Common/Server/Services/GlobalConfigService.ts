@@ -1183,7 +1183,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     throw new NotAuthorizedException(
-      "backupScriptLastRun is written by npm run backup, and cannot be changed here.",
+      "Only npm run backup writes backupScriptLastRun, so it cannot be changed here.",
     );
   }
 
@@ -1214,7 +1214,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     throw new NotAuthorizedException(
-      "serverAlertState is written by OneUptime as it tells master admins, and cannot be changed.",
+      "OneUptime writes serverAlertState as it tells master admins, so it cannot be changed.",
     );
   }
 
