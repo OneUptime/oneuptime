@@ -27,6 +27,8 @@ import ScheduledMaintenanceAIContextBuilder, {
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export default class ScheduledMaintenanceAPI extends BaseAPI<
   ScheduledMaintenance,
@@ -42,6 +44,7 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
         ?.toString()}/generate-note-from-ai/:scheduledMaintenanceId`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.ScheduledMaintenance),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.generateNoteFromAI(req, res);

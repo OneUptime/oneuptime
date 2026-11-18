@@ -29,6 +29,8 @@ import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
 import { TelemetryServiceFilter } from "../Utils/Telemetry/TelemetryReadScope";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * A number the form sent: a number, or text one reads as; undefined for
@@ -100,6 +102,7 @@ export default class DetectionRuleAPI extends BaseAPI<
       `${basePath}/draft-with-ai`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -146,6 +149,7 @@ export default class DetectionRuleAPI extends BaseAPI<
       `${basePath}/retrohunt`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

@@ -138,11 +138,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "API Keys",
       "View API Key",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_FEATURE_FLAGS, [
-      "Project",
-      "Settings",
-      "Feature Flags",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING, [
       "Project",
       "Settings",

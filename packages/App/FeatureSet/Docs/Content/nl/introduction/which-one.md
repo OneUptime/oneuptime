@@ -46,7 +46,7 @@ Alle drie brengen dingen samen, voor verschillende lezers. Ze werken ook samen: 
 | [Service](/docs/telemetry/services) | Een applicatie die OneUptime in uw telemetrie heeft gevonden, met de logs, traces, metrics, incidenten en eigenaren ervan op één pagina. | U wilt alles over één applicatie op één plek. Hij verschijnt vanzelf op basis van zijn `service.name`. |
 | [Label](/docs/configuration/label-and-owner-rules) | Een tag die u op monitoren en de meeste andere records zet. Een record kan er veel dragen. | U wilt lijsten filteren, de machtigingen van een team beperken, of records in regels selecteren. |
 
-Monitorgroepen staan standaard uit: zet ze aan onder **Projectinstellingen → Geavanceerd → Functievlaggen**.
+Monitorgroepen staan standaard uit: zet ze aan onder **Projectinstellingen → Basis → Producten**.
 
 ## Sonde, agent, collector of Runner?
 

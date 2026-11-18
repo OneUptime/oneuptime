@@ -59,6 +59,7 @@ import ChatRunCancellation, {
 import logger from "../Utils/Logger";
 import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../Types/Product/ProductKey";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
 const MAX_CONCURRENT_RUNS_PER_PROJECT: number = 3;
@@ -602,6 +603,7 @@ router.post(
 router.post(
   "/ai-chat/respond-to-approval",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -793,6 +795,7 @@ router.post(
 router.post(
   "/ai-chat/cancel-run",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -870,6 +873,7 @@ router.post(
 router.post(
   "/ai-chat/message-feedback",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

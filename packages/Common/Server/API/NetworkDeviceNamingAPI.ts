@@ -32,6 +32,8 @@ import RuleRunPermission from "../Utils/Rules/RuleRun/RuleRunPermission";
 import Response from "../Utils/Response";
 import { assertCanSeeImports } from "./NetworkDeviceDiscoveryImportAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * NAMING RULES, OVER HTTP (OneUptime issue #6619).
@@ -338,6 +340,7 @@ router.post(
 router.post(
   "/network-device-naming/apply",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

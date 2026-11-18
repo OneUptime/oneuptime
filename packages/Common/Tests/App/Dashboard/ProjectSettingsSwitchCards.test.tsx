@@ -27,7 +27,8 @@ import { getJestSpyOn } from "../../Spy";
  *   - Settings > Project: "Let OneUptime support access this project"
  *     (where OneUptime bills), asking - and saying what it grants - before
  *     it lets support in;
- *   - Settings > Feature Flags: "Monitor Groups", no dialog either way;
+ *   - Settings > Products, under Monitors: "Monitor Groups", no dialog
+ *     either way (it was the one switch of Settings > Feature Flags);
  *   - Settings > SSO: "Require SSO to Sign In", asking with a red button
  *     before it locks out everyone not signed in with SSO.
  *
@@ -99,7 +100,7 @@ import MonitorGroupsSwitchCopy, {
   MONITOR_GROUPS_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchCopy";
 import ProjectSettingsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/ProjectSettings";
-import FeatureFlagsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/FeatureFlags";
+import MonitorGroupsSwitchRow from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchRow";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -386,31 +387,40 @@ describe("Settings > Project", () => {
   });
 });
 
-describe("Settings > Feature Flags: Monitor Groups", () => {
-  async function renderPage(): Promise<HTMLElement> {
-    render(
-      <FeatureFlagsPage
-        pageRoute={new Route("/dashboard")}
-        currentProject={null}
-        hasPaymentMethod={true}
-      />,
-    );
+describe("Settings > Products: Monitor Groups, under Monitors", () => {
+  function projectWith(isOn?: boolean): Project {
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+
+    if (isOn !== undefined) {
+      project.isFeatureFlagMonitorGroupsEnabled = isOn;
+    }
+
+    return project;
+  }
+
+  async function renderRow(isOn?: boolean): Promise<HTMLElement> {
+    render(<MonitorGroupsSwitchRow project={projectWith(isOn)} />);
     await flush();
     return screen.getByTestId(MONITOR_GROUPS_SWITCH_TEST_ID);
   }
 
-  test("is the Feature Flags card's one switch, saying what monitor groups are", async () => {
-    const control: HTMLElement = await renderPage();
+  function lockedReasonOf(control: HTMLElement): string {
+    return (control.getAttribute("aria-describedby") || "")
+      .split(" ")
+      .map((id: string): string => {
+        return document.getElementById(id)?.textContent || "";
+      })
+      .join(" ");
+  }
 
-    expect(
-      screen.getByText(MonitorGroupsSwitchCopy.cardTitle),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(MonitorGroupsSwitchCopy.cardDescription),
-    ).toBeInTheDocument();
+  test("is a switch named Monitor Groups, saying what monitor groups are, read off the selected project", async () => {
+    const control: HTMLElement = await renderRow();
+
     expect(
       screen.getByRole("switch", { name: MonitorGroupsSwitchCopy.switchTitle }),
     ).toBe(control);
+    // A new project has them off.
     expect(control).toHaveAttribute("aria-checked", "false");
 
     const describedBy: string = control.getAttribute("aria-describedby") || "";
@@ -423,13 +433,11 @@ describe("Settings > Feature Flags: Monitor Groups", () => {
     );
     expect(screen.queryByRole("button", { name: /Edit/ })).toBeNull();
 
-    const call: ItemCall = getItemMock.mock.calls[0]![0] as ItemCall;
-
-    expect(call.id.toString()).toBe(PROJECT_ID);
-    expect(call.select).toEqual({ isFeatureFlagMonitorGroupsEnabled: true });
+    // The menus' own copy of the project: nothing is read again.
+    expect(getItemMock).not.toHaveBeenCalled();
   });
 
-  test("turning it on saves at once, with no dialog, and tells the rest of the dashboard", async () => {
+  test("turning it on saves the project's column at once, with no dialog, and tells the rest of the dashboard", async () => {
     const heard: Array<boolean> = [];
 
     const unsubscribe: () => void = subscribeToModelSwitchSaved({
@@ -441,11 +449,14 @@ describe("Settings > Feature Flags: Monitor Groups", () => {
       },
     });
 
-    const control: HTMLElement = await renderPage();
+    const control: HTMLElement = await renderRow(false);
 
     await press(control);
 
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateCall().modelType).toBe(Project);
+    expect(updateCall().id.toString()).toBe(PROJECT_ID);
     expect(updateCall().data).toEqual({
       isFeatureFlagMonitorGroupsEnabled: true,
     });
@@ -455,15 +466,16 @@ describe("Settings > Feature Flags: Monitor Groups", () => {
         exact: false,
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`${MONITOR_GROUPS_SWITCH_TEST_ID}-status`),
+    ).toHaveTextContent("Saved");
     expect(heard).toEqual([true]);
 
     unsubscribe();
   });
 
   test("turning it off saves at once too: it deletes no group", async () => {
-    stored = { isFeatureFlagMonitorGroupsEnabled: true };
-
-    const control: HTMLElement = await renderPage();
+    const control: HTMLElement = await renderRow(true);
 
     expect(control).toHaveAttribute("aria-checked", "true");
 
@@ -477,6 +489,65 @@ describe("Settings > Feature Flags: Monitor Groups", () => {
       "Turning this off deletes no group.",
     );
   });
+
+  test("a refused save moves it back and says why", async () => {
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error("You do not have permission to update this record.");
+    });
+
+    const control: HTMLElement = await renderRow(false);
+
+    await press(control);
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByTestId(`${MONITOR_GROUPS_SWITCH_TEST_ID}-row`),
+    ).toHaveTextContent("You do not have permission to update this record.");
+    expect(
+      screen.getByTestId(`${MONITOR_GROUPS_SWITCH_TEST_ID}-status`),
+    ).not.toHaveTextContent("Saved");
+  });
+
+  /*
+   * The same people as on Feature Flags: whoever the column lets change it -
+   * a Project Owner, or a role with Edit Project or Manage Billing.
+   */
+  test.each([
+    [Permission.ProjectOwner],
+    [Permission.EditProject],
+    [Permission.ManageProjectBilling],
+  ])("%s may flip it", async (permission: Permission) => {
+    permit([permission]);
+
+    const control: HTMLElement = await renderRow(false);
+
+    expect(control).not.toHaveAttribute("aria-disabled");
+
+    await press(control);
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([[Permission.ProjectAdmin], [Permission.ProjectMember]])(
+    "%s alone may not: it is locked, saying which permission is missing",
+    async (permission: Permission) => {
+      permit([permission]);
+
+      const control: HTMLElement = await renderRow(false);
+
+      expect(control).toHaveAttribute("aria-disabled", "true");
+
+      const reason: string = lockedReasonOf(control);
+
+      expect(reason).toContain("You do not have permission to update this");
+      expect(reason).toContain("Edit Project");
+
+      await press(control);
+
+      expect(updateByIdMock).not.toHaveBeenCalled();
+      expect(control).toHaveAttribute("aria-checked", "false");
+    },
+  );
 });
 
 describe("Settings > SSO: Require SSO to Sign In", () => {

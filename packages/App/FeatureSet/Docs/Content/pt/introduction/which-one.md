@@ -46,7 +46,7 @@ Os três reúnem coisas, para leitores diferentes. Eles também funcionam juntos
 | [Serviço](/docs/telemetry/services) | Um aplicativo que o OneUptime encontrou na sua telemetria, com os logs, traces, métricas, incidentes e proprietários dele em uma única página. | Você quer tudo sobre um aplicativo em um só lugar. Ele aparece sozinho a partir do seu `service.name`. |
 | [Rótulo](/docs/configuration/label-and-owner-rules) | Uma etiqueta que você coloca em monitores e na maioria dos outros registros. Um registro pode ter vários. | Você quer filtrar listas, limitar as permissões de uma equipe ou selecionar registros em regras. |
 
-Os grupos de monitores começam desativados: ative-os em **Configurações do projeto → Avançado → Sinalizadores de recursos**.
+Os grupos de monitores começam desativados: ative-os em **Configurações do projeto → Básico → Produtos**.
 
 ## Sonda, agente, coletor ou Runner?
 

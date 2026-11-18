@@ -80,7 +80,7 @@ Klikk på **Legg til monitor**. Raden vises i gruppen og på statussiden.
 I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå i, over **Flere felt**; se [Listeoppsett eller rutenettoppsett](#listeoppsett-eller-rutenettoppsett).
 
 > [!TIP]
-> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Avansert** > **Funksjonsflagg**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Monitor** til **Monitorgruppe** (**Velg monitorgruppe**); **Legg heller til en monitor.** bytter tilbake.
+> For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Grunnleggende** > **Produkter**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Monitor** til **Monitorgruppe** (**Velg monitorgruppe**); **Legg heller til en monitor.** bytter tilbake.
 
 ### Legg til flere på én gang
 

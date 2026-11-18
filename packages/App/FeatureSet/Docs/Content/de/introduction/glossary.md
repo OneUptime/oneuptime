@@ -138,7 +138,7 @@ Siehe [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Monitor-Gruppe
 
-Mehrere Monitore, zu einem Status zusammengefasst, dem schlimmsten unter ihnen, mit eigener Verfügbarkeit. Eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen. Schalten Sie Monitor-Gruppen unter **Projekteinstellungen → Erweitert → Feature-Flags** ein.
+Mehrere Monitore, zu einem Status zusammengefasst, dem schlimmsten unter ihnen, mit eigener Verfügbarkeit. Eine Statusseite kann die ganze Gruppe als eine Zeile anzeigen. Schalten Sie Monitor-Gruppen unter **Projekteinstellungen → Grundlegend → Produkte** ein.
 
 Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups).
 

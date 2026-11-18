@@ -2854,17 +2854,17 @@ describe("turning monitor groups on", () => {
   const groupsPage: string = english(MONITOR_GROUPS);
   const turningOn: string = section(groupsPage, "## Turn on monitor groups");
 
-  it("is a switch on Feature Flags, under Project Settings' Advanced section, which starts folded", () => {
+  it("is a switch on Products, under Monitors, in Project Settings' Basic section, which starts open (#7324)", () => {
     const settings: Array<MenuSection> = menuSections(SETTINGS_MENU);
 
-    expect(sectionByTitle(settings, "Advanced").items).toContain(
+    expect(sectionByTitle(settings, "Basic").items).toContain("Products");
+    expect(sectionByTitle(settings, "Advanced").items).not.toContain(
       "Feature Flags",
     );
-    expect(startsCollapsed(SETTINGS_MENU, "Advanced")).toBe(true);
-    expect(MonitorGroupsSwitchCopy.cardTitle).toBe("Feature Flags");
+    expect(startsCollapsed(SETTINGS_MENU, "Basic")).toBe(false);
     expect(MonitorGroupsSwitchCopy.switchTitle).toBe("Monitor Groups");
     expect(turningOn).toContain(
-      "Go to **Project Settings → Advanced → Feature Flags**. **Advanced** starts collapsed in the side menu: expand it first.",
+      "### Open Products\n\nGo to **Project Settings → Basic → Products**.\n",
     );
   });
 
@@ -2876,7 +2876,7 @@ describe("turning monitor groups on", () => {
       'title: project?.isFeatureFlagMonitorGroupsEnabled\n              ? "Resources"\n              : "Monitors",',
     );
     expect(turningOn).toContain(
-      "Flip the **Monitor Groups** switch. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.",
+      "Flip the **Monitor Groups** switch, under **Monitors**. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.",
     );
   });
 

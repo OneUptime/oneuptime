@@ -13,6 +13,10 @@ import { fetchProjects } from "../api/projects";
 import { getServerUrl } from "../storage/serverUrl";
 import { useAuth } from "./useAuth";
 import { useCurrentUserId } from "./useCurrentUserId";
+import {
+  loadProductsOffOnServer,
+  resetProductsOffOnServer,
+} from "./useProductsOffOnServer";
 import type { ProjectItem } from "../api/types";
 
 interface ProjectContextValue {
@@ -187,6 +191,8 @@ export function ProjectProvider({
         loading: false,
         error: null,
       });
+      // The next person may be on another server, with other products off.
+      resetProductsOffOnServer();
     } else {
       storageKeyRef.current = null;
       selectedIdRef.current = null;
@@ -196,6 +202,17 @@ export function ProjectProvider({
       generationRef.current += 1;
     };
   }, [isAuthenticated, authLoading, loadProjects]);
+
+  /*
+   * What the server has switched off (#7478), from the selected project's
+   * products answer once the projects are known: the tabs, the Inbox and
+   * Home leave those products out (useProductsOffOnServer).
+   */
+  useEffect((): void => {
+    if (identity && state.owner === identity && state.selectedId) {
+      void loadProductsOffOnServer(state.selectedId);
+    }
+  }, [identity, state.owner, state.selectedId]);
 
   const selectProject: (projectId: string) => void = useCallback(
     (projectId: string): void => {

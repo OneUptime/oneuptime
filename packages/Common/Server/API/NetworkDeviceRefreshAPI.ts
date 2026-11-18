@@ -18,6 +18,8 @@ import NetworkDeviceRefreshRunner, {
 } from "../Utils/NetworkDevice/NetworkDeviceRefreshRunner";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * REFRESH A NETWORK DEVICE, OVER HTTP.
@@ -48,6 +50,7 @@ const REFRESH_PATH: string = `${
 router.post(
   REFRESH_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const props: DatabaseCommonInteractionProps =

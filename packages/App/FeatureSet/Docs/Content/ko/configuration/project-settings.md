@@ -1,6 +1,6 @@
 # 프로젝트 설정
 
-프로젝트 설정에는 프로젝트 전체에 적용되는 것이 모여 있습니다. 이름, 연결된 도구, 키, 사람들이 로그인하는 방식, 결제, 감사 기록입니다. 대부분은 한 번 설정하면 다시 볼 일이 거의 없습니다. 이 페이지는 그 전체 지도이며, 별도 페이지가 없는 설정인 프로젝트 세부 정보, 레이블, 기능 플래그, 프로젝트 삭제를 다룹니다.
+프로젝트 설정에는 프로젝트 전체에 적용되는 것이 모여 있습니다. 이름, 연결된 도구, 키, 사람들이 로그인하는 방식, 결제, 감사 기록입니다. 대부분은 한 번 설정하면 다시 볼 일이 거의 없습니다. 이 페이지는 그 전체 지도이며, 별도 페이지가 없는 설정인 프로젝트 세부 정보, 레이블, 프로젝트 삭제를 다룹니다.
 
 :::cards
 - [설정 찾기](#설정-찾기): 측면 메뉴의 각 섹션에 있는 것.
@@ -36,7 +36,7 @@ flowchart LR
 | **텔레메트리 및 APM** | **수집 키**, **데이터 보존**, **사용량** | [수집 키](/docs/telemetry/ingestion-keys), [데이터 보존](/docs/telemetry/data-retention), [텔레메트리 사용량](/docs/telemetry/usage) |
 | **알림** | **알림 채널**, **알림 로그**, **모바일 앱** | [알림](#알림) |
 | **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 성과**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
-| **고급** | **도메인**, **API 키**, **기능 플래그**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
+| **고급** | **도메인**, **API 키**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |
 | **감사 로그** | **감사 로그**, **설정**, **내보내기** | [감사 로그](/docs/configuration/audit-logs), [감사 로그 내보내기](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ flowchart LR
 
 프로젝트 소유자, 프로젝트 관리자, 프로젝트를 편집할 수 있는 사람이 바꿀 수 있으며, 프로젝트의 다른 모든 사람은 볼 수 있습니다.
 
+**모니터** 아래의 **모니터 그룹** 스위치를 켜면 모니터 메뉴에 모니터 그룹이 추가됩니다. 새 프로젝트에서는 꺼져 있고, 전환하는 즉시 저장되며, 꺼도 그룹은 삭제되지 않습니다. 바꾸려면 프로젝트 소유자 역할이나, Edit Project 또는 Manage Billing 권한이 있는 사용자 지정 역할이 필요합니다. [모니터 그룹](/docs/monitor/monitor-groups)을 참조하세요.
+
 ## 레이블
 
 레이블은 모니터, 인시던트, 상태 페이지 및 기타 리소스에 붙이는 태그입니다. 목록을 필터링하고 그룹으로 묶으며, 팀의 권한과 프로젝트 규칙이 미치는 범위를 제한합니다.
@@ -101,10 +103,6 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 - **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 구성원의 기본 호출 방식인 **새 구성원의 기본 연락 순서**와 **온콜 담당자의 전화**([기본 연락 순서](/docs/notifications/on-call-rules#기본-연락-순서) 참조), **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
 - **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**. **웹훅** 탭은 각 주소의 스킴과 호스트만 남깁니다. 나머지는 웹훅의 시크릿입니다.
 - **모바일 앱**: iOS 및 Android 앱을 받는 곳. [앱 개요](/docs/mobile-desktop-apps/index)를 참조하세요.
-
-## 기능 플래그
-
-**프로젝트 설정 → 고급 → 기능 플래그**에서는 프로젝트의 선택 기능을 켜거나 끕니다. 각각은 전환하는 즉시 저장되는 스위치입니다. 현재 이 페이지에는 **모니터 그룹**이 있으며, 새 프로젝트에서는 꺼져 있습니다. 켜면 모니터 메뉴에 모니터 그룹이 추가됩니다. 꺼도 그룹은 삭제되지 않습니다. [모니터 그룹](/docs/monitor/monitor-groups)을 참조하세요.
 
 ## 프로젝트 삭제
 

@@ -56,6 +56,8 @@ import {
 } from "../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import MaterializedShiftUtil from "../../Types/OnCallDutyPolicy/MaterializedShift";
 import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * The HTTP face of the on-call calendar feeds.
@@ -1560,6 +1562,7 @@ router.post(
   FEED_ROTATE_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1760,6 +1763,7 @@ router.post(
   SCHEDULE_FEED_PUBLISH_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1858,6 +1862,7 @@ router.post(
   SCHEDULE_FEED_ROTATE_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2035,6 +2040,7 @@ router.post(
   PROJECT_FEED_PUBLISH_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2100,6 +2106,7 @@ router.post(
   PROJECT_FEED_ROTATE_ROUTE,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

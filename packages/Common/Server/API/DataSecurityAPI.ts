@@ -127,6 +127,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * DATA SECURITY'S OWN ROUTES, BESIDE THE DATA STORE CRUD ROUTES.
@@ -619,6 +621,13 @@ export default class DataSecurityAPI extends BaseAPI<
       route,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      /*
+       * A change or an action of Data Security - every route but its reads -
+       * is refused while the server has switched it off (#7479).
+       */
+      ...(permissions === READ_PERMISSIONS
+        ? []
+        : [ServerProductRoutes.refuseWhileOff(ProductKey.DataSecurity)]),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

@@ -76,6 +76,9 @@ export const HiddenProductsMenuCopy: {
 
 // The data-testids, for the components and their suites.
 export const PRODUCTS_SETTINGS_TEST_ID: string = "products-settings";
+// Monitors' row with the Monitor Groups switch under it (#7324).
+export const MONITORS_WITH_GROUPS_TEST_ID: string =
+  "products-settings-monitors-with-groups";
 export const SHOW_EVERY_PRODUCT_TEST_ID: string = "products-settings-show-all";
 export const HIDDEN_PRODUCTS_WITH_DATA_TEST_ID: string =
   "home-hidden-products-with-data";

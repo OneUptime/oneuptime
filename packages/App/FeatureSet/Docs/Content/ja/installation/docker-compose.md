@@ -452,7 +452,7 @@ PostgreSQL を復元するには、`config.env` で `DATABASE_RESTORE_*` の値�
 
 - **プリセット** は、ワンクリックですべてのスイッチを設定します。 **監視とステータスページ** はモニター、インシデント、オンコール、ステータスページ、定期メンテナンスを残し、 **インシデント対応** はアラート、SLO、ワークフロー、Runbook を加え、 **すべて** はすべての製品を残します。 **製品を個別に選ぶ** では製品を 1 つずつ切り替えます。ユーザー、チーム、プロジェクト設定は常にオンです。
 - オフになった製品は、各プロジェクトの **製品** メニュー、ホーム、検索から消え、 **プロジェクト設定 > 製品** ではオフとして表示されます。その製品のページへのリンクを開くと、この製品がこのサーバーでオフになっていることと、誰がオンにできるかが表示されます。
-- API はその製品のレコードの作成、変更、削除を拒否し、AI に質問はその製品を対象から外します。オンのままの製品がほかの製品のレコードを表示するため、読み取りは引き続き機能します。たとえば、インシデントにはそのモニターの名前が表示されます。
+- API、ワークフロー、Slack・Microsoft Teams・Mattermost のアプリはその製品のレコードの作成、変更、削除を拒否し、AI に質問はその製品を対象から外します。オンのままの製品がほかの製品のレコードを表示するため、読み取りは引き続き機能します。たとえば、インシデントにはそのモニターの名前が表示されます。
 - 何も削除されず、すでに動いているものは動き続けます。モニターはチェックを続け、公開済みのステータスページは公開されたままで、取り込みも停止しない限りテレメトリは届き続けます。もう一度オンにした製品は、元の状態のまま戻ります。
 
 製品をコードとして設定するには、`config.env` の `SERVER_PRODUCTS` (Helm では `products.onThisServer`) を、`everything`、`monitoring-and-status-pages`、`incident-response`、またはオンのままにする製品のキー (例: `monitors,incidents,on-call,status-pages`) に設定します。これは初期値です。管理者が **設定 > 製品** を保存すると、保存した内容が適用されます。
@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` サービスは起動しません。これを使うのは Runbook と OneUptime AI のコード修正だけです。 |
 | `MQTT_INGEST_ENABLED=false` | IoT デバイスの送信先である MQTT リスナーがオフになります。 |
 
-それでも 6 つのサービスは動き続けます: `ingress`、`app`、`probe-1`、`postgres`、`clickhouse`、`valkey`。ClickHouse は残ります。モニターが結果とログをそこに保存するためです。Kubernetes では、Helm の values で `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true`、`globalRunner.enabled: false` を設定します。サーバーのサイズは [要件](#要件) に従って決めてください。
+それでも 6 つのサービスは動き続けます: `ingress`、`app`、`probe-1`、`postgres`、`clickhouse`、`valkey`。ClickHouse は残ります。モニターが結果とログをそこに保存するためです。Kubernetes では、Helm の values で `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true`、`globalRunner.enabled: false` を設定します。
+
+**必要なもの。** リリース 15.0.0 を Docker Compose で動かし、4 コアのサーバーと同じように、各サービスを同じ 4 つの CPU コアに制限して計測しました。メモリは `docker stats` が報告する値で、30 秒間隔の 5 回の計測の平均です。
+
+| サービス | 待機時 | モニター 100 件 |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| 合計 | 2,274 MiB | 2,486 MiB |
+
+待機時は、OneUptime の準備ができてから 10 分後、モニターなしの状態です。モニター 100 件は、毎分チェックする Website モニター 100 件と、それらを表示する公開ステータスページを追加してから 30 分後です。OneUptime の起動中は、1〜2 分ほどサービスがより多く使い、合計で最大 3,584 MiB になりました。待機時には、どのサービスも CPU コアの 10 分の 1 を超えて使いませんでした。
+
+その 30 分後、PostgreSQL のデータは 163 MiB、ClickHouse のデータは 452 MiB で、そのほとんどが ClickHouse 自身のログでした。モニターのチェック結果は 2 MiB 未満でした。
+
+したがって、このプロファイルは CPU 4 コアとメモリ 6 GB のサーバーで動き、システム、Docker、アップデートのための余裕も残ります。`ingress` の nginx はコアごとに 1 つの worker を起動するため、コア数の多いサーバーではより多く使います。32 コアでは約 510 MiB でした。
+
+1 つのプローブは、既定の設定では 1 分あたり最大 50 件のモニターをチェックします。worker 5 つ (`GLOBAL_PROBE_1_MONITORING_WORKERS`) がそれぞれ 10 件ずつ (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) です。100 件のモニターを毎分チェックするため、計測では `config.env` に `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` を設定しました。モニターがさらに多い場合も、同じようにこの値か worker の数を増やしてください。
 
 ## OneUptime をアップデートする
 

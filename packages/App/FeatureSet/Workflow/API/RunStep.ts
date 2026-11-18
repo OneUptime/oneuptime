@@ -12,6 +12,8 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /**
  * "Run just this step" from the workflow builder.
@@ -51,6 +53,7 @@ export default class RunStepAPI {
     this.router.post(
       `/run-step/:workflowId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Workflows),
       this.runSingleStep,
     );
   }

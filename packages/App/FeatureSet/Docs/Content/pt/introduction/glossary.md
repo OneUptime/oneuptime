@@ -138,7 +138,7 @@ Veja [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Grupo de monitores
 
-Vários monitores reunidos em um único status, o pior entre eles, com a sua própria disponibilidade. Uma página de status pode mostrar o grupo inteiro como uma única linha. Ative os grupos de monitores em **Configurações do projeto → Avançado → Sinalizadores de recursos**.
+Vários monitores reunidos em um único status, o pior entre eles, com a sua própria disponibilidade. Uma página de status pode mostrar o grupo inteiro como uma única linha. Ative os grupos de monitores em **Configurações do projeto → Básico → Produtos**.
 
 Veja [Grupos de monitores](/docs/monitor/monitor-groups).
 

@@ -265,15 +265,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Terminal,
         },
-        {
-          link: {
-            title: "Feature Flags",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route,
-            ),
-          },
-          icon: IconProp.Flag,
-        },
         /*
          * "This should be in the advanced section in the side menu." (the
          * maintainer): a project brings its team over from another tool

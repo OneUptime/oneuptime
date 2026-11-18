@@ -676,10 +676,13 @@ describe("the Glossary, in English", () => {
       menuSections(readDashboardSource("Pages/Settings/SideMenu.tsx"));
 
     expect(sectionByTitle(settings, "Advanced").items).toEqual(
-      expect.arrayContaining(["Feature Flags", "API Keys"]),
+      expect.arrayContaining(["API Keys"]),
+    );
+    expect(sectionByTitle(settings, "Basic").items).toEqual(
+      expect.arrayContaining(["Products"]),
     );
     expect(term(GlossaryTerm.MonitorGroup).definition.join(" ")).toContain(
-      "Turn monitor groups on under **Project Settings → Advanced → Feature Flags**.",
+      "Turn monitor groups on under **Project Settings → Basic → Products**.",
     );
     expect(term(GlossaryTerm.APIKey).definition.join(" ")).toContain(
       "**Project Settings → Advanced → API Keys**",

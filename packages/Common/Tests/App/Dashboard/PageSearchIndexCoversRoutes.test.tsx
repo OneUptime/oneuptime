@@ -20,6 +20,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import {
   MOVED_AI_SECTION_PATHS,
+  MOVED_FEATURE_FLAGS_SETTINGS_PATH,
   MOVED_HOME_LIST_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
   MOVED_RUNNER_SETTINGS_PATHS,
@@ -280,6 +281,7 @@ describe("every page that needs no record is offered by Search, or says why not"
       ...Object.values(MOVED_HOME_LIST_PATHS).map((part: string) => {
         return `/home/${part}`;
       }),
+      `/settings/${MOVED_FEATURE_FLAGS_SETTINGS_PATH}`,
     ];
 
     expect(movedPaths.length).toBeGreaterThan(0);

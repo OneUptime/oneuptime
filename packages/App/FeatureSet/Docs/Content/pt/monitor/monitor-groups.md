@@ -43,13 +43,13 @@ Um grupo de monitores não é um grupo de página de status. Um grupo de página
 ## Ativar os grupos de monitores
 
 :::steps
-### Abrir os sinalizadores de recursos
+### Abrir a página Produtos
 
-Vá para **Configurações do projeto → Avançado → Sinalizadores de recursos**. **Avançado** começa recolhido no menu lateral: expanda-o primeiro.
+Vá para **Configurações do projeto → Básico → Produtos**.
 
 ### Ligar a chave
 
-Ligue a chave **Grupos de monitores**. Ela salva na hora: **Grupos de monitores** aparece no menu lateral de **Monitores**, e o item **Monitores** de cada página de status passa a se chamar **Recursos**, onde você pode adicionar um grupo.
+Ligue a chave **Grupos de monitores**, em **Monitores**. Ela salva na hora: **Grupos de monitores** aparece no menu lateral de **Monitores**, e o item **Monitores** de cada página de status passa a se chamar **Recursos**, onde você pode adicionar um grupo.
 :::
 
 Desligar a chave de novo esconde **Grupos de monitores** do menu. Nenhum grupo é excluído.
@@ -143,7 +143,7 @@ Um grupo é `/api/monitor-group`, e cada monitor nele é uma linha de `/api/moni
 ## Solução de problemas
 
 :::details Grupos de monitores não aparece no menu Monitores
-A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do projeto → Avançado → Sinalizadores de recursos**. No OneUptime Cloud, os grupos também exigem o plano Scale.
+A chave **Grupos de monitores** está desligada. Ligue-a em **Configurações do projeto → Básico → Produtos**. No OneUptime Cloud, os grupos também exigem o plano Scale.
 :::
 
 :::details O grupo mostra Offline, mas a maioria dos monitores está no ar

@@ -29,7 +29,9 @@ import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
  *     grants, before it lets support in; taking the access away saves at
  *     once;
  *   - "Monitor Groups" saves either way, and the dashboard's menus follow
- *     it without a reload (Utils/SelectedProjectSwitches, wired in App.tsx);
+ *     it without a reload (Utils/SelectedProjectSwitches, wired in App.tsx).
+ *     It is a row of Settings > Products now, under Monitors
+ *     (MonitorGroupsSwitchRow, #7324), and Feature Flags is gone;
  *   - "Require SSO to Sign In" asks, with a red button, before it locks out
  *     everyone not signed in with SSO; turning it off saves at once.
  *
@@ -113,14 +115,29 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     expect(page).not.toContain('name="Enable Customer Support Access"');
   });
 
-  test("Settings > Feature Flags: the Monitor Groups switch, and no reload", () => {
-    const page: string = readDashboard("Pages/Settings/FeatureFlags.tsx");
+  test("Settings > Products: the Monitor Groups switch under Monitors, and no reload (#7324)", () => {
+    const page: string = readDashboard("Pages/Settings/Products.tsx");
+    const settings: string = readDashboard(
+      "Components/ProjectProducts/ProductsSettings.tsx",
+    );
 
     expect(page).toContain(
-      "<MonitorGroupsSwitchCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+      "<ProductsSettings currentProject={props.currentProject} />",
     );
-    expect(page).not.toContain("CardModelDetail");
-    expect(page).not.toContain("Navigation.reload");
+    expect(settings).toContain(
+      "product === ProductKey.Monitors && props.currentProject && !answer.offOnServer[product]",
+    );
+    expect(settings).toContain(
+      "<MonitorGroupsSwitchRow project={props.currentProject} iconColor={item.iconColor} />",
+    );
+    expect(settings).not.toContain("Navigation.reload");
+
+    // Feature Flags held nothing else: the page is gone.
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages/Settings/FeatureFlags.tsx"),
+      ),
+    ).toBe(false);
   });
 
   test("Settings > SSO: the Require SSO switch, after the link that tests SSO", () => {
@@ -194,10 +211,6 @@ describe("the switch cards", () => {
         "CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN",
       ],
       [
-        "Components/MonitorGroup/MonitorGroupsSwitchCard.tsx",
-        "MONITOR_GROUPS_SWITCH_COLUMN",
-      ],
-      [
         "Components/Project/RequireSsoForLoginCard.tsx",
         "REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN",
       ],
@@ -244,13 +257,24 @@ describe("the switch cards", () => {
     expect(card).toContain("submitButtonType: ButtonStyleType.DANGER");
   });
 
-  test("Monitor Groups never asks", () => {
-    const card: string = readDashboard(
-      "Components/MonitorGroup/MonitorGroupsSwitchCard.tsx",
+  test("Monitor Groups never asks, and writes its Project column as the products' rows look", () => {
+    const row: string = readDashboard(
+      "Components/MonitorGroup/MonitorGroupsSwitchRow.tsx",
     );
 
-    expect(card).not.toContain("getConfirmation");
-    expect(card).toContain("note={MonitorGroupsSwitchCopy.note}");
+    expect(row).not.toContain("getConfirmation");
+    expect(row).not.toContain("ConfirmModal");
+    expect(row).toContain("<ProductSwitchRow");
+    expect(row).toContain(
+      "data: { [MONITOR_GROUPS_SWITCH_COLUMN]: value } as JSONObject,",
+    );
+    expect(row).toContain(
+      "PermissionGate.checkColumnUpdate( useMemo((): Project => { return new Project(); }, []), MONITOR_GROUPS_SWITCH_COLUMN, );",
+    );
+    expect(row).toContain(
+      "translator.translateText(MonitorGroupsSwitchCopy.note)",
+    );
+    expect(row).toContain("announceModelSwitchSaved({");
   });
 
   test("each switch starts where the column's default puts a new project: off", () => {
@@ -437,7 +461,6 @@ describe("translations", () => {
     CustomerSupportAccessSwitchCopy.allowConfirmTitle,
     CustomerSupportAccessSwitchCopy.allowConfirmDescription,
     CustomerSupportAccessSwitchCopy.allowConfirmButton,
-    MonitorGroupsSwitchCopy.cardDescription,
     MonitorGroupsSwitchCopy.switchOnDescription,
     MonitorGroupsSwitchCopy.switchOffDescription,
     MonitorGroupsSwitchCopy.note,
@@ -449,7 +472,6 @@ describe("translations", () => {
     // Older keys the switches use, now translated everywhere.
     RequireSsoForLoginSwitchCopy.switchTitle,
     RequireSsoForLoginSwitchCopy.requireConfirmButton,
-    MonitorGroupsSwitchCopy.cardTitle,
     MonitorGroupsSwitchCopy.switchTitle,
     RequireSsoForLoginSwitchCopy.cardTitle,
   ];

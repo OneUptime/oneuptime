@@ -1,3 +1,5 @@
+import ProductKey from "../../Types/Product/ProductKey";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -49,6 +51,12 @@ export default class PublicNoteApprovalRoutes {
     router: ExpressRouter;
     basePath: string;
     getHost: () => PublicNoteApprovalHost<TNote>;
+    /*
+     * The product the notes are of: while the server has it switched off,
+     * a decision, sending a note again and withdrawing an edit are refused
+     * (#7479). Where each note stands and who approves are reads.
+     */
+    product: ProductKey;
   }): void {
     const decisions: Array<{
       route: string;
@@ -71,6 +79,7 @@ export default class PublicNoteApprovalRoutes {
       data.router.post(
         `${data.basePath}/:noteId/${decision.route}`,
         UserMiddleware.getUserMiddleware,
+        ServerProductRoutes.refuseWhileOff(data.product),
         async (
           req: ExpressRequest,
           res: ExpressResponse,
@@ -110,6 +119,7 @@ export default class PublicNoteApprovalRoutes {
     data.router.post(
       `${data.basePath}/:noteId/resubmit`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(data.product),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -138,6 +148,7 @@ export default class PublicNoteApprovalRoutes {
     data.router.post(
       `${data.basePath}/:noteId/discard-edit`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(data.product),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

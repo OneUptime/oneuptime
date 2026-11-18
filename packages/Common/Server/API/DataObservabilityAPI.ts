@@ -56,6 +56,7 @@ import DataAssetService, {
 } from "../Services/DataAssetService";
 import DataStoreService from "../Services/DataStoreService";
 import AuditLogService from "../Services/AuditLogService";
+import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
@@ -124,6 +125,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * DATA OBSERVABILITY'S OWN ROUTES, BESIDE THE DATA ASSET CRUD ROUTES.
@@ -1272,6 +1275,13 @@ export default class DataObservabilityAPI extends BaseAPI<
         });
 
         /*
+         * A bucket counts for Data Observability only once paths of it are
+         * watched (#7325): the products menu stops, or starts, saying "Not
+         * set up" at once, as it does when a store is added or deleted.
+         */
+        await ProjectUsageCache.forgetProjects([projectId]);
+
+        /*
          * With no paths left, nothing collects this bucket again: its tables are
          * called dropped now, as they would be at a collection, not left to go late.
          */
@@ -1845,6 +1855,13 @@ export default class DataObservabilityAPI extends BaseAPI<
       route,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      /*
+       * A change or an action of Data Observability - every route but its reads -
+       * is refused while the server has switched it off (#7479).
+       */
+      ...(permissions === READ_PERMISSIONS
+        ? []
+        : [ServerProductRoutes.refuseWhileOff(ProductKey.DataObservability)]),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

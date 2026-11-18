@@ -202,10 +202,21 @@
       "products menu",
       "more products",
       "customize menu",
-      "show every product"
+      "show every product",
+      "feature flags"
     ],
     "path": "/dashboard/:projectId/settings/products",
     "kind": "page"
+  },
+  {
+    "title": "Monitor Groups",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Products"
+    ],
+    "path": "/dashboard/:projectId/settings/products",
+    "kind": "setting"
   },
   {
     "title": "Labels",
@@ -387,6 +398,40 @@
     ],
     "path": "/dashboard/:projectId/settings/notification-settings",
     "kind": "page"
+  },
+  {
+    "title": "Default Ladder for New Members",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Channels"
+    ],
+    "keywords": [
+      "default ladder",
+      "default paging ladder",
+      "default notification rules",
+      "default on-call rules",
+      "new member notification",
+      "how to reach me default"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#default-ladder-for-new-members",
+    "kind": "action"
+  },
+  {
+    "title": "Phone for People on Call",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Channels"
+    ],
+    "keywords": [
+      "require phone",
+      "phone method",
+      "require sms",
+      "on-call phone"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#phone-for-people-on-call",
+    "kind": "action"
   },
   {
     "title": "Custom SMTP Configs",
@@ -862,30 +907,6 @@
     ],
     "path": "/dashboard/:projectId/settings/api-keys",
     "kind": "page"
-  },
-  {
-    "title": "Feature Flags",
-    "where": [
-      "Project Settings",
-      "Advanced"
-    ],
-    "keywords": [
-      "beta features",
-      "experimental",
-      "early access"
-    ],
-    "path": "/dashboard/:projectId/settings/feature-flags",
-    "kind": "page"
-  },
-  {
-    "title": "Monitor Groups",
-    "where": [
-      "Project Settings",
-      "Advanced",
-      "Feature Flags"
-    ],
-    "path": "/dashboard/:projectId/settings/feature-flags",
-    "kind": "setting"
   },
   {
     "title": "Import from another tool",

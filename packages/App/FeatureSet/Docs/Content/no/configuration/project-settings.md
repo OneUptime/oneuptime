@@ -1,6 +1,6 @@
 # Prosjektinnstillinger
 
-Prosjektinnstillinger inneholder det som gjelder for hele prosjektet: navnet, verktøyene det er koblet til, nøklene, hvordan folk logger inn, faktureringen og revisjonssporet. Det meste setter du opp én gang og kommer sjelden tilbake til. Denne siden er et kart over det og dekker innstillingene som ikke har en egen side: prosjektets detaljer, etiketter, funksjonsflagg og sletting av prosjektet.
+Prosjektinnstillinger inneholder det som gjelder for hele prosjektet: navnet, verktøyene det er koblet til, nøklene, hvordan folk logger inn, faktureringen og revisjonssporet. Det meste setter du opp én gang og kommer sjelden tilbake til. Denne siden er et kart over det og dekker innstillingene som ikke har en egen side: prosjektets detaljer, etiketter og sletting av prosjektet.
 
 :::cards
 - [Finn en innstilling](#finn-en-innstilling): Hva hver seksjon i sidemenyen inneholder.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetri og APM** | **Inntaksnøkler**, **Dataoppbevaring**, **Forbruk** | [Inntaksnøkler](/docs/telemetry/ingestion-keys), [Dataoppbevaring](/docs/telemetry/data-retention), [Telemetriforbruk](/docs/telemetry/usage) |
 | **Varslinger** | **Varslingskanaler**, **Varslingslogger**, **Mobilapper** | [Varslinger](#varslinger) |
 | **KI** | **AI-funksjoner**, **LLM-leverandører**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-resultater**, **AI-logger**, **MCP-server** | [LLM-leverandører](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
-| **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
+| **Avansert** | **Domener**, **API-nøkler**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og bruk](/docs/configuration/billing) |
 | **Revisjonslogger** | **Revisjonslogger**, **Innstillinger**, **Eksport** | [Revisjonslogger](/docs/configuration/audit-logs), [Eksport av revisjonslogg](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Hvert produkt sier hva det er for dette prosjektet: **I bruk**, **Ikke satt opp*
 
 Prosjekteiere, Prosjektadministratorer og alle som kan redigere prosjektet, endrer den; alle andre i prosjektet kan se den.
 
+Under **Monitorer** legger bryteren **Monitorgrupper** monitorgrupper til i Monitorer-menyen. Den er av i et nytt prosjekt, lagres når du slår den om, og å slå den av sletter ingen gruppe. Å endre den krever rollen Prosjekteier, eller en egendefinert rolle med tillatelsen Edit Project eller Manage Billing. Se [Monitorgrupper](/docs/monitor/monitor-groups).
+
 ## Etiketter
 
 Etiketter er merker du setter på monitorer, hendelser, statussider og andre ressurser. De filtrerer og grupperer lister, og de begrenser hvor langt et teams tillatelser og prosjektets regler rekker.
@@ -101,10 +103,6 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 - **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, hvordan medlemmer tilkalles som standard, i **Standardrekkefølge for nye medlemmer** og **Telefon for folk på vakt** (se [Standardrekkefølgen](/docs/notifications/on-call-rules#standardrekkefølgen)), prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
 - **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**. Fanen **Webhook** beholder bare skjemaet og verten i hver adresse: resten er webhookens hemmelighet.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
-
-## Funksjonsflagg
-
-**Prosjektinnstillinger → Avansert → Funksjonsflagg** slår valgfrie funksjoner på eller av for prosjektet. Hver er en bryter som lagres når du slår den om. I dag har siden **Monitorgrupper**, av i et nytt prosjekt: slå den på for å legge monitorgrupper til i Monitorer-menyen. Å slå den av sletter ingen gruppe. Se [Monitorgrupper](/docs/monitor/monitor-groups).
 
 ## Slett prosjektet
 

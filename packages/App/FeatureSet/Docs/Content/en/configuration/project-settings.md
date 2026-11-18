@@ -1,6 +1,6 @@
 # Project Settings
 
-Project Settings holds what applies to the whole project: its name, the tools it connects to, its keys, how people sign in, its billing and its audit trail. You set most of it up once and come back rarely. This page is a map of it, and covers the settings that have no page of their own: the project's details, labels, feature flags and deleting the project.
+Project Settings holds what applies to the whole project: its name, the tools it connects to, its keys, how people sign in, its billing and its audit trail. You set most of it up once and come back rarely. This page is a map of it, and covers the settings that have no page of their own: the project's details, labels and deleting the project.
 
 :::cards
 - [Find a setting](#find-a-setting): What each section of the side menu holds.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetry & APM** | **Ingestion Keys**, **Data Retention**, **Usage** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention), [Telemetry Usage](/docs/telemetry/usage) |
 | **Notifications** | **Notification Channels**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
 | **AI** | **AI Features**, **LLM Providers**, **External MCP Servers**, **AI Credits**, **AI Results**, **AI Logs**, **MCP Server** | [LLM Providers](/docs/ai/llm-provider), [External MCP Servers](/docs/ai/external-mcp-servers), [MCP Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#cost-controls) |
-| **Advanced** | **Domains**, **API Keys**, **Feature Flags**, **Import from another tool** | [Custom domains](/docs/status-pages/branding-and-domains#custom-domains), [API keys](/docs/permissions/index#api-keys), [Feature flags](#feature-flags), [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie) and the other moving guides |
+| **Advanced** | **Domains**, **API Keys**, **Import from another tool** | [Custom domains](/docs/status-pages/branding-and-domains#custom-domains), [API keys](/docs/permissions/index#api-keys), [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie) and the other moving guides |
 | **Security** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Billing and Invoices** | **Billing**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
 | **Audit Logs** | **Audit Logs**, **Settings**, **Export** | [Audit Logs](/docs/configuration/audit-logs), [Audit Log Export](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Each product says what it is to this project: **In use**, **Not set up**, or, on
 
 Project Owners, Project Admins and anyone who may edit the project change it; everyone else in the project can see it.
 
+Under **Monitors**, the **Monitor Groups** switch adds Monitor Groups to the Monitors menu. It is off in a new project and saves when you flip it, and turning it off deletes no group. Changing it takes the Project Owner role, or a custom role with the Edit Project or Manage Billing permission. See [Monitor Groups](/docs/monitor/monitor-groups).
+
 ## Labels
 
 Labels are tags you put on monitors, incidents, status pages and other resources. They filter and group lists, and they narrow what a team's permissions and the project's rules reach.
@@ -101,10 +103,6 @@ To retire a label, archive it from its row's **⋯** menu instead of deleting it
 - **Notification Channels**: its **Notification Channels** card turns SMS, phone calls, WhatsApp and Telegram on or off for the project. All four start off. A Project Owner, a **Billing Admin** or someone with **Manage Billing** switches them. The page also holds, folded under **More settings**, how members are paged by default, under **Default Ladder for New Members** and **Phone for People on Call** (see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder)), the project's own mail servers, under **Custom SMTP Configs** (see [SMTP](/docs/emails/smtp)), and its own Twilio account (see [Twilio Integration](/docs/self-hosted/twilio-integration)). On OneUptime Cloud, it holds the balance these messages are paid from: see [Prepaid balances](/docs/configuration/billing#prepaid-balances).
 - **Notification Logs**: every notification the project sent, with one tab for each channel: **Email**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Call**, **Push** and **Workspace**. The **Webhook** tab keeps each address by its scheme and host alone: the rest of it is the webhook's secret.
 - **Mobile Apps**: where to get the iOS and Android apps. See [Apps Overview](/docs/mobile-desktop-apps/index).
-
-## Feature flags
-
-**Project Settings → Advanced → Feature Flags** turns optional features on or off for the project. Each one is a switch that saves when you flip it. Today it holds **Monitor Groups**, off in a new project: turn it on to add Monitor Groups to the Monitors menu. Turning it off deletes no group. See [Monitor Groups](/docs/monitor/monitor-groups).
 
 ## Delete the project
 

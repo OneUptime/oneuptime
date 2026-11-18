@@ -8,10 +8,23 @@ import {
   fireEvent,
   within,
 } from "@testing-library/react-native";
-import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
+import {
+  afterEach,
+  describe,
+  expect,
+  jest,
+  test,
+  beforeEach,
+} from "@jest/globals";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import HomeScreen from "./HomeScreen";
+import { AppProduct } from "../api/serverProducts";
+import * as ServerProductsApi from "../api/serverProducts";
+import {
+  loadProductsOffOnServer,
+  resetProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
 import { WindowLayoutProvider } from "../layout/WindowLayout";
 import { TABLETOP_FOLD_GAP } from "../layout/windowLayout";
 import { getScreenBottomPadding } from "../theme/layout";
@@ -933,6 +946,72 @@ describe("The on-call card", () => {
       backgroundColor: lightColors.backgroundElevated,
       borderRadius: radius.lg,
     });
+  });
+});
+
+/*
+ * A product the server's admin switched off has nothing on Home (#7478):
+ * no tile, row or card of it, as it has no tab.
+ */
+describe("Home leaves out the products the server switched off", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockOnCall.current = onCallOnDuty();
+    mockColorScheme.current = "light";
+    mockCounts.current = countsWith({ incidentCount: 2, alertCount: 1 });
+  });
+
+  afterEach(() => {
+    resetProductsOffOnServer();
+    jest.restoreAllMocks();
+  });
+
+  async function switchOff(products: Array<AppProduct>): Promise<void> {
+    jest
+      .spyOn(ServerProductsApi, "fetchProductsOffOnServer")
+      .mockResolvedValue(new Set(products));
+    await loadProductsOffOnServer("project-1");
+  }
+
+  test("Incidents and On-Call off: no incident tile or episodes, no on-call card", async () => {
+    await switchOff([AppProduct.Incidents, AppProduct.OnCall]);
+
+    await render(<HomeScreen />);
+
+    expect(screen.queryByTestId("home-tile-incidents")).toBeNull();
+    expect(screen.queryByTestId("home-row-incident-episodes")).toBeNull();
+    expect(screen.queryByTestId("home-oncall-card")).toBeNull();
+    expect(screen.getByTestId("home-tile-alerts")).toBeTruthy();
+    expect(screen.getByTestId("home-row-alert-episodes")).toBeTruthy();
+  });
+
+  test("Monitors off: no service health", async () => {
+    await switchOff([AppProduct.Monitors]);
+
+    await render(<HomeScreen />);
+
+    expect(screen.queryByTestId("home-service-health")).toBeNull();
+    expect(screen.getByTestId("home-tile-incidents")).toBeTruthy();
+  });
+
+  test("Incidents and Alerts off: no Needs attention and no grouped events", async () => {
+    await switchOff([AppProduct.Incidents, AppProduct.Alerts]);
+
+    await render(<HomeScreen />);
+
+    expect(screen.queryByText("Needs attention")).toBeNull();
+    expect(screen.queryByTestId("home-grouped-events")).toBeNull();
+    expect(screen.getByTestId("home-oncall-card")).toBeTruthy();
+  });
+
+  test("nothing off: everything as before", async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId("home-tile-incidents")).toBeTruthy();
+    expect(screen.getByTestId("home-oncall-card")).toBeTruthy();
+    expect(screen.getByTestId("home-service-health")).toBeTruthy();
+    expect(screen.getByTestId("home-grouped-events")).toBeTruthy();
   });
 });
 

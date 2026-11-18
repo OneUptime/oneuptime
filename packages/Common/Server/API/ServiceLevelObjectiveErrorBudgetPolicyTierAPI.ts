@@ -21,6 +21,8 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import { readServiceLevelObjectiveId } from "./ServiceLevelObjectiveBurnRateRuleAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // Beside the tier table's CRUD path, /service-level-objective-error-budget-policy-tier.
 export const SLO_RECOMMENDED_POLICY_ROUTE: string = "/recommended-policy";
@@ -99,6 +101,7 @@ export default class ServiceLevelObjectiveErrorBudgetPolicyTierAPI extends BaseA
     this.router.post(
       `${basePath}${SLO_ADD_RECOMMENDED_POLICY_ROUTE}`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Slos),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

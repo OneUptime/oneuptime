@@ -371,4 +371,117 @@ describe("TelemetryMilestones", () => {
       expect(reached).toEqual([]);
     });
   });
+
+  /*
+   * AI / LLM's first AI call (#7325): a span the ingest marked as a GenAI
+   * call. The products menu says "Not set up" for AI / LLM until it, as the
+   * Conversations page explains itself until AI calls arrive.
+   */
+  describe("the first AI calls", () => {
+    const spansOf: (
+      spans: Array<{ projectId: string; isLlmSpan?: unknown }>,
+    ) => Array<JSONObject> = (
+      spans: Array<{ projectId: string; isLlmSpan?: unknown }>,
+    ): Array<JSONObject> => {
+      return spans.map(
+        (span: { projectId: string; isLlmSpan?: unknown }): JSONObject => {
+          return { ...span, name: "chat gpt-4o" } as JSONObject;
+        },
+      );
+    };
+
+    test("names each project whose spans hold an AI call, once", () => {
+      expect(
+        TelemetryMilestones.collectLlmCalls(
+          AnalyticsTableName.Span,
+          spansOf([
+            { projectId: PROJECT_A, isLlmSpan: false },
+            { projectId: PROJECT_B, isLlmSpan: true },
+            { projectId: PROJECT_B, isLlmSpan: true },
+            { projectId: PROJECT_A, isLlmSpan: true },
+          ]),
+        ),
+      ).toEqual({
+        milestone: ActivationMilestone.FirstLlmCallsReceived,
+        projectIds: [PROJECT_B, PROJECT_A],
+      });
+    });
+
+    test("spans that hold no AI call, another table and a known project name nobody", () => {
+      expect(
+        TelemetryMilestones.collectLlmCalls(
+          AnalyticsTableName.Span,
+          spansOf([
+            { projectId: PROJECT_A },
+            { projectId: PROJECT_B, isLlmSpan: 1 },
+          ]),
+        ),
+      ).toBeNull();
+
+      expect(
+        TelemetryMilestones.collectLlmCalls(
+          AnalyticsTableName.Log,
+          spansOf([{ projectId: PROJECT_A, isLlmSpan: true }]),
+        ),
+      ).toBeNull();
+
+      known.add(`${PROJECT_A}:${ActivationMilestone.FirstLlmCallsReceived}`);
+
+      expect(
+        TelemetryMilestones.collectLlmCalls(
+          AnalyticsTableName.Span,
+          spansOf([{ projectId: PROJECT_A, isLlmSpan: true }]),
+        ),
+      ).toBeNull();
+      expect(
+        TelemetryMilestones.collectLlmCalls(AnalyticsTableName.Span, []),
+      ).toBeNull();
+    });
+
+    test("through the fan-in writer: spans ClickHouse accepted mark the traces and the AI calls", async () => {
+      const writer: TelemetryFanInWriter = makeWriter();
+
+      const submission: FanInSubmitResult = await writer.submit(
+        makeTarget(AnalyticsTableName.Span),
+        spansOf([
+          { projectId: PROJECT_A, isLlmSpan: true },
+          { projectId: PROJECT_B, isLlmSpan: false },
+        ]),
+      );
+
+      await submission.flushed;
+      await flush();
+
+      expect(reached).toEqual([
+        {
+          projectId: PROJECT_A,
+          milestone: ActivationMilestone.FirstTracesReceived,
+        },
+        {
+          projectId: PROJECT_B,
+          milestone: ActivationMilestone.FirstTracesReceived,
+        },
+        {
+          projectId: PROJECT_A,
+          milestone: ActivationMilestone.FirstLlmCallsReceived,
+        },
+      ]);
+    });
+
+    test("spans ClickHouse refused mark no AI call either", async () => {
+      const writer: TelemetryFanInWriter = makeWriter();
+
+      const submission: FanInSubmitResult = await writer.submit(
+        makeTarget(AnalyticsTableName.Span, async (): Promise<void> => {
+          throw new Error("Code: 27. Cannot parse input");
+        }),
+        spansOf([{ projectId: PROJECT_A, isLlmSpan: true }]),
+      );
+
+      await expect(submission.flushed).rejects.toThrow();
+      await flush();
+
+      expect(reached).toEqual([]);
+    });
+  });
 });

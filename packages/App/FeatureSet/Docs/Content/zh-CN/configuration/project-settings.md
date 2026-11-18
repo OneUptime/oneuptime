@@ -1,6 +1,6 @@
 # 项目设置
 
-项目设置包含适用于整个项目的内容：名称、它所连接的工具、密钥、人员的登录方式、账单以及审计记录。大部分内容只需设置一次，之后很少再改动。本页是这些设置的地图，并介绍没有独立页面的设置：项目详情、标签、功能标志和删除项目。
+项目设置包含适用于整个项目的内容：名称、它所连接的工具、密钥、人员的登录方式、账单以及审计记录。大部分内容只需设置一次，之后很少再改动。本页是这些设置的地图，并介绍没有独立页面的设置：项目详情、标签和删除项目。
 
 :::cards
 - [查找设置](#查找设置): 侧边菜单中每个部分包含的内容。
@@ -36,7 +36,7 @@ flowchart LR
 | **遥测与 APM** | **摄取密钥**、**数据保留**、**用量** | [摄取密钥](/docs/telemetry/ingestion-keys)、[数据保留](/docs/telemetry/data-retention)、[遥测用量](/docs/telemetry/usage) |
 | **通知** | **通知渠道**、**通知日志**、**移动应用** | [通知](#通知) |
 | **人工智能** | **AI 功能**、**LLM 提供商**、**外部 MCP 服务器**、**AI 积分**、**AI 成效**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[外部 MCP 服务器](/docs/ai/external-mcp-servers)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
-| **高级** | **域名**、**API 密钥**、**功能标志**、**从其他工具导入** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
+| **高级** | **域名**、**API 密钥**、**从其他工具导入** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
 | **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **账单和发票** | **账单**、**发票** | [账单与用量](/docs/configuration/billing) |
 | **审计日志** | **审计日志**、**设置**、**导出** | [审计日志](/docs/configuration/audit-logs)、[审计日志导出](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ flowchart LR
 
 项目所有者、项目管理员以及可以编辑项目的人可以更改它；项目中的其他所有人都可以查看。
 
+**监视器** 下方的 **监视器组** 开关会把监视器组加入监视器菜单。它在新项目中默认关闭，切换后立即保存，关闭它不会删除任何组。更改它需要项目所有者角色，或拥有 Edit Project 或 Manage Billing 权限的自定义角色。参见[监视器组](/docs/monitor/monitor-groups)。
+
 ## 标签
 
 标签是你贴在监视器、事件、状态页面和其他资源上的标记。它们用于筛选和分组列表，并限制团队权限和项目规则的作用范围。
@@ -101,10 +103,6 @@ flowchart LR
 - **通知渠道**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由项目所有者、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含成员默认的呼叫方式，位于 **新成员的默认联系顺序** 和 **值班人员的电话** 下（参见[默认联系顺序](/docs/notifications/on-call-rules#默认联系顺序)）、项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
 - **通知日志**：项目发送的每条通知，每个渠道一个选项卡：**电子邮件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**调用**、**推送**和**工作区**。 **Webhook** 选项卡只保留每个地址的协议和主机，其余部分是 Webhook 的密钥。
 - **移动应用**：获取 iOS 和 Android 应用的位置。参见[应用概览](/docs/mobile-desktop-apps/index)。
-
-## 功能标志
-
-**项目设置 → 高级 → 功能标志**为项目打开或关闭可选功能。每个功能都是一个开关，切换后立即保存。目前该页面包含**监视器组**，在新项目中默认关闭：打开后，监视器菜单中会加入监视器组。关闭它不会删除任何组。参见[监视器组](/docs/monitor/monitor-groups)。
 
 ## 删除项目
 

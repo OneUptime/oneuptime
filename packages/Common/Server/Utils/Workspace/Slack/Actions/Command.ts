@@ -24,6 +24,8 @@ import SlackAuthAction, { SlackAction, SlackRequest } from "./Auth";
 import SlackIncidentActions from "./Incident";
 import SlackPageActions from "./Page";
 import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
+import SlackActionAuthorization from "./Authorization";
+import { getProductOfSlackAction } from "./ProductOfAction";
 
 /*
  * /oneuptime, AND EVERY WORD AFTER IT.
@@ -259,6 +261,21 @@ export default class SlackCommandActions {
         );
       },
     );
+
+    /*
+     * A command of a product the server switched off (#7479): answered
+     * where it was run, and nothing is opened or read out.
+     */
+    if (
+      await SlackActionAuthorization.refuseWhileProductIsOff({
+        requester: slackRequest,
+        product: getProductOfSlackAction(action?.actionType),
+        req: data.req,
+        res: data.res,
+      })
+    ) {
+      return;
+    }
 
     switch (action?.actionType) {
       // And `/oneuptime incident 42`: that incident, with its buttons.

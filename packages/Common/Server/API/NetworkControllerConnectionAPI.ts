@@ -38,6 +38,8 @@ import { NetworkControllerSettings } from "../Utils/NetworkController/NetworkCon
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * Network controller connections (a Meraki organization): the CRUD routes,
@@ -85,6 +87,7 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
       `${basePath}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -169,6 +172,7 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/read-now`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -216,6 +220,7 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/add-devices`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

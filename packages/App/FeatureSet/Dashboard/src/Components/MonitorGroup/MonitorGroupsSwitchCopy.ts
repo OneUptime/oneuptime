@@ -1,19 +1,21 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Whether the project uses monitor groups, on Settings -> Feature Flags.
+ * Whether the project uses monitor groups, on Settings -> Products, under
+ * Monitors (MonitorGroupsSwitchRow, #7324).
  *
- * It used to be a "Feature Flags" card whose Edit Feature Flags dialog held
- * one switch, "Enable Monitor Groups", and reloaded the whole dashboard
- * after saving it. The card is the switch now (MonitorGroupsSwitchCard, on
- * the shared ModelSwitchCard), and it saves the moment it is flipped; the
- * Monitors menu and the status page menus follow at once, because the
- * dashboard hears the save (SelectedProjectSwitches) instead of reloading.
+ * It used to be a card of its own, the one switch of Settings -> Feature
+ * Flags, and before that a card whose Edit dialog held one switch and
+ * reloaded the whole dashboard after saving it. Now it is a row of
+ * Products, beside the switches that choose what every other menu shows,
+ * and it saves the moment it is flipped; the Monitors menu and the status
+ * page menus follow at once, because the dashboard hears the save
+ * (SelectedProjectSwitches) instead of reloading.
  *
- * The switch stays on Feature Flags rather than moving next to the Monitor
- * Groups page: while it is off, there is no Monitor Groups page in the
- * menu to put it on, and it decides more than that page - the status pages'
- * "Resources" menu item and their "Add a Monitor Group instead" link too.
+ * It is not next to the Monitor Groups page: while it is off, there is no
+ * Monitor Groups page in the menu to put it on, and it decides more than
+ * that page - the status pages' "Resources" menu item and their "Add a
+ * Monitor Group instead" link too.
  *
  * No dialog either way: turning it off only hides Monitor Groups again, and
  * deletes no group.
@@ -24,18 +26,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 
 export const MonitorGroupsSwitchCopy: {
-  cardTitle: string;
-  cardDescription: string;
   switchTitle: string;
   switchOnDescription: string;
   switchOffDescription: string;
   // Under the switch, whichever way it is set.
   note: string;
 } = {
-  cardTitle: translationKey("Feature Flags"),
-  cardDescription: translationKey(
-    "Turn optional features on or off for this project.",
-  ),
   switchTitle: translationKey("Monitor Groups"),
   switchOnDescription: translationKey(
     "Monitor Groups is in the Monitors menu.",

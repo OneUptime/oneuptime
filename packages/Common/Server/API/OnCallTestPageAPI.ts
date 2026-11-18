@@ -35,6 +35,8 @@ import {
   OnCallTestPageResult,
   isOnCallTestPageRecordKind,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * TEST PAGES (Types/OnCallDutyPolicy/OnCallTestPage), for the Dashboard and
@@ -219,6 +221,7 @@ router.post(
 router.post(
   `${ON_CALL_TEST_PAGE_API_PATH}/page-person`,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -261,6 +264,7 @@ router.post(
 router.post(
   `${ON_CALL_TEST_PAGE_API_PATH}/page-policy`,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -390,6 +394,7 @@ router.post(
 router.post(
   `${ON_CALL_TEST_PAGE_API_PATH}/fire-drill/start`,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -532,6 +537,7 @@ router.get(
 router.post(
   `${ON_CALL_TEST_PAGE_API_PATH}/acknowledge/:userOnCallLogTimelineId`,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

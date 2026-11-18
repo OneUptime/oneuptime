@@ -98,6 +98,7 @@ import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CallerPlan from "../Utils/Billing/CallerPlan";
+import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import PlanGates from "../Types/Database/Permissions/PlanGates";
 
@@ -2566,6 +2567,12 @@ export default class AnalyticsDatabaseService<
         deleteBy.props,
       );
 
+      // So is a record of a product switched off on the server (#7479).
+      await ProductWriteRefusal.refuseWhileProductIsOff({
+        tableName: this.model.tableName,
+        props: deleteBy.props,
+      });
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2781,6 +2788,12 @@ export default class AnalyticsDatabaseService<
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
         updateBy.props,
       );
+
+      // So is a record of a product switched off on the server (#7479).
+      await ProductWriteRefusal.refuseWhileProductIsOff({
+        tableName: this.model.tableName,
+        props: updateBy.props,
+      });
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
@@ -3186,6 +3199,12 @@ export default class AnalyticsDatabaseService<
   ): Promise<Array<TBaseModel>> {
     // Refused before any hook runs; see assertCredentialCanWrite.
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
+
+    // So is a record of a product switched off on the server (#7479).
+    await ProductWriteRefusal.refuseWhileProductIsOff({
+      tableName: this.model.tableName,
+      props: createBy.props,
+    });
 
     /*
      * The project's plan, read once when the props act in it without one and

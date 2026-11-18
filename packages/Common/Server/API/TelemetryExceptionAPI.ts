@@ -61,6 +61,8 @@ import TelemetryExceptionMerge, {
   ExceptionMergeResult,
   ExceptionUnmergeResult,
 } from "../Utils/Telemetry/TelemetryExceptionMerge";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * User-facing wording for a code-fix run's status on the exception page —
@@ -120,6 +122,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/create-ai-agent-task/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.createAIAgentTask(req, res);
@@ -174,6 +177,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/ai-explanation/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.explainWithAI(req, res);
@@ -212,6 +216,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/similar-ai-check/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.checkDuplicatesWithAI(req, res);
@@ -231,6 +236,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/ai-digest`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.digestWithAI(req, res);
@@ -306,6 +312,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/merge/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.mergeExceptions(req, res);
@@ -320,6 +327,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/unmerge/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.unmergeException(req, res);

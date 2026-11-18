@@ -202,10 +202,11 @@ describe("the menu the paths are held to, read from its source", () => {
      * waits last in Advanced ("This should be in the advanced section in
      * the side menu.", the maintainer), where Basic held it before.
      */
-    [
-      "Advanced",
-      ["Domains", "API Keys", "Feature Flags", "Import from another tool"],
-    ],
+    /*
+     * Feature Flags' one switch, Monitor Groups, moved to Basic > Products,
+     * under Monitors (#7324).
+     */
+    ["Advanced", ["Domains", "API Keys", "Import from another tool"]],
     // SSO holds the project's SAML and OpenID Connect providers.
     ["Security", ["SSO", "SCIM"]],
     ["Billing and Invoices", ["Billing", "Invoices"]],
@@ -297,7 +298,7 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "a page of another section",
-      "Go to Project Settings → AI → Feature Flags.",
+      "Go to Project Settings → AI → API Keys.",
       ["names no page of its AI section"],
     ],
     [

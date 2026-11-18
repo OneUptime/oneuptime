@@ -45,6 +45,8 @@ import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import PrivateRecordPermission from "../Types/Database/Permissions/PrivateRecordPermission";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * AN INCIDENT CALL'S TRANSCRIPT, AND WHAT ONEUPTIME AI READ IN IT
@@ -114,6 +116,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       `${basePath}/:callId/transcript`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.addTranscript(req, res);
@@ -127,6 +130,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       `${basePath}/:callId/transcript/from-provider`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.readTranscriptFromProvider(req, res);
@@ -140,6 +144,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       `${basePath}/:callId/transcript`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.removeTranscript(req, res);
@@ -153,6 +158,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       `${basePath}/:callId/call-summary`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.readAgain(req, res);
@@ -166,6 +172,7 @@ export default class IncidentVideoCallAPI extends BaseAPI<
       `${basePath}/:callId/root-cause-suggestion`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Incidents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.reviewRootCauseSuggestion(req, res);

@@ -138,7 +138,7 @@ Voir [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ### Groupe de moniteurs
 
-Plusieurs moniteurs réunis en un seul statut, le pire d'entre eux, avec sa propre disponibilité. Une page de statut peut afficher tout le groupe sur une seule ligne. Activez les groupes de moniteurs sous **Paramètres du projet → Avancé → Drapeaux de fonctionnalités**.
+Plusieurs moniteurs réunis en un seul statut, le pire d'entre eux, avec sa propre disponibilité. Une page de statut peut afficher tout le groupe sur une seule ligne. Activez les groupes de moniteurs sous **Paramètres du projet → Basique → Produits**.
 
 Voir [Groupes de moniteurs](/docs/monitor/monitor-groups).
 
