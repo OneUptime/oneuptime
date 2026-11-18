@@ -175,6 +175,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 import "../../FeatureSet/Notification/API/PhoneNumber";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -529,11 +530,24 @@ describe("phone-number route authorization", () => {
       ],
       ["delete", "/release/:incomingCallPolicyId"],
     ] as const) {
-      expect(mockRouter.match(method, route).middlewares.slice(0, 2)).toEqual([
+      const middlewares: Array<unknown> = mockRouter.match(
+        method,
+        route,
+      ).middlewares;
+
+      expect(middlewares.slice(0, 2)).toEqual([
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(mockRouter.match(method, route).middlewares).toHaveLength(3);
+
+      /*
+       * A route that changes a number is refused, before its guard, while
+       * the server has On-Call switched off (#9489).
+       */
+      const isLookUp: boolean = route === "/search" || route === "/list-owned";
+
+      expect(middlewares).toHaveLength(isLookUp ? 3 : 4);
+      expect(ServerProductRoutes.isRefusal(middlewares[2])).toBe(!isLookUp);
     }
 
     expect(mockRouter.match("post", "/internal/release").middlewares).toEqual([

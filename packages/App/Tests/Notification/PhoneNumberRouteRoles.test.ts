@@ -60,6 +60,10 @@ jest.mock("Common/Server/Utils/Express", () => {
 });
 
 import "../../FeatureSet/Notification/API/PhoneNumber";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
+import ProductSwitchedOffException from "Common/Types/Exception/ProductSwitchedOffException";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "12121212-1212-4212-8212-121212121212",
@@ -251,7 +255,11 @@ beforeEach(() => {
   sendErrorResponse.mockClear();
 });
 
-// The guard of a route: its third middleware, after the session middlewares.
+/*
+ * The guard of a route: its last middleware, after the session middlewares
+ * - and, for a route that changes a number, the refusal while the server
+ * has On-Call switched off (#9489).
+ */
 function guardOf(route: PhoneNumberRoute): Guard {
   const middlewares: Array<unknown> = mockRouter.match(
     route.method,
@@ -262,9 +270,11 @@ function guardOf(route: PhoneNumberRoute): Guard {
     UserMiddleware.getUserMiddleware,
     UserMiddleware.requireUserAuthentication,
   ]);
-  expect(middlewares).toHaveLength(3);
+  expect(middlewares).toHaveLength(
+    route.action === IncomingCallPhoneNumberAction.Change ? 4 : 3,
+  );
 
-  return middlewares[2] as Guard;
+  return middlewares[middlewares.length - 1] as Guard;
 }
 
 async function call(
@@ -360,5 +370,55 @@ describe("phone-number routes take the incoming call policy's roles", () => {
         ).passed,
       ).toBe(true);
     }
+  });
+});
+
+/*
+ * A number reserved, attached or released changes an On-Call policy: while
+ * the server has On-Call switched off (#9489) each such route is refused,
+ * with who can switch it on, before its guard - and looking numbers up
+ * goes on.
+ */
+describe("while On-Call is switched off on the server", () => {
+  let getOff: SpyInstance;
+
+  beforeAll(() => {
+    getOff = jest.spyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff,
+    });
+  });
+
+  afterAll(() => {
+    getOff.mockRestore();
+  });
+
+  test.each(
+    ROUTES.map((route: PhoneNumberRoute): [string, PhoneNumberRoute] => {
+      return [`${route.method} ${route.route}`, route];
+    }),
+  )("%s", async (_route: string, route: PhoneNumberRoute) => {
+    const middlewares: Array<unknown> = mockRouter.match(
+      route.method,
+      route.route,
+    ).middlewares;
+
+    if (route.action === IncomingCallPhoneNumberAction.LookUp) {
+      expect(middlewares).toHaveLength(3);
+      return;
+    }
+
+    const next: Mock = jest.fn();
+
+    await (middlewares[2] as Guard)(
+      { body: {}, params: {} } as unknown as ExpressRequest,
+      {} as ExpressResponse,
+      next as unknown as NextFunction,
+    );
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0]![0]).toBeInstanceOf(ProductSwitchedOffException);
+    expect((next.mock.calls[0]![0] as Error).message).toBe(
+      "On-Call is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+    );
   });
 });

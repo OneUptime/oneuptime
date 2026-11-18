@@ -47,6 +47,8 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import Query from "Common/Types/BaseDatabase/Query";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import OnBehalfOfProps from "Common/Server/Utils/AuditLog/OnBehalfOfProps";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -58,6 +60,10 @@ const router: ExpressRouter = Express.getRouter();
  * incoming call policies, and the handler then checks the one policy as its
  * update would (assertCanEditIncomingCallPolicy). The dashboard's number
  * picker is offered to the same people.
+ *
+ * Reserving, attaching and releasing a number change an On-Call policy:
+ * refused while the server has On-Call switched off (#9489). Looking
+ * numbers up is not.
  */
 function requirePhoneNumberAccess(
   action: IncomingCallPhoneNumberAction,
@@ -584,6 +590,7 @@ router.post(
   "/assign-existing",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
@@ -773,6 +780,7 @@ router.post(
   "/purchase",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
@@ -1225,6 +1233,7 @@ router.delete(
   "/release/:incomingCallPolicyId/:incomingCallPolicyPhoneNumberId",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   releasePhoneNumberHandler,
 );
@@ -1234,6 +1243,7 @@ router.delete(
   "/release/:incomingCallPolicyId",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   releasePhoneNumberHandler,
 );
