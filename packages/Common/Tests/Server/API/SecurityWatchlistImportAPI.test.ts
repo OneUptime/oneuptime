@@ -15,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { SecurityWatchlistImportMode } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * POST /security-watchlist/import: values from a file or a paste, added to
@@ -143,7 +144,9 @@ describe("POST /security-watchlist/import", () => {
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
     ]);
-    expect(found?.handlers).toHaveLength(3);
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(withoutRefusals(found!.handlers)).toHaveLength(3);
+    expect(countRefusals(found!.handlers)).toBe(1);
   });
 
   test("the list, the text and the mode, imported as the caller; what it did answered", async () => {

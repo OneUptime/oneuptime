@@ -39,6 +39,11 @@ import CodeFixClaimQuery, {
 import { CodeWorker } from "../../Types/Runner/CodeRepositoryRunner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
+import { AIRunSubject, getProductsOfAIRun } from "../../Types/AI/AIRunProducts";
+import ProductSwitchedOffException from "../../Types/Exception/ProductSwitchedOffException";
+import ProductKey from "../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../Types/Product/ServerProducts";
 import { UpdateQueryBuilder, UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
@@ -327,6 +332,15 @@ export class Service extends DatabaseService<Model> {
      */
     pushesWithRunTokens?: boolean | undefined;
   }): Promise<Model | null> {
+    /*
+     * No code fix is handed to an AI agent while the server has Code
+     * switched off (#9489): a fix queued before it was switched off waits,
+     * and is handed out once Code is on again.
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Code)) {
+      return null;
+    }
+
     const maxClaimAttempts: number = 5;
 
     // A null recipe is FixException (rows created before recipes existed).
@@ -556,6 +570,11 @@ export class Service extends DatabaseService<Model> {
   public async countClaimableCodeFixRuns(
     facts: CodeFixClaimQueryFacts,
   ): Promise<number> {
+    // None while Code is switched off: none would be handed out (see the claim).
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Code)) {
+      return 0;
+    }
+
     const statement: CodeFixClaimStatement =
       CodeFixClaimQuery.getCountStatement(
         Service.withRepositoryTokenRule(facts),
@@ -695,6 +714,40 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * ONEUPTIME AI STARTS NOTHING ON A PRODUCT SWITCHED OFF ON THE SERVER
+   * (#9489).
+   *
+   * Every run - an investigation, a fix, a code fix, a conversation - is
+   * created here, as the server, whoever asked for it: a person's route, a
+   * create hook, a job, a GitHub event. A run that works on a product the
+   * server has switched off (Types/AI/AIRunProducts: its incident's or
+   * alert's, Code for a code fix, AI Chat for a conversation, Runbooks for a
+   * runbook pick) is refused before anything is written, with what happened
+   * and who can switch it on: a switched-off product's data does not change,
+   * not even by OneUptime AI. A route says so first, and the investigation
+   * queue quietly starts nothing; this holds whoever comes here.
+   */
+  public async getOffProductOfRun(run: AIRunSubject): Promise<{
+    product: ProductKey;
+    reason: ServerProductOffReason;
+  } | null> {
+    return await ServerProducts.getFirstOffOfServerWork(
+      getProductsOfAIRun(run),
+    );
+  }
+
+  public async assertProductsAreOn(run: AIRunSubject): Promise<void> {
+    const off: {
+      product: ProductKey;
+      reason: ServerProductOffReason;
+    } | null = await this.getOffProductOfRun(run);
+
+    if (off) {
+      throw new ProductSwitchedOffException(off);
+    }
+  }
+
+  /*
    * Stamp CodeFix runs with the project's next task number, so every AI task
    * has the short human-citable handle "#42" that incidents and alerts have.
    *
@@ -717,6 +770,9 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId || undefined;
+
+    // Not on a product switched off on the server (see the helper).
+    await this.assertProductsAreOn(createBy.data);
 
     await this.carryWhatTheTurnCarries(createBy.data);
 

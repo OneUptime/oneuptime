@@ -22,6 +22,7 @@ import {
 } from "../../../Types/LlmObservability/LlmConnectionTest";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * The two routes beside the AI connections' CRUD: "Test connection" (a
@@ -204,7 +205,9 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route(uri).handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(uri).handlers)).toHaveLength(3);
+      expect(countRefusals(route(uri).handlers)).toBe(1);
     },
   );
 });

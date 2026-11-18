@@ -339,6 +339,7 @@ import fs from "fs";
 import http from "http";
 import { AddressInfo } from "net";
 import path from "path";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 // -- Harness ----------------------------------------------------------------
 
@@ -1150,7 +1151,9 @@ describe("OnCallCalendarAPI: route registration", () => {
     for (const [method, uri] of expected) {
       const route: RegisteredRoute = routeFor(method, uri);
 
-      expect(route.middlewares).toHaveLength(2);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route.middlewares)).toHaveLength(2);
+      expect(countRefusals(route.middlewares)).toBe(method === "POST" ? 1 : 0);
       expect(route.uri.startsWith("/on-call-calendar/")).toBe(true);
     }
   });

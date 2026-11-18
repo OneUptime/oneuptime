@@ -26,6 +26,9 @@ import {
   InvestigationThreadSubjectType,
 } from "../Utils/AI/SRE/InvestigationThread";
 import { ChatRunCancellationResult } from "../Utils/AI/Chat/ChatRunCancellation";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * The conversation inside an incident's / alert's AI investigation box.
@@ -37,6 +40,11 @@ import { ChatRunCancellationResult } from "../Utils/AI/Chat/ChatRunCancellation"
  * touch the shared thread. Anyone who can see the incident can read the
  * thread, ask in it, decide on an action it paused on, or stop an answer;
  * the tools the AI runs for them still run under their own permissions.
+ *
+ * Asking, deciding and stopping write to the thread - a conversation with
+ * OneUptime AI, AI Chat's - and to the incident or alert it is about, as
+ * the server: each is refused while either product is switched off on the
+ * server (#9489). Reading the thread is not.
  */
 
 const router: ExpressRouter = Express.getRouter();
@@ -139,6 +147,8 @@ router.post(
 router.post(
   "/ai-investigation/conversation/send-message",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -191,6 +201,8 @@ router.post(
 router.post(
   "/ai-investigation/conversation/respond-to-approval",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -252,6 +264,8 @@ router.post(
 router.post(
   "/ai-investigation/conversation/cancel-run",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
+  ServerProductRoutes.refuseWhileOff(ProductKey.AIChat),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

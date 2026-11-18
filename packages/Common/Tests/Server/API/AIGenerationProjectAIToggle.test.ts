@@ -48,6 +48,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * Project.enableAi is the per-project kill switch for AI. It is the switch a
@@ -699,7 +700,10 @@ describe.each(GENERATE_ROUTES)(
   "POST $uri - expired session",
   (route: GenerateRoute) => {
     test("is mounted with requireUserAuthentication directly after getUserMiddleware", () => {
-      expect(mockRouter.match("post", route.uri).middlewares).toEqual([
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(
+        withoutRefusals(mockRouter.match("post", route.uri).middlewares),
+      ).toEqual([
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);

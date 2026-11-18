@@ -75,6 +75,8 @@ import {
 } from "../../../../Types/CodeRepository/ProductionReview";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import ServerProducts from "../../ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
 
 /*
  * ONE PRODUCTION REVIEW, DONE.
@@ -199,6 +201,14 @@ export default class ProductionReviewRunner {
   // Every review that is due, one after another.
   @CaptureSpan()
   public static async runDueReviews(): Promise<number> {
+    /*
+     * OneUptime AI reviews nothing while the server has Code switched off
+     * (#9489): a review that is due waits, and runs once Code is on again.
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Code)) {
+      return 0;
+    }
+
     const claimed: Array<AIRun> = await ProductionReviewQueue.claimDue();
 
     for (const run of claimed) {

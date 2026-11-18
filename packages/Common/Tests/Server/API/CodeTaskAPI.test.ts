@@ -85,6 +85,10 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import ProductSwitchedOffException from "../../../Types/Exception/ProductSwitchedOffException";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../Types/Product/ServerProducts";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { CodeRepositoryRunnerChoiceKind } from "../../../Types/Runner/CodeRepositoryRunner";
@@ -524,8 +528,77 @@ describe("every route acts as a signed-in person", () => {
     ]);
 
     for (const route of routes) {
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      expect(route.middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
     }
+  });
+
+  /*
+   * What sets OneUptime AI to work in a repository, or stops it, is refused
+   * while the server has Code switched off (#9489), before anything is
+   * read; what Code's pages read is not.
+   */
+  test("every route that sets AI to work is refused while Code is switched off on the server, and no read is", async () => {
+    const routes: Array<{ uri: string; middlewares: Array<unknown> }> =
+      mockRouter.routes.filter((route: { uri: string }) => {
+        return route.uri.startsWith("/code-task/");
+      }) as never;
+
+    const getOff: jest.SpyInstance = jest
+      .spyOn(ServerProducts, "getOff")
+      .mockResolvedValue({
+        [ProductKey.Code]: ServerProductOffReason.SwitchedOff,
+      });
+
+    const refused: Array<string> = [];
+
+    for (const route of routes) {
+      const refusals: Array<unknown> = route.middlewares.slice(1);
+
+      if (refusals.length === 0) {
+        continue;
+      }
+
+      expect({ uri: route.uri, refusals: refusals.length }).toEqual({
+        uri: route.uri,
+        refusals: 1,
+      });
+
+      const handedOn: Array<unknown> = [];
+
+      await (
+        refusals[0] as (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => Promise<void>
+      )(
+        { body: {}, params: {} } as unknown as ExpressRequest,
+        {} as ExpressResponse,
+        ((err?: unknown): void => {
+          handedOn.push(err);
+        }) as NextFunction,
+      );
+
+      expect(handedOn).toHaveLength(1);
+      expect(handedOn[0]).toBeInstanceOf(ProductSwitchedOffException);
+      expect((handedOn[0] as ProductSwitchedOffException).message).toBe(
+        "Code is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+      );
+
+      refused.push(route.uri);
+    }
+
+    expect(refused).toEqual([
+      "/code-task/create",
+      "/code-task/reply/:taskId",
+      "/code-task/retry/:taskId",
+      "/code-task/retry-many",
+      "/code-task/stop/:taskId",
+      "/code-task/review-again/:taskId",
+      "/code-task/review-pull-request/:repositoryId",
+    ]);
+
+    getOff.mockRestore();
   });
 });
 

@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -131,7 +132,8 @@ describe("POST /on-call-duty-policy-user-override/add-access", () => {
       ROUTE,
     );
 
-    expect(route.middlewares).toEqual([
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(withoutRefusals(route.middlewares)).toEqual([
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
     ]);

@@ -133,6 +133,8 @@ import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandJobOutcome,
 } from "../Utils/AI/ResourceAccess/ResourceCommandJobRunner";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -153,6 +155,12 @@ const router: ExpressRouter = Express.getRouter();
  * CRUD read. That check is what guards the agent data too: the
  * ResourceAiAgent table is readable by anyone who may read ANY of the eight
  * resource types, so nothing here returns an agent without it.
+ *
+ * Testing the agent, resetting it and making its keys act on the resource
+ * through it: each is refused while the server has the resource type's
+ * product switched off (ProductsOfRequest.aiResource, #9489), as
+ * KubernetesClusterAiAccessAPI's test and reset are. What the pages read
+ * is not.
  *
  *   POST /resource-ai-access/status       { resourceType, resourceId }
  *     The readiness checklist (ResourceAiAccessStatus): can OneUptime AI
@@ -1088,6 +1096,7 @@ router.post(
 router.post(
   RESOURCE_AI_ACCESS_TEST_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.aiResource),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1285,6 +1294,7 @@ router.post(
 router.post(
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.aiResource),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1379,6 +1389,7 @@ export function getResetAgentMessage(data: {
 router.post(
   RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.aiResource),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1551,6 +1562,7 @@ router.post(
 router.post(
   RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.aiResource),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

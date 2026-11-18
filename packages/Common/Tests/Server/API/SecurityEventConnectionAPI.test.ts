@@ -33,6 +33,7 @@ import {
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * The two custom routes on the Security Event Connection API, which serve
@@ -246,7 +247,9 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route(uri).handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(uri).handlers)).toHaveLength(3);
+      expect(countRefusals(route(uri).handlers)).toBe(1);
     },
   );
 });

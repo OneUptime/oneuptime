@@ -99,6 +99,10 @@ jest.mock(
  * against the real props helper.
  */
 import NetworkRuleRunAPI from "../../FeatureSet/BaseAPI/API/NetworkRuleRun";
+import {
+  countRefusals,
+  withoutRefusals,
+} from "Common/Tests/Server/API/RouteRefusals";
 
 new NetworkRuleRunAPI().getRouter();
 
@@ -312,7 +316,9 @@ describe("Network automation rule run endpoints", () => {
           "post",
           uri,
         );
-        expect(route.middlewares).toHaveLength(1);
+        // Its chain as it was, beside the refusal while its product is off (#7479).
+        expect(withoutRefusals(route.middlewares)).toHaveLength(1);
+        expect(countRefusals(route.middlewares)).toBe(1);
       }
     });
   });

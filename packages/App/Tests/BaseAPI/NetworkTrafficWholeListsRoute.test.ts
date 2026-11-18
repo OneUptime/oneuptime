@@ -85,6 +85,10 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import NetworkTrafficAPI from "../../FeatureSet/BaseAPI/API/NetworkTraffic";
+import {
+  countRefusals,
+  withoutRefusals,
+} from "Common/Tests/Server/API/RouteRefusals";
 
 const PROPS: { tenantId: ObjectID } = {
   tenantId: new ObjectID("11111111-1111-4111-8111-111111111111"),
@@ -102,7 +106,8 @@ function route(uri: string): { uri: string; handlers: Array<Handler> } {
 
 async function call(uri: string, body: unknown): Promise<jest.Mock> {
   const next: jest.Mock = jest.fn();
-  await route(uri).handlers[1]!({ body }, {}, next);
+  const handlers: Array<Handler> = route(uri).handlers;
+  await handlers[handlers.length - 1]!({ body }, {}, next);
   return next;
 }
 
@@ -121,14 +126,20 @@ beforeEach(() => {
 
 describe("the four routes", () => {
   test.each([
-    ["/network-traffic/usage-list"],
-    ["/network-traffic/usage-appliances"],
-    ["/network-traffic/link-appliance"],
-    ["/network-traffic/unlink-appliance"],
-  ])("%s is a POST behind the dashboard's user middleware", (uri: string) => {
-    expect(route(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
-    expect(route(uri).handlers).toHaveLength(2);
-  });
+    ["/network-traffic/usage-list", 0],
+    ["/network-traffic/usage-appliances", 0],
+    ["/network-traffic/link-appliance", 1],
+    ["/network-traffic/unlink-appliance", 1],
+  ])(
+    "%s is a POST behind the dashboard's user middleware",
+    (uri: string, refusals: number) => {
+      expect(route(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(uri).handlers)).toHaveLength(2);
+      // A link and an unlink write; the two lists only read.
+      expect(countRefusals(route(uri).handlers)).toBe(refusals);
+    },
+  );
 });
 
 describe("POST /network-traffic/usage-list", () => {

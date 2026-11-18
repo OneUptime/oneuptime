@@ -64,12 +64,20 @@ const mockRoutes: Array<MockRoute> = [];
 
 const mockRouter: Record<string, jest.Mock> = {
   get: jest.fn(),
+  /*
+   * The user middleware first and the handler last; between them, only a
+   * refusal while a product is switched off on the server (#9489).
+   */
   post: jest.fn().mockImplementation(((
     uri: string,
-    middleware: RouterFunction,
-    handlerFunction: RouterFunction,
+    ...functions: Array<RouterFunction>
   ): void => {
-    mockRoutes.push({ method: "POST", uri, middleware, handlerFunction });
+    mockRoutes.push({
+      method: "POST",
+      uri,
+      middleware: functions[0]!,
+      handlerFunction: functions[functions.length - 1]!,
+    });
   }) as never),
   put: jest.fn(),
   delete: jest.fn(),

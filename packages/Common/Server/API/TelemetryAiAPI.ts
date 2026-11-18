@@ -27,6 +27,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -56,6 +58,8 @@ const router: ExpressRouter = Express.getRouter();
  *     The pull request that finding asks for: a Code task the caller
  *     starts, in the repository that holds the code - or the one they
  *     picked, when none was found for certain. Response: { taskId }.
+ *     Refused while the server has Code switched off (#9489): the task
+ *     works in Code's repositories.
  */
 
 // The most entries a page may start after: older ones are not paged to.
@@ -252,6 +256,7 @@ router.post(
 router.post(
   TELEMETRY_AI_FIX_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
