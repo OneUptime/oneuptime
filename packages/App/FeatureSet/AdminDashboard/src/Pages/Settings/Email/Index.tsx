@@ -30,6 +30,8 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
+import ServerAlertsCard from "./ServerAlertsCard";
+import ServerEmailLogCard from "./ServerEmailLogCard";
 import ServerEmailEnvironmentCard, {
   ServerEmailEnvironmentLoadingCard,
   ServerEmailEnvironmentUnusedAlert,
@@ -714,6 +716,19 @@ const Settings: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
+
+      {/*
+       * Where master admins are told when the server's email or its global
+       * probes stop working, and work again (#6879): beside the Admin
+       * Notification Email, which is told about the probes.
+       */}
+      <ServerAlertsCard />
+
+      {/*
+       * What the server sent, and what it failed to send, through these
+       * settings (#6878): where "did the reset email go out?" is answered.
+       */}
+      <ServerEmailLogCard />
     </Page>
   );
 };

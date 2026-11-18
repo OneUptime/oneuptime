@@ -256,6 +256,10 @@ Expo 接受了推送，并不意味着推送已到达设备：Apple 或 Google �
 
 如果以上都没有帮助，请带上 OneUptime 日志中的错误，通过 [hello@oneuptime.com](mailto:hello@oneuptime.com) 联系我们。
 
+### Admin Dashboard 显示推送失败
+
+当服务器自身的推送通知不再发出时，Admin Dashboard 会显示推送失败：推送中继、Expo Push 或 Web Push 拒绝了它们，或者无法连接。它会显示从何时开始，以及得到了什么回复。只有一台设备拒绝的推送，例如发往已卸载应用的推送，不计在内。一旦推送再次发出，推送就显示为正常。发送一条测试推送来确认。
+
 ## 后续步骤
 
 :::cards

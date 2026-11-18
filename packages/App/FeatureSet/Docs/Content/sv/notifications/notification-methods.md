@@ -199,6 +199,10 @@ Anslut först ditt konto under **Användarinställningar → Arbetsyta → Slack
 Kontrollera att telefonen finns under **Enheter för push-aviseringar**, och skicka den en **Testavisering**. Se [Vanliga frågor och felsökning](/docs/mobile-desktop-apps/faq-troubleshooting#aviseringar).
 :::
 
+### Sidan säger att den här servern inte kan skicka sms
+
+Din server har just nu inget fungerande sätt att skicka sms eller ringa samtal: inget är konfigurerat, eller det som är konfigurerat misslyckas. Tills det fungerar säger sidan det, och du kan inte lägga till ett nummer för det. Fråga serverns administratör, som i stället ser en länk till inställningarna. Ett projekt med en egen Twilio-konfiguration skickar via den och påverkas inte. Detsamma gäller e-post.
+
 ## Nästa steg
 
 :::cards

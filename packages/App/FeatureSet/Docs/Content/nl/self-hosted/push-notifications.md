@@ -256,6 +256,10 @@ Via de push-relay (geen `EXPO_ACCESS_TOKEN`) werkt dit hetzelfde: de relay meldt
 
 Helpt niets hiervan, neem dan contact met ons op via [hello@oneuptime.com](mailto:hello@oneuptime.com) met de fouten uit uw OneUptime-logs.
 
+### Het Admin Dashboard zegt dat push mislukt
+
+Het Admin Dashboard zegt dat push mislukt als de eigen pushmeldingen van de server niet meer worden verstuurd: de push-relay, Expo Push of Web Push weigerde ze, of was niet bereikbaar. Het zegt sinds wanneer, en wat er werd geantwoord. Een push die één apparaat weigerde, zoals een naar een verwijderde app, telt niet mee. Zodra er weer een push wordt verstuurd, staat push weer als werkend. Verstuur een testpush om het te controleren.
+
 ## Volgende stappen
 
 :::cards

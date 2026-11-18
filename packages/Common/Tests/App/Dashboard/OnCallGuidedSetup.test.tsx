@@ -424,6 +424,7 @@ jest.mock(
 
 let canSendEmail: boolean | null = true;
 let sendingStatus: unknown = null;
+let projectCanSend: unknown = null;
 let pushTurnedOff: boolean = false;
 
 // Whether the server turned push off (GlobalConfig), as each test says.
@@ -487,6 +488,10 @@ jest.mock("../../../UI/Utils/ServerSending", () => {
     },
     useServerSendingStatus: () => {
       return sendingStatus;
+    },
+    // What any member of the project reads (GET /project-can-send, #7151).
+    useProjectCanSend: () => {
+      return projectCanSend;
     },
   };
 });
@@ -708,6 +713,7 @@ beforeEach(() => {
   marketplace = null;
   canSendEmail = true;
   sendingStatus = null;
+  projectCanSend = null;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -1167,6 +1173,57 @@ describe("how should we reach you", () => {
     expect(screen.getByTestId("on-call-setup-no-email")).toHaveTextContent(
       "This server can't send email yet",
     );
+  });
+
+  /*
+   * #7151: a member - not only a master admin - is told the server cannot
+   * send SMS or make calls before typing a number, and who sets it up. The
+   * number was refused only at Add, after an owner had turned SMS on.
+   */
+  test("self-hosted without Twilio: a member is told before typing a number, and offered no number box", async () => {
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-twilio")).toHaveTextContent(
+      "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard.",
+    );
+    // The server's admin is named, never a link a member could not open.
+    expect(screen.queryByTestId("on-call-setup-set-up-twilio")).toBeNull();
+    expect(screen.queryByTestId("on-call-setup-phone")).toBeNull();
+  });
+
+  test("a project with its own Twilio config sends SMS though the server cannot: the number box is offered", async () => {
+    billingEnabled = false;
+    // The server has no Twilio, as a master admin would read it ...
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    sendingStatus = {
+      channels: [
+        {
+          channel: ServerSendingChannel.SMS,
+          state: ServerSendingState.NotSetUp,
+        },
+        {
+          channel: ServerSendingChannel.Call,
+          state: ServerSendingState.NotSetUp,
+        },
+      ],
+      globalProbes: null,
+    };
+    // ... but this project's own config sends both.
+    projectCanSend = { email: true, sms: true, call: true };
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-no-twilio")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
+  });
+
+  test("email failing now, after it worked, says so on the email row too", async () => {
+    canSendEmail = true;
+    projectCanSend = { email: false, sms: true, call: true };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-email")).toBeInTheDocument();
   });
 
   /*

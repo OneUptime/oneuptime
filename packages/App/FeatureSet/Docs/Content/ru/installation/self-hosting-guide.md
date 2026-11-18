@@ -167,6 +167,7 @@ Let's Encrypt нужны порты 80 и 443, доступные из инте�
 :::cards
 - [Быстрый старт](/docs/introduction/quickstart): Монитор, политика дежурств и страница статуса за пятнадцать минут.
 - [Docker Compose](/docs/installation/docker-compose): Свой прокси, резервные копии, обновления и чек-лист для продакшена.
+- [Kubernetes и Helm](/docs/installation/kubernetes): Резервное копирование установки в Kubernetes и хранение её ключей.
 - [Обновление](/docs/installation/upgrading): Переход на новый выпуск, по одной основной версии за раз.
 - [Архитектура](/docs/self-hosted/architecture): Как части OneUptime работают вместе.
 :::

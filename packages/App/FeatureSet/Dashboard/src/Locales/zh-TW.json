@@ -56782,5 +56782,14 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟，在此期間保留其自己的{{kept}}步驟。",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在待命，但沒有此專案要求每位待命人員都具備的已驗證電話聯絡方式。",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "從 App Store 或 Google Play 安裝 App，登入 {{serverUrl}}，並在 App 要求時允許通知和重大警示。"
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "從 App Store 或 Google Play 安裝 App，登入 {{serverUrl}}，並在 App 要求時允許通知和重大警示。",
+  "No email addresses yet.": "尚無電子郵件地址。",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此伺服器目前無法撥打電話，因此在伺服器管理員設定簡訊和電話、或此專案新增自己的 Twilio 設定之前，任何人都不會接到電話。",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法撥打電話，因此這些號碼不會接到電話。請聯絡伺服器管理員設定簡訊和電話。",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法撥打電話，因此這些號碼不會接到電話。請在 Admin Dashboard 中設定簡訊和電話。",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此伺服器目前無法傳送簡訊，因此在伺服器管理員設定簡訊和電話、或此專案新增自己的 Twilio 設定之前，任何人都不會收到簡訊。",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請聯絡伺服器管理員設定簡訊和電話。",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請在 Admin Dashboard 中設定簡訊和電話。",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請聯絡伺服器管理員設定電子郵件。",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請在 Admin Dashboard 中設定電子郵件。"
 }

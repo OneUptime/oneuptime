@@ -69,8 +69,9 @@ const CHOICES: Array<{ row: string; choice: string; fix: string }> = [
   },
 ];
 
-const HELM_BACKUP_GUIDE: string =
-  "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data";
+// The server's own Kubernetes page (#9438), at the page's origin.
+const HELM_BACKUP_GUIDE_PATH: string =
+  "/docs/installation/kubernetes#back-up-your-data";
 
 type Words = Record<string, unknown>;
 
@@ -502,6 +503,16 @@ test.describe("Server setup in German and in Persian, on a phone", () => {
         checklist.getByTestId("server-setup-email-route"),
       ).toHaveText(adminWord(language, "Set up email"));
 
+      // What Email's settings are missing, in its words too, never English (#9437).
+      const missing: Locator = checklist
+        .getByTestId("server-setup-email-checked")
+        .first();
+
+      await expect(missing).toHaveText(
+        adminWord(language, "Nothing is set up under Settings > Emails yet."),
+      );
+      await expect(missing).not.toContainText("Nothing is set up");
+
       // How far along each group is, in the digits its language writes.
       const progress: string =
         (await checklist
@@ -554,6 +565,35 @@ test.describe("Server setup in German and in Persian, on a phone", () => {
         message: `The card in ${language} on a phone`,
       });
       await screenshot(page, `card-phone-${language}`);
+      await expectEverythingModelled(page);
+
+      // A test SMS that sent nothing says what is missing in its words too (#9437).
+      await open(
+        page,
+        `/admin/settings/call-and-sms?scene=untested&answer=not-set-up&lang=${language}`,
+      );
+      await page.getByTestId("server-test-sms").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.getByPlaceholder("+14155550100").fill("+14155550100");
+      await submitDialog(page);
+
+      const nothingSent: string = adminWord(
+        language,
+        "Nothing was sent: {{reason}}",
+      ).replace(
+        "{{reason}}",
+        adminWord(
+          language,
+          "No Twilio account or SMS gateway is set up under Settings > Call and SMS.",
+        ),
+      );
+
+      await expect
+        .poll(async (): Promise<string> => {
+          return await dialogText(page);
+        })
+        .toContain(nothingSent.replace(/\s+/g, " "));
+      expect(await dialogText(page)).not.toContain("No Twilio account");
       await expectEverythingModelled(page);
     });
   }
@@ -642,7 +682,9 @@ test.describe("what Server setup's actions do", () => {
       `${new URL(page.url()).origin}/docs/installation/docker-compose#back-up-and-restore`,
     );
     await expect(kubernetes).toContainText("How to back up on Kubernetes");
-    expect(await kubernetes.getAttribute("href")).toBe(HELM_BACKUP_GUIDE);
+    expect(await kubernetes.getAttribute("href")).toBe(
+      `${new URL(page.url()).origin}${HELM_BACKUP_GUIDE_PATH}`,
+    );
     await expect(kubernetes).toHaveAttribute("target", "_blank");
 
     checklist = await openSetup(page, "install=kubernetes");
@@ -651,7 +693,9 @@ test.describe("what Server setup's actions do", () => {
 
     await expect(helm).toContainText("How to back up");
     await expect(helm).not.toContainText("Docker Compose");
-    expect(await helm.getAttribute("href")).toBe(HELM_BACKUP_GUIDE);
+    expect(await helm.getAttribute("href")).toBe(
+      `${new URL(page.url()).origin}${HELM_BACKUP_GUIDE_PATH}`,
+    );
 
     checklist = await openSetup(page, "install=docker-compose");
 

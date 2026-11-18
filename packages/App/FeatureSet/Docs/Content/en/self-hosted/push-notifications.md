@@ -256,6 +256,10 @@ Through the push relay (no `EXPO_ACCESS_TOKEN`) this works the same way: the rel
 
 If none of this helps, contact us at [hello@oneuptime.com](mailto:hello@oneuptime.com) with the errors from your OneUptime logs.
 
+### The Admin Dashboard says push is failing
+
+The Admin Dashboard says push is failing when the server's own push notifications have stopped going out: the push relay, Expo Push or Web Push refused them, or could not be reached. It says since when, and what was answered. A push one device refused, such as one to an app that was uninstalled, doesn't count. Once a push goes out again, push reads as working. Send a test push to check.
+
 ## Next steps
 
 :::cards

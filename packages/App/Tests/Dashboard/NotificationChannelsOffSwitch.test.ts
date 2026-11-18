@@ -389,15 +389,35 @@ describe("no list of a person's methods offers Add while its channel is off", ()
       expect(source).toContain(
         `useProjectChannelState( ProjectNotificationChannel.${CHANNEL_ENUM_MEMBERS[channel]}, )`,
       );
-      expect(source).toContain("isCreateable={isAddingOffered(channelState)}");
+
+      /*
+       * SMS and calls also go nowhere while neither the project nor the
+       * server has an account for them (#7151): the server comes first,
+       * and Add waits on both.
+       */
+      const isServerGated: boolean =
+        list === ChannelGatedMethodList.SMS ||
+        list === ChannelGatedMethodList.Call;
+
+      expect(source).toContain(
+        isServerGated
+          ? "isCreateable={!isServerUnableToSend && isAddingOffered(channelState)}"
+          : "isCreateable={isAddingOffered(channelState)}",
+      );
       expect(source).not.toContain("isCreateable={true}");
       expect(source).toContain(
         `<NotificationChannelOffPanel list={ChannelGatedMethodList.${list}} state={channelState} />`,
       );
       // The empty list does not ask for one while it cannot be added.
       expect(source).toMatch(
-        /noItemsMessage=\{ isChannelOff \? getChannelGatedMethodList\(/,
+        isServerGated
+          ? /noItemsMessage=\{ isChannelOff \|\| isServerUnableToSend \? getChannelGatedMethodList\(/
+          : /noItemsMessage=\{ isChannelOff \? getChannelGatedMethodList\(/,
       );
+
+      if (isServerGated) {
+        expect(source).toContain("<ServerCannotSendPanel");
+      }
     },
   );
 

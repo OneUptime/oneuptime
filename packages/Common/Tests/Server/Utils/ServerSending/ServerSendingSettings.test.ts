@@ -1,4 +1,5 @@
 import ServerSendingSettings, {
+  ServerPushRoute,
   ServerSendingSettingsRow,
 } from "../../../../Server/Utils/ServerSending/ServerSendingSettings";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
@@ -116,7 +117,7 @@ afterEach(() => {
 });
 
 describe("which channels carry fingerprints", () => {
-  test("email, SMS and calls, whose settings can change without a save (#7803 for email); not push", () => {
+  test("every channel, each of whose settings can change without a save (#7803 for email, #6881 for push)", () => {
     expect(
       SERVER_SENDING_CHANNELS.filter((channel: ServerSendingChannel) => {
         return ServerSendingSettings.hasFingerprints(channel);
@@ -125,6 +126,7 @@ describe("which channels carry fingerprints", () => {
       ServerSendingChannel.Email,
       ServerSendingChannel.SMS,
       ServerSendingChannel.Call,
+      ServerSendingChannel.Push,
     ]);
 
     setEnvironmentAccount();
@@ -135,12 +137,63 @@ describe("which channels carry fingerprints", () => {
         savedRow(),
       ),
     ).not.toBeNull();
-    expect(
+
+    // Push's way out is set by environment variables alone: the row says nothing of it.
+    const push: ServerSendingSettingsFingerprints | null =
       ServerSendingSettings.getFingerprints(
         ServerSendingChannel.Push,
         savedRow(),
-      ),
-    ).toBeNull();
+      );
+
+    expect(push!.current).toMatch(HEX_DIGEST);
+    expect(push!.unmarked).toBe(push!.current);
+    expect(
+      ServerSendingSettings.getFingerprints(ServerSendingChannel.Push, null),
+    ).toEqual(push);
+  });
+
+  /*
+   * #6881: what the server remembers of its pushes was learned with the way
+   * they went: the relay at its address, or Expo with this server's token,
+   * and the VAPID keys. Another way out is other settings, so a relay
+   * address fixed and a restart start push again at untested.
+   */
+  test("push: the relay's address, Expo's token and the VAPID keys each make other settings", () => {
+    const relay: ServerPushRoute = {
+      relayUrl: "https://oneuptime.com/api/notification/push-relay/send",
+      vapidPublicKey: "BPublic",
+      vapidPrivateKey: "private",
+    };
+    const fingerprintOf: (route: ServerPushRoute) => string = (
+      route: ServerPushRoute,
+    ): string => {
+      return ServerSendingSettings.fingerprint(
+        ServerSendingSettings.describePushRoute(route),
+      );
+    };
+
+    expect(fingerprintOf(relay)).toBe(fingerprintOf({ ...relay }));
+
+    for (const other of [
+      { ...relay, relayUrl: "https://relay.example.com/push-relay/send" },
+      { ...relay, expoAccessToken: "expo-token" },
+      { ...relay, vapidPublicKey: "BOther" },
+      { ...relay, vapidPrivateKey: "other-private" },
+    ]) {
+      expect(fingerprintOf(other)).not.toBe(fingerprintOf(relay));
+    }
+
+    // With this server's own Expo token, the relay's address is not the way out.
+    expect(
+      fingerprintOf({
+        ...relay,
+        expoAccessToken: "expo-token",
+        relayUrl: "https://relay.example.com/push-relay/send",
+      }),
+    ).toBe(fingerprintOf({ ...relay, expoAccessToken: "expo-token" }));
+
+    // Never a setting itself: a keyed hash.
+    expect(fingerprintOf(relay)).not.toContain("private");
   });
 
   test("SMS and calls share one route, so one fingerprint", () => {

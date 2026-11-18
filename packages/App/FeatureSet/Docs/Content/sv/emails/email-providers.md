@@ -171,6 +171,25 @@ Med Docker Compose anger du `GLOBAL_EMAIL_`-inställningarna i `config.env` och 
 
 OneUptime läser variablerna när den startar. Om någon av dem är fel, till exempel en port som inte är ett tal eller ett saknat lösenord, skickar servern ingen e-post förrän det är åtgärdat; serverns logg, e-postinställningarna i Admin Dashboard och checklistan på `/admin/setup` nämner variabeln. Lösenord och nycklar visas aldrig. För att ändra inställningarna ändrar du variablerna och startar om OneUptime: Admin Dashboard ändrar dem inte.
 
+## Se vad servern har skickat
+
+På en egenvärdad server slutar **Inställningar > Notifieringar > E-post** i Admin Dashboard med kortet **E-postlogg**. Det visar varje e-postmeddelande som servern skickat via sina egna inställningar och som inte hör till något projekt, till exempel en lösenordsåterställning, en inloggningslänk eller en inbjudan, och varje e-postmeddelande den inte kunde skicka, även ett projekts: vem det gick till, när, vad det var och vad e-posttjänsten svarade.
+
+- Slå på **Endast misslyckade e-postmeddelanden** för att bara se de e-postmeddelanden som inte skickades.
+- Ett projekts e-postmeddelande som skickades finns i projektets egna loggar, inte här. Ett som skickades via ett projekts egen e-postserver finns aldrig här.
+- Loggen sparar aldrig själva meddelandet, eftersom en lösenordsåterställning eller en inloggningslänk släpper in den som har den. En länk i en ämnesrad sparas som `[link]`.
+- Bara huvudadministratörer kan läsa den. Varje e-postmeddelande sparas i 30 dagar.
+
+## Få veta när e-post eller sonderna slutar fungera
+
+När serverns e-post slutar fungera, eller ingen global sond rapporterar längre, meddelar OneUptime huvudadministratörerna, och en gång till när det fungerar igen. Välj vart i kortet **Aviseringar om avbrott** på samma sida:
+
+- **Push till huvudadministratörernas enheter** skickar en push-avisering till varje enhet där en huvudadministratör har loggat in i OneUptime-appen. Den är på tills du stänger av den.
+- **Skicka sms till det här numret** skickar ett sms via serverns egna sms-inställningar.
+- **Admin-notifierings-e-post** får också veta om sonderna.
+
+Ett meddelande går aldrig via kanalen som slutade fungera, så ett meddelande om e-post skickas aldrig med e-post, och aldrig via en kanal som servern inte kan skicka genom just nu. Bara en ändring meddelas, högst en gång i timmen för var och en, och projektmedlemmar meddelas aldrig.
+
 ## Felsökning
 
 Ett test-e-postmeddelande som inte går iväg talar om varför. För all annan e-post öppnar du fliken **E-post** under **Projektinställningar > Aviseringar > Aviseringsloggar** och väljer **Visa statusmeddelande** på dess rad.

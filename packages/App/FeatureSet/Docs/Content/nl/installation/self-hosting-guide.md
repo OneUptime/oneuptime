@@ -167,6 +167,7 @@ Let's Encrypt heeft de poorten 80 en 443 nodig, bereikbaar vanaf internet, en uw
 :::cards
 - [Snelstart](/docs/introduction/quickstart): Een monitor, een dienstbeleid en een statuspagina in vijftien minuten.
 - [Docker Compose](/docs/installation/docker-compose): Uw eigen proxy, back-ups, updates en de checklist voor productie.
+- [Kubernetes en Helm](/docs/installation/kubernetes): Een back-up maken van een Kubernetes-installatie en de sleutels bewaren.
 - [Upgraden](/docs/installation/upgrading): Naar een nieuwe release overstappen, één hoofdversie tegelijk.
 - [Architectuur](/docs/self-hosted/architecture): Hoe de onderdelen van OneUptime samenwerken.
 :::

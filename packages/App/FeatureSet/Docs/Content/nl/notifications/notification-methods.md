@@ -199,6 +199,10 @@ Koppel eerst je account onder **Gebruikersinstellingen → Werkruimte → Slack*
 Controleer of de telefoon onder **Apparaten voor pushmeldingen** staat, en stuur hem een **Testmelding**. Zie [Veelgestelde vragen en probleemoplossing](/docs/mobile-desktop-apps/faq-troubleshooting#meldingen).
 :::
 
+### De pagina zegt dat deze server geen sms kan versturen
+
+Je server heeft nu geen werkende manier om sms te versturen of te bellen: er is niets ingesteld, of wat is ingesteld mislukt. Tot het werkt, zegt de pagina dat, en kun je er geen nummer voor toevoegen. Vraag het de beheerder van je server, die in plaats daarvan een link naar de instellingen ziet. Een project met een eigen Twilio-configuratie verstuurt daarlangs en merkt er niets van. Voor e-mail geldt hetzelfde.
+
 ## Volgende stappen
 
 :::cards

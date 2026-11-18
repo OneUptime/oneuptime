@@ -256,6 +256,10 @@ A través del relé de push (sin `EXPO_ACCESS_TOKEN`) funciona igual: el relé i
 
 Si nada de esto ayuda, escríbenos a [hello@oneuptime.com](mailto:hello@oneuptime.com) con los errores de tus logs de OneUptime.
 
+### El Admin Dashboard dice que el push falla
+
+El Admin Dashboard dice que el push falla cuando las notificaciones push del propio servidor dejan de salir: el relé de push, Expo Push o Web Push las rechazó o no se pudo alcanzar. Indica desde cuándo y qué se respondió. Un push que rechazó un solo dispositivo, como uno a una app desinstalada, no cuenta. En cuanto vuelve a salir un push, el push figura como en funcionamiento. Envía un push de prueba para comprobarlo.
+
 ## Próximos pasos
 
 :::cards

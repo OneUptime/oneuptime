@@ -171,6 +171,25 @@ Med Docker Compose angir du `GLOBAL_EMAIL_`-innstillingene i `config.env` og kj�
 
 OneUptime leser variablene når den starter. Hvis én av dem er feil, for eksempel en port som ikke er et tall, eller et manglende passord, sender serveren ingen e-post før det er rettet; serverens logg, e-postinnstillingene i Admin Dashboard og sjekklisten på `/admin/setup` nevner variabelen. Passord og nøkler vises aldri. For å endre innstillingene endrer du variablene og starter OneUptime på nytt: Admin Dashboard endrer dem ikke.
 
+## Se hva serveren har sendt
+
+På en selvhostet server slutter **Innstillinger > Varslinger > E-poster** i Admin Dashboard med kortet **E-postlogg**. Det viser hver e-post serveren har sendt gjennom sine egne innstillinger som ikke hører til noe prosjekt, for eksempel en tilbakestilling av passord, en innloggingslenke eller en invitasjon, og hver e-post den ikke klarte å sende, også et prosjekts: hvem den gikk til, når, hva den var, og hva e-posttjenesten svarte.
+
+- Slå på **Bare e-poster som mislyktes** for å se bare e-postene som ikke ble sendt.
+- Et prosjekts e-post som ble sendt, står i prosjektets egne logger, ikke her. En e-post sendt gjennom et prosjekts egen e-postserver står aldri her.
+- Loggen lagrer aldri selve meldingen, for en tilbakestilling av passord eller en innloggingslenke slipper inn den som har den. En lenke i et emne lagres som `[link]`.
+- Bare hovedadministratorer kan lese den. Hver e-post lagres i 30 dager.
+
+## Få beskjed når e-post eller sondene stopper
+
+Når e-posten fra serveren slutter å virke, eller ingen globale sonder rapporterer lenger, gir OneUptime hovedadministratorene beskjed, og én gang til når det virker igjen. Velg hvor i kortet **Varslinger om brudd** på samme side:
+
+- **Push til hovedadministratorenes enheter** sender en push-varsling til hver enhet der en hovedadministrator er logget inn i OneUptime-appen. Den er på til du slår den av.
+- **Send SMS til dette nummeret** sender en SMS gjennom serverens egne SMS-innstillinger.
+- **E-post for administratorvarslinger** får også beskjed om sondene.
+
+En melding går aldri gjennom kanalen som stoppet, så en melding om e-post sendes aldri som e-post, og aldri gjennom en kanal serveren ikke kan sende gjennom akkurat nå. Bare en endring meldes, høyst én gang i timen for hver, og prosjektmedlemmer får aldri beskjed.
+
 ## Feilsøking
 
 En test-e-post som ikke blir sendt, sier hvorfor. For all annen e-post åpner du fanen **E-post** under **Prosjektinnstillinger > Varslinger > Varslingslogger** og velger **Vis statusmelding** i raden.

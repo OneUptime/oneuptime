@@ -199,6 +199,10 @@ Link your account under **User Settings → Workspace → Slack** first, then cl
 Check that the phone is listed under **Push Notification Devices**, and send it a **Test Notification**. See [FAQ & Troubleshooting](/docs/mobile-desktop-apps/faq-troubleshooting#notifications).
 :::
 
+### The page says this server can't send SMS
+
+Your server has no working way to send SMS, or to make calls, right now: none is set up, or the one set up is failing. Until it works, the page says so, and you can't add a number for it. Ask your server's admin, who sees a link to the settings instead. A project with its own Twilio config sends through it, and is not affected. Email works the same way.
+
 ## Next steps
 
 :::cards

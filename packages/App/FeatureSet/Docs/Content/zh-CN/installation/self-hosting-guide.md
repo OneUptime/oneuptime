@@ -167,6 +167,7 @@ Let's Encrypt 需要能从互联网访问的端口 80 和 443，以及指向这�
 :::cards
 - [快速开始](/docs/introduction/quickstart): 十五分钟内建好一个监视器、一个值班策略和一个状态页。
 - [Docker Compose](/docs/installation/docker-compose): 你自己的代理、备份、更新和生产环境清单。
+- [Kubernetes 和 Helm](/docs/installation/kubernetes): 备份 Kubernetes 上的安装，并保管它的密钥。
 - [升级](/docs/installation/upgrading): 升级到新版本，一次只升一个主版本。
 - [架构](/docs/self-hosted/architecture): OneUptime 的各部分如何协同工作。
 :::

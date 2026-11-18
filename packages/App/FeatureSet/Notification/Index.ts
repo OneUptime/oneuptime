@@ -20,6 +20,7 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import StatusPageCarriedLogo from "Common/Server/Utils/StatusPage/StatusPageCarriedLogo";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
+import ServerEmailLogWriter from "Common/Server/Utils/ServerSending/ServerEmailLogWriter";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import { SERVER_TEST_SEND_ROUTE } from "Common/Types/ServerSetup/ServerTestSend";
 import "ejs";
@@ -46,6 +47,13 @@ const NotificationFeatureSet: FeatureSet = {
      * to its admins in the product, and on the sign-in pages.
      */
     ServerSendingStatus.startRecordingOutcomes();
+
+    /*
+     * The server's own email log (#6878): the emails it sends through its
+     * own settings that belong to no project, and the ones it failed to
+     * send, for its master admins - never the message itself.
+     */
+    ServerEmailLogWriter.startWriting();
 
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);

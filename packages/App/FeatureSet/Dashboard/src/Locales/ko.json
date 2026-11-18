@@ -56782,5 +56782,14 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌으며, 그동안 본인의 {{kept}} 단계는 유지됩니다.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}}님은 온콜 담당이지만, 이 프로젝트가 모든 온콜 담당자에게 요청하는 인증된 전화 연락 방법이 없습니다.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store 또는 Google Play에서 앱을 설치하고 {{serverUrl}}에 로그인한 다음, 요청하면 알림과 중요 알림을 허용하세요."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store 또는 Google Play에서 앱을 설치하고 {{serverUrl}}에 로그인한 다음, 요청하면 알림과 중요 알림을 허용하세요.",
+  "No email addresses yet.": "아직 이메일 주소가 없습니다.",
+  "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "이 서버는 지금 전화를 걸 수 없어, 서버 관리자가 SMS와 전화를 설정하거나 이 프로젝트가 자체 Twilio 구성을 추가할 때까지 아무도 전화를 받지 못합니다.",
+  "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 전화를 걸 수 없어 이 번호들로 전화가 가지 않습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
+  "This server can't make calls right now, so these numbers get no calls. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 전화를 걸 수 없어 이 번호들로 전화가 가지 않습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
+  "This server can't send SMS right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "이 서버는 지금 SMS를 보낼 수 없어, 서버 관리자가 SMS와 전화를 설정하거나 이 프로젝트가 자체 Twilio 구성을 추가할 때까지 아무도 SMS를 받지 못합니다.",
+  "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "이 서버는 지금 SMS를 보낼 수 없어 이 번호들로 SMS가 가지 않습니다. 서버 관리자에게 SMS와 전화 설정을 요청하세요.",
+  "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "이 서버는 지금 SMS를 보낼 수 없어 이 번호들로 SMS가 가지 않습니다. Admin Dashboard에서 SMS와 전화를 설정하세요.",
+  "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "이 서버는 지금 이메일을 보낼 수 없어 이 주소들로 이메일이 가지 않습니다. 서버 관리자에게 이메일 설정을 요청하세요.",
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "이 서버는 지금 이메일을 보낼 수 없어 이 주소들로 이메일이 가지 않습니다. Admin Dashboard에서 이메일을 설정하세요."
 }

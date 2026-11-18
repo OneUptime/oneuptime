@@ -1,5 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import { ServerSendingChannel } from "../../../Types/ServerSending/ServerSendingStatus";
+import ServerSetUpProblem, {
+  SERVER_SET_UP_PROBLEMS,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
 import {
   getServerTestSendSentence,
   getServerTestSendTitle,
@@ -266,6 +270,46 @@ describe("read back in a browser", () => {
     ]) {
       expect(parseServerTestSendAnswer(value)).toBeNull();
     }
+  });
+
+  /*
+   * #9437: nothing went out, and what the settings are missing comes as
+   * words too, which a page says in its reader's language. Only for not
+   * set up, and only words this page knows: a provider's answer has none.
+   */
+  test("not set up reads back with the words of what is missing, and only then", () => {
+    const words: ServerSetUpProblemWords = ServerSetUpProblem.of(
+      SERVER_SET_UP_PROBLEMS.smsNotSetUp,
+    );
+    const sent: ServerTestSendAnswer = answer({
+      channel: ServerSendingChannel.SMS,
+      result: ServerTestSendResult.NotSetUp,
+      to: "+15551230100",
+      sentThrough: "Twilio",
+      message: ServerSetUpProblem.toEnglish(words),
+      messageWords: words,
+    });
+
+    expect(parseServerTestSendAnswer(JSON.parse(JSON.stringify(sent)))).toEqual(
+      sent,
+    );
+
+    // A refusal is the provider's own words: none read, whatever was sent.
+    expect(
+      parseServerTestSendAnswer({
+        ...sent,
+        result: ServerTestSendResult.Refused,
+        message: "Authenticate",
+      })!.messageWords,
+    ).toBeUndefined();
+
+    // Words this page does not know: the English sentence alone.
+    expect(
+      parseServerTestSendAnswer({
+        ...sent,
+        messageWords: { template: "Something new.", values: {} },
+      })!.messageWords,
+    ).toBeUndefined();
   });
 
   test("a test push reads back whole, the devices it went to as its `to`", () => {

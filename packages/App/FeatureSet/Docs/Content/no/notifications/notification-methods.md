@@ -199,6 +199,10 @@ Koble først til kontoen din under **Brukerinnstillinger → Arbeidsområde → 
 Sjekk at telefonen står under **Enheter for push-varslinger**, og send den en **Testvarsling**. Se [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting#varslinger).
 :::
 
+### Siden sier at denne serveren ikke kan sende SMS
+
+Serveren din har akkurat nå ingen fungerende måte å sende SMS eller ringe på: ingenting er satt opp, eller det som er satt opp, feiler. Til det virker, står det på siden, og du kan ikke legge til et nummer for det. Spør serverens administrator, som i stedet ser en lenke til innstillingene. Et prosjekt med sin egen Twilio-konfigurasjon sender gjennom den og berøres ikke. Det samme gjelder e-post.
+
 ## Neste steg
 
 :::cards
