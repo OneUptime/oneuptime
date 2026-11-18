@@ -13,10 +13,8 @@ import {
   toRe2Prefilter,
 } from "../../../Utils/DataSecurity/DetectorPrefilter";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
-import CharacterSet from "../../../Utils/LinearRegExp/CharacterSet";
-import { parsePattern } from "../../../Utils/LinearRegExp/Parser";
-import { SyntaxNode } from "../../../Utils/LinearRegExp/Syntax";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { positivesOf } from "./DetectorPositives";
 
 /*
  * A DATA TYPE'S PATTERNS, FOR THE DATABASE TO NARROW A SEARCH BY (issue
@@ -60,127 +58,6 @@ function asJavaScript(expression: string): RegExp {
   return new RegExp(expression.replace(/\\x\{/g, "\\u{"), "u");
 }
 
-const PREFERRED: string =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-function charactersOf(set: CharacterSet, negate: boolean): Array<string> {
-  const has: (code: number) => boolean = (code: number): boolean => {
-    return set.has(code) !== negate;
-  };
-  const preferred: Array<string> = PREFERRED.split("").filter(
-    (character: string): boolean => {
-      return has(character.charCodeAt(0));
-    },
-  );
-
-  if (preferred.length > 0 && random(4) > 0) {
-    return preferred;
-  }
-
-  const printable: Array<string> = [];
-
-  for (let code: number = 0x20; code < 0x7f; code++) {
-    if (has(code)) {
-      printable.push(String.fromCharCode(code));
-    }
-  }
-
-  // A space JavaScript's \s knows and RE2's does not, now and then.
-  for (const code of [0xa0, 0x2003, 0x3000]) {
-    if (has(code)) {
-      printable.push(String.fromCharCode(code));
-    }
-  }
-
-  return printable.length > 0 ? printable : preferred;
-}
-
-// A text the node could match: each choice drawn at random.
-function draw(node: SyntaxNode): string {
-  switch (node.kind) {
-    case "Character":
-      return String.fromCharCode(node.codeUnit);
-    case "Set": {
-      const characters: Array<string> = charactersOf(node.set, node.negate);
-
-      return characters.length > 0
-        ? characters[random(characters.length)]!
-        : "";
-    }
-    case "Group":
-      return draw(node.body);
-    case "Repeat": {
-      const most: number = Number.isFinite(node.max)
-        ? Math.min(node.max, node.min + 6)
-        : node.min + 6;
-      const times: number = node.min + random(most - node.min + 1);
-      let text: string = "";
-
-      for (let index: number = 0; index < times; index++) {
-        text += draw(node.body);
-      }
-
-      return text;
-    }
-    case "Alternation":
-      return draw(node.options[random(node.options.length)]!);
-    case "Sequence":
-      return node.items.map(draw).join("");
-    case "Lookaround":
-      /*
-       * What must come before or after - a card code's "cvv: ", a private
-       * key's body after its header - is drawn too.
-       */
-      return node.negate ? "" : draw(node.body);
-    default:
-      return "";
-  }
-}
-
-const CONTEXTS: ReadonlyArray<[string, string]> = [
-  ["", ""],
-  ["user=", " status=ok"],
-  ["The value is ", "."],
-  ['{"field":"', '"}'],
-  ["token: ", "\n"],
-];
-
-/*
- * Texts the detector's pattern finds a candidate in: drawn from the
- * pattern - its back-references copied, so a separator may differ - put in
- * a few contexts, and kept only where the pattern itself matches.
- */
-function positivesOf(detector: DataTypeDetector, count: number): Array<string> {
-  const pattern: RegExp = new RegExp(
-    detector.pattern.source,
-    detector.pattern.flags.replace("g", ""),
-  );
-  const root: SyntaxNode = parsePattern(
-    expandBackReferences(detector.pattern.source),
-    {
-      ignoreCase: detector.pattern.flags.includes("i"),
-      multiline: detector.pattern.flags.includes("m"),
-      dotAll: detector.pattern.flags.includes("s"),
-    },
-  ).root;
-  const texts: Array<string> = [];
-
-  for (let attempt: number = 0; attempt < count * 8; attempt++) {
-    if (texts.length >= count) {
-      break;
-    }
-
-    const [before, after] = CONTEXTS[attempt % CONTEXTS.length]!;
-    const text: string = before + draw(root) + after;
-
-    if (pattern.test(text)) {
-      texts.push(text);
-    }
-  }
-
-  return texts;
-}
-
 describe("every built-in detector", () => {
   test("is written for RE2, in RE2's syntax, within the length a search takes", () => {
     const refused: Array<string> = [];
@@ -215,7 +92,7 @@ describe("every built-in detector", () => {
       const expression: RegExp = asJavaScript(
         toRe2Prefilter(detector.pattern.source, detector.pattern.flags)!,
       );
-      const positives: Array<string> = positivesOf(detector, 40);
+      const positives: Array<string> = positivesOf(detector, 40, random);
 
       // Each detector's pattern is drawn from often enough to say something.
       expect([detector.dataTypeId, positives.length > 0]).toEqual([
