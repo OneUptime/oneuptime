@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-L'agente [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) aggiunge sopra una strumentazione automatica e imposta attributi del dispositivo sulla propria risorsa. Se lo usi, punta il suo exporter allo stesso endpoint e alla stessa intestazione, e verifica che `device.model.identifier` arrivi sulla risorsa nella tua versione.
+L'agente [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) aggiunge sopra crash, ANR, frame lenti e bloccati e avvii dell'app, e imposta `device.model.identifier` e `device.manufacturer` sulla propria risorsa. [Configurazione Android](/docs/rum/android-setup) lo configura al posto del codice qui sopra.
 @tab iOS
 Usa [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) e imposta tu gli attributi del dispositivo: la risorsa che ogni versione aggiunge da sé è cambiata da una versione all'altra.
 

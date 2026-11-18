@@ -297,7 +297,13 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.VeryLongText,
-    canReadOnRelationQuery: false,
+    /*
+     * Readable through a relation, with the type: together they name the
+     * exception an activity entry was merged into or out of
+     * (EXCEPTION_ACTIVITY_SELECT). Only the exception's own activity and its
+     * merged-into link join to it, both read by exactly the exception's readers.
+     */
+    canReadOnRelationQuery: true,
     title: "Exception Message",
     description: "Exception message that was thrown by the telemetry service",
     example: "NullPointerException: Cannot read property 'id' of null",
@@ -371,7 +377,14 @@ export default class TelemetryException extends DatabaseBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.VeryLongText,
-    canReadOnRelationQuery: false,
+    /*
+     * Readable through a relation, with the message: together they name the
+     * exception an activity entry was merged into or out of
+     * (EXCEPTION_ACTIVITY_SELECT). Only the exception's own activity and its
+     * merged-into link join to it, both read by exactly the exception's readers.
+     * Its stack trace and fingerprint stay off relations.
+     */
+    canReadOnRelationQuery: true,
     title: "Exception Type",
     description:
       "Type of the exception that was thrown by the telemetry service",

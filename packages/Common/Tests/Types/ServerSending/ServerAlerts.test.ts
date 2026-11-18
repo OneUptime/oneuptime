@@ -574,7 +574,8 @@ describe("a global probe behind", () => {
       state: data.state || KEEPING_UP_STATE,
       settings: data.settings || EVERYWHERE,
       now: NOW,
-      globalProbesBehind: data.behind,
+      // Not read at all is no key, as the server leaves it out.
+      ...(data.behind === undefined ? {} : { globalProbesBehind: data.behind }),
     });
   }
 

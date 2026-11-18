@@ -78,6 +78,39 @@ function toAttentionSeverity(
  * judge - no engine metrics, or an engine without recommended alerts -
  * where "Healthy" would be a guess.
  */
+/*
+ * The words of what a Degraded or Unhealthy database's pill opens.
+ */
+export const DATABASE_HEALTH_DIALOG_TITLES: Record<
+  "warning" | "danger",
+  string
+> = {
+  warning: translationKey("Why this database is Degraded"),
+  danger: translationKey("Why this database is Unhealthy"),
+};
+
+/*
+ * The pill with what its health was worked out from: a Degraded or
+ * Unhealthy one opens what needs attention (#9537), the rows the Overview's
+ * Needs attention card lists. A Healthy or unknown pill opens nothing.
+ */
+export function getDatabaseHealthPillWithReasons(
+  pill: ResourceOverviewHealth | undefined,
+  items: Array<ResourceAttentionItem>,
+): ResourceOverviewHealth | undefined {
+  if (!pill) {
+    return undefined;
+  }
+  if (pill.tone !== "warning" && pill.tone !== "danger") {
+    return pill;
+  }
+  return {
+    ...pill,
+    items: items,
+    dialogTitle: DATABASE_HEALTH_DIALOG_TITLES[pill.tone],
+  };
+}
+
 export function getDatabaseHealthPill(
   assessment: DatabaseHealthAssessment,
 ): ResourceOverviewHealth | undefined {

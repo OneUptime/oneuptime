@@ -7,6 +7,7 @@ import {
   HostCollectorState,
   HostCollectorStateView,
   HostCollectorTone,
+  getHostCollectorErrorSummary,
   getHostCollectorStateView,
 } from "./HostCollectorStatus";
 
@@ -30,12 +31,46 @@ export const HOST_COLLECTOR_TONE_COLORS: Record<HostCollectorTone, Color> = {
 
 export interface ComponentProps {
   host: HostCollectorFields;
+  /*
+   * Under a Config failed or Collector error pill, why, in the collector's
+   * own one line - for a list where the pill alone sent the reader to each
+   * host's page to find out (#9537). The host's errors must be read.
+   */
+  isErrorShown?: boolean | undefined;
 }
 
 const HostCollectorStatePill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const view: HostCollectorStateView = getHostCollectorStateView(props.host);
+  const error: string | null = props.isErrorShown
+    ? getHostCollectorErrorSummary(props.host)
+    : null;
+
+  if (error) {
+    return (
+      <span className="inline-flex max-w-full flex-col items-start gap-0.5">
+        <span
+          className="inline-flex max-w-full align-middle"
+          data-testid={`host-collector-state-${view.state}`}
+        >
+          <Pill
+            text={view.label}
+            color={HOST_COLLECTOR_TONE_COLORS[view.tone]}
+          />
+        </span>
+        <span
+          data-testid="host-collector-error"
+          title={error}
+          className={`line-clamp-2 text-xs [overflow-wrap:anywhere] ${
+            view.tone === "danger" ? "text-red-700" : "text-amber-700"
+          }`}
+        >
+          <bdi>{error}</bdi>
+        </span>
+      </span>
+    );
+  }
 
   return (
     /*

@@ -54,6 +54,7 @@ import {
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import {
   ADMIN_DASHBOARD_LABELS,
+  ANDROID_SETUP,
   BROWSER_SETUP,
   CREATE_BUTTONS,
   KEPT_AS_WRITTEN,
@@ -142,10 +143,17 @@ const ADMIN_DASHBOARD_LOCALES: string = path.resolve(
  * row and breaks its leaves into three short lines, and why Session Replay's
  * backend linking is a flowchart, not a sequence diagram.
  */
+/*
+ * The Android page's widest diagram line, in any language: its diagram's
+ * longest label line ("with OpenTelemetry Android" and its translations).
+ */
+const WIDEST_ANDROID_SETUP_LINE: number = 30;
+
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [RUM_INDEX]: 25,
   [BROWSER_SETUP]: 20,
   [MOBILE_SETUP]: 29,
+  [ANDROID_SETUP]: WIDEST_ANDROID_SETUP_LINE,
   [WEB_VITALS]: 28,
   // German's "Eine aufgezeichnete Sitzung", alone on its row.
   [PRODUCT_ANALYTICS]: 27,
@@ -233,6 +241,20 @@ const DETAILS_WORDS: Record<
       english: "Clients",
       drawn: (language: string): string => {
         return drawnDashboardLabel(language, "Clients");
+      },
+    },
+  ],
+  [ANDROID_SETUP]: [
+    {
+      english: "Services",
+      drawn: (language: string): string => {
+        return drawnMenuItem(language, "Services");
+      },
+    },
+    {
+      english: "Real User Monitoring",
+      drawn: (language: string): string => {
+        return drawnMenuItem(language, "Real User Monitoring");
       },
     },
   ],
@@ -711,7 +733,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each([BROWSER_SETUP, MOBILE_SETUP, WEB_VITALS])(
+  it.each([BROWSER_SETUP, MOBILE_SETUP, ANDROID_SETUP, WEB_VITALS])(
     "%s, a setup page, has a Before you begin section and a Troubleshooting section of collapsible entries",
     (page: string) => {
       const markdown: string = englishPage(page);

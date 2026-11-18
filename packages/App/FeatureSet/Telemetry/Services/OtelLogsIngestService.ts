@@ -25,7 +25,10 @@ import Response from "Common/Server/Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
-import LogEventName from "Common/Types/Log/LogEventName";
+import LogEventName, {
+  LogEventNameAttributeKey,
+} from "Common/Types/Log/LogEventName";
+import { getMobileAppFaultKind } from "Common/Utils/Telemetry/MobileAppFaults";
 import LlmLogEventsUtil from "Common/Utils/Telemetry/LlmLogEvents";
 import LogSeverity, {
   logSeverityFromNumber,
@@ -1853,6 +1856,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       "exception.source": "log",
       "log.severityText": String(data.severityText),
     };
+
+    /*
+     * A mobile app's crash or ANR keeps the event it was reported as
+     * (`app.crash`, `device.anr`), so an occurrence says which it was -
+     * a crash's own exception type does not.
+     */
+    if (getMobileAppFaultKind(finalAttributes)) {
+      exceptionAttributes[LogEventNameAttributeKey] =
+        finalAttributes[LogEventNameAttributeKey] || "";
+    }
 
     data.dbExceptions.push({
       _id: ObjectID.generateTimeOrdered().toString(),

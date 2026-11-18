@@ -8,6 +8,7 @@ import {
   RUM_CLIENTS,
   RUM_EXAMPLE_APP_NAMES,
   RUM_MOBILE_SETUP_DOCS_URL,
+  RUM_ANDROID_SETUP_DOCS_URL,
   RUM_TROUBLESHOOTING_DOCS_URL,
   RumClient,
   getRumBrowserInstallCommand,
@@ -239,12 +240,19 @@ describe.each(CLIENT_KEYS)("the %s guide", (client: RumClient) => {
   });
 
   test("links to its own setup page and the troubleshooting page, which exist", () => {
-    expect(guide.links).toEqual([
+    expect(guide.links).toEqual(
       client === "mobile"
-        ? { title: "Mobile setup", url: RUM_MOBILE_SETUP_DOCS_URL }
-        : { title: "Browser setup", url: RUM_BROWSER_SETUP_DOCS_URL },
-      { title: "RUM troubleshooting", url: RUM_TROUBLESHOOTING_DOCS_URL },
-    ]);
+        ? [
+            { title: "Mobile setup", url: RUM_MOBILE_SETUP_DOCS_URL },
+            // OpenTelemetry Android, the SDK a native app sends with (#9533).
+            { title: "Android setup", url: RUM_ANDROID_SETUP_DOCS_URL },
+            { title: "RUM troubleshooting", url: RUM_TROUBLESHOOTING_DOCS_URL },
+          ]
+        : [
+            { title: "Browser setup", url: RUM_BROWSER_SETUP_DOCS_URL },
+            { title: "RUM troubleshooting", url: RUM_TROUBLESHOOTING_DOCS_URL },
+          ],
+    );
     for (const link of guide.links || []) {
       expect(docsPageExists(link.url)).toBe(true);
     }
@@ -526,6 +534,37 @@ describe("the mobile guide", () => {
     expect(
       topicNamed(guide.advanced, "SDK notes for Android, iOS and React Native"),
     ).toContain("It still sends with a **Server** key");
+  });
+
+  /*
+   * Read from OpenTelemetry Android 1.8's AndroidResource (#9533): it sets
+   * device.model.identifier, device.model.name and device.manufacturer, and
+   * an app.installation.id, never a device.id - the guide used to say it
+   * did.
+   */
+  test("says what OpenTelemetry Android really sets, and sends Android readers to its page", () => {
+    const notes: string = topicNamed(
+      guide.advanced,
+      "SDK notes for Android, iOS and React Native",
+    );
+
+    expect(notes).toContain(
+      "sets `device.model.identifier`, `device.model.name` and `device.manufacturer` on its own resource",
+    );
+    expect(notes).toContain("it sends no `device.id`");
+    expect(notes).not.toContain("install-scoped `device.id`");
+    expect(notes).toContain(`[Android Setup](${RUM_ANDROID_SETUP_DOCS_URL})`);
+    expect(notes).not.toContain("pre-1.0");
+  });
+
+  test("names crashes and ANRs among what a mobile app gets, and no page views", () => {
+    const whatYouGet: string = topicNamed(guide.advanced, "What you get");
+
+    expect(whatYouGet).toContain(
+      "the crashes and ANRs your app reports, as unhandled exceptions",
+    );
+    expect(whatYouGet).toContain("an ANR is listed as the type `ANR`");
+    expect(whatYouGet).not.toMatch(/page views/i);
   });
 
   test("the troubleshooting topics", () => {

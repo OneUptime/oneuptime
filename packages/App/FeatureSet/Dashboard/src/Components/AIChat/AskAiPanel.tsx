@@ -54,6 +54,7 @@ import {
   PAGE_START_ALIGN_CLASS_NAME,
 } from "./TitleDirection";
 import { useAiChat, UseAiChat } from "./useAiChat";
+import { loadChartWidget } from "./Widgets/LazyChartWidget";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
@@ -1035,6 +1036,18 @@ const AskAiPanel: FunctionComponent = (): ReactElement => {
   // Lets the header's Ask AI show whether it is open (AskAiEvents).
   useEffect(() => {
     publishIsAskAiOpen(isOpen);
+  }, [isOpen]);
+
+  /*
+   * An answer may draw a chart, whose code is a file of its own
+   * (LazyChartWidget): asked for as the panel opens, it is there by the time
+   * an answer is. A file that does not arrive is asked for again where a
+   * chart is drawn, which says so.
+   */
+  useEffect(() => {
+    if (isOpen) {
+      loadChartWidget().catch((): void => {});
+    }
   }, [isOpen]);
 
   useEffect(() => {

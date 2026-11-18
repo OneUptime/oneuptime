@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) एजेंट इसके ऊपर ऑटोमैटिक इंस्ट्रुमेंटेशन जोड़ता है, और अपने रिसोर्स पर डिवाइस एट्रिब्यूट सेट करता है। अगर आप इसे इस्तेमाल करते हैं, तो इसके एक्सपोर्टर को उसी एंडपॉइंट और हेडर पर लगाएँ, और जाँचें कि आपके संस्करण में `device.model.identifier` रिसोर्स तक पहुँचता है।
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) एजेंट इसके ऊपर क्रैश, ANR, धीमे और फ़्रीज़ हुए फ़्रेम और ऐप स्टार्ट जोड़ता है, और अपने रिसोर्स पर `device.model.identifier` और `device.manufacturer` सेट करता है। [Android सेटअप](/docs/rum/android-setup) ऊपर वाले कोड की जगह इसे सेट करता है।
 @tab iOS
 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) इस्तेमाल करें, और डिवाइस एट्रिब्यूट खुद सेट करें: हर संस्करण अपने आप जो रिसोर्स जोड़ता है, वह रिलीज़ के बीच बदलता रहा है।
 

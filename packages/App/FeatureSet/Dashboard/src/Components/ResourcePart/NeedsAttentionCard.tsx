@@ -1,26 +1,21 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
-import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  Translator,
-  composedValue,
-  toLabelTerm,
-} from "Common/UI/Utils/TranslateTemplate";
-import { formatRelativeTime } from "../Home/HomeRelativeTime";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionCounts,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
-  ResourceAttentionText,
   countResourceAttention,
 } from "./ResourceAttention";
+import ResourceAttentionRow, {
+  RESOURCE_ATTENTION_SEVERITY_CLASS_NAMES,
+} from "./ResourceAttentionRow";
 import ResourcePartRow from "./ResourcePartRow";
-import { withSentenceDigits } from "./SentenceDigits";
 
 /*
  * "What needs me?" first on a resource's Overview, and on a part's own
@@ -82,16 +77,7 @@ export interface ComponentProps {
 const SEVERITY_CLASS_NAMES: Record<
   ResourceAttentionSeverity,
   { icon: string; reason: string }
-> = {
-  [ResourceAttentionSeverity.Critical]: {
-    icon: "bg-red-50 text-red-600 ring-red-200",
-    reason: "bg-red-50 text-red-700 ring-red-200",
-  },
-  [ResourceAttentionSeverity.Warning]: {
-    icon: "bg-amber-50 text-amber-600 ring-amber-200",
-    reason: "bg-amber-50 text-amber-700 ring-amber-200",
-  },
-};
+> = RESOURCE_ATTENTION_SEVERITY_CLASS_NAMES;
 
 const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -126,32 +112,6 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
-  };
-
-  const reasonText: (reason: ResourceAttentionText) => string = (
-    reason: ResourceAttentionText,
-  ): string => {
-    /*
-     * Its numbers in the sentence's digits ("۲ از ۳ در دسترس"), and each
-     * value set apart from the words around it (SentenceOptions): a mount
-     * such as /var/lib/postgresql in a Persian reason kept its slash at the
-     * wrong end.
-     */
-    if (reason.plural) {
-      return translator.translatePlural(
-        { one: reason.plural.one, other: reason.text },
-        reason.plural.count,
-        withSentenceDigits(reason.values),
-        { setsValuesApart: true },
-      );
-    }
-    return reason.values
-      ? translator.translateTemplate(
-          reason.text,
-          withSentenceDigits(reason.values),
-          { setsValuesApart: true },
-        )
-      : tx(reason.text);
   };
 
   const counts: ResourceAttentionCounts = countResourceAttention(props.items);
@@ -217,8 +177,6 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
       >
         <ul className={listClassName}>
           {shown.map((item: ResourceAttentionItem): ReactElement => {
-            const classNames: { icon: string; reason: string } =
-              SEVERITY_CLASS_NAMES[item.severity];
             const isCurrent: boolean = Boolean(
               props.current && props.current.key === item.key,
             );
@@ -230,125 +188,25 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                 data-severity={item.severity}
                 data-current={isCurrent ? "true" : undefined}
               >
+                {/*
+                 * The whole row is the link to the part's page, so its facts
+                 * are words, never links of their own.
+                 */}
                 <ResourcePartRow
                   to={isCurrent ? undefined : item.route}
                   className="flex items-start gap-3"
                 >
-                  <div
-                    className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${classNames.icon}`}
-                    aria-hidden="true"
-                  >
-                    <Icon icon={item.icon} className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span
-                        data-testid={`${testId}-name`}
-                        className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
-                      >
-                        {/*
-                         * A name reads the way it is written: a mount's
-                         * leading slash stays at its start on a Persian
-                         * page.
-                         */}
-                        {isCurrent && props.current ? (
-                          tx(props.current.label)
-                        ) : (
-                          <bdi>
-                            <BreakableName text={item.name} />
-                          </bdi>
-                        )}
-                      </span>
-                      {isCurrent || !showKind ? (
-                        <></>
-                      ) : (
-                        <span
-                          data-testid={`${testId}-kind`}
-                          className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
-                        >
-                          {/*
-                           * A chip is a label: a kind some languages word
-                           * for the middle of a sentence ("clúster de
-                           * Kubernetes", "zone DNS") starts with a capital.
-                           */}
-                          {item.kindAsWritten ? (
-                            <bdi>{item.kind}</bdi>
-                          ) : (
-                            toLabelTerm(tx(item.kind), translator.language)
-                          )}
-                        </span>
-                      )}
-                      {item.reasons.map(
-                        (reason: ResourceAttentionText): ReactElement => {
-                          const text: string = reasonText(reason);
-                          return (
-                            <span
-                              key={`${reason.text}-${text}`}
-                              data-testid={`${testId}-reason`}
-                              className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${classNames.reason}`}
-                            >
-                              {text}
-                            </span>
-                          );
-                        },
-                      )}
-                    </div>
-                    {/*
-                     * A part that stopped reporting: when it last did, in
-                     * the sentence's language (the hero's own words).
-                     */}
-                    {item.lastReportAt ? (
-                      <p
-                        data-testid={`${testId}-last-report`}
-                        className="mt-0.5 text-xs text-gray-500"
-                      >
-                        {translator.translateTemplate(
-                          "Last reported {{time}}",
-                          {
-                            time: composedValue(
-                              (sentence: Translator): string => {
-                                return formatRelativeTime({
-                                  date: item.lastReportAt as Date,
-                                  now: new Date(),
-                                  language: sentence.language,
-                                });
-                              },
-                            ),
-                          },
-                          { setsValuesApart: true },
-                        )}
-                      </p>
-                    ) : (
-                      <></>
-                    )}
-                    {item.detail && !isCurrent ? (
-                      <p
-                        data-testid={`${testId}-detail`}
-                        className="mt-0.5 font-mono text-xs text-gray-500 [overflow-wrap:anywhere]"
-                      >
-                        <bdi>
-                          <BreakableName text={item.detail} />
-                        </bdi>
-                      </p>
-                    ) : (
-                      <></>
-                    )}
-                    {/*
-                     * The resource's own words, as it wrote them: two lines
-                     * at most, the whole of it on hover.
-                     */}
-                    {item.message ? (
-                      <p
-                        data-testid={`${testId}-message`}
-                        title={item.message}
-                        className="mt-1 line-clamp-2 text-xs text-gray-600 [overflow-wrap:anywhere]"
-                      >
-                        <bdi>{item.message}</bdi>
-                      </p>
-                    ) : (
-                      <></>
-                    )}
-                  </div>
+                  <ResourceAttentionRow
+                    item={item}
+                    testId={testId}
+                    showKind={showKind}
+                    currentLabel={
+                      isCurrent && props.current
+                        ? props.current.label
+                        : undefined
+                    }
+                    areFactsLinked={false}
+                  />
                 </ResourcePartRow>
               </li>
             );

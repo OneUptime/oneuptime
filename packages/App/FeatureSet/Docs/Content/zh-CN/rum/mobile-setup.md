@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理在此基础上添加了自动插桩，并在它自己的资源上设置设备属性。如果你使用它，请将其导出器指向相同的端点和请求头，并检查在你的版本中 `device.model.identifier` 是否进入了资源。
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理在此基础上增加了崩溃、ANR、慢帧和冻结帧以及应用启动，并在它自己的资源上设置 `device.model.identifier` 和 `device.manufacturer` 。 [Android 端设置](/docs/rum/android-setup) 介绍如何用它代替上面的代码进行设置。
 @tab iOS
 使用 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) ，并自行设置设备属性：各个版本自行添加的资源在不同版本之间有所变化。
 

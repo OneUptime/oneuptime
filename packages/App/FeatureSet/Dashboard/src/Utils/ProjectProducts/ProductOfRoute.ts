@@ -159,7 +159,9 @@ const getProductOfCrossProjectPath: (pathname: string) => ProductKey | null = (
 ): ProductKey | null => {
   const address: string = withoutTrailingSlashes(pathname || "");
 
-  for (const page of Object.keys(CROSS_PROJECT_PAGE_PRODUCTS) as Array<PageMap>) {
+  for (const page of Object.keys(
+    CROSS_PROJECT_PAGE_PRODUCTS,
+  ) as Array<PageMap>) {
     const route: Route | undefined = RouteMap[page];
 
     if (route && withoutTrailingSlashes(route.toString()) === address) {

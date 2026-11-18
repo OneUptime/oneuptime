@@ -95,6 +95,20 @@ export interface KubernetesHealthAssessment {
    * "Back-off pulling image ...", an eviction's reason.
    */
   message?: string | undefined;
+  /*
+   * When what the status says began, as Kubernetes recorded it (epoch
+   * milliseconds): the pod failed, its containers stopped being ready, the
+   * scheduler found no node for it, the node stopped being ready. A list
+   * of what failed says "Failed 2 hours ago" from it. Undefined when
+   * Kubernetes recorded no time for it.
+   */
+  since?: number | undefined;
+  /*
+   * For a pod: the container the verdict is about - the one that cannot
+   * run, that failed, or that was killed for its memory. A pod runs
+   * several, and "CrashLoopBackOff" alone does not say which.
+   */
+  container?: string | undefined;
 }
 
 /*
@@ -175,6 +189,10 @@ const REASON_PID_PRESSURE: string = translationKey("PID pressure");
 const REASON_LAST_RESTART: string = translationKey("Last restart: {{reason}}");
 const REASON_LAST_RESTART_WITH_CODE: string = translationKey(
   "Last restart: {{reason}}, exit code {{code}}",
+);
+// How a container's own run ended: "Error, exit code 1".
+const REASON_ENDED_WITH_CODE: string = translationKey(
+  "{{reason}}, exit code {{code}}",
 );
 const REASON_CANNOT_BE_SCHEDULED: string = translationKey("Can't be scheduled");
 const REASON_PENDING: string = translationKey("Pending");
@@ -310,6 +328,8 @@ interface ContainerStatus {
   state: string;
   reason: string;
   message: string;
+  // The current state's exit code, while it is terminated.
+  exitCode: number | null;
   lastTerminationReason: string;
   lastTerminationExitCode: number | null;
   lastTerminatedAt: number | null;
@@ -326,11 +346,43 @@ function readContainerStatuses(
       state: readString(container, "state"),
       reason: readString(container, "reason"),
       message: readString(container, "message"),
+      exitCode: readNumber(container, "exitCode"),
       lastTerminationReason: readString(container, "lastTerminationReason"),
       lastTerminationExitCode: readNumber(container, "lastTerminationExitCode"),
       lastTerminatedAt: toTime(container["lastTerminatedAt"]),
     };
   });
+}
+
+/*
+ * Since when a pod has not been ready: its Ready condition's last change
+ * while it is not True, else its ContainersReady condition's. Null when
+ * Kubernetes recorded neither.
+ */
+function notReadySinceOf(conditions: Array<Condition>): number | null {
+  for (const type of ["Ready", "ContainersReady"]) {
+    const condition: Condition | undefined = findCondition(conditions, type);
+    if (
+      condition &&
+      condition.status !== "True" &&
+      condition.lastTransitionTime !== null
+    ) {
+      return condition.lastTransitionTime;
+    }
+  }
+  return null;
+}
+
+// A time Kubernetes recorded, or nothing: never NaN, never null.
+function sinceOf(
+  ...times: Array<number | null | undefined>
+): number | undefined {
+  for (const time of times) {
+    if (typeof time === "number" && Number.isFinite(time)) {
+      return time;
+    }
+  }
+  return undefined;
 }
 
 /*
@@ -546,6 +598,24 @@ function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
   return text(REASON_LAST_RESTART, { reason: reason });
 }
 
+/*
+ * How a container's own run ended, in Kubernetes' word with its exit code
+ * when that says more: "Error, exit code 1". An OOM kill's code (137) and a
+ * clean exit's (0) add nothing to the word.
+ */
+function endedReason(
+  word: string,
+  exitCode: number | null,
+): KubernetesHealthText {
+  if (exitCode !== null && exitCode !== 0 && !word.endsWith("OOMKilled")) {
+    return text(REASON_ENDED_WITH_CODE, {
+      reason: word,
+      code: String(exitCode),
+    });
+  }
+  return asWritten(word);
+}
+
 export function assessKubernetesPod(
   row: KubernetesHealthRow,
   options?: KubernetesHealthOptions,
@@ -565,6 +635,7 @@ export function assessKubernetesPod(
   const podReason: string = readString(status, "reason");
   const podMessage: string = readString(status, "message");
   const workload: KubernetesObjectRef | null = getKubernetesPodWorkload(row);
+  const createdAt: number | null = toTime(row.resourceCreationTimestamp);
 
   if (phase === "Succeeded") {
     return healthy(text(STATUS_COMPLETED), "neutral");
@@ -599,7 +670,12 @@ export function assessKubernetesPod(
     const word: string = failing
       ? container.reason
       : `Init:${container.reason}`;
-    const reasons: Array<KubernetesHealthText> = [asWritten(word)];
+    // A failed init container ended rather than waits: say how.
+    const reasons: Array<KubernetesHealthText> = [
+      container.state === "terminated"
+        ? endedReason(word, container.exitCode)
+        : asWritten(word),
+    ];
     if (container.lastTerminationReason) {
       reasons.push(lastRestartReason(container));
     }
@@ -609,6 +685,16 @@ export function assessKubernetesPod(
       tone: "danger",
       reasons: reasons,
       message: container.message || undefined,
+      /*
+       * Since it stopped being ready - the first crash, the first pull that
+       * failed - else since its last run ended, else since it was created.
+       */
+      since: sinceOf(
+        notReadySinceOf(conditions),
+        container.lastTerminatedAt,
+        createdAt,
+      ),
+      container: container.name || undefined,
     };
   }
 
@@ -649,7 +735,9 @@ export function assessKubernetesPod(
       evicted ? text(REASON_EVICTED) : text(REASON_FAILED),
     ];
     if (!evicted && failedContainer) {
-      reasons.push(asWritten(failedContainer.reason));
+      reasons.push(
+        endedReason(failedContainer.reason, failedContainer.exitCode),
+      );
     }
     const severity: KubernetesHealthSeverity | null =
       isRecent && workload?.kind !== "Job"
@@ -662,6 +750,8 @@ export function assessKubernetesPod(
       tone: severity ? "warning" : "neutral",
       reasons: reasons,
       message: podMessage || failedContainer?.message || undefined,
+      since: sinceOf(failedAt),
+      container: failedContainer?.name || undefined,
     };
   }
 
@@ -693,6 +783,12 @@ export function assessKubernetesPod(
         (unschedulable ? scheduled?.message : waiting?.message) ||
         podMessage ||
         undefined,
+      // Pending since the scheduler gave up on it, else since it was made.
+      since: sinceOf(
+        unschedulable ? scheduled?.lastTransitionTime : null,
+        createdAt,
+      ),
+      container: waiting?.name || undefined,
     };
   }
 
@@ -738,7 +834,7 @@ export function assessKubernetesPod(
 
     const reasons: Array<KubernetesHealthText> = [];
     if (justEnded) {
-      reasons.push(asWritten(justEnded.reason));
+      reasons.push(endedReason(justEnded.reason, justEnded.exitCode));
     } else if (notReadyLong) {
       reasons.push(text(REASON_NOT_READY));
     }
@@ -760,6 +856,13 @@ export function assessKubernetesPod(
           justEnded?.message ||
           (notReadyLong ? ready?.message : undefined) ||
           undefined,
+        since:
+          justEnded || notReadyLong
+            ? sinceOf(notReadySince)
+            : sinceOf(oomKilled?.lastTerminatedAt),
+        container:
+          (justEnded || (notReadyLong ? notReady[0] : undefined) || oomKilled)
+            ?.name || undefined,
       };
     }
 
@@ -775,6 +878,7 @@ export function assessKubernetesPod(
       tone: "warning",
       reasons: [text(REASON_UNKNOWN_STATE)],
       message: podMessage || undefined,
+      since: sinceOf(notReadySinceOf(conditions)),
     };
   }
 
@@ -817,6 +921,7 @@ export function assessKubernetesNode(
       tone: "danger",
       reasons: reasons,
       message: ready?.message || undefined,
+      since: sinceOf(ready?.lastTransitionTime),
     };
   }
 
@@ -827,6 +932,7 @@ export function assessKubernetesNode(
       tone: "danger",
       reasons: [text(REASON_NETWORK_UNAVAILABLE)],
       message: network.message || undefined,
+      since: sinceOf(network.lastTransitionTime),
     };
   }
 
@@ -865,6 +971,9 @@ export function assessKubernetesNode(
         },
       ),
       message: findCondition(conditions, first.condition)?.message || undefined,
+      since: sinceOf(
+        findCondition(conditions, first.condition)?.lastTransitionTime,
+      ),
     };
   }
 
@@ -1099,6 +1208,7 @@ export function assessKubernetesJob(
       tone: "warning",
       reasons: reasons,
       message: failed.message || undefined,
+      since: sinceOf(failed.lastTransitionTime),
     };
   }
 
@@ -1778,7 +1888,75 @@ export function assessKubernetesCronJobWithRuns(
       }),
     ],
     message: run.message,
+    since: run.since,
   };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * How a pod counts in its cluster's hero
+ * ---------------------------------------------------------------------------
+ *
+ * Each pod once, by what kubectl's STATUS column would say of it: a pod
+ * whose container cannot run reads "CrashLoopBackOff" or "ImagePullBackOff"
+ * there, not "Running" or "Pending", although that is still its phase. The
+ * hero counted phases, so "71 Running" held the pods that crash-looped
+ * (#9537). A pod that cannot run is exactly one the rules call critical, so
+ * the server counts it from the verdict ingest stored (healthSeverity) and
+ * names it by the same word this returns
+ * (KubernetesResourceService.getInventorySummary).
+ */
+export enum KubernetesPodStatusBucket {
+  Running = "running",
+  Pending = "pending",
+  // A container that cannot run: the bucket's reason says which word.
+  CannotRun = "cannotRun",
+  Failed = "failed",
+  Succeeded = "succeeded",
+  // Kubernetes' own Unknown phase: the pod's node stopped reporting it.
+  Unknown = "unknown",
+  // No phase recorded yet: nothing to say, and never a problem.
+  NoData = "noData",
+}
+
+export interface KubernetesPodStatusBucketOf {
+  bucket: KubernetesPodStatusBucket;
+  // For CannotRun: the word kubectl shows - "CrashLoopBackOff", "Init:Error".
+  reason?: string | undefined;
+}
+
+export function getKubernetesPodStatusBucket(
+  row: KubernetesHealthRow,
+  options?: KubernetesHealthOptions,
+): KubernetesPodStatusBucketOf {
+  const assessment: KubernetesHealthAssessment = assessKubernetesPod(
+    row,
+    options,
+  );
+
+  if (assessment.severity === KubernetesHealthSeverity.Critical) {
+    return {
+      bucket: KubernetesPodStatusBucket.CannotRun,
+      reason: assessment.status.values?.["reason"] || undefined,
+    };
+  }
+
+  const phase: string = row.phase || readString(asObject(row.status), "phase");
+
+  switch (phase) {
+    case "Running":
+      return { bucket: KubernetesPodStatusBucket.Running };
+    case "Pending":
+      return { bucket: KubernetesPodStatusBucket.Pending };
+    case "Failed":
+      return { bucket: KubernetesPodStatusBucket.Failed };
+    case "Succeeded":
+      return { bucket: KubernetesPodStatusBucket.Succeeded };
+    case "Unknown":
+      return { bucket: KubernetesPodStatusBucket.Unknown };
+    default:
+      return { bucket: KubernetesPodStatusBucket.NoData };
+  }
 }
 
 /*

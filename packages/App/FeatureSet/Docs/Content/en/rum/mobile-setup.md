@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-The [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent adds automatic instrumentation on top, and sets device attributes on its own resource. If you use it, point its exporter at the same endpoint and header, and check that `device.model.identifier` reaches the resource on your version.
+The [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent adds crashes, ANRs, slow and frozen frames and app starts on top, and sets `device.model.identifier` and `device.manufacturer` on its own resource. [Android Setup](/docs/rum/android-setup) sets it up in place of the code above.
 @tab iOS
 Use [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), and set the device attributes yourself: the resource each version adds on its own has changed between releases.
 

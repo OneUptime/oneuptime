@@ -447,23 +447,31 @@ describe("the frontend build config's production output settings", () => {
       expect(config.external).toEqual(["react-native-sqlite-storage"]);
     });
 
-    test("keeps all four plugins wired, in order", () => {
+    test("keeps all five plugins wired, in order", () => {
       /*
        * Minified output still has to go through the mermaid guard, the
-       * refractor shim and the CSS/asset loaders. None of them fails loudly
-       * when dropped: without the guard a prebuilt mermaid bundle, with its
-       * own copies of mermaid's dependencies, can come back unnoticed, and
-       * without the CSS loader the page is silently unstyled.
+       * refractor shim, the single-copy resolver and the CSS/asset loaders.
+       * None of them fails loudly when dropped: without the guard a prebuilt
+       * mermaid bundle, with its own copies of mermaid's dependencies, can
+       * come back unnoticed, without the resolver a public dashboard bundles
+       * recharts twice again (issue #9335), and without the CSS loader the
+       * page is silently unstyled.
        */
-      expect(readConfig("production").pluginNames).toEqual([
-        "mermaid-from-source",
-        "refractor-compatibility",
-        "css",
-        "file-loader",
-      ]);
+      for (const nodeEnv of ["production", null]) {
+        expect([nodeEnv, readConfig(nodeEnv).pluginNames]).toEqual([
+          nodeEnv,
+          [
+            "mermaid-from-source",
+            "refractor-compatibility",
+            "single-copy-packages",
+            "css",
+            "file-loader",
+          ],
+        ]);
+      }
     });
 
-    test("runs a frontend's additionalPlugins after the shared four, without new config keys", () => {
+    test("runs a frontend's additionalPlugins after the shared five, without new config keys", () => {
       // The Dashboard passes its runtime-locales plugin this way.
       const output: string = runNode(
         `
@@ -492,6 +500,7 @@ describe("the frontend build config's production output settings", () => {
       expect(withExtras.pluginNames).toEqual([
         "mermaid-from-source",
         "refractor-compatibility",
+        "single-copy-packages",
         "css",
         "file-loader",
         "first-extra",
