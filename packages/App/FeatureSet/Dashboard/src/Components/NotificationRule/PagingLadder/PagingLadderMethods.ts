@@ -1,4 +1,4 @@
-import { NotificationMethodChoice } from "../OnCallRulesTable";
+import { NotificationMethodChoice } from "../NotificationMethodChoice";
 import {
   PagingLadderStep,
   PagingMethodColumn,

@@ -1,3 +1,4 @@
+import { NotificationMethodChoice } from "./NotificationMethodChoice";
 import NotificationMethodView, {
   DeletionImpactModal,
 } from "../NotificationMethods/NotificationMethod";
@@ -77,31 +78,6 @@ import React, {
   useState,
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-
-/*
- * One pickable notification method, described WITHOUT its underlying row.
- *
- * This is the whole of what the create form needs in order to point a rule at a
- * method: something to render, and the foreign key to submit. It deliberately
- * carries no address, no phone number, no webhook url and no device token —
- * `maskedIdentifier` is already masked by the only code that can mask it
- * (OnCallReadinessService), and nothing here can un-mask it.
- *
- * ReadinessMethodWire satisfies this shape apart from `methodId` being optional
- * there, which is the one difference worth having: a caller has to state that it
- * HAS an id before it can hand a method over, so a method the server could not
- * address is dropped at the call site rather than becoming a dropdown entry that
- * submits nothing and is refused.
- */
-export interface NotificationMethodChoice {
-  /* One of the eleven channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel. */
-  methodType: string;
-  /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
-  methodId: string;
-  /* Already masked. "+1 ••• ••• 4821", never the number. */
-  maskedIdentifier: string;
-  isVerified: boolean;
-}
 
 /*
  * Which foreign key on UserNotificationRule each channel corresponds to.
