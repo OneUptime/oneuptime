@@ -1,4 +1,7 @@
-import { TELEMETRY_RECOMMENDED_TEMPLATE_IDS } from "./TelemetrySetup";
+import {
+  TELEMETRY_RECOMMENDATION_MILESTONES,
+  getTelemetryRecommendedTemplateIds,
+} from "./TelemetrySetup";
 import { isMonitorBatchConsentRequired } from "../../Billing/PayAsYouGo";
 import {
   MonitorRecommendationProjectDefaults,
@@ -8,7 +11,11 @@ import MonitorRecommendationCreateUtil, {
   MonitorRecommendationCreatePlanItem,
 } from "../../Recommendations/MonitorRecommendationCreateUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import Service from "Common/Models/DatabaseModels/Service";
+import ActivationMilestone, {
+  isActivationMilestone,
+} from "Common/Types/Analytics/ActivationMilestone";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -64,28 +71,35 @@ export const mayCreateMonitors: () => boolean = (): boolean => {
   return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
 };
 
-// The recommended monitors, from the Service catalog, in the setup's order.
-export const getTelemetryRecommendations: () => Array<MonitorRecommendation> =
-  (): Array<MonitorRecommendation> => {
-    const all: Array<MonitorRecommendation> =
-      MonitorRecommendationCatalog.getRecommendations(
-        MonitorRecommendationResourceType.Service,
-      );
+/*
+ * The recommended monitors, from the Service catalog, in the setup's order:
+ * the ones for the data the project's first data says arrived (#7146), or
+ * the setup's three when that is not known (getTelemetryRecommendedTemplateIds).
+ */
+export const getTelemetryRecommendations: (
+  reached?: ReadonlyArray<ActivationMilestone> | null | undefined,
+) => Array<MonitorRecommendation> = (
+  reached?: ReadonlyArray<ActivationMilestone> | null | undefined,
+): Array<MonitorRecommendation> => {
+  const all: Array<MonitorRecommendation> =
+    MonitorRecommendationCatalog.getRecommendations(
+      MonitorRecommendationResourceType.Service,
+    );
 
-    return TELEMETRY_RECOMMENDED_TEMPLATE_IDS.map(
-      (templateId: string): MonitorRecommendation | undefined => {
-        return all.find((recommendation: MonitorRecommendation): boolean => {
-          return recommendation.templateId === templateId;
-        });
-      },
-    ).filter(
+  return getTelemetryRecommendedTemplateIds(reached)
+    .map((templateId: string): MonitorRecommendation | undefined => {
+      return all.find((recommendation: MonitorRecommendation): boolean => {
+        return recommendation.templateId === templateId;
+      });
+    })
+    .filter(
       (
         recommendation: MonitorRecommendation | undefined,
       ): recommendation is MonitorRecommendation => {
         return Boolean(recommendation);
       },
     );
-  };
+};
 
 const toService: (service: Service) => TelemetrySetupService = (
   service: Service,
@@ -126,6 +140,34 @@ export default class TelemetrySetupApi {
     });
 
     return service?._id ? toService(service) : null;
+  }
+
+  /*
+   * The project's first data the offer reads (TELEMETRY_RECOMMENDATION_
+   * MILESTONES): which of its first logs, traces, metrics and exceptions
+   * have arrived.
+   */
+  public static async loadFirstDataReached(): Promise<
+    Array<ActivationMilestone>
+  > {
+    const result: ListResult<ProjectMilestone> =
+      await ModelAPI.getList<ProjectMilestone>({
+        modelType: ProjectMilestone,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          milestone: new Includes([...TELEMETRY_RECOMMENDATION_MILESTONES]),
+        },
+        limit: TELEMETRY_RECOMMENDATION_MILESTONES.length,
+        skip: 0,
+        select: { _id: true, milestone: true },
+        sort: {},
+      });
+
+    return result.data
+      .map((mark: ProjectMilestone): unknown => {
+        return mark.milestone;
+      })
+      .filter(isActivationMilestone);
   }
 
   // The project's services that have reported, the latest first.

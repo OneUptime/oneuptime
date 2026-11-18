@@ -30,6 +30,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const api: Record<string, MockFunction> = {
   loadService: getJestMockFunction(),
   loadReportingServices: getJestMockFunction(),
+  loadFirstDataReached: getJestMockFunction(),
   loadCoveredRecommendationIds: getJestMockFunction(),
   createMonitors: getJestMockFunction(),
   loadMonitors: getJestMockFunction(),
@@ -47,6 +48,7 @@ jest.mock(
     for (const name of [
       "loadService",
       "loadReportingServices",
+      "loadFirstDataReached",
       "loadCoveredRecommendationIds",
       "createMonitors",
       "loadMonitors",
@@ -143,6 +145,8 @@ jest.mock(
         ingestionKey?: unknown;
         dataPage?: unknown;
         onDataArrived?: unknown;
+        isServiceRequired?: boolean;
+        firstDataMilestones?: ReadonlyArray<string>;
       }) => {
         return (
           <button
@@ -153,6 +157,8 @@ jest.mock(
                 props.ingestionKey || props.dataPage || props.onDataArrived,
               ),
             )}
+            data-service-required={String(Boolean(props.isServiceRequired))}
+            data-first-data={(props.firstDataMilestones || []).join(",")}
             onClick={() => {
               props.onConnected?.({
                 _id: "svc-new",
@@ -239,6 +245,7 @@ import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/C
 import { TELEMETRY_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetup";
 import { getTelemetryRecommendations } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi";
 import { getTelemetryWhoIsToldWords } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetryWhoIsTold";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import { MonitorRecommendation } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import {
@@ -350,6 +357,8 @@ beforeEach(() => {
     hasReported: true,
   });
   api["loadReportingServices"]!.mockResolvedValue([]);
+  // Nothing known of the project's first data: the setup's three are offered.
+  api["loadFirstDataReached"]!.mockResolvedValue([]);
   api["loadCoveredRecommendationIds"]!.mockResolvedValue([]);
   api["createMonitors"]!.mockResolvedValue({
     createdIds: ["mon-1", "mon-2", "mon-3"],
@@ -483,10 +492,196 @@ describe("1. Send your first data", () => {
       "data-watches-key",
       "false",
     );
+    expect(screen.getByTestId("first-data-arrives")).toHaveAttribute(
+      "data-service-required",
+      "true",
+    );
     expect(screen.getByTestId("telemetry-guide")).toHaveAttribute(
       "data-reports-key",
       "false",
     );
+  });
+
+  /*
+   * #7888: data that names no service arrives with no service to finish
+   * the step. While no service of the project has reported, the project's
+   * first logs, metrics or traces are what that data is, and the step says
+   * so (ResourceConnectionWatch, isServiceRequired) and waits on.
+   */
+  test("with no service reporting, it watches the first logs, metrics and traces, to say when data names no service", async () => {
+    await renderSetup();
+
+    expect(
+      screen
+        .getByTestId("first-data-arrives")
+        .getAttribute("data-first-data")!
+        .split(",")
+        .sort(),
+    ).toEqual(
+      [
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ].sort(),
+    );
+  });
+
+  test("with services that report, data may be theirs: it watches no first data, and offers them", async () => {
+    api["loadReportingServices"]!.mockResolvedValue([
+      { id: "svc-old", name: "billing", hasReported: true },
+    ]);
+    await renderSetup();
+
+    expect(screen.getByTestId("first-data-arrives")).toHaveAttribute(
+      "data-first-data",
+      "",
+    );
+    expect(
+      screen.getByTestId("guided-setup-reporting-services"),
+    ).toBeInTheDocument();
+  });
+});
+
+/*
+ * #7146: each recommended monitor reads one kind of data, so it is offered
+ * once the project's first data of that kind arrived - a service that sends
+ * only logs gets the error-log monitor, not three that can never fire.
+ */
+describe("2. Get alerted: the monitors for the data that arrived", () => {
+  const offeredTemplates: () => Array<string> = (): Array<string> => {
+    return Array.from(
+      screen.getByTestId("guided-setup-recommendations").querySelectorAll("li"),
+    ).map((item: HTMLLIElement): string => {
+      return (item.getAttribute("data-testid") || "").replace(
+        "guided-setup-recommendation-",
+        "",
+      );
+    });
+  };
+
+  test.each([
+    [
+      "logs only: the error logs, and the exceptions logs bring",
+      [ActivationMilestone.FirstLogsReceived],
+      ["service-unhandled-exceptions", "service-error-log-spike"],
+    ],
+    [
+      "traces only: failing requests and exceptions",
+      [ActivationMilestone.FirstTracesReceived],
+      ["service-error-burst", "service-unhandled-exceptions"],
+    ],
+    [
+      "metrics only: slow requests",
+      [ActivationMilestone.FirstMetricsReceived],
+      ["service-latency-p95"],
+    ],
+    [
+      "traces and metrics: the three",
+      [
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstMetricsReceived,
+      ],
+      [
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+      ],
+    ],
+    [
+      "logs, metrics and traces: all four, in the setup's order",
+      [
+        ActivationMilestone.FirstLogsReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstTracesReceived,
+      ],
+      [
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+        "service-error-log-spike",
+      ],
+    ],
+    [
+      "nothing known: the setup's three",
+      [],
+      [
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+      ],
+    ],
+  ])(
+    "%s",
+    async (
+      _name: string,
+      reached: Array<ActivationMilestone>,
+      expected: Array<string>,
+    ) => {
+      api["loadFirstDataReached"]!.mockResolvedValue(reached);
+      await reachAlertStep();
+
+      expect(offeredTemplates()).toEqual(expected);
+      // All ticked: the button makes each one.
+      expect(
+        screen.getByTestId("guided-setup-create-monitors"),
+      ).toHaveTextContent(
+        expected.length === 1
+          ? "Create 1 monitor"
+          : `Create ${expected.length} monitors`,
+      );
+      // What the service has already is asked of these, and only these.
+      const asked: Array<MonitorRecommendation> = (
+        api["loadCoveredRecommendationIds"]!.mock.calls[0]![0] as {
+          recommendations: Array<MonitorRecommendation>;
+        }
+      ).recommendations;
+      expect(
+        asked.map((recommendation: MonitorRecommendation): string => {
+          return recommendation.templateId;
+        }),
+      ).toEqual(expected);
+    },
+  );
+
+  test("a read of the first data that fails offers the setup's three", async () => {
+    api["loadFirstDataReached"]!.mockRejectedValue(
+      new Error("The API is down."),
+    );
+    await reachAlertStep();
+
+    expect(offeredTemplates()).toEqual([
+      "service-error-burst",
+      "service-latency-p95",
+      "service-unhandled-exceptions",
+    ]);
+  });
+
+  test("the logs-only service's monitor is made as the others are, for it", async () => {
+    api["loadFirstDataReached"]!.mockResolvedValue([
+      ActivationMilestone.FirstLogsReceived,
+    ]);
+    await reachAlertStep();
+    await press("guided-setup-create-monitors");
+
+    const made: {
+      recommendations: Array<MonitorRecommendation>;
+      recommendationIds: Array<string>;
+      service: { id: string };
+    } = api["createMonitors"]!.mock.calls[0]![0] as {
+      recommendations: Array<MonitorRecommendation>;
+      recommendationIds: Array<string>;
+      service: { id: string };
+    };
+
+    expect(made.service.id).toBe("svc-new");
+    expect(
+      made.recommendations.map(
+        (recommendation: MonitorRecommendation): string => {
+          return recommendation.templateId;
+        },
+      ),
+    ).toEqual(["service-unhandled-exceptions", "service-error-log-spike"]);
+    expect(made.recommendationIds).toHaveLength(2);
   });
 });
 
