@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * WHETHER THE SERVER'S OWN PUSHES GO OUT (#6881).
@@ -19,7 +19,7 @@ import type { Mock } from "jest-mock";
 
 let storedConfig: Record<string, unknown> | null = null;
 let pushTurnedOff: boolean = false;
-const writeServerSendingHealth: Mock = jest.fn();
+const writeServerSendingHealth: MockFunction = getJestMockFunction();
 
 jest.mock("../../../Server/Services/GlobalConfigService", () => {
   return {
