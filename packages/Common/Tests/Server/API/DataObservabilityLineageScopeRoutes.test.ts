@@ -13,6 +13,7 @@ import DataAlertService from "../../../Server/Services/DataAlertService";
 import DataAssetLineageService from "../../../Server/Services/DataAssetLineageService";
 import DataAssetService from "../../../Server/Services/DataAssetService";
 import DataAssetUsageService from "../../../Server/Services/DataAssetUsageService";
+import DataBiConnectionService from "../../../Server/Services/DataBiConnectionService";
 import DataDashboardService from "../../../Server/Services/DataDashboardService";
 import DataPipelineService from "../../../Server/Services/DataPipelineService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
@@ -399,6 +400,8 @@ function stubWarehouse(): void {
       });
   }) as never);
   jest.spyOn(DataDashboardService, "findBy").mockResolvedValue([] as never);
+  // No BI tool connected: the map draws no Power BI dataset behind a report (#9559).
+  jest.spyOn(DataBiConnectionService, "findBy").mockResolvedValue([] as never);
 
   // The whole project's newest rows, for a whole map read by someone who may read it all.
   jest
