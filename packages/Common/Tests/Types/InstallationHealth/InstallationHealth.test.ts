@@ -16,6 +16,7 @@ import InstallationHealthUtil, {
   InstallationHealthProducts,
   QUEUE_BACKLOG_LIMIT,
 } from "../../../Types/InstallationHealth/InstallationHealth";
+import { ProbeBehindWork } from "../../../Types/Probe/ProbeBehind";
 import ProductKey, { PRODUCT_KEYS } from "../../../Types/Product/ProductKey";
 import {
   SWITCHABLE_PRODUCTS,
@@ -737,6 +738,75 @@ describe("the global probes", () => {
       );
 
     expect(ids(findings)).toEqual([
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_ONE}`,
+      `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_TWO}`,
+    ]);
+  });
+
+  /*
+   * #9499: a global probe behind on the network devices it polls is a
+   * finding of its own, with the setting that lets it poll more at once.
+   */
+  test("one behind on its network devices says so, with the settings that let it poll more at once", () => {
+    const finding: InstallationHealthFinding = only(
+      healthyFacts({
+        globalProbesBehind: [
+          {
+            id: PROBE_ONE,
+            name: "Probe-1",
+            since: EARLIER,
+            work: ProbeBehindWork.DevicePolls,
+          },
+        ],
+      }),
+    );
+
+    expect(finding.id).toBe(
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-${PROBE_ONE}`,
+    );
+    expect(finding.level).toBe(InstallationHealthLevel.Warn);
+    expect(finding.title).toBe("Global probes");
+    expect(finding.sentence).toBe(
+      "Probe-1 is behind on its network devices: since 2026-11-10 09:30 UTC, they have waited more than a minute past their poll time, so they are polled less often than set.",
+    );
+    expect(finding.fixSentence).toContain(
+      "GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY",
+    );
+    expect(finding.fixSentence).toContain("config.env");
+    expect(finding.fixSentence).toContain("networkDevicePollConcurrency");
+    expect(finding.fixSentence).not.toContain("MONITORING_WORKERS");
+    expect(finding.adminPath).toBe(INSTALLATION_HEALTH_ADMIN_PATHS.probes);
+    expect(finding.guidePath).toBe(INSTALLATION_HEALTH_GUIDES.probeBehind);
+  });
+
+  test("a probe behind on both is two findings, its monitors' and its devices', the longest first; one from a reader that names no work is its monitors'", () => {
+    const findings: Array<InstallationHealthFinding> =
+      InstallationHealthUtil.evaluate(
+        healthyFacts({
+          globalProbesBehind: [
+            {
+              id: PROBE_ONE,
+              name: "Probe-1",
+              since: "2026-11-10T09:45:00.000Z",
+              work: ProbeBehindWork.MonitorChecks,
+            },
+            {
+              id: PROBE_ONE,
+              name: "Probe-1",
+              since: EARLIER,
+              work: ProbeBehindWork.DevicePolls,
+            },
+            {
+              id: PROBE_TWO,
+              name: "Probe-2",
+              since: "2026-11-10T09:50:00.000Z",
+            },
+          ],
+        }),
+      );
+
+    expect(ids(findings)).toEqual([
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-${PROBE_ONE}`,
       `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_ONE}`,
       `${InstallationHealthFindingId.GlobalProbeBehind}-${PROBE_TWO}`,
     ]);
