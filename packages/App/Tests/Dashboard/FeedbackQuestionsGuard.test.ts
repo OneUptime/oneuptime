@@ -416,3 +416,34 @@ describe("once an answer is given, the card says where it went (#7462)", () => {
     }
   });
 });
+
+describe("an answer is kept a set time, said where answers are read (#7366)", () => {
+  test("the service deletes answers older than the period, and Admin > Feedback says the period over the answers", () => {
+    const service: string = withoutComments(
+      fs.readFileSync(
+        path.join(
+          REPOSITORY_ROOT,
+          "packages/Common/Server/Services/ProductFeedbackService.ts",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(service).toMatch(
+      /hardDeleteItemsOlderThanInDays\(\s*"createdAt",\s*PRODUCT_FEEDBACK_RETENTION_IN_DAYS,?\s*\)/,
+    );
+
+    const page: string = withoutComments(
+      fs.readFileSync(
+        path.join(
+          REPOSITORY_ROOT,
+          "packages/App/FeatureSet/AdminDashboard/src/Pages/Feedback/Index.tsx",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(page).toContain("Answers are kept {{count}} days, then deleted.");
+    expect(page).toContain("summary?.retentionInDays");
+  });
+});

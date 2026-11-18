@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#asking-people
 import { mockRouter } from "./Helpers";
 import {
   ASK_AI_RATINGS_PERMISSIONS,

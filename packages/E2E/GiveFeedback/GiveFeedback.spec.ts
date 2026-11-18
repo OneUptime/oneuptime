@@ -232,7 +232,13 @@ test.describe("Give Feedback", () => {
 
     const github: Locator = page.getByTestId("give-feedback-github");
 
-    await expect(github).toHaveText("Also tell OneUptime on GitHub");
+    // It says it is public, and that nothing is posted until the person posts it (#7462).
+    await expect(github).toHaveText(
+      "Also tell OneUptime in a public GitHub issue",
+    );
+    await expect(page.getByTestId("feedback-github-hint")).toHaveText(
+      "It opens with your words filled in, and nothing is posted until you post it.",
+    );
     // A new issue on OneUptime's GitHub, filled in for the person to read.
     expect(
       (await github.getAttribute("href"))?.startsWith(`${GITHUB_NEW_ISSUE}?`),
