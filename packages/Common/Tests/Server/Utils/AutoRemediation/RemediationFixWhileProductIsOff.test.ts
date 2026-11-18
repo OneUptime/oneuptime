@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A FIX OF ONEUPTIME AI, WHILE A PRODUCT IT ACTS ON IS SWITCHED OFF ON THE
@@ -108,10 +109,10 @@ function fixRow(
 }
 
 let row: Record<string, unknown>;
-let casSpy: jest.SpiedFunction<
+let casSpy: SpyInstance<
   typeof AutoRemediationSuggestionService.attemptStatusTransition
 >;
-let incidentFeedSpy: jest.SpiedFunction<
+let incidentFeedSpy: SpyInstance<
   typeof IncidentFeedService.createIncidentFeedItem
 >;
 

@@ -33,6 +33,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * NO WRITE OF A PRODUCT THAT IS OFF GOES THROUGH (#7479).
@@ -87,7 +88,7 @@ const MASTER_ADMIN: DatabaseCommonInteractionProps = {
 
 const ROOT: DatabaseCommonInteractionProps = { isRoot: true };
 
-let getOff: jest.SpiedFunction<typeof ServerProducts.getOff>;
+let getOff: SpyInstance<typeof ServerProducts.getOff>;
 
 const switchOff: (products: Array<ProductKey>) => void = (
   products: Array<ProductKey>,
@@ -212,9 +213,7 @@ describe("ProductWriteRefusal", () => {
 
   test("refuses nothing without a database to read the products from", async () => {
     switchOff([ProductKey.StatusPages]);
-    (PostgresAppInstance.isConnected as unknown as jest.Mock).mockReturnValue(
-      false,
-    );
+    (PostgresAppInstance.isConnected as unknown as Mock).mockReturnValue(false);
 
     await expect(
       ProductWriteRefusal.refuseWhileProductIsOff({

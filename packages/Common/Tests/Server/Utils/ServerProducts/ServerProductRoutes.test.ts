@@ -27,6 +27,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A ROUTE NAMES THE PRODUCTS IT ACTS ON, AND IS REFUSED WHILE ONE IS OFF
@@ -39,7 +40,7 @@ import {
  * status PR #9484's refusals have; handed on to the handler otherwise.
  */
 
-let getOff: jest.SpiedFunction<typeof ServerProducts.getOff>;
+let getOff: SpyInstance<typeof ServerProducts.getOff>;
 
 const switchOff: (products: Array<ProductKey>) => void = (
   products: Array<ProductKey>,

@@ -36,6 +36,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * WHAT THE SERVER DOES BY ITSELF WHILE A PRODUCT IS SWITCHED OFF (#9489).
@@ -187,7 +188,7 @@ describe("AIRunService: OneUptime AI starts no run on a product switched off", (
 
   test("a run of a product that is off is refused before anything is written, naming it", async () => {
     switchOff([ProductKey.Code]);
-    const counter: jest.SpiedFunction<
+    const counter: SpyInstance<
       typeof ProjectService.incrementAndGetAIRunCounter
     > = jest.spyOn(ProjectService, "incrementAndGetAIRunCounter");
 
@@ -233,7 +234,7 @@ describe("AIRunService: OneUptime AI starts no run on a product switched off", (
 
   test("no code fix is handed to an AI agent, nor counted, while Code is off", async () => {
     switchOff([ProductKey.Code]);
-    const repository: jest.SpiedFunction<typeof AIRunService.getRepository> =
+    const repository: SpyInstance<typeof AIRunService.getRepository> =
       jest.spyOn(AIRunService, "getRepository");
 
     await expect(
@@ -252,14 +253,13 @@ describe("AIRunService: OneUptime AI starts no run on a product switched off", (
 describe("the investigation queue", () => {
   test("enqueues nothing for a record of a product that is off, quietly", async () => {
     switchOff([ProductKey.Incidents]);
-    const budget: jest.SpiedFunction<
-      typeof AIService.getAutonomousDailyBudgetStatus
-    > = jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
-    const created: jest.SpiedFunction<typeof AIRunService.create> = jest.spyOn(
+    const budget: SpyInstance<typeof AIService.getAutonomousDailyBudgetStatus> =
+      jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
+    const created: SpyInstance<typeof AIRunService.create> = jest.spyOn(
       AIRunService,
       "create",
     );
-    const notEnqueued: jest.Mock = jest.fn();
+    const notEnqueued: Mock = jest.fn();
 
     await expect(
       AIInvestigationQueue.enqueue({
@@ -277,10 +277,9 @@ describe("the investigation queue", () => {
 
   test("a runbook pick is not enqueued while Runbooks is off", async () => {
     switchOff([ProductKey.Runbooks]);
-    const budget: jest.SpiedFunction<
-      typeof AIService.getAutonomousDailyBudgetStatus
-    > = jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
-    const created: jest.SpiedFunction<typeof AIRunService.create> = jest.spyOn(
+    const budget: SpyInstance<typeof AIService.getAutonomousDailyBudgetStatus> =
+      jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
+    const created: SpyInstance<typeof AIRunService.create> = jest.spyOn(
       AIRunService,
       "create",
     );
@@ -302,11 +301,12 @@ describe("the investigation queue", () => {
     switchOff([ProductKey.Alerts]);
     const claim: jest.SpyInstance = getJestSpyOn(AIInvestigationQueue, "claim");
     // The claim's other gates - the project's caps, the budget - are not asked.
-    const project: jest.SpiedFunction<typeof ProjectService.findOneById> =
-      jest.spyOn(ProjectService, "findOneById");
-    const budget: jest.SpiedFunction<
-      typeof AIService.getAutonomousDailyBudgetStatus
-    > = jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
+    const project: SpyInstance<typeof ProjectService.findOneById> = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+    const budget: SpyInstance<typeof AIService.getAutonomousDailyBudgetStatus> =
+      jest.spyOn(AIService, "getAutonomousDailyBudgetStatus");
 
     await AIInvestigationQueue.processRun({
       id: new ObjectID("c9489bb0-0000-4000-8000-0000000000cc"),
@@ -369,7 +369,7 @@ describe("auto-remediation", () => {
 
   test("OneUptime AI has no runbook to pick while Runbooks is off, and counts none", async () => {
     switchOff([ProductKey.Runbooks]);
-    const count: jest.SpiedFunction<typeof RunbookService.countBy> = jest.spyOn(
+    const count: SpyInstance<typeof RunbookService.countBy> = jest.spyOn(
       RunbookService,
       "countBy",
     );
@@ -386,7 +386,7 @@ describe("auto-remediation", () => {
 
   test("a rule's runbook is not started while Runbooks is off, and the record's feed says why", async () => {
     switchOff([ProductKey.Runbooks]);
-    const started: jest.SpiedFunction<
+    const started: SpyInstance<
       typeof RunbookRuleEngineService.startRunbookFor
     > = jest.spyOn(RunbookRuleEngineService, "startRunbookFor");
     const posted: jest.SpyInstance = getJestSpyOn(
@@ -430,8 +430,10 @@ describe("auto-remediation", () => {
 describe("OneUptime AI's own jobs", () => {
   test("no postmortem is drafted while Incidents is off: nothing is read for it", async () => {
     switchOff([ProductKey.Incidents]);
-    const project: jest.SpiedFunction<typeof ProjectService.findOneById> =
-      jest.spyOn(ProjectService, "findOneById");
+    const project: SpyInstance<typeof ProjectService.findOneById> = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
 
     await AIIncidentPostmortemRunner.draftPostmortemOnResolve({
       incidentId: INCIDENT_ID,
@@ -446,7 +448,7 @@ describe("OneUptime AI's own jobs", () => {
 
   test("nor is a draft that waited for its calls written", async () => {
     switchOff([ProductKey.Incidents]);
-    const incident: jest.SpiedFunction<typeof IncidentService.findOneById> =
+    const incident: SpyInstance<typeof IncidentService.findOneById> =
       jest.spyOn(IncidentService, "findOneById");
 
     await AIIncidentPostmortemRunner.draftWaitingPostmortem({
@@ -458,7 +460,7 @@ describe("OneUptime AI's own jobs", () => {
 
   test("no finding is looked for while AI Insights is off", async () => {
     switchOff([ProductKey.AIInsights]);
-    const list: jest.SpiedFunction<typeof InsightScanner.listProjectsToScan> =
+    const list: SpyInstance<typeof InsightScanner.listProjectsToScan> =
       jest.spyOn(InsightScanner, "listProjectsToScan");
 
     await InsightScanner.scanAllProjects();
@@ -468,11 +470,12 @@ describe("OneUptime AI's own jobs", () => {
 
   test("no pull request is reviewed, nor a Git server read, while Code is off", async () => {
     switchOff([ProductKey.Code]);
-    const due: jest.SpiedFunction<typeof ProductionReviewQueue.claimDue> =
-      jest.spyOn(ProductionReviewQueue, "claimDue");
-    const repositories: jest.SpiedFunction<
-      typeof CodeRepositoryService.findBy
-    > = jest.spyOn(CodeRepositoryService, "findBy");
+    const due: SpyInstance<typeof ProductionReviewQueue.claimDue> = jest.spyOn(
+      ProductionReviewQueue,
+      "claimDue",
+    );
+    const repositories: SpyInstance<typeof CodeRepositoryService.findBy> =
+      jest.spyOn(CodeRepositoryService, "findBy");
 
     await expect(ProductionReviewRunner.runDueReviews()).resolves.toBe(0);
     await expect(ProductionReviewPoller.pollAll()).resolves.toEqual({
@@ -485,9 +488,10 @@ describe("OneUptime AI's own jobs", () => {
 
   test("while each product is on, each job goes on to its work", async () => {
     switchOff([ProductKey.Logs]);
-    const list: jest.SpiedFunction<typeof InsightScanner.listProjectsToScan> =
-      jest.spyOn(InsightScanner, "listProjectsToScan").mockResolvedValue([]);
-    const due: jest.SpiedFunction<typeof ProductionReviewQueue.claimDue> = jest
+    const list: SpyInstance<typeof InsightScanner.listProjectsToScan> = jest
+      .spyOn(InsightScanner, "listProjectsToScan")
+      .mockResolvedValue([]);
+    const due: SpyInstance<typeof ProductionReviewQueue.claimDue> = jest
       .spyOn(ProductionReviewQueue, "claimDue")
       .mockResolvedValue([]);
 
