@@ -511,6 +511,27 @@ integration(
         },
       } as never);
 
+      /*
+       * Product analytics' counts before its deletes (issue #6628). This
+       * suite has none of its tables; the Keeper-backed suite
+       * (RumProductAnalyticsErasureKeeperClickhouse) runs them for real.
+       */
+      for (const service of [
+        RumProductAnalyticsSessionService,
+        RumProductAnalyticsEventService,
+      ]) {
+        jest
+          .spyOn(
+            service as unknown as { executeQuery: () => Promise<unknown> },
+            "executeQuery",
+          )
+          .mockResolvedValue({
+            json: (): Promise<{ data: Array<JSONObject> }> => {
+              return Promise.resolve({ data: [{ paRows: 0 }] });
+            },
+          } as never);
+      }
+
       /* The deletes are ON CLUSTER; capture them instead of running them. */
       for (const service of [
         RumSessionChunkService,
