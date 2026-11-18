@@ -25,6 +25,11 @@ import AIRunHumanVerdict from "../../../../Types/AI/AIRunHumanVerdict";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 import {
   afterEach,
   beforeEach,
@@ -57,6 +62,8 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-dddd-4aaa-8bbb-000000000001",
 );
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 const CURRENT_INCIDENT: ObjectID = new ObjectID(
   "0193c0de-dddd-4aaa-8bbb-000000000002",
 );
@@ -204,6 +211,7 @@ async function rememberIncident(
   } = {},
 ): Promise<string> {
   return await AIMemory.getPriorSimilarIncidentsContext({
+    readAudience: READERS,
     projectId: PROJECT_ID,
     currentIncidentId: CURRENT_INCIDENT,
     monitorNames: data.monitorNames || [],
@@ -506,6 +514,8 @@ describe("what is known about the incident's services", () => {
       projectId: PROJECT_ID,
       services: [CHECKOUT],
       excludeIncidentId: CURRENT_INCIDENT,
+      // Read for everyone who may see the incident (#9576).
+      readAudience: READERS,
     });
   });
 
@@ -577,6 +587,7 @@ describe("an alert's past, recalled by meaning", () => {
 
   async function rememberAlert(): Promise<string> {
     return await AIMemory.getPriorSimilarAlertsContext({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       currentAlertId: CURRENT_ALERT,
     });
@@ -649,11 +660,13 @@ describe("an alert's past, recalled by meaning", () => {
       projectId: PROJECT_ID,
       services: current.services,
       monitorId: MONITOR_ID,
+      readAudience: READERS,
     });
     expect(knowledge).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       services: [CHECKOUT],
       excludeAlertId: CURRENT_ALERT,
+      readAudience: READERS,
     });
   });
 

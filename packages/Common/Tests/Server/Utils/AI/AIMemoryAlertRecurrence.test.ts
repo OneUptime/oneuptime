@@ -21,6 +21,11 @@ import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/Aut
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
   afterEach,
@@ -54,6 +59,8 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-ffff-4aaa-8bbb-000000000001",
 );
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 const CURRENT_ALERT: ObjectID = new ObjectID(
   "0193c0de-ffff-4aaa-8bbb-000000000002",
 );
@@ -207,6 +214,7 @@ describe("an alert's recurrence context", () => {
 
   async function context(): Promise<string> {
     return await AIMemory.getPriorSimilarAlertsContext({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       currentAlertId: CURRENT_ALERT,
     });
@@ -451,6 +459,7 @@ describe("the verified fixes of past alerts", () => {
         .mockResolvedValue([newer, older]);
 
     const read: Map<string, string> = await AIMemory.readVerifiedAlertFixes({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       alertIds: [new ObjectID(alertId(1))],
     });
@@ -461,6 +470,7 @@ describe("the verified fixes of past alerts", () => {
     );
     expect(
       await AIMemory.readVerifiedAlertFixes({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         alertIds: [],
       }),

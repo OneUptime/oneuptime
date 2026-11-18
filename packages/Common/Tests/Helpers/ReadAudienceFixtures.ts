@@ -38,17 +38,22 @@ export function readAudienceProps(
 /*
  * What a read of `modelType` made with `props` returns of `rows`, as the
  * database returns it once the permission layer narrowed the read
- * (ReadAudiencePermission.getConditions, whose SQL its own suite reads):
- * a read for an audience that leaves records of the model out drops the
- * rows set apart (`setApartIds`, by owner or label) that the subject does
- * not name. Any other read - a person's, OneUptime's own - returns them
- * all. For the suites that stub a service's reads in memory.
+ * (ReadAudiencePermission.getConditions, whose SQL its own suite reads),
+ * for the suites that stub a service's reads in memory. A read for an
+ * audience drops, of the rows the subject does not name:
+ *
+ *   - the private ones (`privateIds`), always;
+ *   - the ones set apart by an owner or a label (`setApartIds`), when some
+ *     role reads the model only by owner or label.
+ *
+ * Any other read - a person's, OneUptime's own - returns them all.
  */
 export function keptForAudience<TRow extends { id?: ObjectID | null }>(data: {
   modelType: { new (): unknown };
   rows: Array<TRow>;
   props: DatabaseCommonInteractionProps | undefined;
-  setApartIds: Array<string>;
+  setApartIds?: Array<string> | undefined;
+  privateIds?: Array<string> | undefined;
 }): Array<TRow> {
   const audience: ReadAudience | null = ReadAudiencePermission.getAudience(
     data.props,
@@ -57,25 +62,32 @@ export function keptForAudience<TRow extends { id?: ObjectID | null }>(data: {
     new (): never;
   };
 
-  if (
-    !audience ||
-    ReadAudiencePermission.getConditions(modelType, audience).length === 0
-  ) {
+  if (!audience) {
     return data.rows;
   }
 
-  const setApart: Set<string> = new Set<string>(
-    data.setApartIds.map((id: string): string => {
-      return id.toLowerCase();
-    }),
-  );
+  const isNarrowed: boolean = ReadAudiencePermission.isKind(modelType)
+    ? ReadAudiencePermission.isNarrowed(modelType, audience)
+    : ReadAudiencePermission.getConditions(modelType, audience).length > 0;
+  const lowerCased: (ids: Array<string> | undefined) => Set<string> = (
+    ids: Array<string> | undefined,
+  ): Set<string> => {
+    return new Set<string>(
+      (ids || []).map((id: string): string => {
+        return id.toLowerCase();
+      }),
+    );
+  };
+  const setApart: Set<string> = lowerCased(data.setApartIds);
+  const isPrivate: Set<string> = lowerCased(data.privateIds);
 
   return data.rows.filter((row: TRow): boolean => {
     const id: string = row.id?.toString().toLowerCase() || "";
 
-    return (
-      !setApart.has(id) ||
-      ReadAudiencePermission.isNamed(modelType, id, audience)
-    );
+    if (ReadAudiencePermission.isNamed(modelType, id, audience)) {
+      return true;
+    }
+
+    return !isPrivate.has(id) && !(isNarrowed && setApart.has(id));
   });
 }
