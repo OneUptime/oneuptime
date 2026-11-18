@@ -482,11 +482,9 @@ const DetectionSection: FunctionComponent<{
             <div className="flex flex-col gap-1">
               {(detection.rule?.lookFor || []).map(
                 (entry: { field: string; values: Array<string> }) => {
+                  // A sentence, never a flex row's items: it reads one way in every language.
                   return (
-                    <span
-                      key={entry.field}
-                      className="flex flex-wrap items-center gap-1"
-                    >
+                    <p key={entry.field} className="leading-6">
                       <TranslatedSentence
                         template={LOOKS_FOR_IN_FIELD}
                         slots={{
@@ -507,7 +505,7 @@ const DetectionSection: FunctionComponent<{
                           field: <FieldName name={entry.field} />,
                         }}
                       />
-                    </span>
+                    </p>
                   );
                 },
               )}
@@ -665,6 +663,7 @@ const DetectionSection: FunctionComponent<{
                 <button
                   type="button"
                   className={TEXT_BUTTON_CLASS_NAME}
+                  aria-expanded={isShowingAll}
                   onClick={() => {
                     setIsShowingAll(!isShowingAll);
                   }}
@@ -733,6 +732,22 @@ const OtherDetection: FunctionComponent<{
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const { detection } = props;
 
+  // One toggle, which says which way it is: folded to the line, or open on what it matched.
+  const toggle: ReactElement = (
+    <button
+      type="button"
+      className={`${TEXT_BUTTON_CLASS_NAME} text-sm`}
+      aria-expanded={isOpen}
+      onClick={() => {
+        setIsOpen(!isOpen);
+      }}
+    >
+      {translator.translateText(
+        isOpen ? HIDE_WHAT_IT_MATCHED : SHOW_WHAT_IT_MATCHED,
+      )}
+    </button>
+  );
+
   if (isOpen) {
     return (
       <li className="space-y-3 py-3">
@@ -742,16 +757,7 @@ const OtherDetection: FunctionComponent<{
           onOpenEvent={props.onOpenEvent}
           onTryAgain={props.onTryAgain}
         />
-        <button
-          type="button"
-          className={`${TEXT_BUTTON_CLASS_NAME} text-sm`}
-          aria-expanded={true}
-          onClick={() => {
-            setIsOpen(false);
-          }}
-        >
-          {translator.translateText(HIDE_WHAT_IT_MATCHED)}
-        </button>
+        {toggle}
       </li>
     );
   }
@@ -775,16 +781,7 @@ const OtherDetection: FunctionComponent<{
           <></>
         )}
       </div>
-      <button
-        type="button"
-        className={`${TEXT_BUTTON_CLASS_NAME} text-sm`}
-        aria-expanded={false}
-        onClick={() => {
-          setIsOpen(true);
-        }}
-      >
-        {translator.translateText(SHOW_WHAT_IT_MATCHED)}
-      </button>
+      {toggle}
     </li>
   );
 };

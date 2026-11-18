@@ -32,9 +32,6 @@ export const FACT_FIRES_WHEN: string = translationKey("Fires when");
 export const FACT_MATCHED: string = translationKey("Matched");
 export const FACT_LOOKS_FOR: string = translationKey("Looks for");
 export const FACT_REQUESTS: string = translationKey("Requests");
-export const FACT_KNOWN_FALSE_POSITIVES: string = translationKey(
-  "Known false positives",
-);
 export const FACT_READ_MORE: string = translationKey("Read more");
 
 // A rule that fires on every match it makes, with no count to reach.

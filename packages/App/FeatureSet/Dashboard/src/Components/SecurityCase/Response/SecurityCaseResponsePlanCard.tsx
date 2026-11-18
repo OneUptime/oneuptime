@@ -87,6 +87,7 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -650,24 +651,29 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
 
           {aiVerdict ? (
-            <p
-              className="flex flex-wrap items-center gap-2 text-sm text-gray-600"
+            <div
+              className="flex items-start gap-2 text-sm text-gray-600"
               data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.aiVerdict}
             >
               <Icon
                 icon={IconProp.Sparkles}
-                className="h-4 w-4 text-indigo-500"
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
               />
-              <span>
-                {translator.translateTemplate(RESPONSE_AI_VERDICT, {
-                  verdict: translator.translateText(aiVerdict) || aiVerdict,
-                })}
-              </span>
-              <Pill
-                text={aiVerdict}
-                tone={getCaseResponseVerdictTone(aiVerdict)}
-              />
-            </p>
+              {/* One sentence, its read a chip in it, wherever a language puts it. */}
+              <p className="min-w-0 leading-6">
+                <TranslatedSentence
+                  template={RESPONSE_AI_VERDICT}
+                  slots={{
+                    verdict: (
+                      <Pill
+                        text={aiVerdict}
+                        tone={getCaseResponseVerdictTone(aiVerdict)}
+                      />
+                    ),
+                  }}
+                />
+              </p>
+            </div>
           ) : (
             <></>
           )}

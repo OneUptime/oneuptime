@@ -47,7 +47,9 @@ export const RESPONSE_DONE_BY: string = translationKey(
 );
 export const RESPONSE_DONE_AT: string = translationKey("Done {{time}}");
 // A step the case itself says is done: nobody ticked it off.
-export const RESPONSE_DONE_BY_CASE: string = translationKey("Done on the case");
+export const RESPONSE_DONE_BY_CASE: string = translationKey(
+  "The case says when this step is done, so it is not ticked by hand.",
+);
 
 export const RESPONSE_READY_TO_CONTAIN: string = translationKey(
   "Every containment step is done. Mark the case Contained, so its time to contain is recorded.",
