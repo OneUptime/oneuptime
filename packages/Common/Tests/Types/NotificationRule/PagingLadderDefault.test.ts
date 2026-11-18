@@ -446,7 +446,10 @@ describe("getPagingLadderFromDefault", () => {
         { methodColumn: "userEmailId", methodId: EMAIL },
         { methodColumn: "userPushId", methodId: PUSH },
       ],
-      currentSteps: [step("userEmailId", EMAIL, 0), step("userPushId", PUSH, 10)],
+      currentSteps: [
+        step("userEmailId", EMAIL, 0),
+        step("userPushId", PUSH, 10),
+      ],
     });
 
     expect(result.leftOutChannels).toEqual([

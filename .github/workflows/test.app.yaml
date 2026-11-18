@@ -338,7 +338,10 @@ jobs:
           # shares, and the website setup's (#7056) in group 5. Four short
           # suites moved to make room (Profiles to 1, Suite Helpers to 5,
           # Exceptions AI to 10, Give Feedback to 11): each group 21.3 to
-          # 21.9 minutes.
+          # 21.9 minutes. On 2026-11-18 How to Reach Me's suite (#7453, 1.2
+          # minutes: 54 s locally, times 1.26) joined group 8, and
+          # Infrastructure First Run moved to group 3 to make room: group 8
+          # 21.6 minutes, group 3 21.8.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -381,6 +384,7 @@ jobs:
               test-custom-roles-ui
               test-push-registration-ui
               test-label-rule-transfer-ui
+              test-infrastructure-first-run-ui
               test-pencil-button-ui
           - group: 4
             openstack_pages_shard: 1/3
@@ -449,8 +453,8 @@ jobs:
               test-asset-details-ui
               test-kubernetes-pages-ui
               test-network-first-run-ui
+              test-how-to-reach-me-ui
               test-runbooks-menu-ui
-              test-infrastructure-first-run-ui
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -727,6 +731,8 @@ jobs:
             output/playwright/ai-insights-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
+            output/playwright/how-to-reach-me-ui/*.png
+            output/playwright/how-to-reach-me-ui/test-results
             output/playwright/resource-onboarding-ui/*.png
             output/playwright/resource-onboarding-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
