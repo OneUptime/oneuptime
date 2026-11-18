@@ -4219,7 +4219,7 @@
   "The email log could not be loaded.": "E-postloggen kunne ikke lastes inn.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Denne serveren har ikke satt opp e-post, så denne e-posten ble ikke sendt. Be serveradministratoren om å sette opp e-post.",
   "Outage Notifications": "Varslinger om brudd",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Når e-posten fra denne serveren slutter å virke, eller ingen globale sonder rapporterer lenger, får hovedadministratorene beskjed, og én gang til når det virker igjen: aldri gjennom kanalen som stoppet, og høyst én gang i timen. E-post for administratorvarslinger får også beskjed om sondene.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Når e-posten fra denne serveren slutter å virke, eller ingen globale sonder rapporterer lenger, får hovedadministratorene beskjed, og én gang til når det virker igjen: aldri gjennom kanalen som stoppet, og høyst én gang i timen.",
   "Edit Outage Notifications": "Rediger varslinger om brudd",
   "Text This Number": "Send SMS til dette nummeret",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "En SMS går til dette nummeret gjennom serverens egne SMS-innstillinger. La feltet stå tomt for å ikke sende noen.",

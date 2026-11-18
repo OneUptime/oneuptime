@@ -4219,7 +4219,7 @@
   "The email log could not be loaded.": "Não foi possível carregar o registro de e-mails.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor não tem e-mail configurado, então este e-mail não foi enviado. Peça ao administrador do servidor para configurar o e-mail.",
   "Outage Notifications": "Notificações de interrupção",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Quando o e-mail deste servidor deixa de funcionar, ou nenhuma sonda global reporta, os administradores principais são avisados, e mais uma vez quando volta a funcionar: nunca pelo canal que parou e no máximo uma vez por hora. O e-mail de notificação do administrador também é avisado sobre as sondas.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Quando o e-mail deste servidor deixa de funcionar, ou nenhuma sonda global reporta, os administradores principais são avisados, e mais uma vez quando volta a funcionar: nunca pelo canal que parou e no máximo uma vez por hora.",
   "Edit Outage Notifications": "Editar notificações de interrupção",
   "Text This Number": "Enviar SMS para este número",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Um SMS é enviado para este número pelas configurações de SMS deste servidor. Deixe em branco para não enviar nenhum.",
