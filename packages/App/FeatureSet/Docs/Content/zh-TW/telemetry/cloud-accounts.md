@@ -269,7 +269,7 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | 資源 | 你使用的每個區域中 OneUptime 所知類型的每個資源，來自 Cloud Control | 訂用帳戶中的每個資源，來自 Resource Graph | 專案中的每個資源，來自 Cloud Asset Inventory |
-| 指標 | 每項服務的關鍵指標，例如執行個體的 CPU、網路和狀態檢查 | 每個資源最多 8 個關鍵指標 | 每種資源類型的關鍵指標 |
+| 指標 | 每項服務的關鍵指標，例如執行個體的 CPU、網路和狀態檢查 | 每個資源最多 20 個關鍵指標 | 每種資源類型的關鍵指標 |
 | 變更 | CloudTrail 管理事件 | 活動記錄的管理事件 | Admin Activity 稽核記錄 |
 | 健康事件 | AWS Health | Service Health 和 Resource Health | Service Health |
 | 成本 | 每天的成本，依服務和區域，開啟「依資源的成本」後還依資源，來自 Cost Explorer | 每天的成本，依資源和服務，來自 Cost Management | 每天的成本，依服務、區域和資源，來自你匯出到 BigQuery 的帳單資料 |

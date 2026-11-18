@@ -77,14 +77,7 @@ flowchart TB
 
 جریان متریک‌های کلیدی‌ای را می‌برد که اتصال دقیقه به دقیقه می‌خواند. خواندن‌ها بقیه را طبق برنامهٔ خود همچنان می‌نویسند: متریکی که با فاصلهٔ درشت‌تری می‌خوانند، مانند فضای ذخیره‌سازی مصرف‌شدهٔ یک رجیستری کانتینر، و هر متریک کلیدی‌ای که یک تنظیم عیب‌یابی نمی‌تواند بفرستد، که فهرست متریک‌های پشتیبانی‌شدهٔ Azure Monitor آن را در ستون DS Export صادرنشدنی علامت می‌زند:
 
-- ماشین‌های مجازی و مجموعه‌های مقیاس: `Network In Total`، `Network Out Total`.
-- دیسک‌ها: `Composite Disk Read Bytes/sec`، `Composite Disk Write Bytes/sec`، `Composite Disk Read Operations/sec`، `Composite Disk Write Operations/sec`.
-- حساب‌های Azure Cosmos DB: `TotalRequests`، `TotalRequestUnits`، `NormalizedRUConsumption`، `ServerSideLatency`.
-- حساب‌های ذخیره‌سازی: `UsedCapacity`.
-- خوشه‌های AKS: `kube_pod_status_ready`.
-- دروازه‌های برنامه: `ApplicationGatewayTotalTime`، `Throughput`.
-- دیوارهای آتش: `Throughput`.
-- دروازه‌های NAT: `ByteCount`، `SNATConnectionCount`، `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 یک فضای نام Service Bus یا Event Hubs هیچ متریکی را جریان نمی‌دهد. خواندن‌ها متریک‌های کلیدی آن را برای هر صف، تاپیک و هاب رویداد می‌خوانند و مجموع‌های خود فضای نام آن‌ها را با هم جمع می‌زنند، در حالی که یک تنظیم عیب‌یابی فقط مجموع‌های فضای نام را می‌فرستد و ۴ تا از ۶ متریک کلیدی یک فضای نام Service Bus، یا ۲ تا از ۴ متریک یک فضای نام Event Hubs را اصلاً نمی‌فرستد. پس خواندن‌ها همهٔ آن‌ها را می‌نویسند، چه جریان باشد چه نباشد، و هیچ پیامی دو بار شمرده نمی‌شود.
 

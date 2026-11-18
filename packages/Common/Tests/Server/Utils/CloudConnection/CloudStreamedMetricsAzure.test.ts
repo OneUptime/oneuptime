@@ -8,6 +8,7 @@ import { withoutStreamedMetrics } from "../../../../Server/Utils/CloudConnection
 import {
   AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
+  getAzureKeyMetricNames,
   getAzureStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
@@ -356,7 +357,7 @@ describe("every key metric of every type, while a stream delivers every type", (
       SUBSCRIPTION,
       AZURE_KEY_METRICS.flatMap(
         (entry: AzureTypeKeyMetrics): CloudMetricGroup["metrics"] => {
-          return entry.metrics.map(
+          return getAzureKeyMetricNames(entry.type).map(
             (metric: string): CloudMetricGroup["metrics"][number] => {
               return {
                 name: getAzureStoredMetricName(metric, "Average"),
@@ -389,7 +390,7 @@ describe("every key metric of every type, while a stream delivers every type", (
     let streamedCount: number = 0;
 
     for (const entry of AZURE_KEY_METRICS) {
-      for (const metric of entry.metrics) {
+      for (const metric of getAzureKeyMetricNames(entry.type)) {
         if (
           entry.splitByDimension ||
           (entry.notExportedByDiagnosticSettings || []).includes(metric)
@@ -413,7 +414,8 @@ describe("every key metric of every type, while a stream delivers every type", (
     expect(result.leftOut).toBe(streamedCount);
     // Both sides are real: some metrics are the stream's, some stay the read's.
     expect(streamedCount).toBeGreaterThan(50);
-    expect(kept.length).toBe(30);
+    // 65 a diagnostic setting cannot export, and the namespaces' 10.
+    expect(kept.length).toBe(75);
   });
 
   test("a type whose every key metric a diagnostic setting cannot export loses none of them", () => {

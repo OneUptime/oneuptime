@@ -269,7 +269,7 @@ O comando de um nível mais baixo substitui a política da AWS pela do nível ma
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Recursos | Cada recurso dos tipos que o OneUptime conhece, em cada região que você usa, pelo Cloud Control | Cada recurso das assinaturas, pelo Resource Graph | Cada recurso dos projetos, pelo Cloud Asset Inventory |
-| Métricas | As principais métricas de cada serviço, como CPU, rede e verificações de status de uma instância | Até 8 métricas principais por recurso | As principais métricas de cada tipo de recurso |
+| Métricas | As principais métricas de cada serviço, como CPU, rede e verificações de status de uma instância | Até 20 métricas principais por recurso | As principais métricas de cada tipo de recurso |
 | Alterações | Os eventos de gerenciamento do CloudTrail | Os eventos administrativos do log de atividades | O log de auditoria Admin Activity |
 | Eventos de integridade | AWS Health | Service Health e Resource Health | Service Health |
 | Custos | Os de cada dia, por serviço e região, e por recurso com Custos por recurso ativado, pelo Cost Explorer | Os de cada dia, por recurso e serviço, pelo Cost Management | Os de cada dia, por serviço, região e recurso, pela sua exportação de faturamento para o BigQuery |
