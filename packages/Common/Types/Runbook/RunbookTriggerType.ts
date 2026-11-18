@@ -51,6 +51,26 @@ export const RUNBOOK_TRIGGER_TYPES: ReadonlyArray<RunbookTriggerType> = [
 export const UNATTENDED_RUNBOOK_TRIGGER_TYPES: ReadonlyArray<RunbookTriggerType> =
   [RunbookTriggerType.Schedule, RunbookTriggerType.Webhook];
 
+/*
+ * THE RUNS A RUNBOOK STILL HAS WHILE THE SERVER HAS RUNBOOKS SWITCHED OFF
+ * (#7479, #9489).
+ *
+ * What already runs keeps running: a runbook's own triggers - its schedule,
+ * its webhook, called from outside OneUptime, and its rules - start it as
+ * before, as a workflow's schedule, webhook and events do. Nothing else
+ * does: not a person (the run routes refuse first), not auto-remediation,
+ * OneUptime AI or a security playbook, which would change Runbooks' records
+ * from another product while it is off. Those are refused with
+ * RunbookStartRefusal.ProductSwitchedOff (RunbookStarter), before anything
+ * is written. The install docs say so, in every language.
+ */
+export const RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF: ReadonlyArray<RunbookTriggerType> =
+  [
+    RunbookTriggerType.Schedule,
+    RunbookTriggerType.Webhook,
+    RunbookTriggerType.Rule,
+  ];
+
 export function isRunbookTriggerType(
   value: unknown,
 ): value is RunbookTriggerType {

@@ -325,6 +325,9 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
                 {translator.translateText(ServerProductsCopy.keepsRunning)}
               </li>
               <li>{translator.translateText(ServerProductsCopy.apiRefuses)}</li>
+              <li>
+                {translator.translateText(ServerProductsCopy.aiStartsNothing)}
+              </li>
             </ul>
           </div>
         </div>

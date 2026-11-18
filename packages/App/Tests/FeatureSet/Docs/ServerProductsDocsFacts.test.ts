@@ -1,5 +1,9 @@
 import { getProductTitle } from "Common/Types/Product/ProductCatalog";
 import ProductKey from "Common/Types/Product/ProductKey";
+import RunbookTriggerType, {
+  RUNBOOK_TRIGGER_TYPES,
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
+} from "Common/Types/Runbook/RunbookTriggerType";
 import {
   PRODUCTS_OF_PRESET,
   SERVER_PRODUCTS_ENV_VAR,
@@ -133,6 +137,51 @@ const ENGLISH_SECTION: string = section(
   "## Run only what you need",
 );
 
+// A page's section where the English page has "Run only what you need".
+const productsSection: (markdown: string) => string = (
+  markdown: string,
+): string => {
+  const headings: (text: string) => Array<string> = (
+    text: string,
+  ): Array<string> => {
+    return text.split("\n").filter((line: string): boolean => {
+      return line.startsWith("## ");
+    });
+  };
+  const at: number = headings(ENGLISH_COMPOSE).indexOf(
+    "## Run only what you need",
+  );
+
+  return section(markdown, headings(markdown)[at]!);
+};
+
+const bulletsOf: (markdown: string) => Array<string> = (
+  markdown: string,
+): Array<string> => {
+  return markdown.split("\n").filter((line: string): boolean => {
+    return line.startsWith("- ");
+  });
+};
+
+// Each way a runbook run starts, as the English page names it.
+const RUNBOOK_TRIGGER_WORDS: Record<RunbookTriggerType, string> = {
+  [RunbookTriggerType.Manual]: "a person",
+  [RunbookTriggerType.Rule]: "rules",
+  [RunbookTriggerType.AutoRemediation]: "auto-remediation",
+  [RunbookTriggerType.AI]: "OneUptime AI",
+  [RunbookTriggerType.Schedule]: "schedule",
+  [RunbookTriggerType.Webhook]: "webhook",
+  [RunbookTriggerType.SecurityPlaybook]: "a security playbook",
+};
+
+// "a, b and c" / "a, b or c".
+const listed: (words: Array<string>, last: string) => string = (
+  words: Array<string>,
+  last: string,
+): string => {
+  return words.join(", ").replace(/, ([^,]*)$/, ` ${last} $1`);
+};
+
 const PROFILE_BLOCK: string = [
   "```bash",
   "SERVER_PRODUCTS=monitoring-and-status-pages",
@@ -215,6 +264,30 @@ describe("the English section", () => {
       "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete the product's records",
     );
     expect(ENGLISH_SECTION).toContain("Reading still works");
+  });
+
+  test("says OneUptime AI starts no work on a product that is off, and what still starts a runbook while Runbooks is off (#9489)", () => {
+    expect(ENGLISH_SECTION).toContain(
+      "OneUptime AI starts no work on the product: no investigation, postmortem draft, fix, code fix or insight.",
+    );
+
+    // What still starts a run, and what no longer does, as the code says.
+    const still: Array<string> = RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.map(
+      (trigger: RunbookTriggerType): string => {
+        return RUNBOOK_TRIGGER_WORDS[trigger];
+      },
+    );
+    const refused: Array<string> = RUNBOOK_TRIGGER_TYPES.filter(
+      (trigger: RunbookTriggerType): boolean => {
+        return !RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.includes(trigger);
+      },
+    ).map((trigger: RunbookTriggerType): string => {
+      return RUNBOOK_TRIGGER_WORDS[trigger];
+    });
+
+    expect(ENGLISH_SECTION).toContain(
+      `While ${getProductTitle(ProductKey.Runbooks)} is off, a runbook still runs by its own ${listed(still, "and")}, and nothing else starts one: not ${listed(refused, "or")}.`,
+    );
   });
 
   test("names the telemetry products stopped ingestion turns off", () => {
@@ -332,6 +405,24 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     expect(english.indexOf("## Run only what you need")).toBe(
       english.indexOf("## Back up and restore") + 1,
     );
+  });
+
+  test("say, as the English page does, what OneUptime AI and a runbook still do while a product is off (#9489)", () => {
+    const bullets: Array<string> = bulletsOf(productsSection(compose));
+    const english: Array<string> = bulletsOf(ENGLISH_SECTION);
+
+    expect(bullets).toHaveLength(english.length);
+
+    /*
+     * Beside what the API refuses: OneUptime AI starts no work on it, and is
+     * among what no longer starts a runbook while Runbooks is off.
+     */
+    const refuses: number = bullets.findIndex((line: string): boolean => {
+      return line.includes("Mattermost");
+    });
+
+    expect(refuses).toBeGreaterThan(-1);
+    expect(bullets[refuses + 1]!.split("OneUptime AI")).toHaveLength(3);
   });
 
   test("link Project Settings > Products to the section", () => {

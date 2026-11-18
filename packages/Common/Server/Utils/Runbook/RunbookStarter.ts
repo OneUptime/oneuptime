@@ -13,6 +13,7 @@ import { moveApprovalsBeforeTheirSteps } from "../../../Types/Runbook/RunbookSte
 import { RunbookStepExecutionState } from "../../../Types/Runbook/RunbookStepExecution";
 import RunbookStepExecutionStatus from "../../../Types/Runbook/RunbookStepExecutionStatus";
 import RunbookTriggerType, {
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
   UNATTENDED_RUNBOOK_TRIGGER_TYPES,
 } from "../../../Types/Runbook/RunbookTriggerType";
 import { hasRunbookInputs } from "../../../Types/Runbook/RunbookInputs";
@@ -68,25 +69,6 @@ export enum RunbookStartRefusal {
   // The run was written but could not be queued; it is failed with the reason.
   NotQueued = "NotQueued",
 }
-
-/*
- * THE RUNS A RUNBOOK STILL HAS WHILE THE SERVER HAS RUNBOOKS SWITCHED OFF
- * (#7479, #9489).
- *
- * What already runs keeps running: a runbook's own triggers - its schedule,
- * its webhook, called from outside OneUptime, and its rules - start it as
- * before, as a workflow's schedule, webhook and events do. Nothing else
- * does: not a person (the run routes refuse first), not auto-remediation,
- * OneUptime AI or a security playbook, which would change Runbooks' records
- * from another product while it is off. Those are refused with
- * RunbookStartRefusal.ProductSwitchedOff, before anything is written.
- */
-export const RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF: ReadonlyArray<RunbookTriggerType> =
-  [
-    RunbookTriggerType.Schedule,
-    RunbookTriggerType.Webhook,
-    RunbookTriggerType.Rule,
-  ];
 
 // What a run that could not be queued says, as its failure reason.
 export const RUNBOOK_RUN_NOT_QUEUED_REASON: string =

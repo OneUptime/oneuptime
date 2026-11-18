@@ -7,7 +7,6 @@ import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/P
 import logger from "../../../../Server/Utils/Logger";
 import RunbookStarter, {
   RUNBOOK_RUN_NOT_QUEUED_REASON,
-  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
   RunbookStartRefusal,
   RunbookStartResult,
   RunbookStarterClass,
@@ -28,6 +27,7 @@ import RunbookStepExecutionStatus from "../../../../Types/Runbook/RunbookStepExe
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import RunbookTriggerType, {
   RUNBOOK_TRIGGER_TYPES,
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
   UNATTENDED_RUNBOOK_TRIGGER_TYPES,
   isRunbookTriggerType,
 } from "../../../../Types/Runbook/RunbookTriggerType";
