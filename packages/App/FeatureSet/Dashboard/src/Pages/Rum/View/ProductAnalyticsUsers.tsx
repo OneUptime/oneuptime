@@ -51,6 +51,7 @@ import {
   ProductAnalyticsToolbar,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsFrame";
 import ProductAnalyticsPeopleCard from "../../../Components/ProductAnalytics/ProductAnalyticsPeopleCard";
+import { readProductAnalyticsRetentionMonths } from "../../../Components/ProductAnalytics/ProductAnalyticsRetention";
 import {
   ProductAnalyticsUrlState,
   buildProductAnalyticsSearch,
@@ -64,13 +65,15 @@ import useProductAnalyticsRead, {
 /*
  * Product Analytics > Users (issue #6444): who uses this application. How
  * many people came in the range - signed in or anonymous, new or returning
- * - against the range before it; everyone the last 13 months hold, and how
- * many of them have not come back lately; daily, weekly and monthly active
- * users day by day; and the people themselves.
+ * - against the range before it; everyone the months the application keeps
+ * hold (13 by default, issue #6626), and how many of them have not come
+ * back lately; daily, weekly and monthly active users day by day; and the
+ * people themselves.
  *
  * A person is a signed-in user (identify()) or, until they sign in, the
  * browser they came from. The numbers come from the sessions Session Replay
- * records, kept apart from the recordings for 13 months.
+ * records, kept apart from the recordings for as long as the application
+ * chose.
  */
 
 export function buildProductAnalyticsUserTiles(data: {
@@ -81,6 +84,8 @@ export function buildProductAnalyticsUserTiles(data: {
   const summary: ProductAnalyticsSummaryDto | null = data.summary;
   const translator: Translator = data.translator;
   const loading: boolean = data.isLoading && !summary;
+  /* How long the application keeps these numbers (issue #6626). */
+  const retentionMonths: number = readProductAnalyticsRetentionMonths(summary);
   const count: (value: number | undefined) => string = (
     value: number | undefined,
   ): string => {
@@ -165,9 +170,21 @@ export function buildProductAnalyticsUserTiles(data: {
       icon: IconProp.User,
       iconColor: "slate",
       loading: loading,
-      sublabel: "In the last 13 months",
-      description:
-        "Everyone this application has seen in the last 13 months, the time these numbers are kept.",
+      sublabel: translator.translatePlural(
+        {
+          one: "In the last {{count}} month",
+          other: "In the last {{count}} months",
+        },
+        retentionMonths,
+      ),
+      description: translator.translatePlural(
+        {
+          one: "Everyone this application has seen in the last {{count}} month, the time these numbers are kept.",
+          other:
+            "Everyone this application has seen in the last {{count}} months, the time these numbers are kept.",
+        },
+        retentionMonths,
+      ),
     },
     {
       title: "Dormant users",
