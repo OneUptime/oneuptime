@@ -517,6 +517,7 @@ jobs:
               test-admin-health-ui
               test-status-page-telemetry-guided-setups-ui
               test-product-onboarding-ui
+              test-server-products-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -785,6 +786,8 @@ jobs:
             output/playwright/server-setup-ui/test-results
             output/playwright/admin-health-ui/*.png
             output/playwright/admin-health-ui/test-results
+            output/playwright/server-products-ui/*.png
+            output/playwright/server-products-ui/test-results
             output/playwright/permissions-per-tab-ui/*.png
             output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png
