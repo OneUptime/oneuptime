@@ -498,7 +498,7 @@
         },
         "volumeMetrics": {
           "type": "object",
-          "description": "Per-PVC disk usage (k8s.volume.available / capacity). One series per PVC per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
+          "description": "Disk usage of every mounted volume (k8s.volume.capacity / available / inodes), each persistent volume claim's named by k8s.persistentvolumeclaim.name: the used, free and capacity figures on the Persistent Volume Claims pages and the PVC Almost Full monitor template. A few series per volume per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
           "properties": {
             "enabled": { "type": "boolean" }
           },

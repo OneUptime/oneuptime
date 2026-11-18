@@ -614,13 +614,18 @@ kubeletstats:
   # vs. node allocatable (e.g. via kube-state-metrics).
   utilizationMetrics:
     enabled: true
-  # Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`), for
-  # charts and metric monitors of your own — running out of PVC space is
-  # otherwise a silent killer. No built-in monitor template reads them.
+  # Disk usage of every volume a running pod mounts (`k8s.volume.capacity`,
+  # `k8s.volume.available`, `k8s.volume.inodes`, `k8s.volume.inodes.free`),
+  # each persistent volume claim's named by `k8s.persistentvolumeclaim.name`.
+  # OneUptime shows each claim's used, free and capacity on its Persistent
+  # Volume Claims and Persistent Volumes pages, and the "PVC Almost Full"
+  # monitor template reads them: running out of PVC space is otherwise a
+  # silent killer. Turned off, those pages say no usage is reported.
   #
-  # Emits one series per PVC per pod, which is bounded for most clusters
-  # but can be substantial on stateful workloads (Kafka, databases) with
-  # thousands of PVCs — turn off there if cardinality is a concern.
+  # Emits a few series per volume per pod (its configMap, secret and service
+  # account token volumes too), which is bounded for most clusters but can be
+  # substantial on stateful workloads (Kafka, databases) with thousands of
+  # PVCs — turn off there if cardinality is a concern.
   volumeMetrics:
     enabled: true
 
