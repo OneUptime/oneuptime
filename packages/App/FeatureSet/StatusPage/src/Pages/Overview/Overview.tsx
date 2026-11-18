@@ -81,7 +81,12 @@ import StatusPageGroupTreeUtil, {
   StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "Common/Utils/StatusPage/GroupTree";
-import StatusPageResourceExplorerUtil from "Common/Utils/StatusPage/ResourceExplorer";
+/*
+ * A grid's rows and columns, read as the Dashboard's Resources screen reads
+ * them - but not through that screen's model (ResourceExplorer), which this
+ * page does not draw and which its first load would then carry.
+ */
+import parseGridAxisValues from "Common/Utils/StatusPage/GridAxisValues";
 import StatusPageGroupNestingLayoutUtil, {
   StatusPageGroupRollupKind,
 } from "Common/Utils/StatusPage/GroupNestingLayout";
@@ -1512,10 +1517,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const getGridForGroup: GetGridForGroupFunction = (
     group: StatusPageGroup,
   ): ReactElement => {
-    const rowValues: Array<string> =
-      StatusPageResourceExplorerUtil.parseAxisValues(group.rowAxisValues);
-    const columnValues: Array<string> =
-      StatusPageResourceExplorerUtil.parseAxisValues(group.columnAxisValues);
+    const rowValues: Array<string> = parseGridAxisValues(group.rowAxisValues);
+    const columnValues: Array<string> = parseGridAxisValues(
+      group.columnAxisValues,
+    );
 
     /*
      * A matrix where this many columns fit the grid's box, a stack where
