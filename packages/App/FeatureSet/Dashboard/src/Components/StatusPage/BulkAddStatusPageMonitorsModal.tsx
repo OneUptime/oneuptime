@@ -144,7 +144,7 @@ interface BulkAddCopy {
   unknownName: string;
 }
 
-export const MONITOR_COPY: BulkAddCopy = {
+const MONITOR_COPY: BulkAddCopy = {
   addedToast: {
     one: "{{count}} monitor added",
     other: "{{count}} monitors added",
@@ -166,7 +166,7 @@ export const MONITOR_COPY: BulkAddCopy = {
   unknownName: translationKey("Unknown monitor"),
 };
 
-export const MONITOR_GROUP_COPY: BulkAddCopy = {
+const MONITOR_GROUP_COPY: BulkAddCopy = {
   addedToast: {
     one: "{{count}} monitor group added",
     other: "{{count}} monitor groups added",
@@ -817,8 +817,8 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
        * Added as asked: a toast says so and the dialog closes, back on the
        * page it was opened from. It used to give way to a second dialog,
        * "Monitors Added", "Added 1 of 1 selected monitor.", with Done to
-       * click away (#7466). What failed, or adding nothing at all, is still
-       * a report to read before going on.
+       * click away (#7466). What it skipped or could not add is still a
+       * report to read before going on.
        */
       if (isAddedAsAsked(summary)) {
         showAddedToast({
