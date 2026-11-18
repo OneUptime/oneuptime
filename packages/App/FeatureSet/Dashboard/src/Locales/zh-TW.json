@@ -56736,5 +56736,12 @@
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "這會建立{{onCallPolicy}}「{{policy}}」，在此專案中每出現一個新事件和警示，都會呼叫他們。",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "當機時，OneUptime 會建立事件，並依這些人各自的「{{howToReachMe}}」呼叫他們。首先收到電子郵件的是你。",
   "Your customers see it on a status page.": "你的客戶會在狀態頁面上看到它。",
-  "Backup Script Last Run": "備份指令碼最近執行"
+  "Backup Script Last Run": "備份指令碼最近執行",
+  "Add to an existing status page instead": "改為新增到現有的狀態頁面",
+  "Make a new status page instead": "改為建立新的狀態頁面",
+  "Nothing matches.": "沒有相符的項目。",
+  "On the page": "已在頁面上",
+  "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "此專案已有一個狀態頁面「{{name}}」。您選擇的監測器會新增到該頁面。",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "此專案已有 {{count}} 個狀態頁面。您選擇的監測器會新增到您指定的頁面。",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "此專案已有 {{count}} 個狀態頁面。您選擇的監測器會新增到您指定的頁面。"
 }

@@ -56736,5 +56736,12 @@
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "Esto crea la {{onCallPolicy}} «{{policy}}», que les avisa por cada incidente nuevo y cada alerta nueva de este proyecto.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "Cuando se cae, OneUptime abre un incidente y avisa a estas personas, a cada una como dice su «{{howToReachMe}}». Empieza por ti, por correo.",
   "Your customers see it on a status page.": "Tus clientes lo ven en una página de estado.",
-  "Backup Script Last Run": "Última ejecución del script de copia de seguridad"
+  "Backup Script Last Run": "Última ejecución del script de copia de seguridad",
+  "Add to an existing status page instead": "Añadir a una página de estado existente en su lugar",
+  "Make a new status page instead": "Crear una página de estado nueva en su lugar",
+  "Nothing matches.": "No hay coincidencias.",
+  "On the page": "En la página",
+  "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "Este proyecto ya tiene una página de estado, «{{name}}». Los monitores que elijas se añaden a ella.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "Este proyecto ya tiene {{count}} páginas de estado. Los monitores que elijas se añaden a la que selecciones.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "Este proyecto ya tiene {{count}} página de estado. Los monitores que elijas se añaden a la que selecciones."
 }

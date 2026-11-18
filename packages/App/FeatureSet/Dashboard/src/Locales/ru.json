@@ -56736,5 +56736,12 @@
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "Так создаётся {{onCallPolicy}} «{{policy}}», которая при каждом новом инциденте и оповещении в этом проекте вызывает их.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "Когда он недоступен, OneUptime открывает инцидент и вызывает этих людей, каждого так, как сказано в его «{{howToReachMe}}». Сначала оповещаетесь вы, по электронной почте.",
   "Your customers see it on a status page.": "Ваши клиенты видят его на странице статуса.",
-  "Backup Script Last Run": "Последний запуск скрипта резервного копирования"
+  "Backup Script Last Run": "Последний запуск скрипта резервного копирования",
+  "Add to an existing status page instead": "Вместо этого добавить на существующую страницу статуса",
+  "Make a new status page instead": "Вместо этого создать новую страницу статуса",
+  "Nothing matches.": "Ничего не найдено.",
+  "On the page": "На странице",
+  "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "В этом проекте уже есть страница статуса «{{name}}». Выбранные мониторы добавляются на неё.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "Страниц статуса в этом проекте: {{count}}. Выбранные мониторы добавляются на ту, которую вы укажете.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "В этом проекте уже есть {{count}} страница статуса. Выбранные мониторы добавляются на ту, которую вы укажете."
 }

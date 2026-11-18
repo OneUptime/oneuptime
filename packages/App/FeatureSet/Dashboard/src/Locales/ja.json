@@ -56736,5 +56736,12 @@
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "これにより、{{onCallPolicy}}「{{policy}}」が作成されます。このプロジェクトで新しいインシデントやアラートが発生するたびに、その人たちを呼び出します。",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "ダウンすると、OneUptime はインシデントを作成し、これらの人をそれぞれの「{{howToReachMe}}」のとおりに呼び出します。最初に通知されるのはあなたで、メールで届きます。",
   "Your customers see it on a status page.": "顧客はステータスページで確認できます。",
-  "Backup Script Last Run": "バックアップスクリプトの前回の実行"
+  "Backup Script Last Run": "バックアップスクリプトの前回の実行",
+  "Add to an existing status page instead": "代わりに既存のステータスページに追加",
+  "Make a new status page instead": "代わりに新しいステータスページを作成",
+  "Nothing matches.": "一致するものはありません。",
+  "On the page": "ページに掲載済み",
+  "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "このプロジェクトにはすでにステータスページ「{{name}}」があります。選択したモニターはこのページに追加されます。",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "このプロジェクトにはすでに {{count}} 件のステータスページがあります。選択したモニターは、指定したページに追加されます。",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "このプロジェクトにはすでに {{count}} 件のステータスページがあります。選択したモニターは、指定したページに追加されます。"
 }

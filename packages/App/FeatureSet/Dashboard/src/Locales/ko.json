@@ -56736,5 +56736,12 @@
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "{{onCallPolicy}}이 만들어집니다: \"{{policy}}\". 이 프로젝트에서 새 인시던트와 경고가 생길 때마다 그들을 호출합니다.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "다운되면 OneUptime이 인시던트를 열고 이 사람들을 각자의 '{{howToReachMe}}'대로 호출합니다. 가장 먼저 호출되는 사람은 본인이며, 이메일로 받습니다.",
   "Your customers see it on a status page.": "고객은 상태 페이지에서 확인할 수 있습니다.",
-  "Backup Script Last Run": "백업 스크립트 마지막 실행"
+  "Backup Script Last Run": "백업 스크립트 마지막 실행",
+  "Add to an existing status page instead": "대신 기존 상태 페이지에 추가",
+  "Make a new status page instead": "대신 새 상태 페이지 만들기",
+  "Nothing matches.": "일치하는 항목이 없습니다.",
+  "On the page": "페이지에 표시됨",
+  "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "이 프로젝트에는 이미 \"{{name}}\" 상태 페이지가 있습니다. 선택한 모니터는 이 페이지에 추가됩니다.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "이 프로젝트에는 이미 상태 페이지가 {{count}}개 있습니다. 선택한 모니터는 지정한 페이지에 추가됩니다.",
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "이 프로젝트에는 이미 상태 페이지가 {{count}}개 있습니다. 선택한 모니터는 지정한 페이지에 추가됩니다."
 }
