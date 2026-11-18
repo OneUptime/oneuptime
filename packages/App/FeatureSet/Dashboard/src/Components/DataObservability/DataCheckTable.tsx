@@ -23,8 +23,10 @@ import {
   getCheckHealthBeforeAlerts,
 } from "./CheckHealthCopy";
 import {
+  DATA_CHECK_HEALTH_ORDER,
   DataCheckHealth,
   DataCheckHealthAnswer,
+  isDataCheckHealth,
 } from "Common/Types/DataObservability/DataObservabilityAttention";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
 import { DataCheckFormat } from "Common/Types/DataObservability/DataCheckFormats";
@@ -110,6 +112,16 @@ const LAST_RUN_OPTIONS: Array<DropdownOption> = [
   { value: DataCheckRunStatus.Ran, label: "Ran" },
   { value: DataCheckRunStatus.Failed, label: "Could Not Run" },
 ];
+
+/*
+ * How a check stands now, worst first, in the words its Status draws: the
+ * Status filter's choices, asked of the health kept on each check (#6554).
+ */
+export const HEALTH_OPTIONS: Array<DropdownOption> = DATA_CHECK_HEALTH_ORDER.map(
+  (health: DataCheckHealth): DropdownOption => {
+    return { value: health, label: CHECK_HEALTH_COPY[health].label };
+  },
+);
 
 // Each condition by its name, which the dropdown draws in the reader's language.
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
@@ -245,12 +257,19 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The reader's own answer, once asked (their alerts, a private one
+   * among them); until then the health kept on the check (#6554); and for
+   * a check kept before health was, what its last run alone says.
+   */
   const healthOf: (check: DataCheck) => DataCheckHealthAnswer = (
     check: DataCheck,
   ): DataCheckHealthAnswer => {
     return (
       healthById.get(check.id?.toString() || "") || {
-        health: getCheckHealthBeforeAlerts(check),
+        health: isDataCheckHealth(check.health)
+          ? check.health
+          : getCheckHealthBeforeAlerts(check),
         alert: null,
       }
     );
@@ -315,7 +334,11 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         isEditable={isForOneTable}
         isCreateable={isForOneTable}
         isViewable={false}
-        sortBy="lastRunStatus"
+        /*
+         * Failing first, then could not run, then passing (healthRank), on
+         * the server: a failing check is on the first page (#6554).
+         */
+        sortBy="healthRank"
         sortOrder={SortOrder.Ascending}
         showRefreshButton={true}
         searchableFields={["name"]}
@@ -357,7 +380,9 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           checkType: true,
           isEnabled: true,
           lastRunAt: true,
+          lastRunStatus: true,
           lastRunMessage: true,
+          health: true,
           alertThreshold: true,
           monitorId: true,
           segmentColumn: true,
@@ -639,6 +664,12 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             filterDropdownOptions: TYPE_OPTIONS,
           },
           {
+            field: { health: true },
+            title: "Status",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: HEALTH_OPTIONS,
+          },
+          {
             field: { lastRunStatus: true },
             title: "Last Run",
             type: FieldType.Dropdown,
@@ -720,7 +751,8 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: { lastRunStatus: true },
+            // Sorted by how it stands, worst first, as the list opens (#6554).
+            field: { healthRank: true },
             title: "Status",
             type: FieldType.Element,
             getExportValue: (check: DataCheck): string => {
