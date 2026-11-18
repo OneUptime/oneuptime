@@ -31,7 +31,7 @@ The feed is on the SLO's **Feed** page, and its latest items are under **Recent 
 | SLO updated | The name, description, labels, target, compliance window, timezone, at-risk threshold, multi-monitor mode or downtime statuses change. Shows each old and new value. |
 | SLO enabled or disabled | Evaluation is turned on or off. |
 | SLO archived or restored | The SLO is archived or unarchived. |
-| Status changed | An evaluation moves the SLO to a new status. Shows the SLI, error budget, burn rate and at-risk threshold behind it, and the reason for **Paused** or **Misconfigured**. |
+| Status changed | An evaluation moves the SLO to a new status. Shows the SLI, error budget, burn rate and at-risk threshold behind it, and the reason for **Waiting**, **Paused** or **Misconfigured**. |
 | Error budget policy tier changed | An evaluation moves the SLO into a tier of its error budget policy, to another tier, or out of every tier. Shows the tier it left and the tier it entered, the budget left, and what the team agreed to do in the new tier, and says when the change froze deployments or allowed them again. See [Error Budget Policy](/docs/slo/error-budget-policy). |
 | Deployments frozen or allowed again | Someone switched **Freeze Deployments** on or off for the tier the SLO is in, and the next evaluation froze deployments or allowed them again. A tier change that does it says so in its own item instead. See [Deployment gate](/docs/slo/error-budget-policy#deployment-gate). |
 | Burn rate alert raised | A burn rate rule creates an alert. Links to it and shows the burn rates that fired it. |

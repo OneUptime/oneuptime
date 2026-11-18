@@ -6,7 +6,7 @@ Eine Fehlerbudget-Richtlinie hält fest, was Ihr Team vereinbart hat zu tun, wä
 - [Wie Stufen funktionieren](#wie-stufen-funktionieren): Welche Stufe gilt und wann das SLO sie verlässt.
 - [Eine Richtlinie einrichten](#eine-richtlinie-einrichten): Mit der empfohlenen Richtlinie beginnen oder eigene Stufen schreiben.
 - [Warnungen und Vorfälle](#warnungen-und-vorfälle): Ihr Team alarmieren, wenn das SLO in eine Stufe eintritt.
-- [In Slack, Microsoft Teams und Mattermost posten](#in-slack-microsoft-teams-und-mattermost-posten): Einen Kanal informieren, wenn ein SLO in eine Stufe eintritt, ohne jemanden zu alarmieren.
+- [In Slack, Microsoft Teams und Mattermost posten](#in-slack-microsoft-teams-und-mattermost-posten): Einen Kanal informieren, wenn ein SLO in eine Stufe eintritt oder seinen Status ändert, ohne jemanden zu alarmieren.
 - [Deployment-Gate](#deployment-gate): Releases in CI/CD zurückhalten, solange eine Stufe Deployments einfriert.
 - [Die Stufe über die API lesen](#die-stufe-über-die-api-lesen): Die Stufe aus CI und Skripten prüfen.
 :::
@@ -84,6 +84,10 @@ Das Hinzufügen, Bearbeiten oder Löschen einer Stufe wirkt sofort: OneUptime we
 
 Keine von ihnen löst eine Warnung aus oder meldet einen Vorfall, bis Sie das einschalten. **Budget exhausted** friert Deployments ein, wie es ihre Vereinbarung sagt, und die Bestätigung kennzeichnet sie entsprechend: siehe [Deployment-Gate](#deployment-gate). Stufen, die hinzugefügt wurden, bevor es das Gate gab, frieren nichts ein, bis Sie das Einfrieren einschalten. Es werden nur die Stufen hinzugefügt, die das SLO nicht hat: Eine Stufe mit demselben Namen oder mit demselben Schwellenwert zählt als vorhanden, ob sie ein- oder ausgeschaltet ist. Zweimal danach zu fragen, aus einem zweiten Tab oder über die API, fügt also nichts doppelt hinzu. Lässt sich eine der Stufen nicht hinzufügen, wird keine hinzugefügt: Das SLO bleibt, wie es war, und Sie können es erneut versuchen. Jede so hinzugefügte Stufe wird in den Audit-Protokollen des SLO als von Ihnen hinzugefügt festgehalten.
 
+Ein SLO, das einige der empfohlenen Stufen und keine eigene Stufe hat, etwa eines, das die empfohlene Richtlinie bekam, bevor sie **Budget exhausted** enthielt, zeigt über seinen Stufen den Hinweis **Empfohlene Richtlinie nicht vollständig**, der die fehlenden Stufen nennt. Klicken Sie auf **Fehlende Stufen hinzufügen**, um zu sehen, was hinzugefügt wird, und bestätigen Sie. Einem SLO mit einer eigenen Stufe wird der Rest nie angeboten: Die Richtlinie, die Sie aufgebaut haben, bleibt, wie sie ist. Damit der Hinweis eine Stufe, die Sie nicht möchten, nicht mehr anbietet, behalten Sie die Stufe und deaktivieren Sie sie, statt sie zu löschen.
+
+Um sie auf viele SLOs auf einmal anzuwenden, wählen Sie sie auf der Seite **SLOs** aus und wählen Sie **Empfohlene Richtlinie verwenden** unter **Massenaktionen**. Bevor etwas hinzugefügt wird, zählt die Bestätigung, wie viele von ihnen jede Stufe bekommen und wie viele unverändert bleiben, weil sie die empfohlene Richtlinie bereits haben oder eine eigene Fehlerbudget-Richtlinie haben. Jedes SLO bekommt die Stufen, die ihm fehlen, so wie seine eigene Seite sie hinzufügen würde, und das Ergebnis sagt für jedes SLO, ob Stufen hinzugefügt wurden oder warum nicht. Erneutes Ausführen für dieselben SLOs fügt nichts hinzu. Archivierte SLOs stehen nicht in der Liste und bekommen sie nie angeboten.
+
 ## Wo die Stufe erscheint
 
 - Die **Übersicht** des SLO zeigt die Stufe, in der es ist, und was das Team dort vereinbart hat, sodass jeder, der das SLO öffnet, die Vereinbarung sieht, die gerade gilt. Solange die Stufe Deployments einfriert, zeigt ein rotes Badge unter ihrem Namen, seit wann.
@@ -126,7 +130,7 @@ Die eingebaute Beschreibung nennt die Stufe, stellt das verbleibende Budget dem 
 
 ## In Slack, Microsoft Teams und Mattermost posten
 
-Eine Regel kann jede Änderung der Fehlerbudget-Richtlinie eines SLO in den Slack-, Microsoft-Teams- oder Mattermost-Kanälen posten, die Ihr Team liest, ohne jemanden zu alarmieren: wenn das SLO in eine Stufe eintritt, sich in eine weniger strenge Stufe erholt oder alle Stufen verlässt, und wenn seine Deployments eingefroren oder wieder erlaubt werden. Jede Regel wählt die SLOs und die Änderungen, die sie postet. Verbinden Sie zuerst den Workspace mit dem Projekt: siehe [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) oder [Mattermost](/docs/workspace-connections/mattermost).
+Eine Regel kann jede Änderung der Fehlerbudget-Richtlinie eines SLO in den Slack-, Microsoft-Teams- oder Mattermost-Kanälen posten, die Ihr Team liest, ohne jemanden zu alarmieren: wenn das SLO in eine Stufe eintritt, sich in eine weniger strenge Stufe erholt oder alle Stufen verlässt, und wenn seine Deployments eingefroren oder wieder erlaubt werden. Jede Regel wählt die SLOs und die Änderungen, die sie postet, und eine Regel kann auch die Statusänderungen des SLO posten: siehe [Statusänderungen](#statusänderungen). Verbinden Sie zuerst den Workspace mit dem Projekt: siehe [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) oder [Mattermost](/docs/workspace-connections/mattermost).
 
 :::steps
 ### Den Abschnitt Arbeitsbereich der SLOs öffnen
@@ -147,7 +151,7 @@ Die Nachricht beschreibt die Änderung so, wie der **Feed** des SLO sie beschrei
 - Eine Änderung wird einmal gepostet, nachdem die Auswertung, die sie bewirkt hat, gespeichert ist. Eine Auswertung, die nicht gespeichert wird, postet nichts, und die nächste postet die Änderung.
 - Solange das SLO in seiner Stufe bleibt, wird nichts gepostet, wie lange das Budget auch um einen Schwellenwert pendelt: siehe [In eine Stufe eintreten und sie verlassen](#in-eine-stufe-eintreten-und-sie-verlassen).
 - Das Ein- oder Ausschalten von **Deployments einfrieren** für die Stufe, in der das SLO ist, postet eine eigene Nachricht.
-- Ein pausiertes, falsch konfiguriertes, deaktiviertes oder archiviertes SLO behält seine Stufe und postet nichts.
+- Ein wartendes, pausiertes, falsch konfiguriertes, deaktiviertes oder archiviertes SLO behält seine Stufe und postet nichts.
 - Eine Nachricht, die nicht gesendet werden kann, wird protokolliert, und die Auswertung, der Feed des SLO und das, was die Stufe auslöst, laufen ohne sie weiter.
 
 ### Worauf eine Regel zutrifft
@@ -158,13 +162,25 @@ Die Nachricht beschreibt die Änderung so, wie der **Feed** des SLO sie beschrei
 | **SLO-Beschriftungen** | Die Beschriftungen des SLO: eine beliebige der ausgewählten, alle oder keine davon. |
 | **SLO-Name** | Der Name des SLO: ist gleich Ihrem Text oder nicht, enthält ihn oder nicht, beginnt oder endet mit ihm. |
 | **Änderung der Fehlerbudget-Richtlinie** | Was sich geändert hat: **In eine strengere Stufe eingetreten**, **In eine weniger strenge Stufe erholt**, **Alle Stufen verlassen**, **Deployments eingefroren** oder **Deployments wieder erlaubt**. |
+| **SLO-Statusänderung** | Wie sich der Status des SLO geändert hat: **Gefährdet geworden**, **Budget ausgeschöpft** oder **Wieder fehlerfrei**. Nur eine Regel mit dieser Bedingung postet Statusänderungen: siehe [Statusänderungen](#statusänderungen). |
 | **Eigentümer des SLO** | Die als Eigentümer des SLO eingetragenen Personen und Teams: eine beliebige der ausgewählten, oder keine davon. Die Mitgliedschaft in einem Team, dem das SLO gehört, zählt nicht. |
 
 Ein Stufenwechsel, der Deployments eingefroren oder wieder erlaubt hat, ist eine einzige Nachricht für beide Änderungen. Eine Regel für **Deployments eingefroren** postet also auch den Wechsel in eine Stufe, die sie einfriert: Ein Release-Kanal erfährt von jedem Einfrieren.
 
+### Statusänderungen
+
+Eine Regel postet die Statusänderungen des SLO nur, wenn sie eine Bedingung **SLO-Statusänderung** hat, und dann nur die, die diese Bedingung auswählt. Eine solche Regel postet die Änderungen der Fehlerbudget-Richtlinie nur, wenn sie zusätzlich eine Bedingung **Änderung der Fehlerbudget-Richtlinie** hat. Eine Regel, die erstellt wurde, bevor Statusänderungen gepostet wurden, postet also weiter, was sie gepostet hat, und beginnt nie, Statusänderungen zu posten, die niemand gewählt hat.
+
+Die Nachricht beschreibt die Änderung so, wie der **Feed** des SLO sie beschreibt: den Status, in dem das SLO ist, und den, von dem der Kanal zuletzt erfahren hat, das SLI gegenüber seinem Ziel, das verbleibende Fehlerbudget, die aktuelle Burn-Rate und die Risikoschwelle.
+
+- Ein Kanal erfährt höchstens eine Statusänderung eines SLO pro Stunde, sodass ein SLO, das zwischen **Gefährdet** und **Fehlerfrei** hin und her springt, ihn nicht überfluten kann. Eine Änderung innerhalb der Stunde wartet und wird gepostet, sobald die Stunde um ist, wenn das SLO dann noch dort ist. Ein Hin und Her, das zu dem zurückkehrt, wovon der Kanal zuletzt erfahren hat, postet nichts.
+- Ein ausgeschöpftes Budget wird sofort gepostet, egal wie viel von der Stunde vergangen ist.
+- Ein Wechsel zu **Wartet**, **Falsch konfiguriert** oder **Pausiert** postet nichts: An der Zuverlässigkeit hat sich nichts geändert. Sobald das SLO wieder gemessen wird, wird eine Änderung gegenüber dem gepostet, wovon der Kanal zuletzt erfahren hat.
+- Die Eigentümer eines SLO werden weiterhin per E-Mail, SMS, Anruf und Push über Statusänderungen benachrichtigt, egal was die Regeln posten.
+
 ## Wenn das Budget nicht gemessen wird
 
-- Ein SLO, das **Pausiert** oder **Falsch konfiguriert** ist, misst kein Budget, seine Stufe bleibt also, wo sie war, und was die Stufe ausgelöst hat, bleibt offen, bis wieder gemessen wird. Burn-Rate-Regeln lösen dann dagegen auf, was sie offen haben.
+- Ein SLO im Status **Wartet**, **Pausiert** oder **Falsch konfiguriert** misst kein Budget, seine Stufe bleibt also, wo sie war, und was die Stufe ausgelöst hat, bleibt offen, bis wieder gemessen wird. Burn-Rate-Regeln lösen dann dagegen auf, was sie offen haben.
 - Das Ausschalten der Auswertung des SLO oder das Archivieren des SLO löst auf, was seine Stufen ausgelöst haben. Die Stufe, in der das SLO ist, bleibt, wie sie war.
 - Das Löschen des SLO löscht seine Stufen und löst auf, was sie ausgelöst haben.
 - In jedem dieser Fälle behält das SLO die Antwort, die es zu Deployments gegeben hat, weil es seine Stufe behält: siehe [Deployment-Gate](#deployment-gate).
@@ -257,7 +273,7 @@ Wie sich die Antwort ändert:
 
 - Deployments werden von der Auswertung eingefroren, die das SLO in eine Stufe bringt, die sie einfriert, und von der Auswertung wieder erlaubt, die es aus dieser Stufe herausholt, mit den Erholungsabständen der Stufe: siehe [In eine Stufe eintreten und sie verlassen](#in-eine-stufe-eintreten-und-sie-verlassen). Von einer einfrierenden Stufe in eine andere bleiben sie eingefroren, und `deploymentsFrozenAt` behält seinen Zeitpunkt.
 - Das Ein- oder Ausschalten von **Deployments einfrieren** für die Stufe, in der das SLO ist, wirkt innerhalb von etwa einer Minute. Um ein Release auszuliefern, bevor sich das Budget erholt, schalten Sie es aus: Die Änderung wird in den Audit-Protokollen des SLO als von Ihnen vorgenommen festgehalten.
-- Ein SLO, das **Pausiert** oder **Falsch konfiguriert** ist, behält die Antwort, die es hatte, so wie es seine Stufe behält: Ein Wartungsfenster, das jeden Monitor pausiert, hebt ein Einfrieren weder auf, noch beginnt es eines. Ein deaktiviertes oder archiviertes SLO wird gar nicht ausgewertet und behält daher ebenfalls seine Antwort.
+- Ein SLO im Status **Wartet**, **Pausiert** oder **Falsch konfiguriert** behält die Antwort, die es hatte, so wie es seine Stufe behält: Ein Wartungsfenster, das jeden Monitor pausiert, hebt ein Einfrieren weder auf, noch beginnt es eines. Ein deaktiviertes oder archiviertes SLO wird gar nicht ausgewertet und behält daher ebenfalls seine Antwort.
 - Solange Deployments eingefroren sind, zeigt die **Übersicht** des SLO, seit wann, und sein **Feed** sagt, wann sie eingefroren und wieder erlaubt werden.
 
 ## Die Stufe über die API lesen
@@ -279,12 +295,14 @@ curl -X POST 'https://oneuptime.com/api/service-level-objective/<slo-id>/get-ite
   -d '{ "select": { "name": true, "errorBudgetRemainingPercentage": true, "currentErrorBudgetPolicyTierName": true, "currentErrorBudgetPolicyTierEnteredAt": true } }'
 ```
 
-Die Stufen selbst sind eine eigene Ressource, `/api/service-level-objective-error-budget-policy-tier`, mit den Anfragen zum Auflisten, Lesen, Erstellen, Ändern und Löschen, die jede Ressource hat. Zwei weitere Anfragen dienen der empfohlenen Richtlinie. Beide nehmen `{ "serviceLevelObjectiveId": "..." }` entgegen und antworten mit den Stufen in `tiers`:
+Die Stufen selbst sind eine eigene Ressource, `/api/service-level-objective-error-budget-policy-tier`, mit den Anfragen zum Auflisten, Lesen, Erstellen, Ändern und Löschen, die jede Ressource hat. Vier weitere Anfragen dienen der empfohlenen Richtlinie. Die Anfragen für ein SLO nehmen `{ "serviceLevelObjectiveId": "..." }` entgegen und antworten mit den Stufen in `tiers`. Die Massenanfragen nehmen `{ "serviceLevelObjectiveIds": ["..."] }` entgegen, höchstens 100 SLOs pro Anfrage, und antworten mit einem Eintrag für jedes SLO in `results`, in der angefragten Reihenfolge:
 
 | Anfrage | Was sie tut |
 | --- | --- |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy` | Listet die empfohlenen Stufen auf, die dem SLO fehlen. Sie schreibt nichts. |
 | `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/add` | Fügt sie hinzu und listet auf, was sie hinzugefügt hat. Eine erneute Anfrage fügt nichts hinzu. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk` | Sagt, was jedes SLO bekäme: `Missing` mit den Stufen, `NothingMissing`, `OwnPolicy` für ein SLO mit einer eigenen Fehlerbudget-Richtlinie oder `Refused` für ein SLO, das Sie nicht lesen dürfen. Sie schreibt nichts. |
+| `POST /api/service-level-objective-error-budget-policy-tier/recommended-policy/bulk/add` | Fügt hinzu, was jedem SLO fehlt, ein SLO nach dem anderen: `Added` mit den Stufen, `NothingMissing`, `OwnPolicy`, `Refused` oder `Failed`, wenn ihm nichts hinzugefügt wurde. Eine erneute Anfrage fügt nur hinzu, was noch fehlt. |
 
 ## Berechtigungen
 
@@ -299,7 +317,7 @@ Diese Berechtigungen stehen in der SLO-Gruppe einer Rolle. Die Rollen Projektinh
 
 ## Noch nicht verfügbar
 
-Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: ein eigener Workflow-Auslöser für jede Stufe, eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten. OneUptime hält ein Release nicht von selbst an: Das tut eine Pipeline, die `deploymentsAllowed` prüft, wie [Deployment-Gate](#deployment-gate) zeigt.
+Einige Teile einer Fehlerbudget-Richtlinie sind noch nicht verfügbar: eine Richtlinie, die sich mehrere SLOs teilen, das Bestätigen einer Stufe oder das Gewähren einer Ausnahme davon, und Stufen, die sich nach der Budget-Reichweite statt nach dem verbleibenden Budget richten. OneUptime hält ein Release nicht von selbst an: Das tut eine Pipeline, die `deploymentsAllowed` prüft, wie [Deployment-Gate](#deployment-gate) zeigt. Ein Workflow kann starten, wenn ein SLO in eine Stufe eintritt oder wenn seine Deployments eingefroren oder wieder erlaubt werden: Geben Sie ihm den Auslöser des SLO bei Aktualisierung und wählen Sie unter **Beobachtete Felder** **ID der aktuellen Stufe der Fehlerbudget-Richtlinie** oder **Deployments erlaubt**, sodass er für jede Änderung einmal läuft.
 
 ## Nächste Schritte
 

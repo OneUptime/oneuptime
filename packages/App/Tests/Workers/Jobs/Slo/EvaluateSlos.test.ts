@@ -20,7 +20,7 @@ import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/Serv
 import User from "Common/Models/DatabaseModels/User";
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue500, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate, { Moment } from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
@@ -243,7 +243,7 @@ jest.mock("Common/Server/Utils/Slo/SloMetricUtil", () => {
 jest.mock("Common/Server/Utils/Slo/SloWorkspaceNotifications", () => {
   return {
     __esModule: true,
-    default: { postPolicyChange: jest.fn() },
+    default: { postPolicyChange: jest.fn(), postStatusChange: jest.fn() },
   };
 });
 
@@ -523,8 +523,13 @@ const feedService: { createServiceLevelObjectiveFeedItem: jest.Mock } =
   ServiceLevelObjectiveFeedService as unknown as {
     createServiceLevelObjectiveFeedItem: jest.Mock;
   };
-const workspaceNotifications: { postPolicyChange: jest.Mock } =
-  SloWorkspaceNotifications as unknown as { postPolicyChange: jest.Mock };
+const workspaceNotifications: {
+  postPolicyChange: jest.Mock;
+  postStatusChange: jest.Mock;
+} = SloWorkspaceNotifications as unknown as {
+  postPolicyChange: jest.Mock;
+  postStatusChange: jest.Mock;
+};
 const alertService: { findOneBy: jest.Mock; create: jest.Mock } =
   AlertService as unknown as { findOneBy: jest.Mock; create: jest.Mock };
 const severityService: { findOneBy: jest.Mock } =
@@ -1109,6 +1114,7 @@ describe("Slo:EvaluateSlos worker", () => {
       undefined,
     );
     workspaceNotifications.postPolicyChange.mockResolvedValue(true);
+    workspaceNotifications.postStatusChange.mockResolvedValue(null);
     alertService.findOneBy.mockResolvedValue(null);
     alertService.create.mockResolvedValue(new Alert());
     severityService.findOneBy.mockResolvedValue(null);
@@ -5692,7 +5698,7 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(persistedStateUpdate()["errorBudgetTotalSeconds"]).toBe(864);
     });
 
-    test("a monitor nothing has checked yet measures nothing: Misconfigured, no alert, no history - where it read a healthy 100%", async () => {
+    test("a monitor nothing has checked yet measures nothing: Waiting, no alert, no history - where it read a healthy 100%", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([makeRule()]);
       historyPutRight(true);
@@ -5703,12 +5709,154 @@ describe("Slo:EvaluateSlos worker", () => {
 
       await runWorkerTick();
 
-      expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+      expect(persistedSloStatus()).toBe(SloStatus.Waiting);
       expect(alertService.create).not.toHaveBeenCalled();
       expect(historyService.insertHistoryRows).not.toHaveBeenCalled();
       expect(
         payloadsContaining(sloUpdatePayloads(), "currentSliPercentage"),
       ).toHaveLength(0);
+    });
+
+    /*
+     * Waiting is a status of its own (#9354): an SLO set up right and
+     * measured from its monitors' first check is counted apart from the SLOs
+     * that are set up wrong - on the list's tiles, under its chip and in its
+     * pill - and its feed says why, in blue, as its pill is.
+     */
+    function statusChangedFeedItems(): Array<{
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown?: string | undefined;
+      displayColor?: Color | undefined;
+    }> {
+      return feedService.createServiceLevelObjectiveFeedItem.mock.calls
+        .map(
+          (
+            args: Array<unknown>,
+          ): {
+            serviceLevelObjectiveFeedEventType: ServiceLevelObjectiveFeedEventType;
+            feedInfoInMarkdown: string;
+            moreInformationInMarkdown?: string | undefined;
+            displayColor?: Color | undefined;
+          } => {
+            return args[0] as {
+              serviceLevelObjectiveFeedEventType: ServiceLevelObjectiveFeedEventType;
+              feedInfoInMarkdown: string;
+              moreInformationInMarkdown?: string | undefined;
+              displayColor?: Color | undefined;
+            };
+          },
+        )
+        .filter(
+          (item: {
+            serviceLevelObjectiveFeedEventType: ServiceLevelObjectiveFeedEventType;
+          }): boolean => {
+            return (
+              item.serviceLevelObjectiveFeedEventType ===
+              ServiceLevelObjectiveFeedEventType.StatusChanged
+            );
+          },
+        );
+    }
+
+    test("Waiting's StatusChanged item says it waits for the first check, in the pill's blue", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, null),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      const items: Array<{
+        feedInfoInMarkdown: string;
+        moreInformationInMarkdown?: string | undefined;
+        displayColor?: Color | undefined;
+      }> = statusChangedFeedItems();
+
+      expect(items).toHaveLength(1);
+      expect(items[0]!.feedInfoInMarkdown).toContain(
+        "is now **Waiting** (was Healthy).",
+      );
+      expect(items[0]!.feedInfoInMarkdown.startsWith("⏳ ")).toBe(true);
+      expect(items[0]!.displayColor).toBe(Blue500);
+      expect(items[0]!.moreInformationInMarkdown).toContain(
+        "**Why**: Nothing has checked the monitors attached to this SLO yet",
+      );
+      // An unmeasured status says what stops while it lasts.
+      expect(items[0]!.moreInformationInMarkdown).toContain(
+        "While the SLO is Waiting, its SLI and error budget are not recalculated",
+      );
+    });
+
+    test("a monitor first checked that recorded no status in the window is still Misconfigured, not Waiting", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, daysAgo(2)),
+      ]);
+      stubTimelines({});
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+      expect(statusChangedFeedItems()[0]!.moreInformationInMarkdown).toContain(
+        "have not recorded any status in its window yet",
+      );
+    });
+
+    test("an SLO stored as Misconfigured for its monitors' first check before Waiting existed moves to Waiting on its next evaluation", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.Misconfigured }),
+      ]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, null),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Waiting);
+      expect(statusChangedFeedItems()).toHaveLength(1);
+      expect(statusChangedFeedItems()[0]!.feedInfoInMarkdown).toContain(
+        "is now **Waiting** (was Misconfigured).",
+      );
+    });
+
+    test("an SLO already Waiting writes no second transition, tick after tick", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.Waiting }),
+      ]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, null),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+      await runWorkerTick();
+
+      expect(statusChangedFeedItems()).toHaveLength(0);
+      expect(payloadsContaining(sloUpdatePayloads(), "sloStatus")).toHaveLength(
+        0,
+      );
+    });
+
+    test("from Waiting, the first check classifies the SLO from its budget alone, as from any guard status", async () => {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({ sloStatus: SloStatus.Waiting }),
+      ]);
+      historyPutRight(true);
+      monitorService.findBy.mockResolvedValue([
+        monitorFirstChecked(MONITOR_A_ID, daysAgo(10)),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Healthy);
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBe(100);
     });
 
     test("until the upgrade has put first checks right, the same monitor reads as it always did", async () => {
@@ -6562,6 +6710,125 @@ describe("Slo:EvaluateSlos worker", () => {
       },
     );
 
+    /*
+     * The status, to the Slack, Microsoft Teams and Mattermost rules that
+     * pick status changes (#6596): asked after the state write on every
+     * measured evaluation - its own transition, or one an earlier
+     * evaluation held back (SloStatusPosts) - in the StatusChanged item's
+     * words, said against what the channels last heard. A guard posts
+     * nothing, and a send that fails costs the evaluation nothing.
+     */
+    describe("posted to Slack, Microsoft Teams and Mattermost", () => {
+      interface StatusPost {
+        projectId: ObjectID;
+        sloId: ObjectID;
+        previousStatus: SloStatus | undefined;
+        newStatus: SloStatus;
+        now: Date;
+        buildMarkdown: (from: SloStatus | null) => Promise<{
+          toString: () => string;
+        }>;
+      }
+
+      function statusPosts(): Array<StatusPost> {
+        return workspaceNotifications.postStatusChange.mock.calls.map(
+          (args: Array<unknown>): StatusPost => {
+            return args[0] as StatusPost;
+          },
+        );
+      }
+
+      test("a measured evaluation asks once, after the state write and its feed item, with the status it started from and the one it committed", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        const posts: Array<StatusPost> = statusPosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.projectId).toEqual(PROJECT_ID);
+        expect(posts[0]!.sloId).toEqual(SLO_ID);
+        expect(posts[0]!.previousStatus).toBe(SloStatus.Healthy);
+        expect(posts[0]!.newStatus).toBe(SloStatus.AtRisk);
+        expect(posts[0]!.now.getTime()).toBe(NOW.getTime());
+
+        const askedAt: number =
+          workspaceNotifications.postStatusChange.mock.invocationCallOrder[0]!;
+
+        expect(askedAt).toBeGreaterThan(
+          sloService.updateOneById.mock.invocationCallOrder[0]!,
+        );
+        expect(askedAt).toBeGreaterThan(
+          Math.max(
+            ...feedService.createServiceLevelObjectiveFeedItem.mock
+              .invocationCallOrder,
+          ),
+        );
+      });
+
+      test("its words are the StatusChanged item's, said against the status the channels last heard", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        const item: FeedItemArgs = onlyStatusChangedItem();
+        const post: StatusPost = statusPosts()[0]!;
+
+        // Against the status it started from, the message is the feed item, as one message.
+        expect((await post.buildMarkdown(SloStatus.Healthy)).toString()).toBe(
+          `${item.feedInfoInMarkdown}\n\n${item.moreInformationInMarkdown}`,
+        );
+
+        // Against what the channels last heard, when that is another status.
+        const heldBack: string = (
+          await post.buildMarkdown(SloStatus.BudgetExhausted)
+        ).toString();
+
+        expect(heldBack).toContain(
+          `🟡 ${SLO_MARKDOWN_LINK} is now **At Risk** (was Budget Exhausted).`,
+        );
+        expect(heldBack).toContain("**SLI**: 99.0741% against a 99% target");
+      });
+
+      test("an evaluation that holds its status still asks, so a change held back for the interval is said", async () => {
+        sloService.getDueSlos.mockResolvedValue([
+          makeSlo({ sloStatus: SloStatus.Healthy }),
+        ]);
+        stubHealthy();
+
+        await runWorkerTick();
+
+        expect(statusPosts()).toHaveLength(1);
+        expect(statusPosts()[0]!.previousStatus).toBe(SloStatus.Healthy);
+        expect(statusPosts()[0]!.newStatus).toBe(SloStatus.Healthy);
+      });
+
+      test("a guard - Waiting, Misconfigured, Paused - posts no status change", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo({ monitors: [] })]);
+
+        await runWorkerTick();
+
+        expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+        expect(workspaceNotifications.postStatusChange).not.toHaveBeenCalled();
+      });
+
+      test("a send that fails costs the evaluation nothing: history, metrics and owners go on", async () => {
+        workspaceNotifications.postStatusChange.mockRejectedValue(
+          new Error("Slack is down"),
+        );
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        expect(historyService.insertHistoryRows).toHaveBeenCalledTimes(1);
+        expect(sloMetricUtil.saveSloMetrics).toHaveBeenCalledTimes(1);
+        expect(persistedSloStatus()).toBe(SloStatus.AtRisk);
+      });
+    });
+
     describe("guard transitions", () => {
       test("a transition into Paused posts once, gray, with the reason - and a second tick posts nothing", async () => {
         const monitor: Monitor = enabledMonitor(MONITOR_A_ID);
@@ -6641,27 +6908,6 @@ describe("Slo:EvaluateSlos worker", () => {
           },
           reason: "have not recorded any status in its window yet",
         },
-        // Issue #9031: the status it was created in is no time to measure.
-        {
-          label: "monitors nothing has checked yet",
-          slo: (): ServiceLevelObjective => {
-            return makeSlo();
-          },
-          arrange: (): void => {
-            dataMigrationService.findOneBy.mockResolvedValue(
-              new DataMigration(),
-            );
-            const neverChecked: Monitor = enabledMonitor(MONITOR_A_ID);
-            neverChecked.monitorType = MonitorType.Website;
-            (
-              neverChecked as unknown as { firstMeasuredAt: Date | null }
-            ).firstMeasuredAt = null;
-            monitorService.findBy.mockResolvedValue([neverChecked]);
-            stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
-          },
-          reason:
-            "Nothing has checked the monitors attached to this SLO yet, so it has no time to measure. It is measured automatically from their first check.",
-        },
       ])(
         "Misconfigured by $label names that exact reason",
         async (guard: {
@@ -6681,6 +6927,37 @@ describe("Slo:EvaluateSlos worker", () => {
           expect(item.moreInformationInMarkdown).toContain(guard.reason);
         },
       );
+
+      /*
+       * Issue #9031: the status it was created in is no time to measure.
+       * Such an SLO is set up right, so it is Waiting, a status of its own
+       * (#9354), blue as its pill, and its item names that exact reason.
+       */
+      test("Waiting for monitors nothing has checked yet names that exact reason, in blue", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        dataMigrationService.findOneBy.mockResolvedValue(new DataMigration());
+        const neverChecked: Monitor = enabledMonitor(MONITOR_A_ID);
+        neverChecked.monitorType = MonitorType.Website;
+        (
+          neverChecked as unknown as { firstMeasuredAt: Date | null }
+        ).firstMeasuredAt = null;
+        monitorService.findBy.mockResolvedValue([neverChecked]);
+        stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+        await runWorkerTick();
+
+        const item: FeedItemArgs = onlyStatusChangedItem();
+
+        expect(item.displayColor).toBe(Blue500);
+        expect(item.feedInfoInMarkdown).toBe(
+          `⏳ ${SLO_MARKDOWN_LINK} is now **Waiting** (was Healthy).`,
+        );
+        expect(item.moreInformationInMarkdown).toContain(
+          "Nothing has checked the monitors attached to this SLO yet, so it has no time to measure. It is measured automatically from their first check.",
+        );
+        // No measurement was taken, so none is claimed.
+        expect(item.moreInformationInMarkdown).not.toContain("**SLI**");
+      });
 
       test("an SLO that is already Misconfigured posts nothing", async () => {
         sloService.getDueSlos.mockResolvedValue([

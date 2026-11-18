@@ -17,6 +17,7 @@ import {
 // The Metric SLO fields' controls, for the create form.
 import "./SloMetricQueryFieldElements";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
+import SloDeploymentsCell from "../../Components/Slo/SloDeploymentsCell";
 import SloStatusSummaryCards from "../../Components/Slo/SloStatusSummaryCards";
 import {
   applySloStatusSummaryTile,
@@ -111,6 +112,8 @@ An SLO's **Burn Rate Rules** page decides what happens when its budget burns too
 
 To give older SLOs the rules a new one starts with, select them in this list and choose **Add recommended rules** in **Bulk Actions**. Before anything is added, it says which SLOs get which rules.
 
+To give SLOs the recommended error budget policy, select them and choose **Use the recommended policy** in **Bulk Actions**. An SLO with no policy gets it, an SLO with part of it gets the rest, and an SLO with a policy of its own is left as it is.
+
 ## Statuses
 
 | Status | What it means |
@@ -118,12 +121,15 @@ To give older SLOs the rules a new one starts with, select them in this list and
 | **Healthy** | On target, with enough error budget left |
 | **At Risk** | Less error budget is left than the SLO's at-risk threshold (20% unless you change it) |
 | **Budget Exhausted** | The error budget is spent: the SLO is breached |
-| **Misconfigured** | It cannot be measured: no monitors, no data yet, or a target out of range |
+| **Waiting** | Nothing has checked its monitors yet. It is measured from their first check |
+| **Misconfigured** | It cannot be measured: no monitors, no data, or a target out of range |
 | **Paused** | Every monitor it measures is paused or disabled |
 | **Disabled** | It is turned off in its Settings, and is not evaluated |
 | **Unknown** | It has not been evaluated yet |
 
 The tiles above the list count your SLOs by status. Select one to show only those SLOs, and select it again to show them all.
+
+The **Deployments** filter shows the SLOs whose error budget policy freezes deployments right now. Show the **Deployments** column from the column picker to see since when.
 
 ## Settings, Archiving and History
 
@@ -442,6 +448,32 @@ export const getSloWhatItMeasuresColumns: GetSloTableColumnsFunction =
   };
 
 /**
+ * The deploy gate (#6377): which SLOs are freezing deployments right now,
+ * "Frozen since <time>" in red, and nothing for an SLO that allows them.
+ * Hidden until someone switches it on from the column picker, so the list
+ * stays as it was for a team that gates nothing on its SLOs; the
+ * Deployments chip filters by the same column. The SLO list's alone: it
+ * reads deploymentsFrozenAt too (SLO_LIST_SELECT_MORE_FIELDS).
+ */
+export const getSloDeploymentsColumns: GetSloTableColumnsFunction =
+  (): Columns<ServiceLevelObjective> => {
+    return [
+      {
+        field: {
+          deploymentsAllowed: true,
+        },
+        title: "Deployments",
+        type: FieldType.Element,
+        hideOnMobile: true,
+        isHiddenByDefault: true,
+        getElement: (item: ServiceLevelObjective): ReactElement => {
+          return <SloDeploymentsCell slo={item} />;
+        },
+      },
+    ];
+  };
+
+/**
  * Columns read by the getElement callbacks above but not owned by a
  * column of their own — without these the cells silently render their
  * fallback ("—", or a stale-looking status).
@@ -457,6 +489,12 @@ export const SLO_TABLE_SELECT_MORE_FIELDS: Select<ServiceLevelObjective> = {
     name: true,
     _id: true,
   },
+};
+
+// The SLO list's own: the Deployments column's freeze time too.
+export const SLO_LIST_SELECT_MORE_FIELDS: Select<ServiceLevelObjective> = {
+  ...SLO_TABLE_SELECT_MORE_FIELDS,
+  deploymentsFrozenAt: true,
 };
 
 export type GetSloViewRouteFunction = (item: ServiceLevelObjective) => Route;
@@ -483,6 +521,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
     bulkActions,
     archiveBulkActions,
     recommendedRulesBulkActions,
+    recommendedPolicyBulkActions,
     rowActions,
     archiveRowActions,
     modals,
@@ -608,13 +647,15 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         documentationLink={new Route("/docs/slo/introduction")}
         showViewIdButton={true}
         /*
-         * Add recommended rules is offered here alone: an archived SLO's
-         * rules never fire, and the Archived page offers Unarchive alone.
+         * Add recommended rules and Use the recommended policy are offered
+         * here alone: an archived SLO's rules never fire and its policy
+         * never applies, and the Archived page offers Unarchive alone.
          */
         bulkActions={{
           buttons: [
             ...bulkActions,
             ...recommendedRulesBulkActions,
+            ...recommendedPolicyBulkActions,
             ...archiveBulkActions,
           ],
           deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
@@ -725,6 +766,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         columns={[
           ...getSloTableColumns(),
+          ...getSloDeploymentsColumns(),
           ...getSloWhatItMeasuresColumns(),
           ...getSloLastEvaluatedColumns(),
           {
@@ -758,7 +800,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           },
         ]}
-        selectMoreFields={SLO_TABLE_SELECT_MORE_FIELDS}
+        selectMoreFields={SLO_LIST_SELECT_MORE_FIELDS}
         onViewPage={(item: ServiceLevelObjective): Promise<Route> => {
           return Promise.resolve(getSloViewRoute(item));
         }}

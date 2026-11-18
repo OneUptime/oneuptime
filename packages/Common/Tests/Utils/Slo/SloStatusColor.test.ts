@@ -1,4 +1,10 @@
-import { Gray500, Green, Red, Yellow } from "../../../Types/BrandColors";
+import {
+  Blue500,
+  Gray500,
+  Green,
+  Red,
+  Yellow,
+} from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import {
@@ -23,6 +29,20 @@ describe("SloStatusColor", () => {
     it("colours an exhausted error budget red", () => {
       expect(getSloStatusColor(SloStatus.BudgetExhausted).toString()).toBe(
         Red.toString(),
+      );
+    });
+
+    /*
+     * Set up right, and measured from its monitors' first check (#9354):
+     * worth knowing, needs nothing - the Info tone's blue, never the gray
+     * of a setup someone has to fix.
+     */
+    it("colours a waiting SLO blue, apart from the grays of the setups to fix", () => {
+      expect(getSloStatusColor(SloStatus.Waiting).toString()).toBe(
+        Blue500.toString(),
+      );
+      expect(getSloStatusColor(SloStatus.Waiting).toString()).not.toBe(
+        getSloStatusColor(SloStatus.Misconfigured).toString(),
       );
     });
 
@@ -58,11 +78,17 @@ describe("SloStatusColor", () => {
       }
     });
 
-    it("only ever uses the four brand colours the SLO pages use", () => {
+    /*
+     * The status palette, and the Info tone's blue for Waiting (#9354): the
+     * colour a chip of the Info tone draws elsewhere, worth knowing and
+     * asking nothing.
+     */
+    it("only ever uses the brand colours the SLO pages use", () => {
       const allowed: Array<string> = [
         Green.toString(),
         Yellow.toString(),
         Red.toString(),
+        Blue500.toString(),
         Gray500.toString(),
       ];
 

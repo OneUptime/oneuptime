@@ -13,6 +13,7 @@ import {
 import SloRecommendedPolicyTiersModal, {
   USE_RECOMMENDED_POLICY_TITLE,
 } from "../../../Components/Slo/SloRecommendedPolicyTiersModal";
+import SloRecommendedPolicyTiersBanner from "../../../Components/Slo/SloRecommendedPolicyTiersBanner";
 import useSloRecommendedPolicyTiers, {
   UseSloRecommendedPolicyTiersResult,
 } from "../../../Components/Slo/useSloRecommendedPolicyTiers";
@@ -90,8 +91,12 @@ interface CurrentTier {
  *
  * An SLO with no policy yet is offered the recommended one in the table's
  * empty state: "Use the recommended policy" lists exactly the tiers it adds,
- * none of which pages anyone, and adds them once confirmed. Someone who may
- * not create tiers sees it locked, with why, like the table's own Create.
+ * none of which pages anyone, and adds them once confirmed. An SLO whose
+ * tiers are part of the recommended policy is offered the rest above its
+ * tiers (#7351): the half policy #6978 left, which never froze deployments,
+ * is finished from where it was started. A policy of the team's own is
+ * offered nothing. Someone who may not create tiers sees the offer locked,
+ * with why, like the table's own Create.
  */
 const SloErrorBudgetPolicy: FunctionComponent<
   PageComponentProps
@@ -201,8 +206,18 @@ const SloErrorBudgetPolicy: FunctionComponent<
   // Hidden only while the permission snapshot has not arrived (PermissionGate).
   const isStarterOffered: boolean =
     isArchived === false &&
+    !recommended.isPolicyPartial &&
     recommended.missingTiers.length > 0 &&
     (createGate.isAllowed || Boolean(createGate.disabledReason));
+
+  /*
+   * The rest of the recommended policy, above the tiers it finishes. Never
+   * on an archived SLO, whose policy never applies.
+   */
+  const isRestOffered: boolean =
+    isArchived === false &&
+    recommended.isPolicyPartial &&
+    recommended.missingTiers.length > 0;
 
   const starterActions: Array<TableEmptyStateAction> = isStarterOffered
     ? [
@@ -239,6 +254,19 @@ const SloErrorBudgetPolicy: FunctionComponent<
   return (
     <Fragment>
       <SloNoticeBanner sloId={modelId} />
+      {isRestOffered ? (
+        <SloRecommendedPolicyTiersBanner
+          tiers={recommended.missingTiers}
+          isAnyTierFreezing={recommended.isAnyTierFreezing}
+          createGate={createGate}
+          onAdd={(): void => {
+            setAddRecommendedError("");
+            setIsRecommendedModalOpen(true);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       <ModelTable<ServiceLevelObjectiveErrorBudgetPolicyTier>
         modelType={ServiceLevelObjectiveErrorBudgetPolicyTier}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.

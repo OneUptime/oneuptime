@@ -107,6 +107,12 @@ const STATUS_PRESENTATIONS: Record<SloStatus, StatusPresentation> = {
     badgeType: StatusBadgeType.Danger,
     className: "bg-red-50 text-red-700",
   },
+  // Set up right, measured from its monitors' first check (#9354).
+  [SloStatus.Waiting]: {
+    icon: IconProp.Clock,
+    badgeType: StatusBadgeType.Info,
+    className: "bg-blue-50 text-blue-700",
+  },
   [SloStatus.Misconfigured]: {
     ...NEUTRAL_STATUS,
     icon: IconProp.WrenchScrewdriver,

@@ -252,7 +252,7 @@ Certains changements résolvent toujours ce qu'une règle a d'ouvert, quels que 
 - modifier **Quand elle se déclenche** pour retirer l'alerte ou l'incident ferme ce que cette sortie avait ouvert ;
 - désactiver la règle ou la supprimer ;
 - désactiver l'évaluation du SLO, archiver le SLO ou le supprimer ;
-- le SLO passe **En pause** ou **Mal configuré**, car il ne mesure alors plus rien ;
+- le SLO passe **En attente**, **En pause** ou **Mal configuré**, car il ne mesure alors plus rien ;
 - la règle perd son seuil ou ses fenêtres, ou le SLO n'a plus une fenêtre longue complète d'historique.
 
 ## Maintenance planifiée

@@ -252,7 +252,7 @@ Algunos cambios siempre resuelven lo que una regla tiene abierto, digan lo que d
 - cambiar **Cuando se dispara** para quitar la alerta o el incidente cierra lo que abrió esa salida;
 - desactivar la regla o eliminarla;
 - desactivar la evaluación del SLO, archivar el SLO o eliminarlo;
-- que el SLO pase a **Pausado** o **Mal configurado**, porque entonces no mide nada;
+- que el SLO pase a **Esperando**, **Pausado** o **Mal configurado**, porque entonces no mide nada;
 - que la regla pierda su umbral o sus ventanas, o que el SLO deje de tener una ventana larga completa de historial.
 
 ## Mantenimiento programado

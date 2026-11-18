@@ -139,17 +139,19 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **Integro** | Resta più budget della soglia a rischio. |
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
-| **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più, niente li ha ancora controllati o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
+| **In attesa** | Niente ha ancora controllato i suoi monitor: un monitor creato un minuto fa, o una sonda self-hosted non connessa. Viene misurato a partire dal loro primo controllo. |
+| **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. Uno SLO di richieste è configurato male se non ha servizi, se non ha una soglia di latenza, o finché i suoi servizi non hanno servito una richiesta nella sua finestra. |
 | **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione programmata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
-Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
+Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget). Una regola può anche pubblicare le modifiche di stato in Slack, Microsoft Teams o Mattermost: vedi [Modifiche di stato](/docs/slo/error-budget-policy#modifiche-di-stato).
 
 ## L'elenco degli SLO
 
 La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari. La sua colonna **Cosa misura** mostra i servizi di uno SLO di richieste dove mostra i monitor di uno SLO di uptime, e il filtro **Servizi** trova gli SLO che misurano un servizio.
 
-- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Configurato male**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
-- Seleziona degli SLO per aggiungere o togliere etichette e proprietari, attivarli o disattivarli, dare loro le [regole del tasso di consumo consigliate](/docs/slo/burn-rate-alerts#aggiungerle-a-molti-slo-in-una-volta) che ancora non hanno, archiviarli o eliminarli, tutti insieme.
+- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **In attesa**, **Configurato male**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
+- Seleziona degli SLO per aggiungere o togliere etichette e proprietari, attivarli o disattivarli, dare loro le [regole del tasso di consumo consigliate](/docs/slo/burn-rate-alerts#aggiungerle-a-molti-slo-in-una-volta) che ancora non hanno o la [policy del budget di errore consigliata](/docs/slo/error-budget-policy#la-policy-consigliata), archiviarli o eliminarli, tutti insieme.
+- Il filtro **Distribuzioni** mostra gli SLO la cui policy del budget di errore congela le distribuzioni in questo momento, oppure quelli in cui le consente. Mostra la colonna **Distribuzioni** dal selettore delle colonne dell'elenco per vedere da quando ciascuno è congelato: vedi [Gate delle distribuzioni](/docs/slo/error-budget-policy#gate-delle-distribuzioni).
 - La sezione **Impostazioni** del menu laterale contiene **Regole etichette** e **Regole del proprietario**, che etichettano i nuovi SLO e assegnano loro dei proprietari: vedi [Regole per etichette e proprietari](/docs/slo/label-and-owner-rules).
 - La sezione **Avanzato** del menu laterale contiene **Archiviato**, l'elenco degli SLO archiviati.
 

@@ -139,17 +139,19 @@ O OneUptime dá um status a cada SLO avaliado:
 | **Íntegro** | Resta mais orçamento do que o limite de risco. |
 | **Em risco** | O orçamento restante caiu para o limite de risco ou abaixo dele: 20% por padrão. |
 | **Orçamento esgotado** | O orçamento foi todo gasto, ou ultrapassado. |
-| **Mal configurado** | O SLO não pode ser medido: não tem monitores, seus monitores não existem mais, nada os verificou ainda ou ainda não registraram nenhum status na janela, ou sua meta está fora do intervalo. Um SLO de requisições fica mal configurado sem serviços, sem um limite de latência ou antes de os serviços dele atenderem uma requisição na janela. |
+| **Aguardando** | Nada verificou seus monitores ainda: um monitor criado há um minuto ou uma sonda auto-hospedada que não está conectada. Ele é medido a partir da primeira verificação deles. |
+| **Mal configurado** | O SLO não pode ser medido: não tem monitores, seus monitores não existem mais ou ainda não registraram nenhum status na janela, ou sua meta está fora do intervalo. Um SLO de requisições fica mal configurado sem serviços, sem um limite de latência ou antes de os serviços dele atenderem uma requisição na janela. |
 | **Pausado** | Todos os monitores que ele mede estão arquivados ou com o monitoramento ativo desligado, à mão, por um incidente manual ou por uma manutenção programada. Ele retoma sozinho assim que algum deles volta a ser monitorado. |
 
-Um SLO desligado ou arquivado não é avaliado, então seu status fica como estava; a lista de SLOs mostra no lugar um selo **Desabilitado** ou **Arquivado**. Os proprietários de um SLO são notificados quando o status muda para **Em risco** ou **Orçamento esgotado**: veja [Orçamentos de erros](/docs/slo/error-budget).
+Um SLO desligado ou arquivado não é avaliado, então seu status fica como estava; a lista de SLOs mostra no lugar um selo **Desabilitado** ou **Arquivado**. Os proprietários de um SLO são notificados quando o status muda para **Em risco** ou **Orçamento esgotado**: veja [Orçamentos de erros](/docs/slo/error-budget). Uma regra também pode publicar as mudanças de status no Slack, no Microsoft Teams ou no Mattermost: veja [Mudanças de status](/docs/slo/error-budget-policy#mudanças-de-status).
 
 ## A lista de SLOs
 
 A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários. A coluna **O que mede** mostra os serviços de um SLO de requisições onde mostra os monitores de um SLO de disponibilidade, e o filtro **Serviços** encontra os SLOs que medem um serviço.
 
-- Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Mal configurado**, **Pausado** e **Desabilitado**. Eles aparecem assim que existe um SLO que não está arquivado. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
-- Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, dar a eles as [regras de taxa de consumo recomendadas](/docs/slo/burn-rate-alerts#adicioná-las-a-vários-slos-de-uma-vez) que estiverem faltando, arquivá-los ou excluí-los, todos de uma vez.
+- Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Aguardando**, **Mal configurado**, **Pausado** e **Desabilitado**. Eles aparecem assim que existe um SLO que não está arquivado. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
+- Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, dar a eles as [regras de taxa de consumo recomendadas](/docs/slo/burn-rate-alerts#adicioná-las-a-vários-slos-de-uma-vez) que estiverem faltando ou a [política de orçamento de erros recomendada](/docs/slo/error-budget-policy#a-política-recomendada), arquivá-los ou excluí-los, todos de uma vez.
+- O filtro **Implantações** mostra os SLOs cuja política de orçamento de erros congela as implantações agora, ou aqueles em que ela as permite. Mostre a coluna **Implantações** pelo seletor de colunas da lista para ver desde quando cada um está congelado: veja [Bloqueio de implantações](/docs/slo/error-budget-policy#bloqueio-de-implantações).
 - A seção **Configurações** do menu lateral contém **Regras de Rótulos** e **Regras de proprietário**, que rotulam os SLOs novos e definem seus proprietários: veja [Regras de rótulos e proprietários](/docs/slo/label-and-owner-rules).
 - A seção **Avançado** do menu lateral contém **Arquivado**, a lista de SLOs arquivados.
 

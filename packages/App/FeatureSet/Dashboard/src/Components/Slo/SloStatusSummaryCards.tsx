@@ -67,7 +67,7 @@ export function hasAnySlo(counts: SloStatusSummaryCounts): boolean {
 
 /**
  * A row of counts above the SLO list: how many live SLOs are Healthy, At Risk,
- * Budget Exhausted, Misconfigured, Paused and Disabled. Clicking a tile filters
+ * Budget Exhausted, Waiting, Misconfigured, Paused and Disabled. Clicking a tile filters
  * the list to exactly the SLOs it counted, and clicking it again clears that.
  *
  * Archived SLOs are never counted, matching the list below them.
@@ -156,7 +156,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
     });
     /*
      * Keyed on the string VALUE of the project id, not the ObjectID instance:
-     * a caller that rebuilds the id every render must not re-fire six counts.
+     * a caller that rebuilds the id every render must not re-fire the counts.
      */
   }, [props.projectId.toString(), props.refreshToken]);
 
@@ -165,7 +165,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * A project without a live SLO has nothing to count. Six zeros - Budget
+   * A project without a live SLO has nothing to count. A row of zeros - Budget
    * Exhausted, Misconfigured, Paused, each with what it means - sat above
    * the empty list's one next step (Create SLO) before there was anything
    * to be healthy or not. The strip shows once there is an SLO.
@@ -177,7 +177,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
   /*
    * Until the first counts land, skeletons hold the strip's place only where
    * this browser last saw an SLO. On a project it never saw with one - a new
-   * project - they flashed six grey boxes over the empty list and vanished.
+   * project - they flashed grey boxes over the empty list and vanished.
    */
   if (!counts && !hadSlosBefore) {
     return <></>;
@@ -188,7 +188,11 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
       data-testid="slo-status-summary-cards"
       role="group"
       aria-label={translator.translateTemplate("SLO status summary")}
-      className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6"
+      /*
+       * Seven tiles: one row on a wide screen, rows of four and three
+       * beside the side menu, and two at a time on a phone.
+       */
+      className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-7"
     >
       {SLO_STATUS_SUMMARY_TILES.map((tile: SloStatusSummaryTile) => {
         const count: number = counts?.[tile.key] || 0;

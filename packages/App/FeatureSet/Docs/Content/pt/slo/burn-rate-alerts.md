@@ -252,7 +252,7 @@ Algumas mudanças sempre resolvem o que uma regra abriu, não importa o que diga
 - mudar **Quando dispara** para tirar o alerta ou o incidente fecha o que essa saída tinha aberto;
 - desligar a regra ou excluí-la;
 - desligar a avaliação do SLO, arquivar o SLO ou excluí-lo;
-- o SLO passar para **Pausado** ou **Mal configurado**, porque então ele não mede nada;
+- o SLO passar para **Aguardando**, **Pausado** ou **Mal configurado**, porque então ele não mede nada;
 - a regra perder o limite ou as janelas, ou o SLO deixar de ter uma janela longa completa de histórico.
 
 ## Manutenção programada

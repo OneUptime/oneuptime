@@ -1,4 +1,4 @@
-import { Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
+import { Blue500, Gray500, Green, Red, Yellow } from "../../Types/BrandColors";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Color from "../../Types/Color";
@@ -284,14 +284,15 @@ export interface SloStatusSummaryEntry {
 
 /*
  * Severity order for the summary strip: what needs attention reads first.
- * Paused and Misconfigured are not reliability signals, so they come after
- * Healthy; Disabled follows them, and an SLO the worker has not evaluated yet
- * comes last.
+ * Waiting, Misconfigured and Paused are not reliability signals, so they
+ * come after Healthy; Disabled follows them, and an SLO the worker has not
+ * evaluated yet comes last.
  */
 const SUMMARY_ORDER: Array<{ status: SloStatus; color: Color }> = [
   { status: SloStatus.BudgetExhausted, color: Red },
   { status: SloStatus.AtRisk, color: Yellow },
   { status: SloStatus.Healthy, color: Green },
+  { status: SloStatus.Waiting, color: Blue500 },
   { status: SloStatus.Misconfigured, color: Gray500 },
   { status: SloStatus.Paused, color: Gray500 },
 ];
@@ -378,6 +379,7 @@ export const SLO_LIST_STATUS_FILTER_VALUES: Array<SloStatus> = [
   SloStatus.BudgetExhausted,
   SloStatus.AtRisk,
   SloStatus.Healthy,
+  SloStatus.Waiting,
   SloStatus.Misconfigured,
   SloStatus.Paused,
 ];

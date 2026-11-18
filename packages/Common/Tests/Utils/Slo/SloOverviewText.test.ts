@@ -230,6 +230,8 @@ describe("getSloHeadline", () => {
     [SloStatus.Healthy, "Within error budget"],
     [SloStatus.AtRisk, "Error budget running low"],
     [SloStatus.BudgetExhausted, "Error budget exhausted"],
+    // The banner's own words: it is set up right (#9354).
+    [SloStatus.Waiting, "Waiting for the first check"],
     [SloStatus.Misconfigured, "Cannot be evaluated"],
     [SloStatus.Paused, "Measurement paused"],
   ])("%s reads %p", (status: SloStatus, headline: string) => {
