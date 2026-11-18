@@ -153,7 +153,10 @@ export default class DataObservabilityIssues {
     }
 
     if (body["owner"] !== undefined && body["owner"] !== null) {
-      if (typeof body["owner"] !== "string" || !isIssueOwnerFilter(body["owner"])) {
+      if (
+        typeof body["owner"] !== "string" ||
+        !isIssueOwnerFilter(body["owner"])
+      ) {
         throw new BadDataException(
           'Name the owner as "user:<id>" or "team:<id>", or "none" for no owner.',
         );
@@ -164,9 +167,9 @@ export default class DataObservabilityIssues {
 
     if (body["alert"] !== undefined && body["alert"] !== null) {
       if (
-        !(Object.values(DataObservabilityIssueAlertFilter) as Array<unknown>).includes(
-          body["alert"],
-        )
+        !(
+          Object.values(DataObservabilityIssueAlertFilter) as Array<unknown>
+        ).includes(body["alert"])
       ) {
         throw new BadDataException(
           'Say whether an alert is open: "open" or "none".',
@@ -180,9 +183,7 @@ export default class DataObservabilityIssues {
     const limit: unknown = body["limit"];
 
     request.skip =
-      typeof skip === "number" && Number.isInteger(skip) && skip > 0
-        ? skip
-        : 0;
+      typeof skip === "number" && Number.isInteger(skip) && skip > 0 ? skip : 0;
     request.limit =
       typeof limit === "number" && Number.isInteger(limit) && limit > 0
         ? Math.min(limit, MAX_DATA_OBSERVABILITY_ISSUES_PAGE)
@@ -379,8 +380,10 @@ export default class DataObservabilityIssues {
       }
     }
 
-    const ownersByKey: Map<string, Array<DataObservabilityIssueOwner>> =
-      new Map();
+    const ownersByKey: Map<
+      string,
+      Array<DataObservabilityIssueOwner>
+    > = new Map();
 
     // Every owned item is known to have none until a row says otherwise.
     for (const id of assetIds) {
@@ -437,26 +440,28 @@ export default class DataObservabilityIssues {
       return [];
     }
 
-    const [users, teams]: [Array<DataAssetOwnerUser>, Array<DataAssetOwnerTeam>] =
-      await Promise.all([
-        DataAssetOwnerUserService.findBy({
-          query: { dataAssetId: QueryHelper.any(ids) },
-          select: {
-            dataAssetId: true,
-            user: { _id: true, name: true, email: true },
-          },
-          skip: 0,
-          limit: MAX_OWNER_ROWS_READ,
-          props: reader,
-        }),
-        DataAssetOwnerTeamService.findBy({
-          query: { dataAssetId: QueryHelper.any(ids) },
-          select: { dataAssetId: true, team: { _id: true, name: true } },
-          skip: 0,
-          limit: MAX_OWNER_ROWS_READ,
-          props: reader,
-        }),
-      ]);
+    const [users, teams]: [
+      Array<DataAssetOwnerUser>,
+      Array<DataAssetOwnerTeam>,
+    ] = await Promise.all([
+      DataAssetOwnerUserService.findBy({
+        query: { dataAssetId: QueryHelper.any(ids) },
+        select: {
+          dataAssetId: true,
+          user: { _id: true, name: true, email: true },
+        },
+        skip: 0,
+        limit: MAX_OWNER_ROWS_READ,
+        props: reader,
+      }),
+      DataAssetOwnerTeamService.findBy({
+        query: { dataAssetId: QueryHelper.any(ids) },
+        select: { dataAssetId: true, team: { _id: true, name: true } },
+        skip: 0,
+        limit: MAX_OWNER_ROWS_READ,
+        props: reader,
+      }),
+    ]);
 
     return [
       ...users.map((row: DataAssetOwnerUser): OwnerRow | null => {

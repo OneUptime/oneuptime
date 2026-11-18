@@ -117,11 +117,10 @@ const LAST_RUN_OPTIONS: Array<DropdownOption> = [
  * How a check stands now, worst first, in the words its Status draws: the
  * Status filter's choices, asked of the health kept on each check (#6554).
  */
-export const HEALTH_OPTIONS: Array<DropdownOption> = DATA_CHECK_HEALTH_ORDER.map(
-  (health: DataCheckHealth): DropdownOption => {
+export const HEALTH_OPTIONS: Array<DropdownOption> =
+  DATA_CHECK_HEALTH_ORDER.map((health: DataCheckHealth): DropdownOption => {
     return { value: health, label: CHECK_HEALTH_COPY[health].label };
-  },
-);
+  });
 
 // Each condition by its name, which the dropdown draws in the reader's language.
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(

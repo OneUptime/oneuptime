@@ -48,7 +48,10 @@ function push(
 }
 
 // The ids of the items whose owners are of one kind ("asset", "pipeline", "product").
-function idsOfKind(items: Array<DataAttentionItem>, kind: string): Array<string> {
+function idsOfKind(
+  items: Array<DataAttentionItem>,
+  kind: string,
+): Array<string> {
   return Array.from(
     new Set(
       items

@@ -905,7 +905,12 @@ function dataOverview() {
  */
 const ISSUE_OWNERS = isDataBusy
   ? [
-      { key: `user:${ADA._id}`, kind: "user", id: ADA._id, name: "Ada Lovelace" },
+      {
+        key: `user:${ADA._id}`,
+        kind: "user",
+        id: ADA._id,
+        name: "Ada Lovelace",
+      },
       {
         key: `user:${GRACE._id}`,
         kind: "user",

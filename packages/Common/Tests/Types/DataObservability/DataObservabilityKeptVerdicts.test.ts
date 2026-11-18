@@ -67,7 +67,10 @@ describe("when a table is late (getDataAssetLateAt)", () => {
         updateIntervalInSeconds: 60,
       })?.toISOString(),
     ).toBe(
-      secondsAfter(CHANGED_AT, 60 + MIN_LATENESS_SLACK_IN_SECONDS).toISOString(),
+      secondsAfter(
+        CHANGED_AT,
+        60 + MIN_LATENESS_SLACK_IN_SECONDS,
+      ).toISOString(),
     );
   });
 
@@ -85,7 +88,12 @@ describe("when a table is late (getDataAssetLateAt)", () => {
     ["a view", DataAssetKind.View, CHANGED_AT, HOUR],
     ["a foreign table", DataAssetKind.ForeignTable, CHANGED_AT, HOUR],
     ["a table never seen to change", DataAssetKind.Table, null, HOUR],
-    ["a table whose rhythm is not known", DataAssetKind.Table, CHANGED_AT, null],
+    [
+      "a table whose rhythm is not known",
+      DataAssetKind.Table,
+      CHANGED_AT,
+      null,
+    ],
     ["a rhythm of nothing", DataAssetKind.Table, CHANGED_AT, 0],
     ["a negative rhythm", DataAssetKind.Table, CHANGED_AT, -60],
     ["a time that is no time", DataAssetKind.Table, "not a date", HOUR],
@@ -117,7 +125,11 @@ describe("when a table is late (getDataAssetLateAt)", () => {
    * What the list asks - lateAt before now - is what the page's pill says,
    * for every kind and at every moment around the edge.
    */
-  test.each(DATA_ASSET_KINDS.map((kind: DataAssetKind) => [kind]))(
+  test.each(
+    DATA_ASSET_KINDS.map((kind: DataAssetKind) => {
+      return [kind];
+    }),
+  )(
     "a %s whose lateAt has passed is the one its page calls Late, and only that one",
     (kind: DataAssetKind) => {
       const lateAt: Date | null = getDataAssetLateAt({

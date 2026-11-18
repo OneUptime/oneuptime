@@ -2265,9 +2265,9 @@ test("the Issues page lists every issue, worst first, and filters them on the se
   expect((await fixture(page)).issueRequests.slice(-1)).toEqual([
     { alert: "none", skip: 0, limit: 25 },
   ]);
-  expect(new URL(page.url()).searchParams.get("data-observability-issues-filter")).toBe(
-    JSON.stringify({ alert: "none" }),
-  );
+  expect(
+    new URL(page.url()).searchParams.get("data-observability-issues-filter"),
+  ).toBe(JSON.stringify({ alert: "none" }));
 
   await expectNoSidewaysScroll(page, {
     message: "the Issues page, filtered, at 1440px",

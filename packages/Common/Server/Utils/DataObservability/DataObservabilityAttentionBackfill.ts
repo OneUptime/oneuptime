@@ -68,7 +68,9 @@ export default class DataObservabilityAttentionBackfill {
     limit: number;
   }): Promise<AttentionBackfillPage> {
     const assets: Array<DataAsset> = await DataAssetService.findBy({
-      query: data.afterId ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) } : {},
+      query: data.afterId
+        ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) }
+        : {},
       select: {
         _id: true,
         assetKind: true,
@@ -115,7 +117,9 @@ export default class DataObservabilityAttentionBackfill {
     limit: number;
   }): Promise<AttentionBackfillPage> {
     const pipelines: Array<DataPipeline> = await DataPipelineService.findBy({
-      query: data.afterId ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) } : {},
+      query: data.afterId
+        ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) }
+        : {},
       select: {
         _id: true,
         lastRunStartedAt: true,
@@ -160,7 +164,9 @@ export default class DataObservabilityAttentionBackfill {
     limit: number;
   }): Promise<AttentionBackfillPage> {
     const checks: Array<DataCheck> = await DataCheckService.findBy({
-      query: data.afterId ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) } : {},
+      query: data.afterId
+        ? { _id: QueryHelper.greaterThan(new ObjectID(data.afterId)) }
+        : {},
       select: DataCheckHealthSync.SELECT,
       sort: { _id: SortOrder.Ascending },
       skip: 0,

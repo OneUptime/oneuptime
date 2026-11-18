@@ -188,7 +188,10 @@ describe("the Freshness chip", () => {
     expect(facet.supportedOperators).toEqual(["is"]);
     expect(
       (
-        facet.toQueryValue!([TableFreshnessFilter.Late], "is") as LessThanOrEqual<Date>
+        facet.toQueryValue!(
+          [TableFreshnessFilter.Late],
+          "is",
+        ) as LessThanOrEqual<Date>
       ).value,
     ).toEqual(NOW);
   });
@@ -266,9 +269,9 @@ describe("the Issues page's filters", () => {
       owner: `user:${USER}`,
       alert: DataObservabilityIssueAlertFilter.None,
     });
-    expect(readIssuesFilter({ owner: DATA_OBSERVABILITY_NO_OWNER_FILTER })).toEqual(
-      { owner: DATA_OBSERVABILITY_NO_OWNER_FILTER },
-    );
+    expect(
+      readIssuesFilter({ owner: DATA_OBSERVABILITY_NO_OWNER_FILTER }),
+    ).toEqual({ owner: DATA_OBSERVABILITY_NO_OWNER_FILTER });
     expect(
       readIssuesFilter({
         kind: "Everything",

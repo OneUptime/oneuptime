@@ -76,9 +76,7 @@ export class AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
     await queryRunner.query(
       `ALTER TABLE "DataCheck" ADD "health" character varying(100)`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "DataCheck" ADD "healthRank" integer`,
-    );
+    await queryRunner.query(`ALTER TABLE "DataCheck" ADD "healthRank" integer`);
     await queryRunner.query(
       `ALTER TABLE "DataPipeline" ADD "lateAt" TIMESTAMP WITH TIME ZONE`,
     );
@@ -145,18 +143,10 @@ export class AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
     await queryRunner.query(
       `ALTER TABLE "DataPipelineOwnerUser" DROP CONSTRAINT "FK_1143e77dbaa6dbdc88b688bbbac"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "DataPipeline" DROP COLUMN "lateAt"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "DataCheck" DROP COLUMN "healthRank"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "DataCheck" DROP COLUMN "health"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "DataAsset" DROP COLUMN "lateAt"`,
-    );
+    await queryRunner.query(`ALTER TABLE "DataPipeline" DROP COLUMN "lateAt"`);
+    await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "healthRank"`);
+    await queryRunner.query(`ALTER TABLE "DataCheck" DROP COLUMN "health"`);
+    await queryRunner.query(`ALTER TABLE "DataAsset" DROP COLUMN "lateAt"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d5fa532084de69a6b7607c67f3"`,
     );
@@ -172,9 +162,7 @@ export class AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_3b1d9caf76ebef8ddde2f54d30"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "DataPipelineOwnerTeam"`,
-    );
+    await queryRunner.query(`DROP TABLE "DataPipelineOwnerTeam"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_272943964b30e6ac0ceb04a311"`,
     );
@@ -190,8 +178,6 @@ export class AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_1143e77dbaa6dbdc88b688bbba"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "DataPipelineOwnerUser"`,
-    );
+    await queryRunner.query(`DROP TABLE "DataPipelineOwnerUser"`);
   }
 }

@@ -141,13 +141,13 @@ describe("a table, as it is collected", () => {
       }) => {
         updates.push(updateBy.data);
       }) as never);
-    jest.spyOn(DataAssetService, "create").mockImplementation((async (createBy: {
-      data: DataAsset;
-    }) => {
-      created.push(createBy.data);
-      const row: DataAsset = new DataAsset(ObjectID.generate());
-      return row;
-    }) as never);
+    jest
+      .spyOn(DataAssetService, "create")
+      .mockImplementation((async (createBy: { data: DataAsset }) => {
+        created.push(createBy.data);
+        const row: DataAsset = new DataAsset(ObjectID.generate());
+        return row;
+      }) as never);
 
     await TableHealthIngest.recordSnapshot({
       store: {
@@ -339,7 +339,9 @@ describe("a pipeline, as it runs", () => {
     return row;
   }
 
-  function event(fields: Partial<OpenLineageRunEvent> = {}): OpenLineageRunEvent {
+  function event(
+    fields: Partial<OpenLineageRunEvent> = {},
+  ): OpenLineageRunEvent {
     return {
       eventType: OpenLineageRunState.Start,
       eventTime: new Date("2026-11-03T12:00:00.000Z"),
@@ -372,9 +374,7 @@ describe("a pipeline, as it runs", () => {
     jest
       .spyOn(DataPipelineRunService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
-    jest
-      .spyOn(DataPipelineRunService, "create")
-      .mockResolvedValue({} as never);
+    jest.spyOn(DataPipelineRunService, "create").mockResolvedValue({} as never);
     jest
       .spyOn(OpenLineageIngest as never, "learnExpectedInterval")
       .mockResolvedValue((data.learnedInterval ?? null) as never);
@@ -499,7 +499,7 @@ describe("who a data alert goes to", () => {
   let teamOwners: Array<string>;
 
   function owners(
-    service: object,
+    service: Record<string, unknown> | { findBy: unknown },
     field: "userId" | "teamId",
     ids: Array<ObjectID>,
   ): ReturnType<typeof jest.spyOn> {

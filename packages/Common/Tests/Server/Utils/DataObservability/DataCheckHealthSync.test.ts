@@ -448,9 +448,10 @@ describe("an alert finds its check (refreshForAlerts)", () => {
 
 describe("what is stored", () => {
   test("a health and its rank", () => {
-    expect(DataCheckHealthSync.toStored(DataCheckHealth.CouldNotRun)).toEqual(
-      { health: DataCheckHealth.CouldNotRun, healthRank: 1 },
-    );
+    expect(DataCheckHealthSync.toStored(DataCheckHealth.CouldNotRun)).toEqual({
+      health: DataCheckHealth.CouldNotRun,
+      healthRank: 1,
+    });
     expect(
       DataCheckHealthSync.isStored(
         check({ health: DataCheckHealth.Off, healthRank: 5 }),

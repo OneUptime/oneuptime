@@ -140,9 +140,9 @@ export function readIssuesFilter(value: unknown): IssuesFilter {
   }
 
   if (
-    (Object.values(DataObservabilityIssueAlertFilter) as Array<unknown>).includes(
-      raw["alert"],
-    )
+    (
+      Object.values(DataObservabilityIssueAlertFilter) as Array<unknown>
+    ).includes(raw["alert"])
   ) {
     filter.alert = raw["alert"] as DataObservabilityIssueAlertFilter;
   }

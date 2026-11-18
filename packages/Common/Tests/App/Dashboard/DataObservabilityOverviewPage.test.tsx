@@ -1139,9 +1139,9 @@ describe("each count opens the list of what it counts", () => {
     await openPage();
 
     expect(
-      (await screen.findByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID)).getAttribute(
-        "href",
-      ),
+      (
+        await screen.findByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID)
+      ).getAttribute("href"),
     ).toBe(getIssuesRoute().toString());
     expect(
       screen.getByTestId(LATE_TABLES_TILE_LINK_TEST_ID).getAttribute("href"),
@@ -1150,9 +1150,9 @@ describe("each count opens the list of what it counts", () => {
       screen.getByTestId(FAILING_CHECKS_TILE_LINK_TEST_ID).getAttribute("href"),
     ).toBe(getChecksOfHealthRoute(DataCheckHealth.Failing).toString());
     // The number is the link's own text: what it counts.
-    expect(screen.getByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID)).toHaveTextContent(
-      "6",
-    );
+    expect(
+      screen.getByTestId(NEEDS_ATTENTION_TILE_LINK_TEST_ID),
+    ).toHaveTextContent("6");
   });
 
   test("a count of none opens nothing", async () => {
@@ -1178,9 +1178,7 @@ describe("each count opens the list of what it counts", () => {
   test("All Issues opens the Issues page, where every one is listed with filters", async () => {
     await openPage();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: /All Issues/ }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: /All Issues/ }));
 
     expect(navigateSpy).toHaveBeenCalledTimes(1);
     expect(navigateSpy.mock.calls[0]![0]!.toString()).toBe(
@@ -1276,8 +1274,8 @@ describe("a pipeline's owners", () => {
       ).toBeInTheDocument();
     });
 
-    expect(
-      hrefOf(within(itemNamed("nightly_load")).getByText("Add one")),
-    ).toBe(routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, PIPELINE));
+    expect(hrefOf(within(itemNamed("nightly_load")).getByText("Add one"))).toBe(
+      routeTo(PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS, PIPELINE),
+    );
   });
 });

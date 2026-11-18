@@ -228,9 +228,7 @@ describe("opening the page", () => {
     expect(
       screen.getByTestId("data-observability-issues-pagination"),
     ).toBeInTheDocument();
-    expect(screen.getByTestId(ISSUES_PAGE_TEST_ID)).toHaveTextContent(
-      "Issues",
-    );
+    expect(screen.getByTestId(ISSUES_PAGE_TEST_ID)).toHaveTextContent("Issues");
   });
 
   test("its filters: whether anyone was told, a kind, a database and an owner - all of them, to begin with", async () => {
@@ -240,9 +238,10 @@ describe("opening the page", () => {
       ISSUES_FILTERS_TEST_ID,
     );
 
-    expect(
-      within(filters).getByRole("radio", { name: "Any" }),
-    ).toHaveAttribute("aria-checked", "true");
+    expect(within(filters).getByRole("radio", { name: "Any" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
     expect(
       within(filters).getByRole("radio", { name: "Alert open" }),
     ).toBeInTheDocument();
@@ -302,8 +301,9 @@ describe("filtering", () => {
     expect(
       JSON.parse(addressFilter() || "{}") as Record<string, unknown>,
     ).toEqual({ alert: DataObservabilityIssueAlertFilter.Open });
-    expect(TableFilterUrlState.read(DATA_OBSERVABILITY_ISSUES_LIST_ID, "filter"))
-      .toEqual({ alert: DataObservabilityIssueAlertFilter.Open });
+    expect(
+      TableFilterUrlState.read(DATA_OBSERVABILITY_ISSUES_LIST_ID, "filter"),
+    ).toEqual({ alert: DataObservabilityIssueAlertFilter.Open });
 
     // Any again: no filter left in the address.
     fireEvent.click(screen.getByRole("radio", { name: "Any" }));

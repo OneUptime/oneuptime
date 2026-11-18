@@ -192,11 +192,9 @@ function stubSources(): void {
   assetQueries = [];
   feedQueries = [];
 
-  jest
-    .spyOn(DataObservabilityReadScope, "get")
-    .mockImplementation(async () => {
-      return scope;
-    });
+  jest.spyOn(DataObservabilityReadScope, "get").mockImplementation(async () => {
+    return scope;
+  });
 
   jest.spyOn(DataStoreService, "findBy").mockImplementation((async (findBy: {
     query: { kind?: Includes };
@@ -233,9 +231,7 @@ function stubSources(): void {
     }) as never);
   jest
     .spyOn(DataAssetFeedService, "findBy")
-    .mockImplementation((async (findBy: {
-      query: Record<string, unknown>;
-    }) => {
+    .mockImplementation((async (findBy: { query: Record<string, unknown> }) => {
       feedQueries.push(findBy.query);
       return [];
     }) as never);
@@ -248,7 +244,9 @@ function stubSources(): void {
     .mockResolvedValue({ tableOwnerCount: 0, ownerRuleCount: 0 });
 }
 
-function attentionOf(items: Array<DataAttentionItem>): DataObservabilityAttention {
+function attentionOf(
+  items: Array<DataAttentionItem>,
+): DataObservabilityAttention {
   return {
     items,
     failingCheckCount: 0,
@@ -374,9 +372,7 @@ describe("the menu's count", () => {
       projectId: PROJECT,
       scope: NARROWED,
     });
-    expect((count.mock.calls[0]![0] as { now: Date }).now).toBeInstanceOf(
-      Date,
-    );
+    expect((count.mock.calls[0]![0] as { now: Date }).now).toBeInstanceOf(Date);
   });
 
   test("a caller the scope refuses is told so, and nothing is counted", async () => {
@@ -401,8 +397,9 @@ describe("the menu's count", () => {
 
 describe("the Issues page", () => {
   test("is worked out from the tables, checks and pipelines the caller may read", async () => {
-    const reads: Array<Parameters<typeof DataObservabilityAttentionReader.read>[0]> =
-      [];
+    const reads: Array<
+      Parameters<typeof DataObservabilityAttentionReader.read>[0]
+    > = [];
 
     jest
       .spyOn(DataObservabilityAttentionReader, "read")
@@ -452,7 +449,9 @@ describe("the Issues page", () => {
     ).toEqual([TABLE_OWNED]);
 
     const given: Parameters<typeof DataObservabilityIssues.answer>[0] = answer
-      .mock.calls[0]![0] as Parameters<typeof DataObservabilityIssues.answer>[0];
+      .mock.calls[0]![0] as Parameters<
+      typeof DataObservabilityIssues.answer
+    >[0];
 
     expect(given.reader).toBe(READER);
     expect(given.request).toEqual({ skip: 0, limit: 10 });
@@ -829,13 +828,15 @@ describe("a route about one table", () => {
       DATA_OBSERVABILITY_API_ROUTES.tableErrors,
       READER,
       (): unknown => {
-        return jest.spyOn(DataTableErrors, "read").mockResolvedValue({} as never);
+        return jest
+          .spyOn(DataTableErrors, "read")
+          .mockResolvedValue({} as never);
       },
     ],
   ];
 
   test.each(ROUTES)(
-    "%s: answers \"Table not found.\" for a table the caller may not read, and reads nothing of it",
+    '%s: answers "Table not found." for a table the caller may not read, and reads nothing of it',
     async (
       _what: string,
       path: string,
@@ -845,8 +846,9 @@ describe("a route about one table", () => {
       const canRead: ReturnType<typeof jest.spyOn> = jest
         .spyOn(DataObservabilityReadScope, "canReadTable")
         .mockResolvedValue(false as never);
-      const reader: ReturnType<typeof jest.spyOn> =
-        stubReader() as ReturnType<typeof jest.spyOn>;
+      const reader: ReturnType<typeof jest.spyOn> = stubReader() as ReturnType<
+        typeof jest.spyOn
+      >;
 
       const outcome: RouteOutcome = await callRoute({
         path,
@@ -880,8 +882,9 @@ describe("a route about one table", () => {
       jest
         .spyOn(DataObservabilityReadScope, "canReadTable")
         .mockResolvedValue(true as never);
-      const reader: ReturnType<typeof jest.spyOn> =
-        stubReader() as ReturnType<typeof jest.spyOn>;
+      const reader: ReturnType<typeof jest.spyOn> = stubReader() as ReturnType<
+        typeof jest.spyOn
+      >;
 
       const outcome: RouteOutcome = await callRoute({
         path,

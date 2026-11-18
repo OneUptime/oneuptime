@@ -49,8 +49,9 @@ interface FindByArgs {
 
 // The id a page asks for rows after (QueryHelper.greaterThan), or none.
 function cursorOf(query: Record<string, unknown>): string | null {
-  const operator: { objectLiteralParameters?: Record<string, unknown> } =
-    query["_id"] as { objectLiteralParameters?: Record<string, unknown> };
+  const operator: { objectLiteralParameters?: Record<string, unknown> } = query[
+    "_id"
+  ] as { objectLiteralParameters?: Record<string, unknown> };
 
   if (!operator) {
     return null;
@@ -121,10 +122,7 @@ describe("one statement for a page (buildLateAtUpdate)", () => {
 describe("a page of tables", () => {
   let reads: Array<FindByArgs>;
 
-  function asset(
-    suffix: number,
-    fields: Partial<DataAsset> = {},
-  ): DataAsset {
+  function asset(suffix: number, fields: Partial<DataAsset> = {}): DataAsset {
     const row: DataAsset = new DataAsset(new ObjectID(id(suffix)));
     row.assetKind = DataAssetKind.Table;
     row.lastChangedAt = new Date("2026-11-03T12:00:00.000Z");
@@ -151,7 +149,9 @@ describe("a page of tables", () => {
     stubQueries(DataAssetService);
 
     const page: AttentionBackfillPage =
-      await DataObservabilityAttentionBackfill.backfillAssetPage({ limit: 500 });
+      await DataObservabilityAttentionBackfill.backfillAssetPage({
+        limit: 500,
+      });
 
     expect(reads).toHaveLength(1);
     expect(reads[0]!.query).toEqual({});
@@ -312,10 +312,14 @@ describe("a page of checks", () => {
 
   test("no checks left: nothing written, and no next page", async () => {
     jest.spyOn(DataCheckService, "findBy").mockResolvedValue([] as never);
-    jest.spyOn(DataCheckHealthSync, "writeHealthOf").mockResolvedValue(0 as never);
+    jest
+      .spyOn(DataCheckHealthSync, "writeHealthOf")
+      .mockResolvedValue(0 as never);
 
     expect(
-      await DataObservabilityAttentionBackfill.backfillCheckPage({ limit: 500 }),
+      await DataObservabilityAttentionBackfill.backfillCheckPage({
+        limit: 500,
+      }),
     ).toEqual({ read: 0, written: 0, lastId: undefined });
   });
 });

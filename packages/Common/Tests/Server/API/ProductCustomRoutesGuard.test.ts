@@ -1682,7 +1682,10 @@ describe("what the decisions stand on", () => {
     "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
     (route: string) => {
       const source: string = fs.readFileSync(
-        path.join(REPOSITORY, "packages/Common/Server/API/DataObservabilityAPI.ts"),
+        path.join(
+          REPOSITORY,
+          "packages/Common/Server/API/DataObservabilityAPI.ts",
+        ),
         "utf8",
       );
       const registration: number = source.indexOf(

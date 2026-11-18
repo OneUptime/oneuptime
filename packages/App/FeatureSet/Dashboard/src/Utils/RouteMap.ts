@@ -8957,7 +8957,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
-      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS
+      ]
     }`,
   ),
 

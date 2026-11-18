@@ -269,6 +269,8 @@ describe("a database's Late Tables", () => {
   test("none late: a count, not a link", async () => {
     await openStore(0);
 
-    expect(screen.queryByTestId(STORE_LATE_TABLES_TILE_LINK_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(STORE_LATE_TABLES_TILE_LINK_TEST_ID),
+    ).toBeNull();
   });
 });

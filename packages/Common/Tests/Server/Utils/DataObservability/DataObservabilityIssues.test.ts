@@ -132,11 +132,13 @@ const STORES: Array<DataObservabilityStoreSummary> = [
   },
 ];
 
-let ownerReads: Array<{
+interface OwnerRead {
   service: string;
   query: Record<string, unknown>;
   props: unknown;
-}>;
+}
+
+let ownerReads: Array<OwnerRead>;
 
 function stubOwners(options: { refused?: boolean } = {}): void {
   ownerReads = [];
@@ -167,42 +169,36 @@ function stubOwners(options: { refused?: boolean } = {}): void {
     };
   };
 
-  jest
-    .spyOn(DataAssetOwnerUserService, "findBy")
-    .mockImplementation(
-      respond("DataAssetOwnerUser", [
-        {
-          dataAssetId: new ObjectID(TABLE_ORDERS),
-          user: { id: new ObjectID(ALICE), name: "Alice" },
-        },
-      ]) as never,
-    );
+  jest.spyOn(DataAssetOwnerUserService, "findBy").mockImplementation(
+    respond("DataAssetOwnerUser", [
+      {
+        dataAssetId: new ObjectID(TABLE_ORDERS),
+        user: { id: new ObjectID(ALICE), name: "Alice" },
+      },
+    ]) as never,
+  );
   jest
     .spyOn(DataAssetOwnerTeamService, "findBy")
     .mockImplementation(respond("DataAssetOwnerTeam", []) as never);
   jest
     .spyOn(DataPipelineOwnerUserService, "findBy")
     .mockImplementation(respond("DataPipelineOwnerUser", []) as never);
-  jest
-    .spyOn(DataPipelineOwnerTeamService, "findBy")
-    .mockImplementation(
-      respond("DataPipelineOwnerTeam", [
-        {
-          dataPipelineId: new ObjectID(PIPELINE_LOAD),
-          team: { id: new ObjectID(DATA_TEAM), name: "Data Platform" },
-        },
-      ]) as never,
-    );
-  jest
-    .spyOn(DataProductService, "findBy")
-    .mockImplementation(
-      respond("DataProduct", [
-        {
-          id: new ObjectID(PRODUCT_REVENUE),
-          ownerTeam: { id: new ObjectID(DATA_TEAM), name: "Data Platform" },
-        },
-      ]) as never,
-    );
+  jest.spyOn(DataPipelineOwnerTeamService, "findBy").mockImplementation(
+    respond("DataPipelineOwnerTeam", [
+      {
+        dataPipelineId: new ObjectID(PIPELINE_LOAD),
+        team: { id: new ObjectID(DATA_TEAM), name: "Data Platform" },
+      },
+    ]) as never,
+  );
+  jest.spyOn(DataProductService, "findBy").mockImplementation(
+    respond("DataProduct", [
+      {
+        id: new ObjectID(PRODUCT_REVENUE),
+        ownerTeam: { id: new ObjectID(DATA_TEAM), name: "Data Platform" },
+      },
+    ]) as never,
+  );
 }
 
 async function answer(
@@ -261,9 +257,9 @@ describe("every item, worst first, a page at a time", () => {
   });
 
   test("a page asks for at most the most a page holds", () => {
-    expect(
-      DataObservabilityIssues.readRequest({ limit: 10_000 }).limit,
-    ).toBe(MAX_DATA_OBSERVABILITY_ISSUES_PAGE);
+    expect(DataObservabilityIssues.readRequest({ limit: 10_000 }).limit).toBe(
+      MAX_DATA_OBSERVABILITY_ISSUES_PAGE,
+    );
     expect(DataObservabilityIssues.readRequest({ limit: -3 }).limit).toBe(
       DEFAULT_DATA_OBSERVABILITY_ISSUES_PAGE,
     );
@@ -306,7 +302,10 @@ describe("the filters", () => {
   test("by whether an alert is open", async () => {
     expect(
       kinds(await answer({ alert: DataObservabilityIssueAlertFilter.Open })),
-    ).toEqual([DataAttentionKind.PipelineFailed, DataAttentionKind.CheckFailing]);
+    ).toEqual([
+      DataAttentionKind.PipelineFailed,
+      DataAttentionKind.CheckFailing,
+    ]);
     expect(
       (await answer({ alert: DataObservabilityIssueAlertFilter.None })).count,
     ).toBe(4);
@@ -351,9 +350,11 @@ describe("owners, read as the caller", () => {
       expect(read.props).toBe(READER);
     }
 
-    const assetRead = ownerReads.find((read) => {
-      return read.service === "DataAssetOwnerUser";
-    });
+    const assetRead: OwnerRead | undefined = ownerReads.find(
+      (read: OwnerRead): boolean => {
+        return read.service === "DataAssetOwnerUser";
+      },
+    );
 
     const tables: FindOperator<unknown> = assetRead!.query[
       "dataAssetId"
@@ -424,11 +425,14 @@ describe("a request, checked", () => {
     ["an owner with more to it", { owner: `user:${ALICE}:x` }],
     ["an alert filter of no meaning", { alert: "maybe" }],
     ["kinds that are no list", { kinds: "Table Late" }],
-  ])("refuses %s, rather than reading it as no filter", (_label, body) => {
-    expect(() => {
-      DataObservabilityIssues.readRequest(body as unknown as JSONObject);
-    }).toThrow(BadDataException);
-  });
+  ])(
+    "refuses %s, rather than reading it as no filter",
+    (_label: string, body: Record<string, unknown>) => {
+      expect(() => {
+        DataObservabilityIssues.readRequest(body as unknown as JSONObject);
+      }).toThrow(BadDataException);
+    },
+  );
 
   test("reads every filter given", () => {
     const request: DataObservabilityIssuesRequest =

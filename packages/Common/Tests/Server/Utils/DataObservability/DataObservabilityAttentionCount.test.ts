@@ -71,17 +71,20 @@ function store(fields: Record<string, unknown>): DataStore {
 }
 
 function stubCount(service: { countBy: unknown }, name: string): void {
-  jest.spyOn(service as never, "countBy" as never).mockImplementation((async (
-    countBy: { query: Record<string, unknown> },
-  ) => {
-    countCalls.push({ service: name, query: countBy.query });
-    const keyed: string = `${name}:${String(
-      (countBy.query["dataStoreId"] as ObjectID | undefined)?.toString() || "",
-    )}`;
-    return new PositiveNumber(
-      counts[keyed] !== undefined ? counts[keyed]! : counts[name] || 0,
-    );
-  }) as never);
+  jest
+    .spyOn(service as never, "countBy" as never)
+    .mockImplementation((async (countBy: {
+      query: Record<string, unknown>;
+    }) => {
+      countCalls.push({ service: name, query: countBy.query });
+      const keyed: string = `${name}:${String(
+        (countBy.query["dataStoreId"] as ObjectID | undefined)?.toString() ||
+          "",
+      )}`;
+      return new PositiveNumber(
+        counts[keyed] !== undefined ? counts[keyed]! : counts[name] || 0,
+      );
+    }) as never);
 }
 
 function callsOf(name: string): Array<Record<string, unknown>> {

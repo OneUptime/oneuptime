@@ -185,8 +185,9 @@ describe("BackfillDataObservabilityAttentionColumns", () => {
 
   test("a page that fails is tried again, from the same place", async () => {
     let failures: number = 0;
-    const tables: (args: PageArgs) => Promise<AttentionBackfillPage> =
-      pagesOf(PAGE_SIZE + 1);
+    const tables: (args: PageArgs) => Promise<AttentionBackfillPage> = pagesOf(
+      PAGE_SIZE + 1,
+    );
 
     stubPages({
       tables: async (args: PageArgs) => {

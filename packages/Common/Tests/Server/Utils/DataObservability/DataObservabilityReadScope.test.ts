@@ -148,7 +148,10 @@ describe("the caller's reads (get)", () => {
 
     expect(scope.isWholeProject).toBe(false);
     expect(scope.assetQuery).toEqual({ projectId: PROJECT, _id: owned });
-    expect(scope.checkQuery).toEqual({ projectId: PROJECT, dataAssetId: owned });
+    expect(scope.checkQuery).toEqual({
+      projectId: PROJECT,
+      dataAssetId: owned,
+    });
     expect(scope.pipelineQuery).toEqual({ projectId: PROJECT });
   });
 
@@ -218,15 +221,13 @@ describe("one record a route is about", () => {
       "findBy",
     );
 
-    expect(
-      [
-        ...(await DataObservabilityReadScope.getReadableIds({
-          service: DataAssetService,
-          query: { projectId: PROJECT },
-          ids: [],
-        })),
-      ],
-    ).toEqual([]);
+    expect([
+      ...(await DataObservabilityReadScope.getReadableIds({
+        service: DataAssetService,
+        query: { projectId: PROJECT },
+        ids: [],
+      })),
+    ]).toEqual([]);
     expect(findBy).not.toHaveBeenCalled();
   });
 
