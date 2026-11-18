@@ -2,6 +2,7 @@ import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import Link from "../Link/Link";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import WhereToLookWords from "./WhereToLookWords";
 import { ADMIN_DASHBOARD_URL } from "../../Config";
 import {
   ErrorInSentenceWords,
@@ -98,14 +99,15 @@ export const ErrorWhereToLook: FunctionComponent<ErrorWhereToLookProps> = (
   if (!isServerFailureKind(words.kind)) {
     return (
       <span className="mt-1 block" data-testid="error-where-to-look">
-        {words.whereToLook}
+        <WhereToLookWords text={words.whereToLook} />
       </span>
     );
   }
 
   return (
     <span className="mt-1 block" data-testid="error-where-to-look">
-      {words.whereToLook}{" "}
+      {/* The command in it drawn as a command, with a copy button (#7539). */}
+      <WhereToLookWords text={words.whereToLook} />{" "}
       <Link
         className="underline"
         to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute("/health")}

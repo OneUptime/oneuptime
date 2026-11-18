@@ -1,5 +1,6 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Link from "../Link/Link";
+import WhereToLookWords from "./WhereToLookWords";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "../../Config";
 import NewVersion, {
   NewVersionAudience,
@@ -142,7 +143,8 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
       )}
       {words.whereToLook && (
         <span className="mt-2 block" data-testid="error-where-to-look">
-          {say(words.whereToLook)}
+          {/* The command in it drawn as a command, with a copy button (#7539). */}
+          <WhereToLookWords text={say(words.whereToLook)} />
           {showHealthLink && (
             <>
               {" "}
