@@ -56802,5 +56802,8 @@
   "Server Alert State": "حالة تنبيهات الخادم",
   "Server Alerts by Push": "تنبيهات الخادم عبر الإشعارات الفورية",
   "Server Email Log": "سجل البريد الإلكتروني للخادم",
-  "Server Email Logs": "سجلات البريد الإلكتروني للخادم"
+  "Server Email Logs": "سجلات البريد الإلكتروني للخادم",
+  "Moving from another tool?": "هل تنتقل من أداة أخرى؟",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "استدعِ {{policy}} مرة واحدة، دون حادثة، لترى أن السياسة تصل إلى الأشخاص. تقول كل رسالة اختبار.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "اختر سياسة نقلتها واستدعها مرة واحدة، دون حادثة، لترى أنها تصل إلى الأشخاص. تقول كل رسالة اختبار."
 }

@@ -56802,5 +56802,8 @@
   "Server Alert State": "Stato degli avvisi del server",
   "Server Alerts by Push": "Avvisi del server tramite push",
   "Server Email Log": "Log email del server",
-  "Server Email Logs": "Log email del server"
+  "Server Email Logs": "Log email del server",
+  "Moving from another tool?": "Arrivi da un altro strumento?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Avvisa {{policy}} una volta, senza un incidente, per vedere che la policy raggiunge le persone. Ogni messaggio dice TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Scegli una policy importata e avvisala una volta, senza un incidente, per vedere che raggiunge le persone. Ogni messaggio dice TEST."
 }

@@ -56802,5 +56802,8 @@
   "Server Alert State": "サーバーアラートの状態",
   "Server Alerts by Push": "プッシュによるサーバーアラート",
   "Server Email Log": "サーバーのメールのログ",
-  "Server Email Logs": "サーバーのメールのログ"
+  "Server Email Logs": "サーバーのメールのログ",
+  "Moving from another tool?": "別のツールから移行しますか？",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "インシデントなしで {{policy}} を一度呼び出し、ポリシーが担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "取り込んだポリシーを選び、インシデントなしで一度呼び出して、担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。"
 }

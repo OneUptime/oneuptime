@@ -56802,5 +56802,8 @@
   "Server Alert State": "सर्वर अलर्ट की स्थिति",
   "Server Alerts by Push": "पुश से सर्वर अलर्ट",
   "Server Email Log": "सर्वर ईमेल लॉग",
-  "Server Email Logs": "सर्वर ईमेल लॉग"
+  "Server Email Logs": "सर्वर ईमेल लॉग",
+  "Moving from another tool?": "किसी दूसरे टूल से आ रहे हैं?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "बिना किसी घटना के {{policy}} को एक बार पेज करें और देखें कि नीति लोगों तक पहुँचती है। हर संदेश में TEST लिखा होता है।",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "लाई गई कोई नीति चुनें और बिना किसी घटना के उसे एक बार पेज करें, ताकि देख सकें कि वह लोगों तक पहुँचती है। हर संदेश में TEST लिखा होता है।"
 }

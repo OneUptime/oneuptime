@@ -56802,5 +56802,8 @@
   "Server Alert State": "Состояние оповещений сервера",
   "Server Alerts by Push": "Оповещения сервера через push",
   "Server Email Log": "Журнал писем сервера",
-  "Server Email Logs": "Журналы писем сервера"
+  "Server Email Logs": "Журналы писем сервера",
+  "Moving from another tool?": "Переходите с другого инструмента?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Отправьте тестовый вызов по политике {{policy}}, без инцидента, чтобы убедиться, что она доходит до людей. В каждом сообщении сказано ТЕСТ.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Выберите перенесённую политику и отправьте по ней тестовый вызов, без инцидента, чтобы убедиться, что она доходит до людей. В каждом сообщении сказано ТЕСТ."
 }

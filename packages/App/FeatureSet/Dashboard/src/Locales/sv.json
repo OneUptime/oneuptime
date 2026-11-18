@@ -56802,5 +56802,8 @@
   "Server Alert State": "Tillstånd för serverlarm",
   "Server Alerts by Push": "Serverlarm via push",
   "Server Email Log": "Serverns e-postlogg",
-  "Server Email Logs": "Serverns e-postloggar"
+  "Server Email Logs": "Serverns e-postloggar",
+  "Moving from another tool?": "Byter du från ett annat verktyg?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Larma {{policy}} en gång, utan en incident, för att se att policyn når fram till personer. Varje meddelande säger TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Välj en överförd policy och larma den en gång, utan en incident, för att se att den når fram till personer. Varje meddelande säger TEST."
 }

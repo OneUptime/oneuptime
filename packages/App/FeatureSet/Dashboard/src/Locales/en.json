@@ -56802,5 +56802,8 @@
   "Server Alert State": "Server Alert State",
   "Server Alerts by Push": "Server Alerts by Push",
   "Server Email Log": "Server Email Log",
-  "Server Email Logs": "Server Email Logs"
+  "Server Email Logs": "Server Email Logs",
+  "Moving from another tool?": "Moving from another tool?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST."
 }

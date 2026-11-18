@@ -56802,5 +56802,8 @@
   "Server Alert State": "Status van serverwaarschuwingen",
   "Server Alerts by Push": "Serverwaarschuwingen via push",
   "Server Email Log": "E-maillogboek van de server",
-  "Server Email Logs": "E-maillogboeken van de server"
+  "Server Email Logs": "E-maillogboeken van de server",
+  "Moving from another tool?": "Stapt u over van een andere tool?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Roep {{policy}} één keer op, zonder incident, om te zien dat het beleid mensen bereikt. Elk bericht zegt TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Kies een overgenomen beleid en roep het één keer op, zonder incident, om te zien dat het mensen bereikt. Elk bericht zegt TEST."
 }

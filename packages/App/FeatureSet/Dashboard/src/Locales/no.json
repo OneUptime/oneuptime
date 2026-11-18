@@ -56802,5 +56802,8 @@
   "Server Alert State": "Tilstand for servervarsler",
   "Server Alerts by Push": "Servervarsler via push",
   "Server Email Log": "Serverens e-postlogg",
-  "Server Email Logs": "Serverens e-postlogger"
+  "Server Email Logs": "Serverens e-postlogger",
+  "Moving from another tool?": "Bytter du fra et annet verktøy?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Varsle {{policy}} én gang, uten en hendelse, for å se at policyen når fram til folk. Hver melding sier TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Velg en overført policy, og varsle den én gang, uten en hendelse, for å se at den når fram til folk. Hver melding sier TEST."
 }

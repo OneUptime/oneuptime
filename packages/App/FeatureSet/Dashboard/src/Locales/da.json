@@ -56802,5 +56802,8 @@
   "Server Alert State": "Tilstand for serveradvarsler",
   "Server Alerts by Push": "Serveradvarsler via push",
   "Server Email Log": "Serverens e-mail-log",
-  "Server Email Logs": "Serverens e-mail-logs"
+  "Server Email Logs": "Serverens e-mail-logs",
+  "Moving from another tool?": "Skifter du fra et andet værktøj?",
+  "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Tilkald {{policy}} én gang, uden en hændelse, for at se, at politikken når ud til folk. Hver besked siger TEST.",
+  "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST."
 }
