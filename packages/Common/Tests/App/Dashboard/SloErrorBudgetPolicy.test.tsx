@@ -218,7 +218,15 @@ import SloRecommendedPolicyTiersModal, {
   RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT,
   RECOMMENDED_TIER_FREEZES_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedPolicyTiersModal";
-import { getRecommendedPolicySignature } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedPolicyTiers";
+import {
+  getRecommendedPolicySignature,
+  getRecommendedPolicyStateOfRows,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloRecommendedPolicyTiers";
+import {
+  ADD_MISSING_POLICY_TIERS_BUTTON_TEST_ID,
+  SLO_RECOMMENDED_POLICY_FREEZE_MISSING_TEST_ID,
+  SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedPolicyTiersBanner";
 import RecommendedPolicyTiersApi, {
   SLO_ADD_RECOMMENDED_POLICY_PATH,
   SLO_RECOMMENDED_POLICY_PATH,
@@ -235,7 +243,9 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
+  SLO_POLICY_BUDGET_EXHAUSTED_TIER_NAME,
   SLO_RECOMMENDED_POLICY_TIERS,
+  SloRecommendedPolicyState,
   SloRecommendedPolicyTier,
   SloRecommendedPolicyTierToAdd,
   sloRecommendedPolicyTierToJSON,
@@ -443,14 +453,17 @@ describe("Use the recommended policy on the Error Budget Policy page", () => {
     expect(asked[0]!.headers).toEqual({ tenantid: PROJECT_ID.toString() });
   });
 
-  test("is not offered, nor asked about, once the SLO has a tier", async () => {
-    mockRows = [tier({ name: "Caution", thresholdPercentage: 50 })];
+  test("is not offered, nor asked about, once the SLO has a policy of its own", async () => {
+    mockRows = [tier({ name: "Red", thresholdPercentage: 10 })];
 
     await renderPage();
 
     expect(screen.getAllByTestId("tier-row")).toHaveLength(1);
     expect(postsTo(SLO_RECOMMENDED_POLICY_PATH)).toHaveLength(0);
     expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+    ).toBeNull();
   });
 
   test("is not offered while the server has not said what it would add, or could not", async () => {
@@ -725,6 +738,265 @@ describe("Use the recommended policy on the Error Budget Policy page", () => {
       "No error budget policy yet",
     );
     expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+  });
+});
+
+/*
+ * The rest of the recommended policy (#7351): "Use the recommended policy"
+ * added Caution and Reliability first, then failed on Budget exhausted, the
+ * tier that freezes deployments, until #6978 was fixed. Those SLOs - and any
+ * whose tiers are part of the recommended policy - are offered the rest
+ * above their tiers. A policy of the team's own never is.
+ */
+describe("the rest of the recommended policy", () => {
+  const BANNER_BUTTON: string = "Add missing tiers";
+
+  function halfPolicy(
+    overrides: { cautionFreezes?: boolean } = {},
+  ): Array<ServiceLevelObjectiveErrorBudgetPolicyTier> {
+    return [
+      tier({
+        name: "Caution",
+        thresholdPercentage: 50,
+        freezesDeployments: overrides.cautionFreezes ?? false,
+      }),
+      tier({ name: "Reliability first", thresholdPercentage: 25 }),
+    ];
+  }
+
+  function budgetExhaustedOnly(): Array<SloRecommendedPolicyTierToAdd> {
+    return recommendedTiers().filter(
+      (item: SloRecommendedPolicyTierToAdd): boolean => {
+        return item.name === SLO_POLICY_BUDGET_EXHAUSTED_TIER_NAME;
+      },
+    );
+  }
+
+  test("is offered above the half policy #6978 left, naming what is missing and that it never freezes deployments", async () => {
+    mockRows = halfPolicy();
+    missing = budgetExhaustedOnly();
+
+    await renderPage();
+
+    const banner: HTMLElement = await screen.findByTestId(
+      SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID,
+    );
+
+    expect(banner).toHaveTextContent("Recommended policy not complete");
+    expect(banner).toHaveTextContent(
+      "Not on this SLO yet: Budget exhausted. Nothing is added until you confirm. A disabled tier counts as set up, so disable a tier you do not want instead of deleting it.",
+    );
+    expect(
+      within(banner).getByTestId(SLO_RECOMMENDED_POLICY_FREEZE_MISSING_TEST_ID),
+    ).toHaveTextContent(
+      "Until it has Budget exhausted, this SLO's policy never freezes deployments.",
+    );
+
+    // Above the tiers, not in the table: the table has rows.
+    const table: HTMLElement = screen.getByTestId(ERROR_BUDGET_POLICY_TABLE_ID);
+    expect(table).not.toContainElement(banner);
+    expect(screen.queryByTestId(USE_RECOMMENDED_POLICY_BUTTON_TEST_ID)).toBe(
+      null,
+    );
+
+    // Asked once, for this SLO.
+    expect(postsTo(SLO_RECOMMENDED_POLICY_PATH)).toHaveLength(1);
+  });
+
+  test("its button opens the confirmation of only the missing tiers, and adding them finishes the policy", async () => {
+    mockRows = halfPolicy();
+    missing = budgetExhaustedOnly();
+
+    await renderPage();
+
+    fireEvent.click(
+      await screen.findByTestId(ADD_MISSING_POLICY_TIERS_BUTTON_TEST_ID),
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    const listed: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "slo-recommended-policy-tier",
+    );
+
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toHaveTextContent("Budget exhausted");
+    expect(
+      within(dialog).getByTestId(RECOMMENDED_TIER_FREEZES_TEST_ID),
+    ).toHaveTextContent(RECOMMENDED_TIER_FREEZES_DEPLOYMENTS_TEXT);
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add tiers" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(postsTo(SLO_ADD_RECOMMENDED_POLICY_PATH)).toHaveLength(1);
+    expect(postsTo(SLO_ADD_RECOMMENDED_POLICY_PATH)[0]!.data).toEqual({
+      serviceLevelObjectiveId: SLO_ID.toString(),
+    });
+
+    // The table read again holds the whole policy, and nothing is offered.
+    await waitFor(() => {
+      expect(screen.getAllByTestId("tier-row")).toHaveLength(3);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+      ).toBeNull();
+    });
+  });
+
+  test("says nothing of deployments when a tier the SLO has freezes them already", async () => {
+    mockRows = halfPolicy({ cautionFreezes: true });
+    missing = budgetExhaustedOnly();
+
+    await renderPage();
+
+    await screen.findByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID);
+
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_FREEZE_MISSING_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("counts a reworded recommended tier as the recommended one", async () => {
+    mockRows = [
+      tier({ name: "Slow down", thresholdPercentage: 50 }),
+      tier({ name: "Budget exhausted", thresholdPercentage: 0 }),
+    ];
+    missing = recommendedTiers().filter(
+      (item: SloRecommendedPolicyTierToAdd): boolean => {
+        return item.name === "Reliability first";
+      },
+    );
+
+    await renderPage();
+
+    const banner: HTMLElement = await screen.findByTestId(
+      SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID,
+    );
+
+    expect(banner).toHaveTextContent("Not on this SLO yet: Reliability first.");
+    // Budget exhausted is there: the policy freezes deployments already.
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_FREEZE_MISSING_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is not offered, nor asked about, for the whole recommended policy", async () => {
+    mockRows = recommendedTiers().map((item: SloRecommendedPolicyTierToAdd) => {
+      return tier({
+        name: item.name,
+        thresholdPercentage: item.thresholdPercentage,
+      });
+    });
+    missing = [];
+
+    await renderPage();
+
+    expect(postsTo(SLO_RECOMMENDED_POLICY_PATH)).toHaveLength(0);
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is never drawn for a policy of the team's own, even one with a recommended tier in it", async () => {
+    mockRows = [
+      tier({ name: "Caution", thresholdPercentage: 50 }),
+      tier({ name: "Red", thresholdPercentage: 10 }),
+    ];
+
+    await renderPage();
+
+    expect(postsTo(SLO_RECOMMENDED_POLICY_PATH)).toHaveLength(0);
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is not drawn while the server has said nothing is missing", async () => {
+    mockRows = halfPolicy();
+    missing = [];
+
+    await renderPage();
+
+    expect(postsTo(SLO_RECOMMENDED_POLICY_PATH)).toHaveLength(1);
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is not drawn on an archived SLO, to which a policy never applies", async () => {
+    mockRows = halfPolicy();
+    missing = budgetExhaustedOnly();
+    mockGetItem.mockResolvedValue(storedSlo({ isArchived: true }));
+
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(SLO_RECOMMENDED_POLICY_TIERS_BANNER_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("is locked, with the reason, for someone who may not create tiers - and opens nothing", async () => {
+    mockRows = halfPolicy();
+    missing = budgetExhaustedOnly();
+    jest.spyOn(PermissionGate, "check").mockImplementation(((
+      _model: unknown,
+      action: ModelAction,
+    ) => {
+      return action === ModelAction.Create
+        ? {
+            isAllowed: false,
+            disabledReason: "You need a role that can create tiers.",
+          }
+        : { isAllowed: true };
+    }) as never);
+
+    await renderPage();
+
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: BANNER_BUTTON,
+    });
+
+    expect(button).toBeDisabled();
+
+    fireEvent.click(button);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("what the rows the table read say of the recommended policy", () => {
+  test("none, part, all of it, or a policy of the team's own", () => {
+    expect(getRecommendedPolicyStateOfRows([], 0)).toBe(
+      SloRecommendedPolicyState.None,
+    );
+    expect(
+      getRecommendedPolicyStateOfRows(
+        [tier({ name: "Caution", thresholdPercentage: 50 })],
+        1,
+      ),
+    ).toBe(SloRecommendedPolicyState.Partial);
+    expect(
+      getRecommendedPolicyStateOfRows(
+        [tier({ name: "Red", thresholdPercentage: 10 })],
+        1,
+      ),
+    ).toBe(SloRecommendedPolicyState.OwnPolicy);
+  });
+
+  test("nothing at all when the table shows only some of the SLO's tiers", () => {
+    expect(
+      getRecommendedPolicyStateOfRows(
+        [tier({ name: "Caution", thresholdPercentage: 50 })],
+        12,
+      ),
+    ).toBeNull();
   });
 });
 
