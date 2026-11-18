@@ -136,6 +136,12 @@
  *              and two workflows the reader may not see; See all pages the
  *              status pages fifty at a time). ?fail=used-by fails the FIRST
  *              read, as a gateway's 502 does; Try again reads it again.
+ *   ?fireDrill= the subject monitor's last fire drill (#9386), at the end of
+ *              When this goes down (GET /on-call-test-page/fire-drill/last/
+ *              :monitorId): none (default: no drill was run, so nothing is
+ *              drawn) | last (Ben Ito rehearsed its Offline failure, a
+ *              Critical incident, yesterday: Primary On-Call's test, which
+ *              Ana Lopez acknowledged by SMS 42 seconds after it paged).
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -242,6 +248,11 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getWhoIsToldBreaks } from "Common/Types/Monitor/WhoIsTold";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  OnCallTestPageRecordKind,
+  OnCallTestPageStatus,
+} from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   UsedByRecordKind,
   UsedByRelation,
@@ -386,6 +397,8 @@ const securityMode = ["news", "quiet"].includes(params.get("security"))
   : "none";
 // What "Used by" answers (?usedBy=).
 const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
+// The subject monitor's last fire drill (?fireDrill=).
+const fireDrillMode = params.get("fireDrill") === "last" ? "last" : "none";
 // What "When this goes down" answers (?whoIsTold=).
 const whoIsToldMode = [
   "nobody",
@@ -3723,6 +3736,52 @@ function whoIsTold(monitorId, draftName) {
   };
 }
 
+/*
+ * GET /on-call-test-page/fire-drill/last/:monitorId (?fireDrill=): the
+ * monitor's last fire drill, as OnCallFireDrillHistoryService answers it -
+ * none for a monitor nobody has drilled, which is every monitor by default.
+ * With ?fireDrill=last, the subject monitor's: Ben Ito rehearsed the
+ * failure When this goes down says pages somebody - Offline, a Critical
+ * incident - yesterday, and Primary On-Call's test was acknowledged by Ana
+ * Lopez, by SMS, 42 seconds after it paged.
+ */
+function lastFireDrill(monitorId) {
+  const isSubject =
+    monitorId === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+
+  if (fireDrillMode !== "last" || !isSubject) {
+    return null;
+  }
+
+  const startedAt = new Date(NOW.getTime() - DAY - 2 * HOUR);
+
+  return {
+    fireDrillId: "5f000000-0000-4000-8000-0000000000f1",
+    monitorId: monitorId,
+    startedAt: startedAt.toISOString(),
+    startedByName: "Ben Ito",
+    failure: {
+      criteriaName: "Offline",
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityName: "Critical",
+    },
+    walksEscalation: false,
+    runs: [
+      {
+        executionLogId: "5f000000-0000-4000-8000-0000000000f2",
+        policyId: "5f000000-0000-4000-8000-0000000000a1",
+        policyName: "Primary On-Call",
+        status: OnCallTestPageStatus.Acknowledged,
+        startedAt: startedAt.toISOString(),
+        endsAt: new Date(startedAt.getTime() + 15 * MINUTE).toISOString(),
+        acknowledgedByName: "Ana Lopez",
+        acknowledgedChannel: OnCallPageChannel.SMS,
+        acknowledgedAfterSeconds: 42,
+      },
+    ],
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3962,6 +4021,14 @@ async function handleApi(method, options) {
     const name = typeof body.name === "string" ? body.name : "";
 
     return ok({ ...whoIsTold("", name), monitorId: "", monitorName: name });
+  }
+
+  // A monitor's last fire drill (?fireDrill=), at the end of When this goes down.
+  if (
+    method === "GET" &&
+    parsed.pathname.includes("/on-call-test-page/fire-drill/last/")
+  ) {
+    return ok({ fireDrill: lastFireDrill(parsed.pathname.split("/").pop()) });
   }
 
   // What refers to a monitor (?usedBy=).
