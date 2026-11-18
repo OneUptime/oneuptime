@@ -47,6 +47,11 @@ import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
  * by two where four would squeeze their names - and on a phone, in German,
  * and in Persian in the dark theme.
  *
+ * And the Issues page (#6549): every issue, worst first, filtered on the
+ * server by whether an alert is open, kind, database and owner - No owner
+ * among them - with the filters kept in the address; and the count beside
+ * Overview in the menu (#6552).
+ *
  * And every other product: the fixture's explanations page draws each
  * product's explanation as its How it works dialog does, so one page shows
  * every product's words, in English at a laptop's width and on a phone in
@@ -159,6 +164,8 @@ interface FixtureState {
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   // Each read of Data Observability's own routes, by its route.
   dataReads: Array<string>;
+  // What the Issues page asked the server for, each time.
+  issueRequests: Array<Record<string, unknown>>;
   unhandled: Array<Record<string, unknown>>;
   products: Array<FixtureProduct>;
 }
@@ -1070,6 +1077,11 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
     "href",
     `${DATA_OBSERVABILITY_BASE}/pipelines/${DATA.nightlyLoad}`,
   );
+  // Who owns the pipeline (#6551): so no owner to add.
+  await expect(run.getByTestId(ATTENTION_OWNERS)).toHaveText(
+    /Owners\s*Data Platform/,
+  );
+  await expect(run.getByRole("link", { name: "Add one" })).toHaveCount(0);
 
   // The failing check: its table's owners, by name, and its table's Checks.
   const check: Locator = attentionItem(page, "Check Failing");
@@ -1217,6 +1229,7 @@ test("the Data Observability menu reads in the order a data engineer asks: the e
   // The everyday pages and the rules the data keeps are in sight.
   for (const [name, address] of [
     ["Overview", "overview"],
+    ["Issues", "issues"],
     ["Tables", "tables"],
     ["Pipelines", "pipelines"],
     ["Checks", "checks"],
@@ -1232,6 +1245,15 @@ test("the Data Observability menu reads in the order a data engineer asks: the e
     "aria-current",
     "page",
   );
+  // How many things need someone, beside Overview, and in words for a screen reader (#6552).
+  await expect(
+    menu.locator(`a[href='${DATA_OBSERVABILITY}']`),
+  ).toHaveAccessibleName(/23 need attention/);
+  expect(
+    (await fixture(page)).dataReads.filter((read: string): boolean => {
+      return read === "/data-observability/attention/count";
+    }),
+  ).toHaveLength(1);
 
   // What most visits never need is folded away.
   for (const address of [
@@ -2202,4 +2224,102 @@ describePageLanguages({
   address: (language: string): string => {
     return language === "en" ? MONITORS : `${MONITORS}?lang=${language}`;
   },
+});
+
+/*
+ * THE ISSUES PAGE (#6549): every issue the Overview counts, worst first,
+ * each drawn as the Overview draws it, filtered on the server and kept in
+ * the address.
+ */
+const DATA_OBSERVABILITY_ISSUES: string = `${DATA_OBSERVABILITY_BASE}/issues`;
+
+test("the Issues page lists every issue, worst first, and filters them on the server, keeping the filters in the address", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, DATA_OBSERVABILITY_ISSUES, "data=busy");
+
+  const issues: Locator = page.getByTestId("data-observability-issues");
+
+  await expect(issues).toContainText("Issues");
+  await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
+  expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
+  expect((await fixture(page)).issueRequests).toEqual([{ skip: 0, limit: 25 }]);
+
+  // The failed run, as the Overview draws it: its owners and its page.
+  const run: Locator = attentionItem(page, "Pipeline Failed");
+  await expect(run.getByTestId(ATTENTION_OWNERS)).toHaveText(
+    /Owners\s*Data Platform/,
+  );
+  await expect(
+    run.getByRole("link", { name: "Open Pipeline" }),
+  ).toHaveAttribute(
+    "href",
+    `${DATA_OBSERVABILITY_BASE}/pipelines/${DATA.nightlyLoad}`,
+  );
+
+  // Only what nobody was told of: asked of the server, from the first page.
+  await page.getByRole("radio", { name: "No alert open" }).click();
+  await expect(attentionItems(page)).toHaveCount(5);
+  expect((await fixture(page)).issueRequests.slice(-1)).toEqual([
+    { alert: "none", skip: 0, limit: 25 },
+  ]);
+  expect(new URL(page.url()).searchParams.get("data-observability-issues-filter")).toBe(
+    JSON.stringify({ alert: "none" }),
+  );
+
+  await expectNoSidewaysScroll(page, {
+    message: "the Issues page, filtered, at 1440px",
+  });
+  await screenshot(page, "data-observability-issues-1440");
+
+  // Back to every issue.
+  await page.getByRole("radio", { name: "Any" }).click();
+  await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
+  expect(
+    new URL(page.url()).searchParams.get("data-observability-issues-filter"),
+  ).toBeNull();
+});
+
+test("the Issues page opened from a link with filters is filtered already, and says so when nothing matches", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const filter: string = encodeURIComponent(
+    JSON.stringify({ kind: "Check Failing", alert: "none" }),
+  );
+
+  await open(
+    page,
+    DATA_OBSERVABILITY_ISSUES,
+    `data=busy&data-observability-issues-filter=${filter}`,
+  );
+
+  // The failing check's alert is open: nothing matches.
+  await expect(page.getByText("No issue matches these filters")).toBeVisible();
+  expect((await fixture(page)).issueRequests).toEqual([
+    { kinds: ["Check Failing"], alert: "none", skip: 0, limit: 25 },
+  ]);
+  await expect(
+    page.getByRole("radio", { name: "No alert open" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  // Clear Filters shows everything again.
+  await page.getByTestId("empty-table-clear-filters-button").click();
+  await expect(attentionItems(page)).toHaveCount(BUSY_ATTENTION_KINDS.length);
+});
+
+test("the Issues page of a project with nothing wrong says what was looked at and found well", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, DATA_OBSERVABILITY_ISSUES, "data=healthy");
+
+  await expect(
+    page.getByText("Nothing needs attention right now"),
+  ).toBeVisible();
+  await expect(attentionItems(page)).toHaveCount(0);
 });

@@ -57,13 +57,21 @@
  *   - data=connected  one database just connected, not read yet: no table
  *                     counted, nothing wrong, one of the five steps done
  *   - data=fail       the Overview's read fails every time, as an outage would
+ *
+ * And Data Observability's Issues page (#6549), at
+ * /dashboard/:projectId/data-observability/issues under the same layout:
+ * every issue of the scenario, filtered and paged as the server does it
+ * (DataObservabilityIssues), each request's body kept (`issueRequests`).
+ * The menu beside every Data Observability page asks how many things need
+ * someone (#6552): the Overview's own count, failing as the Overview does.
  *   - lang=de|fa      the Dashboard's German or Persian words (Persian reads
  *                     right to left)
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * Recorded on window.__productOnboardingFixture: every count asked
  * (`counts`: the table and the query as sent), every create (`creates`),
- * every read of Data Observability's own routes (`dataReads`: the route)
+ * every read of Data Observability's own routes (`dataReads`: the route;
+ * `issueRequests`: what the Issues page asked for)
  * and every read of a table this fixture does not model, or any other
  * request it does not answer (`unhandled`; the spec fails on any). It also
  * lists every product the explanations page draws (`products`: its key,
@@ -91,6 +99,7 @@ import StatusPagesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Statu
 import StatusPagesPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 import DataObservabilityLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Layout";
 import DataObservabilityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Overview";
+import DataObservabilityIssuesPage from "../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Issues";
 import { PRODUCT_ONBOARDINGS } from "../../../App/FeatureSet/Dashboard/src/Components/ProductOnboarding/ProductOnboardings";
 import ResourceShowcaseCard from "../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -98,6 +107,8 @@ import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
 import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
+import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
 import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -164,6 +175,7 @@ const fixture = {
   counts: [],
   creates: [],
   dataReads: [],
+  issueRequests: [],
   unhandled: [],
   // Every product the explanations page draws, in the registry's order.
   products: Object.entries(PRODUCT_ONBOARDINGS).map(([product, onboarding]) => {
@@ -364,6 +376,10 @@ const FINANCE_TEAM = record(Team, {
   _id: "42000000-0000-4000-8000-0000000000d2",
   name: "Finance Analytics",
 });
+const DATA_PLATFORM_TEAM = record(Team, {
+  _id: "42000000-0000-4000-8000-0000000000d3",
+  name: "Data Platform",
+});
 
 const isDataBusy = dataScenario === "busy";
 
@@ -407,6 +423,18 @@ const dataAssetOwnerTeams = isDataBusy
     ]
   : [];
 
+// The failed nightly load is the Data Platform team's (#6551).
+const dataPipelineOwnerTeams = isDataBusy
+  ? [
+      record(DataPipelineOwnerTeam, {
+        _id: "45000000-0000-4000-8000-0000000000d1",
+        projectId: new ObjectID(PROJECT_ID),
+        dataPipelineId: new ObjectID(DATA.nightlyLoad),
+        team: DATA_PLATFORM_TEAM,
+      }),
+    ]
+  : [];
+
 const dataProducts = isDataBusy
   ? [
       record(DataProduct, {
@@ -426,6 +454,8 @@ const TABLES = {
   // Who owns what Data Observability's Needs Attention names (data=busy).
   [tableName(DataAssetOwnerUser)]: dataAssetOwnerUsers,
   [tableName(DataAssetOwnerTeam)]: dataAssetOwnerTeams,
+  [tableName(DataPipelineOwnerUser)]: [],
+  [tableName(DataPipelineOwnerTeam)]: dataPipelineOwnerTeams,
   [tableName(DataProduct)]: dataProducts,
   [tableName(Monitor)]: monitors,
   [tableName(MonitorStatus)]: [OPERATIONAL, DEGRADED, OFFLINE],
@@ -868,9 +898,115 @@ function dataOverview() {
   return { storeCount: 0 };
 }
 
+/*
+ * A page of the scenario's issues, filtered as the server filters them
+ * (DataObservabilityIssues): by kind, database, owner - "none" for the
+ * ones nobody owns - and whether an alert is open.
+ */
+const ISSUE_OWNERS = isDataBusy
+  ? [
+      { key: `user:${ADA._id}`, kind: "user", id: ADA._id, name: "Ada Lovelace" },
+      {
+        key: `user:${GRACE._id}`,
+        kind: "user",
+        id: GRACE._id,
+        name: "Grace Hopper",
+      },
+      {
+        key: `team:${DATA_PLATFORM_TEAM._id}`,
+        kind: "team",
+        id: DATA_PLATFORM_TEAM._id,
+        name: "Data Platform",
+      },
+      {
+        key: `team:${PAYMENTS_TEAM._id}`,
+        kind: "team",
+        id: PAYMENTS_TEAM._id,
+        name: "Payments",
+      },
+    ]
+  : [];
+
+// Who owns each issue, by its owner key, as the server reads them.
+const ISSUE_OWNER_KEYS = {
+  [`pipeline:${DATA.nightlyLoad}`]: [`team:${DATA_PLATFORM_TEAM._id}`],
+  [`asset:${DATA.orders}`]: [
+    `user:${ADA._id}`,
+    `user:${GRACE._id}`,
+    `team:${PAYMENTS_TEAM._id}`,
+  ],
+  [`asset:${DATA.payments}`]: [`team:${PAYMENTS_TEAM._id}`],
+  [`asset:${DATA.customers}`]: [`user:${ADA._id}`],
+  [`asset:${DATA.dailySessions}`]: [],
+  [`product:${DATA.revenueProduct}`]: [`team:${FINANCE_TEAM._id}`],
+};
+
+function issueOwnerKey(item) {
+  if (item.dataProductId) {
+    return `product:${item.dataProductId}`;
+  }
+  if (item.dataPipelineId) {
+    return `pipeline:${item.dataPipelineId}`;
+  }
+  if (item.dataAssetId) {
+    return `asset:${item.dataAssetId}`;
+  }
+  return null;
+}
+
+function dataIssues(request) {
+  const all = isDataBusy ? BUSY_ATTENTION : [];
+  const kinds =
+    Array.isArray(request.kinds) && request.kinds.length > 0
+      ? request.kinds
+      : null;
+  const items = all.filter((item) => {
+    if (kinds && !kinds.includes(item.kind)) {
+      return false;
+    }
+    if (request.dataStoreId && item.dataStoreId !== request.dataStoreId) {
+      return false;
+    }
+    if (request.alert === "open" && !item.alert) {
+      return false;
+    }
+    if (request.alert === "none" && item.alert) {
+      return false;
+    }
+    if (request.owner) {
+      const key = issueOwnerKey(item);
+      const owners = key ? ISSUE_OWNER_KEYS[key] : undefined;
+      if (!owners) {
+        return false;
+      }
+      return request.owner === "none"
+        ? owners.length === 0
+        : owners.includes(request.owner);
+    }
+    return true;
+  });
+  const skip = typeof request.skip === "number" ? request.skip : 0;
+  const limit = typeof request.limit === "number" ? request.limit : 25;
+
+  return {
+    items: items.slice(skip, skip + limit),
+    count: items.length,
+    totalCount: all.length,
+    skip,
+    limit,
+    stores: isDataBusy ? BUSY_STORES : [],
+    owners: ISSUE_OWNERS,
+  };
+}
+
 function dataObservabilityAnswer(url) {
   const routes = {
     "/data-observability/overview": dataOverview,
+    // The menu's count beside Overview: the Overview's own (#6552).
+    "/data-observability/attention/count": () => {
+      return { count: dataOverview().attentionCount || 0 };
+    },
+    "/data-observability/issues": dataIssues,
     "/data-observability/quality": () => {
       return {};
     },
@@ -906,9 +1042,15 @@ async function handleApi(method, options) {
   if (answer) {
     fixture.dataReads.push(answer[0]);
 
+    if (answer[0] === "/data-observability/issues") {
+      fixture.issueRequests.push(serialize((options && options.data) || {}));
+    }
+
+    // An outage fails every read of what needs someone: the Overview and the menu's count.
     if (
       dataScenario === "fail" &&
-      answer[0] === "/data-observability/overview"
+      (answer[0] === "/data-observability/overview" ||
+        answer[0] === "/data-observability/attention/count")
     ) {
       return new HTTPErrorResponse(
         500,
@@ -917,7 +1059,11 @@ async function handleApi(method, options) {
       );
     }
 
-    return new HTTPResponse(200, serialize(answer[1]()), {});
+    return new HTTPResponse(
+      200,
+      serialize(answer[1]((options && options.data) || {})),
+      {},
+    );
   }
 
   fixture.unhandled.push({
@@ -1078,6 +1224,8 @@ const MONITORS_ROUTE = RouteMap[PageMap.MONITORS].toString();
 const STATUS_PAGES_ROUTE = RouteMap[PageMap.STATUS_PAGES].toString();
 const DATA_OBSERVABILITY_ROUTE =
   RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW].toString();
+const DATA_OBSERVABILITY_ISSUES_ROUTE =
+  RouteMap[PageMap.DATA_OBSERVABILITY_ISSUES].toString();
 const EXPLANATIONS_ROUTE = "/dashboard/:projectId/product-explanations";
 
 /*
@@ -1138,6 +1286,15 @@ createRoot(document.getElementById("root")).render(
               <DataObservabilityOverviewPage
                 {...pageProps}
                 pageRoute={RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW]}
+              />
+            }
+          />
+          <PageRoute
+            path={DATA_OBSERVABILITY_ISSUES_ROUTE}
+            element={
+              <DataObservabilityIssuesPage
+                {...pageProps}
+                pageRoute={RouteMap[PageMap.DATA_OBSERVABILITY_ISSUES]}
               />
             }
           />
