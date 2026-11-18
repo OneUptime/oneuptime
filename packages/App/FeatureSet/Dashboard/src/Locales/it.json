@@ -56919,9 +56919,14 @@
   "Whether this probe polls its network devices as often as they are set.": "Se questa sonda interroga i suoi dispositivi di rete con la frequenza impostata.",
   "{{behind}} of {{total}} behind": "{{behind}} di {{total}} in ritardo",
   "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nUna sonda è in ritardo quando i monitor che controlla, o i dispositivi di rete che interroga, attendono più di un minuto oltre il loro orario, quindi vengono controllati meno spesso di quanto impostato. La sua pagina dice cosa le permette di recuperare. Il problema si risolve da solo non appena nessuna delle sonde sorvegliate da questo monitor è più in ritardo.",
-  "Check their email address, then remove them and invite them again.": "Controlla il suo indirizzo email, poi rimuovi questa persona e invitala di nuovo.",
   "Email Not Sent": "Email non inviata",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "Quando l'email funziona, rimuovi questa persona e invitala di nuovo, oppure chiedi il suo link di invito all'amministratore del server.",
   "Their invitation email was not sent.": "L'email di invito non è stata inviata.",
-  "They can still join: send them their invitation link yourself.": "Può comunque unirsi: inviagli tu il suo link di invito."
+  "They can still join: send them their invitation link yourself.": "Può comunque unirsi: inviagli tu il suo link di invito.",
+  "Check their email address, then use Resend Invitation.": "Controlla il suo indirizzo email, poi usa «Invia di nuovo l'invito».",
+  "Invitation sent to {{email}}": "Invito inviato a {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "Quando l'email funziona, usa «Invia di nuovo l'invito», oppure chiedi il suo link di invito all'amministratore del server.",
+  "Resend Invitation": "Invia di nuovo l'invito",
+  "Send their invitation email again?": "Inviare di nuovo l'email di invito?",
+  "Send their invitation email to {{email}} again?": "Inviare di nuovo l'email di invito a {{email}}?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Sono stati inviati troppi inviti a questo indirizzo nell'ultima ora. Potrai inviarlo di nuovo dopo le {{time}}."
 }

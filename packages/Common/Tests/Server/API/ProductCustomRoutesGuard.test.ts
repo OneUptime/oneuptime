@@ -1044,7 +1044,7 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        "packages/Common/Server/API/TeamMemberAPI.ts": 8,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
         "ee/Server/Identity/API/SCIM.ts": 9,

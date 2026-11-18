@@ -155,7 +155,7 @@ Su un server self-hosted che non può ancora inviare email, nemmeno la registraz
 :::
 
 :::details Una persona mostra Email non inviata
-Il servizio di posta ha rifiutato la sua ultima email di invito, quindi non le è arrivato nulla. Punta su **Email non inviata**, o toccala, per vederne il motivo, come lo riporta la scheda **E-mail** dei **Log di notifica** del progetto. Controlla l'indirizzo invitato, poi, quando l'email funziona, rimuovi la persona e invitala di nuovo. Su un server self-hosted, l'amministratore del server può invece inviarle il suo link di invito: un amministratore principale apre il menu della riga della persona in **Utenti**, **⋯**, e fa clic su **Ottieni link di invito**.
+Il servizio di posta ha rifiutato la sua ultima email di invito, quindi non le è arrivato nulla. Punta su **Email non inviata**, o toccala, per vederne il motivo, come lo riporta la scheda **E-mail** dei **Log di notifica** del progetto. Controlla l'indirizzo invitato, poi, quando l'email funziona, apri il menu della riga della persona in **Utenti**, **⋯**, e fai clic su **Invia di nuovo l'invito**: appena l'email parte, la persona compare di nuovo come **Invito inviato**. Su un server self-hosted, l'amministratore del server può invece inviarle il suo link di invito: un amministratore principale fa clic su **Ottieni link di invito** nello stesso menu.
 :::
 
 :::details Invita utente dice che gli utenti sono gestiti da SCIM Push Groups

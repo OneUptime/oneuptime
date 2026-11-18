@@ -155,7 +155,7 @@ Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscri
 :::
 
 :::details Une personne affiche E-mail non envoyé
-Le service de messagerie a refusé son dernier e-mail d'invitation : rien ne lui est parvenu. Pointez **E-mail non envoyé**, ou touchez-le, pour en voir la raison, telle que l'onglet **E-mail** des **Journaux de notification** du projet la donne. Vérifiez l'adresse invitée, puis, une fois l'e-mail fonctionnel, retirez cette personne et invitez-la de nouveau. Sur un serveur auto-hébergé, l'admin du serveur peut plutôt lui envoyer son lien d'invitation : un administrateur principal ouvre le menu de la ligne de la personne dans **Utilisateurs**, **⋯**, et clique sur **Obtenir le lien d'invitation**.
+Le service de messagerie a refusé son dernier e-mail d'invitation : rien ne lui est parvenu. Pointez **E-mail non envoyé**, ou touchez-le, pour en voir la raison, telle que l'onglet **E-mail** des **Journaux de notification** du projet la donne. Vérifiez l'adresse invitée, puis, une fois l'e-mail fonctionnel, ouvrez le menu de la ligne de la personne dans **Utilisateurs**, **⋯**, et cliquez sur **Renvoyer l'invitation** : elle apparaît de nouveau comme **Invitation envoyée** dès qu'il est parti. Sur un serveur auto-hébergé, l'admin du serveur peut plutôt lui envoyer son lien d'invitation : un administrateur principal clique sur **Obtenir le lien d'invitation** dans le même menu.
 :::
 
 :::details Inviter un utilisateur indique que les utilisateurs sont gérés par SCIM Push Groups

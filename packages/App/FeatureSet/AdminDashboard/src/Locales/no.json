@@ -283,7 +283,6 @@
       "columnJoinedAt": "Ble med",
       "columnInvitedAt": "Invitert",
       "statusMember": "Medlem",
-      "statusInvited": "Invitasjon sendt",
       "pendingInvitations": "{{pending}} ventende invitasjon(er)",
       "teamsCardTitle": "Teammedlemskap",
       "teamsCardDescription": "Alle team denne brukeren tilhører, på tvers av alle prosjekter. Å fjerne en rad fjerner brukeren bare fra det teamet.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitasjonslenken kunne ikke leses. De er kanskje ikke lenger invitert til dette prosjektet: inviter dem på nytt fra siden Brukere i prosjektet.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "Hovedadministratorene får beskjed når e-posten fra denne serveren slutter å virke, ingen globale sonder rapporterer lenger, eller én kommer på etterskudd, og én gang til når alt er i orden: aldri gjennom kanalen som stoppet, og høyst én gang i timen.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} er på etterskudd med nettverksenhetene sine: siden {{time}} har de ventet mer enn ett minutt etter pollingtidspunktet sitt, så de polles sjeldnere enn innstilt.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "La sonden polle flere enheter samtidig: øk GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY i config.env, eller sondens networkDevicePollConcurrency i Helm-verdiene, og gi den CPU-en som trengs."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "La sonden polle flere enheter samtidig: øk GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY i config.env, eller sondens networkDevicePollConcurrency i Helm-verdiene, og gi den CPU-en som trengs.",
+  "Email Not Sent": "E-post ikke sendt",
+  "Their invitation email was not sent.": "Invitasjonsmeldingen ble ikke sendt.",
+  "Resend Invitation": "Send invitasjon på nytt",
+  "Send their invitation email to {{email}} again?": "Send invitasjonsmeldingen til {{email}} på nytt?",
+  "Send their invitation email again?": "Send invitasjonsmeldingen på nytt?",
+  "Invitation sent to {{email}}": "Invitasjon sendt til {{email}}",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "For mange invitasjoner ble sendt til denne adressen den siste timen. Du kan sende den på nytt etter kl. {{time}}."
 }

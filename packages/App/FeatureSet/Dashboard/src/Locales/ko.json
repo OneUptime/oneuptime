@@ -56919,9 +56919,14 @@
   "Whether this probe polls its network devices as often as they are set.": "이 프로브가 설정한 만큼 자주 네트워크 디바이스를 폴링하는지 여부입니다.",
   "{{behind}} of {{total}} behind": "{{total}}개 중 {{behind}}개 지연됨",
   "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\n프로브가 확인하는 모니터나 폴링하는 네트워크 디바이스가 정해진 시각을 1분 넘게 기다리면 그 프로브는 지연된 것으로 간주되며, 설정보다 덜 자주 확인됩니다. 따라잡는 방법은 프로브 페이지에 나와 있습니다. 이 모니터가 감시하는 프로브 중 지연된 프로브가 없어지면 자동으로 해결됩니다.",
-  "Check their email address, then remove them and invite them again.": "이메일 주소를 확인한 뒤 이 사용자를 제거하고 다시 초대하세요.",
   "Email Not Sent": "이메일 전송 안 됨",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "이메일이 작동하면 이 사용자를 제거하고 다시 초대하거나, 서버 관리자에게 초대 링크를 요청하세요.",
   "Their invitation email was not sent.": "초대 이메일이 전송되지 않았습니다.",
-  "They can still join: send them their invitation link yourself.": "초대 링크를 직접 보내면 여전히 참여할 수 있습니다."
+  "They can still join: send them their invitation link yourself.": "초대 링크를 직접 보내면 여전히 참여할 수 있습니다.",
+  "Check their email address, then use Resend Invitation.": "이메일 주소를 확인한 뒤 '초대 다시 보내기'를 사용하세요.",
+  "Invitation sent to {{email}}": "{{email}}(으)로 초대를 보냈습니다",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "이메일이 작동하면 '초대 다시 보내기'를 사용하거나, 서버 관리자에게 초대 링크를 요청하세요.",
+  "Resend Invitation": "초대 다시 보내기",
+  "Send their invitation email again?": "초대 이메일을 다시 보낼까요?",
+  "Send their invitation email to {{email}} again?": "{{email}}(으)로 초대 이메일을 다시 보낼까요?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다."
 }

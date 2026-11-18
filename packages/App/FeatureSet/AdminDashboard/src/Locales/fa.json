@@ -283,7 +283,6 @@
       "columnJoinedAt": "تاریخ پیوستن",
       "columnInvitedAt": "تاریخ دعوت",
       "statusMember": "عضو",
-      "statusInvited": "دعوت ارسال شد",
       "pendingInvitations": "{{pending}} دعوت در انتظار",
       "teamsCardTitle": "عضویت در تیم‌ها",
       "teamsCardDescription": "همه تیم‌هایی که این کاربر در همه پروژه‌ها عضو آن‌هاست. حذف یک سطر فقط او را از همان تیم خارج می‌کند.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "پیوند دعوت او خوانده نشد. شاید دیگر به این پروژه دعوت نشده باشد: از صفحهٔ کاربران پروژه دوباره دعوتش کنید.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "وقتی ایمیل این سرور از کار بیفتد، هیچ پراب سراسری گزارش ندهد یا یکی عقب بماند، به مدیران ارشد خبر داده می‌شود، و یک بار دیگر وقتی همه‌چیز درست شود: هرگز از راه کانالی که از کار افتاده، و حداکثر ساعتی یک بار.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} در پرس‌وجوی دستگاه‌های شبکه‌اش عقب مانده است: از {{time}}، آن‌ها بیش از یک دقیقه پس از زمان پرس‌وجویشان منتظر می‌مانند، بنابراین کمتر از مقدار تنظیم‌شده از آن‌ها پرس‌وجو می‌شود.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "بگذارید پراب هم‌زمان از دستگاه‌های بیشتری پرس‌وجو کند: GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY را در config.env، یا networkDevicePollConcurrency پراب را در مقادیر Helm افزایش دهید، و CPU متناسب به آن بدهید."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "بگذارید پراب هم‌زمان از دستگاه‌های بیشتری پرس‌وجو کند: GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY را در config.env، یا networkDevicePollConcurrency پراب را در مقادیر Helm افزایش دهید، و CPU متناسب به آن بدهید.",
+  "Email Not Sent": "ایمیل فرستاده نشد",
+  "Their invitation email was not sent.": "ایمیل دعوتش فرستاده نشد.",
+  "Resend Invitation": "ارسال دوبارهٔ دعوت",
+  "Send their invitation email to {{email}} again?": "ایمیل دعوتش دوباره به {{email}} فرستاده شود؟",
+  "Send their invitation email again?": "ایمیل دعوتش دوباره فرستاده شود؟",
+  "Invitation sent to {{email}}": "دعوت به {{email}} فرستاده شد",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "در یک ساعت گذشته دعوت‌های زیادی به این نشانی فرستاده شده است. پس از {{time}} می‌توانید دوباره آن را بفرستید."
 }

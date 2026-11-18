@@ -1,4 +1,5 @@
 import { INVITATION_LINK_COPY } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import { INVITATION_EMAIL_NOT_SENT_COPY } from "Common/UI/Components/InvitationLink/InvitationEmailNotSentPill";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
@@ -6,6 +7,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import URL from "Common/Types/API/URL";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 /*
  * WHAT THE DASHBOARD SAYS WHEN THE SERVER CANNOT SEND EMAIL.
@@ -102,21 +104,26 @@ export const SERVER_EMAIL_COPY: {
   /*
    * A pending person's pill, in place of Invitation Sent, when the mail
    * service refused their latest invitation email (#9511). Pressed, it says
-   * so in OneUptime's words, then the mail service's, then what to do.
+   * so in OneUptime's words, then the mail service's, then what to do. The
+   * Admin Dashboard draws the same pill (InvitationEmailNotSentPill).
    */
-  emailNotSentPill: translationKey("Email Not Sent"),
-  emailNotSent: translationKey("Their invitation email was not sent."),
+  emailNotSentPill: INVITATION_EMAIL_NOT_SENT_COPY.pill,
+  emailNotSent: INVITATION_EMAIL_NOT_SENT_COPY.notSent,
   // For a master admin, whom the row hands the link: as the Email Log says it.
-  emailNotSentForAdmin: translationKey(
-    "They can still join: send them their invitation link yourself.",
-  ),
-  // Anybody else, on a self-hosted server: the docs' Inviting People says the same.
+  emailNotSentForAdmin: INVITATION_EMAIL_NOT_SENT_COPY.forMasterAdmin,
+  /*
+   * Anybody else, on a self-hosted server: the row's Resend Invitation
+   * (#9519) once email works. The docs' Inviting People says the same.
+   */
   emailNotSentAskAdmin: translationKey(
-    "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.",
+    "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.",
   ),
-  // Anybody else, on OneUptime Cloud, which has no server's admin to ask.
+  /*
+   * Anybody else, on OneUptime Cloud, which has no server's admin to ask:
+   * its email works, so the address is what to look at first.
+   */
   emailNotSentCheckAddress: translationKey(
-    "Check their email address, then remove them and invite them again.",
+    "Check their email address, then use Resend Invitation.",
   ),
 };
 
@@ -182,4 +189,20 @@ export const canGetLinksOfInvitationsNotSent: (
   serverEmail: ServerEmail,
 ) => boolean = (serverEmail: ServerEmail): boolean => {
   return serverEmail.isMasterAdmin;
+};
+
+/*
+ * Whether a pending row offers Resend Invitation (#9519): to whoever may
+ * invite people - the server then holds them to inviting to that row's
+ * team, with their own permissions - on a server not known to be unable to
+ * send email. There nothing could go out: every pending person says
+ * Invited, and a master admin is handed their link instead.
+ */
+export const canResendInvitations: (serverEmail: ServerEmail) => boolean = (
+  serverEmail: ServerEmail,
+): boolean => {
+  return (
+    !cannotSendEmail(serverEmail) &&
+    PermissionGate.check(new TeamMember(), ModelAction.Create).isAllowed
+  );
 };

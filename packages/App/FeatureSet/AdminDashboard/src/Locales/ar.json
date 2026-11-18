@@ -283,7 +283,6 @@
       "columnJoinedAt": "تاريخ الانضمام",
       "columnInvitedAt": "تاريخ الدعوة",
       "statusMember": "عضو",
-      "statusInvited": "أُرسلت الدعوة",
       "pendingInvitations": "الدعوات المعلّقة: {{pending}}",
       "teamsCardTitle": "عضويات الفرق",
       "teamsCardDescription": "كل فريق ينتمي إليه هذا المستخدم، عبر جميع المشاريع. تؤدي إزالة صف إلى إزالته من ذلك الفريق فقط.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "تعذّرت قراءة رابط الدعوة. ربما لم يعودوا مدعوين إلى هذا المشروع: ادعُهم مرة أخرى من صفحة المستخدمين الخاصة به.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "يُبلَّغ المسؤولون الرئيسيون عندما يتوقف بريد هذا الخادم الإلكتروني عن العمل، أو يتوقف كل مسبار عام عن الإبلاغ، أو يتأخر أحدها، ومرة أخرى عندما يعود كل شيء إلى طبيعته: ولا يكون ذلك أبدًا عبر القناة التي توقفت، ولا أكثر من مرة في الساعة.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} متأخر في أجهزة الشبكة لديه: منذ {{time}}، تنتظر أكثر من دقيقة بعد موعد استطلاعها، لذا تُستطلع أقل مما هو مضبوط.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "دع المسبار يستطلع أجهزة أكثر في الوقت نفسه: ارفع GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY في config.env، أو networkDevicePollConcurrency الخاص بالمسبار في قيم Helm، وامنحه ما يكفي من CPU."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "دع المسبار يستطلع أجهزة أكثر في الوقت نفسه: ارفع GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY في config.env، أو networkDevicePollConcurrency الخاص بالمسبار في قيم Helm، وامنحه ما يكفي من CPU.",
+  "Email Not Sent": "لم يُرسَل البريد الإلكتروني",
+  "Their invitation email was not sent.": "لم تُرسَل رسالة الدعوة إليهم.",
+  "Resend Invitation": "إعادة إرسال الدعوة",
+  "Send their invitation email to {{email}} again?": "هل تريد إعادة إرسال رسالة الدعوة إلى {{email}}؟",
+  "Send their invitation email again?": "هل تريد إعادة إرسال رسالة الدعوة؟",
+  "Invitation sent to {{email}}": "أُرسلت الدعوة إلى {{email}}",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "أُرسل عدد كبير جدًا من الدعوات إلى هذا العنوان خلال الساعة الماضية. يمكنك إعادة إرسالها بعد {{time}}."
 }
