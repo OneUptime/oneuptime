@@ -269,7 +269,7 @@ La commande d'un niveau inférieur remplace la stratégie AWS par celle de ce ni
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Ressources | Chaque ressource des types que connaît OneUptime, dans chaque région que vous utilisez, via Cloud Control | Chaque ressource des abonnements, via Resource Graph | Chaque ressource des projets, via Cloud Asset Inventory |
-| Métriques | Les métriques clés de chaque service, comme le processeur, le réseau et les vérifications d'état d'une instance | Jusqu'à 8 métriques clés par ressource | Les métriques clés de chaque type de ressource |
+| Métriques | Les métriques clés de chaque service, comme le processeur, le réseau et les vérifications d'état d'une instance | Jusqu'à 20 métriques clés par ressource | Les métriques clés de chaque type de ressource |
 | Modifications | Les événements de gestion CloudTrail | Les événements administratifs du journal d'activité | Le journal d'audit Admin Activity |
 | Événements de santé | AWS Health | Service Health et Resource Health | Service Health |
 | Coûts | Ceux de chaque jour, par service et par région, et par ressource avec Coûts par ressource activé, depuis Cost Explorer | Ceux de chaque jour, par ressource et par service, depuis Cost Management | Ceux de chaque jour, par service, région et ressource, depuis votre export de facturation vers BigQuery |

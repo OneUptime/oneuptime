@@ -12,6 +12,7 @@ import {
 } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/FirehoseContract";
 import {
   MAX_REMEMBERED_STREAMED_SERIES,
+  READ_ONLY_KEY_METRICS,
   STREAMED_KEY_METRICS,
   STREAMED_SERIES_MEMORY_MS,
   StreamedSeriesMemory,
@@ -764,12 +765,23 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     });
   }
 
-  test("every key metric is known by its stored name, with the one statistic and unit the read reads", () => {
+  test("every key metric a stream writes is known by its stored name, with the one statistic and unit the read reads", () => {
     const expected: Map<string, { statistic: string; unit: string }> =
       new Map();
+    const readOnly: Set<string> = new Set<string>();
 
     for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
       for (const metric of namespace.metrics as ReadonlyArray<AwsKeyMetric>) {
+        if (!metric.isStreamed) {
+          readOnly.add(
+            getAwsStoredMetricName(
+              namespace.namespace,
+              metric.metricName,
+            ).toLowerCase(),
+          );
+          continue;
+        }
+
         const name: string = getAwsStoredMetricName(
           namespace.namespace,
           metric.metricName,
@@ -794,6 +806,18 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     expect(
       STREAMED_KEY_METRICS.get("amazonaws.com/aws/ec2/cpuutilization"),
     ).toEqual({ statistic: "Average", unit: "Percent" });
+
+    // And every one the read writes whether the account streams or not.
+    expect(new Set(READ_ONLY_KEY_METRICS)).toEqual(readOnly);
+    expect(
+      READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/ec2/cpucreditbalance"),
+    ).toBe(true);
+    expect(
+      READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/s3/bucketsizebytes"),
+    ).toBe(true);
+    expect(
+      READ_ONLY_KEY_METRICS.has("amazonaws.com/aws/ec2/cpuutilization"),
+    ).toBe(false);
   });
 
   test("a minute's summary is the value of the statistic: Average, Sum, Maximum and Minimum", () => {
@@ -951,10 +975,10 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
 
   test("a metric that is not a key one is left as the stream sent it, and so is its resource", async () => {
     const resource: JSONObject = resourceOf([
-      summaryMetric("amazonaws.com/AWS/EC2/CPUCreditBalance", [
+      summaryMetric("amazonaws.com/AWS/EC2/MetadataNoToken", [
         summaryPoint({
           namespace: "AWS/EC2",
-          metricName: "CPUCreditBalance",
+          metricName: "MetadataNoToken",
           dimensions: { InstanceId: "i-1" },
           count: 5,
           sum: 390,
@@ -965,6 +989,47 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
 
     expect(shaped).toEqual([resource]);
     expect(shaped[0]).toBe(resource);
+  });
+
+  /*
+   * A key metric added since streams began (AwsKeyMetric.isStreamed false)
+   * is the read's to write whether the account streams or not: a stream of
+   * every metric that brings it leaves it out, so it is one series of one
+   * shape - the read's gauge - never the read's and the stream's summary.
+   */
+  test("a key metric the read writes is left out of a delivery of every metric", async () => {
+    const credits: JSONObject = summaryMetric(
+      "amazonaws.com/AWS/EC2/CPUCreditBalance",
+      [
+        summaryPoint({
+          namespace: "AWS/EC2",
+          metricName: "CPUCreditBalance",
+          dimensions: { InstanceId: "i-1" },
+          count: 5,
+          sum: 390,
+        }),
+      ],
+    );
+    const cpu: JSONObject = summaryMetric(
+      "amazonaws.com/AWS/EC2/CPUUtilization",
+      [
+        summaryPoint({
+          namespace: "AWS/EC2",
+          metricName: "CPUUtilization",
+          dimensions: { InstanceId: "i-1" },
+          count: 1,
+          sum: 42,
+        }),
+      ],
+    );
+    const shaped: Array<JSONObject> = await shape([resourceOf([credits, cpu])]);
+
+    expect(
+      metricsOf(shaped).map((metric: JSONObject) => {
+        return metric["name"];
+      }),
+    ).toEqual(["amazonaws.com/AWS/EC2/CPUUtilization"]);
+    expect(gaugeValues(shaped)).toEqual([42]);
   });
 
   test("a resource's own aggregate is kept, and its splits left out", async () => {
@@ -1150,15 +1215,18 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
             sum: 0,
           }),
         ]),
-        summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-          summaryPoint({
-            namespace: "AWS/Lambda",
-            metricName: "ConcurrentExecutions",
-            dimensions: { FunctionName: "checkout" },
-            count: 1,
-            sum: 4,
-          }),
-        ]),
+        summaryMetric(
+          "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+          [
+            summaryPoint({
+              namespace: "AWS/Lambda",
+              metricName: "ProvisionedConcurrentExecutions",
+              dimensions: { FunctionName: "checkout" },
+              count: 1,
+              sum: 4,
+            }),
+          ],
+        ),
       ]),
     ]);
 
@@ -1166,7 +1234,7 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
       metricsOf(shaped).map((metric: JSONObject) => {
         return metric["name"];
       }),
-    ).toEqual(["amazonaws.com/AWS/Lambda/ConcurrentExecutions"]);
+    ).toEqual(["amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions"]);
   });
 
   test("the memory holds at most its bound, the oldest let go first", () => {
@@ -1234,7 +1302,7 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
   ): JSONObject {
     return summaryPoint({
       namespace: "AWS/Lambda",
-      metricName: "ConcurrentExecutions",
+      metricName: "ProvisionedConcurrentExecutions",
       dimensions,
       count: 1,
       sum,
@@ -1266,22 +1334,25 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
   test("every metric: one that is not a key one keeps its resource's own aggregate, as the stream's summary, its splits left out", async () => {
     const shaped: Array<JSONObject> = await shape([
       resourceOf([
-        summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-          concurrency(
-            { FunctionName: "checkout", Resource: "checkout:live" },
-            6,
-          ),
-          concurrency({ FunctionName: "checkout" }, 8),
-          concurrency(
-            {
-              FunctionName: "checkout",
-              Resource: "checkout:live",
-              ExecutedVersion: "7",
-            },
-            6,
-          ),
-          concurrency({ FunctionName: "refunds" }, 1),
-        ]),
+        summaryMetric(
+          "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+          [
+            concurrency(
+              { FunctionName: "checkout", Resource: "checkout:live" },
+              6,
+            ),
+            concurrency({ FunctionName: "checkout" }, 8),
+            concurrency(
+              {
+                FunctionName: "checkout",
+                Resource: "checkout:live",
+                ExecutedVersion: "7",
+              },
+              6,
+            ),
+            concurrency({ FunctionName: "refunds" }, 1),
+          ],
+        ),
       ]),
     ]);
     const metric: JSONObject = metricsOf(shaped)[0]!;
@@ -1320,10 +1391,10 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     });
     const shaped: Array<JSONObject> = await shape([
       resourceOf([
-        summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-          concurrency({}, 9),
-          concurrency({ FunctionName: "checkout" }, 8),
-        ]),
+        summaryMetric(
+          "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+          [concurrency({}, 9), concurrency({ FunctionName: "checkout" }, 8)],
+        ),
         summaryMetric("amazonaws.com/Checkout/Orders/Placed", [
           custom,
           customAll,
@@ -1376,9 +1447,10 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     await shape(
       [
         resourceOf([
-          summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-            concurrency({ FunctionName: "checkout" }, 8),
-          ]),
+          summaryMetric(
+            "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+            [concurrency({ FunctionName: "checkout" }, 8)],
+          ),
         ]),
       ],
       memory,
@@ -1387,12 +1459,15 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
     const later: Array<JSONObject> = await shape(
       [
         resourceOf([
-          summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-            concurrency(
-              { FunctionName: "checkout", Resource: "checkout:live" },
-              6,
-            ),
-          ]),
+          summaryMetric(
+            "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+            [
+              concurrency(
+                { FunctionName: "checkout", Resource: "checkout:live" },
+                6,
+              ),
+            ],
+          ),
           summaryMetric("amazonaws.com/AWS/Lambda/ClaimedAccountConcurrency", [
             summaryPoint({
               namespace: "AWS/Lambda",
@@ -1451,10 +1526,13 @@ describe("the key metrics, shaped as the connection's read writes them", () => {
 
   test("every metric: a resource whose metrics have no splits is handed back as it was, the very object", async () => {
     const resource: JSONObject = resourceOf([
-      summaryMetric("amazonaws.com/AWS/Lambda/ConcurrentExecutions", [
-        concurrency({ FunctionName: "checkout" }, 8),
-        concurrency({ FunctionName: "refunds" }, 1),
-      ]),
+      summaryMetric(
+        "amazonaws.com/AWS/Lambda/ProvisionedConcurrentExecutions",
+        [
+          concurrency({ FunctionName: "checkout" }, 8),
+          concurrency({ FunctionName: "refunds" }, 1),
+        ],
+      ),
     ]);
     const shaped: Array<JSONObject> = await shape([resource]);
 

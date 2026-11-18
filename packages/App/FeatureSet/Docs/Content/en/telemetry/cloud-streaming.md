@@ -24,7 +24,7 @@ flowchart TB
 
 - **One stack in each Region.** The command deploys a CloudFormation stack in each Region you stream from. Its metric stream and log subscription filters hand everything to two Firehose streams, and Firehose delivers it to OneUptime over HTTPS.
 - **The stream key says whose it is.** Firehose sends the connection's stream key with every delivery. The key names the connection, and so the project: nothing in a delivery decides where it is written. OneUptime keeps only the key's SHA-256.
-- **The reads leave streamed metrics to the stream.** While a stream delivers a namespace of a Region, the connection's reads stop writing that namespace's metrics, so no data point is counted twice. The reads go on finding resources, their health and their changes, and take a namespace back after 15 minutes without a delivery.
+- **The reads leave streamed metrics to the stream.** While a stream delivers a namespace of a Region, the connection's reads stop writing that namespace's metrics, so no data point is counted twice. They still write the key metrics a stream leaves to them, such as an S3 bucket's daily size and the key metrics added after streams began, which an older stack does not carry. The reads go on finding resources, their health and their changes, and take a namespace back after 15 minutes without a delivery.
 - **Nothing is lost while OneUptime cannot take it.** Firehose sends a refused batch again for up to an hour, then keeps it in the stack's S3 bucket for 30 days.
 
 ## Before you begin

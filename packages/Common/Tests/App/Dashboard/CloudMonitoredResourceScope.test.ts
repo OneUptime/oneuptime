@@ -6,6 +6,7 @@ import {
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
+  getCloudMonitoredResourceRowGroup,
   isCloudMonitoredResourceScoped,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
@@ -19,7 +20,25 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { CLOUD_ALERT_WINDOWS } from "../../../Types/Monitor/CloudAlertTemplates";
 import RollingTimeUtil from "../../../Types/RollingTime/RollingTimeUtil";
-import { MetricRowAggregation } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
+import {
+  GetMetricRowGroup,
+  MetricRowAggregation,
+  MetricRowGroup,
+  OTHER_METRICS_GROUP_TITLE,
+  getMetricRowGroupHeading,
+  orderMetricNamesByGroup,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
+import {
+  CLOUD_KEY_METRIC_GROUP_LABELS,
+  CLOUD_KEY_METRIC_GROUP_ORDER,
+  CloudKeyMetricGroup,
+} from "../../../Types/Cloud/CloudKeyMetricGroup";
+import {
+  AWS_KEY_METRICS,
+  AZURE_KEY_METRICS,
+  GCP_KEY_METRICS,
+  getAzureStoredMetricName,
+} from "../../../Types/Cloud/CloudKeyMetrics";
 import { getCloudResourceTypeDescriptor } from "../../../Types/Cloud/CloudResourceCatalog";
 import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
 import fs from "fs";
@@ -610,6 +629,332 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
 
         if (file !== "en.json") {
           expect([file, locale[caption]]).not.toEqual([file, caption]);
+        }
+      }
+    }
+  });
+});
+
+/*
+ * The sections a resource's metrics read in, on its Overview's Metrics card
+ * and its Metrics tab: each key metric its connection reads for the type
+ * in its group - Availability, Traffic, Errors, Latency, then what the
+ * resource runs on - the type's most telling first, and every other metric
+ * after them under "Other".
+ */
+describe("getCloudMonitoredResourceRowGroup", () => {
+  const APP_SERVICE: string = "Microsoft.Web/sites";
+
+  function sectionsOf(provider: string, type: string): GetMetricRowGroup {
+    const getRowGroup: GetMetricRowGroup | undefined =
+      getCloudMonitoredResourceRowGroup({
+        cloudProvider: provider,
+        cloudResourceType: type,
+      });
+
+    expect(getRowGroup).toBeDefined();
+
+    return getRowGroup!;
+  }
+
+  // The list top down: a heading as "# Errors", a row as its name.
+  function listOf(
+    getRowGroup: GetMetricRowGroup,
+    names: Array<string>,
+  ): Array<string> {
+    const ordered: Array<string> = orderMetricNamesByGroup(names, getRowGroup);
+    const lines: Array<string> = [];
+
+    ordered.forEach((name: string, index: number) => {
+      const heading: string | null = getMetricRowGroupHeading({
+        names: ordered,
+        index,
+        getRowGroup,
+      });
+
+      if (heading) {
+        lines.push(`# ${heading}`);
+      }
+
+      lines.push(name);
+    });
+
+    return lines;
+  }
+
+  test("the issue's App Service reads its five metrics by what they are about, and an app's own after them", () => {
+    expect(
+      listOf(sectionsOf(CloudProvider.Azure, APP_SERVICE), [
+        "azure_memoryworkingset_average",
+        "process.runtime.dotnet.gc.collections.count",
+        "azure_cputime_total",
+        "azure_http4xx_total",
+        "azure_requests_total",
+        "azure_http5xx_total",
+        "azure_httpresponsetime_average",
+        "azure_http2xx_total",
+      ]),
+    ).toEqual([
+      "# Traffic",
+      "azure_requests_total",
+      "azure_http2xx_total",
+      "# Errors",
+      "azure_http5xx_total",
+      "azure_http4xx_total",
+      "# Latency",
+      "azure_httpresponsetime_average",
+      "# Compute",
+      "azure_cputime_total",
+      "# Memory",
+      "azure_memoryworkingset_average",
+      "# Other",
+      "process.runtime.dotnet.gc.collections.count",
+    ]);
+  });
+
+  test("a section is the key metric's group, its heading the group's word, its order the groups' and its place the type's", () => {
+    expect(
+      sectionsOf(CloudProvider.Azure, APP_SERVICE)("azure_http4xx_total"),
+    ).toEqual({
+      key: CloudKeyMetricGroup.Errors,
+      title: "Errors",
+      order: CLOUD_KEY_METRIC_GROUP_ORDER.indexOf(CloudKeyMetricGroup.Errors),
+      rank: 2,
+    });
+    expect(
+      sectionsOf(
+        CloudProvider.AWS,
+        "AWS::EC2::Instance",
+      )("amazonaws.com/AWS/EC2/StatusCheckFailed"),
+    ).toEqual({
+      key: CloudKeyMetricGroup.Availability,
+      title: "Availability",
+      order: 0,
+      rank: 3,
+    });
+    expect(
+      sectionsOf(
+        CloudProvider.GCP,
+        "gce_instance",
+      )("compute.googleapis.com/instance/cpu/utilization"),
+    ).toEqual({
+      key: CloudKeyMetricGroup.Compute,
+      title: "Compute",
+      order: CLOUD_KEY_METRIC_GROUP_ORDER.indexOf(CloudKeyMetricGroup.Compute),
+      rank: 0,
+    });
+  });
+
+  test("an Azure metric is in a section of its own resource's type only", () => {
+    // CPU time is an App Service's key metric, and no plan's.
+    expect(
+      sectionsOf(CloudProvider.Azure, APP_SERVICE)("azure_cputime_total"),
+    ).toBeDefined();
+    expect(
+      sectionsOf(
+        CloudProvider.Azure,
+        "Microsoft.Web/serverfarms",
+      )("azure_cputime_total"),
+    ).toBeUndefined();
+    // As the catalog stores the type, and as Azure cases it.
+    expect(
+      sectionsOf(
+        CloudProvider.Azure,
+        "microsoft.web/sites",
+      )("AZURE_REQUESTS_TOTAL")?.key,
+    ).toBe(CloudKeyMetricGroup.Traffic);
+  });
+
+  test("a Cloud Run job's container CPU comes where the job's metrics place it, a revision's where the revision's do", () => {
+    const cpu: string = "run.googleapis.com/container/cpu/utilizations";
+
+    expect(
+      sectionsOf(CloudProvider.GCP, "cloud_run_revision")(cpu),
+    ).toMatchObject({
+      key: CloudKeyMetricGroup.Compute,
+      rank: 3,
+    });
+    expect(sectionsOf(CloudProvider.GCP, "cloud_run_job")(cpu)).toMatchObject({
+      key: CloudKeyMetricGroup.Compute,
+      rank: 2,
+    });
+  });
+
+  test("every key metric of every type is in its own group's section, whatever it is stored as", () => {
+    const expectSection: (
+      section: MetricRowGroup | undefined,
+      group: CloudKeyMetricGroup,
+      where: string,
+    ) => void = (
+      section: MetricRowGroup | undefined,
+      group: CloudKeyMetricGroup,
+      where: string,
+    ): void => {
+      expect({ where, key: section?.key, title: section?.title }).toEqual({
+        where,
+        key: group,
+        title: CLOUD_KEY_METRIC_GROUP_LABELS[group],
+      });
+    };
+
+    for (const entry of AZURE_KEY_METRICS) {
+      const getRowGroup: GetMetricRowGroup = sectionsOf(
+        CloudProvider.Azure,
+        entry.type,
+      );
+      const seen: Set<string> = new Set<string>();
+
+      for (const metric of entry.metrics) {
+        const stored: string = getAzureStoredMetricName(metric.name, "average");
+
+        // Two names of one type stored alike: the first keeps the name.
+        if (seen.has(stored)) {
+          continue;
+        }
+        seen.add(stored);
+
+        expectSection(
+          getRowGroup(stored),
+          metric.group,
+          `${entry.type} ${metric.name}`,
+        );
+      }
+    }
+
+    for (const entry of AWS_KEY_METRICS) {
+      const getRowGroup: GetMetricRowGroup = sectionsOf(CloudProvider.AWS, "");
+
+      for (const metric of entry.metrics) {
+        expectSection(
+          getRowGroup(`amazonaws.com/${entry.namespace}/${metric.metricName}`),
+          metric.group,
+          `${entry.namespace} ${metric.metricName}`,
+        );
+      }
+    }
+
+    for (const entry of GCP_KEY_METRICS) {
+      const getRowGroup: GetMetricRowGroup = sectionsOf(
+        CloudProvider.GCP,
+        entry.resourceType,
+      );
+
+      for (const metric of entry.metrics) {
+        expectSection(
+          getRowGroup(metric.metricType),
+          metric.group,
+          `${entry.resourceType} ${metric.metricType}`,
+        );
+      }
+    }
+  });
+
+  test("a row read without its provider reads as one list, as before", () => {
+    expect(getCloudMonitoredResourceRowGroup(null)).toBeUndefined();
+    expect(getCloudMonitoredResourceRowGroup(undefined)).toBeUndefined();
+    expect(getCloudMonitoredResourceRowGroup({})).toBeUndefined();
+    expect(
+      getCloudMonitoredResourceRowGroup({
+        cloudProvider: " ",
+        cloudResourceType: APP_SERVICE,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a metric no connection reads as a key metric, or of a provider with none, is in no section", () => {
+    const appService: GetMetricRowGroup = sectionsOf(
+      CloudProvider.Azure,
+      APP_SERVICE,
+    );
+
+    expect(appService("http.server.request.duration")).toBeUndefined();
+    expect(appService("azure_percentage_cpu_average")).toBeUndefined();
+    expect(appService("")).toBeUndefined();
+    expect(sectionsOf("oracle", "oci_instance")("cpu")).toBeUndefined();
+  });
+
+  /*
+   * A heading is drawn in the reader's language: each group's word and
+   * "Other" are Dashboard keys every language words, and the group file is
+   * one of the extractor's "keys" roots, so its words stay in the locales.
+   */
+  test("each heading is a Dashboard word in every language it ships", () => {
+    const dashboardDir: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+    );
+    const extractor: string = fs.readFileSync(
+      path.join(dashboardDir, "scripts", "i18n", "ExtractStrings.ts"),
+      "utf8",
+    );
+    const root: string = '"packages/Common/Types/Cloud/CloudKeyMetricGroup.ts"';
+
+    expect(extractor).toContain(root);
+    expect(
+      extractor
+        .slice(extractor.indexOf(root) + root.length)
+        .match(/^,\s*kind: "keys"/),
+    ).not.toBeNull();
+
+    const sameEverywhere: Set<string> = new Set<string>(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(dashboardDir, "i18n", "SameAsEnglish.json"),
+          "utf8",
+        ),
+      ) as Array<string>,
+    );
+    const headings: Array<string> = [
+      ...CLOUD_KEY_METRIC_GROUP_ORDER.map(
+        (group: CloudKeyMetricGroup): string => {
+          return CLOUD_KEY_METRIC_GROUP_LABELS[group];
+        },
+      ),
+      OTHER_METRICS_GROUP_TITLE,
+    ];
+
+    for (const code of SUPPORTED_DASHBOARD_LANGUAGE_CODES) {
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(
+          path.join(dashboardDir, "src", "Locales", `${code}.json`),
+          "utf8",
+        ),
+      ) as Record<string, unknown>;
+      const progressFile: string = path.join(
+        dashboardDir,
+        "i18n",
+        "Progress",
+        `${code}.json`,
+      );
+      const keptAsWritten: Set<string> = new Set<string>(
+        fs.existsSync(progressFile)
+          ? (
+              JSON.parse(fs.readFileSync(progressFile, "utf8")) as {
+                sameAsEnglish?: Array<string>;
+              }
+            ).sameAsEnglish || []
+          : [],
+      );
+
+      for (const heading of headings) {
+        const word: unknown = locale[heading];
+
+        expect([code, heading, typeof word]).toEqual([code, heading, "string"]);
+        expect((word as string).trim().length).toBeGreaterThan(0);
+
+        // A word kept as English is one the language keeps so on purpose.
+        if (code !== "en" && word === heading) {
+          expect([
+            code,
+            heading,
+            sameEverywhere.has(heading) || keptAsWritten.has(heading),
+          ]).toEqual([code, heading, true]);
         }
       }
     }

@@ -120,7 +120,10 @@ import {
   CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
   CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
-import { GetMetricRowAggregation } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
+import {
+  GetMetricRowAggregation,
+  GetMetricRowGroup,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricRowScope";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -260,5 +263,54 @@ describe("the Overview's Metrics card", () => {
       }),
     );
     expect(seen.size).toBe(1);
+  });
+});
+
+/*
+ * The card lists a resource's key metrics in sections, as its Metrics tab
+ * does (#9505). The list reorders whenever its sections change, so the page
+ * keeps one across its renders.
+ */
+describe("the Overview's Metrics card in sections", () => {
+  test("hands the list an App Service's sections, the same ones on each of the page's renders", async () => {
+    const view: ReturnType<typeof render> = await openOverview(
+      CloudProvider.Azure,
+      "Microsoft.Web/sites",
+      "shop",
+    );
+    const getRowGroup: GetMetricRowGroup = viewerProps()[
+      "getRowGroup"
+    ] as GetMetricRowGroup;
+
+    expect(typeof getRowGroup).toBe("function");
+    expect(getRowGroup("azure_http5xx_total")?.title).toBe("Errors");
+    expect(getRowGroup("azure_requests_total")?.title).toBe("Traffic");
+    expect(getRowGroup("app.orders.placed")).toBeUndefined();
+
+    const rendersBefore: number = mockViewerProps.length;
+
+    await act(async () => {
+      view.rerender(
+        <CloudMonitoredResourceOverview {...({} as PageComponentProps)} />,
+      );
+    });
+
+    expect(mockViewerProps.length).toBeGreaterThan(rendersBefore);
+    expect(
+      new Set(
+        mockViewerProps.map((props: Record<string, unknown>) => {
+          return props["getRowGroup"];
+        }),
+      ).size,
+    ).toBe(1);
+  });
+
+  test("a resource of each cloud gets its own sections", async () => {
+    await openOverview(CloudProvider.AWS, "AWS::EC2::Instance", "web-01");
+    expect(
+      (viewerProps()["getRowGroup"] as GetMetricRowGroup)(
+        "amazonaws.com/AWS/EC2/StatusCheckFailed",
+      )?.title,
+    ).toBe("Availability");
   });
 });

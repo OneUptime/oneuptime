@@ -269,7 +269,7 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | リソース | 使用中のすべてのリージョンにある、OneUptime が知っている種類のすべてのリソース (Cloud Control から) | サブスクリプション内のすべてのリソース (Resource Graph から) | プロジェクト内のすべてのリソース (Cloud Asset Inventory から) |
-| メトリクス | 各サービスの主要なメトリクス (インスタンスの CPU、ネットワーク、ステータス チェックなど) | リソースごとに最大 8 個の主要なメトリクス | 各リソース タイプの主要なメトリクス |
+| メトリクス | 各サービスの主要なメトリクス (インスタンスの CPU、ネットワーク、ステータス チェックなど) | リソースごとに最大 20 個の主要なメトリクス | 各リソース タイプの主要なメトリクス |
 | 変更 | CloudTrail の管理イベント | アクティビティ ログの管理イベント | Admin Activity 監査ログ |
 | ヘルス イベント | AWS Health | Service Health と Resource Health | Service Health |
 | コスト | 毎日のコストを、サービスとリージョン別に、「リソースごとのコスト」がオンならリソース別にも Cost Explorer から | 毎日のコストを、リソースとサービス別に Cost Management から | 毎日のコストを、サービス、リージョン、リソース別に BigQuery への課金エクスポートから |

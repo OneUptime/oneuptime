@@ -61,12 +61,16 @@ import MetricUtil from "./Utils/Metrics";
 import {
   FetchMetricRowValueOverrides,
   GetMetricRowAggregation,
+  GetMetricRowGroup,
   MetricRowAggregation,
   MetricRowValueOverride,
   MetricRowValueOverrideMap,
+  getMetricRowGroupHeading,
   getMetricServiceIdsByName,
+  orderMetricNamesByGroup,
   resolveMetricRowValueOverride,
 } from "./Utils/MetricRowScope";
+import MetricRowGroupHeading from "./MetricRowGroupHeading";
 import {
   DatabaseTimePoint,
   getCompleteBucketSeries,
@@ -536,6 +540,17 @@ interface Props {
    * referentially stable: the sparklines refetch when it changes.
    */
   getRowAggregation?: GetMetricRowAggregation | undefined;
+  /*
+   * The section each row is listed in, for a host that knows what its
+   * metrics are about (Utils/MetricRowScope, 4.): a cloud resource's key
+   * metrics read in Availability, Traffic, Errors, Latency and the rest,
+   * most important first, each under its heading, and its other metrics
+   * after them. A list scoped to the names its attributes match pages
+   * through them in that order; any other list orders each page so.
+   * Undefined: one list in name order, as before. Must be referentially
+   * stable: the list reorders when it changes.
+   */
+  getRowGroup?: GetMetricRowGroup | undefined;
   /*
    * The unit a row's value is in, for a host that knows a metric's declared
    * unit is wrong in its scope (MariaDB reports `mysql.buffer_pool.limit`,
@@ -1408,36 +1423,125 @@ const MetricsViewer: FunctionComponent<Props> = (
     serviceTokenResolution,
   ]);
 
+  /*
+   * A list in sections whose names are known before it is read - scoped to
+   * the names its attributes match, with no service restriction - pages
+   * through those names in section order (orderMetricNamesByGroup): page 1
+   * is the most important metrics, whatever their names. Null for any other
+   * list, which pages by name and orders each page by section.
+   */
+  const groupPagedNames: Array<string> | null = useMemo(() => {
+    const getRowGroup: GetMetricRowGroup | undefined = props.getRowGroup;
+
+    if (!getRowGroup) {
+      return null;
+    }
+
+    const query: Record<string, unknown> = metricQuery as Record<
+      string,
+      unknown
+    >;
+    const name: unknown = query["name"];
+
+    if (query["services"] !== undefined || !(name instanceof Includes)) {
+      return null;
+    }
+
+    return orderMetricNamesByGroup(
+      (name.values as Array<unknown>).map((value: unknown): string => {
+        return String(value);
+      }),
+      getRowGroup,
+    );
+  }, [metricQuery, props.getRowGroup]);
+
   // Fetch metric list
   const fetchMetrics: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
+      const select: Select<MetricType> = {
+        name: true,
+        description: true,
+        unit: true,
+        services: {
+          _id: true,
+          name: true,
+          serviceColor: true,
+        },
+      } as Select<MetricType>;
+
+      if (groupPagedNames) {
+        const pageNames: Array<string> = groupPagedNames.slice(
+          (page - 1) * pageSize,
+          page * pageSize,
+        );
+        let pageMetrics: Array<MetricType> = [];
+
+        if (pageNames.length > 0) {
+          const result: ModelListResult<MetricType> = await ModelAPI.getList({
+            modelType: MetricType,
+            query: {
+              ...metricQuery,
+              name: new Includes(pageNames),
+            } as Query<MetricType>,
+            limit: pageNames.length,
+            skip: 0,
+            select,
+            sort: { name: SortOrder.Ascending },
+          });
+          const byName: Map<string, MetricType> = new Map();
+
+          for (const metric of result.data || []) {
+            byName.set(metric.name || "", metric);
+          }
+
+          pageMetrics = pageNames
+            .map((name: string): MetricType | undefined => {
+              return byName.get(name);
+            })
+            .filter((metric: MetricType | undefined): metric is MetricType => {
+              return Boolean(metric);
+            });
+        }
+
+        setMetrics(pageMetrics);
+        setTotalCount(groupPagedNames.length);
+        return;
+      }
+
       const result: ModelListResult<MetricType> = await ModelAPI.getList({
         modelType: MetricType,
         query: metricQuery,
         limit: pageSize,
         skip: (page - 1) * pageSize,
-        select: {
-          name: true,
-          description: true,
-          unit: true,
-          services: {
-            _id: true,
-            name: true,
-            serviceColor: true,
-          },
-        },
+        select,
         sort: { name: SortOrder.Ascending },
       });
-      setMetrics(result.data || []);
+      const getRowGroup: GetMetricRowGroup | undefined = props.getRowGroup;
+      const fetched: Array<MetricType> = result.data || [];
+
+      if (getRowGroup) {
+        const order: Array<string> = orderMetricNamesByGroup(
+          fetched.map((metric: MetricType): string => {
+            return metric.name || "";
+          }),
+          getRowGroup,
+        );
+
+        fetched.sort((a: MetricType, b: MetricType): number => {
+          return order.indexOf(a.name || "") - order.indexOf(b.name || "");
+        });
+      }
+
+      setMetrics(fetched);
       setTotalCount(result.count);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [metricQuery, page, pageSize]);
+  }, [metricQuery, page, pageSize, groupPagedNames, props.getRowGroup]);
 
   useEffect(() => {
     /*
@@ -2159,6 +2263,21 @@ const MetricsViewer: FunctionComponent<Props> = (
         ) : undefined
       }
       itemLabel="metrics"
+      renderGroupHeading={
+        props.getRowGroup
+          ? (_metric: MetricType, index: number): ReactElement | null => {
+              const title: string | null = getMetricRowGroupHeading({
+                names: metrics.map((metric: MetricType): string => {
+                  return metric.name || "";
+                }),
+                index,
+                getRowGroup: props.getRowGroup!,
+              });
+
+              return title ? <MetricRowGroupHeading title={title} /> : null;
+            }
+          : undefined
+      }
       renderRow={(metric: MetricType): ReactElement => {
         const name: string = metric.name || "";
         return (

@@ -269,7 +269,7 @@ A lower level's command replaces the AWS policy with the lower one. **Off** adds
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
 | Resources | Every resource of the types OneUptime knows, in every Region you use, from Cloud Control | Every resource in the subscriptions, from Resource Graph | Every resource in the projects, from Cloud Asset Inventory |
-| Metrics | The key metrics of each service, such as an instance's CPU, network and status checks | Up to 8 key metrics per resource | The key metrics of each resource type |
+| Metrics | The key metrics of each service, such as an instance's CPU, network and status checks | Up to 20 key metrics per resource | The key metrics of each resource type |
 | Changes | CloudTrail management events | The Activity Log's administrative events | The Admin Activity audit log |
 | Health events | AWS Health | Service Health and Resource Health | Service Health |
 | Costs | Each day's, by service and Region, and by resource with Costs per resource on, from Cost Explorer | Each day's, by resource and service, from Cost Management | Each day's, by service, Region and resource, from your billing export to BigQuery |

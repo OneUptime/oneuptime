@@ -77,14 +77,7 @@ Cuando la primera suscripción no es aquella en la que OneUptime lee los centros
 
 El flujo lleva las métricas clave que la conexión lee minuto a minuto. Las lecturas siguen escribiendo el resto según su programación: una métrica que leen con un intervalo más grueso, como el almacenamiento usado de un registro de contenedores, y cada métrica clave que una configuración de diagnóstico no puede enviar, que la lista de métricas admitidas de Azure Monitor marca como no exportable en la columna DS Export:
 
-- Máquinas virtuales y conjuntos de escalado: `Network In Total`, `Network Out Total`.
-- Discos: `Composite Disk Read Bytes/sec`, `Composite Disk Write Bytes/sec`, `Composite Disk Read Operations/sec`, `Composite Disk Write Operations/sec`.
-- Cuentas de Azure Cosmos DB: `TotalRequests`, `TotalRequestUnits`, `NormalizedRUConsumption`, `ServerSideLatency`.
-- Cuentas de almacenamiento: `UsedCapacity`.
-- Clústeres de AKS: `kube_pod_status_ready`.
-- Puertas de enlace de aplicaciones: `ApplicationGatewayTotalTime`, `Throughput`.
-- Firewalls: `Throughput`.
-- Puertas de enlace NAT: `ByteCount`, `SNATConnectionCount`, `DatapathAvailability`.
+{{AZURE_STREAM_KEPT_METRICS}}
 
 Un espacio de nombres de Service Bus o Event Hubs no transmite métricas. Las lecturas leen sus métricas clave para cada cola, topic y centro de eventos, y los totales propios del espacio de nombres las suman, mientras que una configuración de diagnóstico envía solo los totales del espacio de nombres, y no envía en absoluto 4 de las 6 métricas clave de un espacio de nombres de Service Bus, ni 2 de las 4 de uno de Event Hubs. Así que las lecturas las escriben todas, haya transmisión o no, y ningún mensaje se cuenta dos veces.
 

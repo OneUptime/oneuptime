@@ -455,7 +455,7 @@ describe("streamed metrics, through the real metrics ingest", () => {
           openTelemetryRequest([
             openTelemetryMetric({
               namespace: "AWS/EC2",
-              metricName: "CPUCreditBalance",
+              metricName: "MetadataNoToken",
               dimensions: { InstanceId: "i-0abc123def" },
               unit: "1",
               count: 5,
@@ -473,7 +473,7 @@ describe("streamed metrics, through the real metrics ingest", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual(
       expect.objectContaining({
-        name: "amazonaws.com/aws/ec2/cpucreditbalance",
+        name: "amazonaws.com/aws/ec2/metadatanotoken",
         metricPointType: MetricPointType.Summary,
         count: 5,
         sum: 390,
@@ -483,6 +483,34 @@ describe("streamed metrics, through the real metrics ingest", () => {
         summaryValues: [76, 80],
       }),
     );
+  });
+
+  /*
+   * A key metric the connection's read writes whether the account streams
+   * or not (AwsKeyMetric.isStreamed false) stores nothing from a stream:
+   * its one series is the read's gauge.
+   */
+  test("a key metric the read writes stores no row from a stream of every metric", async () => {
+    await ingest(
+      await decode([
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUCreditBalance",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "1",
+              count: 5,
+              sum: 390,
+              min: 76,
+              max: 80,
+            }),
+          ]),
+        ]),
+      ]),
+    );
+
+    expect(rowsFor(MetricService)).toHaveLength(0);
   });
 });
 
@@ -497,7 +525,7 @@ describe("Every metric, through the real metrics ingest", () => {
     ): JSONObject => {
       return openTelemetryMetric({
         namespace: "AWS/Lambda",
-        metricName: "ConcurrentExecutions",
+        metricName: "ProvisionedConcurrentExecutions",
         dimensions,
         unit: "1",
         count: 1,
@@ -534,7 +562,7 @@ describe("Every metric, through the real metrics ingest", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual(
       expect.objectContaining({
-        name: "amazonaws.com/aws/lambda/concurrentexecutions",
+        name: "amazonaws.com/aws/lambda/provisionedconcurrentexecutions",
         metricPointType: MetricPointType.Summary,
         sum: 8,
       }),

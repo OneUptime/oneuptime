@@ -1,0 +1,715 @@
+{
+  "source": "https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/metrics-index (the generated tables, from github.com/MicrosoftDocs/azure-monitor-docs, articles/azure-monitor/reference/supported-metrics)",
+  "readOn": "2026-11-18",
+  "types": {
+    "Microsoft.Compute/virtualMachines": {
+      "page": "microsoft-compute-virtualmachines-metrics.md",
+      "pageDate": "11/09/2026",
+      "metrics": {
+        "Percentage CPU": {"displayName": "Percentage CPU", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Available Memory Bytes": {"displayName": "Available Memory Bytes", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Network In Total": {"displayName": "Network In Total", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Network Out Total": {"displayName": "Network Out Total", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Read Bytes": {"displayName": "Disk Read Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Write Bytes": {"displayName": "Disk Write Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "VmAvailabilityMetric": {"displayName": "VM Availability Metric", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CPU Credits Remaining": {"displayName": "CPU Credits Remaining", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Available Memory Percentage": {"displayName": "Available Memory Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Read Operations/Sec": {"displayName": "Disk Read Operations/Sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Write Operations/Sec": {"displayName": "Disk Write Operations/Sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OS Disk Queue Depth": {"displayName": "OS Disk Queue Depth", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OS Disk Latency": {"displayName": "OS Disk Latency", "unit": "Milliseconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "VM Uncached IOPS Consumed Percentage": {"displayName": "VM Uncached IOPS Consumed Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "VM Uncached Bandwidth Consumed Percentage": {"displayName": "VM Uncached Bandwidth Consumed Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Inbound Flows": {"displayName": "Inbound Flows", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Outbound Flows": {"displayName": "Outbound Flows", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Compute/virtualMachineScaleSets": {
+      "page": "microsoft-compute-virtualmachinescalesets-metrics.md",
+      "pageDate": "11/09/2026",
+      "metrics": {
+        "Percentage CPU": {"displayName": "Percentage CPU", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Available Memory Bytes": {"displayName": "Available Memory Bytes", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Network In Total": {"displayName": "Network In Total", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Network Out Total": {"displayName": "Network Out Total", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "VmAvailabilityMetric": {"displayName": "VM Availability Metric", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CPU Credits Remaining": {"displayName": "CPU Credits Remaining", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Available Memory Percentage": {"displayName": "Available Memory Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Read Bytes": {"displayName": "Disk Read Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Write Bytes": {"displayName": "Disk Write Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Read Operations/Sec": {"displayName": "Disk Read Operations/Sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Disk Write Operations/Sec": {"displayName": "Disk Write Operations/Sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OS Disk Queue Depth": {"displayName": "OS Disk Queue Depth", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "VM Uncached IOPS Consumed Percentage": {"displayName": "VM Uncached IOPS Consumed Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Inbound Flows": {"displayName": "Inbound Flows", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Outbound Flows": {"displayName": "Outbound Flows", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Compute/disks": {
+      "page": "microsoft-compute-disks-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Composite Disk Read Bytes/sec": {"displayName": "Disk Read Bytes/sec", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "Composite Disk Write Bytes/sec": {"displayName": "Disk Write Bytes/sec", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "Composite Disk Read Operations/sec": {"displayName": "Disk Read Operations/sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "Composite Disk Write Operations/sec": {"displayName": "Disk Write Operations/sec", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DiskPaidBurstIOPS": {"displayName": "Disk On-demand Burst Operations", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Web/sites": {
+      "page": "microsoft-web-sites-metrics.md",
+      "pageDate": "11/03/2026",
+      "metrics": {
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http5xx": {"displayName": "Http Server Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http4xx": {"displayName": "Http 4xx", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "HttpResponseTime": {"displayName": "Response Time", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CpuTime": {"displayName": "CPU Time", "unit": "Seconds", "aggregations": ["Count", "Total", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryWorkingSet": {"displayName": "Memory working set", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "FunctionExecutionCount": {"displayName": "Function Execution Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http2xx": {"displayName": "Http 2xx", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RequestsInApplicationQueue": {"displayName": "Requests In Application Queue", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PrivateBytes": {"displayName": "Private Bytes", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Threads": {"displayName": "Thread Count", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Handles": {"displayName": "Handle Count", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "AppConnections": {"displayName": "Connections", "unit": "Count", "aggregations": ["Average", "Count", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesReceived": {"displayName": "Data In", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesSent": {"displayName": "Data Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "FunctionExecutionUnits": {"displayName": "Function Execution Units", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "FileSystemUsage": {"displayName": "File System Usage", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Web/serverfarms": {
+      "page": "microsoft-web-serverfarms-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "CpuPercentage": {"displayName": "CPU Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryPercentage": {"displayName": "Memory Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "HttpQueueLength": {"displayName": "Http Queue Length", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DiskQueueLength": {"displayName": "Disk Queue Length", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesReceived": {"displayName": "Data In", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesSent": {"displayName": "Data Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TcpEstablished": {"displayName": "TCP Established", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Web/staticSites": {
+      "page": "microsoft-web-staticsites-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "SiteHits": {"displayName": "SiteHits", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false},
+        "SiteErrors": {"displayName": "SiteErrors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false},
+        "FunctionHits": {"displayName": "FunctionHits", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false},
+        "FunctionErrors": {"displayName": "FunctionErrors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false},
+        "CdnRequestCount": {"displayName": "CdnRequestCount", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false},
+        "BytesSent": {"displayName": "Data Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Sql/servers/databases": {
+      "page": "microsoft-sql-servers-databases-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "cpu_percent": {"displayName": "CPU percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "dtu_consumption_percent": {"displayName": "DTU percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_percent": {"displayName": "Data space used percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connection_failed": {"displayName": "Failed Connections : System Errors", "unit": "Count", "aggregations": ["Total", "Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "deadlock": {"displayName": "Deadlocks", "unit": "Count", "aggregations": ["Total", "Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "sessions_percent": {"displayName": "Sessions percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "availability": {"displayName": "Availability", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum", "Count", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "workers_percent": {"displayName": "Workers percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "log_write_percent": {"displayName": "Log IO percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "physical_data_read_percent": {"displayName": "Data IO percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage": {"displayName": "Data space used", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connection_successful": {"displayName": "Successful Connections", "unit": "Count", "aggregations": ["Total", "Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connection_failed_user_error": {"displayName": "Failed Connections : User Errors", "unit": "Count", "aggregations": ["Total", "Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "blocked_by_firewall": {"displayName": "Blocked by Firewall", "unit": "Count", "aggregations": ["Total", "Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "sessions_count": {"displayName": "Sessions count", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Sql/servers/elasticpools": {
+      "page": "microsoft-sql-servers-elasticpools-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "cpu_percent": {"displayName": "CPU percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "eDTU_used": {"displayName": "eDTU used", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_percent": {"displayName": "Data space used percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "dtu_consumption_percent": {"displayName": "DTU percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "workers_percent": {"displayName": "Workers percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "sessions_percent": {"displayName": "Sessions percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "log_write_percent": {"displayName": "Log IO percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "physical_data_read_percent": {"displayName": "Data IO percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "allocated_data_storage_percent": {"displayName": "Data space allocated percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_used": {"displayName": "Data space used", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Sql/managedInstances": {
+      "page": "microsoft-sql-managedinstances-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "avg_cpu_percent": {"displayName": "Average CPU percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_space_used_mb": {"displayName": "Storage space used", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "avg_workers_percent": {"displayName": "Workers percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "reserved_storage_mb": {"displayName": "Storage space reserved", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "io_requests": {"displayName": "IO requests count", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "io_bytes_read": {"displayName": "IO bytes read", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "io_bytes_written": {"displayName": "IO bytes written", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.DBforPostgreSQL/flexibleServers": {
+      "page": "microsoft-dbforpostgresql-flexibleservers-metrics.md",
+      "pageDate": "10/16/2026",
+      "metrics": {
+        "cpu_percent": {"displayName": "CPU percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "memory_percent": {"displayName": "Memory percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_percent": {"displayName": "Storage percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "active_connections": {"displayName": "Active Connections", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connections_failed": {"displayName": "Failed Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "is_db_alive": {"displayName": "Database Is Alive", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cpu_credits_remaining": {"displayName": "CPU Credits Remaining", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_used": {"displayName": "Storage used", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "txlogs_storage_used": {"displayName": "Transaction Log Storage Used", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "disk_iops_consumed_percentage": {"displayName": "Disk IOPS Consumed Percentage", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "disk_queue_depth": {"displayName": "Disk Queue Depth", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "read_iops": {"displayName": "Read IOPS", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "write_iops": {"displayName": "Write IOPS", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connections_succeeded": {"displayName": "Succeeded Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "maximum_used_transactionIDs": {"displayName": "Maximum Used Transaction IDs", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "network_bytes_ingress": {"displayName": "Network In", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "network_bytes_egress": {"displayName": "Network Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "physical_replication_delay_in_seconds": {"displayName": "Read Replica Lag", "unit": "Seconds", "aggregations": ["Maximum", "Minimum", "Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.DBforMySQL/flexibleServers": {
+      "page": "microsoft-dbformysql-flexibleservers-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "cpu_percent": {"displayName": "Host CPU Percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "memory_percent": {"displayName": "Memory Percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_percent": {"displayName": "Storage Percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "active_connections": {"displayName": "Active Connections", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "aborted_connections": {"displayName": "Aborted Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "io_consumption_percent": {"displayName": "Storage IO Percent", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "storage_used": {"displayName": "Storage Used", "unit": "Bytes", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "total_connections": {"displayName": "Total Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Queries": {"displayName": "Queries", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Slow_queries": {"displayName": "Slow Queries", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Threads_running": {"displayName": "Threads Running", "unit": "Count", "aggregations": ["Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "lock_deadlocks": {"displayName": "MySQL Lock Deadlocks", "unit": "Count", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "network_bytes_ingress": {"displayName": "Host Network In", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "network_bytes_egress": {"displayName": "Host Network Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "replication_lag": {"displayName": "Replication Lag In Seconds", "unit": "Seconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.DocumentDB/databaseAccounts": {
+      "page": "microsoft-documentdb-databaseaccounts-metrics.md",
+      "pageDate": "11/09/2026",
+      "metrics": {
+        "TotalRequests": {"displayName": "Total Requests", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "TotalRequestUnits": {"displayName": "Total Request Units", "unit": "Count", "aggregations": ["Total", "Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "NormalizedRUConsumption": {"displayName": "Normalized RU Consumption", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerSideLatency": {"displayName": "(deprecated) Server Side Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerSideLatencyGateway": {"displayName": "Server Side Latency Gateway", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerSideLatencyDirect": {"displayName": "Server Side Latency Direct", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ThrottledRequestPercentage": {"displayName": "Throttled Request Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ReplicationLatency": {"displayName": "P99 Replication Latency", "unit": "MilliSeconds", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServiceAvailability": {"displayName": "Service Availability", "unit": "Percent", "aggregations": ["Minimum", "Average", "Maximum"], "timeGrains": ["PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Cache/redis": {
+      "page": "microsoft-cache-redis-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "percentProcessorTime": {"displayName": "CPU", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "usedmemorypercentage": {"displayName": "Used Memory Percentage", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connectedclients": {"displayName": "Connected Clients", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "serverLoad": {"displayName": "Server Load", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "errors": {"displayName": "Errors", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "operationsPerSecond": {"displayName": "Operations Per Second", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cacheRead": {"displayName": "Cache Read", "unit": "BytesPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cacheWrite": {"displayName": "Cache Write", "unit": "BytesPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cachehits": {"displayName": "Cache Hits", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cachemisses": {"displayName": "Cache Misses", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "evictedkeys": {"displayName": "Evicted Keys", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "expiredkeys": {"displayName": "Expired Keys", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "totalkeys": {"displayName": "Total Keys", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "usedmemory": {"displayName": "Used Memory", "unit": "Bytes", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "LatencyP99": {"displayName": "99th percentile latency", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "GeoReplicationHealthy": {"displayName": "Geo-replication Healthy", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Cache/redisEnterprise": {
+      "page": "microsoft-cache-redisenterprise-metrics.md",
+      "pageDate": "09/08/2026",
+      "metrics": {
+        "serverLoad": {"displayName": "Server Load", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "percentProcessorTime": {"displayName": "CPU", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "usedmemorypercentage": {"displayName": "Used Memory Percentage", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "usedmemory": {"displayName": "Used Memory", "unit": "Bytes", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "connectedclients": {"displayName": "Connected Clients", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "operationsPerSecond": {"displayName": "Operations Per Second", "unit": "CountPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cacheRead": {"displayName": "Cache Read", "unit": "BytesPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cacheWrite": {"displayName": "Cache Write", "unit": "BytesPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cachehits": {"displayName": "Cache Hits", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cachemisses": {"displayName": "Cache Misses", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "evictedkeys": {"displayName": "Evicted Keys", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "expiredkeys": {"displayName": "Expired Keys", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "totalkeys": {"displayName": "Total Keys", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "cacheLatency": {"displayName": "Cache Latency", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "geoReplicationHealthy": {"displayName": "Geo Replication Healthy", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Storage/storageAccounts": {
+      "page": "microsoft-storage-storageaccounts-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Transactions": {"displayName": "Transactions", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Availability": {"displayName": "Availability", "unit": "Percent", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SuccessE2ELatency": {"displayName": "Success E2E Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "UsedCapacity": {"displayName": "Used capacity", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
+        "SuccessServerLatency": {"displayName": "Success Server Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Ingress": {"displayName": "Ingress", "unit": "Bytes", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Egress": {"displayName": "Egress", "unit": "Bytes", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.KeyVault/vaults": {
+      "page": "microsoft-keyvault-vaults-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "ServiceApiHit": {"displayName": "Total Service Api Hits", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ServiceApiLatency": {"displayName": "Overall Service Api Latency", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Availability": {"displayName": "Overall Vault Availability", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SaturationShoebox": {"displayName": "Overall Vault Saturation", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.ServiceBus/namespaces": {
+      "page": "microsoft-servicebus-namespaces-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "IncomingMessages": {"displayName": "Incoming Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OutgoingMessages": {"displayName": "Outgoing Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ActiveMessages": {"displayName": "Count of active messages in a Queue/Topic.", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DeadletteredMessages": {"displayName": "Count of dead-lettered messages in a Queue/Topic.", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerErrors": {"displayName": "Server Errors.", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ThrottledRequests": {"displayName": "Throttled Requests.", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.EventHub/namespaces": {
+      "page": "microsoft-eventhub-namespaces-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "IncomingMessages": {"displayName": "Incoming Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OutgoingMessages": {"displayName": "Outgoing Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ThrottledRequests": {"displayName": "Throttled Requests.", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerErrors": {"displayName": "Server Errors.", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.EventGrid/topics": {
+      "page": "microsoft-eventgrid-topics-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "PublishSuccessCount": {"displayName": "Published Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PublishFailCount": {"displayName": "Publish Failed Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PublishSuccessLatencyInMs": {"displayName": "Publish Success Latency", "unit": "MilliSeconds", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MatchedEventCount": {"displayName": "Matched Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeliverySuccessCount": {"displayName": "Delivered Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeliveryAttemptFailCount": {"displayName": "Delivery Failed Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DroppedEventCount": {"displayName": "Dropped Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeadLetteredCount": {"displayName": "Dead Lettered Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DestinationProcessingDurationInMs": {"displayName": "Destination Processing Duration", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.EventGrid/systemTopics": {
+      "page": "microsoft-eventgrid-systemtopics-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "PublishSuccessCount": {"displayName": "Published Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PublishFailCount": {"displayName": "Publish Failed Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PublishSuccessLatencyInMs": {"displayName": "Publish Success Latency", "unit": "Milliseconds", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MatchedEventCount": {"displayName": "Matched Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeliverySuccessCount": {"displayName": "Delivered Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeliveryAttemptFailCount": {"displayName": "Delivery Failed Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DroppedEventCount": {"displayName": "Dropped Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeadLetteredCount": {"displayName": "Dead Lettered Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DestinationProcessingDurationInMs": {"displayName": "Destination Processing Duration", "unit": "Milliseconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.EventGrid/namespaces": {
+      "page": "microsoft-eventgrid-namespaces-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "SuccessfulPublishedEvents": {"displayName": "Successful Publish Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "FailedPublishedEvents": {"displayName": "Failed Publish Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "PublishLatencyInMilliseconds": {"displayName": "Publish Operations Latency", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "SuccessfulReceivedEvents": {"displayName": "Successful Received Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DeadLetteredCount": {"displayName": "Dead Lettered Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DroppedEventCount": {"displayName": "Dropped Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "Mqtt.Connections": {"displayName": "MQTT: Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Mqtt.SuccessfulPublishedMessages": {"displayName": "MQTT: Successful Published Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Mqtt.FailedPublishedMessages": {"displayName": "MQTT: Failed Published Messages", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Mqtt.ThrottlingEnforcements": {"displayName": "MQTT: Throttling Enforcements", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Mqtt.Throughput": {"displayName": "MQTT: Throughput", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.ContainerService/managedClusters": {
+      "page": "microsoft-containerservice-managedclusters-metrics.md",
+      "pageDate": "10/05/2026",
+      "metrics": {
+        "node_cpu_usage_percentage": {"displayName": "CPU Usage Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "node_memory_working_set_percentage": {"displayName": "Memory Working Set Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "kube_pod_status_ready": {"displayName": "Number of pods in Ready state", "unit": "Count", "aggregations": ["Total", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": false, "advanced": false},
+        "node_disk_usage_percentage": {"displayName": "Disk Used Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "node_network_in_bytes": {"displayName": "Network In Bytes", "unit": "Bytes", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "node_network_out_bytes": {"displayName": "Network Out Bytes", "unit": "Bytes", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "apiserver_cpu_usage_percentage": {"displayName": "API Server CPU Usage Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "apiserver_memory_usage_percentage": {"displayName": "API Server Memory Usage Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "etcd_database_usage_percentage": {"displayName": "ETCD Database Usage Percentage", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.App/containerApps": {
+      "page": "microsoft-app-containerapps-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "UsageNanoCores": {"displayName": "CPU Usage", "unit": "NanoCores", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "WorkingSetBytes": {"displayName": "Memory Working Set Bytes", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RestartCount": {"displayName": "Total Replica Restart Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ResponseTime": {"displayName": "Average Response Time (Preview)", "unit": "Milliseconds", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CpuPercentage": {"displayName": "CPU Usage Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryPercentage": {"displayName": "Memory Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Replicas": {"displayName": "Replica Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RxBytes": {"displayName": "Network In Bytes", "unit": "Bytes", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TxBytes": {"displayName": "Network Out Bytes", "unit": "Bytes", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.ContainerInstance/containerGroups": {
+      "page": "microsoft-containerinstance-containergroups-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "CpuUsage": {"displayName": "CPU Usage", "unit": "Count", "aggregations": ["Maximum", "Minimum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "MemoryUsage": {"displayName": "Memory Usage", "unit": "Bytes", "aggregations": ["Maximum", "Minimum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "NetworkBytesReceivedPerSecond": {"displayName": "Network Bytes Received Per Second", "unit": "Bytes", "aggregations": ["Maximum", "Minimum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false},
+        "NetworkBytesTransmittedPerSecond": {"displayName": "Network Bytes Transmitted Per Second", "unit": "Bytes", "aggregations": ["Maximum", "Minimum", "Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/loadBalancers": {
+      "page": "microsoft-network-loadbalancers-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "VipAvailability": {"displayName": "Data Path Availability", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DipAvailability": {"displayName": "Health Probe Status", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ByteCount": {"displayName": "Byte Count", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PacketCount": {"displayName": "Packet Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SYNCount": {"displayName": "SYN Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SnatConnectionCount": {"displayName": "SNAT Connection Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "UsedSnatPorts": {"displayName": "Used SNAT Ports", "unit": "Count", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "AllocatedSnatPorts": {"displayName": "Allocated SNAT Ports", "unit": "Count", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Network/applicationGateways": {
+      "page": "microsoft-network-applicationgateways-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "TotalRequests": {"displayName": "Total Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "FailedRequests": {"displayName": "Failed Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "UnhealthyHostCount": {"displayName": "Unhealthy Host Count", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ApplicationGatewayTotalTime": {"displayName": "Application Gateway Total Time", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "Throughput": {"displayName": "Throughput", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "HealthyHostCount": {"displayName": "Healthy Host Count", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BackendLastByteResponseTime": {"displayName": "Backend Last Byte Response Time", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "CurrentConnections": {"displayName": "Current Connections", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesReceived": {"displayName": "Bytes Received", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesSent": {"displayName": "Bytes Sent", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CapacityUnits": {"displayName": "Current Capacity Units", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ComputeUnits": {"displayName": "Current Compute Units", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Network/publicIPAddresses": {
+      "page": "microsoft-network-publicipaddresses-metrics.md",
+      "pageDate": "09/28/2026",
+      "metrics": {
+        "VipAvailability": {"displayName": "Data Path Availability", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ByteCount": {"displayName": "Byte Count", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IfUnderDDoSAttack": {"displayName": "Under DDoS attack or not", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PacketCount": {"displayName": "Packet Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SynCount": {"displayName": "SYN Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PacketsDroppedDDoS": {"displayName": "Inbound packets dropped DDoS", "unit": "CountPerSecond", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/networkInterfaces": {
+      "page": "microsoft-network-networkinterfaces-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "BytesReceivedRate": {"displayName": "Bytes Received", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BytesSentRate": {"displayName": "Bytes Sent", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PacketsReceivedRate": {"displayName": "Packets Received", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PacketsSentRate": {"displayName": "Packets Sent", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/azureFirewalls": {
+      "page": "microsoft-network-azurefirewalls-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "FirewallHealth": {"displayName": "Firewall health state", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Throughput": {"displayName": "Throughput", "unit": "BitsPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "SNATPortUtilization": {"displayName": "SNAT port utilization", "unit": "Percent", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DataProcessed": {"displayName": "Data processed", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "FirewallLatencyPng": {"displayName": "Latency Probe", "unit": "Milliseconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ApplicationRuleHit": {"displayName": "Application rules hit count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "NetworkRuleHit": {"displayName": "Network rules hit count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/natGateways": {
+      "page": "microsoft-network-natgateways-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "ByteCount": {"displayName": "Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "SNATConnectionCount": {"displayName": "SNAT Connection Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "DatapathAvailability": {"displayName": "Datapath Availability", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "PacketCount": {"displayName": "Packets", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "PacketDropCount": {"displayName": "Dropped Packets", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "TotalConnectionCount": {"displayName": "Total SNAT Connection Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Network/virtualNetworkGateways": {
+      "page": "microsoft-network-virtualnetworkgateways-metrics.md",
+      "pageDate": "08/26/2026",
+      "metrics": {
+        "AverageBandwidth": {"displayName": "Gateway S2S Bandwidth", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TunnelAverageBandwidth": {"displayName": "Tunnel Bandwidth", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TunnelIngressBytes": {"displayName": "Tunnel Ingress Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TunnelEgressBytes": {"displayName": "Tunnel Egress Bytes", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TunnelIngressPacketDropCount": {"displayName": "Tunnel Ingress Packet Drop Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TunnelEgressPacketDropCount": {"displayName": "Tunnel Egress Packet Drop Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "BgpPeerStatus": {"displayName": "BGP Peer Status", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
+        "P2SConnectionCount": {"displayName": "P2S Connection Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "P2SBandwidth": {"displayName": "Gateway P2S Bandwidth", "unit": "BytesPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/expressRouteCircuits": {
+      "page": "microsoft-network-expressroutecircuits-metrics.md",
+      "pageDate": "08/26/2026",
+      "metrics": {
+        "BgpAvailability": {"displayName": "Bgp Availability", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ArpAvailability": {"displayName": "Arp Availability", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BitsInPerSecond": {"displayName": "BitsInPerSecond", "unit": "BitsPerSecond", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BitsOutPerSecond": {"displayName": "BitsOutPerSecond", "unit": "BitsPerSecond", "aggregations": ["Total", "Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IngressBandwidthUtilization": {"displayName": "IngressBandwidthUtilization", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "EgressBandwidthUtilization": {"displayName": "EgressBandwidthUtilization", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/frontdoors": {
+      "page": "microsoft-network-frontdoors-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "RequestCount": {"displayName": "Request Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "BackendHealthPercentage": {"displayName": "Backend Health Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TotalLatency": {"displayName": "Total Latency", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "BackendRequestLatency": {"displayName": "Backend Request Latency", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "BackendRequestCount": {"displayName": "Backend Request Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "ResponseSize": {"displayName": "Response Size", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/trafficmanagerprofiles": {
+      "page": "microsoft-network-trafficmanagerprofiles-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "ProbeAgentCurrentEndpointStateByProfileResourceId": {"displayName": "Endpoint Status by Endpoint", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M", "PT1H"], "dsExport": true, "advanced": false},
+        "QpsByEndpoint": {"displayName": "Queries by Endpoint Returned", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M", "PT1H"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Network/dnszones": {
+      "page": "microsoft-network-dnszones-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "QueryVolume": {"displayName": "Query Volume", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1H"], "dsExport": false, "advanced": false},
+        "RecordSetCapacityUtilization": {"displayName": "Record Set Capacity Utilization", "unit": "Percent", "aggregations": ["None", "Average", "Minimum", "Maximum", "Count"], "timeGrains": ["PT1H"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Cdn/profiles": {
+      "page": "microsoft-cdn-profiles-metrics.md",
+      "pageDate": "10/16/2026",
+      "metrics": {
+        "RequestCount": {"displayName": "Request Count", "unit": "Count", "aggregations": ["Average", "Total", "Count"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "Percentage5XX": {"displayName": "Percentage of 5XX", "unit": "Percent", "aggregations": ["Average", "Total", "Count"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "TotalLatency": {"displayName": "Total Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Total", "Count", "Minimum", "Maximum"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "Percentage4XX": {"displayName": "Percentage of 4XX", "unit": "Percent", "aggregations": ["Average", "Total", "Count"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "OriginLatency": {"displayName": "Origin Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Total", "Count", "Minimum", "Maximum"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "OriginHealthPercentage": {"displayName": "Origin Health Percentage", "unit": "Percent", "aggregations": ["Average", "Total", "Count", "Minimum", "Maximum"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "ByteHitRatio": {"displayName": "Byte Hit Ratio", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "OriginRequestCount": {"displayName": "Origin Request Count", "unit": "Count", "aggregations": ["Average", "Total", "Count"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false},
+        "ResponseSize": {"displayName": "Response Size", "unit": "Bytes", "aggregations": ["Average", "Total", "Count", "Minimum", "Maximum"], "timeGrains": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.ApiManagement/service": {
+      "page": "microsoft-apimanagement-service-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Duration": {"displayName": "Overall Duration of Gateway Requests", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Capacity": {"displayName": "Capacity", "unit": "Percent", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BackendDuration": {"displayName": "Duration of Backend Requests", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CpuPercent_Gateway": {"displayName": "CPU Percentage of Gateway", "unit": "Percent", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryPercent_Gateway": {"displayName": "Memory Percentage of Gateway", "unit": "Percent", "aggregations": ["Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.CognitiveServices/accounts": {
+      "page": "microsoft-cognitiveservices-accounts-metrics.md",
+      "pageDate": "10/27/2026",
+      "metrics": {
+        "TotalCalls": {"displayName": "Total Calls", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TotalErrors": {"displayName": "Total Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Latency": {"displayName": "Latency", "unit": "MilliSeconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SuccessfulCalls": {"displayName": "Successful Calls", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ClientErrors": {"displayName": "Client Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ServerErrors": {"displayName": "Server Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "BlockedCalls": {"displayName": "Blocked Calls", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Ratelimit": {"displayName": "Ratelimit", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DataIn": {"displayName": "Data In", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DataOut": {"displayName": "Data Out", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "AzureOpenAIRequests": {"displayName": "Azure OpenAI Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "AzureOpenAIAvailabilityRate": {"displayName": "Azure OpenAI AvailabilityRate", "unit": "Percent", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "AzureOpenAITimeToResponse": {"displayName": "Time to Response", "unit": "MilliSeconds", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ProcessedPromptTokens": {"displayName": "Processed Prompt Tokens", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "GeneratedTokens": {"displayName": "Generated Completion Tokens", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TokenTransaction": {"displayName": "Processed Inference Tokens", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.ContainerRegistry/registries": {
+      "page": "microsoft-containerregistry-registries-metrics.md",
+      "pageDate": "09/08/2026",
+      "metrics": {
+        "TotalPullCount": {"displayName": "Total Pull Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TotalPushCount": {"displayName": "Total Push Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "StorageUsed": {"displayName": "Storage used", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1H"], "dsExport": true, "advanced": false},
+        "SuccessfulPullCount": {"displayName": "Successful Pull Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SuccessfulPushCount": {"displayName": "Successful Push Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Logic/workflows": {
+      "page": "microsoft-logic-workflows-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "RunsStarted": {"displayName": "Runs Started", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RunsFailed": {"displayName": "Runs Failed", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RunLatency": {"displayName": "Run Latency", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RunsSucceeded": {"displayName": "Runs Succeeded", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RunFailurePercentage": {"displayName": "Run Failure Percentage", "unit": "Percent", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "RunThrottledEvents": {"displayName": "Run Throttled Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ActionsFailed": {"displayName": "Actions Failed", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ActionThrottledEvents": {"displayName": "Action Throttled Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TriggersFailed": {"displayName": "Triggers Failed", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.DataFactory/factories": {
+      "page": "microsoft-datafactory-factories-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "PipelineSucceededRuns": {"displayName": "Succeeded pipeline runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PipelineFailedRuns": {"displayName": "Failed pipeline runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "PipelineCancelledRuns": {"displayName": "Cancelled pipeline runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ActivitySucceededRuns": {"displayName": "Succeeded activity runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ActivityFailedRuns": {"displayName": "Failed activity runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TriggerSucceededRuns": {"displayName": "Succeeded trigger runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TriggerFailedRuns": {"displayName": "Failed trigger runs metrics", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IntegrationRuntimeCpuPercentage": {"displayName": "Integration runtime CPU utilization", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IntegrationRuntimeQueueLength": {"displayName": "Integration runtime queue length", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Synapse/workspaces": {
+      "page": "microsoft-synapse-workspaces-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "IntegrationPipelineRunsEnded": {"displayName": "Pipeline runs ended", "unit": "Count", "aggregations": ["Count", "Total"], "timeGrains": ["PT1M", "PT1H"], "dsExport": false, "advanced": false},
+        "IntegrationActivityRunsEnded": {"displayName": "Activity runs ended", "unit": "Count", "aggregations": ["Count", "Total"], "timeGrains": ["PT1M", "PT1H"], "dsExport": false, "advanced": false},
+        "BuiltinSqlPoolRequestsEnded": {"displayName": "Requests ended", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "BuiltinSqlPoolDataProcessedBytes": {"displayName": "Data processed (bytes)", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false}
+      }
+    },
+    "Microsoft.Kusto/clusters": {
+      "page": "microsoft-kusto-clusters-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "KeepAlive": {"displayName": "Keep alive", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CPU": {"displayName": "CPU", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CacheUtilizationFactor": {"displayName": "Cache utilization factor", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IngestionUtilization": {"displayName": "Ingestion utilization", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "IngestionLatencyInSeconds": {"displayName": "Ingestion Latency", "unit": "Seconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "QueryDuration": {"displayName": "Query duration", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum", "Minimum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TotalNumberOfConcurrentQueries": {"displayName": "Total number of concurrent queries", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TotalNumberOfThrottledQueries": {"displayName": "Total number of throttled queries", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "TotalNumberOfThrottledCommands": {"displayName": "Total number of throttled commands", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "InstanceCount": {"displayName": "Instance Count", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum", "Count", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.StreamAnalytics/streamingjobs": {
+      "page": "microsoft-streamanalytics-streamingjobs-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "ResourceUtilization": {"displayName": "SU (Memory) % Utilization", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ProcessCPUUsagePercentage": {"displayName": "CPU % Utilization", "unit": "Percent", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "InputEvents": {"displayName": "Input Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OutputEvents": {"displayName": "Output Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Errors": {"displayName": "Runtime Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DeserializationError": {"displayName": "Input Deserialization Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "DroppedOrAdjustedEvents": {"displayName": "Out of order Events", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "InputEventsSourcesBacklogged": {"displayName": "Backlogged Input Events", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OutputWatermarkDelaySeconds": {"displayName": "Watermark Delay", "unit": "Seconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Search/searchServices": {
+      "page": "microsoft-search-searchservices-metrics.md",
+      "pageDate": "08/14/2026",
+      "metrics": {
+        "SearchLatency": {"displayName": "Search Latency", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SearchQueriesPerSecond": {"displayName": "Search queries per second", "unit": "CountPerSecond", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ThrottledSearchQueriesPercentage": {"displayName": "Throttled search queries percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.SignalRService/SignalR": {
+      "page": "microsoft-signalrservice-signalr-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "ConnectionCount": {"displayName": "Connection Count", "unit": "Count", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MessageCount": {"displayName": "Message Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ConnectionQuotaUtilization": {"displayName": "Connection Quota Utilization", "unit": "Percent", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "SystemErrors": {"displayName": "System Errors", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "UserErrors": {"displayName": "User Errors", "unit": "Percent", "aggregations": ["Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ServerLoad": {"displayName": "Server Load", "unit": "Percent", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "ServerConnectionLatency": {"displayName": "Server Connection Latency", "unit": "Milliseconds", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "InboundTraffic": {"displayName": "Inbound Traffic", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "OutboundTraffic": {"displayName": "Outbound Traffic", "unit": "Bytes", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Insights/components": {
+      "page": "microsoft-insights-components-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "requests/count": {"displayName": "Server requests", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "requests/failed": {"displayName": "Failed requests", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "requests/duration": {"displayName": "Server response time", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "exceptions/count": {"displayName": "Exceptions", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "dependencies/failed": {"displayName": "Dependency call failures", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "dependencies/duration": {"displayName": "Dependency duration", "unit": "MilliSeconds", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "availabilityResults/availabilityPercentage": {"displayName": "Availability", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "pageViews/count": {"displayName": "Page views", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
+    "Microsoft.Devices/IotHubs": {
+      "page": "microsoft-devices-iothubs-metrics.md",
+      "pageDate": "08/21/2026",
+      "metrics": {
+        "connectedDeviceCount": {"displayName": "Connected devices", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "totalDeviceCount": {"displayName": "Total devices", "unit": "Count", "aggregations": ["Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
+        "d2c.telemetry.ingress.success": {"displayName": "Telemetry messages sent", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "d2c.telemetry.ingress.allProtocol": {"displayName": "Telemetry message send attempts", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "d2c.telemetry.ingress.sendThrottle": {"displayName": "Number of throttling errors", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "throttledRequests": {"displayName": "Number of throttled requests", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "d2c.telemetry.egress.dropped": {"displayName": "Routing: telemetry messages dropped", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "dailyMessageQuotaUsed": {"displayName": "Total number of messages used", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "d2c.endpoints.latency.builtIn.events": {"displayName": "Routing: message latency for messages/events", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "c2d.methods.failure": {"displayName": "Failed direct method invocations", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "jobs.failed": {"displayName": "Failed jobs", "unit": "Count", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    }
+  }
+}
