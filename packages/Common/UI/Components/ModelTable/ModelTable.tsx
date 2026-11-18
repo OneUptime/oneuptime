@@ -443,6 +443,18 @@ const ModelTable: <TBaseModel extends BaseModel>(
             });
           },
 
+          // A drop in a list people put in order (POST <list>/:id/move).
+          moveInList: async (args: {
+            id: ObjectID;
+            placeOfId: ObjectID;
+          }): Promise<void> => {
+            await modelAPI.moveInList({
+              modelType: props.modelType,
+              id: args.id,
+              placeOfId: args.placeOfId,
+            });
+          },
+
           toJSONArray: (items: TBaseModel[]): JSONObject[] => {
             return BaseModel.toJSONObjectArray(items, props.modelType);
           },

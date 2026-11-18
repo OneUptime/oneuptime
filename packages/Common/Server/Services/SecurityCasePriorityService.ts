@@ -6,6 +6,7 @@ import DatabaseService from "./DatabaseService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import { ListMoveToCheck } from "../Utils/Database/ContiguousOrder";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/SecurityCasePriority";
@@ -101,9 +102,26 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A priority can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the five built-in priorities keep
-   * their order: a more severe detection never lands lower.
+   * A priority can be dragged on the settings page (POST
+   * /security-case-priority/:id/move) as long as the critical, high, medium, low and informational priorities keep their order.
+   */
+  protected override async onBeforeMoveInList(
+    move: ListMoveToCheck<Model>,
+  ): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.SecurityCasePriority],
+      projectId: move.row.projectId,
+      rows: move.rows,
+      changedRows: move.changedRows,
+      props: move.props,
+    });
+  }
+
+  /*
+   * A priority can be given another number through the API - it takes it,
+   * and no other priority moves - as long as the five built-in priorities
+   * keep their order: a more severe detection never lands lower.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(

@@ -1219,16 +1219,10 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API: a write refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and a numbered list's move (issues #9573, #9609): a write refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and again where every write is (ProductWriteRefusal). Its other routes read.",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 8,
+        "packages/Common/Server/API/BaseAPI.ts": 9,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
-      },
-    ),
-    ...decided(
-      "A numbered list's move (issue #9573), the CRUD API of the tables it serves beside it: the move refuses a record of a product that is off before anything else (assertProductIsOn, see below), as the CRUD API's writes do.",
-      {
-        "packages/Common/Server/API/MoveInListAPI.ts": 1,
       },
     ),
     ...decided(
@@ -1785,14 +1779,22 @@ describe("what the decisions stand on", () => {
   /*
    * BaseAPI and BaseAnalyticsAPI are decided as a whole because their
    * writes refuse in the method each write route calls: the first thing
-   * createItem, updateItem and deleteItem do.
+   * createItem, updateItem and deleteItem do - and, for BaseAPI, moveItem,
+   * the move of a numbered list's row (every drag-ordered list's, and the
+   * five lists' that MoveInListAPI adds).
    */
   test.each([
-    ["packages/Common/Server/API/BaseAPI.ts"],
-    ["packages/Common/Server/API/BaseAnalyticsAPI.ts"],
+    [
+      "packages/Common/Server/API/BaseAPI.ts",
+      ["createItem", "updateItem", "deleteItem", "moveItem"],
+    ],
+    [
+      "packages/Common/Server/API/BaseAnalyticsAPI.ts",
+      ["createItem", "updateItem", "deleteItem"],
+    ],
   ])(
     "%s: every write refuses a record of a product that is off before anything else",
-    (file: string) => {
+    (file: string, writes: Array<string>) => {
       const source: ts.SourceFile = parse(file);
       const firstStatements: Record<string, string> = {};
 
@@ -1800,7 +1802,7 @@ describe("what the decisions stand on", () => {
         if (
           ts.isMethodDeclaration(node) &&
           ts.isIdentifier(node.name) &&
-          ["createItem", "updateItem", "deleteItem"].includes(node.name.text) &&
+          writes.includes(node.name.text) &&
           node.body
         ) {
           firstStatements[node.name.text] = squash(
@@ -1813,44 +1815,28 @@ describe("what the decisions stand on", () => {
 
       visit(source);
 
-      expect(firstStatements).toEqual({
-        createItem: "await this.assertProductIsOn();",
-        updateItem: "await this.assertProductIsOn();",
-        deleteItem: "await this.assertProductIsOn();",
-      });
+      const expected: Record<string, string> = {};
+
+      for (const write of writes) {
+        expected[write] = "await this.assertProductIsOn();";
+      }
+
+      expect(firstStatements).toEqual(expected);
     },
   );
 
   /*
-   * MoveInListAPI is decided as a whole for the same reason: its one write,
-   * a move in a numbered list, refuses first thing in moveItem.
+   * MoveInListAPI registers no route of its own: it adds BaseAPI's move
+   * (addMoveInListRoute), whose moveItem refuses first thing.
    */
-  test("packages/Common/Server/API/MoveInListAPI.ts: a move refuses a record of a product that is off before anything else", () => {
-    const source: ts.SourceFile = parse(
-      "packages/Common/Server/API/MoveInListAPI.ts",
+  test("packages/Common/Server/API/MoveInListAPI.ts: adds BaseAPI's move, and registers nothing of its own", () => {
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY, "packages/Common/Server/API/MoveInListAPI.ts"),
+      "utf8",
     );
-    const firstStatements: Record<string, string> = {};
 
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (
-        ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.name.text === "moveItem" &&
-        node.body
-      ) {
-        firstStatements[node.name.text] = squash(
-          node.body.statements[0]?.getText(source) || "",
-        );
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(source);
-
-    expect(firstStatements).toEqual({
-      moveItem: "await this.assertProductIsOn();",
-    });
+    expect(source).toContain("this.addMoveInListRoute();");
+    expect(MAY_REGISTER.test(source)).toBe(false);
   });
 
   /*

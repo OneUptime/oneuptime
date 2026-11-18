@@ -5,7 +5,10 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import { ListMoveToCheck } from "../Utils/Database/ContiguousOrder";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../Utils/Database/StateOrderGuard";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
   ARCHIVABLE_VALUES,
@@ -28,20 +31,22 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
   }
 
   /*
-   * A new state with no place goes just above the completed state, and a signed-in
-   * create that would put the built-in states out of order is refused
-   * (Common/Server/Utils/Database/StateOrderGuard). Where it ends up in the
-   * list is then kept by DatabaseService (@ListOrderColumn).
+   * A new state with no place goes just above the completed state - saved
+   * at the end of the list, then moved there (onCreateSuccess) - and a
+   * signed-in create that would put the built-in states out of order is
+   * refused (Common/Server/Utils/Database/StateOrderGuard). A state created
+   * with a number keeps it, and moves no other (@ListOrderColumn).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceState>,
   ): Promise<OnCreate<ScheduledMaintenanceState>> {
-    await StateOrderGuard.beforeCreate({
-      service: this,
-      definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
-      createBy: createBy,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: this,
+        definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+        createBy: createBy,
+      });
 
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
@@ -53,8 +58,40 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
 
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: placement,
     };
+  }
+
+  // A state created without a place goes just above the completed state.
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<ScheduledMaintenanceState>,
+    createdItem: ScheduledMaintenanceState,
+  ): Promise<ScheduledMaintenanceState> {
+    await StateOrderGuard.afterCreate({
+      service: this,
+      placement: onCreate.carryForward as StateListCreatePlacement | null,
+      createdItem: createdItem,
+    });
+
+    return createdItem;
+  }
+
+  /*
+   * A state can be dragged on the settings page (POST
+   * /scheduled-maintenance-state/:id/move) as long as the scheduled, ongoing, ended and completed states keep their order.
+   */
+  protected override async onBeforeMoveInList(
+    move: ListMoveToCheck<ScheduledMaintenanceState>,
+  ): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+      projectId: move.row.projectId,
+      rows: move.rows,
+      changedRows: move.changedRows,
+      props: move.props,
+    });
   }
 
   @CaptureSpan()
@@ -81,8 +118,9 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
   }
 
   /*
-   * A state can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the scheduled, ongoing, ended and completed states keep their order.
+   * A state can be given another number through the API - it takes it, and
+   * no other state moves - as long as the scheduled, ongoing, ended and
+   * completed states keep their order.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(

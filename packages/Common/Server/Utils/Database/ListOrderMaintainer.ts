@@ -15,7 +15,6 @@ import {
   ListOrderItem,
   getListOrderAppendValue,
   getListOrderChanges,
-  getListOrderCollisionChanges,
   needsListOrderNormalization,
   sortListOrderItems,
   toListOrderNumber,
@@ -23,15 +22,21 @@ import {
 
 /*
  * Keeps the number column of a drag-ordered list (a model with
- * @ListOrderColumn) true for every caller. DatabaseService calls into this
+ * @ListOrderColumn) for every caller. DatabaseService calls into this
  * around its create and update; the arithmetic itself is
  * Common/Utils/ListOrder.ts, which the dashboard's tables use as well.
  *
- * Writes made here go through updateColumnsByIdWithoutHooks: stepping the
- * rows around a moved one aside is bookkeeping, not an edit of those rows, so
- * it must not fire their workflows, audit entries or service hooks one by
- * one. The row the caller actually created or moved goes through the normal
- * path and fires all of those as usual.
+ * A write places its own row and moves no other (issue #9609): a row created
+ * or given a number keeps it, whoever else holds it. What is kept here is
+ * where a row goes that has no number of its own - created without one,
+ * cleared, or moved to another list without one: after the last row of its
+ * list. Moving a row past others is a request of its own
+ * (DatabaseService.moveInList, Server/Utils/Database/ContiguousOrder).
+ *
+ * Those writes go through updateColumnsByIdWithoutHooks: putting a row at
+ * the end is bookkeeping, not an edit of it, so it must not fire its
+ * workflows, audit entries or service hooks a second time. The write the
+ * caller made goes through the normal path and fires all of those as usual.
  */
 
 export interface ListOrderScope<TBaseModel extends BaseModel> {
@@ -43,12 +48,7 @@ export interface ListOrderScope<TBaseModel extends BaseModel> {
 export interface ListOrderCreatePlan {
   // The number the new row is saved with.
   value: number;
-  // The rows that step aside to make room for it. Written once it is saved.
-  siblingChanges: Array<ListOrderChange>;
 }
-
-// Stands in for the id of a row that does not exist yet.
-const NEW_ROW_ID: string = "__new-list-order-row__";
 
 type ServiceOf<TBaseModel extends BaseModel> = DatabaseService<TBaseModel>;
 
@@ -237,7 +237,11 @@ export default class ListOrderMaintainer {
     };
   }
 
-  // The rows of one list, with what placing them needs.
+  /*
+   * The rows of one list, with what placing them needs, in the list's order
+   * (rows that share a number by id: DatabaseService breaks every tie of a
+   * read by the primary key).
+   */
   public static async loadList<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
     settings: ListOrderSettings;
@@ -247,12 +251,10 @@ export default class ListOrderMaintainer {
       query: data.scope.query,
       select: {
         _id: true,
-        createdAt: true,
         [data.settings.column]: true,
       } as Select<TBaseModel>,
       sort: {
         [data.settings.column]: data.settings.sortOrder,
-        createdAt: SortOrder.Ascending,
       } as Sort<TBaseModel>,
       props: {
         isRoot: true,
@@ -281,7 +283,6 @@ export default class ListOrderMaintainer {
     return {
       id: row._id!.toString(),
       value: record[settings.column] as number | null | undefined,
-      createdAt: row.createdAt,
     };
   }
 
@@ -301,9 +302,10 @@ export default class ListOrderMaintainer {
   }
 
   /*
-   * Where a row about to be created goes: to the end of its list when it has
-   * no number, or to the number it was given - with the rows in the way
-   * stepping aside. Null when the row does not say which list it is in.
+   * Where a row about to be created goes: to the number it was given,
+   * whoever else holds it - no other row moves - or to the end of its list
+   * when it has none. Null when the row does not say which list it is in;
+   * the list is read only for a row without a number.
    */
   public static async planCreate<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
@@ -326,68 +328,26 @@ export default class ListOrderMaintainer {
       return null;
     }
 
+    const requested: number | null = toListOrderNumber(
+      record[data.settings.column],
+    );
+
+    if (requested !== null) {
+      return { value: requested };
+    }
+
     const siblings: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
       service: data.service,
       settings: data.settings,
       scope: scope,
     });
 
-    const requested: number | null = toListOrderNumber(
-      record[data.settings.column],
-    );
-
-    if (requested === null) {
-      return {
-        value: getListOrderAppendValue({
-          siblings: siblings,
-          sortOrder: data.settings.sortOrder,
-        }),
-        siblingChanges: [],
-      };
-    }
-
     return {
-      value: requested,
-      siblingChanges: getListOrderCollisionChanges({
+      value: getListOrderAppendValue({
         siblings: siblings,
-        itemId: NEW_ROW_ID,
-        previousValue: null,
-        requestedValue: requested,
         sortOrder: data.settings.sortOrder,
       }),
     };
-  }
-
-  /*
-   * After a row's number was written: the rows of its list that held that
-   * number step aside. `previousValue` is the number the row had (null for a
-   * row that just arrived in this list).
-   */
-  public static async makeRoomForRow<TBaseModel extends BaseModel>(data: {
-    service: ServiceOf<TBaseModel>;
-    settings: ListOrderSettings;
-    scope: ListOrderScope<TBaseModel>;
-    id: ObjectID;
-    previousValue: unknown;
-    requestedValue: unknown;
-  }): Promise<void> {
-    const rows: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
-      service: data.service,
-      settings: data.settings,
-      scope: data.scope,
-    });
-
-    await ListOrderMaintainer.writeChanges({
-      service: data.service,
-      settings: data.settings,
-      changes: getListOrderCollisionChanges({
-        siblings: rows,
-        itemId: data.id.toString(),
-        previousValue: data.previousValue,
-        requestedValue: data.requestedValue,
-        sortOrder: data.settings.sortOrder,
-      }),
-    });
   }
 
   /*
@@ -439,7 +399,6 @@ export default class ListOrderMaintainer {
   }): Promise<{ lists: number; rowsChanged: number }> {
     const select: Dictionary<boolean> = {
       _id: true,
-      createdAt: true,
       [data.settings.column]: true,
     };
 

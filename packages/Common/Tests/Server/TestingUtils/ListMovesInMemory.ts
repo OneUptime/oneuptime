@@ -6,16 +6,18 @@ import { EntityManager } from "typeorm";
 
 /*
  * THE TRANSACTION A MOVE IN A NUMBERED LIST RUNS IN, FOR A SUITE WHOSE TABLE
- * LIVES IN MEMORY (ContiguousOrder.move, issue #9573).
+ * LIVES IN MEMORY (ContiguousOrder.move, issues #9573, #9609).
  *
  * A move locks every row of its list (SELECT ... FOR UPDATE), works out the
  * new numbers from the rows as the lock hands them over, and writes the
  * rows given another number in one UPDATE - all in one transaction. This
- * answers those two statements from the suite's in-memory table, and runs
- * the transactions one after another, as the row locks make two moves of
- * one list run: the second reads the list only once the first has written
- * it. A write the transaction makes is recorded in the table's `updates`,
- * as any other write of a row is.
+ * answers those two statements from the suite's in-memory table, whatever
+ * column numbers the list (`order`, `sortOrder`, `priority`) and whether a
+ * column naming the list holds an id or a text, and runs the transactions
+ * one after another, as the row locks make two moves of one list run: the
+ * second reads the list only once the first has written it. A write the
+ * transaction makes is recorded in the table's `updates`, as any other
+ * write of a row is.
  *
  * Every statement is recorded in `statements`, in order; `opened` counts
  * the transactions. A statement it does not know fails the test loudly.
@@ -25,7 +27,7 @@ export interface ListMoveTransactions {
   opened: number;
 }
 
-const LIST_CONDITION: RegExp = /"(\w+)" = \$(\d+)::uuid/g;
+const LIST_CONDITION: RegExp = /"(\w+)" = \$(\d+)(::uuid)?/g;
 const NULL_CONDITION: RegExp = /"(\w+)" IS NULL/g;
 const MOVED_VALUE: RegExp = /\(\$(\d+)::uuid, \$(\d+)::integer\)/g;
 
@@ -79,6 +81,13 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
   const log: ListMoveTransactions = { statements: [], opened: 0 };
   const tableName: string = data.service.getModel().tableName || "";
 
+  const lockStatement: RegExp = new RegExp(
+    `^SELECT "_id", "(\\w+)" FROM "${tableName}" WHERE .* FOR UPDATE$`,
+  );
+  const writeStatement: RegExp = new RegExp(
+    `^UPDATE "${tableName}" AS "row" SET "(\\w+)" = "moved"\\."order"`,
+  );
+
   // The transaction holding the list's rows now: the next waits for it.
   let held: Promise<void> = Promise.resolve();
 
@@ -89,16 +98,17 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
     ): Promise<unknown> => {
       log.statements.push(sql);
 
-      if (
-        sql.startsWith(`SELECT "_id", "order" FROM "${tableName}" WHERE`) &&
-        sql.endsWith("FOR UPDATE")
-      ) {
+      const lock: RegExpMatchArray | null = sql.match(lockStatement);
+
+      if (lock) {
+        const column: string = lock[1]!;
+
         return data.table.rows
           .filter((row: StoredRow): boolean => {
             return inList(row, sql, parameters || []);
           })
           .map((row: StoredRow): StoredRow => {
-            return { _id: row["_id"], order: row["order"] };
+            return { _id: row["_id"], [column]: row[column] };
           })
           .sort((a: StoredRow, b: StoredRow): number => {
             const aId: string = String(a["_id"]).toLowerCase();
@@ -107,7 +117,10 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
           });
       }
 
-      if (sql.startsWith(`UPDATE "${tableName}" AS "row" SET "order"`)) {
+      const write: RegExpMatchArray | null = sql.match(writeStatement);
+
+      if (write) {
+        const column: string = write[1]!;
         const where: string = sql.slice(sql.indexOf(" WHERE "));
         let affected: number = 0;
 
@@ -127,10 +140,10 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
           );
 
           if (row) {
-            row["order"] = order;
+            row[column] = order;
             data.table.updates.push({
               id: String(row["_id"]),
-              set: { order: order },
+              set: { [column]: order },
             });
             affected++;
           }

@@ -24,6 +24,11 @@ import {
   LIMIT_PER_PROJECT,
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import MoveInListUtil, {
+  MOVE_IN_LIST_ROUTE,
+  MoveInListRequest,
+  MoveInListResult,
+} from "../../Types/Database/MoveInList";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
@@ -178,6 +183,77 @@ export default class BaseAPI<
 
     this.router = router;
     this.service = service;
+
+    // A list people put in order by dragging its rows (@ListOrderColumn).
+    if (new this.entityType().getListOrder()) {
+      this.addMoveInListRoute();
+    }
+  }
+
+  /*
+   * The move of a numbered list's row (issues #9573, #9609):
+   *
+   *   POST /<the table's path>/:id/move   { "placeOfId": "<id>" }
+   *
+   * moves the row to the place of the row named, the rows between them
+   * stepping one place towards where it was, and numbers the list again
+   * (Types/Database/MoveInList, the service's moveInList). A write of the
+   * number through the table's own routes places the row alone - what
+   * Terraform needs, numbering a whole list one write per row - so a move,
+   * what someone dragging a row means, is its own request. Every
+   * drag-ordered list (@ListOrderColumn) has it; the five lists
+   * ContiguousOrder keeps by hand add it through MoveInListAPI.
+   *
+   * The project is the request's tenant; a project API key is asked like a
+   * member, its permissions deciding: the move is refused to whoever may not
+   * change the row's number. A request with no session is answered 401, so
+   * an idle tab refreshes it.
+   */
+  protected addMoveInListRoute(): void {
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.moveItem(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
+
+  @CaptureSpan()
+  public async moveItem(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    await this.assertProductIsOn();
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    CommonAPI.assertTenantScoped(props);
+
+    const idParam: string = String(req.params["id"] || "");
+    ObjectID.validateUUID(idParam);
+
+    const request: MoveInListRequest = MoveInListUtil.parseRequest(req.body);
+
+    const result: MoveInListResult = await this.service.moveInList({
+      id: new ObjectID(idParam),
+      placeOfId: request.placeOfId,
+      props: props,
+    });
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      MoveInListUtil.resultToJSON(result),
+    );
   }
 
   public getTenantId(req: ExpressRequest): ObjectID | null {

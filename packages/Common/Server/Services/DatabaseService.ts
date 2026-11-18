@@ -206,7 +206,13 @@ import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
 } from "../Utils/Database/ListOrderMaintainer";
+import ContiguousOrder, {
+  ContiguousOrderMoved,
+  ListMoveAboutToWrite,
+  ListMoveToCheck,
+} from "../Utils/Database/ContiguousOrder";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
 import { toListOrderNumber } from "../../Utils/ListOrder";
 import CustomFieldFiles, {
   CustomFieldFileQuery,
@@ -7306,13 +7312,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
-     * its list, or to the place the caller asked for. Planned after the
-     * permission check, so a number the server picks is not held against the
-     * caller's column permissions - a number the caller sent was checked as
-     * sent - and before the save, so the row is written with its number.
+     * its list, or to the number the caller gave it - and no other row
+     * moves. Planned after the permission check, so a number the server
+     * picks is not held against the caller's column permissions - a number
+     * the caller sent was checked as sent - and before the save, so the row
+     * is written with its number.
      */
-    const listOrderPlan: ListOrderCreatePlan | null =
-      await this.planListOrderForCreate(data);
+    await this.planListOrderForCreate(data);
 
     createBy.data = data;
 
@@ -7404,9 +7410,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (isOwnedByCreatorFirst) {
         await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);
       }
-
-      // The rows that make room for it, now that it exists.
-      await this.applyListOrderCreatePlan(listOrderPlan);
 
       /*
        * The images a record shows to everyone are public from now on,
@@ -7930,12 +7933,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * ---------------------------------------------------------------------
    *
    * A model marked with @ListOrderColumn is a list people put in order by
-   * dragging its rows, and its number column is kept here for every caller:
-   * a new row without a number goes to the end of its list, and a row given a
-   * number another row of its list holds takes that place while the rows in
-   * the way step aside. Numbers nobody collides with are kept as written. The
-   * arithmetic is Common/Utils/ListOrder, the database work
-   * ListOrderMaintainer. None of it runs for any other model.
+   * dragging its rows, and its number column is kept here for every caller
+   * (issue #9609):
+   *
+   *   - a write places its own row and moves no other: a row created or
+   *     given a number keeps it, whoever else holds it, and a deleted row
+   *     leaves a gap - so Terraform, which writes every row's number on its
+   *     own, all at once, in no set order, ends with every row at the number
+   *     written;
+   *   - a row without a number - created without one, cleared, or moved to
+   *     another list without one - goes after the last row of its list;
+   *   - moving a row past others is a request of its own (moveInList, POST
+   *     <list>/:id/move), which the Dashboard's drag sends.
+   *
+   * The arithmetic is Common/Utils/ListOrder and Types/Database/MoveInList,
+   * the database work ListOrderMaintainer and ContiguousOrder. None of it
+   * runs for any other model.
    */
   private async planListOrderForCreate(
     data: TBaseModel,
@@ -7963,30 +7976,120 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The new row is saved; now the rows in its way step aside. Never fails the
-   * create that already happened: a list left with a shared number still
-   * shows every row, and the next move in it sorts the pair out.
+   * Moves a row of a drag-ordered list (@ListOrderColumn) to the place
+   * another row of its list holds (POST <list>/:id/move,
+   * Types/Database/MoveInList): the rows between them step one place
+   * towards where it was, and the list is numbered from scratch, in one
+   * transaction holding the list's rows (ContiguousOrder.move). What the
+   * Dashboard's drag sends; a write of the number places the row alone.
+   *
+   * The caller must be allowed to change the row's number, as a write of it
+   * asks. The service may refuse a move that would break what its list's
+   * order means (onBeforeMoveInList), and is told of the rows that changed
+   * as a write of their numbers would tell it (onMovedInList). The five
+   * lists ContiguousOrder keeps by hand have moves of their own, which
+   * override this.
    */
-  private async applyListOrderCreatePlan(
-    plan: ListOrderCreatePlan | null,
-  ): Promise<void> {
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const model: TBaseModel = this.getModel();
+    const settings: ListOrderSettings | null =
+      ListOrderMaintainer.getSettings(model);
+
+    if (!settings) {
+      throw new BadDataException(
+        `${model.pluralName || "These rows"} are not a list whose rows can be moved.`,
+      );
+    }
+
+    const moved: ContiguousOrderMoved<TBaseModel> = await ContiguousOrder.move({
+      service: this,
+      rowId: data.id,
+      placeOfId: data.placeOfId,
+      listColumns: ListOrderMaintainer.getScopeColumns({
+        model: model,
+        settings: settings,
+      }),
+      orderColumn: settings.column,
+      sortOrder: settings.sortOrder,
+      check: async (
+        move: ListMoveAboutToWrite & { row: TBaseModel },
+      ): Promise<void> => {
+        await this.onBeforeMoveInList({ ...move, props: data.props });
+      },
+      props: data.props,
+    });
+
+    if (moved.changedRows.length > 0) {
+      await this.onMovedInList({
+        row: moved.row,
+        changedRows: moved.changedRows,
+        props: data.props,
+      });
+    }
+
+    return { changedRows: moved.changedRows };
+  }
+
+  /*
+   * Before a move in a drag-ordered list writes, with the list's rows held:
+   * throw to refuse it, and nothing is written. Nothing is refused here; a
+   * list whose order means something - a project's states, which keep their
+   * built-in states in order - overrides it.
+   */
+  protected async onBeforeMoveInList(
+    _move: ListMoveToCheck<TBaseModel>,
+  ): Promise<void> {}
+
+  /*
+   * After a move in a drag-ordered list wrote its rows: what the service
+   * does when rows are given other numbers is what it does after a write
+   * of their numbers - its onUpdateSuccess, for the rows that changed (a
+   * project's rules read again, its open incidents' reminders worked out
+   * again, its states kept in every process read again). Never fails the
+   * move that already happened.
+   */
+  protected async onMovedInList(data: {
+    row: TBaseModel;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
     const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
       this.getModel(),
     );
+    const changedIds: Array<ObjectID> = data.changedRows.map(
+      (changed: { id: string }): ObjectID => {
+        return new ObjectID(changed.id);
+      },
+    );
 
-    if (!plan || !settings || plan.siblingChanges.length === 0) {
+    if (!settings || changedIds.length === 0) {
       return;
     }
 
     try {
-      await ListOrderMaintainer.writeChanges({
-        service: this,
-        settings: settings,
-        changes: plan.siblingChanges,
-      });
+      await this.onUpdateSuccess(
+        {
+          updateBy: {
+            query: {
+              _id: QueryHelper.any(changedIds),
+            } as Query<TBaseModel>,
+            data: {} as PartialEntity<TBaseModel>,
+            limit: changedIds.length,
+            skip: 0,
+            props: data.props,
+          },
+          carryForward: null,
+        },
+        changedIds,
+      );
     } catch (err) {
       logger.error(
-        `Could not make room in the ${this.getModel().tableName || "list"} order for a new row: ${(err as Error)?.message || err}`,
+        `Could not finish moving a row of the ${this.getModel().tableName || "list"} list: ${(err as Error)?.message || err}`,
       );
     }
   }
@@ -8045,10 +8148,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * After an update wrote a row's number: the rows of its list that held that
-   * number step aside. A row that moved to another list takes the number it
-   * was given there (with the same stepping aside), or the end of that list
-   * when it was given none.
+   * After an update of a drag-ordered list's rows: a row given a number
+   * keeps it and moves no other (issue #9609). A row left without one - its
+   * number cleared, or moved to another list without a number for it - goes
+   * after the last row of its list, as a row created without one does.
    *
    * Like the create, it never fails the update that already happened.
    */
@@ -8094,67 +8197,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        const id: ObjectID = new ObjectID(rowBeforeUpdate._id.toString());
         const isNewToList: boolean = Boolean(
           previousScope && previousScope.key !== nextScope.key,
         );
 
-        if (isNewToList && !writesNumber) {
-          await ListOrderMaintainer.appendRow({
-            service: this,
-            settings: settings,
-            scope: nextScope,
-            id: id,
-          });
+        const isLeftWithoutNumber: boolean = writesNumber
+          ? toListOrderNumber(dataRecord[settings.column]) === null
+          : isNewToList;
 
+        if (!isLeftWithoutNumber) {
           continue;
         }
 
-        if (!writesNumber) {
-          continue;
-        }
-
-        const previousValue: unknown = isNewToList
-          ? null
-          : before[settings.column];
-
-        const requestedValue: unknown = dataRecord[settings.column];
-
-        if (
-          !isNewToList &&
-          toListOrderNumber(requestedValue) !== null &&
-          toListOrderNumber(requestedValue) === toListOrderNumber(previousValue)
-        ) {
-          // Saved where it already was - an edit form re-sending it, say.
-          continue;
-        }
-
-        if (toListOrderNumber(requestedValue) === null) {
-          /*
-           * The number was cleared: the row goes to the end of its list, as
-           * a row created without one does.
-           */
-          await ListOrderMaintainer.appendRow({
-            service: this,
-            settings: settings,
-            scope: nextScope,
-            id: id,
-          });
-
-          continue;
-        }
-
-        await ListOrderMaintainer.makeRoomForRow({
+        await ListOrderMaintainer.appendRow({
           service: this,
           settings: settings,
           scope: nextScope,
-          id: id,
-          previousValue: previousValue,
-          requestedValue: requestedValue,
+          id: new ObjectID(rowBeforeUpdate._id.toString()),
         });
       } catch (err) {
         logger.error(
-          `Could not reorder the ${this.getModel().tableName || "list"} list after an update: ${(err as Error)?.message || err}`,
+          `Could not put a row at the end of the ${this.getModel().tableName || "list"} list after an update: ${(err as Error)?.message || err}`,
         );
       }
     }

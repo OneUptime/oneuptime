@@ -30,7 +30,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { getDropTargetValue } from "../../../Utils/ListOrder";
+import { getDropTargetId } from "../../../Utils/ListOrder";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -389,32 +389,37 @@ const ModelList: <TBaseModel extends BaseModel>(
               }
 
               /*
-               * The dragged row takes the number of the row it was dropped
-               * on; the server moves it there and shifts the rest
-               * (@ListOrderColumn). Its place on screen when that row has
-               * no number yet.
+               * The dragged row takes the place of the row it was dropped
+               * on, named by its id: the server moves it there and numbers
+               * the list again (POST <list>/:id/move). A write of the
+               * number would place the dragged row alone (issue #9609).
                */
-              const orderField: string = props.dragDropIndexField as string;
+              const placeOfId: string | null = getDropTargetId<TBaseModel>({
+                items: searchedList,
+                sourceIndex: sourceIndex,
+                destinationIndex: destinationIndex,
+                getId: (item: TBaseModel): unknown => {
+                  return item._id;
+                },
+              });
 
-              const value: number =
-                getDropTargetValue<TBaseModel>({
-                  items: searchedList,
-                  sourceIndex: sourceIndex,
-                  destinationIndex: destinationIndex,
-                  getValue: (item: TBaseModel): unknown => {
-                    return (item as any)[orderField];
-                  },
-                }) ?? destinationIndex + 1;
+              if (!placeOfId) {
+                return;
+              }
 
               setIsLoading(true);
 
-              await ModelAPI.updateById({
-                modelType: props.modelType,
-                id: new ObjectID(id),
-                data: {
-                  [orderField]: value,
-                },
-              });
+              try {
+                await ModelAPI.moveInList({
+                  modelType: props.modelType,
+                  id: new ObjectID(id),
+                  placeOfId: new ObjectID(placeOfId),
+                });
+              } catch (err) {
+                setError(API.getFriendlyMessage(err));
+                setIsLoading(false);
+                return;
+              }
 
               await fetchItems();
             }}

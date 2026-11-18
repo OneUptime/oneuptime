@@ -3,7 +3,10 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import { ListMoveToCheck } from "../Utils/Database/ContiguousOrder";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../Utils/Database/StateOrderGuard";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
   ARCHIVABLE_VALUES,
@@ -44,9 +47,9 @@ export const getPostmortemStatusBackfillSql: (batchSize: number) => string = (
 
   return `WITH "statuses" AS (
   SELECT "projectId",
-    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "createdAt" ASC) FILTER (WHERE "isNotStartedStatus" = true))[1] AS "notStartedId",
-    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "createdAt" ASC) FILTER (WHERE "isDraftStatus" = true))[1] AS "draftId",
-    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "createdAt" ASC) FILTER (WHERE "isCompletedStatus" = true))[1] AS "completedId"
+    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "_id" ASC) FILTER (WHERE "isNotStartedStatus" = true))[1] AS "notStartedId",
+    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "_id" ASC) FILTER (WHERE "isDraftStatus" = true))[1] AS "draftId",
+    (ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "_id" ASC) FILTER (WHERE "isCompletedStatus" = true))[1] AS "completedId"
   FROM "IncidentPostmortemStatus"
   WHERE "deletedAt" IS NULL
   GROUP BY "projectId"
@@ -91,11 +94,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    await StateOrderGuard.beforeCreate({
-      service: this,
-      definition: STATE_LISTS[StateListType.IncidentPostmortemStatus],
-      createBy: createBy,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: this,
+        definition: STATE_LISTS[StateListType.IncidentPostmortemStatus],
+        createBy: createBy,
+      });
 
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
@@ -107,8 +111,40 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: placement,
     };
+  }
+
+  // A status created without a place goes just above the completed status.
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await StateOrderGuard.afterCreate({
+      service: this,
+      placement: onCreate.carryForward as StateListCreatePlacement | null,
+      createdItem: createdItem,
+    });
+
+    return createdItem;
+  }
+
+  /*
+   * A status can be dragged on the settings page (POST
+   * /incident-postmortem-status/:id/move) as long as the not started, draft and completed statuses keep their order.
+   */
+  protected override async onBeforeMoveInList(
+    move: ListMoveToCheck<Model>,
+  ): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentPostmortemStatus],
+      projectId: move.row.projectId,
+      rows: move.rows,
+      changedRows: move.changedRows,
+      props: move.props,
+    });
   }
 
   @CaptureSpan()
@@ -135,9 +171,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A status can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the not started, draft and completed
-   * statuses keep their order.
+   * A status can be given another number through the API - it takes it,
+   * and no other status moves - as long as the not started, draft and
+   * completed statuses keep their order.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(

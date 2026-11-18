@@ -7,7 +7,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectStateListCache from "../Utils/Database/ProjectStateListCache";
 import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
 import logger from "../Utils/Logger";
-import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import { ListMoveToCheck } from "../Utils/Database/ContiguousOrder";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../Utils/Database/StateOrderGuard";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
   ARCHIVABLE_VALUES,
@@ -60,20 +63,22 @@ export class Service extends DatabaseService<AlertState> {
   }
 
   /*
-   * A new state with no place goes just above the resolved state, and a signed-in
-   * create that would put the built-in states out of order is refused
-   * (Common/Server/Utils/Database/StateOrderGuard). Where it ends up in the
-   * list is then kept by DatabaseService (@ListOrderColumn).
+   * A new state with no place goes just above the resolved state - saved at
+   * the end of the list, then moved there (onCreateSuccess) - and a
+   * signed-in create that would put the built-in states out of order is
+   * refused (Common/Server/Utils/Database/StateOrderGuard). A state created
+   * with a number keeps it, and moves no other (@ListOrderColumn).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<AlertState>,
   ): Promise<OnCreate<AlertState>> {
-    await StateOrderGuard.beforeCreate({
-      service: this,
-      definition: STATE_LISTS[StateListType.AlertState],
-      createBy: createBy,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: this,
+        definition: STATE_LISTS[StateListType.AlertState],
+        createBy: createBy,
+      });
 
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
@@ -84,7 +89,7 @@ export class Service extends DatabaseService<AlertState> {
 
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: placement,
     };
   }
 
@@ -112,8 +117,9 @@ export class Service extends DatabaseService<AlertState> {
   }
 
   /*
-   * A state can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the created, acknowledged and resolved states keep their order.
+   * A state can be given another number through the API - it takes it, and
+   * no other state moves - as long as the created, acknowledged and resolved
+   * states keep their order.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -143,11 +149,36 @@ export class Service extends DatabaseService<AlertState> {
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<AlertState>,
+    onCreate: OnCreate<AlertState>,
     createdItem: AlertState,
   ): Promise<AlertState> {
+    // A state created without a place goes just above the resolved state.
+    await StateOrderGuard.afterCreate({
+      service: this,
+      placement: onCreate.carryForward as StateListCreatePlacement | null,
+      createdItem: createdItem,
+    });
+
     await this.forgetProjects([createdItem.projectId]);
     return createdItem;
+  }
+
+  /*
+   * A state can be dragged on the settings page (POST
+   * /alert-state/:id/move) as long as the created, acknowledged and resolved
+   * states keep their order.
+   */
+  protected override async onBeforeMoveInList(
+    move: ListMoveToCheck<AlertState>,
+  ): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.AlertState],
+      projectId: move.row.projectId,
+      rows: move.rows,
+      changedRows: move.changedRows,
+      props: move.props,
+    });
   }
 
   @CaptureSpan()

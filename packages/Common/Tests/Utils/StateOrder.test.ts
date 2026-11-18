@@ -23,14 +23,15 @@ import {
   getStateListBuiltInRows,
   getStateListDeleteRefusal,
   getStateListDeleteRefusalMessage,
-  getStateListInsertValue,
+  getStateListInsertAnchor,
   getStateListOfTable,
   getStateListOrderViolation,
   getStateListOrderViolationIntroduced,
   getStateListOrderViolationMessage,
   getStateListReachedBuiltIn,
   getStateListRowsAfterCreate,
-  getStateListRowsAfterMove,
+  getStateListRowsAfterMoveInList,
+  getStateListRowsAfterWrite,
   sortStateListRows,
   toStateListRow,
 } from "../../Utils/StateOrder";
@@ -45,9 +46,11 @@ import { describe, expect, test } from "@jest/globals";
  *   - an incident counts as acknowledged from the acknowledged state down,
  *     and as resolved from the resolved state down - the comparison the
  *     services make (order >= the built-in's order);
- *   - the built-in states of a path have to keep their order, so a move or
- *     a create that breaks it is caught, and a list that was already out of
- *     order is never held to it;
+ *   - the built-in states of a path have to keep their order, so a write,
+ *     a move or a create that breaks it is caught, and a list that was
+ *     already out of order is never held to it;
+ *   - a write of a row's number places that row and moves no other, and a
+ *     move numbers the list 1..n (issue #9609);
  *   - a new state goes just above the resolved state, a new monitor status
  *     just above the offline one, a new severity to the end;
  *   - the last row of a built-in kind cannot be deleted.
@@ -70,19 +73,16 @@ const row: (
   id: string,
   order: number | null,
   flags?: Array<string>,
-  createdAt?: string,
 ) => StateListRow = (
   id: string,
   order: number | null,
   flags: Array<string> = [],
-  createdAt?: string,
 ): StateListRow => {
   return {
     id: id,
     name: id,
     order: order,
     flags: flags,
-    createdAt: createdAt || null,
   };
 };
 
@@ -300,13 +300,11 @@ describe("toStateListRow", () => {
     state.order = 4;
     state.isResolvedState = true;
     state.isCreatedState = false;
-    state.createdAt = new Date("2026-01-01T00:00:00Z");
 
     expect(toStateListRow(INCIDENT, state)).toEqual({
       id: "11111111-1111-4111-8111-111111111111",
       name: "Resolved",
       order: 4,
-      createdAt: new Date("2026-01-01T00:00:00Z"),
       flags: ["isResolvedState"],
     });
   });
@@ -348,7 +346,6 @@ describe("toStateListRow", () => {
       id: "",
       name: "",
       order: null,
-      createdAt: null,
       flags: [],
     });
   });
@@ -366,16 +363,16 @@ describe("toStateListRow", () => {
 });
 
 describe("sortStateListRows", () => {
-  test("by place, then the older row first, rows with no place last", () => {
+  test("by place, then rows that share a place by id, rows with no place last", () => {
     expect(
       namesInOrder([
         row("c", 3),
         row("none", null),
-        row("b-new", 2, [], "2026-02-01T00:00:00Z"),
+        row("b2", 2),
         row("a", 1),
-        row("b-old", 2, [], "2026-01-01T00:00:00Z"),
+        row("b1", 2),
       ]),
-    ).toEqual(["a:1", "b-old:2", "b-new:2", "c:3", "none:null"]);
+    ).toEqual(["a:1", "b1:2", "b2:2", "c:3", "none:null"]);
   });
 });
 
@@ -609,17 +606,17 @@ describe("getStateListOrderViolationIntroduced", () => {
   });
 });
 
-describe("getStateListRowsAfterMove - the list as the server will leave it", () => {
+describe("getStateListRowsAfterWrite - the list as a write of a number leaves it", () => {
   const rows: Array<StateListRow> = [
     ...SEEDED_INCIDENT_STATES,
     row("Investigating", 4),
   ];
 
-  test("a drop onto a row takes its place, and the rows in between step down", () => {
-    // Investigating dropped onto Acknowledged: what the dashboard sends.
+  test("the row takes the number, and no other row moves", () => {
+    // What a Terraform configuration or an API script sends.
     expect(
       namesInOrder(
-        getStateListRowsAfterMove({
+        getStateListRowsAfterWrite({
           rows: rows,
           id: "Investigating",
           requestedValue: 2,
@@ -627,16 +624,26 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
       ),
     ).toEqual([
       "Identified:1",
+      "Acknowledged:2",
       "Investigating:2",
-      "Acknowledged:3",
-      "Resolved:4",
+      "Resolved:3",
     ]);
   });
 
-  test("moving down steps the rows in between up", () => {
+  test("two rows at one number are read in the order of their ids", () => {
+    const twins: Array<StateListRow> = getStateListRowsAfterWrite({
+      rows: [row("b", 1), row("a", 2)],
+      id: "a",
+      requestedValue: 1,
+    });
+
+    expect(namesInOrder(twins)).toEqual(["a:1", "b:1"]);
+  });
+
+  test("a row given a number past the others goes there, the others where they were", () => {
     expect(
       namesInOrder(
-        getStateListRowsAfterMove({
+        getStateListRowsAfterWrite({
           rows: rows,
           id: "Acknowledged",
           requestedValue: 4,
@@ -644,16 +651,16 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
       ),
     ).toEqual([
       "Identified:1",
-      "Resolved:2",
-      "Investigating:3",
+      "Resolved:3",
       "Acknowledged:4",
+      "Investigating:4",
     ]);
   });
 
   test("a number nobody holds is kept as written", () => {
     expect(
       namesInOrder(
-        getStateListRowsAfterMove({
+        getStateListRowsAfterWrite({
           rows: rows,
           id: "Investigating",
           requestedValue: 99,
@@ -670,7 +677,7 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
   test("a cleared number sends the row to the end", () => {
     expect(
       namesInOrder(
-        getStateListRowsAfterMove({
+        getStateListRowsAfterWrite({
           rows: rows,
           id: "Identified",
           requestedValue: null,
@@ -686,20 +693,149 @@ describe("getStateListRowsAfterMove - the list as the server will leave it", () 
 
   test("a row that is not in the list changes nothing", () => {
     expect(
-      getStateListRowsAfterMove({
+      getStateListRowsAfterWrite({
         rows: rows,
         id: "Elsewhere",
         requestedValue: 1,
       }),
     ).toBe(rows);
   });
+
+  test("a write that puts Resolved at Acknowledged's number is out of order: the two would count as one", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: SEEDED_INCIDENT_STATES,
+        rowsAfter: getStateListRowsAfterWrite({
+          rows: SEEDED_INCIDENT_STATES,
+          id: "Resolved",
+          requestedValue: 2,
+        }),
+      })?.later.name,
+    ).toBe("Resolved");
+  });
+
+  test("a configuration that moves every built-in state down keeps the order", () => {
+    // Identified 1 -> 2 written first: the states keep their order on the way.
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: SEEDED_INCIDENT_STATES,
+        rowsAfter: getStateListRowsAfterWrite({
+          rows: getStateListRowsAfterWrite({
+            rows: SEEDED_INCIDENT_STATES,
+            id: "Resolved",
+            requestedValue: 6,
+          }),
+          id: "Acknowledged",
+          requestedValue: 4,
+        }),
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("getStateListRowsAfterMoveInList - the list as a move leaves it", () => {
+  const rows: Array<StateListRow> = [
+    ...SEEDED_INCIDENT_STATES,
+    row("Investigating", 4),
+  ];
+
+  test("a drop onto a row takes its place, and the rows in between step down", () => {
+    // Investigating dropped onto Acknowledged: what the dashboard sends.
+    expect(
+      namesInOrder(
+        getStateListRowsAfterMoveInList({
+          rows: rows,
+          id: "Investigating",
+          placeOfId: "Acknowledged",
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Investigating:2",
+      "Acknowledged:3",
+      "Resolved:4",
+    ]);
+  });
+
+  test("moving down steps the rows in between up", () => {
+    expect(
+      namesInOrder(
+        getStateListRowsAfterMoveInList({
+          rows: rows,
+          id: "Acknowledged",
+          placeOfId: "Investigating",
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Resolved:2",
+      "Investigating:3",
+      "Acknowledged:4",
+    ]);
+  });
+
+  test("a list with gaps comes out numbered 1..n", () => {
+    expect(
+      namesInOrder(
+        getStateListRowsAfterMoveInList({
+          rows: [
+            row("Identified", 10, ["isCreatedState"]),
+            row("Acknowledged", 20, ["isAcknowledgedState"]),
+            row("Investigating", 25),
+            row("Resolved", 30, ["isResolvedState"]),
+          ],
+          id: "Investigating",
+          placeOfId: "Acknowledged",
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Investigating:2",
+      "Acknowledged:3",
+      "Resolved:4",
+    ]);
+  });
+
+  test("a move between rows that are not both in the list changes nothing", () => {
+    expect(
+      getStateListRowsAfterMoveInList({
+        rows: rows,
+        id: "Elsewhere",
+        placeOfId: "Acknowledged",
+      }),
+    ).toBe(rows);
+    expect(
+      getStateListRowsAfterMoveInList({
+        rows: rows,
+        id: "Acknowledged",
+        placeOfId: "Elsewhere",
+      }),
+    ).toBe(rows);
+  });
+
+  test("a drag of Resolved above Acknowledged is out of order", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: rows,
+        rowsAfter: getStateListRowsAfterMoveInList({
+          rows: rows,
+          id: "Resolved",
+          placeOfId: "Acknowledged",
+        }),
+      })?.later.name,
+    ).toBe("Resolved");
+  });
 });
 
 describe("getStateListRowsAfterCreate", () => {
-  test("a new row with a number takes that place, and the rows in its way step down", () => {
+  test("a new row with a number takes it, and moves no other row", () => {
     expect(
       namesInOrder(
         getStateListRowsAfterCreate({
+          definition: INCIDENT,
           rows: SEEDED_INCIDENT_STATES,
           newRow: row("Investigating", 3),
         }),
@@ -708,47 +844,27 @@ describe("getStateListRowsAfterCreate", () => {
       "Identified:1",
       "Acknowledged:2",
       "Investigating:3",
-      "Resolved:4",
+      "Resolved:3",
     ]);
   });
 
-  test("a new row without a number goes to the end", () => {
+  test("a new row without a number, in a list with nothing to go above, goes to the end", () => {
     expect(
       namesInOrder(
         getStateListRowsAfterCreate({
-          rows: SEEDED_INCIDENT_STATES,
-          newRow: row("Postmortem", null),
+          definition: SEVERITY,
+          rows: [row("Critical", 1), row("Minor", 2)],
+          newRow: row("Low", null),
         }),
       ),
-    ).toEqual(["Identified:1", "Acknowledged:2", "Resolved:3", "Postmortem:4"]);
+    ).toEqual(["Critical:1", "Minor:2", "Low:3"]);
   });
 
-  test("a new resolved state at the top would put the path out of order", () => {
-    expect(
-      getStateListOrderViolationIntroduced({
-        definition: INCIDENT,
-        rowsBefore: SEEDED_INCIDENT_STATES,
-        rowsAfter: getStateListRowsAfterCreate({
-          rows: SEEDED_INCIDENT_STATES,
-          newRow: row("Closed", 1, ["isResolvedState"]),
-        }),
-      })?.later.name,
-    ).toBe("Closed");
-  });
-});
-
-describe("getStateListInsertValue - where a row created without a place goes", () => {
-  test("a state takes the resolved state's place", () => {
-    expect(getStateListInsertValue(INCIDENT, SEEDED_INCIDENT_STATES)).toBe(3);
-  });
-
-  test("so a new state lands just above Resolved and counts as acknowledged", () => {
+  test("a new state without a number goes just above Resolved, and the list is numbered 1..n", () => {
     const after: Array<StateListRow> = getStateListRowsAfterCreate({
+      definition: INCIDENT,
       rows: SEEDED_INCIDENT_STATES,
-      newRow: row(
-        "Mitigated",
-        getStateListInsertValue(INCIDENT, SEEDED_INCIDENT_STATES),
-      ),
+      newRow: row("Mitigated", null),
     });
 
     expect(namesInOrder(after)).toEqual([
@@ -757,6 +873,8 @@ describe("getStateListInsertValue - where a row created without a place goes", (
       "Mitigated:3",
       "Resolved:4",
     ]);
+
+    // So it counts as acknowledged, not resolved.
     expect(
       getStateListReachedBuiltIn(
         INCIDENT,
@@ -768,42 +886,96 @@ describe("getStateListInsertValue - where a row created without a place goes", (
     ).toBe("isAcknowledgedState");
   });
 
-  test("the first resolved state from the top is the one", () => {
+  test("a new state without a number lands above Resolved in a list with gaps too", () => {
     expect(
-      getStateListInsertValue(INCIDENT, [
-        row("Closed", 9, ["isResolvedState"]),
-        row("Resolved", 4, ["isResolvedState"]),
-      ]),
-    ).toBe(4);
+      namesInOrder(
+        getStateListRowsAfterCreate({
+          definition: INCIDENT,
+          rows: [
+            row("Identified", 10, ["isCreatedState"]),
+            row("Acknowledged", 20, ["isAcknowledgedState"]),
+            row("Resolved", 30, ["isResolvedState"]),
+            row("Closed", 40),
+          ],
+          newRow: row("Mitigated", null),
+        }),
+      ),
+    ).toEqual([
+      "Identified:1",
+      "Acknowledged:2",
+      "Mitigated:3",
+      "Resolved:4",
+      "Closed:5",
+    ]);
   });
 
-  test("a maintenance state takes the completed state's place", () => {
+  test("a new resolved state at the top would put the path out of order", () => {
     expect(
-      getStateListInsertValue(MAINTENANCE, [
+      getStateListOrderViolationIntroduced({
+        definition: INCIDENT,
+        rowsBefore: SEEDED_INCIDENT_STATES,
+        rowsAfter: getStateListRowsAfterCreate({
+          definition: INCIDENT,
+          rows: SEEDED_INCIDENT_STATES,
+          newRow: row("Closed", 1, ["isResolvedState"]),
+        }),
+      })?.later.name,
+    ).toBe("Closed");
+  });
+});
+
+describe("getStateListInsertAnchor - the row a row created without a place goes above", () => {
+  test("a state goes above the resolved state", () => {
+    expect(
+      getStateListInsertAnchor(INCIDENT, SEEDED_INCIDENT_STATES)?.name,
+    ).toBe("Resolved");
+  });
+
+  test("the first resolved state from the top is the one", () => {
+    expect(
+      getStateListInsertAnchor(INCIDENT, [
+        row("Closed", 9, ["isResolvedState"]),
+        row("Resolved", 4, ["isResolvedState"]),
+      ])?.name,
+    ).toBe("Resolved");
+  });
+
+  test("of two resolved states at one number, the first by id", () => {
+    expect(
+      getStateListInsertAnchor(INCIDENT, [
+        row("b-resolved", 4, ["isResolvedState"]),
+        row("a-resolved", 4, ["isResolvedState"]),
+      ])?.name,
+    ).toBe("a-resolved");
+  });
+
+  test("a maintenance state goes above the completed state", () => {
+    expect(
+      getStateListInsertAnchor(MAINTENANCE, [
         row("Scheduled", 1, ["isScheduledState"]),
         row("Ongoing", 2, ["isOngoingState"]),
         row("Ended", 3, ["isEndedState"]),
         row("Completed", 4, ["isResolvedState"]),
-      ]),
-    ).toBe(4);
+      ])?.name,
+    ).toBe("Completed");
   });
 
-  test("a monitor status takes the offline status's place", () => {
+  test("a monitor status goes above the offline status", () => {
     expect(
-      getStateListInsertValue(MONITOR, [
+      getStateListInsertAnchor(MONITOR, [
         row("Operational", 1, ["isOperationalState"]),
         row("Degraded", 2),
         row("Offline", 3, ["isOfflineState"]),
-      ]),
-    ).toBe(3);
+      ])?.name,
+    ).toBe("Offline");
   });
 
-  test("with nothing to go above, or for a severity, the end of the list", () => {
-    expect(getStateListInsertValue(INCIDENT, [row("Identified", 1)])).toBe(
+  test("with nothing to go above, or for a severity, none: the end of the list", () => {
+    expect(getStateListInsertAnchor(INCIDENT, [row("Identified", 1)])).toBe(
       null,
     );
     expect(
-      getStateListInsertValue(SEVERITY, [row("Critical", 1), row("Minor", 2)]),
+      getStateListInsertAnchor(SEVERITY, [row("Critical", 1), row("Minor", 2)]),
     ).toBeNull();
   });
 });
@@ -1047,12 +1219,13 @@ describe("postmortem statuses", () => {
 
   test("a new status with no place goes just above the completed status", () => {
     expect(
-      getStateListInsertValue(POSTMORTEM, SEEDED_POSTMORTEM_STATUSES),
-    ).toBe(3);
+      getStateListInsertAnchor(POSTMORTEM, SEEDED_POSTMORTEM_STATUSES)?.name,
+    ).toBe("Completed");
 
     const rows: Array<StateListRow> = getStateListRowsAfterCreate({
+      definition: POSTMORTEM,
       rows: SEEDED_POSTMORTEM_STATUSES,
-      newRow: row("In Review", 3),
+      newRow: row("In Review", null),
     });
 
     expect(namesInOrder(rows)).toEqual([
@@ -1094,12 +1267,24 @@ describe("postmortem statuses", () => {
     expect(reached("Not Needed")).toBe("isCompletedStatus");
   });
 
-  test("a move that puts the draft status below the completed one is caught", () => {
+  test("a move or a write that puts the draft status below the completed one is caught", () => {
     expect(
       getStateListOrderViolationIntroduced({
         definition: POSTMORTEM,
         rowsBefore: SEEDED_POSTMORTEM_STATUSES,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
+          rows: SEEDED_POSTMORTEM_STATUSES,
+          id: "Draft",
+          placeOfId: "Not Needed",
+        }),
+      }),
+    ).not.toBeNull();
+
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: POSTMORTEM,
+        rowsBefore: SEEDED_POSTMORTEM_STATUSES,
+        rowsAfter: getStateListRowsAfterWrite({
           rows: SEEDED_POSTMORTEM_STATUSES,
           id: "Draft",
           requestedValue: 4,
@@ -1112,10 +1297,10 @@ describe("postmortem statuses", () => {
       getStateListOrderViolationIntroduced({
         definition: POSTMORTEM,
         rowsBefore: SEEDED_POSTMORTEM_STATUSES,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
           rows: SEEDED_POSTMORTEM_STATUSES,
           id: "Not Needed",
-          requestedValue: 3,
+          placeOfId: "Completed",
         }),
       }),
     ).toBeNull();
@@ -1141,13 +1326,16 @@ describe("postmortem statuses", () => {
 
 describe("security case statuses", () => {
   test("a new status with no place goes just above the closed status", () => {
-    expect(getStateListInsertValue(CASE_STATUS, SEEDED_CASE_STATUSES)).toBe(4);
+    expect(
+      getStateListInsertAnchor(CASE_STATUS, SEEDED_CASE_STATUSES)?.name,
+    ).toBe("Closed");
 
     expect(
       namesInOrder(
         getStateListRowsAfterCreate({
+          definition: CASE_STATUS,
           rows: SEEDED_CASE_STATUSES,
-          newRow: row("Eradicating", 4),
+          newRow: row("Eradicating", null),
         }),
       ),
     ).toEqual([
@@ -1196,10 +1384,10 @@ describe("security case statuses", () => {
       getStateListOrderViolationIntroduced({
         definition: CASE_STATUS,
         rowsBefore: SEEDED_CASE_STATUSES,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
           rows: SEEDED_CASE_STATUSES,
           id: "Closed",
-          requestedValue: 2,
+          placeOfId: "Investigating",
         }),
       }),
     ).not.toBeNull();
@@ -1213,10 +1401,10 @@ describe("security case statuses", () => {
       getStateListOrderViolationIntroduced({
         definition: CASE_STATUS,
         rowsBefore: withDuplicate,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
           rows: withDuplicate,
           id: "Closed - Duplicate",
-          requestedValue: 2,
+          placeOfId: "Investigating",
         }),
       }),
     ).toBeNull();
@@ -1273,9 +1461,19 @@ describe("security case priorities", () => {
   test("a new priority with no place goes to the end, as a new severity does", () => {
     // No row to go above: the end of the list.
     expect(
-      getStateListInsertValue(CASE_PRIORITY, SEEDED_CASE_PRIORITIES),
+      getStateListInsertAnchor(CASE_PRIORITY, SEEDED_CASE_PRIORITIES),
     ).toBeNull();
-    expect(getStateListInsertValue(SEVERITY, [row("Sev 1", 1)])).toBeNull();
+    expect(getStateListInsertAnchor(SEVERITY, [row("Sev 1", 1)])).toBeNull();
+
+    expect(
+      namesInOrder(
+        getStateListRowsAfterCreate({
+          definition: CASE_PRIORITY,
+          rows: SEEDED_CASE_PRIORITIES,
+          newRow: row("Emergency", null),
+        }),
+      ).pop(),
+    ).toBe("Emergency:6");
   });
 
   test("the built-in priorities keep their order; the project's own go anywhere", () => {
@@ -1283,10 +1481,10 @@ describe("security case priorities", () => {
       getStateListOrderViolationIntroduced({
         definition: CASE_PRIORITY,
         rowsBefore: SEEDED_CASE_PRIORITIES,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
           rows: SEEDED_CASE_PRIORITIES,
           id: "Low",
-          requestedValue: 1,
+          placeOfId: "Critical",
         }),
       }),
     ).not.toBeNull();
@@ -1300,10 +1498,10 @@ describe("security case priorities", () => {
       getStateListOrderViolationIntroduced({
         definition: CASE_PRIORITY,
         rowsBefore: withEmergency,
-        rowsAfter: getStateListRowsAfterMove({
+        rowsAfter: getStateListRowsAfterMoveInList({
           rows: withEmergency,
           id: "Emergency",
-          requestedValue: 1,
+          placeOfId: "Critical",
         }),
       }),
     ).toBeNull();

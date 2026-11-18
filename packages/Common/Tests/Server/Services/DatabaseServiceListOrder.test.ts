@@ -44,13 +44,15 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
  * side effects that would reach the network are stubbed - and pin:
  *
  *   - a row created without a number goes to the end of its list;
- *   - a row created or moved onto a number another row holds takes that
- *     place, and the rows in the way step aside, AFTER the row is written;
- *   - a number nobody holds is kept exactly as written (an API or Terraform
- *     caller reads back what it wrote);
+ *   - a row created or given a number keeps it, whoever else holds it, and
+ *     no other row moves (issue #9609): Terraform writes every row's number
+ *     on its own, all at once, and each must end at the number written - an
+ *     API or Terraform caller reads back what it wrote;
+ *   - a row left without a number (cleared, or moved to another list
+ *     without one) goes to the end of its list;
  *   - an update that does not touch the list costs no extra query;
  *   - deletes leave the other numbers alone;
- *   - a failure to step the others aside is logged, never thrown, because
+ *   - a failure to put a row at the end is logged, never thrown, because
  *     the caller's own write has already happened;
  *   - a list that counts down (site assignment rules: highest wins) counts
  *     down here too;
@@ -228,37 +230,26 @@ describe("creating a row of a drag-ordered list", () => {
       STATUS_PAGE_ID.toString(),
     );
     expect(args.props).toEqual({ isRoot: true, ignoreHooks: true });
+    // Rows that share a number come by id: the database adds it to every sort.
     expect(args.sort).toEqual({
       order: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     });
-    expect(args.select).toEqual({ _id: true, createdAt: true, order: true });
+    expect(args.select).toEqual({ _id: true, order: true });
   });
 
-  test("a row created with the number another row holds takes its place, and the rest step aside after it is saved", async () => {
+  test("a row created at the number another row holds keeps it, and no other row moves", async () => {
     siblings = [
       link({ n: 1, order: 1 }),
       link({ n: 2, order: 2 }),
       link({ n: 3, order: 3 }),
     ];
 
-    const update: jest.SpyInstance = getJestSpyOn(
-      service,
-      "updateColumnsByIdWithoutHooks",
-    );
-
     await service.create({ data: newLink(2), props: { isRoot: true } });
 
     expect(save.mock.calls[0]![0].order).toBe(2);
-    expect(written).toEqual([
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-    ]);
-
-    // Stepping aside waits for the new row to exist.
-    expect(save.mock.invocationCallOrder[0]!).toBeLessThan(
-      update.mock.invocationCallOrder[0]!,
-    );
+    expect(written).toEqual([]);
+    // Nothing to place it among: the list is not even read.
+    expect(findAllBy).not.toHaveBeenCalled();
   });
 
   test("a number no other row holds is kept as written and nothing else moves", async () => {
@@ -270,7 +261,7 @@ describe("creating a row of a drag-ordered list", () => {
     expect(written).toEqual([]);
   });
 
-  test("a number sent as a string, the way a number input sends it, counts as that number", async () => {
+  test("a number sent as a string, the way a number input sends it, is kept as that number", async () => {
     siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: 2 })];
 
     const data: StatusPageHeaderLink = newLink();
@@ -278,25 +269,8 @@ describe("creating a row of a drag-ordered list", () => {
 
     await service.create({ data: data, props: { isRoot: true } });
 
-    expect(written).toEqual([
-      { id: id(1), data: { order: 2 } },
-      { id: id(2), data: { order: 3 } },
-    ]);
-  });
-
-  test("the create still succeeds when the rows in the way cannot be moved, and says so in the log", async () => {
-    siblings = [link({ n: 1, order: 1 })];
-
-    getJestSpyOn(service, "updateColumnsByIdWithoutHooks").mockRejectedValue(
-      new Error("connection reset") as never,
-    );
-
-    await expect(
-      service.create({ data: newLink(1), props: { isRoot: true } }),
-    ).resolves.toBeDefined();
-
-    expect(save).toHaveBeenCalledTimes(1);
-    expect(errors.join("\n")).toContain("connection reset");
+    expect(save.mock.calls[0]![0].order).toBe(1);
+    expect(written).toEqual([]);
   });
 
   test("a failure to read the list fails the create before anything is saved", async () => {
@@ -310,7 +284,7 @@ describe("creating a row of a drag-ordered list", () => {
   });
 });
 
-describe("moving a row of a drag-ordered list", () => {
+describe("writing the number of a row of a drag-ordered list", () => {
   /*
    * The row as _updateBy reads it before the write, and the list as it reads
    * after it.
@@ -321,12 +295,12 @@ describe("moving a row of a drag-ordered list", () => {
     getJestSpyOn(service, "_findBy").mockResolvedValue([row] as never);
   };
 
-  test("dropping a row on the first row moves it to the top and the rows in between step down", async () => {
+  test("a row given the number another row holds takes it, and no other row moves", async () => {
     siblings = [
       link({ n: 1, order: 1 }),
       link({ n: 2, order: 2 }),
       link({ n: 3, order: 3 }),
-      link({ n: 4, order: 1 }), // the moved row, already written
+      link({ n: 4, order: 1 }), // the written row
     ];
     stubRowBeforeUpdate(link({ n: 4, order: 4 }));
 
@@ -340,16 +314,14 @@ describe("moving a row of a drag-ordered list", () => {
     expect(repositoryUpdate).toHaveBeenCalledTimes(1);
     expect(repositoryUpdate.mock.calls[0]![1]).toMatchObject({ order: 1 });
 
-    expect(written).toEqual([
-      { id: id(1), data: { order: 2 } },
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-    ]);
+    // And nothing else is read or written: two rows share 1 now.
+    expect(written).toEqual([]);
+    expect(findAllBy).not.toHaveBeenCalled();
   });
 
-  test("dropping a row further down moves the rows in between up", async () => {
+  test("a row given a number further down takes it, and the rows it passed keep theirs", async () => {
     siblings = [
-      link({ n: 1, order: 3 }), // the moved row, already written
+      link({ n: 1, order: 3 }), // the written row
       link({ n: 2, order: 2 }),
       link({ n: 3, order: 3 }),
       link({ n: 4, order: 4 }),
@@ -362,13 +334,11 @@ describe("moving a row of a drag-ordered list", () => {
       props: { isRoot: true },
     });
 
-    expect(written).toEqual([
-      { id: id(3), data: { order: 2 } },
-      { id: id(2), data: { order: 1 } },
-    ]);
+    expect(written).toEqual([]);
+    expect(findAllBy).not.toHaveBeenCalled();
   });
 
-  test("the pre-update read selects what moving the row needs", async () => {
+  test("the pre-update read selects the row's place and list", async () => {
     siblings = [link({ n: 1, order: 2 })];
     const findBy: jest.SpyInstance = getJestSpyOn(
       service,
@@ -471,8 +441,25 @@ describe("moving a row of a drag-ordered list", () => {
     ).toBe(OTHER_STATUS_PAGE_ID.toString());
   });
 
-  test("the update still succeeds when the rows in the way cannot be moved, and says so in the log", async () => {
-    siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: 1 })];
+  test("a row moved to another list with a number keeps it there, and no row of either list moves", async () => {
+    siblings = [
+      link({ n: 1, order: 1, statusPageId: OTHER_STATUS_PAGE_ID }), // moved
+      link({ n: 5, order: 1, statusPageId: OTHER_STATUS_PAGE_ID }),
+    ];
+    stubRowBeforeUpdate(link({ n: 1, order: 3 }));
+
+    await service.updateOneById({
+      id: new ObjectID(id(1)),
+      data: { statusPageId: OTHER_STATUS_PAGE_ID, order: 1 },
+      props: { isRoot: true },
+    });
+
+    expect(written).toEqual([]);
+    expect(findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("the update still succeeds when the row cannot be put at the end, and says so in the log", async () => {
+    siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: null })];
     stubRowBeforeUpdate(link({ n: 2, order: 2 }));
     getJestSpyOn(service, "updateColumnsByIdWithoutHooks").mockRejectedValue(
       new Error("lock timeout") as never,
@@ -481,7 +468,7 @@ describe("moving a row of a drag-ordered list", () => {
     await expect(
       service.updateOneById({
         id: new ObjectID(id(2)),
-        data: { order: 1 },
+        data: { order: null },
         props: { isRoot: true },
       }),
     ).resolves.toBeDefined();
@@ -489,8 +476,8 @@ describe("moving a row of a drag-ordered list", () => {
     expect(errors.join("\n")).toContain("lock timeout");
   });
 
-  test("the rows in the way step aside before the service's own update hook runs", async () => {
-    siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: 1 })];
+  test("a row is at the end of its list before the service's own update hook runs", async () => {
+    siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: null })];
     stubRowBeforeUpdate(link({ n: 2, order: 2 }));
 
     const update: jest.SpyInstance = getJestSpyOn(
@@ -501,7 +488,7 @@ describe("moving a row of a drag-ordered list", () => {
 
     await service.updateOneById({
       id: new ObjectID(id(2)),
-      data: { order: 1 },
+      data: { order: null },
       props: { isRoot: true },
     });
 
@@ -593,7 +580,7 @@ describe("a list that counts down (site assignment rules: the highest number win
     expect(args.select).toMatchObject({ priority: true, projectId: true });
   });
 
-  test("a rule given the top rule's number becomes the top, and the rules in the way step down", async () => {
+  test("a rule given the top rule's number shares it, and no other rule moves", async () => {
     getJestSpyOn(ruleService, "_findBy").mockResolvedValue([
       rule(3, 1),
     ] as never);
@@ -610,16 +597,32 @@ describe("a list that counts down (site assignment rules: the highest number win
       props: { isRoot: true },
     });
 
-    expect(written).toEqual([
-      { id: id(1), data: { priority: 2 } },
-      { id: id(2), data: { priority: 1 } },
-    ]);
+    expect(written).toEqual([]);
+    expect(ruleService.findAllBy as jest.Mock).not.toHaveBeenCalled();
+  });
 
-    // The list it stepped through was read highest priority first.
+  test("a rule whose priority is cleared goes to the bottom, read highest priority first", async () => {
+    getJestSpyOn(ruleService, "_findBy").mockResolvedValue([
+      rule(1, 3),
+    ] as never);
+    getJestSpyOn(ruleService, "getRepository").mockReturnValue({
+      update: jest.fn(async () => {
+        return { affected: 1 };
+      }),
+    } as never);
+    rules = [rule(2, 2), rule(3, 1)];
+
+    await ruleService.updateOneById({
+      id: new ObjectID(id(1)),
+      data: { priority: null },
+      props: { isRoot: true },
+    });
+
+    expect(written).toEqual([{ id: id(1), data: { priority: 0 } }]);
+
     const args: any = (ruleService.findAllBy as jest.Mock).mock.calls[0]![0];
     expect(args.sort).toEqual({
       priority: SortOrder.Descending,
-      createdAt: SortOrder.Ascending,
     });
   });
 
@@ -658,7 +661,7 @@ describe("a list that counts down (site assignment rules: the highest number win
 describe("normalizeListOrders: the data migration's renumbering", () => {
   test("renumbers only the lists with rows sharing a number or without one, in the order they are shown", async () => {
     siblings = [
-      // Status page A: every link saved as 1, the older first.
+      // Status page A: every link saved as 1, read in the order of their ids.
       link({ n: 1, order: 1 }),
       link({ n: 2, order: 1 }),
       link({ n: 3, order: null }),
@@ -686,7 +689,6 @@ describe("normalizeListOrders: the data migration's renumbering", () => {
     expect(args.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(args.select).toEqual({
       _id: true,
-      createdAt: true,
       order: true,
       statusPageId: true,
       projectId: true,

@@ -5,7 +5,10 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import SecurityCaseService from "./SecurityCaseService";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
-import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import { ListMoveToCheck } from "../Utils/Database/ContiguousOrder";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../Utils/Database/StateOrderGuard";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/SecurityCaseStatus";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -39,11 +42,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    await StateOrderGuard.beforeCreate({
-      service: this,
-      definition: STATE_LISTS[StateListType.SecurityCaseStatus],
-      createBy: createBy,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: this,
+        definition: STATE_LISTS[StateListType.SecurityCaseStatus],
+        createBy: createBy,
+      });
 
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
@@ -54,13 +58,45 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: placement,
     };
   }
 
+  // A status created without a place goes just above the closed status.
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await StateOrderGuard.afterCreate({
+      service: this,
+      placement: onCreate.carryForward as StateListCreatePlacement | null,
+      createdItem: createdItem,
+    });
+
+    return createdItem;
+  }
+
   /*
-   * A status can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the four built-in statuses keep
+   * A status can be dragged on the settings page (POST
+   * /security-case-status/:id/move) as long as the new, acknowledged, contained and closed statuses keep their order.
+   */
+  protected override async onBeforeMoveInList(
+    move: ListMoveToCheck<Model>,
+  ): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.SecurityCaseStatus],
+      projectId: move.row.projectId,
+      rows: move.rows,
+      changedRows: move.changedRows,
+      props: move.props,
+    });
+  }
+
+  /*
+   * A status can be given another number through the API - it takes it,
+   * and no other status moves - as long as the four built-in statuses keep
    * their order.
    */
   @CaptureSpan()

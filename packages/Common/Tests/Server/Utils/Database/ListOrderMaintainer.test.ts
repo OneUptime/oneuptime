@@ -225,8 +225,72 @@ describe("ListOrderMaintainer.planCreate", () => {
   });
 });
 
+describe("ListOrderMaintainer.planCreate keeps a number it is given", () => {
+  /*
+   * A row created at a number keeps it, whoever else holds it, and reads
+   * nothing: no other row moves (issue #9609).
+   */
+  test.each([1, 4, 99, "2"])(
+    "a row created at %p keeps it, and nothing is read",
+    async (order: number | string) => {
+      const service: any = {
+        getModel: (): StatusPageHeaderLink => {
+          return model;
+        },
+        findAllBy: jest.fn(),
+      };
+
+      const row: StatusPageHeaderLink = new StatusPageHeaderLink();
+      row.statusPageId = new ObjectID(STATUS_PAGE_ID);
+      row.projectId = new ObjectID(PROJECT_ID);
+      (row as any).order = order;
+
+      const plan: { value: number } | null =
+        await ListOrderMaintainer.planCreate({
+          service: service,
+          settings: settings,
+          row: row,
+        });
+
+      expect(plan).toEqual({ value: Number(order) });
+      expect(service.findAllBy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a row created without a number reads its list in the list's order, as root", async () => {
+    const reads: Array<Record<string, unknown>> = [];
+    const service: any = {
+      getModel: (): StatusPageHeaderLink => {
+        return model;
+      },
+      findAllBy: async (
+        input: Record<string, unknown>,
+      ): Promise<Array<StatusPageHeaderLink>> => {
+        reads.push(input);
+        return [];
+      },
+    };
+
+    const row: StatusPageHeaderLink = new StatusPageHeaderLink();
+    row.statusPageId = new ObjectID(STATUS_PAGE_ID);
+    row.projectId = new ObjectID(PROJECT_ID);
+
+    await ListOrderMaintainer.planCreate({
+      service: service,
+      settings: settings,
+      row: row,
+    });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!["select"]).toEqual({ _id: true, order: true });
+    // Rows that share a number come by id: the database adds it to every sort.
+    expect(reads[0]!["sort"]).toEqual({ order: SortOrder.Ascending });
+    expect(reads[0]!["props"]).toEqual({ isRoot: true, ignoreHooks: true });
+  });
+});
+
 describe("ListOrderMaintainer.toItem", () => {
-  test("carries a row's id, number and age", () => {
+  test("carries a row's id and number", () => {
     const row: StatusPageHeaderLink = new StatusPageHeaderLink();
     row._id = "00000000-0000-4000-8000-000000000001";
     row.order = 3;
@@ -235,7 +299,6 @@ describe("ListOrderMaintainer.toItem", () => {
     expect(ListOrderMaintainer.toItem(row, settings)).toEqual({
       id: "00000000-0000-4000-8000-000000000001",
       value: 3,
-      createdAt: new Date("2026-01-01T00:00:00.000Z"),
     });
   });
 });

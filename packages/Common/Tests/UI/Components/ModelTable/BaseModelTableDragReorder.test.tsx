@@ -25,12 +25,13 @@ import {
  * ModelTable: what is asked of the server, what a drop sends, and what the
  * person sees while it is saved, when it is saved and when it fails.
  *
- *   - the list is always read in its own order (ties broken by age, as the
- *     server breaks them), 50 rows a page, and its column headers do not
- *     re-sort it;
- *   - a drop moves the row on screen at once and sends the number held by
- *     the row it landed on - which the server reads as "take that row's
- *     place" (@ListOrderColumn);
+ *   - the list is always read in its own order (rows that share a number by
+ *     id, as the server reads them), 50 rows a page, and its column headers
+ *     do not re-sort it;
+ *   - a drop moves the row on screen at once and sends the move request
+ *     naming the row it landed on (POST <list>/:id/move,
+ *     Types/Database/MoveInList) - never a write of a number, which would
+ *     place the row alone (issue #9609);
  *   - while it is saved the grips wait and say so, and a screen reader is
  *     told when it is saved; the refresh after it does not dim the rows;
  *   - a failed save puts the rows back and says why, in a message that can
@@ -130,6 +131,9 @@ import Permission from "../../../../Types/Permission";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import MoveInListUtil, {
+  MoveInListChanges,
+} from "../../../../Types/Database/MoveInList";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -169,7 +173,8 @@ const deferred: () => Deferred = (): Deferred => {
 let serverRows: Array<Row>;
 let getListCalls: Array<{ sort: unknown; limit: number }>;
 let updateCalls: Array<{ id: string; data: JSONObject }>;
-let nextUpdate: Deferred | null;
+let moveCalls: Array<{ id: string; placeOfId: string }>;
+let nextMove: Deferred | null;
 let nextList: Deferred | null;
 
 const makeCallbacks: () => BaseTableCallbacks<BaseModel> =
@@ -200,9 +205,12 @@ const makeCallbacks: () => BaseTableCallbacks<BaseModel> =
           await pending.promise;
         }
 
-        const rows: Array<Row> = [...serverRows].sort((a: Row, b: Row) => {
-          return (a.order ?? 1e9) - (b.order ?? 1e9);
-        });
+        // As the server reads the list: by number, twins by id.
+        const rows: Array<Row> = MoveInListUtil.sort(
+          serverRows.map((row: Row) => {
+            return { ...row, id: row._id };
+          }),
+        );
 
         return {
           data: rows.map((row: Row) => {
@@ -221,41 +229,40 @@ const makeCallbacks: () => BaseTableCallbacks<BaseModel> =
         data: JSONObject;
       }): Promise<void> => {
         updateCalls.push({ id: args.id.toString(), data: args.data });
+      },
+      moveInList: async (args: {
+        id: ObjectID;
+        placeOfId: ObjectID;
+      }): Promise<void> => {
+        moveCalls.push({
+          id: args.id.toString(),
+          placeOfId: args.placeOfId.toString(),
+        });
 
-        if (nextUpdate) {
-          const pending: Deferred = nextUpdate;
-          nextUpdate = null;
+        if (nextMove) {
+          const pending: Deferred = nextMove;
+          nextMove = null;
           await pending.promise;
         }
 
-        // The server's side of a drop: take the target's place.
-        const moved: Row = serverRows.find((row: Row) => {
-          return row._id === args.id.toString();
-        })!;
-        const requested: number = args.data["order"] as number;
-        const previous: number = moved.order as number;
+        // The server's side of a drop: the move, as the server makes it.
+        const changes: MoveInListChanges = MoveInListUtil.getChanges({
+          rows: serverRows.map((row: Row) => {
+            return { id: row._id, order: row.order };
+          }),
+          rowId: args.id.toString(),
+          placeOfId: args.placeOfId.toString(),
+        });
 
-        for (const row of serverRows) {
-          if (row === moved || row.order === null) {
-            continue;
-          }
-
-          if (
-            requested < previous &&
-            row.order >= requested &&
-            row.order < previous
-          ) {
-            row.order += 1;
-          } else if (
-            requested > previous &&
-            row.order <= requested &&
-            row.order > previous
-          ) {
-            row.order -= 1;
-          }
+        if (changes.kind !== "moved") {
+          throw new Error(changes.kind);
         }
 
-        moved.order = requested;
+        for (const changed of changes.changedRows) {
+          serverRows.find((row: Row) => {
+            return row._id === changed.id;
+          })!.order = changed.order;
+        }
       },
       showCreateEditModal: (): React.ReactElement => {
         return <div />;
@@ -376,7 +383,8 @@ beforeEach(() => {
   ];
   getListCalls = [];
   updateCalls = [];
-  nextUpdate = null;
+  moveCalls = [];
+  nextMove = null;
   nextList = null;
   window.localStorage.clear();
 });
@@ -386,14 +394,30 @@ afterEach(() => {
 });
 
 describe("reading a drag-ordered list", () => {
-  test("asks for it in its own order, ties broken by age, as the server orders it", async () => {
+  test("asks for it in its own order: the server breaks ties by id, as a move reads the list", async () => {
     renderTable();
     await waitForRows(3);
 
     expect(getListCalls[0]!.sort).toEqual({
       order: SortOrder.Ascending,
-      createdAt: SortOrder.Ascending,
     });
+  });
+
+  test("shows two rows at one number in the order of their ids", async () => {
+    serverRows = [
+      { _id: ID(2), name: "Second twin", order: 1 },
+      { _id: ID(3), name: "After the twins", order: 2 },
+      { _id: ID(1), name: "First twin", order: 1 },
+    ];
+
+    renderTable();
+    await waitForRows(3);
+
+    expect(rowNames()).toEqual([
+      "First twin",
+      "Second twin",
+      "After the twins",
+    ]);
   });
 
   test("shows a whole list on one page, so any row can be dragged anywhere", async () => {
@@ -444,22 +468,23 @@ describe("reading a drag-ordered list", () => {
 
     expect(getListCalls[0]!.sort).toEqual({
       priority: SortOrder.Descending,
-      createdAt: SortOrder.Ascending,
     });
   });
 });
 
 describe("dropping a row", () => {
-  test("moves it on screen at once and sends the number of the row it landed on", async () => {
-    nextUpdate = deferred();
-    const pending: Deferred = nextUpdate;
+  test("moves it on screen at once and sends the move, naming the row it landed on", async () => {
+    nextMove = deferred();
+    const pending: Deferred = nextMove;
 
     renderTable();
     await waitForRows(3);
 
     await moveUp(2, 2);
 
-    expect(updateCalls).toEqual([{ id: ID(3), data: { order: 1 } }]);
+    expect(moveCalls).toEqual([{ id: ID(3), placeOfId: ID(1) }]);
+    // Never a write of the number: that places the row alone.
+    expect(updateCalls).toEqual([]);
     // Before the server has answered, the row is already where it was dropped.
     expect(rowNames()[0]).toContain("Everything else every hour");
 
@@ -476,16 +501,16 @@ describe("dropping a row", () => {
     });
   });
 
-  test("a row moved one place up sends the number of the row above it", async () => {
+  test("a row moved one place up names the row above it", async () => {
     renderTable();
     await waitForRows(3);
 
     await moveUp(1, 1);
 
-    expect(updateCalls).toEqual([{ id: ID(2), data: { order: 1 } }]);
+    expect(moveCalls).toEqual([{ id: ID(2), placeOfId: ID(1) }]);
   });
 
-  test("in a list with gaps it sends the target's number, not a position", async () => {
+  test("in a list with gaps it names the row, not a number or a position", async () => {
     serverRows = [
       { _id: ID(1), name: "Ten", order: 10 },
       { _id: ID(2), name: "Twenty", order: 20 },
@@ -497,10 +522,39 @@ describe("dropping a row", () => {
 
     await moveUp(2, 2);
 
-    expect(updateCalls).toEqual([{ id: ID(3), data: { order: 10 } }]);
+    expect(moveCalls).toEqual([{ id: ID(3), placeOfId: ID(1) }]);
+
+    // The server numbers the list from scratch, and the table reads it again.
+    await waitFor(() => {
+      expect(rowNames()).toEqual(["Thirty", "Ten", "Twenty"]);
+    });
+    expect(
+      serverRows.map((row: Row) => {
+        return row.order;
+      }),
+    ).toEqual([2, 3, 1]);
   });
 
-  test("when the row it landed on has no number yet, it sends that row's place on the page", async () => {
+  test("in a list with twins it names the row it landed on, so the twins come apart", async () => {
+    serverRows = [
+      { _id: ID(1), name: "First twin", order: 1 },
+      { _id: ID(2), name: "Second twin", order: 1 },
+      { _id: ID(3), name: "Last", order: 2 },
+    ];
+
+    renderTable();
+    await waitForRows(3);
+
+    await moveUp(1, 1);
+
+    expect(moveCalls).toEqual([{ id: ID(2), placeOfId: ID(1) }]);
+
+    await waitFor(() => {
+      expect(rowNames()).toEqual(["Second twin", "First twin", "Last"]);
+    });
+  });
+
+  test("names the row it landed on even when that row has no number yet", async () => {
     serverRows = [
       { _id: ID(1), name: "Unordered A", order: null },
       { _id: ID(2), name: "Unordered B", order: null },
@@ -511,12 +565,12 @@ describe("dropping a row", () => {
 
     await moveUp(1, 1);
 
-    expect(updateCalls).toEqual([{ id: ID(2), data: { order: 1 } }]);
+    expect(moveCalls).toEqual([{ id: ID(2), placeOfId: ID(1) }]);
   });
 
   test("while it is saved, every grip waits and says so, and a screen reader hears when it is done", async () => {
-    nextUpdate = deferred();
-    const pending: Deferred = nextUpdate;
+    nextMove = deferred();
+    const pending: Deferred = nextMove;
 
     renderTable();
     await waitForRows(3);
@@ -565,8 +619,8 @@ describe("dropping a row", () => {
   });
 
   test("a failed save puts the rows back and says why, until dismissed", async () => {
-    nextUpdate = deferred();
-    const pending: Deferred = nextUpdate;
+    nextMove = deferred();
+    const pending: Deferred = nextMove;
 
     renderTable();
     await waitForRows(3);
@@ -605,8 +659,8 @@ describe("dropping a row", () => {
   });
 
   test("the next drop clears the last failure", async () => {
-    nextUpdate = deferred();
-    const pending: Deferred = nextUpdate;
+    nextMove = deferred();
+    const pending: Deferred = nextMove;
 
     renderTable();
     await waitForRows(3);
@@ -643,6 +697,7 @@ describe("with a filter or search on", () => {
 
     await moveUp(2, 1);
 
+    expect(moveCalls).toEqual([]);
     expect(updateCalls).toEqual([]);
   });
 
@@ -695,6 +750,7 @@ describe("someone who may not edit the rows", () => {
 
     await moveUp(2, 2);
 
+    expect(moveCalls).toEqual([]);
     expect(updateCalls).toEqual([]);
     expect(rowNames()).toEqual(before);
   });

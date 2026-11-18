@@ -3,7 +3,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
-import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import StateOrderGuard, {
+  StateListCreatePlacement,
+} from "../Utils/Database/StateOrderGuard";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
   ARCHIVABLE_VALUES,
@@ -33,20 +35,22 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A new status with no place goes just above the offline status, so an
-   * outage still shows as the worst thing on a status page
-   * (Common/Server/Utils/Database/StateOrderGuard). Where it ends up in the
-   * list is then kept by DatabaseService (@ListOrderColumn), and it can be
+   * outage still shows as the worst thing on a status page - saved at the
+   * end of the list, then moved there (onCreateSuccess,
+   * Common/Server/Utils/Database/StateOrderGuard). A status created with a
+   * number keeps it and moves no other (@ListOrderColumn), and it can be
    * moved like any row of a drag-ordered list.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    await StateOrderGuard.beforeCreate({
-      service: this,
-      definition: STATE_LISTS[StateListType.MonitorStatus],
-      createBy: createBy,
-    });
+    const placement: StateListCreatePlacement | null =
+      await StateOrderGuard.beforeCreate({
+        service: this,
+        definition: STATE_LISTS[StateListType.MonitorStatus],
+        createBy: createBy,
+      });
 
     // The operational and offline statuses are never archived. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
@@ -57,8 +61,23 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: placement,
     };
+  }
+
+  // A status created without a place goes just above the offline status.
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await StateOrderGuard.afterCreate({
+      service: this,
+      placement: onCreate.carryForward as StateListCreatePlacement | null,
+      createdItem: createdItem,
+    });
+
+    return createdItem;
   }
 
   /*

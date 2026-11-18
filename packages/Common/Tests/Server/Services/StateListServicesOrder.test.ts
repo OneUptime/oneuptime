@@ -15,6 +15,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { InMemoryTable } from "../TestingUtils/InMemoryRepository";
+import { useInMemoryListMoves } from "../TestingUtils/ListMovesInMemory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
@@ -39,14 +41,17 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
  * Where StateOrderGuard.test.ts pins the guard's decisions, this pins that
  * the services and DatabaseService (@ListOrderColumn) put them together:
  *
- *   - a new incident state lands just above the resolved state, and the
- *     resolved state (and anything below it) steps down once it is saved;
- *   - a severity created with a number another one holds takes its place -
- *     no "same order already exists" refusal - and a severity created without
- *     one goes to the end (it used to fail: "order is required");
- *   - a signed-in drag of a state is written, and the states in the way
- *     step aside; a drag that would put the resolved state above the
- *     acknowledged one is refused before anything is written;
+ *   - a new incident state lands just above the resolved state: saved at
+ *     the end of the list, then moved to the resolved state's place, which
+ *     (and anything below it) steps down;
+ *   - a severity created with a number another one holds keeps it - no
+ *     "same order already exists" refusal, and no other severity moves - and
+ *     a severity created without one goes to the end (it used to fail:
+ *     "order is required");
+ *   - a signed-in write of a state's number is written and moves no other
+ *     state (issue #9609); a signed-in drag (the move request) moves the
+ *     states in the way; either is refused before anything is written when
+ *     it would put the resolved state above the acknowledged one;
  *   - a monitor status's priority can be changed by a signed-in caller (it
  *     used to be refused outright);
  *   - the project's last resolved state cannot be deleted;
@@ -81,6 +86,8 @@ interface Harness {
   saved: Array<Record<string, unknown>>;
   written: Array<Written>;
   repositoryUpdates: Array<Record<string, unknown>>;
+  // The rows a move gave another number, in the transaction it holds the list in.
+  moved: Array<{ id: string; set: Record<string, unknown> }>;
   deleted: number;
 }
 
@@ -96,6 +103,7 @@ const stub: (service: any, modelType: any) => Harness = (
     saved: [],
     written: [],
     repositoryUpdates: [],
+    moved: [],
     deleted: 0,
   };
 
@@ -116,6 +124,8 @@ const stub: (service: any, modelType: any) => Harness = (
     save: async (entity: any): Promise<any> => {
       entity._id = entity._id || id(999);
       harness.saved.push({ ...entity });
+      // In the list from now on, as a move of it reads the list.
+      harness.rows.push({ ...entity });
       return entity;
     },
     update: async (
@@ -170,6 +180,17 @@ const stub: (service: any, modelType: any) => Harness = (
       harness.written.push({ id: input.id.toString(), data: input.data });
     }) as never,
   );
+
+  // A move's transaction, over the project's list as it is then.
+  useInMemoryListMoves({
+    service: service,
+    table: {
+      get rows(): Array<Record<string, unknown>> {
+        return harness.rows;
+      },
+      updates: harness.moved,
+    } as unknown as InMemoryTable,
+  });
 
   return harness;
 };
@@ -259,18 +280,29 @@ describe("IncidentStateService", () => {
     created.name = "Mitigated";
     created.color = Green;
 
-    await IncidentStateService.create({ data: created, props: SIGNED_IN });
+    const saved: IncidentState = await IncidentStateService.create({
+      data: created,
+      props: SIGNED_IN,
+    });
 
+    // Saved at the end of the list, as any row without a number is...
     expect(harness.saved).toHaveLength(1);
-    expect(harness.saved[0]!["order"]).toBe(3);
+    expect(harness.saved[0]!["order"]).toBe(5);
     expect(String(harness.saved[0]!["projectId"])).toBe(PROJECT_ID.toString());
-    expect(harness.written).toEqual([
-      { id: id(3), data: { order: 4 } },
-      { id: id(4), data: { order: 5 } },
+
+    // ...then moved to Resolved's place, in one transaction holding the list.
+    expect(harness.moved).toEqual([
+      { id: id(999), set: { order: 3 } },
+      { id: id(3), set: { order: 4 } },
+      { id: id(4), set: { order: 5 } },
     ]);
+    expect(harness.written).toEqual([]);
+
+    // And the state handed back is where it ended up.
+    expect(saved.order).toBe(3);
   });
 
-  test("a new state with a number takes that place: no 'same order already exists' refusal", async () => {
+  test("a new state with a number keeps it, and no other state moves: no 'same order already exists' refusal", async () => {
     const created: IncidentState = new IncidentState();
     created.name = "Investigating";
     created.color = Red;
@@ -281,15 +313,12 @@ describe("IncidentStateService", () => {
     ).resolves.toBeDefined();
 
     expect(harness.saved[0]!["order"]).toBe(2);
-    expect(harness.written).toEqual([
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-      { id: id(4), data: { order: 5 } },
-    ]);
+    expect(harness.written).toEqual([]);
+    expect(harness.moved).toEqual([]);
   });
 
-  test("a drag of a state is written, and the states in the way step aside", async () => {
-    // Postmortem dropped onto Resolved's place: the dashboard sends 3.
+  test("a state given another number takes it, and no other state moves", async () => {
+    // What a Terraform configuration that renumbers the states sends.
     await IncidentStateService.updateOneById({
       id: new ObjectID(id(4)),
       data: { order: 3 },
@@ -299,10 +328,45 @@ describe("IncidentStateService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ order: 3 }),
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { order: 4 } }]);
+    expect(harness.written).toEqual([]);
+    expect(harness.moved).toEqual([]);
+  });
+
+  test("a drag of a state moves it, and the states in the way step aside", async () => {
+    // Postmortem dropped onto Resolved: the dashboard names Resolved.
+    const result: { changedRows: Array<{ id: string; order: number }> } =
+      await IncidentStateService.moveInList({
+        id: new ObjectID(id(4)),
+        placeOfId: new ObjectID(id(3)),
+        props: SIGNED_IN,
+      });
+
+    expect(result.changedRows).toEqual([
+      { id: id(4), order: 3 },
+      { id: id(3), order: 4 },
+    ]);
+    expect(harness.moved).toEqual([
+      { id: id(4), set: { order: 3 } },
+      { id: id(3), set: { order: 4 } },
+    ]);
+    expect(harness.repositoryUpdates).toEqual([]);
   });
 
   test("a drag that would put Resolved above Acknowledged is refused before anything is written", async () => {
+    await expect(
+      IncidentStateService.moveInList({
+        id: new ObjectID(id(3)),
+        placeOfId: new ObjectID(id(2)),
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      'Incidents only ever move down this list, so the resolved state ("Resolved") has to stay below the acknowledged state ("Acknowledged").',
+    );
+
+    expect(harness.moved).toEqual([]);
+  });
+
+  test("a write that would put Resolved at Acknowledged's number is refused before anything is written", async () => {
     await expect(
       IncidentStateService.updateOneById({
         id: new ObjectID(id(3)),
@@ -375,7 +439,7 @@ describe("IncidentSeverityService", () => {
     expect(harness.written).toEqual([]);
   });
 
-  test("a severity created with the number another holds takes its place", async () => {
+  test("a severity created with the number another holds keeps it, and no other severity moves", async () => {
     const created: IncidentSeverity = new IncidentSeverity();
     created.name = "Severe";
     created.color = Red;
@@ -384,13 +448,11 @@ describe("IncidentSeverityService", () => {
     await IncidentSeverityService.create({ data: created, props: SIGNED_IN });
 
     expect(harness.saved[0]!["order"]).toBe(2);
-    expect(harness.written).toEqual([
-      { id: id(2), data: { order: 3 } },
-      { id: id(3), data: { order: 4 } },
-    ]);
+    expect(harness.written).toEqual([]);
+    expect(harness.moved).toEqual([]);
   });
 
-  test("a severity can be dragged to any rank", async () => {
+  test("a severity given the number another holds takes it, and no other severity moves", async () => {
     await IncidentSeverityService.updateOneById({
       id: new ObjectID(id(3)),
       data: { order: 1 },
@@ -400,9 +462,20 @@ describe("IncidentSeverityService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ order: 1 }),
     ]);
-    expect(harness.written).toEqual([
-      { id: id(1), data: { order: 2 } },
-      { id: id(2), data: { order: 3 } },
+    expect(harness.written).toEqual([]);
+  });
+
+  test("a severity can be dragged to any rank", async () => {
+    await IncidentSeverityService.moveInList({
+      id: new ObjectID(id(3)),
+      placeOfId: new ObjectID(id(1)),
+      props: SIGNED_IN,
+    });
+
+    expect(harness.moved).toEqual([
+      { id: id(3), set: { order: 1 } },
+      { id: id(1), set: { order: 2 } },
+      { id: id(2), set: { order: 3 } },
     ]);
   });
 });
@@ -445,13 +518,20 @@ describe("MonitorStatusService", () => {
     created.name = "Partial Outage";
     created.color = Red;
 
-    await MonitorStatusService.create({ data: created, props: SIGNED_IN });
+    const saved: MonitorStatus = await MonitorStatusService.create({
+      data: created,
+      props: SIGNED_IN,
+    });
 
-    expect(harness.saved[0]!["priority"]).toBe(3);
-    expect(harness.written).toEqual([{ id: id(3), data: { priority: 4 } }]);
+    expect(harness.saved[0]!["priority"]).toBe(4);
+    expect(harness.moved).toEqual([
+      { id: id(999), set: { priority: 3 } },
+      { id: id(3), set: { priority: 4 } },
+    ]);
+    expect(saved.priority).toBe(3);
   });
 
-  test("a signed-in caller can change a status's priority - dragging it", async () => {
+  test("a signed-in caller can change a status's priority, and no other status moves", async () => {
     await MonitorStatusService.updateOneById({
       id: new ObjectID(id(2)),
       data: { priority: 3 },
@@ -461,7 +541,20 @@ describe("MonitorStatusService", () => {
     expect(harness.repositoryUpdates).toEqual([
       expect.objectContaining({ priority: 3 }),
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { priority: 2 } }]);
+    expect(harness.written).toEqual([]);
+  });
+
+  test("a signed-in caller can drag a status", async () => {
+    await MonitorStatusService.moveInList({
+      id: new ObjectID(id(2)),
+      placeOfId: new ObjectID(id(3)),
+      props: SIGNED_IN,
+    });
+
+    expect(harness.moved).toEqual([
+      { id: id(3), set: { priority: 2 } },
+      { id: id(2), set: { priority: 3 } },
+    ]);
   });
 });
 
@@ -483,17 +576,20 @@ describe("IncidentPostmortemStatusService", () => {
     created.name = "In Review";
     created.color = Green;
 
-    await IncidentPostmortemStatusService.create({
-      data: created,
-      props: SIGNED_IN,
-    });
+    const saved: IncidentPostmortemStatus =
+      await IncidentPostmortemStatusService.create({
+        data: created,
+        props: SIGNED_IN,
+      });
 
     expect(harness.saved).toHaveLength(1);
-    expect(harness.saved[0]!["order"]).toBe(3);
-    expect(harness.written).toEqual([
-      { id: id(3), data: { order: 4 } },
-      { id: id(4), data: { order: 5 } },
+    expect(harness.saved[0]!["order"]).toBe(5);
+    expect(harness.moved).toEqual([
+      { id: id(999), set: { order: 3 } },
+      { id: id(3), set: { order: 4 } },
+      { id: id(4), set: { order: 5 } },
     ]);
+    expect(saved.order).toBe(3);
   });
 
   test("a drag that would put Completed above Draft is refused, saying why", async () => {
@@ -512,16 +608,43 @@ describe("IncidentPostmortemStatusService", () => {
   });
 
   test("Not Needed is the project's own: it can be dragged above Completed", async () => {
-    await IncidentPostmortemStatusService.updateOneById({
+    await IncidentPostmortemStatusService.moveInList({
       id: new ObjectID(id(4)),
-      data: { order: 3 },
+      placeOfId: new ObjectID(id(3)),
       props: SIGNED_IN,
     });
 
-    expect(harness.repositoryUpdates).toEqual([
-      expect.objectContaining({ order: 3 }),
+    expect(harness.moved).toEqual([
+      { id: id(4), set: { order: 3 } },
+      { id: id(3), set: { order: 4 } },
     ]);
-    expect(harness.written).toEqual([{ id: id(3), data: { order: 4 } }]);
+  });
+
+  test("a drag of Completed above Draft is refused, saying why", async () => {
+    await expect(
+      IncidentPostmortemStatusService.moveInList({
+        id: new ObjectID(id(3)),
+        placeOfId: new ObjectID(id(2)),
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      'A postmortem is started, drafted and then completed, so the completed status ("Completed") has to stay below the draft status ("Draft").',
+    );
+
+    expect(harness.moved).toEqual([]);
+  });
+
+  test("OneUptime's own drag (as root) is not held to the built-in order", async () => {
+    await IncidentPostmortemStatusService.moveInList({
+      id: new ObjectID(id(3)),
+      placeOfId: new ObjectID(id(2)),
+      props: { ...SIGNED_IN, isRoot: true },
+    });
+
+    expect(harness.moved).toEqual([
+      { id: id(3), set: { order: 2 } },
+      { id: id(2), set: { order: 3 } },
+    ]);
   });
 
   test("renaming a built-in status is just an edit", async () => {

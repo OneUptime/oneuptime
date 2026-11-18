@@ -217,7 +217,7 @@ describe("the backfill's statement", () => {
       "isCompletedStatus",
     ]) {
       expect(sql).toContain(
-        `(ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "createdAt" ASC) FILTER (WHERE "${flag}" = true))[1]`,
+        `(ARRAY_AGG("_id" ORDER BY "order" ASC NULLS LAST, "_id" ASC) FILTER (WHERE "${flag}" = true))[1]`,
       );
     }
 

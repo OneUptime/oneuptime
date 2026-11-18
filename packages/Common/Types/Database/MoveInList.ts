@@ -1,21 +1,36 @@
+import SortOrder from "../BaseDatabase/SortOrder";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 
 /*
- * MOVING A ROW OF A NUMBERED LIST TO ANOTHER ROW'S PLACE (issue #9573).
+ * MOVING A ROW OF A NUMBERED LIST TO ANOTHER ROW'S PLACE (issues #9573,
+ * #9609).
  *
- * Five lists are numbered by an `order` column: the escalation rules of an
- * on-call policy, the layers of a schedule, the people of a layer, the
- * groups of a status page and the resources of a status page (or of one of
- * its groups). Lower numbers come first; rows that share a number come in
- * the order of their ids, as the database reads them.
+ * Two kinds of list are numbered by a column, top first:
  *
- * Writing a row's `order` - creating it at a number, changing its number -
+ *   - five lists numbered by `order` (Server/Utils/Database/ContiguousOrder):
+ *     the escalation rules of an on-call policy, the layers of a schedule,
+ *     the people of a layer, the groups of a status page and the resources
+ *     of a status page (or of one of its groups);
+ *   - every list people put in order by dragging its rows, marked
+ *     @ListOrderColumn (Types/Database/ListOrderColumn): severities, states,
+ *     monitor statuses, custom fields, a status page's links, pipelines and
+ *     their processors, filters, rules of every kind. Their column is
+ *     `order`, `sortOrder` or `priority`, and for two of them (network site
+ *     assignment and device naming rules) the top of the list is the
+ *     HIGHEST number.
+ *
+ * Rows that share a number come in the order of their ids, as the database
+ * reads them (DatabaseService breaks every tie of a read by the primary
+ * key, ascending, whichever way the list counts).
+ *
+ * Writing a row's number - creating it at a number, changing its number -
  * places that row and moves no other (Server/Utils/Database/
- * ContiguousOrder). That is what Terraform, and anything else that numbers a
- * whole list, needs: it writes every row's number on its own, all at once,
- * in no set order, and every row must end at the number written.
+ * ContiguousOrder, Server/Utils/Database/ListOrderMaintainer). That is what
+ * Terraform, and anything else that numbers a whole list, needs: it writes
+ * every row's number on its own, all at once, in no set order, and every
+ * row must end at the number written.
  *
  * Moving a row is a request of its own, which the Dashboard sends when
  * someone drags a row, or moves it up or down:
@@ -27,12 +42,14 @@ import ObjectID from "../ObjectID";
  * The row takes the place of the row named, and the rows between them step
  * one place towards where it was - so a row moved up lands just above the
  * row named, and a row moved down just below it. The list is then numbered
- * 1..n in its new order, which in a list numbered 1..n changes only the
- * rows between the two places; a list with gaps or shared numbers (written
- * through the API) comes out tidy. The server does it in one transaction
- * holding the list's rows, so moves at once run one after another and
- * never leave two rows at one number. `changedRows` are the rows given
- * another number, the moved row among them; none when it was there already.
+ * 1..n from the top (n..1 for a list whose top is its highest number),
+ * which in a list numbered that way already changes only the rows between
+ * the two places; a list with gaps or shared numbers (written through the
+ * API) comes out tidy. The server does it in one transaction holding the
+ * list's rows, so moves at once run one after another and never leave two
+ * rows at one number. `changedRows` are the rows given another number, the
+ * moved row among them, each with its new number under `order` whatever
+ * the list's column is called; none when it was there already.
  *
  * Read by the server and the Dashboard, so it imports nothing that needs a
  * server or React.
@@ -95,12 +112,18 @@ const toNumber: (order: unknown) => number | null = (
 
 export default class MoveInListUtil {
   /*
-   * The order a list is read in: by number, lowest first, rows without one
-   * last; rows that share a number by id - as the database reads them
-   * (DatabaseService breaks every tie by the primary key), so the server,
-   * the Dashboard and the status page put twins the same way round.
+   * The order a list is read in: by number from the top - lowest first, or
+   * highest first for a list whose top is its highest number - rows without
+   * one last; rows that share a number by id, ascending either way - as the
+   * database reads them (DatabaseService breaks every tie by the primary
+   * key), so the server, the Dashboard and the status page put twins the
+   * same way round.
    */
-  public static compare(a: ListPlace, b: ListPlace): number {
+  public static compare(
+    a: ListPlace,
+    b: ListPlace,
+    sortOrder: SortOrder = SortOrder.Ascending,
+  ): number {
     const aOrder: number | null = toNumber(a.order);
     const bOrder: number | null = toNumber(b.order);
 
@@ -113,7 +136,9 @@ export default class MoveInListUtil {
     }
 
     if (aOrder !== null && bOrder !== null && aOrder !== bOrder) {
-      return aOrder - bOrder;
+      return sortOrder === SortOrder.Descending
+        ? bOrder - aOrder
+        : aOrder - bOrder;
     }
 
     const aId: string = normalizeId(a.id);
@@ -129,25 +154,44 @@ export default class MoveInListUtil {
   // A copy of the rows in the order the list is read in.
   public static sort<TPlace extends ListPlace>(
     rows: ReadonlyArray<TPlace>,
+    sortOrder: SortOrder = SortOrder.Ascending,
   ): Array<TPlace> {
     return [...rows].sort((a: TPlace, b: TPlace): number => {
-      return MoveInListUtil.compare(a, b);
+      return MoveInListUtil.compare(a, b, sortOrder);
     });
+  }
+
+  /*
+   * The number of the row at `position` (0 = the top) of a list of `count`
+   * rows numbered from scratch: 1..n from the top, or n..1 for a list whose
+   * top is its highest number.
+   */
+  public static getNumberAt(data: {
+    position: number;
+    count: number;
+    sortOrder?: SortOrder | undefined;
+  }): number {
+    return data.sortOrder === SortOrder.Descending
+      ? data.count - data.position
+      : data.position + 1;
   }
 
   /*
    * The rows a move gives another number: the list in the order it is read
    * in, the moved row taken out and put where the row named stands - just
    * above it when it came from below, just below it when it came from
-   * above - and the list numbered 1..n. Only the rows whose number changes
-   * are given; a move to the row's own place changes none.
+   * above - and the list numbered from scratch (getNumberAt). Only the rows
+   * whose number changes are given; a move to the row's own place changes
+   * none.
    */
   public static getChanges(data: {
     rows: ReadonlyArray<ListPlace>;
     rowId: string;
     placeOfId: string;
+    sortOrder?: SortOrder | undefined;
   }): MoveInListChanges {
-    const list: Array<ListPlace> = MoveInListUtil.sort(data.rows);
+    const sortOrder: SortOrder = data.sortOrder || SortOrder.Ascending;
+    const list: Array<ListPlace> = MoveInListUtil.sort(data.rows, sortOrder);
     const rowId: string = normalizeId(data.rowId);
     const placeOfId: string = normalizeId(data.placeOfId);
 
@@ -178,8 +222,14 @@ export default class MoveInListUtil {
     const changedRows: Array<{ id: string; order: number }> = [];
 
     moved.forEach((place: ListPlace, index: number) => {
-      if (toNumber(place.order) !== index + 1) {
-        changedRows.push({ id: place.id, order: index + 1 });
+      const order: number = MoveInListUtil.getNumberAt({
+        position: index,
+        count: moved.length,
+        sortOrder: sortOrder,
+      });
+
+      if (toNumber(place.order) !== order) {
+        changedRows.push({ id: place.id, order: order });
       }
     });
 

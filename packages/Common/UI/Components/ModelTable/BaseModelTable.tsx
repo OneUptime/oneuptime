@@ -219,7 +219,7 @@ import URL from "../../../Types/API/URL";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
-import { getDropTargetValue, moveListItem } from "../../../Utils/ListOrder";
+import { getDropTargetId, moveListItem } from "../../../Utils/ListOrder";
 import Alert, { AlertType } from "../Alerts/Alert";
 import SubscriptionPlan, {
   PlanType,
@@ -372,6 +372,14 @@ export interface BaseTableCallbacks<
   }) => Promise<ListResult<TBaseModel>>;
   toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
   updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
+  /*
+   * Moves a row of a list people put in order by dragging to the place of
+   * the row it was dropped on (POST <list>/:id/move,
+   * Types/Database/MoveInList). A table that cannot be dragged has none.
+   */
+  moveInList?:
+    | ((data: { id: ObjectID; placeOfId: ObjectID }) => Promise<void>)
+    | undefined;
   showCreateEditModal: (data: {
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
@@ -3120,13 +3128,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
     if (isManuallyOrdered) {
       /*
-       * Always in the list's own order, ties broken the way the server
-       * breaks them (Common/Utils/ListOrder), so the row a drop lands on is
-       * the row the server moves it next to.
+       * Always in the list's own order. Rows that share a number come by id
+       * - the server adds the primary key to every sort - which is how a
+       * move reads the list too (Types/Database/MoveInList), so the row a
+       * drop lands on is the row the server moves it to.
        */
       return {
         [props.dragDropIndexField as string]: getManualSortOrder(),
-        createdAt: SortOrder.Ascending,
       } as Sort<TBaseModel>;
     }
 
@@ -4822,35 +4830,39 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     destinationIndex: number,
     sourceIndex: number,
   ): Promise<void> => {
-    const orderField: keyof TBaseModel | undefined = props.dragDropIndexField;
+    const moveInList:
+      | ((data: { id: ObjectID; placeOfId: ObjectID }) => Promise<void>)
+      | undefined = props.callbacks.moveInList;
 
-    if (!orderField || isDragDisabled || destinationIndex === sourceIndex) {
+    if (
+      !props.dragDropIndexField ||
+      !moveInList ||
+      isDragDisabled ||
+      destinationIndex === sourceIndex
+    ) {
       return;
     }
 
     const rowsBeforeDrop: Array<TBaseModel> = data;
 
-    let value: number | null = getDropTargetValue<TBaseModel>({
+    /*
+     * The dragged row takes the place of the row it was dropped on, named by
+     * its id: the server moves it there and numbers the list again (POST
+     * <list>/:id/move). Writing the dropped-on row's number instead would
+     * place the dragged row alone, beside that row - a write of the number
+     * moves no other row, so Terraform's writes converge (issue #9609).
+     */
+    const placeOfId: string | null = getDropTargetId<TBaseModel>({
       items: rowsBeforeDrop,
       sourceIndex: sourceIndex,
       destinationIndex: destinationIndex,
-      getValue: (item: TBaseModel): unknown => {
-        return (item as unknown as Dictionary<unknown>)[orderField as string];
+      getId: (item: TBaseModel): unknown => {
+        return item._id;
       },
     });
 
-    if (value === null) {
-      /*
-       * The row it landed on has no number yet - a list saved before the
-       * server kept them. Its place on screen is the best there is.
-       */
-      const position: number =
-        (currentPageNumber - 1) * itemsOnPage + destinationIndex + 1;
-
-      value =
-        getManualSortOrder() === SortOrder.Descending
-          ? Math.max(totalItemsCount - position + 1, 1)
-          : position;
+    if (!placeOfId) {
+      return;
     }
 
     setReorderError("");
@@ -4859,11 +4871,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setIsReordering(true);
 
     try {
-      await props.callbacks.updateById({
+      await moveInList({
         id: new ObjectID(id),
-        data: {
-          [orderField]: value,
-        },
+        placeOfId: new ObjectID(placeOfId),
       });
     } catch (err) {
       setData(rowsBeforeDrop);

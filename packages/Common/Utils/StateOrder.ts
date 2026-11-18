@@ -1,9 +1,11 @@
 import SortOrder from "../Types/BaseDatabase/SortOrder";
+import MoveInListUtil, {
+  MoveInListChanges,
+} from "../Types/Database/MoveInList";
 import {
   ListOrderChange,
   ListOrderItem,
   getListOrderAppendValue,
-  getListOrderCollisionChanges,
   sortListOrderItems,
   toListOrderNumber,
 } from "./ListOrder";
@@ -17,7 +19,11 @@ import { StateListType } from "./StateListType";
  * rules.
  *
  * All nine are drag-ordered lists (@ListOrderColumn, Common/Utils/ListOrder):
- * 1 is the top. On top of that:
+ * 1 is the top, a write of a row's number places that row and moves no
+ * other, and a move (POST <list>/:id/move) numbers the list 1..n again.
+ * Places are compared by number: two rows at one number are at the same
+ * point - a state at the resolved state's number counts as resolved - and
+ * a gap in the numbers changes nothing. On top of that:
  *
  *   - Incident, alert and scheduled maintenance states are a path. An
  *     incident, an alert, an episode or a maintenance event only ever moves
@@ -262,7 +268,6 @@ export interface StateListRow {
   name: string;
   // The row's place: 1 is the top. Null when it has none.
   order: number | null;
-  createdAt?: Date | string | null | undefined;
   // The built-in flags set on the row, in the definition's order.
   flags: Array<string>;
 }
@@ -308,16 +313,10 @@ export const toStateListRow: (
       ? (record as Record<string, unknown>)
       : {};
 
-  const createdAt: unknown = values["createdAt"];
-
   return {
     id: toIdString(values["_id"] ?? values["id"]),
     name: typeof values["name"] === "string" ? (values["name"] as string) : "",
     order: toListOrderNumber(values[definition.orderColumn]),
-    createdAt:
-      createdAt instanceof Date || typeof createdAt === "string"
-        ? createdAt
-        : null,
     flags: definition.builtIns
       .filter((builtIn: StateListBuiltIn) => {
         return values[builtIn.flag] === true;
@@ -334,11 +333,13 @@ const toListOrderItem: (row: StateListRow) => ListOrderItem = (
   return {
     id: row.id,
     value: row.order,
-    createdAt: row.createdAt,
   };
 };
 
-/** The rows, top of the list first - the order the server keeps them in. */
+/**
+ * The rows, top of the list first - the order the server reads them in:
+ * by number, rows that share one by id.
+ */
 export const sortStateListRows: (
   rows: Array<StateListRow>,
 ) => Array<StateListRow> = (rows: Array<StateListRow>): Array<StateListRow> => {
@@ -565,12 +566,22 @@ const applyChanges: (
   });
 };
 
+// The number a row without one is given: one past the last.
+const getAppendValue: (rows: Array<StateListRow>) => number = (
+  rows: Array<StateListRow>,
+): number => {
+  return getListOrderAppendValue({
+    siblings: rows.map(toListOrderItem),
+    sortOrder: SortOrder.Ascending,
+  });
+};
+
 /**
- * The list as it will be once row `id` is given `requestedValue`, moved the
- * way the server moves it (Common/Utils/ListOrder): the rows in the way step
- * aside, and a cleared number sends the row to the end.
+ * The list as it will be once row `id` is given `requestedValue`, written
+ * the way the server writes it (Common/Utils/ListOrder): the row takes the
+ * number, and no other row moves; a cleared number sends the row to the end.
  */
-export const getStateListRowsAfterMove: (data: {
+export const getStateListRowsAfterWrite: (data: {
   rows: Array<StateListRow>;
   id: string;
   requestedValue: unknown;
@@ -591,91 +602,127 @@ export const getStateListRowsAfterMove: (data: {
 
   const requested: number | null = toListOrderNumber(data.requestedValue);
 
-  if (requested === null) {
-    const appendValue: number = getListOrderAppendValue({
-      siblings: data.rows
-        .filter((candidate: StateListRow) => {
-          return candidate.id !== data.id;
-        })
-        .map(toListOrderItem),
-      sortOrder: SortOrder.Ascending,
-    });
-
-    return applyChanges(data.rows, [{ id: data.id, value: appendValue }]);
-  }
-
-  const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
-    siblings: data.rows.map(toListOrderItem),
-    itemId: data.id,
-    previousValue: row.order,
-    requestedValue: requested,
-    sortOrder: SortOrder.Ascending,
-  });
-
   return applyChanges(data.rows, [
-    ...changes,
-    { id: data.id, value: requested },
+    {
+      id: data.id,
+      value:
+        requested === null
+          ? getAppendValue(
+              data.rows.filter((candidate: StateListRow) => {
+                return candidate.id !== data.id;
+              }),
+            )
+          : requested,
+    },
   ]);
 };
 
 /**
- * The list as it will be once `newRow` is created in it: at the number it
- * carries (the rows in the way stepping aside), or at the end without one.
+ * The list as it will be once row `id` is moved to the place of row
+ * `placeOfId` (POST <list>/:id/move, Types/Database/MoveInList): the rows
+ * between them step one place towards where it was, and the list is
+ * numbered 1..n. The list as it is when either row is not in it.
  */
-export const getStateListRowsAfterCreate: (data: {
+export const getStateListRowsAfterMoveInList: (data: {
   rows: Array<StateListRow>;
-  newRow: StateListRow;
+  id: string;
+  placeOfId: string;
 }) => Array<StateListRow> = (data: {
   rows: Array<StateListRow>;
-  newRow: StateListRow;
+  id: string;
+  placeOfId: string;
 }): Array<StateListRow> => {
-  if (data.newRow.order === null) {
-    return [
-      ...data.rows,
-      {
-        ...data.newRow,
-        order: getListOrderAppendValue({
-          siblings: data.rows.map(toListOrderItem),
-          sortOrder: SortOrder.Ascending,
-        }),
-      },
-    ];
-  }
-
-  const changes: Array<ListOrderChange> = getListOrderCollisionChanges({
-    siblings: data.rows.map(toListOrderItem),
-    itemId: data.newRow.id,
-    previousValue: null,
-    requestedValue: data.newRow.order,
-    sortOrder: SortOrder.Ascending,
+  const changes: MoveInListChanges = MoveInListUtil.getChanges({
+    rows: data.rows,
+    rowId: data.id,
+    placeOfId: data.placeOfId,
   });
 
-  return [...applyChanges(data.rows, changes), data.newRow];
+  if (changes.kind !== "moved") {
+    return data.rows;
+  }
+
+  return applyMoveChanges(data.rows, changes.changedRows);
+};
+
+// The rows with the numbers a move gave them.
+const applyMoveChanges: (
+  rows: Array<StateListRow>,
+  changedRows: Array<{ id: string; order: number }>,
+) => Array<StateListRow> = (
+  rows: Array<StateListRow>,
+  changedRows: Array<{ id: string; order: number }>,
+): Array<StateListRow> => {
+  return applyChanges(
+    rows,
+    changedRows.map((changed: { id: string; order: number }) => {
+      return { id: changed.id, value: changed.order };
+    }),
+  );
 };
 
 /**
- * The number a row created without a place is given: the number of the
- * first row carrying the definition's insertAboveFlag, so the new row takes
- * its place and it steps down one. Null means the end of the list - the
- * definition has no such flag, or no row carries it.
+ * The row a row created without a place goes just above: the first row
+ * carrying the definition's insertAboveFlag (the resolved state, the
+ * offline status). Null means the end of the list - the definition has no
+ * such flag, or no row carries it.
  */
-export const getStateListInsertValue: (
+export const getStateListInsertAnchor: (
   definition: StateListDefinition,
   rows: Array<StateListRow>,
-) => number | null = (
+) => StateListRow | null = (
   definition: StateListDefinition,
   rows: Array<StateListRow>,
-): number | null => {
+): StateListRow | null => {
   if (!definition.insertAboveFlag) {
     return null;
   }
 
-  const anchor: StateListRow | undefined = getStateListBuiltInRows(
-    definition,
-    rows,
-  )[definition.insertAboveFlag];
+  return (
+    getStateListBuiltInRows(definition, rows)[definition.insertAboveFlag] ||
+    null
+  );
+};
 
-  return anchor ? anchor.order : null;
+/**
+ * The list as it will be once `newRow` is created in it: at the number it
+ * carries, moving no other row; without one, just above the row the list
+ * wants a new one above (getStateListInsertAnchor) - created at the end and
+ * moved to that row's place, the list numbered 1..n, as the server does
+ * it - or at the end when there is none.
+ */
+export const getStateListRowsAfterCreate: (data: {
+  definition: StateListDefinition;
+  rows: Array<StateListRow>;
+  newRow: StateListRow;
+}) => Array<StateListRow> = (data: {
+  definition: StateListDefinition;
+  rows: Array<StateListRow>;
+  newRow: StateListRow;
+}): Array<StateListRow> => {
+  if (data.newRow.order !== null) {
+    return [...data.rows, data.newRow];
+  }
+
+  const appended: Array<StateListRow> = [
+    ...data.rows,
+    { ...data.newRow, order: getAppendValue(data.rows) },
+  ];
+
+  const anchor: StateListRow | null = getStateListInsertAnchor(
+    data.definition,
+    data.rows,
+  );
+
+  if (!anchor) {
+    return appended;
+  }
+
+  return getStateListRowsAfterMoveInList({
+    rows: appended,
+    id: data.newRow.id,
+    placeOfId: anchor.id,
+  });
 };
 
 export interface StateListDeleteRefusal {
