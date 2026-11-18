@@ -4,6 +4,7 @@ import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataDashboard from "../../../Models/DatabaseModels/DataDashboard";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -22,6 +23,7 @@ import {
   DataColumnMapping,
   mergeColumnMappings,
 } from "../../../Types/DataObservability/DataColumnLineage";
+import { readDataAssetColumns } from "../../../Types/DataObservability/DataAssetColumn";
 import {
   DataLineageExpandRequest,
   DataLineageExpansion,
@@ -56,9 +58,13 @@ import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import DataAssetService from "../../Services/DataAssetService";
 import DataDashboardService from "../../Services/DataDashboardService";
 import DataPipelineService from "../../Services/DataPipelineService";
+import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "./DataObservabilityReadScope";
 
 /*
  * A TABLE'S LINEAGE GRAPH, SEVERAL STEPS EACH WAY (Types/DataObservability/
@@ -78,12 +84,15 @@ import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
  * history can show - keeps the side it was reached on first (upstream),
  * and the edges both ways are drawn.
  *
- * Every read is the project's own (projectId on every query), as OneUptime:
- * the route lets in only those who may read data assets, who may read every
- * table, pipeline and dashboard of the project. A table's open alerts are
- * counted with the privacy clause of the drawing's reader, as the table's
- * own answer counts them (DataTableAnswer): a private alert its reader may
- * not see is never counted.
+ * Every read is the project's own (projectId on every query), and only of
+ * what the drawing's reader may read (#9526): a role limited to what its
+ * members own, or to some labels, reads the tables and pipelines its
+ * grants reach, and is never told of another - not by name, not on an
+ * arrow, not in a count (scopeDataLineageReader). A caller whose grants
+ * narrow nothing reads the whole project, as OneUptime does. A table's
+ * open alerts are counted with the privacy clause of the drawing's reader,
+ * as the table's own answer counts them (DataTableAnswer): a private alert
+ * its reader may not see is never counted.
  *
  * A pipeline's drawing (buildForPipeline) has the pipeline in the middle:
  * the tables it reads on the left, the tables it writes on the right - its
@@ -200,11 +209,19 @@ export interface DataLineageReader {
   /*
    * The columns each of these arrows carries, every row's together
    * (mergeColumnMappings), by getLineageTablePairKey: an arrow no source
-   * named columns on is not in it.
+   * named columns on is not in it. With a pipeline, only the rows of its
+   * own runs: the columns it moved.
    */
   readColumnMappings(
     pairs: Array<DataLineageTablePair>,
+    dataPipelineId?: string | undefined,
   ): Promise<Map<string, Array<DataColumnMapping>>>;
+  /*
+   * A table's columns in its own order, as its last collection read them:
+   * the order a column picker offers them in. Empty when none were read.
+   * Left out by a reader that has none to say.
+   */
+  readColumnOrder?(dataAssetId: string): Promise<Array<string>>;
 }
 
 // What a pipeline's drawing reads besides: the rows that name the pipeline.
@@ -235,6 +252,295 @@ export interface DataPipelineTables {
   written: Map<string, Date | null>;
   // It had more rows than were read.
   isTruncated: boolean;
+}
+
+/*
+ * Which of the tables and pipelines a read names its reader may read
+ * (DataObservabilityReadScope, #9526): the database's answer for the
+ * caller's grants, or a test's sets.
+ */
+export interface DataLineageReadable {
+  readableTableIds(dataAssetIds: Array<string>): Promise<Set<string>>;
+  readablePipelineIds(dataPipelineIds: Array<string>): Promise<Set<string>>;
+}
+
+/*
+ * What a reader may read of the tables and pipelines its reads name, asked
+ * once each and remembered for the reader's life - one request - and the
+ * rule a row of lineage is kept by (#9526):
+ *
+ *  - a row naming a table it may not read, at either end, is not kept, so
+ *    no arrow leads to that table and no way goes through it;
+ *  - a pipeline it may not read is never named: a row that says only that
+ *    the pipeline writes a table is not kept, and a row between two tables
+ *    it may read is kept without the pipeline, as a row whose pipeline is
+ *    gone is.
+ */
+export class DataLineageReadableCache {
+  private readonly readable: DataLineageReadable;
+  private readonly tables: Map<string, boolean> = new Map();
+  private readonly pipelines: Map<string, boolean> = new Map();
+
+  public constructor(readable: DataLineageReadable) {
+    this.readable = readable;
+  }
+
+  public async knowTables(ids: Array<string | null>): Promise<void> {
+    const unknown: Array<string> = uniqueIds(ids).filter((id: string) => {
+      return !this.tables.has(id);
+    });
+
+    if (unknown.length === 0) {
+      return;
+    }
+
+    const found: Set<string> = await this.readable.readableTableIds(unknown);
+
+    for (const id of unknown) {
+      this.tables.set(id, found.has(id));
+    }
+  }
+
+  public async knowPipelines(ids: Array<string | null>): Promise<void> {
+    const unknown: Array<string> = uniqueIds(ids).filter((id: string) => {
+      return !this.pipelines.has(id);
+    });
+
+    if (unknown.length === 0) {
+      return;
+    }
+
+    const found: Set<string> = await this.readable.readablePipelineIds(unknown);
+
+    for (const id of unknown) {
+      this.pipelines.set(id, found.has(id));
+    }
+  }
+
+  // Asked once known: whether it may read this table.
+  public isTable(id: string | null | undefined): boolean {
+    return Boolean(id && this.tables.get(id));
+  }
+
+  public isPipeline(id: string | null | undefined): boolean {
+    return Boolean(id && this.pipelines.get(id));
+  }
+
+  // Of these tables, the ones it may read, in their order.
+  public async tablesOf(ids: Array<string>): Promise<Array<string>> {
+    await this.knowTables(ids);
+
+    return ids.filter((id: string): boolean => {
+      return this.isTable(id);
+    });
+  }
+
+  public async pipelinesOf(ids: Array<string>): Promise<Array<string>> {
+    await this.knowPipelines(ids);
+
+    return ids.filter((id: string): boolean => {
+      return this.isPipeline(id);
+    });
+  }
+
+  // The rows it may read, by the rule above.
+  public async keepRows<TRow extends DataLineageEdgeRow>(
+    rows: Array<TRow>,
+  ): Promise<Array<TRow>> {
+    await this.knowTables(
+      rows.flatMap((row: TRow): Array<string | null> => {
+        return [row.downstreamDataAssetId, row.upstreamDataAssetId];
+      }),
+    );
+    await this.knowPipelines(
+      rows.map((row: TRow): string | null => {
+        return row.dataPipelineId;
+      }),
+    );
+
+    const kept: Array<TRow> = [];
+
+    for (const row of rows) {
+      if (
+        !this.isTable(row.downstreamDataAssetId) ||
+        (row.upstreamDataAssetId !== null &&
+          !this.isTable(row.upstreamDataAssetId))
+      ) {
+        continue;
+      }
+
+      if (row.dataPipelineId && !this.isPipeline(row.dataPipelineId)) {
+        // Only that the pipeline writes the table: nothing of it may be said.
+        if (row.upstreamDataAssetId === null) {
+          continue;
+        }
+
+        kept.push({ ...row, dataPipelineId: null });
+        continue;
+      }
+
+      kept.push(row);
+    }
+
+    return kept;
+  }
+}
+
+/*
+ * A reader that reads only what its reader may read (#9526). A role
+ * limited to what its members own, or to some labels, never learns the
+ * name of a table or pipeline it may not read, nor that one is there:
+ *
+ *  - a table it may not read is never read, so it is not drawn, not
+ *    counted on a card or in a side's total, and the walk stops there, as
+ *    at the edge of what was seen;
+ *  - its rows are kept by DataLineageReadableCache's rule, so no arrow
+ *    leads to such a table, no column is followed into it, no dashboard is
+ *    drawn reading it, and no pipeline it may not read is named;
+ *  - whether a read was cut short at the most rows is said of the rows it
+ *    may read, which name and count nothing it may not.
+ */
+export function scopeDataLineageReader(
+  base: DataPipelineLineageReader,
+  readable: DataLineageReadable,
+): DataPipelineLineageReader {
+  const cache: DataLineageReadableCache = new DataLineageReadableCache(
+    readable,
+  );
+
+  return {
+    readEdges: async (data: {
+      direction: DataLineageDirection;
+      dataAssetIds: Array<string>;
+      limit: number;
+    }): Promise<Array<DataLineageEdgeRow>> => {
+      const from: Array<string> = await cache.tablesOf(data.dataAssetIds);
+
+      if (from.length === 0) {
+        return [];
+      }
+
+      return await cache.keepRows(
+        await base.readEdges({ ...data, dataAssetIds: from }),
+      );
+    },
+
+    readPipelineEdges: async (data: {
+      dataPipelineId: string;
+      limit: number;
+    }): Promise<Array<DataLineageEdgeRow>> => {
+      await cache.knowPipelines([data.dataPipelineId]);
+
+      if (!cache.isPipeline(data.dataPipelineId)) {
+        return [];
+      }
+
+      return await cache.keepRows(await base.readPipelineEdges(data));
+    },
+
+    readTables: async (
+      dataAssetIds: Array<string>,
+    ): Promise<Array<DataLineageTableRow>> => {
+      const ids: Array<string> = await cache.tablesOf(dataAssetIds);
+
+      return ids.length > 0 ? await base.readTables(ids) : [];
+    },
+
+    readPipelines: async (
+      dataPipelineIds: Array<string>,
+    ): Promise<Array<DataLineagePipelineRow>> => {
+      const ids: Array<string> = await cache.pipelinesOf(dataPipelineIds);
+
+      return ids.length > 0 ? await base.readPipelines(ids) : [];
+    },
+
+    readOpenAlertCounts: async (
+      dataAssetIds: Array<string>,
+    ): Promise<Map<string, number>> => {
+      const ids: Array<string> = await cache.tablesOf(dataAssetIds);
+
+      return ids.length > 0 ? await base.readOpenAlertCounts(ids) : new Map();
+    },
+
+    readDashboards: async (data: {
+      dataAssetIds: Array<string>;
+      limit: number;
+      drawnDataAssetIds?: Array<string> | undefined;
+    }): Promise<{
+      dashboards: Array<DataLineageDashboardRow>;
+      total: number;
+    }> => {
+      const ids: Array<string> = await cache.tablesOf(data.dataAssetIds);
+
+      if (ids.length === 0) {
+        return { dashboards: [], total: 0 };
+      }
+
+      return await base.readDashboards({
+        ...data,
+        dataAssetIds: ids,
+        ...(data.drawnDataAssetIds
+          ? { drawnDataAssetIds: await cache.tablesOf(data.drawnDataAssetIds) }
+          : {}),
+      });
+    },
+
+    readColumnMappings: async (
+      pairs: Array<DataLineageTablePair>,
+      dataPipelineId?: string | undefined,
+    ): Promise<Map<string, Array<DataColumnMapping>>> => {
+      await cache.knowTables(
+        pairs.flatMap((pair: DataLineageTablePair): Array<string> => {
+          return [pair.upstreamDataAssetId, pair.downstreamDataAssetId];
+        }),
+      );
+
+      if (dataPipelineId) {
+        await cache.knowPipelines([dataPipelineId]);
+
+        if (!cache.isPipeline(dataPipelineId)) {
+          return new Map();
+        }
+      }
+
+      const kept: Array<DataLineageTablePair> = pairs.filter(
+        (pair: DataLineageTablePair): boolean => {
+          return (
+            cache.isTable(pair.upstreamDataAssetId) &&
+            cache.isTable(pair.downstreamDataAssetId)
+          );
+        },
+      );
+
+      return kept.length > 0
+        ? await base.readColumnMappings(kept, dataPipelineId)
+        : new Map();
+    },
+
+    ...(base.readColumnOrder
+      ? {
+          readColumnOrder: async (
+            dataAssetId: string,
+          ): Promise<Array<string>> => {
+            await cache.knowTables([dataAssetId]);
+
+            return cache.isTable(dataAssetId)
+              ? await base.readColumnOrder!(dataAssetId)
+              : [];
+          },
+        }
+      : {}),
+  };
+}
+
+function uniqueIds(ids: Array<string | null | undefined>): Array<string> {
+  return Array.from(
+    new Set(
+      ids.filter((id: string | null | undefined): id is string => {
+        return Boolean(id);
+      }),
+    ),
+  );
 }
 
 const NO_PINS: DataLineagePins = {
@@ -404,12 +710,18 @@ export default class DataTableLineageReader {
     reader: DatabaseCommonInteractionProps | null;
     // Each arrow between two tables with the columns it carries.
     withColumns?: boolean | undefined;
+    // What its reader may read, when the caller has worked it out already.
+    scope?: DataObservabilityScope | undefined;
   }): Promise<DataTableLineage | null> {
     return await this.build({
       focusDataAssetId: data.dataAssetId.toString(),
       depth: data.depth,
       now: data.now,
-      reader: this.getDatabaseReader(data.projectId, data.reader),
+      reader: await this.getScopedDatabaseReader(
+        data.projectId,
+        data.reader,
+        data.scope,
+      ),
       withColumns: data.withColumns,
     });
   }
@@ -426,11 +738,84 @@ export default class DataTableLineageReader {
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
   }): Promise<DataLineageExpansion | null> {
+    const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
+      data.projectId,
+      data.reader,
+    );
+    const base: DataPipelineLineageReader = this.getDatabaseReader(
+      data.projectId,
+      data.reader,
+    );
+
+    if (scope.isWholeProject) {
+      return await this.buildExpansion({
+        request: data.request,
+        now: data.now,
+        reader: base,
+      });
+    }
+
+    const readable: DataLineageReadable = this.getReadable(scope);
+    const request: DataLineageExpandRequest | null =
+      await this.keepReadableRequest(data.request, readable);
+
+    if (!request) {
+      return null;
+    }
+
     return await this.buildExpansion({
-      request: data.request,
+      request,
       now: data.now,
-      reader: this.getDatabaseReader(data.projectId, data.reader),
+      reader: scopeDataLineageReader(base, readable),
     });
+  }
+
+  /*
+   * A request to draw more, as its reader may ask it (#9526): a drawing is
+   * theirs only when its own card, and the card pressed, are ones they may
+   * read - else the answer is that nothing was found - and of the tables it
+   * names as drawn, the ones they may read: a table they may not read is
+   * never placed, so no arrow is drawn to it, and no dashboard is counted
+   * reading it.
+   */
+  public static async keepReadableRequest(
+    request: DataLineageExpandRequest,
+    readable: DataLineageReadable,
+  ): Promise<DataLineageExpandRequest | null> {
+    for (const nodeId of [request.focusNodeId, request.nodeId]) {
+      const card: { kind: "table" | "pipeline"; id: string } | null =
+        readLineageCardId(nodeId);
+
+      if (!card) {
+        return null;
+      }
+
+      const found: Set<string> =
+        card.kind === "pipeline"
+          ? await readable.readablePipelineIds([card.id])
+          : await readable.readableTableIds([card.id]);
+
+      if (!found.has(card.id)) {
+        return null;
+      }
+    }
+
+    const readableIds: Set<string> = await readable.readableTableIds(
+      uniqueIds(
+        request.tables.map((table: { dataAssetId: string }): string => {
+          return table.dataAssetId;
+        }),
+      ),
+    );
+
+    return {
+      ...request,
+      tables: request.tables.filter(
+        (table: { dataAssetId: string }): boolean => {
+          return readableIds.has(table.dataAssetId);
+        },
+      ),
+    };
   }
 
   /*
@@ -444,12 +829,15 @@ export default class DataTableLineageReader {
     depth: number;
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
+    // The columns its own arrows carry, and each arrow between two tables (#6854).
+    withColumns?: boolean | undefined;
   }): Promise<DataTableLineage | null> {
     return await this.buildForPipeline({
       focusDataPipelineId: data.dataPipelineId.toString(),
       depth: data.depth,
       now: data.now,
-      reader: this.getDatabaseReader(data.projectId, data.reader),
+      reader: await this.getScopedDatabaseReader(data.projectId, data.reader),
+      withColumns: data.withColumns,
     });
   }
 
@@ -548,6 +936,11 @@ export default class DataTableLineageReader {
     pins?: DataLineagePins | undefined;
     // The tables it reads and writes, when the caller has read them already (readPipelineTables).
     tables?: DataPipelineTables | undefined;
+    /*
+     * The columns its own arrows carry, and each arrow between two tables
+     * with its own: what the column picker on its page follows (#6854).
+     */
+    withColumns?: boolean | undefined;
   }): Promise<DataTableLineage | null> {
     const depth: number = clampDepth(data.depth);
     const upstreamDepth: number = clampDepth(data.upstreamDepth ?? depth);
@@ -659,13 +1052,13 @@ export default class DataTableLineageReader {
       seen: Map<string, Date | null>;
       chosen: Array<string>;
       isRead: boolean;
-    }) => number = (way: {
+    }) => Set<string> = (way: {
       seen: Map<string, Date | null>;
       chosen: Array<string>;
       isRead: boolean;
-    }): number => {
+    }): Set<string> => {
       const chosen: Set<string> = new Set(way.chosen);
-      let hidden: number = 0;
+      const hidden: Set<string> = new Set();
 
       for (const [id, lastSeenAt] of way.seen) {
         if (chosen.has(id) || !state.tables.has(id)) {
@@ -673,7 +1066,7 @@ export default class DataTableLineageReader {
         }
 
         if (!state.placed.has(id)) {
-          hidden++;
+          hidden.add(id);
           continue;
         }
 
@@ -689,18 +1082,18 @@ export default class DataTableLineageReader {
 
       return hidden;
     };
-    const hiddenReads: number = hiddenOf({
+    const hiddenReads: Set<string> = hiddenOf({
       seen: tables.read,
       chosen: reads.chosen,
       isRead: true,
     });
-    const hiddenWrites: number = hiddenOf({
+    const hiddenWrites: Set<string> = hiddenOf({
       seen: tables.written,
       chosen: writes.chosen,
       isRead: false,
     });
 
-    return await this.finish({
+    const lineage: DataTableLineage = await this.finish({
       state,
       focusNodeId,
       depth: Math.max(upstreamDepth, downstreamDepth),
@@ -709,12 +1102,202 @@ export default class DataTableLineageReader {
       pins,
       focusNode: {
         ...this.pipelineNode(focus, DataLineageSide.Focus, 0),
-        hiddenUpstreamCount: hiddenReads,
-        hiddenDownstreamCount: hiddenWrites,
+        hiddenUpstreamCount: hiddenReads.size,
+        hiddenDownstreamCount: hiddenWrites.size,
       },
+      focusHidden: { upstream: hiddenReads, downstream: hiddenWrites },
       focusEdges,
       focusPipelineId: pipelineId,
     });
+
+    if (data.withColumns) {
+      await this.addPipelineColumns({
+        reader: data.reader,
+        lineage,
+        dataPipelineId: pipelineId,
+      });
+    }
+
+    return lineage;
+  }
+
+  /*
+   * A pipeline's drawing with its columns (#6854). Its runs say which
+   * columns of each table they read fed which columns of each table they
+   * wrote; the drawing has no arrow between those tables - the pipeline's
+   * card is between them - so its own arrows carry them, the card standing
+   * for the columns it writes:
+   *
+   *  - each arrow out of it, to a table it writes, carries the columns of
+   *    that table its runs wrote, each into itself;
+   *  - each arrow into it, from a table it reads, carries the columns of
+   *    that table its runs read, each into the column it was written to.
+   *
+   * So following a column it writes goes down to the tables it writes it
+   * to and up to the columns it was built from, and on from each as a
+   * table's drawing goes. Two tables it writes with a column of one name
+   * are followed as one. Then every arrow between two tables carries its
+   * own, as on a table's drawing, within what one answer carries; and the
+   * drawing says the order of the first table it writes whose arrow names
+   * columns, for the picker to offer them in.
+   */
+  private static async addPipelineColumns(data: {
+    reader: DataLineageReader;
+    lineage: DataTableLineage;
+    dataPipelineId: string;
+  }): Promise<void> {
+    const pipelineNodeId: string = getLineagePipelineNodeId(
+      data.dataPipelineId,
+    );
+    const reads: Array<DataTableLineageEdge> = [];
+    const writes: Array<DataTableLineageEdge> = [];
+
+    for (const edge of data.lineage.edges) {
+      if (
+        edge.kind === DataLineageEdgeKind.Reads &&
+        edge.target === pipelineNodeId &&
+        edge.source.startsWith(TABLE_NODE_PREFIX)
+      ) {
+        reads.push(edge);
+      } else if (
+        edge.kind === DataLineageEdgeKind.Writes &&
+        edge.source === pipelineNodeId &&
+        edge.target.startsWith(TABLE_NODE_PREFIX)
+      ) {
+        writes.push(edge);
+      }
+    }
+
+    const pairs: Array<DataLineageTablePair> = [];
+
+    for (const read of reads) {
+      for (const write of writes) {
+        pairs.push({
+          upstreamDataAssetId: read.source.slice(TABLE_NODE_PREFIX.length),
+          downstreamDataAssetId: write.target.slice(TABLE_NODE_PREFIX.length),
+        });
+      }
+    }
+
+    const found: Map<string, Array<DataColumnMapping>> = new Map();
+
+    for (const chunk of chunked(pairs, COLUMN_READ_CHUNK)) {
+      for (const [key, mappings] of await data.reader.readColumnMappings(
+        chunk,
+        data.dataPipelineId,
+      )) {
+        found.set(key, mappings);
+      }
+    }
+
+    // What each arrow into it carries, and the columns written to each table.
+    const readColumns: Map<string, Array<DataColumnMapping>> = new Map();
+    const writtenColumns: Map<string, Array<string>> = new Map();
+
+    for (const pair of pairs) {
+      const mappings: Array<DataColumnMapping> | undefined = found.get(
+        getLineageTablePairKey(pair),
+      );
+
+      if (!mappings || mappings.length === 0) {
+        continue;
+      }
+
+      readColumns.set(
+        pair.upstreamDataAssetId,
+        mergeColumnMappings(
+          readColumns.get(pair.upstreamDataAssetId),
+          mappings,
+        ),
+      );
+
+      const written: Array<string> =
+        writtenColumns.get(pair.downstreamDataAssetId) || [];
+
+      for (const mapping of mappings) {
+        if (!written.includes(mapping.downstreamColumn)) {
+          written.push(mapping.downstreamColumn);
+        }
+      }
+
+      writtenColumns.set(pair.downstreamDataAssetId, written);
+    }
+
+    let carried: number = 0;
+
+    for (const write of writes) {
+      const written: Array<string> =
+        writtenColumns.get(write.target.slice(TABLE_NODE_PREFIX.length)) || [];
+
+      if (
+        written.length === 0 ||
+        carried + written.length > MAX_DATA_LINEAGE_COLUMN_MAPPINGS
+      ) {
+        continue;
+      }
+
+      write.columnMappings = written.map(
+        (column: string): DataColumnMapping => {
+          return { upstreamColumn: column, downstreamColumn: column };
+        },
+      );
+      carried += written.length;
+    }
+
+    for (const read of reads) {
+      const mappings: Array<DataColumnMapping> =
+        readColumns.get(read.source.slice(TABLE_NODE_PREFIX.length)) || [];
+
+      if (
+        mappings.length === 0 ||
+        carried + mappings.length > MAX_DATA_LINEAGE_COLUMN_MAPPINGS
+      ) {
+        continue;
+      }
+
+      read.columnMappings = mappings;
+      carried += mappings.length;
+    }
+
+    const depths: Map<string, number> = new Map();
+
+    for (const node of data.lineage.nodes) {
+      depths.set(node.id, node.depth);
+    }
+
+    await this.addColumnMappings({
+      reader: data.reader,
+      edges: data.lineage.edges,
+      depths,
+      carried,
+    });
+
+    // The order of the first table it writes whose arrow names columns, in the drawing's order.
+    const firstWritten: DataTableLineageNode | undefined =
+      data.lineage.nodes.find((node: DataTableLineageNode): boolean => {
+        return (
+          node.kind === DataLineageNodeKind.Table &&
+          Boolean(
+            node.dataAssetId &&
+              (writtenColumns.get(node.dataAssetId) || []).length > 0 &&
+              writes.some((write: DataTableLineageEdge): boolean => {
+                return (
+                  write.target === node.id && Boolean(write.columnMappings)
+                );
+              }),
+          )
+        );
+      });
+
+    if (firstWritten?.dataAssetId && data.reader.readColumnOrder) {
+      const order: Array<string> = await data.reader.readColumnOrder(
+        firstWritten.dataAssetId,
+      );
+
+      if (order.length > 0) {
+        data.lineage.columnOrder = order;
+      }
+    }
   }
 
   /*
@@ -1242,6 +1825,8 @@ export default class DataTableLineageReader {
     edges: Array<DataTableLineageEdge>;
     // Each card's steps from the drawing's own, by card id.
     depths: Map<string, number>;
+    // The column pairs the answer carries already: a pipeline's own arrows'.
+    carried?: number | undefined;
   }): Promise<void> {
     const stepsOf: (edge: DataTableLineageEdge) => number = (
       edge: DataTableLineageEdge,
@@ -1262,7 +1847,7 @@ export default class DataTableLineageReader {
       .sort((a: DataTableLineageEdge, b: DataTableLineageEdge): number => {
         return stepsOf(a) - stepsOf(b) || compareText(a.id, b.id);
       });
-    let carried: number = 0;
+    let carried: number = data.carried || 0;
 
     for (const chunk of chunked(arrows, COLUMN_READ_CHUNK)) {
       const pairs: Array<DataLineageTablePair> = chunk.map(
@@ -1484,6 +2069,10 @@ export default class DataTableLineageReader {
     focusNode: DataTableLineageNode | null;
     focusEdges: Array<DataTableLineageEdge>;
     focusPipelineId: string | null;
+    // The tables its own card counts: what it reads and writes that is not drawn.
+    focusHidden?:
+      | { upstream: Set<string>; downstream: Set<string> }
+      | undefined;
   }): Promise<DataTableLineage> {
     const state: WalkState = data.state;
 
@@ -1499,6 +2088,32 @@ export default class DataTableLineageReader {
             this.keepEdge(state, edge);
             ofTable.delete(neighbour);
           }
+        }
+      }
+    }
+
+    /*
+     * Each side's tables not drawn, each once (#6734): a table next to two
+     * drawn cards is on both their counts. Counted as each card counts -
+     * upstream from the cards that are not downstream, and the other way.
+     */
+    const hiddenUpstream: Set<string> = new Set(
+      data.focusHidden?.upstream || [],
+    );
+    const hiddenDownstream: Set<string> = new Set(
+      data.focusHidden?.downstream || [],
+    );
+
+    for (const [id, placed] of state.placed) {
+      if (placed.side !== DataLineageSide.Downstream) {
+        for (const neighbour of state.hiddenUpstream.get(id)?.keys() || []) {
+          hiddenUpstream.add(neighbour);
+        }
+      }
+
+      if (placed.side !== DataLineageSide.Upstream) {
+        for (const neighbour of state.hiddenDownstream.get(id)?.keys() || []) {
+          hiddenDownstream.add(neighbour);
         }
       }
     }
@@ -1555,6 +2170,8 @@ export default class DataTableLineageReader {
       nodes,
       edges,
       hiddenDashboardCount,
+      hiddenUpstreamTotal: hiddenUpstream.size,
+      hiddenDownstreamTotal: hiddenDownstream.size,
       isTruncated: state.isTruncated,
     };
   }
@@ -2231,6 +2848,92 @@ export default class DataTableLineageReader {
     }
   }
 
+  /*
+   * Which tables and pipelines a caller may read, as their scope narrows
+   * the reads of each (DataObservabilityReadScope): asked of the database a
+   * few hundred ids at a time.
+   */
+  public static getReadable(
+    scope: DataObservabilityScope,
+  ): DataLineageReadable {
+    const readableOf: <TBaseModel extends BaseModel>(data: {
+      service: DatabaseService<TBaseModel>;
+      query: Query<TBaseModel>;
+      ids: Array<string>;
+    }) => Promise<Set<string>> = async <TBaseModel extends BaseModel>(data: {
+      service: DatabaseService<TBaseModel>;
+      query: Query<TBaseModel>;
+      ids: Array<string>;
+    }): Promise<Set<string>> => {
+      const found: Set<string> = new Set();
+
+      for (const ids of chunked(uniqueIds(data.ids), READ_CHUNK)) {
+        for (const id of await DataObservabilityReadScope.getReadableIds({
+          service: data.service,
+          query: data.query,
+          ids,
+        })) {
+          found.add(id);
+        }
+      }
+
+      return found;
+    };
+
+    return {
+      readableTableIds: async (
+        dataAssetIds: Array<string>,
+      ): Promise<Set<string>> => {
+        if (scope.isWholeProject) {
+          return new Set(dataAssetIds);
+        }
+
+        return await readableOf({
+          service: DataAssetService,
+          query: scope.assetQuery,
+          ids: dataAssetIds,
+        });
+      },
+      readablePipelineIds: async (
+        dataPipelineIds: Array<string>,
+      ): Promise<Set<string>> => {
+        if (scope.isWholeProject) {
+          return new Set(dataPipelineIds);
+        }
+
+        return await readableOf({
+          service: DataPipelineService,
+          query: scope.pipelineQuery,
+          ids: dataPipelineIds,
+        });
+      },
+    };
+  }
+
+  /*
+   * The reader of the project's own rows for `reader`: as their scope
+   * narrows their reads (scopeDataLineageReader), or every row of the
+   * project for a caller it narrows nothing for - exactly as before - and
+   * for OneUptime's own reads. Throws what the scope throws for a caller
+   * who may not read tables at all.
+   */
+  public static async getScopedDatabaseReader(
+    projectId: ObjectID,
+    reader: DatabaseCommonInteractionProps | null,
+    scope?: DataObservabilityScope | undefined,
+  ): Promise<DataPipelineLineageReader> {
+    const base: DataPipelineLineageReader = this.getDatabaseReader(
+      projectId,
+      reader,
+    );
+    const readScope: DataObservabilityScope =
+      scope || (await DataObservabilityReadScope.get(projectId, reader));
+
+    return readScope.isWholeProject
+      ? base
+      : scopeDataLineageReader(base, this.getReadable(readScope));
+  }
+
   // The reader of the project's own rows, counting alerts as `reader` may see them.
   public static getDatabaseReader(
     projectId: ObjectID,
@@ -2583,6 +3286,7 @@ export default class DataTableLineageReader {
 
       readColumnMappings: async (
         pairs: Array<DataLineageTablePair>,
+        dataPipelineId?: string | undefined,
       ): Promise<Map<string, Array<DataColumnMapping>>> => {
         const columns: Map<string, Array<DataColumnMapping>> = new Map();
 
@@ -2616,6 +3320,9 @@ export default class DataTableLineageReader {
                 }),
               ),
               columnMappings: QueryHelper.notNull(),
+              ...(dataPipelineId
+                ? { dataPipelineId: new ObjectID(dataPipelineId) }
+                : {}),
             },
             select: {
               upstreamDataAssetId: true,
@@ -2653,6 +3360,20 @@ export default class DataTableLineageReader {
         }
 
         return columns;
+      },
+
+      readColumnOrder: async (dataAssetId: string): Promise<Array<string>> => {
+        const asset: DataAsset | null = await DataAssetService.findOneBy({
+          query: { projectId, _id: new ObjectID(dataAssetId) },
+          select: { columns: true },
+          props: { isRoot: true },
+        });
+
+        return readDataAssetColumns(asset?.columns).map(
+          (column: { name: string }): string => {
+            return column.name;
+          },
+        );
       },
     };
   }

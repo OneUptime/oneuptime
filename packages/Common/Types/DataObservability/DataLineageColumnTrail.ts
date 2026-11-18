@@ -3,6 +3,7 @@ import {
   DataLineageEdgeKind,
   DataTableLineage,
   DataTableLineageEdge,
+  isLineagePipelineNodeId,
 } from "./DataTableLineage";
 
 /*
@@ -18,7 +19,37 @@ import {
  * built from or feeds several (LineageGraphModel); a data alert from a
  * check on one column opens with that column followed, and its AI
  * investigation is told the same way in words (DataAlertColumnLineage).
+ *
+ * A pipeline's drawing read with its columns (#6854) has no arrow between
+ * the tables it reads and writes - its card is between them - so its own
+ * arrows carry them: each arrow into it maps a column it reads to the
+ * column it was written to, and each arrow out of it the columns it wrote.
+ * Its card stands for the columns it writes: those are what its picker
+ * offers, and following one goes across it both ways.
  */
+
+/*
+ * The arrows a column goes along: between two tables, and on a pipeline's
+ * drawing the pipeline's own - from the tables it reads, to the tables it
+ * writes - whether or not its runs named their columns.
+ */
+export function doesLineageArrowCarryColumns(
+  edge: DataTableLineageEdge,
+  focusNodeId: string,
+): boolean {
+  if (edge.kind === DataLineageEdgeKind.Feeds) {
+    return true;
+  }
+
+  if (!isLineagePipelineNodeId(focusNodeId)) {
+    return false;
+  }
+
+  return (
+    (edge.kind === DataLineageEdgeKind.Reads && edge.target === focusNodeId) ||
+    (edge.kind === DataLineageEdgeKind.Writes && edge.source === focusNodeId)
+  );
+}
 
 export interface LineageColumnTrail {
   // The column followed, as the table names it.
@@ -48,7 +79,8 @@ export function getLineageColumnKey(name: string): string {
  * arrow into or out of it names, in the table's own order (`columnOrder`,
  * as its last collection read them) and then by name, each named as the
  * table names it. Empty when no arrow next to it names a column: nothing
- * to pick.
+ * to pick. On a pipeline's drawing, the columns it writes, in the order of
+ * the first table it writes them to.
  */
 export function getLineageColumnChoices(
   lineage: DataTableLineage,
@@ -65,7 +97,7 @@ export function getLineageColumnChoices(
   };
 
   for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds || !edge.columnMappings) {
+    if (!doesLineageArrowCarryColumns(edge, focus) || !edge.columnMappings) {
       continue;
     }
 
@@ -127,7 +159,7 @@ export function followLineageColumn(
   const out: Map<string, Array<DataTableLineageEdge>> = new Map();
 
   for (const edge of lineage.edges) {
-    if (edge.kind !== DataLineageEdgeKind.Feeds) {
+    if (!doesLineageArrowCarryColumns(edge, focus)) {
       continue;
     }
 

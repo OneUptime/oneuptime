@@ -679,8 +679,11 @@ describe("how much one answer tells", () => {
     );
   });
 
-  test("a table next to two of the tables told is counted on each, so the count says up to", async () => {
-    // raw.events feeds both staging tables, two steps up: past one step, each counts it.
+  /*
+   * raw.events feeds both staging tables, two steps up: past one step, each
+   * counts it on its card - and the answer counts it once (#6734).
+   */
+  function sharedUpstreamWarehouse(): MemoryGraph {
     const graph: MemoryGraph = newGraph();
     table(graph, t(0), { assetKey: "public.orders" });
     table(graph, t(1), { assetKey: "staging.a" });
@@ -695,13 +698,89 @@ describe("how much one answer tells", () => {
     feeds(graph, t(0), t(4));
     feeds(graph, t(4), t(5));
 
-    const answer: DataTableLineageAnswer = await answerOf(graph, t(0), 1);
+    return graph;
+  }
+
+  test("a table next to two of the tables told is counted once, exactly: no up to", async () => {
+    const lineage: DataTableLineage = await lineageOf(
+      sharedUpstreamWarehouse(),
+      t(0),
+      1,
+    );
+
+    // Each staging card still counts raw.events on its own, as the diagram draws it.
+    expect(
+      lineage.nodes
+        .filter((node: DataTableLineageNode): boolean => {
+          return (node.hiddenUpstreamCount || 0) > 0;
+        })
+        .map((node: DataTableLineageNode): number => {
+          return node.hiddenUpstreamCount || 0;
+        }),
+    ).toEqual([1, 1]);
+    expect(lineage.hiddenUpstreamTotal).toBe(1);
+    expect(lineage.hiddenDownstreamTotal).toBe(1);
+
+    const answer: DataTableLineageAnswer = buildDataTableLineageAnswer(lineage);
+
+    expect(answer.upstream).toMatchObject({
+      hiddenCount: 1,
+      isHiddenCountAtMost: false,
+    });
+    expect(answer.downstream).toMatchObject({
+      hiddenCount: 1,
+      isHiddenCountAtMost: false,
+    });
+
+    const text: string = formatDataTableLineageAnswer(answer, NOW);
+
+    expect(text).toContain(
+      "More lineage lies past what is told: 1 more table further up and 1 more table further down (further than 1 step, or past the 10 nearest to one table).",
+    );
+    expect(text).not.toMatch(/up to \d+ more tables?/);
+  });
+
+  test("the cards' counts are never summed again when the drawing carries its totals: two cards counting one table say one", async () => {
+    const lineage: DataTableLineage = await lineageOf(
+      sharedUpstreamWarehouse(),
+      t(0),
+      1,
+    );
+    const summed: number = lineage.nodes.reduce(
+      (sum: number, node: DataTableLineageNode): number => {
+        return (
+          sum +
+          (node.side === DataLineageSide.Downstream
+            ? 0
+            : node.hiddenUpstreamCount || 0)
+        );
+      },
+      0,
+    );
+
+    // Summing the cards would say two: a mutation back to the sum fails here.
+    expect(summed).toBe(2);
+    expect(buildDataTableLineageAnswer(lineage).upstream.hiddenCount).toBe(1);
+  });
+
+  test("a drawing from before the totals: the cards' counts summed, said as up to", async () => {
+    const lineage: DataTableLineage = await lineageOf(
+      sharedUpstreamWarehouse(),
+      t(0),
+      1,
+    );
+    const older: DataTableLineage = {
+      ...lineage,
+      hiddenUpstreamTotal: undefined,
+      hiddenDownstreamTotal: undefined,
+    };
+    const answer: DataTableLineageAnswer = buildDataTableLineageAnswer(older);
 
     expect(answer.upstream).toMatchObject({
       hiddenCount: 2,
       isHiddenCountAtMost: true,
     });
-    // One table counts the one past it down: exactly that.
+    // One table counts the one past it down: exactly that, even then.
     expect(answer.downstream).toMatchObject({
       hiddenCount: 1,
       isHiddenCountAtMost: false,
@@ -709,6 +788,20 @@ describe("how much one answer tells", () => {
     expect(formatDataTableLineageAnswer(answer, NOW)).toContain(
       "More lineage lies past what is told: up to 2 more tables further up and 1 more table further down (further than 1 step, or past the 10 nearest to one table).",
     );
+  });
+
+  test("a total of none says nothing lies further, whatever the cards say", async () => {
+    const lineage: DataTableLineage = await lineageOf(
+      sharedUpstreamWarehouse(),
+      t(0),
+      3,
+    );
+
+    expect(lineage.hiddenUpstreamTotal).toBe(0);
+    expect(lineage.hiddenDownstreamTotal).toBe(0);
+    expect(
+      formatDataTableLineageAnswer(buildDataTableLineageAnswer(lineage), NOW),
+    ).not.toContain("More lineage lies past what is told");
   });
 
   test("dashboards past the most told, and past the most a drawing holds, are counted", async () => {

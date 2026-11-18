@@ -1502,6 +1502,9 @@ export function mergeLineageExpansion(
       typeof expansion.hiddenDashboardCount === "number"
         ? Math.max(0, expansion.hiddenDashboardCount)
         : lineage.hiddenDashboardCount,
+    // Each side's total was of the drawing as read: its cards' counts have moved since.
+    hiddenUpstreamTotal: undefined,
+    hiddenDownstreamTotal: undefined,
     isTruncated: lineage.isTruncated || expansion.isTruncated,
   };
 }

@@ -236,7 +236,13 @@ describe("DataLineageMapReader.build", () => {
       now: NOW,
     });
 
-    expect(map).toEqual({ nodes: [], edges: [], isTruncated: false });
+    expect(map).toEqual({
+      nodes: [],
+      edges: [],
+      isTruncated: false,
+      hiddenTableCount: 0,
+      isHiddenTableCountAtLeast: false,
+    });
     expect(r.asked.tables).toEqual([]);
     expect(r.asked.dashboards).toEqual([]);
   });
