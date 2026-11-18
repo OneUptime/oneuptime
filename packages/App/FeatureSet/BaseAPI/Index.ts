@@ -795,6 +795,12 @@ import DataAssetOwnerTeamService, {
 import DataAssetOwnerRuleService, {
   Service as DataAssetOwnerRuleServiceType,
 } from "Common/Server/Services/DataAssetOwnerRuleService";
+import DataPipelineOwnerUserService, {
+  Service as DataPipelineOwnerUserServiceType,
+} from "Common/Server/Services/DataPipelineOwnerUserService";
+import DataPipelineOwnerTeamService, {
+  Service as DataPipelineOwnerTeamServiceType,
+} from "Common/Server/Services/DataPipelineOwnerTeamService";
 import DataAssetLabelRuleService, {
   Service as DataAssetLabelRuleServiceType,
 } from "Common/Server/Services/DataAssetLabelRuleService";
@@ -1949,6 +1955,8 @@ import DataIssueReport from "Common/Models/DatabaseModels/DataIssueReport";
 import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
 import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
 import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
+import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
+import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwnerTeam";
 import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
@@ -4959,6 +4967,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataAssetOwnerRule, DataAssetOwnerRuleServiceType>(
         DataAssetOwnerRule,
         DataAssetOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // A data pipeline's owners (#6551), as a table's are kept.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipelineOwnerUser, DataPipelineOwnerUserServiceType>(
+        DataPipelineOwnerUser,
+        DataPipelineOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipelineOwnerTeam, DataPipelineOwnerTeamServiceType>(
+        DataPipelineOwnerTeam,
+        DataPipelineOwnerTeamService,
       ).getRouter(),
     );
 
