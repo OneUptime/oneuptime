@@ -50,6 +50,11 @@ export interface CandidateFinder {
   findCandidates: (
     text: string,
   ) => Array<{ start: number; end: number; value: string }>;
+  /*
+   * The pattern the candidates come from, as the project wrote it: what a
+   * database search narrows by (DetectorPrefilter). Never run here.
+   */
+  patternSource?: { source: string; flags: string } | undefined;
 }
 
 export type ScanDetector =
