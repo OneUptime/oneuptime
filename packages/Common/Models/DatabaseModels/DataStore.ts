@@ -696,6 +696,12 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     computed: true,
+    /*
+     * Readable through a relation, as the store's kind, sensitivity and
+     * exposure are: a data security issue's page reads the kinds of data its
+     * store holds (DATA_SECURITY_ISSUE_VIEW_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "Data Types",
     description:
       "The data types found in the store with at least Medium confidence.",

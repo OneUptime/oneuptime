@@ -172,6 +172,11 @@ export default class DataPipeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.LongText,
     required: true,
+    /*
+     * Readable through a relation, as a data store's name is: a data alert
+     * names the pipeline it came from (DataAlertLineage).
+     */
+    canReadOnRelationQuery: true,
     title: "Name",
     description:
       "The job's OpenLineage name, such as orders_daily.load_orders.",
