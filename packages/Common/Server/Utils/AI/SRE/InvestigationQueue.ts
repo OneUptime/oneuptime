@@ -315,6 +315,33 @@ export default class AIInvestigationQueue {
       return null;
     }
 
+    const runType: AIRunType = data.subjectAutoRemediationSuggestionId
+      ? data.remediationRunType || AIRunType.RemediationPlan
+      : AIRunType.Investigation;
+
+    /*
+     * OneUptime AI starts nothing on a product switched off on the server
+     * (#9489, AIRunService.getOffProductOfRun): the incident's or alert's,
+     * a finding's, a security case's, and Runbooks for a runbook pick.
+     * Quiet, as the cost gates are: nobody sees the record's AI card while
+     * its product is off, and nothing is written for it.
+     */
+    if (
+      await AIRunService.getOffProductOfRun({
+        runType: runType,
+        triggeredByIncidentId: data.subjectIncidentId,
+        triggeredByAlertId: data.subjectAlertId,
+        triggeredByAiInsightId: data.subjectAIInsightId,
+        triggeredBySecurityCaseId: data.subjectSecurityCaseId,
+        followUpForAlertId: data.followUpForAlertId,
+      })
+    ) {
+      logger.debug(
+        `AI: not enqueueing a run for project ${projectId.toString()} — a product it works on is switched off on this server.`,
+      );
+      return null;
+    }
+
     /*
      * Budget quiet-skip at enqueue: when the daily budget is already
      * exhausted there is no point recording intent that the TTL would
@@ -356,10 +383,6 @@ export default class AIInvestigationQueue {
       );
       return null;
     }
-
-    const runType: AIRunType = data.subjectAutoRemediationSuggestionId
-      ? data.remediationRunType || AIRunType.RemediationPlan
-      : AIRunType.Investigation;
 
     const run: AIRun = new AIRun();
 
@@ -1247,6 +1270,18 @@ export default class AIInvestigationQueue {
     if (run.triggeredByIncidentId && run.triggeredByAlertId) {
       logger.error(
         `AI: leaving run ${run.id.toString()} queued — a run cannot belong to both an incident and an alert.`,
+      );
+      return false;
+    }
+
+    /*
+     * Nothing starts on a product switched off on the server (see
+     * enqueue): a run queued before it was switched off waits, and the TTL
+     * expires what never starts.
+     */
+    if (await AIRunService.getOffProductOfRun(run)) {
+      logger.debug(
+        `AI: leaving run ${run.id.toString()} queued — a product it works on is switched off on this server.`,
       );
       return false;
     }

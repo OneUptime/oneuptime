@@ -3,6 +3,7 @@ import {
   ServerProductsStartingValue,
 } from "../../EnvironmentConfig";
 import GlobalConfigService from "../../Services/GlobalConfigService";
+import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
 import logger from "../Logger";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../../Types/Date";
@@ -240,6 +241,34 @@ export class ServerProductsClass {
     }
 
     return null;
+  }
+
+  /*
+   * Why a product is off, for what the server does by itself (#9489):
+   * OneUptime AI's runs, auto-remediation, a runbook's start, a review of
+   * a pull request. Without a database to read the products from (a unit
+   * test of a service) nothing is off - nothing could be written either -
+   * as ProductWriteRefusal reads it.
+   */
+  public async getOffReasonOfServerWork(
+    product: ProductKey,
+  ): Promise<ServerProductOffReason | null> {
+    if (!PostgresAppInstance.isConnected()) {
+      return null;
+    }
+
+    return await this.getOffReason(product);
+  }
+
+  // Of the products some work of the server's acts on, the first that is off.
+  public async getFirstOffOfServerWork(
+    products: ReadonlyArray<ProductKey>,
+  ): Promise<{ product: ProductKey; reason: ServerProductOffReason } | null> {
+    if (products.length === 0 || !PostgresAppInstance.isConnected()) {
+      return null;
+    }
+
+    return await this.getFirstOff(products);
   }
 
   // What Admin Dashboard > Settings > Products draws, read fresh.

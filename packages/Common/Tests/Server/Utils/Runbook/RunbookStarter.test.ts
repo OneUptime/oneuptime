@@ -7,10 +7,16 @@ import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/P
 import logger from "../../../../Server/Utils/Logger";
 import RunbookStarter, {
   RUNBOOK_RUN_NOT_QUEUED_REASON,
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
   RunbookStartRefusal,
   RunbookStartResult,
   RunbookStarterClass,
 } from "../../../../Server/Utils/Runbook/RunbookStarter";
+import { describeRunbookRefusal } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookResponseSteps";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProducts";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -594,5 +600,122 @@ describe("whose a run's start is in the audit log", () => {
       userType: UserType.User,
     });
     expect(RunbookStarterClass.getCreateProps({})).toEqual({ isRoot: true });
+  });
+});
+
+/*
+ * WHILE THE SERVER HAS RUNBOOKS SWITCHED OFF (#7479, #9489): a runbook's
+ * own triggers - its schedule, its webhook, its rules - start it as
+ * before, and nothing else does: not a person, auto-remediation, OneUptime
+ * AI or a security playbook. Refused before anything is written or queued,
+ * and only while Runbooks is off.
+ */
+describe("while Runbooks is switched off on the server", () => {
+  beforeEach(() => {
+    // A server with its database: what is off is read from it.
+    getJestSpyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+    getJestSpyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.Runbooks]: ServerProductOffReason.SwitchedOff,
+    });
+  });
+
+  test("the triggers that still start a run are the runbook's own", () => {
+    expect([...RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF].sort()).toEqual(
+      [
+        RunbookTriggerType.Schedule,
+        RunbookTriggerType.Webhook,
+        RunbookTriggerType.Rule,
+      ].sort(),
+    );
+  });
+
+  test.each([
+    RunbookTriggerType.Manual,
+    RunbookTriggerType.AutoRemediation,
+    RunbookTriggerType.AI,
+    RunbookTriggerType.SecurityPlaybook,
+  ])(
+    "a start from inside OneUptime (%s) is refused, and nothing is written or queued",
+    async (trigger: RunbookTriggerType) => {
+      const result: RunbookStartResult = await start({
+        trigger,
+        triggeredByUserId: new ObjectID(USER_ID),
+        linkage: { incidentId: new ObjectID(INCIDENT_ID) },
+      });
+
+      expect(result).toEqual({
+        isStarted: false,
+        refusal: RunbookStartRefusal.ProductSwitchedOff,
+      });
+      expect(writtenRuns()).toHaveLength(0);
+      expect(enqueued).toHaveLength(0);
+    },
+  );
+
+  test.each(
+    RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.map(
+      (trigger: RunbookTriggerType): [RunbookTriggerType] => {
+        return [trigger];
+      },
+    ),
+  )(
+    "a start by the runbook's own %s goes on: what already runs keeps running",
+    async (trigger: RunbookTriggerType) => {
+      const result: RunbookStartResult = await start({ trigger });
+
+      expect(result.isStarted).toBe(true);
+      expect(writtenRuns()).toHaveLength(1);
+      expect(enqueued).toHaveLength(1);
+    },
+  );
+
+  test("a trigger not listed as the runbook's own is refused", () => {
+    const refused: Array<RunbookTriggerType> = RUNBOOK_TRIGGER_TYPES.filter(
+      (trigger: RunbookTriggerType): boolean => {
+        return !RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.includes(trigger);
+      },
+    );
+
+    expect([...refused].sort()).toEqual(
+      [
+        RunbookTriggerType.Manual,
+        RunbookTriggerType.AutoRemediation,
+        RunbookTriggerType.AI,
+        RunbookTriggerType.SecurityPlaybook,
+      ].sort(),
+    );
+  });
+
+  test("a security playbook's step says why, in the words every refusal of a switched-off product has", () => {
+    expect(
+      describeRunbookRefusal(RunbookStartRefusal.ProductSwitchedOff, "Block"),
+    ).toBe(
+      "Runbooks is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+    );
+  });
+
+  test("nothing is refused while Runbooks is on", async () => {
+    getJestSpyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.Workflows]: ServerProductOffReason.SwitchedOff,
+    });
+
+    const result: RunbookStartResult = await start({
+      trigger: RunbookTriggerType.AutoRemediation,
+    });
+
+    expect(result.isStarted).toBe(true);
+  });
+
+  test("the rule engine, auto-remediation and OneUptime AI get no run back", async () => {
+    const execution: RunbookExecution | null =
+      await RunbookRuleEngineService.startRunbookFor({
+        projectId: new ObjectID(PROJECT_ID),
+        runbookId: new ObjectID(RUNBOOK_ID),
+        linkage: { incidentId: new ObjectID(INCIDENT_ID) },
+        trigger: RunbookTriggerType.AutoRemediation,
+      });
+
+    expect(execution).toBeNull();
+    expect(writtenRuns()).toHaveLength(0);
   });
 });

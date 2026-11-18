@@ -123,6 +123,12 @@ import {
   RemediationTryAgainRefusal,
   RemediationTryAgainResult,
 } from "../../Types/AutoRemediation/RemediationTryAgain";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "../../Types/Product/ServerProducts";
 
 /*
  * Deciding again about one incident or alert - after a link of what it is
@@ -1500,6 +1506,11 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    // Nothing is decided for a record of a product switched off (see the helper).
+    if (await this.isSubjectProductOff(ProductKey.Incidents)) {
+      return;
+    }
+
     /*
      * Whatever the evaluation does - acts, finds nothing to do, or stops on
      * an error - the incident's Remediation card says so afterwards.
@@ -1547,6 +1558,10 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    if (await this.isSubjectProductOff(ProductKey.Alerts)) {
+      return;
+    }
+
     // As for an incident: the alert's Remediation card says what happened.
     const recorder: AutoRemediationDecisionRecorder =
       new AutoRemediationDecisionRecorder({
@@ -1574,6 +1589,18 @@ class AutoRemediationRuleEngineServiceClass {
     } finally {
       await recorder.save();
     }
+  }
+
+  /*
+   * OneUptime AI decides no fix for a record of a product the server has
+   * switched off (#9489): it would write to the record - its feed, its
+   * Remediation step - and could start a runbook or a command for it. So a
+   * new incident or alert of a product that is off, one decided again, or
+   * one its investigation hands over, is left as it is, and nothing is
+   * written; a fix already proposed waits for the product to be on again.
+   */
+  private async isSubjectProductOff(product: ProductKey): Promise<boolean> {
+    return Boolean(await ServerProducts.getOffReasonOfServerWork(product));
   }
 
   /*
@@ -4706,6 +4733,15 @@ class AutoRemediationRuleEngineServiceClass {
     projectId: ObjectID;
     runbookIds: Array<string>;
   }): Promise<boolean> {
+    /*
+     * None while the server has Runbooks switched off (#9489): OneUptime
+     * AI picks no runbook then, and says nothing, as for a project with
+     * none (RunbookStarter would refuse to start the one it picked).
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Runbooks)) {
+      return false;
+    }
+
     const count: number = (
       await RunbookService.countBy({
         query: {
@@ -4941,6 +4977,27 @@ class AutoRemediationRuleEngineServiceClass {
     }
     if (data.linkage.alertId) {
       runbookLinkage.alertId = data.linkage.alertId;
+    }
+
+    /*
+     * Auto-remediation starts no runbook while the server has Runbooks
+     * switched off (RunbookStarter, #9489): the record's feed says so, in
+     * the words every refusal of a switched-off product has.
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Runbooks)) {
+      await this.postFeedItem({
+        projectId: data.projectId,
+        linkage: data.linkage,
+        markdown:
+          mdText`⚡ **AI rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" was not started.** ${getProductOffMessage(
+            {
+              product: ProductKey.Runbooks,
+              reason: ServerProductOffReason.SwitchedOff,
+            },
+          )}`.toString(),
+        pingWorkspace: false,
+      });
+      return false;
     }
 
     const execution: RunbookExecution | null =

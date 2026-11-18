@@ -24,6 +24,8 @@ import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryT
 import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import ServerProducts from "../../ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
 
 /*
  * FINDING THE PULL REQUESTS OF GITLAB, FORGEJO AND GITEA TO REVIEW.
@@ -128,6 +130,14 @@ export default class ProductionReviewPoller {
    */
   @CaptureSpan()
   public static async pollAll(): Promise<ProductionReviewPollResult> {
+    /*
+     * Nothing is read from a Git server, nor a review asked for, while the
+     * server has Code switched off (#9489).
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.Code)) {
+      return { repositories: 0, asked: 0 };
+    }
+
     const repositories: Array<CodeRepository> =
       await CodeRepositoryService.findBy({
         query: {
