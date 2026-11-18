@@ -2,8 +2,9 @@
  * The server's side of Server setup, in the page (#7027): the facts the
  * setup checklist is worked out from - by the rules the server uses
  * (Common/Types/ServerSetup) - the server's one settings row, the choices
- * and the hide an admin makes, and what a test send answers. Only the data
- * boundary is replaced: ModelAPI, API and the signed-in master admin.
+ * and the hide an admin makes, what a test send answers, and the email log
+ * Settings > Emails lists (#6878), which keeps each test email. Only the
+ * data boundary is replaced: ModelAPI, API and the signed-in master admin.
  *
  * Steered by the query string:
  *   - scene=fresh      a server that has just started: nothing set up (the
@@ -32,6 +33,14 @@ import Email from "Common/Types/Email";
 import ServerEmailEnvironment, {
   SERVER_EMAIL_ENVIRONMENT_ROUTE,
 } from "Common/Types/Email/ServerEmailEnvironment";
+import ServerEmailLogUtil, {
+  getServerEmailLogRetentionInDays,
+  SERVER_EMAIL_LOG_FAILED_ONLY_QUERY,
+  SERVER_EMAIL_LOG_PAGE_SIZE,
+  SERVER_EMAIL_LOG_ROUTE,
+  SERVER_EMAIL_LOG_SKIP_QUERY,
+  ServerEmailLogStatus,
+} from "Common/Types/Email/ServerEmailLog";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import Port from "Common/Types/Port";
@@ -151,6 +160,58 @@ const facts = {
   hasSingleSignOn: false,
   choices: { choices: {}, hiddenBy: {} },
 };
+
+/*
+ * The server's email log (GET /global-config/email-log, #6878), newest
+ * first: what it keeps of each email it sent that belongs to no project, and
+ * of each it failed to send. Neither scene has sent one yet - a fresh server
+ * has nothing set up, and an untested one has never sent - so it starts
+ * empty; each test email Settings > Emails sends through the server's
+ * settings is kept, sent or failed with the mail server's words, as
+ * ServerTestSendService sends it. One that is not set up sends nothing,
+ * and keeps nothing.
+ */
+const emailLog = [];
+
+function logTestEmail(toEmail, failure) {
+  emailLog.unshift({
+    id: `5e000000-0000-4000-8000-${String(emailLog.length + 1).padStart(12, "0")}`,
+    at: now(),
+    toEmail: toEmail,
+    subject: "Test Email from OneUptime",
+    templateName: "SMTPTest",
+    status: failure ? ServerEmailLogStatus.Failed : ServerEmailLogStatus.Sent,
+    statusMessage: failure || null,
+    projectId: null,
+    projectName: null,
+  });
+}
+
+// One page of the log, as the route reads its query.
+function emailLogPage(url) {
+  const query = ServerEmailLogUtil.readQuery({
+    [SERVER_EMAIL_LOG_FAILED_ONLY_QUERY]: url.searchParams.get(
+      SERVER_EMAIL_LOG_FAILED_ONLY_QUERY,
+    ),
+    [SERVER_EMAIL_LOG_SKIP_QUERY]: url.searchParams.get(
+      SERVER_EMAIL_LOG_SKIP_QUERY,
+    ),
+  });
+  const rows = emailLog.filter((entry) => {
+    return !query.failedOnly || entry.status === ServerEmailLogStatus.Failed;
+  });
+  const entries = rows.slice(
+    query.skip,
+    query.skip + SERVER_EMAIL_LOG_PAGE_SIZE,
+  );
+
+  return {
+    entries: entries,
+    hasMore: rows.length > query.skip + entries.length,
+    // A self-hosted server keeps them a month.
+    retentionInDays: getServerEmailLogRetentionInDays(false),
+  };
+}
 
 function checklist() {
   return JSON.parse(
@@ -286,6 +347,12 @@ function read(url) {
 
 API.fetch = async (options) => {
   const url = urlOf(options);
+
+  // The server's email log, a page at a time, as its query asks.
+  if (url.endsWith(SERVER_EMAIL_LOG_ROUTE)) {
+    return ok(emailLogPage(new window.URL(String(options.url))));
+  }
+
   return read(url) || notModelled("fetch", url);
 };
 
@@ -313,6 +380,10 @@ function testSend(name, body) {
       lastFailure: REFUSED[name],
     });
 
+    if (name === "email") {
+      logTestEmail(to, REFUSED.email);
+    }
+
     return {
       channel: name,
       result: "refused",
@@ -336,6 +407,10 @@ function testSend(name, body) {
   }
 
   facts[name] = channel(name, "working");
+
+  if (name === "email") {
+    logTestEmail(to, null);
+  }
 
   return {
     channel: name,

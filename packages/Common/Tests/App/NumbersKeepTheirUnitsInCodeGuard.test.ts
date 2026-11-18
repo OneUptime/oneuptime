@@ -98,6 +98,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationWait.ts":
     SERVER_LOG,
   "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts": SERVER_LOG,
+  "packages/Common/Server/Utils/Alert/AlertOnCallRulesOnOwnerChange.ts":
+    SERVER_LOG,
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,
