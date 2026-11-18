@@ -504,11 +504,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   type OnReorderFunction = (fromIndex: number, toIndex: number) => void;
 
   /*
-   * A drag (or a "move up") writes the order of whichever resource is standing
-   * in the destination, and the server renumbers the rest of the group around
-   * it. The list is re-drawn in its new order straight away so the row stays
-   * where it was dropped, and the refetch afterwards is what makes that
-   * optimism true or takes it back.
+   * A drag (or a "move up") moves the resource to the place of whichever
+   * resource is standing in the destination, and the server steps the rest
+   * of the group aside, in one transaction (ModelAPI.moveInList). The list
+   * is re-drawn in its new order straight away so the row stays where it
+   * was dropped, and the refetch afterwards is what makes that optimism true
+   * or takes it back.
    */
   const onReorder: OnReorderFunction = (
     fromIndex: number,
@@ -517,14 +518,14 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     const moved: StatusPageResource | undefined =
       statusPageResources[fromIndex];
 
-    const targetOrder: number | null =
-      StatusPageResourceExplorerUtil.getReorderTargetOrder({
+    const placeOfId: string | null =
+      StatusPageResourceExplorerUtil.getReorderTargetId({
         statusPageResources: statusPageResources,
         fromIndex: fromIndex,
         toIndex: toIndex,
       });
 
-    if (!moved || !moved.id || targetOrder === null) {
+    if (!moved || !moved.id || placeOfId === null) {
       return;
     }
 
@@ -540,12 +541,10 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     setBusyResourceId(moved.id.toString());
     setActionError("");
 
-    ModelAPI.updateById<StatusPageResource>({
+    ModelAPI.moveInList<StatusPageResource>({
       modelType: StatusPageResource,
       id: moved.id,
-      data: {
-        order: targetOrder,
-      },
+      placeOfId: new ObjectID(placeOfId),
     })
       .then(() => {
         setBusyResourceId(null);

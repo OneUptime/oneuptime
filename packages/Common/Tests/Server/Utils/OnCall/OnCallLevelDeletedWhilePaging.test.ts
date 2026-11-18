@@ -8,6 +8,7 @@ import {
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
   OnCallPassOnAnswer,
   OnCallPassOnOutcome,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -121,15 +122,15 @@ describe("the level the run is on is deleted", () => {
     expect(world.pagedBy(level3)).toEqual([]);
   });
 
-  test("then pages the level that moved up into its place - Carl - and never stops on its own", async () => {
-    // Level 3 moved up to Level 2's place.
-    expect(level3.order).toBe(2);
+  test("then pages the first level after its place - Carl - and never stops on its own", async () => {
+    // The levels after it keep their numbers: a gap at 2 (issue #9573).
+    expect(level3.order).toBe(3);
 
     await world.tick(29);
     const moved: OnCallEscalationAdvanceResult | null = await world.tick(1);
 
     expect(moved?.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
-    expect(moved?.rule).toMatchObject({ order: 2, name: "Level 3" });
+    expect(moved?.rule).toMatchObject({ order: 3, name: "Level 3" });
     expect(world.pagedBy(level3)).toEqual(["Carl Diaz"]);
     expect(world.run.lastExecutedEscalationRuleId?.toString()).toBe(
       level3.id!.toString(),
@@ -141,7 +142,7 @@ describe("the level the run is on is deleted", () => {
     const preview: OnCallPassOnAnswer = await world.preview(BOB);
 
     expect(preview.result?.outcome).toBe(OnCallPassOnOutcome.NextRulePaged);
-    expect(preview.result?.rule).toMatchObject({ order: 2, name: "Level 3" });
+    expect(preview.result?.rule).toMatchObject({ order: 3, name: "Level 3" });
 
     const answer: OnCallPassOnAnswer = await world.passOn(BOB);
 
@@ -173,14 +174,116 @@ describe("a level deleted while the run pages on a later one", () => {
     await world.tick(30);
     expect(world.pagedBy(level3)).toEqual(["Carl Diaz"]);
 
-    // Level 1 goes: Level 3 is now at place 2, Level 4 at place 3.
+    // Level 1 goes: a gap at place 1, Level 3 and Level 4 keep theirs.
     world.deleteRule(level1);
+
+    await world.tick(30);
+
+    expect(world.pagedBy(level4)).toEqual(["Dana Kim"]);
+    expect(world.run.status).toBe(OnCallDutyPolicyStatus.Executing);
+  });
+
+  /*
+   * A policy written before deletes left gaps renumbered the levels after a
+   * deleted one: Level 3 at place 2, Level 4 at place 3, with the run still
+   * recording place 3. The run is placed by its level, never by a number,
+   * so it went on to Dana then too.
+   */
+  test("skips nothing when the levels after the deleted one were renumbered under it", async () => {
+    const level1: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 1,
+      users: [ANA],
+    });
+    world.addRule({ order: 2, users: [BOB] });
+    const level3: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 3,
+      users: [CARL],
+    });
+    const level4: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 4,
+      users: [DANA],
+    });
+    await world.startRun();
+    await world.tick(30);
+    await world.tick(30);
+    expect(world.pagedBy(level3)).toEqual(["Carl Diaz"]);
+
+    world.deleteRule(level1);
+
+    for (const later of world.rules) {
+      later.order = later.order! - 1;
+    }
 
     await world.tick(30);
 
     // It used to look for place 4 - nothing there - and end, Dana unpaged.
     expect(world.pagedBy(level4)).toEqual(["Dana Kim"]);
     expect(world.run.status).toBe(OnCallDutyPolicyStatus.Executing);
+  });
+});
+
+/*
+ * TWO LEVELS AT ONE PLACE (issue #9573): a policy whose levels Terraform
+ * numbers one write each, caught between two writes, or a configuration
+ * that gives two levels one number. The levels come in the order of their
+ * ids, as they are read: the second of the two is paged after the first,
+ * never skipped.
+ */
+describe("two levels at one place", () => {
+  test("both are paged, the first by id first, then the level after them", async () => {
+    world.addRule({ order: 1, users: [ANA] });
+    // Bob's rule is made first, so its id is the lower: it comes first.
+    const twinFirst: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 2,
+      users: [BOB],
+    });
+    const twinSecond: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 2,
+      users: [CARL],
+    });
+    const after: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 5,
+      users: [DANA],
+    });
+    await world.startRun();
+
+    await world.tick(30);
+    expect(world.pagedBy(twinFirst)).toEqual(["Bob Smith"]);
+
+    // By place alone, the run looked past place 2 and went to Dana.
+    await world.tick(30);
+    expect(world.pagedBy(twinSecond)).toEqual(["Carl Diaz"]);
+    expect(world.pagedBy(after)).toEqual([]);
+
+    await world.tick(30);
+    expect(world.pagedBy(after)).toEqual(["Dana Kim"]);
+    expect(world.pagedNames()).toEqual([
+      "Ana Lopez",
+      "Bob Smith",
+      "Carl Diaz",
+      "Dana Kim",
+    ]);
+  });
+
+  test("escalating to the second of them skips the first, with a line for it", async () => {
+    world.addRule({ order: 1, users: [ANA] });
+    world.addRule({ order: 2, users: [BOB] });
+    const twinSecond: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 2,
+      users: [CARL],
+    });
+    world.addRule({ order: 3, users: [DANA] });
+    await world.startRun();
+
+    await world.passOn(ANA, undefined, twinSecond.id!);
+
+    expect(world.levelLines()).toEqual([
+      {
+        order: 2,
+        message: ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+      },
+    ]);
+    expect(world.pagedNames()).toEqual(["Ana Lopez", "Carl Diaz"]);
   });
 });
 

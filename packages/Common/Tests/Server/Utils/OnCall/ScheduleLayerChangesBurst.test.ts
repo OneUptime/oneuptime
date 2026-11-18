@@ -178,9 +178,11 @@ async function rosterAsItIs(): Promise<void> {
 }
 
 /*
- * One row written as the API writes it - a person moved to a place in the
- * turn order, the people they pass moved along (ContiguousOrder) - then
- * the update's own hook, as DatabaseService runs it.
+ * A person moved to a place in the turn order through the API, the people
+ * they pass moved along, as a move does (ContiguousOrder.move) - then the
+ * hook that tells of a layer user's change, as an update of the row runs
+ * it. What is told, and when, is the same for the move: both tell through
+ * tellLayerUserChange (ScheduleLayerChanges).
  */
 async function movedTo(
   userId: string,
@@ -341,7 +343,7 @@ beforeEach(() => {
       );
     }) as never);
 
-  // The people a new row's place moves along (ContiguousOrder), as written.
+  // Any write of another person's row the services make, as written.
   jest
     .spyOn(OnCallDutyPolicyScheduleLayerUserService, "updateOneBy")
     .mockImplementation((async (data: {

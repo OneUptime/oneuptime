@@ -74,6 +74,7 @@ import {
 } from "../../../../Types/OnCallDutyPolicy/OnCallPageMerge";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
+  getOnCallLevelAfter,
   getOnCallRunCurrentLevel,
   getOnCallRunNextLevel,
   hasOnCallRunStartedALevel,
@@ -1115,9 +1116,9 @@ export default class OnCallPolicyRunMessage {
      * The level the run is on, among the policy's levels now
      * (OnCallRunLevel). One deleted while the run paged (issue #9036) is no
      * level of the policy now: the run waits out its wait, then pages the
-     * level that moved up into its place. The message says so - the deleted
-     * level by the number it recorded and the name its lines recorded - and
-     * never names the level that took its place as the one paging.
+     * first level after its place. The message says so - the deleted level
+     * by the number it recorded and the name its lines recorded - and never
+     * names a level at or after its place as the one paging.
      */
     const currentRuleModel: OnCallDutyPolicyEscalationRule | undefined =
       getOnCallRunCurrentLevel({ run: executionLog, levels: data.rules }) ||
@@ -1644,7 +1645,9 @@ export default class OnCallPolicyRunMessage {
 
     /*
      * The level the run moved on to at once from a rule that reached
-     * nobody: the one after it, when there is one. Said only where the
+     * nobody: the one after it, when there is one - the first after it in
+     * the policy's order, whatever its number (OnCallRunLevel): a policy's
+     * levels can leave gaps, and two can share a place. Said only where the
      * rule's own line says the run did not wait (OnCallEmptyLevel) - a rule
      * of a run from before that was waited out.
      */
@@ -1660,14 +1663,8 @@ export default class OnCallPolicyRunMessage {
         return undefined;
       }
 
-      const order: number = rule.order;
-
       return toRule(
-        data.rules.find(
-          (candidate: OnCallDutyPolicyEscalationRule): boolean => {
-            return candidate.order === order + 1;
-          },
-        ),
+        getOnCallLevelAfter({ level: rule, levels: data.rules }) || undefined,
       );
     };
 
