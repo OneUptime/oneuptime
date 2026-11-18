@@ -602,6 +602,15 @@ class GoogleCloudDeployerTest(unittest.TestCase):
         )
         self.assertEqual(self.property_names((self.out / "apptest/deployer/schema.yaml").read_text()), [])
 
+    def test_the_tester_asks_for_oneuptime_by_its_own_host(self) -> None:
+        # By the nginx Service's name, OneUptime takes a request for a status page's custom
+        # domain, and answers its dashboard with a 404: Google's second validation failed so.
+        tester: str = (self.out / "apptest/deployer/oneuptime/templates/tester.yaml").read_text()
+        self.assertIn('value: "{{ .Release.Name }}-nginx.{{ .Release.Namespace }}.svc"', tester)
+        self.assertIn("value: {{ .Values.host | quote }}", tester)
+        self.assertIn("headers: { host }", tester)
+        self.assertNotIn("fetch(", tester)
+
     def test_builds_postgres_without_gosu_for_google_alone(self) -> None:
         editions: Dict[str, Any] = build.load_json(build.HERE / "editions.json")
         built: Dict[str, List[str]] = {

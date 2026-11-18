@@ -26,7 +26,8 @@
 #                  listing's deploy-info and no service account; the
 #                  reporting secret reaches the app; the tester renders laid
 #                  over the chart, as a verification run lays it, in the app's
-#                  image; PostgreSQL is built without gosu.
+#                  image, and asks for OneUptime by the deployment's own host;
+#                  PostgreSQL is built without gosu.
 #
 # The Kubernetes agent's Amazon EKS add-on (aws-eks-addon) is checked the way
 # AWS checks an add-on: AWS's own helm lint and helm template, for every
@@ -368,10 +369,15 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
     render "$GOOGLE_TESTED" "${WORK_DIR}/google-cloud-tester.yaml" \
         --set name=oneuptime --set namespace=oneuptime \
         --set enterpriseMarketplace.googleCloud.reportingSecret=oneuptime-reporting-secret \
-        --set image.overrides.app=marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa
+        --set image.overrides.app=marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa \
+        --set host=oneuptime.example.com
     TESTER="$(cat "${WORK_DIR}/google-cloud-tester.yaml")"
     assert_present "google-cloud: the tester is marked for verification" "$TESTER" "marketplace.cloud.google.com/verification: test"
-    assert_present "google-cloud: the tester checks OneUptime through nginx" "$TESTER" "http://oneuptime-nginx.oneuptime.svc"
+    assert_present "google-cloud: the tester checks OneUptime through nginx" "$TESTER" 'value: "oneuptime-nginx.oneuptime.svc"'
+    # By the Service's name, OneUptime takes the request for a status page's custom domain,
+    # and its dashboard is a 404: the tester asks by the deployment's own host.
+    assert_present "google-cloud: the tester asks for OneUptime by its own host" "$TESTER" 'value: "oneuptime.example.com"'
+    assert_present "google-cloud: the tester sends that host as the Host header" "$TESTER" "headers: { host }"
     # Google's copy of the app's image, which its test cluster pulls; nothing from our registry.
     assert_present "google-cloud: the tester runs in the app image the deployer passes" "$TESTER" 'image: "marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa"'
 
