@@ -27,6 +27,11 @@ import {
 } from "../layout/WindowLayout";
 import { getHeightClass, type ContentGutters } from "../layout/windowLayout";
 import { useSecurityCasesAvailability } from "../hooks/useSecurityCases";
+import {
+  useProductsOffOnServer,
+  type ProductsOffOnServer,
+} from "../hooks/useProductsOffOnServer";
+import { AppProduct } from "../api/serverProducts";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
 import SecurityCasesScreen from "./SecurityCasesScreen";
@@ -70,6 +75,31 @@ const categories: Array<InboxCategory> = [
  */
 export const CATEGORY_TAB_MIN_WIDTH_WITH_ICON: number = 104;
 
+/*
+ * Whether the Inbox shows a category: Incidents and Alerts while their
+ * product is on (#7478), Security for those who can read the project's
+ * cases - and the one on screen, a case opened from a push - while Security
+ * Events is on.
+ */
+export function isInboxCategoryShown(data: {
+  view: InboxView;
+  requestedView: InboxView;
+  isSecurityAvailable: boolean;
+  productsOff: Pick<ProductsOffOnServer, "isOff">;
+}): boolean {
+  switch (data.view) {
+    case "incidents":
+      return !data.productsOff.isOff(AppProduct.Incidents);
+    case "alerts":
+      return !data.productsOff.isOff(AppProduct.Alerts);
+    case "security":
+      return (
+        !data.productsOff.isOff(AppProduct.SecurityEvents) &&
+        (data.isSecurityAvailable || data.requestedView === "security")
+      );
+  }
+}
+
 // The category a detail screen belongs to, by its route's name.
 export function getInboxViewOfRoute(routeName: string): InboxView | null {
   if (routeName.startsWith("SecurityCase")) {
@@ -98,7 +128,7 @@ export default function InboxScreen(): React.JSX.Element {
   const navigation: InboxNavigation = useNavigation<InboxNavigation>();
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();
-  const selectedView: InboxView = route.params?.initialView ?? "incidents";
+  const requestedView: InboxView = route.params?.initialView ?? "incidents";
   /*
    * Security is a category only for the people who can read the project's
    * cases, in a project that has had one; everybody else's Inbox keeps its
@@ -107,15 +137,28 @@ export default function InboxScreen(): React.JSX.Element {
    */
   const security: ReturnType<typeof useSecurityCasesAvailability> =
     useSecurityCasesAvailability();
+  /*
+   * A product the server's admin switched off is no category (#7478), the
+   * one on screen included: its records are not the app's to list then.
+   */
+  const productsOff: ProductsOffOnServer = useProductsOffOnServer();
   const visibleCategories: Array<InboxCategory> = categories.filter(
     (category: InboxCategory): boolean => {
-      return (
-        category.key !== "security" ||
-        security.isAvailable ||
-        selectedView === "security"
-      );
+      return isInboxCategoryShown({
+        view: category.key,
+        requestedView: requestedView,
+        isSecurityAvailable: security.isAvailable,
+        productsOff: productsOff,
+      });
     },
   );
+  const selectedView: InboxView = visibleCategories.some(
+    (category: InboxCategory): boolean => {
+      return category.key === requestedView;
+    },
+  )
+    ? requestedView
+    : visibleCategories[0]?.key ?? requestedView;
   const tabWidth: number =
     (pane.width -
       gutters.paddingLeft -
