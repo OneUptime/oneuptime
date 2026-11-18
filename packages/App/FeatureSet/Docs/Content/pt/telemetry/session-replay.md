@@ -177,8 +177,9 @@ Importe `OneUptimeReplay` diretamente, ou chame `useOneUptimeReplay()` abaixo do
 | `stop()` | Descarrega o que pode ser enviado, para a captura e desconecta os handlers de ciclo de vida. |
 | `identify(userRef, traits?)` | Associa o usuário logado e atributos opcionais, sujeito a **Capturar a identidade do usuário final**. |
 | `setTags(tags)` / `addTag(key, value)` | Substitui todas as tags pesquisáveis da sessão, ou adiciona uma tag sem substituir as outras. |
-| `track(name, properties?)` | Coloca um evento do app na linha do tempo da reprodução. |
-| `setRoute(route)` | Grava uma tela ou rota lógica sanitizada depois de uma navegação. Chame-o a partir do callback de mudança de rota do seu navegador de telas. |
+| `track(name, properties?)` | Coloca um evento do app na linha do tempo da reprodução. Com os eventos de análise de produto ativados, é também um evento que as páginas de [Análise de produto](/docs/rum/product-analytics#enviar-eventos-e-métricas) da aplicação contam, de cada sessão, gravada ou não. |
+| `metric(name, value, attributes?)` | Com os eventos de análise de produto ativados, envia um número que o app mediu como um ponto de uma métrica da aplicação. Os valores dos seus atributos são mascarados. |
+| `setRoute(route)` | Grava uma tela ou rota lógica sanitizada depois de uma navegação. Chame-o a partir do callback de mudança de rota do seu navegador de telas. Com os eventos de análise de produto ativados, cada tela nova é também uma visualização de página. |
 | `captureSession(reason?)` | Com _On error or frustration_, envia o buffer circular por um motivo definido pelo app, como um usuário tocando em «Relatar um problema». |
 | `captureError(error)` | Grava um erro de JavaScript tratado e aciona a captura disparada por erros. |
 | `grantConsent()` / `revokeConsent()` | Permite os envios, ou apaga na hora o buffer em memória, a caixa de saída armazenada, a sessão e o id de visitante. Um consentimento posterior começa com identificadores novos. |

@@ -177,8 +177,9 @@ Importeer `OneUptimeReplay` rechtstreeks, of roep `useOneUptimeReplay()` aan ond
 | `stop()` | Leegt wat kan worden verstuurd, stopt de vastlegging en koppelt de lifecycle-handlers los. |
 | `identify(userRef, traits?)` | Koppelt de aangemelde gebruiker en optionele kenmerken, afhankelijk van **Identiteit van eindgebruiker vastleggen**. |
 | `setTags(tags)` / `addTag(key, value)` | Vervangt alle doorzoekbare tags van de sessie, of voegt één tag toe zonder de andere te vervangen. |
-| `track(name, properties?)` | Zet een app-gebeurtenis op de tijdlijn van de herhaling. |
-| `setRoute(route)` | Neemt na een navigatie een opgeschoond logisch scherm of route op. Roep het aan vanuit de route-wijzigingscallback van je navigator. |
+| `track(name, properties?)` | Zet een app-gebeurtenis op de tijdlijn van de herhaling. Met productanalysegebeurtenissen aan is het ook een gebeurtenis die de pagina's van [Productanalyse](/docs/rum/product-analytics#gebeurtenissen-en-metrieken-verzenden) van de applicatie tellen, vanuit elke sessie, opgenomen of niet. |
+| `metric(name, value, attributes?)` | Met productanalysegebeurtenissen aan verzendt het een getal dat de app heeft gemeten als punt van een metriek van de applicatie. De waarden van de attributen worden gemaskeerd. |
+| `setRoute(route)` | Neemt na een navigatie een opgeschoond logisch scherm of route op. Roep het aan vanuit de route-wijzigingscallback van je navigator. Met productanalysegebeurtenissen aan is elk nieuw scherm ook een paginaweergave. |
 | `captureSession(reason?)` | Uploadt met _On error or frustration_ de ringbuffer om een reden die de app bepaalt, zoals een gebruiker die op «Een probleem melden» tikt. |
 | `captureError(error)` | Neemt een afgehandelde JavaScript-fout op en activeert foutgestuurde vastlegging. |
 | `grantConsent()` / `revokeConsent()` | Staat uploads toe, of wist meteen de buffer in het geheugen, de opgeslagen outbox, de sessie en de bezoekers-id. Latere toestemming begint met nieuwe identifiers. |
