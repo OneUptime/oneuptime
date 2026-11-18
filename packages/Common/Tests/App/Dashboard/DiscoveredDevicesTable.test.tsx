@@ -37,6 +37,9 @@ import DiscoveredDevicesFakeServer, {
   FAKE_DISCOVERED_DEVICE_ROUTES,
   FakeDiscoveredDevice,
 } from "./DiscoveredDevicesFakeServer";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 
 /*
  * THE DISCOVERED DEVICES LIST, RENDERED (OneUptime issue #5775).
@@ -223,6 +226,29 @@ let importServer: DiscoveryImportFakeServer;
 let navigateSpy: jest.SpyInstance;
 let deleteSpy: jest.SpyInstance;
 
+/*
+ * The devices and monitors the list's monitored rows are read with (issue
+ * #9509): the device a row is, with its bound monitor, and the monitors
+ * made for it. Empty unless a test fills them.
+ */
+let inventory: Array<NetworkDevice>;
+let monitorsMadeForDevices: Array<Monitor>;
+let monitorReadSpy: jest.SpyInstance;
+
+function monitorNamed(
+  name: string,
+  deviceId: string,
+  monitorType: MonitorType = MonitorType.Ping,
+): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor.id = ObjectID.generate();
+  monitor.name = name;
+  monitor.monitorType = monitorType;
+  monitor.autoProvisionedNetworkDeviceId = new ObjectID(deviceId);
+  monitorsMadeForDevices.push(monitor);
+  return monitor;
+}
+
 function grant(permissions: Array<Permission>): void {
   jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(permissions);
 }
@@ -371,6 +397,21 @@ beforeEach(() => {
     .spyOn(ModelAPI, "deleteItem")
     .mockResolvedValue(undefined as never);
 
+  inventory = [];
+  monitorsMadeForDevices = [];
+  monitorReadSpy = jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation((async (request: { modelType: unknown }) => {
+      const data: Array<unknown> =
+        request.modelType === NetworkDevice
+          ? inventory
+          : request.modelType === Monitor
+            ? monitorsMadeForDevices
+            : [];
+
+      return { data: data, count: data.length, skip: 0, limit: data.length };
+    }) as never);
+
   devicesServer = new DiscoveredDevicesFakeServer(officeDevices());
   importServer = new DiscoveryImportFakeServer().install({
     post: (path: string, body: JSONObject) => {
@@ -488,6 +529,83 @@ describe("opening the list", () => {
     expect(navigateSpy.mock.calls[0]![0].toString()).toContain(
       ROUTER_DEVICE_ID,
     );
+  });
+
+  /*
+   * ISSUE #9509. A monitored row said Monitored and named its device, and
+   * nothing said whether anything watched it: it links to its monitor now.
+   */
+  test("a monitored device with a monitor links to that monitor, read for the page's monitored rows alone", async () => {
+    const router: NetworkDevice = new NetworkDevice();
+    router.id = new ObjectID(ROUTER_DEVICE_ID);
+    router.hostname = "10.20.0.1";
+    inventory.push(router);
+    const ping: Monitor = monitorNamed("Branch router", ROUTER_DEVICE_ID);
+
+    await renderList();
+    await showChoice(/^Monitored/);
+    await screen.findByText("Branch router", { selector: "p" });
+
+    const link: HTMLElement = await screen.findByTestId(
+      `discovered-device-monitor-link-${ROUTER_ID}`,
+    );
+    expect(link).toHaveTextContent("Branch router");
+    expect(link.getAttribute("href")).toContain(ping.id!.toString());
+
+    // One read of the page's monitored devices, then their monitors.
+    const deviceReads: Array<{ query: Record<string, unknown> }> =
+      monitorReadSpy.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as {
+            modelType: unknown;
+            query: Record<string, unknown>;
+          };
+        })
+        .filter((request: { modelType: unknown }): boolean => {
+          return request.modelType === NetworkDevice;
+        });
+    expect(deviceReads.length).toBeGreaterThan(0);
+    expect(
+      JSON.stringify(deviceReads[deviceReads.length - 1]!.query),
+    ).toContain(ROUTER_DEVICE_ID);
+  });
+
+  test("a monitored device with several monitors links to its Monitors page, counted", async () => {
+    const router: NetworkDevice = new NetworkDevice();
+    router.id = new ObjectID(ROUTER_DEVICE_ID);
+    inventory.push(router);
+    monitorNamed("Branch router", ROUTER_DEVICE_ID);
+    monitorNamed(
+      "Branch router - Health",
+      ROUTER_DEVICE_ID,
+      MonitorType.NetworkDevice,
+    );
+
+    await renderList();
+    await showChoice(/^Monitored/);
+    await screen.findByText("Branch router", { selector: "p" });
+
+    const link: HTMLElement = await screen.findByTestId(
+      `discovered-device-monitor-link-${ROUTER_ID}`,
+    );
+    expect(link).toHaveTextContent("2 monitors");
+    expect(link.getAttribute("href")).toContain(`${ROUTER_DEVICE_ID}/monitors`);
+  });
+
+  test("a monitored device with no monitor, or whose monitors cannot be read, keeps its device's link alone", async () => {
+    monitorReadSpy.mockRejectedValue(new Error("You may not read monitors."));
+
+    await renderList();
+    await showChoice(/^Monitored/);
+    await screen.findByText("Branch router", { selector: "p" });
+    await flush();
+
+    expect(
+      screen.getByTestId(`discovered-device-monitored-${ROUTER_ID}`),
+    ).toHaveTextContent("Branch router");
+    expect(
+      screen.queryByTestId(`discovered-device-monitor-link-${ROUTER_ID}`),
+    ).not.toBeInTheDocument();
   });
 
   test("a list that could not be read says why, and Refresh reads it again", async () => {
