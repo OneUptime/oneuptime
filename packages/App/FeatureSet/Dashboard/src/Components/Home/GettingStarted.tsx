@@ -31,6 +31,7 @@ import WelcomeMoreSteps from "./WelcomeChecklist/WelcomeMoreSteps";
 import WelcomePlanStep from "./WelcomeChecklist/WelcomePlanStep";
 import {
   WelcomeStepGapSentence,
+  getWelcomeStepGapFix,
   getWelcomeStepGapRoute,
 } from "./WelcomeChecklist/WelcomeStepGap";
 import { rememberWelcomeStepStarted } from "./WelcomeChecklist/WelcomeStepInProgress";
@@ -222,6 +223,19 @@ export const isQuickstartTakingHome: (data: {
 };
 
 /*
+ * What else to set up, as the answer holds it: none from an answer that
+ * says nothing of it (one a server from before #7986 sent, or one made by
+ * hand), never a page that cannot draw.
+ */
+export const getMoreSteps: (
+  answer: WelcomeChecklistAnswer,
+) => ReadonlyArray<WelcomeChecklistStepState> = (
+  answer: WelcomeChecklistAnswer,
+): ReadonlyArray<WelcomeChecklistStepState> => {
+  return Array.isArray(answer.moreSteps) ? answer.moreSteps : [];
+};
+
+/*
  * Whether the card offers "Get paged by SMS or phone call" (#9442): the
  * server read that no verified phone number or push device pages this
  * person - it reads it only once "who is told" is done - and they may use
@@ -270,7 +284,7 @@ export const getWelcomeCardView: (data: {
    */
   if (answer.isFinished) {
     return !answer.isHiddenForMe &&
-      (answer.moreSteps.length > 0 || Boolean(data.offersPhone))
+      (getMoreSteps(answer).length > 0 || Boolean(data.offersPhone))
       ? WelcomeCardView.More
       : WelcomeCardView.None;
   }
@@ -327,7 +341,7 @@ export const offersFirstMonitor: (data: {
   }
 
   if (data.view === WelcomeCardView.More) {
-    return isMonitorLeft(data.answer.moreSteps);
+    return isMonitorLeft(getMoreSteps(data.answer));
   }
 
   return false;
@@ -833,7 +847,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
   if (view === WelcomeCardView.More) {
     return (
       <WelcomeMoreSteps
-        moreSteps={answer.moreSteps}
+        moreSteps={getMoreSteps(answer)}
         offersPhone={offersPhone}
         className={props.className}
         isSaving={isSaving}
@@ -984,6 +998,12 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                 entry={getWelcomeStepEntry(state.step)}
                 description={describe(state)}
                 gap={gapOf(state)}
+                startTitle={
+                  getWelcomeStepGapFix({
+                    gap: state.gap,
+                    translator: translator,
+                  })?.text
+                }
                 /*
                  * Who is told is done, but only email pages the person: a
                  * way to their phone and the app stays (#9442).

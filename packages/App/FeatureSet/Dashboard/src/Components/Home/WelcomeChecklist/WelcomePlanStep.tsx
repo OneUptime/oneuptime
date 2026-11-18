@@ -55,6 +55,12 @@ export interface ComponentProps {
   // Whether a line joins the step to the next (the path). Offers have none.
   isOnPath?: boolean | undefined;
   /*
+   * What the next step's own button says, in the reader's words, when it
+   * does something more exact than Start: the fix of what it is missing
+   * ("Add Monitors", #6938).
+   */
+  startTitle?: string | undefined;
+  /*
    * What its test ids are named after: the step's key, unless the row
    * stands for something else drawn in a step's shape (an offer, #9442).
    */
@@ -63,6 +69,14 @@ export interface ComponentProps {
 
 export const STEP_GAP_CLASS_NAME: string =
   "mt-2 flex items-start gap-1.5 text-sm text-amber-800";
+
+// A step's words and what it ends on: under them on a phone, beside from sm.
+export const STEP_WORDS_OVER_ACTION_CLASS_NAME: string =
+  "flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between";
+
+// A step's words and its chevron, side by side at every width.
+export const STEP_WORDS_BESIDE_CHEVRON_CLASS_NAME: string =
+  "flex min-w-0 flex-1 flex-row items-center justify-between gap-3";
 
 /*
  * The line from a step's icon down to the next one's. The row has a 1px
@@ -87,6 +101,13 @@ const WelcomePlanStep: FunctionComponent<ComponentProps> = (
   const key: string = props.testIdKey || state.step;
   const gap: ReactNode = !isDone && !isHeldBack ? props.gap : null;
   const isOnPath: boolean = props.isOnPath !== false;
+  /*
+   * A step to do that is not next ends on a chevron, which sits beside its
+   * words at every width, as How OneUptime works' line has it: alone on a
+   * line of its own under them, a phone drew an arrow pointing at nothing.
+   * Start, Done and the plan's pill go under the words on a phone.
+   */
+  const endsOnChevron: boolean = !isDone && !isHeldBack && !state.isNext;
 
   // Spans, not divs: a button may only hold phrasing content.
   const content: ReactElement = (
@@ -102,7 +123,13 @@ const WelcomePlanStep: FunctionComponent<ComponentProps> = (
           className="h-5 w-5 text-white"
         />
       </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <span
+        className={
+          endsOnChevron
+            ? STEP_WORDS_BESIDE_CHEVRON_CLASS_NAME
+            : STEP_WORDS_OVER_ACTION_CLASS_NAME
+        }
+      >
         <span className="block min-w-0">
           <span className="flex flex-wrap items-center gap-2">
             <span
@@ -197,7 +224,8 @@ const WelcomePlanStep: FunctionComponent<ComponentProps> = (
               data-testid="getting-started-start"
               className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition group-hover:bg-indigo-500"
             >
-              {translator.translateText(WELCOME_CHECKLIST_COPY.startButton)}
+              {props.startTitle ||
+                translator.translateText(WELCOME_CHECKLIST_COPY.startButton)}
               <Icon icon={IconProp.ArrowRight} className="h-4 w-4 flex-none" />
             </span>
           ) : (

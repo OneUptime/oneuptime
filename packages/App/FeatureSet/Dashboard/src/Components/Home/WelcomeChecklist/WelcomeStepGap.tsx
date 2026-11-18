@@ -43,9 +43,29 @@ export const WelcomeStepGapSentence: FunctionComponent<ComponentProps> = (
 };
 
 /*
- * Where a step with a gap leads: the page that fixes its finding, or null
- * for the step's own page.
+ * What a step with a gap does: the page that fixes its finding and the
+ * fix's own words ("Add Monitors"), as Setup Health's button says them, or
+ * null for the step's own page - an invitation, or a fix that is the
+ * server's.
  */
+export const getWelcomeStepGapFix: (data: {
+  gap: WelcomeStepGap | null;
+  translator: Translator;
+}) => SetupHealthFixLink | null = (data: {
+  gap: WelcomeStepGap | null;
+  translator: Translator;
+}): SetupHealthFixLink | null => {
+  if (!data.gap || !data.gap.finding) {
+    return null;
+  }
+
+  return getSetupHealthFixLink({
+    finding: data.gap.finding,
+    translator: data.translator,
+  });
+};
+
+// Where a step with a gap leads: its fix's page, or null for its own.
 export const getWelcomeStepGapRoute: (data: {
   gap: WelcomeStepGap | null;
   translator: Translator;
@@ -53,14 +73,7 @@ export const getWelcomeStepGapRoute: (data: {
   gap: WelcomeStepGap | null;
   translator: Translator;
 }): Route | null => {
-  if (!data.gap || !data.gap.finding) {
-    return null;
-  }
+  const fix: SetupHealthFixLink | null = getWelcomeStepGapFix(data);
 
-  const link: SetupHealthFixLink | null = getSetupHealthFixLink({
-    finding: data.gap.finding,
-    translator: data.translator,
-  });
-
-  return link ? link.route : null;
+  return fix ? fix.route : null;
 };
