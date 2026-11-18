@@ -28,6 +28,14 @@ import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../../../Types/ObjectID";
+import Permission from "../../../../../Types/Permission";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ReadAudienceReader, {
+  ReadNarrowingPermissions,
+} from "../../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import { getTelemetryToolContext } from "../../../../../Server/Utils/AI/CodeFix/CodeAgentTelemetryTools";
+import ReadAudiencePermission from "../../../../../Server/Types/Database/Permissions/ReadAudiencePermission";
+import { keptForAudience } from "../../../../Helpers/ReadAudienceFixtures";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -389,11 +397,22 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
     CodeAgentTelemetryScope.clearCache();
   });
 
-  function mockProject(data?: { repositories?: Array<ResolvableRepository> }): {
+  function mockProject(data?: {
+    repositories?: Array<ResolvableRepository>;
+    // What narrows somebody's reads in the project (#9576): nothing, unless said.
+    narrowing?: ReadNarrowingPermissions;
+    // The services an owner or a label sets apart.
+    setApartServiceIds?: Array<string>;
+  }): {
     servicesSpy: jest.SpyInstance;
     exceptionsSpy: jest.SpyInstance;
     subjectSpy: jest.SpyInstance;
   } {
+    jest
+      .spyOn(ReadAudienceReader, "readNarrowingPermissions")
+      .mockResolvedValue(
+        data?.narrowing || { ownedOnlyPermissions: [], labelledPermissions: [] },
+      );
     jest
       .spyOn(CodeRepositoryService, "getResolvableRepositories")
       .mockResolvedValue(
@@ -410,11 +429,21 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
 
     const servicesSpy: jest.SpyInstance = jest
       .spyOn(ServiceService, "findBy")
-      .mockResolvedValue([
-        service(CHECKOUT_SERVICE, "cart-api"),
-        service(BILLING_SERVICE, "payments"),
-        service(WORKER_SERVICE, "worker"),
-      ]);
+      .mockImplementation((async (findBy: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Array<Service>> => {
+        // A read for the pull request's readers keeps only those they may read.
+        return keptForAudience({
+          modelType: Service,
+          rows: [
+            service(CHECKOUT_SERVICE, "cart-api"),
+            service(BILLING_SERVICE, "payments"),
+            service(WORKER_SERVICE, "worker"),
+          ],
+          props: findBy.props,
+          setApartIds: data?.setApartServiceIds || [],
+        });
+      }) as never);
     const exceptionsSpy: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "findBy")
       .mockResolvedValue([
@@ -532,7 +561,9 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
       await CodeAgentTelemetryScope.getOffer(telemetryRun());
 
     expect(offer.scope).toBeNull();
-    expect(offer.reason).toContain("No service of this project maps to");
+    expect(offer.reason).toContain(
+      "No service of this project whose telemetry a pull request may show maps to",
+    );
   });
 
   test("an exception fix's own stack trace maps its service, read in the run's project", async () => {
@@ -599,6 +630,97 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
     await CodeAgentTelemetryScope.getOffer(telemetryRun());
 
     expect(spies.servicesSpy).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * WHAT A PULL REQUEST MAY SHOW (#9576). What the agent finds lands in a
+   * pull request, which whoever reads the repository reads: where some role
+   * reads services only by owner or label, a service an owner or a label
+   * sets apart is left out of the scope - unless the fix is about it - and
+   * the reason a run gets nothing reads the same whether some were left out
+   * or none mapped at all.
+   */
+  test("a service set apart is left out of a review's scope, where some role reads services only by label", async () => {
+    mockProject({
+      narrowing: {
+        ownedOnlyPermissions: [],
+        labelledPermissions: [Permission.ReadService],
+      },
+      setApartServiceIds: [CHECKOUT_SERVICE],
+    });
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(telemetryRun());
+
+    expect(offer.scope).toBeNull();
+    expect(offer.reason).toContain(
+      "No service of this project whose telemetry a pull request may show maps to acme/checkout",
+    );
+    expect(offer.reason).not.toContain("cart-api");
+  });
+
+  test("a project whose roles narrow nobody keeps every service the repository serves, as before", async () => {
+    mockProject({ setApartServiceIds: [CHECKOUT_SERVICE] });
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(telemetryRun());
+
+    expect(
+      offer.scope?.services.map((scoped: CodeAgentScopedService): string => {
+        return scoped.id;
+      }),
+    ).toEqual([CHECKOUT_SERVICE]);
+    expect(offer.scope?.readAudience?.labelledPermissions).toEqual([]);
+  });
+
+  test("the service an exception fix is about stays, set apart or not", async () => {
+    const spies: { subjectSpy: jest.SpyInstance } = mockProject({
+      narrowing: {
+        ownedOnlyPermissions: [],
+        labelledPermissions: [Permission.ReadService],
+      },
+      setApartServiceIds: [BILLING_SERVICE],
+    });
+    jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([]);
+    spies.subjectSpy.mockResolvedValue(
+      exceptionGroup(BILLING_SERVICE, BILLING_TRACE),
+    );
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(
+        telemetryRun({
+          codeFixTaskType: CodeFixTaskType.FixException,
+          codeRepositoryId: new ObjectID(BILLING_REPO),
+          triggeredByTelemetryExceptionId: ObjectID.generate(),
+        }),
+      );
+
+    expect(
+      offer.scope?.services.map((scoped: CodeAgentScopedService): string => {
+        return scoped.id;
+      }),
+    ).toEqual([BILLING_SERVICE]);
+    expect(
+      ReadAudiencePermission.isNamed(
+        Service,
+        BILLING_SERVICE,
+        offer.scope!.readAudience!,
+      ),
+    ).toBe(true);
+  });
+
+  test("every read the agent makes is narrowed for the pull request's readers", async () => {
+    mockProject();
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(telemetryRun());
+    const props: DatabaseCommonInteractionProps = getTelemetryToolContext(
+      offer.scope!,
+    ).props;
+
+    expect(props.isRoot).toBe(true);
+    expect(props.tenantId?.toString()).toBe(PROJECT_ID.toString());
+    expect(props.readAudience).toBe(offer.scope!.readAudience);
   });
 
   test("a run linked to its repository later is offered that repository's scope at once", async () => {

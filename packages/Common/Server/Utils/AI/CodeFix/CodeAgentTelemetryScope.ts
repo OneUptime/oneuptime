@@ -29,6 +29,12 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
+import Dictionary from "../../../../Types/Dictionary";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import ReadAudienceReader, {
+  ReadNarrowingPermissions,
+} from "../../ReadAudience/ReadAudienceReader";
 
 /*
  * WHAT A CODE-FIX RUN MAY READ OF PRODUCTION.
@@ -125,6 +131,13 @@ export interface CodeAgentScope {
   // "acme/checkout", as the repository's page names it.
   repositoryFullName: string;
   services: Array<CodeAgentScopedService>;
+  /*
+   * Who reads what the run writes - a pull request, read by whoever reads
+   * the repository (readAudienceOfRun, #9576): every read the agent makes
+   * is narrowed by it (getTelemetryToolContext). Left out, the run reads as
+   * OneUptime, held to its project.
+   */
+  readAudience?: ReadAudience | undefined;
 }
 
 // The facts of one service the resolver is asked about.
@@ -413,15 +426,37 @@ export default class CodeAgentTelemetryScope {
 
     const repository: ResolvableRepository = found.repository;
 
-    if (found.gap === RepositoryServicesGap.NoServiceMapped) {
+    /*
+     * What the agent finds lands in a pull request, which people outside
+     * the project's roles read (#9576): of the services the repository
+     * serves, only those everyone may read, beside the ones its task is
+     * about. One left out is never named here - the reason below reads the
+     * same whether some were left out or none mapped at all.
+     */
+    const readAudience: ReadAudience =
+      await CodeAgentTelemetryScope.readAudienceOfRun({
+        projectId,
+        run,
+        taskType,
+        services: found.services,
+      });
+    const services: Array<CodeAgentScopedService> =
+      found.gap === RepositoryServicesGap.NoServiceMapped
+        ? []
+        : await CodeAgentTelemetryScope.keepServicesEveryoneMayRead({
+            services: found.services,
+            readAudience,
+          });
+
+    if (services.length === 0) {
       return {
         scope: null,
-        reason: `No service of this project maps to ${repository.organizationName}/${repository.repositoryName}: none of their recent stack traces runs through its files, none is named like it, and the project has other repositories. There is no production telemetry to read for it.`,
+        reason: `No service of this project whose telemetry a pull request may show maps to ${repository.organizationName}/${repository.repositoryName}: none of their recent stack traces runs through its files, none is named like it, and the project has other repositories. There is no production telemetry to read for it.`,
       };
     }
 
     logger.debug(
-      `Production telemetry scope of run ${run.id?.toString()}: ${found.services.length} service(s) of ${repository.organizationName}/${repository.repositoryName}.`,
+      `Production telemetry scope of run ${run.id?.toString()}: ${services.length} service(s) of ${repository.organizationName}/${repository.repositoryName}.`,
     );
 
     return {
@@ -431,10 +466,172 @@ export default class CodeAgentTelemetryScope {
         taskType: taskType,
         codeRepositoryId: new ObjectID(repository.id),
         repositoryFullName: `${repository.organizationName}/${repository.repositoryName}`,
-        services: found.services,
+        services,
+        readAudience,
       },
       reason: null,
     };
+  }
+
+  /*
+   * WHO READS WHAT A FIX WRITES (#9576): whoever reads the repository,
+   * inside the project's roles or not. So the agent reads what nobody in
+   * particular may read - where some team, custom role or API key reads a
+   * kind only by owner or label, nothing an owner or a label sets apart -
+   * beside what its task is about: an exception's service, a slow trace's,
+   * an incident's or an alert's own record and Affected Resources. Its
+   * reads are narrowed by it (getTelemetryToolContext); a project whose
+   * roles narrow nobody reads as before, private incidents left out.
+   */
+  public static async readAudienceOfRun(data: {
+    projectId: ObjectID;
+    run: AIRun;
+    taskType: CodeFixTaskType;
+    services: Array<CodeAgentScopedService>;
+  }): Promise<ReadAudience> {
+    const narrowing: ReadNarrowingPermissions =
+      await ReadAudienceReader.readNarrowingPermissions(data.projectId);
+    const audience: ReadAudience = {
+      _type: "ReadAudience",
+      projectId: data.projectId.toString(),
+      ownedOnlyPermissions: narrowing.ownedOnlyPermissions,
+      labelledPermissions: narrowing.labelledPermissions,
+      named: {},
+      telemetryBlockedIds: [],
+    };
+
+    // Nobody is narrowed on anything: what the task names changes nothing.
+    if (ReadAudiencePermission.narrowsNobody(audience)) {
+      return audience;
+    }
+
+    audience.named = await CodeAgentTelemetryScope.readNamedByTask(data);
+
+    return audience;
+  }
+
+  /*
+   * OF THE SERVICES A REPOSITORY SERVES, THE ONES A PULL REQUEST MAY SHOW:
+   * those its readers may read (readAudienceOfRun). A service set apart is
+   * left out, unless the task is about it; with nobody narrowed on
+   * services, every one, as before.
+   */
+  public static async keepServicesEveryoneMayRead(data: {
+    services: Array<CodeAgentScopedService>;
+    readAudience: ReadAudience;
+  }): Promise<Array<CodeAgentScopedService>> {
+    if (data.services.length === 0) {
+      return data.services;
+    }
+
+    const readable: Set<string> = await ReadAudienceReader.readReadableIds({
+      service: ServiceService,
+      ids: data.services.map((service: CodeAgentScopedService): string => {
+        return service.id;
+      }),
+      audience: data.readAudience,
+    });
+
+    return data.services.filter(
+      (service: CodeAgentScopedService): boolean => {
+        return readable.has(normalizeId(service.id));
+      },
+    );
+  }
+
+  /*
+   * What a fix's task names itself, by kind: its incident's or alert's own
+   * record and Affected Resources (ReadAudienceReader.readNamed), and the
+   * service of the exception or the slow trace it fixes.
+   */
+  private static async readNamedByTask(data: {
+    projectId: ObjectID;
+    run: AIRun;
+    taskType: CodeFixTaskType;
+    services: Array<CodeAgentScopedService>;
+  }): Promise<Dictionary<Array<string>>> {
+    let named: Dictionary<Array<string>> = {};
+
+    try {
+      if (data.run.triggeredByIncidentId || data.run.triggeredByAlertId) {
+        named = await ReadAudienceReader.readNamed({
+          projectId: data.projectId,
+          incidentId: data.run.triggeredByIncidentId || undefined,
+          alertId: data.run.triggeredByIncidentId
+            ? undefined
+            : data.run.triggeredByAlertId || undefined,
+        });
+      }
+    } catch (error) {
+      // What the task is about only adds to what it reads: never widen past it.
+      logger.debug(
+        `Could not read what run ${data.run.id?.toString()} is about: ${error}`,
+      );
+    }
+
+    const serviceKind: string = ReadAudiencePermission.getKindName(Service);
+    const services: Set<string> = new Set<string>(named[serviceKind] || []);
+
+    for (const id of await CodeAgentTelemetryScope.readSubjectServiceIds(
+      data,
+    )) {
+      services.add(id);
+    }
+
+    return { ...named, [serviceKind]: Array.from(services).sort() };
+  }
+
+  /*
+   * The service of the exception or the slow trace a fix is about, lower
+   * case. None for any other task.
+   */
+  private static async readSubjectServiceIds(data: {
+    projectId: ObjectID;
+    run: AIRun;
+    taskType: CodeFixTaskType;
+    services: Array<CodeAgentScopedService>;
+  }): Promise<Array<string>> {
+    const ids: Set<string> = new Set<string>();
+
+    try {
+      if (
+        data.taskType === CodeFixTaskType.FixException &&
+        data.run.triggeredByTelemetryExceptionId
+      ) {
+        const exception: TelemetryException | null =
+          await TelemetryExceptionService.findOneBy({
+            query: {
+              _id: data.run.triggeredByTelemetryExceptionId.toString(),
+              projectId: data.projectId,
+            },
+            select: { primaryEntityId: true },
+            props: { isRoot: true },
+          });
+
+        if (exception?.primaryEntityId) {
+          ids.add(normalizeId(exception.primaryEntityId));
+        }
+      }
+
+      if (data.taskType === CodeFixTaskType.FixPerformance) {
+        const serviceName: string = (data.run.taskContext?.serviceName || "")
+          .trim()
+          .toLowerCase();
+
+        for (const service of data.services) {
+          if (serviceName && service.name.trim().toLowerCase() === serviceName) {
+            ids.add(normalizeId(service.id));
+          }
+        }
+      }
+    } catch (error) {
+      // What the task is about only adds to what it reads: never widen past it.
+      logger.debug(
+        `Could not read the services run ${data.run.id?.toString()} is about: ${error}`,
+      );
+    }
+
+    return Array.from(ids);
   }
 
   /*
