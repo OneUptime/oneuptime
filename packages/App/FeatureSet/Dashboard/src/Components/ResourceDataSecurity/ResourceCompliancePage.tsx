@@ -6,6 +6,7 @@ import {
 } from "../DataSecurity/ComplianceExport";
 import ComplianceFrameworkTile, {
   NOT_EVALUATED,
+  REQUIREMENT_STATUS_TONES,
   formatComplianceScore,
   getComplianceScoreClassName,
   getFailingRequirementCount,
@@ -20,7 +21,6 @@ import {
 import {
   ComplianceSwitchKey,
   OWNER_NOTICE_TEMPLATES,
-  REQUIREMENT_STATUS_TONES,
   SET_ON_OWNER_SENTENCES,
   getAppliesSwitchState,
   getComplianceSwitchKey,
@@ -150,6 +150,11 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [switchErrors, setSwitchErrors] = useState<Record<string, string>>({});
   const [settingsError, setSettingsError] = useState<string>("");
+  /*
+   * A switch keeps where it was pressed until its value changes: after a
+   * save that failed, the switches are drawn again from the server's values.
+   */
+  const [redrawCount, setRedrawCount] = useState<number>(0);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -327,6 +332,9 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setSwitchErrors((current: Record<string, string>) => {
         return { ...current, [key]: API.getFriendlyMessage(err) };
+      });
+      setRedrawCount((count: number): number => {
+        return count + 1;
       });
     }
 
@@ -530,6 +538,7 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
               data-testid={`${RESOURCE_COMPLIANCE_TEST_ID}-framework-switch`}
             >
               <Toggle
+                key={`framework-${redrawCount}`}
                 title={APPLIES_LABEL}
                 description={APPLIES_DESCRIPTION}
                 value={getAppliesSwitchState(framework, frameworkSwitch)}
@@ -658,6 +667,7 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
 
                     return (
                       <Toggle
+                        key={`${key}-${redrawCount}`}
                         value={getAppliesSwitchState(framework, rowSwitch)}
                         disabled={Boolean(lockedReason) || saving[key]}
                         tooltip={lockedReason}
@@ -708,6 +718,7 @@ const ResourceCompliancePage: FunctionComponent<ComponentProps> = (
                     data-testid={`${RESOURCE_COMPLIANCE_TEST_ID}-off-${item.framework}`}
                   >
                     <Toggle
+                      key={`${key}-${redrawCount}`}
                       title={item.framework}
                       description={
                         translator.translateText(item.fullName) || item.fullName

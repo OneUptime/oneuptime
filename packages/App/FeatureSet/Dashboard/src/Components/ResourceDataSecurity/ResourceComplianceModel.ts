@@ -1,8 +1,6 @@
 import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
-import { ComplianceRequirementStatus } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import { DataSecurityResourceComplianceFramework } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
-import { PillTone } from "Common/UI/Components/Pill/PillTone";
 
 /*
  * WHAT A RESOURCE'S COMPLIANCE PAGE DRAWS (#9555), worked out without React
@@ -86,17 +84,6 @@ export function getAppliesSwitchState(
 
   return !framework.turnedOffRequirements.includes(requirement);
 }
-
-// Each requirement's status, in the tone the product's chips use for it.
-export const REQUIREMENT_STATUS_TONES: Readonly<
-  Record<ComplianceRequirementStatus, PillTone>
-> = {
-  [ComplianceRequirementStatus.Passing]: PillTone.Success,
-  [ComplianceRequirementStatus.Failing]: PillTone.Danger,
-  [ComplianceRequirementStatus.NotEvaluated]: PillTone.Neutral,
-  // Someone chose it: grey with a hollow dot, never red (Docs/ux/README.md#side-menus).
-  [ComplianceRequirementStatus.TurnedOff]: PillTone.Paused,
-};
 
 // Where a database's switches are, when it runs on a cluster or a container host.
 export const SET_ON_OWNER_SENTENCES: Readonly<
