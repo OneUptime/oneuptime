@@ -1489,9 +1489,10 @@ async function countProductAnalyticsRows(data: {
  * another like the batches' own. The counts read the rows before any of
  * these deletes is queued; `countFilters` are the rows of `deleteFilters`
  * that have not been counted before (the caller leaves out what an earlier
- * delete of the request already took). Returns the rows counted.
+ * delete of the request already took). Returns the rows counted. Exported
+ * for the Keeper-backed suite, which runs a batch's deletes ON CLUSTER.
  */
-async function eraseProductAnalyticsFilters(data: {
+export async function eraseProductAnalyticsFilters(data: {
   databaseName: string;
   countFilters: Array<ProductAnalyticsErasureFilter>;
   deleteFilters: Array<ProductAnalyticsErasureFilter>;

@@ -52,7 +52,9 @@ import {
  * over several parameters. The ALTER itself is ON CLUSTER and needs a
  * Keeper and a cluster definition a disposable server does not have; that
  * part, with the max_query_size the queued DDL needs, was checked against
- * a keeper-backed 24.8 and 26.7 by hand.
+ * a keeper-backed 24.8 and 26.7 by hand. Product analytics' deletes run ON
+ * CLUSTER against one in RumProductAnalyticsErasureKeeperClickhouse.test.ts,
+ * an opt-in suite with the cluster it needs in Fixtures/ClickhouseKeeperCluster.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server,
  * credentials in the URL:
