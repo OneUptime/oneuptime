@@ -87,6 +87,7 @@ import RumApplicationProductAnalyticsUsers, {
 import { ResourceOverviewTile } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import { PRODUCT_ANALYTICS_PEOPLE_PAGE_SIZE } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsPeopleCard";
+import { parseProductAnalyticsSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsApi";
 import {
   chooseDropdownOption,
   closeDropdown,
@@ -430,8 +431,12 @@ describe("ProductAnalyticsUsers tiles", () => {
     expect(tiles[4]).toMatch(/In the last 25\s+months/);
     expect(tiles[4]).not.toMatch(/13\s+months/);
 
+    /* Read as the page reads the summary route's answer. */
     const tile: ResourceOverviewTile = buildProductAnalyticsUserTiles({
-      summary: { ...summary(), retentionMonths: 3 },
+      summary: parseProductAnalyticsSummary({
+        ...summary(),
+        retentionMonths: 3,
+      }),
       isLoading: false,
       translator: createTranslator(undefined, DEFAULT_LANGUAGE),
     })[4]!;
@@ -443,7 +448,7 @@ describe("ProductAnalyticsUsers tiles", () => {
 
     expect(
       buildProductAnalyticsUserTiles({
-        summary: summary(),
+        summary: parseProductAnalyticsSummary(summary()),
         isLoading: false,
         translator: createTranslator(undefined, DEFAULT_LANGUAGE),
       })[4]!.sublabel,
