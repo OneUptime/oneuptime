@@ -97,9 +97,16 @@ export default class BackfillTelemetryMilestonesFromClickhouse extends DataMigra
     if (
       result.failedReads > 0 ||
       result.unkeptMarks > 0 ||
-      result.isStoppedByTimeBudget
+      result.isStoppedByTimeBudget ||
+      result.uncheckedTables.length > 0
     ) {
       const what: Array<string> = [];
+
+      if (result.uncheckedTables.length > 0) {
+        what.push(
+          `did not read ${result.uncheckedTables.join(", ")}, which ClickHouse could not say it has`,
+        );
+      }
 
       if (result.isStoppedByTimeBudget) {
         what.push("stopped at its time budget");

@@ -66,7 +66,8 @@ import ObjectID from "../../../Types/ObjectID";
  * starting new reads once its time budget is spent, and a read that fails is
  * counted and skipped - such a project gets its mark with its next data, as
  * every project does. A table that does not exist (an install that never had
- * it) is skipped, and with none at all nothing is read.
+ * it) is skipped, and with none at all nothing is read; so is one ClickHouse
+ * cannot say it has, and the run says which.
  */
 
 export interface TelemetryMilestoneBackfillTable {
@@ -178,6 +179,8 @@ export interface TelemetryMilestoneBackfillResult {
   keptByMilestone: Partial<Record<ActivationMilestone, number>>;
   // The tables this install does not have, which were not read.
   missingTables: Array<string>;
+  // The tables ClickHouse could not say it has, which were not read either.
+  uncheckedTables: Array<string>;
   /*
    * A project's read of one table that failed, or that the time budget left
    * unmade: such a project keeps no mark from it.
@@ -287,6 +290,7 @@ export default class TelemetryMilestoneBackfill {
       projects: 0,
       keptByMilestone: {},
       missingTables: [],
+      uncheckedTables: [],
       failedReads: 0,
       unkeptMarks: 0,
       isStoppedByTimeBudget: false,
@@ -297,7 +301,18 @@ export default class TelemetryMilestoneBackfill {
     const tables: Array<TelemetryMilestoneBackfillTable> = [];
 
     for (const table of TELEMETRY_MILESTONE_BACKFILL_TABLES) {
-      if (await options.tableExists(table.tableName)) {
+      let exists: boolean;
+
+      try {
+        exists = await options.tableExists(table.tableName);
+      } catch (error) {
+        // ClickHouse did not say: the table is not read, and the run says so.
+        result.uncheckedTables.push(table.tableName);
+        result.lastError = describeError(error);
+        continue;
+      }
+
+      if (exists) {
         tables.push(table);
       } else {
         result.missingTables.push(table.tableName);

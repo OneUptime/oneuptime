@@ -57,6 +57,7 @@ function resultOf(
     projects: 0,
     keptByMilestone: {},
     missingTables: [],
+    uncheckedTables: [],
     failedReads: 0,
     unkeptMarks: 0,
     isStoppedByTimeBudget: false,
@@ -234,6 +235,23 @@ describe("BackfillTelemetryMilestonesFromClickhouse", () => {
         `${MIGRATION_NAME}: stopped at its time budget, 12 read(s) of a project's table failed, 1 mark(s) could not be written; those projects get their marks with their next data (last error: Timeout exceeded).`,
       ],
     });
+  });
+
+  test("warns of the tables ClickHouse could not say it has, which it did not read", async () => {
+    jest.spyOn(TelemetryMilestoneBackfill, "backfill").mockResolvedValue(
+      resultOf({
+        projects: 3,
+        uncheckedTables: ["SpanItemV3"],
+        lastError: "connect ECONNREFUSED 127.0.0.1:8123",
+      }),
+    );
+    const logged: Logged = captureLog();
+
+    await new BackfillTelemetryMilestonesFromClickhouse().migrate();
+
+    expect(logged.warn).toEqual([
+      `${MIGRATION_NAME}: did not read SpanItemV3, which ClickHouse could not say it has; those projects get their marks with their next data (last error: connect ECONNREFUSED 127.0.0.1:8123).`,
+    ]);
   });
 
   test("a failure to read the projects is the runner's to see: it is not swallowed, so the migration runs again", async () => {

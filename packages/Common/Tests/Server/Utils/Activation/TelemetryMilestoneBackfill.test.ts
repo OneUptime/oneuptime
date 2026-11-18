@@ -132,6 +132,7 @@ const runWith: (data: {
   // A table's rows: projectId -> time in milliseconds.
   rows?: Partial<Record<AnalyticsTableName, Record<string, number>>>;
   missingTables?: Array<AnalyticsTableName>;
+  uncheckedTables?: Array<AnalyticsTableName>;
   failBatch?: (table: string) => unknown;
   failProject?: (table: string, projectId: string) => unknown;
   failWrite?: (milestone: string) => unknown;
@@ -143,6 +144,7 @@ const runWith: (data: {
   marks?: Array<[string, ActivationMilestone]>;
   rows?: Partial<Record<AnalyticsTableName, Record<string, number>>>;
   missingTables?: Array<AnalyticsTableName>;
+  uncheckedTables?: Array<AnalyticsTableName>;
   failBatch?: (table: string) => unknown;
   failProject?: (table: string, projectId: string) => unknown;
   failWrite?: (milestone: string) => unknown;
@@ -164,6 +166,12 @@ const runWith: (data: {
       now: data.now,
       timeBudgetInMs: data.timeBudgetInMs,
       tableExists: async (tableName: string): Promise<boolean> => {
+        if (
+          (data.uncheckedTables || []).includes(tableName as AnalyticsTableName)
+        ) {
+          throw new Error("connect ECONNREFUSED 127.0.0.1:8123");
+        }
+
         return !(data.missingTables || []).includes(
           tableName as AnalyticsTableName,
         );
@@ -807,10 +815,37 @@ describe("TelemetryMilestoneBackfill", () => {
             return table.tableName;
           },
         ),
+        uncheckedTables: [],
         failedReads: 0,
         unkeptMarks: 0,
         isStoppedByTimeBudget: false,
         lastError: null,
+      });
+    });
+
+    test("a table ClickHouse cannot say it has is not read, the run says which, and the others are read", async () => {
+      const [project] = projectIds(1) as [string];
+      const run: Run = await runWith({
+        projects: [project],
+        uncheckedTables: [AnalyticsTableName.Span],
+        rows: {
+          [AnalyticsTableName.Log]: { [project]: at(5) },
+          [AnalyticsTableName.Span]: { [project]: at(4) },
+        },
+      });
+
+      expect(run.result.uncheckedTables).toEqual([AnalyticsTableName.Span]);
+      expect(run.result.missingTables).toEqual([]);
+      expect(run.result.lastError).toBe("connect ECONNREFUSED 127.0.0.1:8123");
+      expect(
+        run.reads.map((read: ClickhouseRead): string => {
+          return read.table;
+        }),
+      ).not.toContain(AnalyticsTableName.Span);
+      expect(run.written).toEqual({
+        [ActivationMilestone.FirstLogsReceived]: [
+          [project, new Date(at(5)).toISOString()],
+        ],
       });
     });
   });
