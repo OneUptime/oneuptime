@@ -343,12 +343,22 @@ function monitorsMadeFor(deviceId: unknown): Array<Monitor> {
 
     const read: Monitor = Object.assign(new Monitor(), stored);
     read.id = stored.id;
-    read.monitorType = stored.monitorType || db.template?.monitorType;
-    read.monitorTemplateId =
+    const monitorType: MonitorType | undefined =
+      stored.monitorType || db.template?.monitorType;
+    const monitorTemplateId: ObjectID | undefined =
       stored.monitorTemplateId ||
       (keyTemplateId && keyTemplateId !== "undefined"
         ? new ObjectID(keyTemplateId)
         : undefined);
+
+    if (monitorType) {
+      read.monitorType = monitorType;
+    }
+
+    if (monitorTemplateId) {
+      read.monitorTemplateId = monitorTemplateId;
+    }
+
     read.autoProvisionedNetworkDeviceId = new ObjectID(String(deviceId));
     found.push(read);
   }
@@ -1692,11 +1702,12 @@ function monitorMadeFor(data: {
   monitor.id = ObjectID.generate();
   monitor.name = data.device.name || "";
   monitor.monitorType = data.monitorType;
-  monitor.monitorSteps =
+  // Both templates are made with their steps.
+  monitor.monitorSteps = (
     data.monitorType === MonitorType.NetworkDevice
-      ? networkDeviceTemplate().monitorSteps
+      ? networkDeviceTemplate()
       : addressTemplate(data.monitorType, data.port ? { port: data.port } : {})
-          .monitorSteps;
+  ).monitorSteps!;
 
   if (data.templateId) {
     monitor.monitorTemplateId = data.templateId;
@@ -1777,7 +1788,7 @@ describe("no second monitor of the same kind for a device (issue #9509)", () => 
     bound.id = ObjectID.generate();
     bound.name = "WB1567KSK02 Ping";
     bound.monitorType = MonitorType.Ping;
-    bound.monitorSteps = addressTemplate(MonitorType.Ping).monitorSteps;
+    bound.monitorSteps = addressTemplate(MonitorType.Ping).monitorSteps!;
     db.otherMonitors.push(bound);
     deviceAt("10.0.0.1", {
       monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
