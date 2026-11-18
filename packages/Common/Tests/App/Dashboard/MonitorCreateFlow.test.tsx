@@ -30,8 +30,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * showed a wall of type cards under "32 to choose from" and eight category
  * headings with counts, with a big description box in between. Now:
  *
- *   - Monitor Info asks what to monitor first, as six common types, then the
- *     name; the description and the labels fold under More fields;
+ *   - What to Monitor asks what to monitor first, as six common types,
+ *     then where it is - a website's URL, a host, a port (#7463) - then the
+ *     name, which follows the address; the description and the labels fold
+ *     under More fields;
  *   - a picked type shrinks to one line with Change; More monitor types and
  *     the search reach every other type;
  *   - the criteria step gets the type, the name and foldDefaultCriteria;
@@ -245,7 +247,14 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
  * Refused at once, as the network refused it, and taken as a read the
  * notice could not make (Tests/Helpers/RealNetworkRequests.ts).
  */
-refuseRequestsTo(["/monitor/active-monitor-limit"]);
+refuseRequestsTo([
+  "/monitor/active-monitor-limit",
+  /*
+   * Who the criteria would tell (When this goes down), which What to Check
+   * reads for the monitor the form holds: its card has suites of its own.
+   */
+  "/who-is-told/draft",
+]);
 
 // The server's global config, answered here rather than over the network.
 beforeEach((): void => {
@@ -364,6 +373,27 @@ function typeName(value: string): void {
   fireEvent.change(nameInput(), { target: { value } });
 }
 
+// The address a type whose check is of one address asks with it (#7463).
+function addressInput(): HTMLElement {
+  return screen.getByTestId("monitor-address-input");
+}
+
+function typeAddress(value: string): void {
+  fireEvent.change(addressInput(), { target: { value } });
+}
+
+// The criteria editor's props, as it was last drawn.
+function lastCriteriaEditorProps(): Record<string, any> {
+  const props: Record<string, any> | undefined =
+    criteriaEditorProps[criteriaEditorProps.length - 1];
+
+  if (!props) {
+    throw new Error("The criteria editor was never drawn.");
+  }
+
+  return props;
+}
+
 async function pressNext(): Promise<void> {
   await act(async () => {
     fireEvent.click(screen.getByTestId("form-next-button"));
@@ -442,7 +472,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("Monitor Info: what to monitor comes first", () => {
+describe("What to Monitor: what to monitor comes first", () => {
   test("the type picker is the first field, then the name", async () => {
     const form: HTMLElement = await renderPage();
 
@@ -507,7 +537,7 @@ describe("Monitor Info: what to monitor comes first", () => {
     ).toBeVisible();
   });
 
-  test("Next with no type picked says so, and stays on Monitor Info", async () => {
+  test("Next with no type picked says so, and stays on What to Monitor", async () => {
     await renderPage();
 
     typeName("Marketing site");
@@ -548,7 +578,7 @@ describe("picking and changing the type", () => {
 
     await waitFor(() => {
       expect(stepTitles()).toEqual([
-        "Monitor Info",
+        "What to Monitor",
         "Criteria",
         "Probes & Interval",
       ]);
@@ -558,7 +588,7 @@ describe("picking and changing the type", () => {
     fireEvent.click(screen.getByTestId("card-select-option-Incoming Request"));
 
     await waitFor(() => {
-      expect(stepTitles()).toEqual(["Monitor Info", "Criteria"]);
+      expect(stepTitles()).toEqual(["What to Monitor", "Criteria"]);
     });
   });
 
@@ -637,7 +667,7 @@ describe("picking and changing the type", () => {
     );
     await waitFor(() => {
       expect(stepTitles()).toEqual([
-        "Monitor Info",
+        "What to Monitor",
         "Criteria",
         "Probes & Interval",
       ]);
@@ -666,6 +696,7 @@ describe("picking and changing the type", () => {
     fireEvent.click(screen.getByTestId("card-select-option-Website"));
     fireEvent.click(screen.getByTestId("card-select-change"));
     fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+    typeAddress("router.office.example");
     typeName("Office router");
     await pressNext();
 
@@ -711,6 +742,7 @@ describe("the criteria and the last step", () => {
     await renderPage();
 
     fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
     typeName("Marketing site");
     await pressNext();
 
@@ -726,10 +758,11 @@ describe("the criteria and the last step", () => {
     ).toBeVisible();
   });
 
-  test("a website monitor: Monitor Info, Criteria, Probes & Interval, then Create Monitor", async () => {
+  test("a website monitor: What to Monitor, Criteria, Probes & Interval, then Create Monitor", async () => {
     await renderPage();
 
     fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
     typeName("Marketing site");
     await pressNext();
     await screen.findByTestId("criteria-editor");
@@ -756,6 +789,10 @@ describe("the criteria and the last step", () => {
     expect(monitor.monitorType).toBe(MonitorType.Website);
     expect(monitor.name).toBe("Marketing site");
     expect(monitor.monitoringInterval).toBe("*/5 * * * *");
+    // The address asked with the type is the one its step checks.
+    expect(
+      monitor.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data?.monitorDestination?.toString(),
+    ).toBe("https://marketing.example/");
 
     const misc: Record<string, unknown> = (
       createOrUpdateMock.mock.calls[0]![0] as {
@@ -771,10 +808,10 @@ describe("the criteria and the last step", () => {
   });
 
   /*
-   * A Manual monitor has no criteria and no interval: Monitor Info is its
-   * only step, and the action is there.
+   * A Manual monitor has no criteria and no interval: What to Monitor is
+   * its only step, and the action is there.
    */
-  test("a manual monitor is created from Monitor Info, with no interval", async () => {
+  test("a manual monitor is created from What to Monitor, with no interval", async () => {
     await renderPage();
 
     fireEvent.click(screen.getByTestId("card-select-more"));
@@ -791,6 +828,10 @@ describe("the criteria and the last step", () => {
     expect(screen.queryByText("Criteria")).not.toBeInTheDocument();
     expect(screen.queryByText("Probes & Interval")).not.toBeInTheDocument();
     expect(screen.queryByTestId("form-next-button")).not.toBeInTheDocument();
+    // Nothing to check at an address: no address is asked.
+    expect(
+      screen.queryByTestId("monitor-address-input"),
+    ).not.toBeInTheDocument();
 
     await pressCreate();
 
@@ -806,17 +847,18 @@ describe("the criteria and the last step", () => {
     expect(criteriaEditorProps).toEqual([]);
   });
 
-  test("Change on Monitor Info, after walking on, keeps the name typed", async () => {
+  test("Change on What to Monitor, after walking on, keeps the name typed", async () => {
     await renderPage();
 
     fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
     typeName("Marketing site");
     await pressNext();
     await screen.findByTestId("criteria-editor");
 
-    // Back to Monitor Info from the step list.
+    // Back to What to Monitor from the step list.
     await act(async () => {
-      fireEvent.click(screen.getByText("Monitor Info"));
+      fireEvent.click(screen.getByText("What to Monitor"));
     });
 
     expect(await screen.findByTestId("card-select-summary")).toHaveAttribute(
@@ -852,6 +894,7 @@ describe("Probes: the form never creates a monitor that nothing checks", () => {
 
   async function walkToProbesAndInterval(): Promise<void> {
     fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
     typeName("Marketing site");
     await pressNext();
     await screen.findByTestId("criteria-editor");
@@ -1059,4 +1102,319 @@ test("the ids above are real ObjectIDs", () => {
   ]) {
     expect(new ObjectID(id).toString()).toBe(id);
   }
+});
+
+/*
+ * #7463: the walker picked Website, named the monitor, and found its address
+ * on the next step, named "Criteria", under a heading of rules. The address
+ * is asked first now, with the type, on a step named for what it holds, and
+ * the name follows it; the steps are What to Monitor, Criteria and Probes &
+ * Interval.
+ */
+describe("What to Monitor asks where it is, with the type", () => {
+  test("a website's address comes right after the type, before the name", async () => {
+    await renderPage();
+
+    // Nothing to fill in until there is a type.
+    expect(
+      screen.queryByTestId("monitor-address-input"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+    const address: HTMLElement = addressInput();
+
+    expect(address).toHaveAttribute("placeholder", "https://example.com");
+    expect(screen.getByLabelText(/^Website URL/)).toBe(address);
+    expect(
+      screen.getByText("The page to check, like https://example.com."),
+    ).toBeVisible();
+    expect(
+      address.compareDocumentPosition(nameInput()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Read left to right on every page, a right-to-left one too.
+    expect(address).toHaveAttribute("dir", "ltr");
+  });
+
+  test("every type whose check is of one address asks it, named as the type names it", async () => {
+    const asked: Array<[string, RegExp]> = [
+      [MonitorType.Website, /^Website URL/],
+      [MonitorType.API, /^API URL/],
+      [MonitorType.Ping, /^Hostname or IP Address/],
+      [MonitorType.Port, /^Hostname or IP Address/],
+      [MonitorType.SSLCertificate, /^Website URL/],
+    ];
+
+    await renderPage();
+
+    for (const [type, label] of asked) {
+      if (screen.queryByTestId("card-select-change")) {
+        fireEvent.click(screen.getByTestId("card-select-change"));
+      }
+
+      fireEvent.click(screen.getByTestId(`card-select-option-${type}`));
+
+      expect([type, screen.getByLabelText(label)]).toEqual([
+        type,
+        addressInput(),
+      ]);
+    }
+
+    // A heartbeat has no address to check.
+    fireEvent.click(screen.getByTestId("card-select-change"));
+    fireEvent.click(screen.getByTestId("card-select-option-Incoming Request"));
+
+    expect(
+      screen.queryByTestId("monitor-address-input"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the IP, NTP and DNS types from the long tail: an address for the first two, the DNS criteria step's own for the third", async () => {
+    await renderPage();
+
+    for (const [type, isAsked] of [
+      [MonitorType.IP, true],
+      [MonitorType.NTP, true],
+      [MonitorType.DNS, false],
+    ] as Array<[string, boolean]>) {
+      if (screen.queryByTestId("card-select-change")) {
+        fireEvent.click(screen.getByTestId("card-select-change"));
+      }
+
+      if (
+        screen.getByTestId("card-select-more").getAttribute("aria-expanded") !==
+        "true"
+      ) {
+        fireEvent.click(screen.getByTestId("card-select-more"));
+      }
+
+      fireEvent.click(screen.getByTestId(`card-select-option-${type}`));
+
+      expect([
+        type,
+        Boolean(screen.queryByTestId("monitor-address-input")),
+      ]).toEqual([type, isAsked]);
+    }
+  });
+
+  test("the name follows the address, until a name of the person's own is written", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+
+    typeAddress("https://www.acme-commerce.example/shop/");
+    expect(nameInput()).toHaveValue("acme-commerce.example/shop");
+
+    typeAddress("https://www.acme-commerce.example/cart");
+    expect(nameInput()).toHaveValue("acme-commerce.example/cart");
+
+    typeName("Checkout");
+    typeAddress("https://www.acme-commerce.example/checkout");
+    expect(nameInput()).toHaveValue("Checkout");
+  });
+
+  test("a name the person wrote first is never replaced by the address", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+    typeName("Office router");
+    typeAddress("router.office.example");
+
+    expect(nameInput()).toHaveValue("Office router");
+  });
+
+  test("a Port monitor asks its port beside the host, and is named after both", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Port"));
+    typeAddress("db.acme.example");
+
+    const port: HTMLElement = screen.getByRole("textbox", { name: /^Port/ });
+
+    expect(port).toHaveAttribute("placeholder", "443");
+
+    fireEvent.change(port, { target: { value: "5432" } });
+
+    expect(nameInput()).toHaveValue("db.acme.example:5432");
+  });
+
+  test("a Port monitor with no port says so, and Next stays", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Port"));
+    typeAddress("db.acme.example");
+    await pressNext();
+
+    expect(
+      await screen.findByText("Enter the port to check, like 443."),
+    ).toBeVisible();
+    expect(screen.queryByTestId("criteria-editor")).not.toBeInTheDocument();
+  });
+
+  test("no address, or one that is not one, says so, and Next stays on What to Monitor", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeName("Marketing site");
+    await pressNext();
+
+    expect(
+      await screen.findByText("Enter the address to check."),
+    ).toBeVisible();
+    expect(screen.queryByTestId("criteria-editor")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("card-select-change"));
+    fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+    typeAddress("not a host!");
+    await pressNext();
+
+    expect(screen.queryByTestId("criteria-editor")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Enter the address to check."),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Criteria is handed the address: its steps are seeded with it, and it says what it checks", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-API"));
+    typeAddress("https://api.acme.example/health");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    const props: Record<string, any> = lastCriteriaEditorProps();
+
+    expect(props["isAddressAskedFirst"]).toBe(true);
+    expect(props["seedStep"]?.monitorType).toBe(MonitorType.API);
+    expect(props["seedStep"]?.monitorDestination?.toString()).toBe(
+      "https://api.acme.example/health",
+    );
+    // The name the address made reaches the criteria's words.
+    expect(props["monitorName"]).toBe("api.acme.example/health");
+  });
+
+  test("a type with no address is not told one was asked", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Incoming Request"));
+    typeName("Nightly backup");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    expect(lastCriteriaEditorProps()["isAddressAskedFirst"]).toBe(false);
+  });
+
+  test("an address changed after a walk back is the one the steps hold", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://old.acme.example");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("What to Monitor"));
+    });
+
+    typeAddress("https://new.acme.example");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    const initialValue: any = lastCriteriaEditorProps()["initialValue"];
+
+    expect(
+      initialValue?.data?.monitorStepsInstanceArray[0]?.data?.monitorDestination?.toString(),
+    ).toBe("https://new.acme.example/");
+  });
+
+  test("a template's address opens on What to Monitor", async () => {
+    const MonitorStepsType: any = (
+      jest.requireActual("../../../Types/Monitor/MonitorSteps") as any
+    ).default;
+    const URLType: any = (jest.requireActual("../../../Types/API/URL") as any)
+      .default;
+
+    const steps: any = MonitorStepsType.getDefaultMonitorSteps({
+      monitorType: MonitorType.API,
+      monitorName: "Checkout API",
+      defaultMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      onlineMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      offlineMonitorStatusId: new ObjectID(OFFLINE_STATUS_ID),
+      defaultIncidentSeverityId: new ObjectID(SEVERITY_ID),
+      defaultAlertSeverityId: new ObjectID(SEVERITY_ID),
+    });
+
+    steps.data.monitorStepsInstanceArray[0].setMonitorDestination(
+      URLType.fromString("https://api.acme.example/checkout"),
+    );
+
+    getItemMock.mockImplementation(async (params: any): Promise<any> => {
+      if (params.modelType === MonitorTemplate) {
+        const template: MonitorTemplate = new MonitorTemplate();
+        template._id = TEMPLATE_ID;
+        template.monitorName = "Checkout API";
+        template.monitorType = MonitorType.API;
+        template.monitorSteps = steps;
+        return template;
+      }
+
+      return { doNotAddGlobalProbesByDefaultOnNewMonitors: false };
+    });
+
+    await renderPage({ monitorTemplateId: TEMPLATE_ID });
+
+    await waitFor(() => {
+      expect(addressInput()).toHaveValue("https://api.acme.example/checkout");
+    });
+    expect(nameInput()).toHaveValue("Checkout API");
+  });
+});
+
+/*
+ * #7985: Test Monitor, on the Criteria step, opened on an empty Select Probe
+ * though the form had its probes picked. The step is handed the probes the
+ * form holds - the project's defaults until Probes & Interval changes them -
+ * and the test starts on the first (MonitorTestForm's own suite checks
+ * what its picker starts on).
+ */
+describe("the probes Test Monitor starts on", () => {
+  test("one probe: the Criteria step is handed it", async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    expect(lastCriteriaEditorProps()["testProbeIds"]).toEqual([
+      GLOBAL_PROBE_ID,
+    ]);
+  });
+
+  test("two probes picked by default: both, in the form's order", async () => {
+    const SECOND_PROBE_ID: string = "0c000000-0000-4000-8000-0000000000a2";
+
+    probesForTest = [
+      ...ONE_GLOBAL_PROBE,
+      {
+        _id: SECOND_PROBE_ID,
+        name: "Second global probe",
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      },
+    ];
+
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeAddress("https://marketing.example");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+
+    expect(lastCriteriaEditorProps()["testProbeIds"]).toEqual([
+      GLOBAL_PROBE_ID,
+      SECOND_PROBE_ID,
+    ]);
+  });
 });

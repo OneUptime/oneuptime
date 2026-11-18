@@ -11,6 +11,29 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * at all. Each now says what to type, with an example, in the same words.
  * The examples are placeholders, so they read the same in every language.
  */
+/*
+ * The types whose check is of one address - a URL, a host, an IP address -
+ * which Create Monitor asks with the type (#7463), and which the step's
+ * Monitor Target holds.
+ */
+export const MONITOR_TYPES_WITH_ADDRESS: ReadonlyArray<MonitorType> = [
+  MonitorType.Website,
+  MonitorType.API,
+  MonitorType.SSLCertificate,
+  MonitorType.Ping,
+  MonitorType.IP,
+  MonitorType.Port,
+  MonitorType.NTP,
+];
+
+export function hasMonitorAddress(
+  monitorType: MonitorType | undefined | null,
+): boolean {
+  return Boolean(
+    monitorType && MONITOR_TYPES_WITH_ADDRESS.includes(monitorType),
+  );
+}
+
 export interface MonitorDestinationFieldCopy {
   title: string;
   description: string;

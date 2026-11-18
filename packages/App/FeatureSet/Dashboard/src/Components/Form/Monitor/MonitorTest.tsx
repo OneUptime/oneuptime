@@ -69,13 +69,11 @@ export const MONITOR_TEST_TIMED_OUT_MESSAGE: string = translationKey(
 // The dialog's words, said where they are drawn.
 export const MONITOR_TEST_WORDS: Readonly<{
   description: string;
-  probeTitle: string;
   probeDescription: string;
   onlyProbe: string;
   resultDescription: string;
 }> = {
   description: translationKey("Runs one check now, and shows what it finds."),
-  probeTitle: translationKey("Probe"),
   probeDescription: translationKey("Where the check runs from."),
   onlyProbe: translationKey("The check runs from {{probe}}."),
   resultDescription: translationKey(
@@ -494,7 +492,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
                 field: {
                   probe: true,
                 },
-                title: MONITOR_TEST_WORDS.probeTitle,
+                title: "Select Probe",
                 description: MONITOR_TEST_WORDS.probeDescription,
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(

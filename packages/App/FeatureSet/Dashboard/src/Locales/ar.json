@@ -56826,5 +56826,22 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا تُستبعد تلك الخطوات.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. اطلب من مسؤول الخادم إعداد الرسائل النصية والمكالمات.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "لا يستطيع هذا الخادم إرسال الرسائل النصية الآن، لذا لن يصلك رمز لإضافة رقمك. أعِدّ الرسائل النصية والمكالمات في Admin Dashboard.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها.",
+  "Bypass caches on every check": "تجاوز ذاكرة التخزين المؤقت في كل فحص",
+  "Checks {{address}}.": "يفحص {{address}}.",
+  "Enter a port from 1 to 65535.": "أدخل منفذًا من 1 إلى 65535.",
+  "Enter the address to check.": "أدخل العنوان المراد فحصه.",
+  "Enter the port to check, like 443.": "أدخل المنفذ المراد فحصه، مثل 443.",
+  "It changes no status and opens nothing.": "لا يغيّر أي حالة ولا يفتح شيئًا.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "اختر ما تريد مراقبته وأعطه اسمًا. يبدأ كل شيء آخر بقيم افتراضية يمكنك تغييرها. عندما يحدث خطأ ما، يفتح OneUptime حادثة أو تنبيهًا، وتُظهر الخطوة التالية من يُبلَّغ.",
+  "Runs one check now, and shows what it finds.": "يجري فحصًا واحدًا الآن ويُظهر ما يجده.",
+  "The check runs from {{probe}}.": "يجري الفحص من {{probe}}.",
+  "The monitor shows its default status, and nothing opens.": "تُظهر المراقبة حالتها الافتراضية، ولا يُفتح شيء.",
+  "The monitor shows its default status, {{status}}, and nothing opens.": "تُظهر المراقبة حالتها الافتراضية، {{status}}، ولا يُفتح شيء.",
+  "This result matches a criteria.": "تطابق هذه النتيجة معيارًا.",
+  "This result matches no criteria.": "لا تطابق هذه النتيجة أي معيار.",
+  "This result matches {{criteria}}.": "تطابق هذه النتيجة {{criteria}}.",
+  "What one check found, and what would follow.": "ما وجده فحص واحد، وما سيتبعه.",
+  "What to Monitor": "ما تريد مراقبته",
+  "Where the check runs from.": "المكان الذي يجري منه الفحص."
 }

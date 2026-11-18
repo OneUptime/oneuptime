@@ -50,6 +50,14 @@ import MonitorSteps, {
 } from "../../Components/Form/Monitor/MonitorSteps";
 import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import { toProbeIds } from "../../Components/Form/Monitor/MonitorTest";
+import {
+  getMonitorAddressFormFields,
+  getMonitorAddressSeed,
+  getMonitorAddressValues,
+  withMonitorAddress,
+  withMonitorAddressValues,
+} from "../../Components/Form/Monitor/MonitorAddressField";
+import { hasMonitorAddress } from "../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
 import URL from "Common/Types/API/URL";
 import DeviceWebUiUtil, {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
@@ -1987,7 +1995,7 @@ const MonitorCreate: FunctionComponent<
             ? serverEmail.isMasterAdmin
               ? SERVER_EMAIL_COPY.createMonitorDescriptionForAdmin
               : SERVER_EMAIL_COPY.createMonitorDescription
-            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told."
+            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told."
         }
         className="mb-10"
       >
@@ -2007,9 +2015,16 @@ const MonitorCreate: FunctionComponent<
                  * the render above waits for the probe list.
                  */
                 withDefaultMonitoringInterval(
-                  seededProbes
-                    ? { ...initialValues, probes: seededProbes }
-                    : initialValues,
+                  /*
+                   * The address a template's or a link's steps hold, or
+                   * the one a link asked for, on the first step (#7463).
+                   */
+                  withMonitorAddressValues({
+                    values: seededProbes
+                      ? { ...initialValues, probes: seededProbes }
+                      : initialValues,
+                    linkSeed: seedStep,
+                  }),
                 )
               }
               fields={[
@@ -2038,6 +2053,13 @@ const MonitorCreate: FunctionComponent<
                     );
                   },
                 }),
+                /*
+                 * Where it is, for a type whose check is of one address -
+                 * a website's URL, a host, a port - asked first, with the
+                 * type, before the name it fills in (#7463). It was asked
+                 * on the next step, under a heading of criteria.
+                 */
+                ...getMonitorAddressFormFields({ stepId: "monitor-info" }),
                 {
                   field: {
                     name: true,
@@ -2101,10 +2123,29 @@ const MonitorCreate: FunctionComponent<
                     value: FormValues<Monitor>,
                     props: CustomElementProps,
                   ) => {
+                    /*
+                     * The address asked with the type, in the steps as
+                     * they are drawn - read for the type picked last - or
+                     * in the steps the criteria are first seeded with.
+                     */
+                    const address: { address: string; port: string } =
+                      getMonitorAddressValues(value as JSONObject);
+                    const stepsWithAddress: MonitorStepsType | undefined =
+                      withMonitorAddress({
+                        monitorSteps: props.initialValue,
+                        monitorType: value.monitorType as MonitorType,
+                        address: address.address,
+                        port: address.port,
+                      });
+
                     return (
                       <>
                         <MonitorSteps
                           {...props}
+                          initialValue={stepsWithAddress || props.initialValue}
+                          isAddressAskedFirst={hasMonitorAddress(
+                            value.monitorType as MonitorType,
+                          )}
                           monitorType={value.monitorType || MonitorType.Manual}
                           monitorName={value.name || ""}
                           /*
@@ -2114,7 +2155,12 @@ const MonitorCreate: FunctionComponent<
                            */
                           foldDefaultCriteria={true}
                           seedQuery={seedQuery}
-                          seedStep={seedStep}
+                          seedStep={getMonitorAddressSeed({
+                            monitorType: value.monitorType as MonitorType,
+                            address: address.address,
+                            port: address.port,
+                            linkSeed: seedStep,
+                          })}
                           /*
                            * Not a template's monitor: criteria nobody has
                            * worked on follow the monitor type picked, and a
@@ -2232,8 +2278,14 @@ const MonitorCreate: FunctionComponent<
               ]}
               steps={[
                 {
-                  title: "Monitor Info",
+                  title: "What to Monitor",
                   id: "monitor-info",
+                  /*
+                   * Named for what it holds (#7463): what to monitor - the
+                   * type, where it is and a name. It was "Monitor Info",
+                   * and the address was asked on the next step, named for
+                   * the criteria that follow it there.
+                   */
                 },
                 {
                   title: "Criteria",
@@ -2258,7 +2310,30 @@ const MonitorCreate: FunctionComponent<
                   },
                 },
               ]}
-              onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
+              onBeforeCreate={async (
+                item: Monitor,
+                _miscDataProps: JSONObject,
+                formValues: JSONObject,
+              ): Promise<Monitor> => {
+                /*
+                 * The address asked with the type, as it reads for the
+                 * type created: the steps are not drawn again after a walk
+                 * back to What to Monitor.
+                 */
+                const address: { address: string; port: string } =
+                  getMonitorAddressValues(formValues || {});
+                const stepsWithAddress: MonitorStepsType | undefined =
+                  withMonitorAddress({
+                    monitorSteps: item.monitorSteps,
+                    monitorType: item.monitorType,
+                    address: address.address,
+                    port: address.port,
+                  });
+
+                if (stepsWithAddress && address.address.trim()) {
+                  item.monitorSteps = stepsWithAddress;
+                }
+
                 if (
                   shouldDropDefaultMonitoringInterval({
                     monitorType: item.monitorType,

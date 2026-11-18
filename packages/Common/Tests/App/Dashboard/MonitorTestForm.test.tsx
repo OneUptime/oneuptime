@@ -382,7 +382,7 @@ describe("choosing a probe", () => {
     renderForm();
     await clickTestMonitor();
 
-    expect(screen.getByText("Probe")).toBeInTheDocument();
+    expect(screen.getByText("Select Probe")).toBeInTheDocument();
     expect(screen.getByText("Where the check runs from.")).toBeInTheDocument();
 
     const combobox: HTMLElement = screen.getByRole("combobox");

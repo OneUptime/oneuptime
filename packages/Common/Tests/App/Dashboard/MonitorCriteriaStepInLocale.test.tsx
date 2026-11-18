@@ -20,6 +20,9 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import TinyFormDocumentation from "../../../UI/Components/TinyFormDocumentation/TinyFormDocumentation";
+import MonitorAddressHelp, {
+  MONITOR_ADDRESS_HELP_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorAddressHelp";
 import {
   DASHBOARD_LANGUAGES,
   readDashboardLocale,
@@ -34,7 +37,9 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * worded - and on a Persian page, laid out right to left, it read "of 2 1".
  * And the Website and API monitors' "URL placeholder help" was drawn as it
  * was given: TinyFormDocumentation never looked its title up, so its
- * translation in every locale went unused.
+ * translation in every locale went unused. The fold is named for what it
+ * is for now, "Bypass caches on every check" (#7463), and drawn under the
+ * address on Create Monitor's first step.
  *
  * The position is worded in each language as "{{position}} of {{count}}"
  * already is, its numbers in the reader's digits, in the grey of the
@@ -200,25 +205,76 @@ describe("a small help fold's title", () => {
   test("is looked up in the reader's language", async () => {
     await inLanguage("de");
     render(
-      <TinyFormDocumentation title="URL placeholder help">
-        <div>{"{{timestamp}}"}</div>
-      </TinyFormDocumentation>,
-    );
-
-    expect(screen.getByText("URL-Platzhalter-Hilfe")).toBeInTheDocument();
-    expect(screen.queryByText("URL placeholder help")).toBeNull();
-  });
-
-  test("on a Persian page too", async () => {
-    await inLanguage("fa");
-    render(
-      <TinyFormDocumentation title="URL placeholder help">
+      <TinyFormDocumentation title={MONITOR_ADDRESS_HELP_TITLE}>
         <div>{"{{timestamp}}"}</div>
       </TinyFormDocumentation>,
     );
 
     expect(
-      screen.getByText(readDashboardLocale("fa")["URL placeholder help"]!),
+      screen.getByText("Caches bei jeder Prüfung umgehen"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(MONITOR_ADDRESS_HELP_TITLE)).toBeNull();
+  });
+
+  test("on a Persian page too", async () => {
+    await inLanguage("fa");
+    render(
+      <TinyFormDocumentation title={MONITOR_ADDRESS_HELP_TITLE}>
+        <div>{"{{timestamp}}"}</div>
+      </TinyFormDocumentation>,
+    );
+
+    expect(
+      screen.getByText(readDashboardLocale("fa")[MONITOR_ADDRESS_HELP_TITLE]!),
+    ).toBeInTheDocument();
+  });
+
+  test("the address's fold says what it is for, in every language", async () => {
+    await inLanguage("en");
+    render(<MonitorAddressHelp monitorType={MonitorType.Website} />);
+
+    expect(
+      screen.getByText("Bypass caches on every check"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("URL placeholder help")).toBeNull();
+    cleanup();
+
+    for (const language of ["de", "fr", "es", "ja", "fa", "ar"]) {
+      const worded: string | undefined =
+        readDashboardLocale(language)[MONITOR_ADDRESS_HELP_TITLE];
+
+      expect([language, worded]).not.toEqual([
+        language,
+        MONITOR_ADDRESS_HELP_TITLE,
+      ]);
+      expect([language, typeof worded]).toEqual([language, "string"]);
+    }
+  });
+
+  test("only a Website's or an API's address takes the fold", async () => {
+    await inLanguage("en");
+
+    for (const monitorType of [
+      MonitorType.Ping,
+      MonitorType.Port,
+      MonitorType.IP,
+      MonitorType.SSLCertificate,
+      MonitorType.NTP,
+    ]) {
+      const view: ReturnType<typeof render> = render(
+        <MonitorAddressHelp monitorType={monitorType} />,
+      );
+
+      expect([monitorType, view.container.textContent]).toEqual([
+        monitorType,
+        "",
+      ]);
+      view.unmount();
+    }
+
+    render(<MonitorAddressHelp monitorType={MonitorType.API} />);
+    expect(
+      screen.getByText("Bypass caches on every check"),
     ).toBeInTheDocument();
   });
 
@@ -236,11 +292,13 @@ describe("a small help fold's title", () => {
   test("an English page reads the title as written", async () => {
     await inLanguage("en");
     render(
-      <TinyFormDocumentation title="URL placeholder help">
+      <TinyFormDocumentation title={MONITOR_ADDRESS_HELP_TITLE}>
         <div>help</div>
       </TinyFormDocumentation>,
     );
 
-    expect(screen.getByText("URL placeholder help")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bypass caches on every check"),
+    ).toBeInTheDocument();
   });
 });

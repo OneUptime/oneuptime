@@ -56826,5 +56826,22 @@
   "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شده‌اند.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "این سرور الان نمی‌تواند پیامک بفرستد، پس کدی برای افزودن شماره‌تان به شما نمی‌رسد. از مدیر سرور بخواهید پیامک و تماس را راه‌اندازی کند.",
   "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "این سرور الان نمی‌تواند پیامک بفرستد، پس کدی برای افزودن شماره‌تان به شما نمی‌رسد. پیامک و تماس را در Admin Dashboard راه‌اندازی کنید.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "این پروژه همین حالا این داده‌ها را دریافت می‌کند، پس این مرحله وقتی پایان می‌یابد که سرویسی تازه گزارش دهد. داده‌هایی که نام هیچ سرویسی را ندارند، به محض رسیدن در کاوشگر نمایش داده می‌شوند."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "این پروژه همین حالا این داده‌ها را دریافت می‌کند، پس این مرحله وقتی پایان می‌یابد که سرویسی تازه گزارش دهد. داده‌هایی که نام هیچ سرویسی را ندارند، به محض رسیدن در کاوشگر نمایش داده می‌شوند.",
+  "Bypass caches on every check": "دور زدن کش در هر بررسی",
+  "Checks {{address}}.": "{{address}} را بررسی می‌کند.",
+  "Enter a port from 1 to 65535.": "پورتی از 1 تا 65535 وارد کنید.",
+  "Enter the address to check.": "نشانی‌ای را که باید بررسی شود وارد کنید.",
+  "Enter the port to check, like 443.": "پورتی را که باید بررسی شود وارد کنید، مثلاً 443.",
+  "It changes no status and opens nothing.": "هیچ وضعیتی را تغییر نمی‌دهد و چیزی باز نمی‌کند.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "انتخاب کنید چه چیزی پایش شود و برایش نامی بگذارید. بقیه با مقادیر پیش‌فرضی شروع می‌شود که می‌توانید تغییرشان دهید. وقتی مشکلی پیش بیاید، OneUptime یک حادثه یا هشدار باز می‌کند و مرحله بعد نشان می‌دهد چه کسی مطلع می‌شود.",
+  "Runs one check now, and shows what it finds.": "همین حالا یک بررسی اجرا می‌کند و نشان می‌دهد چه یافت.",
+  "The check runs from {{probe}}.": "بررسی از {{probe}} اجرا می‌شود.",
+  "The monitor shows its default status, and nothing opens.": "مانیتور وضعیت پیش‌فرض خود را نشان می‌دهد و چیزی باز نمی‌شود.",
+  "The monitor shows its default status, {{status}}, and nothing opens.": "مانیتور وضعیت پیش‌فرض خود، {{status}}، را نشان می‌دهد و چیزی باز نمی‌شود.",
+  "This result matches a criteria.": "این نتیجه با یک معیار مطابقت دارد.",
+  "This result matches no criteria.": "این نتیجه با هیچ معیاری مطابقت ندارد.",
+  "This result matches {{criteria}}.": "این نتیجه با {{criteria}} مطابقت دارد.",
+  "What one check found, and what would follow.": "یک بررسی چه یافت و پس از آن چه رخ می‌دهد.",
+  "What to Monitor": "چه چیزی پایش شود",
+  "Where the check runs from.": "بررسی از کجا اجرا می‌شود."
 }
