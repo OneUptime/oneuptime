@@ -108,7 +108,7 @@ describe("a table, as it is collected", () => {
     };
   }
 
-  function known(fields: Partial<DataAsset> = {}): DataAsset {
+  function known(fields: Record<string, unknown> = {}): DataAsset {
     const asset: DataAsset = new DataAsset(ASSET_ID);
     asset.assetKey = "public.orders";
     asset.rowCount = 1000;
@@ -336,7 +336,7 @@ describe("a pipeline, as it runs", () => {
   const LAST_START: Date = new Date("2026-11-03T11:00:00.000Z");
   let pipelineUpdates: Array<Record<string, unknown>>;
 
-  function pipeline(fields: Partial<DataPipeline> = {}): DataPipeline {
+  function pipeline(fields: Record<string, unknown> = {}): DataPipeline {
     const row: DataPipeline = new DataPipeline(PIPELINE_ID);
     row.lastRunStartedAt = LAST_START;
     row.lastRunId = "77777777-7777-4777-8777-777777777777";

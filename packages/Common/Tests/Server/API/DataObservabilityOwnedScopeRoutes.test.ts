@@ -122,7 +122,9 @@ const READER: DatabaseCommonInteractionProps = person(Permission.ReadDataAsset);
 const EDITOR: DatabaseCommonInteractionProps = person(Permission.EditDataAsset);
 
 // What a role limited to what its members own reads: the pipeline's query, here.
-const OWNED_TABLES: FindOperator<unknown> = QueryHelper.any([TABLE_OWNED]);
+const OWNED_TABLES: ReturnType<typeof QueryHelper.any> = QueryHelper.any([
+  TABLE_OWNED,
+]);
 const NARROWED: DataObservabilityScope = {
   isWholeProject: false,
   assetQuery: { projectId: PROJECT, _id: OWNED_TABLES },

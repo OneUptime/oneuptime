@@ -174,11 +174,12 @@ describe("a route's own conditions, added to the caller's (withConditions)", () 
   });
 
   test("a column the grants narrow is AND-ed, never widened to what the route asks", () => {
-    const owned: FindOperator<unknown> = In([TABLE_OWNED]);
-    const asked: FindOperator<unknown> = In([TABLE_OWNED, TABLE_NOT_OWNED]);
+    const owned: FindOperator<string> = In([TABLE_OWNED]);
+    const asked: FindOperator<string> = In([TABLE_OWNED, TABLE_NOT_OWNED]);
+    // TypeORM's own operators, as the read-permission pipeline writes them.
     const combined: Record<string, unknown> = withConditions<DataAsset>(
-      { projectId: PROJECT, _id: owned },
-      { _id: asked },
+      { projectId: PROJECT, _id: owned as never },
+      { _id: asked as never },
     ) as unknown as Record<string, unknown>;
 
     expect(combined["_id"]).toEqual(And(owned, asked));
@@ -188,7 +189,7 @@ describe("a route's own conditions, added to the caller's (withConditions)", () 
 
 describe("one record a route is about", () => {
   test("its ids the caller may read, asked with their reads", async () => {
-    const owned: FindOperator<unknown> = In([TABLE_OWNED]);
+    const owned: FindOperator<string> = In([TABLE_OWNED]);
     const reads: Array<Record<string, unknown>> = [];
 
     jest.spyOn(DataAssetService, "findBy").mockImplementation((async (findBy: {
@@ -206,7 +207,7 @@ describe("one record a route is about", () => {
     const readable: Set<string> =
       await DataObservabilityReadScope.getReadableIds({
         service: DataAssetService,
-        query: { projectId: PROJECT, _id: owned },
+        query: { projectId: PROJECT, _id: owned as never },
         ids: [TABLE_OWNED, TABLE_NOT_OWNED],
       });
 

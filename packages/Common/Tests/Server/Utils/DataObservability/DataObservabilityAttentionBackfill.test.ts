@@ -122,7 +122,11 @@ describe("one statement for a page (buildLateAtUpdate)", () => {
 describe("a page of tables", () => {
   let reads: Array<FindByArgs>;
 
-  function asset(suffix: number, fields: Partial<DataAsset> = {}): DataAsset {
+  // Its fields as a row holds them: a column left empty is undefined.
+  function asset(
+    suffix: number,
+    fields: Record<string, unknown> = {},
+  ): DataAsset {
     const row: DataAsset = new DataAsset(new ObjectID(id(suffix)));
     row.assetKind = DataAssetKind.Table;
     row.lastChangedAt = new Date("2026-11-03T12:00:00.000Z");
