@@ -156,7 +156,8 @@ export class Service extends ProjectReferencesService<Model> {
         }
       }
     } else {
-      createBy.data.responseStepKey = undefined;
+      // A blank one is no step.
+      delete data["responseStepKey"];
     }
 
     return { createBy, carryForward: null };
