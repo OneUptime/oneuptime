@@ -32,11 +32,17 @@ Seu servidor precisa de um nome de host próprio, com um registro A que aponte p
 
 Na página **Início** do seu projeto, clique em **Publique uma página de status**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Informar meus clientes com uma página de status** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `status page` e escolha **Publique uma página de status**.
 
+**Páginas de status** também a abre: clique em **Configuração guiada** na lista vazia, ou em **Como funciona** quando o projeto já tiver uma página de status.
+
 ### Dar um nome e escolher o que ela mostra
 
 ![O passo "Dê um nome e escolha o que ela mostra", com "Criar a página de status" destacado](screen:status-page-pick)
 
 Em **Dê um nome e escolha o que ela mostra**, mantenha o **Nome da página de status** sugerido ou digite o seu. Em **O que ela mostra**, marque os monitores que seus clientes devem ver, ou clique em **Selecionar tudo**. Clique em **Criar a página de status**. A partir deste momento, a página é pública no link dela e mostra só os monitores que você marcou.
+
+Se o projeto já tem uma página de status, o passo adiciona a ela os monitores que você marcar e indica como **Na página** os que ela já mostra. Com várias páginas, escolha uma em **Página de status**. Para uma página nova, clique em **Criar uma nova página de status em vez disso**.
+
+Com muitos monitores, digite parte de um nome em **Pesquisar por nome**, ou escolha um rótulo em **Todos os rótulos**: **Selecionar tudo** marca então o que a lista mostra. Um grupo de monitores aparece na página como uma única linha.
 
 ### Ver o que seus clientes veem
 

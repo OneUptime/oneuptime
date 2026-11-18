@@ -62,6 +62,8 @@ Klicka på **Lägg till mottagare** under **Avisera**, sök och välj så många
 
 **Eskalera efter (i minuter)** är hur länge det väntas på en bekräftelse innan nästa nivå larmas. Den börjar på **30 minuter**; ändra den till det som passar nivån.
 
+![Dialogen ”Lägg till eskaleringsregel” för en policy med en nivå, med ”Larmas efter (i minuter)” markerad](screen:escalation-rule-paged-after)
+
 En regel som läggs till efter den första frågar i stället **Larmas efter (i minuter)**: hur länge nivån före den väntar på en bekräftelse innan den här larmas. Den börjar på den nivåns väntetid och sparas som den; den nya nivån väntar själv 30 minuter tills du lägger till en efter den. Den som får lägga till regler men inte ändra dem får **Eskalera efter (i minuter)**, och dialogen säger när den nya nivån larmas.
 
 ### Ge regeln ett namn, om du vill

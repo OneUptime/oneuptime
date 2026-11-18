@@ -36,7 +36,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- **متریک‌های در حال رسیدن.** آن‌ها را با [OpenTelemetry](/docs/telemetry/open-telemetry) بفرستید، یا از یک ایجنت مانند [کالکتور OpenTelemetry میزبان](/docs/telemetry/host-otel-collector) یا [ایجنت Kubernetes](/docs/telemetry/kubernetes-agent).
+- **متریک‌های در حال رسیدن.** آن‌ها را با [OpenTelemetry](/docs/telemetry/open-telemetry) بفرستید، یا از یک ایجنت مانند [کالکتور OpenTelemetry میزبان](/docs/telemetry/host-otel-collector) یا [ایجنت Kubernetes](/docs/telemetry/kubernetes-agent). تا رسیدن نخستین داده‌ها، این صفحه **راه‌اندازی گام‌به‌گام** را پیشنهاد می‌دهد که شما را از نخستین لاگ‌ها، متریک‌ها و ترِیس‌ها تا هشدارهای مربوط به آن‌ها می‌برد، در کنار **ارسال نخستین متریک‌ها** که فقط راهنمای راه‌اندازی را باز می‌کند.
 - **نقشی که تله‌متری را بخواند.** مالک پروژه، مدیر پروژه، عضو پروژه، بیننده، مدیر تله‌متری، عضو تله‌متری یا بیننده تله‌متری، یا یک نقش سفارشی با مجوز Read Metrics. برای اینکه کدام متریک‌ها را می‌خواند، [تله‌متری](/docs/permissions/index#تلهمتری) را ببینید.
 
 ## یافتن یک متریک

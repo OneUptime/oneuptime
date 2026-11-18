@@ -62,6 +62,8 @@ Klik under **Underret** på **Tilføj modtager**, søg, og vælg så mange vagtp
 
 **Eskalér efter (i minutter)** er, hvor længe der ventes på en kvittering, før næste niveau tilkaldes. Den starter på **30 minutter**; ret den til det, der passer til niveauet.
 
+![Dialogen »Tilføj eskaleringsregel« på en politik med ét niveau, med »Tilkaldes efter (i minutter)« fremhævet](screen:escalation-rule-paged-after)
+
 En regel, der tilføjes efter den første, spørger i stedet **Tilkaldes efter (i minutter)**: hvor længe niveauet før den venter på en kvittering, før dette niveau tilkaldes. Den starter på det niveaus ventetid og gemmes som den; det nye niveau venter selv 30 minutter, indtil du tilføjer et efter det. Den, der må tilføje regler, men ikke ændre dem, får **Eskalér efter (i minutter)**, og dialogen siger, hvornår det nye niveau tilkaldes.
 
 ### Giv reglen et navn, hvis du vil

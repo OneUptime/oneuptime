@@ -36,7 +36,7 @@ L'esploratore ha sei schede:
 
 ## Prima di iniziare
 
-- **Metriche in arrivo.** Inviatele con [OpenTelemetry](/docs/telemetry/open-telemetry), oppure da un agente come il [collector OpenTelemetry per host](/docs/telemetry/host-otel-collector) o l'[agente Kubernetes](/docs/telemetry/kubernetes-agent).
+- **Metriche in arrivo.** Inviatele con [OpenTelemetry](/docs/telemetry/open-telemetry), oppure da un agente come il [collector OpenTelemetry per host](/docs/telemetry/host-otel-collector) o l'[agente Kubernetes](/docs/telemetry/kubernetes-agent). Finché non arrivano i primi dati, questa pagina offre **Configurazione guidata**, che vi porta dai primi log, metriche e tracce fino agli avvisi su di essi, accanto a **Invia le tue prime metriche**, la sola guida all'installazione.
 - **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Metrics. Vedere [Telemetria](/docs/permissions/index#telemetria) per sapere quali metriche legge.
 
 ## Trovare una metrica

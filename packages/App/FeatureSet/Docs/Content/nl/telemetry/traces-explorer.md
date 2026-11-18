@@ -36,7 +36,7 @@ De verkenner heeft vijf tabbladen:
 
 ## Voordat u begint
 
-- **Binnenkomende traces.** Instrumenteer uw services met [OpenTelemetry](/docs/telemetry/open-telemetry). Het tabblad **Installatiegids** toont de code voor uw taal.
+- **Binnenkomende traces.** Instrumenteer uw services met [OpenTelemetry](/docs/telemetry/open-telemetry). Het tabblad **Installatiegids** toont de code voor uw taal. Tot de eerste gegevens binnenkomen, biedt deze pagina **Begeleide installatie** aan, dat u van uw eerste logboeken, metrieken en traces naar waarschuwingen daarop leidt, naast **Je eerste traces sturen**, de installatiegids alleen.
 - **Een rol die telemetrie mag lezen.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Telemetriebeheerder, Telemetrielid of Telemetriekijker, of een aangepaste rol met de machtiging Read Traces. Het bereik ervan bepaalt van wie u de spans ziet: zie [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Een verzoek vinden

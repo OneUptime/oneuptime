@@ -45,6 +45,12 @@ import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
  * telemetry that names no service (#7754) - and links to it. Once it has,
  * the page is the explorer alone, read again as the dialog closes.
  *
+ * Logs, Traces and Metrics offer the guided setup "Send logs, metrics and
+ * traces, then get alerted" first (#7142, their ProductOnboarding's
+ * guidedSetup): the same guide and wait, then the monitors that alert on
+ * the service. The dialog stays beside it, plain, for the data alone: two
+ * jobs, a button each.
+ *
  * The explorer stays under it: nothing is hidden on the strength of this
  * check, and a project whose services have reported never sees it. A
  * failed check shows nothing.

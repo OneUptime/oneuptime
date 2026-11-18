@@ -36,7 +36,7 @@ Der Explorer hat sechs Tabs:
 
 ## Bevor Sie beginnen
 
-- **Eintreffende Metriken.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry) oder von einem Agenten wie dem [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector) oder dem [Kubernetes-Agenten](/docs/telemetry/kubernetes-agent).
+- **Eintreffende Metriken.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry) oder von einem Agenten wie dem [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector) oder dem [Kubernetes-Agenten](/docs/telemetry/kubernetes-agent). Bis die ersten Daten eintreffen, bietet diese Seite **Geführte Einrichtung** an, das Sie von Ihren ersten Protokollen, Metriken und Traces bis zu Warnungen dazu führt, neben **Ihre ersten Metriken senden**, der Einrichtungsanleitung allein.
 - **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Metrics. Siehe [Telemetrie](/docs/permissions/index#telemetrie) dazu, welche Metriken sie liest.
 
 ## Eine Metrik finden

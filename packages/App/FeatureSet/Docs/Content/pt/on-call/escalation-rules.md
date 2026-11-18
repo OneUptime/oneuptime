@@ -62,6 +62,8 @@ Em **Notificar**, clique em **Adicionar destinatário**, pesquise e escolha quan
 
 **Escalonar após (em minutos)** é quanto esperar por uma confirmação antes de acionar o próximo nível. Começa em **30 minutos**; ajuste ao que fizer sentido para o nível.
 
+![O diálogo "Adicionar regra de escalonamento" de uma política com um nível, com "Acionado após (em minutos)" destacado](screen:escalation-rule-paged-after)
+
 Uma regra adicionada depois da primeira pergunta em vez disso **Acionado após (em minutos)**: quanto o nível anterior espera por uma confirmação antes de este ser acionado. Começa na espera desse nível e é salvo como a espera dele; o novo nível espera 30 minutos até você adicionar outro depois dele. Quem pode adicionar regras, mas não alterá-las, vê **Escalonar após (em minutos)**, e a caixa de diálogo diz quando o novo nível é acionado.
 
 ### Dê um nome à regra, se quiser

@@ -49,10 +49,13 @@ const FINGERPRINTS: string = path.join(
 /*
  * What the pictures may weigh, from what they weighed when they were first
  * drawn (packages/E2E/DocsScreens/README.md has the numbers): a picture
- * that outgrows these was cropped too loosely.
+ * that outgrows these was cropped too loosely. The total was 24 MB until
+ * 2026-11-18, when 22 shots in 17 languages (374 pictures, 24.1 MB) came
+ * to it with the on-call shots of #9419: 28 MB keeps room for a few more,
+ * and still fails a set that grows unseen.
  */
 const MAX_PICTURE_BYTES: number = 200 * 1024;
-const MAX_TOTAL_BYTES: number = 24 * 1024 * 1024;
+const MAX_TOTAL_BYTES: number = 28 * 1024 * 1024;
 
 const FIXTURE: DocsScreenFixture = {
   folder: "Somewhere",
