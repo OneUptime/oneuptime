@@ -242,6 +242,8 @@ export const StepsNotSentNowNotice: FunctionComponent<
   return (
     <Alert
       type={AlertType.WARNING}
+      // As wide as the steps it is about, as the ladder's other notes are.
+      className="max-w-3xl"
       dataTestId={STEPS_NOT_SENT_NOW_TEST_ID}
       title={
         <div className="flex flex-col gap-1">

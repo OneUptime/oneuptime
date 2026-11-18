@@ -499,9 +499,7 @@ test.describe("starting from the project's default ladder", () => {
     await open(page, "?person=one-ladder&default=left-out");
     await page.getByTestId("paging-ladder-start-from-default").click();
 
-    await expect(
-      page.getByTestId("paging-ladder-default-left-out"),
-    ).toHaveText(
+    await expect(page.getByTestId("paging-ladder-default-left-out")).toHaveText(
       "You have not verified Telegram yet, so those steps are left out, and your own email, SMS, phone call steps stay meanwhile.",
     );
   });
@@ -530,9 +528,9 @@ test.describe("steps this server can't send right now", () => {
 
     await openGrid(page);
     await expect(
-      page.getByTestId("paging-ladder-summary").getByTestId(
-        "paging-ladder-not-sent-now",
-      ),
+      page
+        .getByTestId("paging-ladder-summary")
+        .getByTestId("paging-ladder-not-sent-now"),
     ).toHaveCount(1);
   });
 
