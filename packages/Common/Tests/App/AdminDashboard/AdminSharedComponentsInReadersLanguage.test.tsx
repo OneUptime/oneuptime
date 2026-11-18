@@ -138,7 +138,11 @@ import { formStepButton } from "../../Helpers/FormStepButton";
  * once, as the network refused them, and taken as reads it could not
  * make (Tests/Helpers/RealNetworkRequests.ts).
  */
-refuseRequestsTo(["/global-config/email-environment"]);
+refuseRequestsTo([
+  "/global-config/email-environment",
+  // The page's Email Log card: these tests read the Host Settings dialog.
+  "/global-config/email-log",
+]);
 
 const WAIT: { timeout: number } = { timeout: 30000 };
 
