@@ -56807,5 +56807,6 @@
   "Server Alert State": "सर्वर अलर्ट की स्थिति",
   "Server Alerts by Push": "पुश से सर्वर अलर्ट",
   "Server Email Log": "सर्वर ईमेल लॉग",
-  "Server Email Logs": "सर्वर ईमेल लॉग"
+  "Server Email Logs": "सर्वर ईमेल लॉग",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "यह प्रोजेक्ट यह डेटा पहले से पा रहा है, इसलिए यह चरण तब पूरा होगा जब कोई नई सेवा रिपोर्ट करेगी। जिस डेटा में किसी सेवा का नाम नहीं है, वह पहुँचते ही एक्सप्लोरर में दिखता है।"
 }

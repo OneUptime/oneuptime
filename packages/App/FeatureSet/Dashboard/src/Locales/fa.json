@@ -56807,5 +56807,6 @@
   "Server Alert State": "حالت هشدارهای سرور",
   "Server Alerts by Push": "هشدارهای سرور با پوش",
   "Server Email Log": "گزارش ایمیل سرور",
-  "Server Email Logs": "گزارش‌های ایمیل سرور"
+  "Server Email Logs": "گزارش‌های ایمیل سرور",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "این پروژه همین حالا این داده‌ها را دریافت می‌کند، پس این مرحله وقتی پایان می‌یابد که سرویسی تازه گزارش دهد. داده‌هایی که نام هیچ سرویسی را ندارند، به محض رسیدن در کاوشگر نمایش داده می‌شوند."
 }

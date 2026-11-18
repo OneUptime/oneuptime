@@ -56807,5 +56807,6 @@
   "Server Alert State": "حالة تنبيهات الخادم",
   "Server Alerts by Push": "تنبيهات الخادم عبر الإشعارات الفورية",
   "Server Email Log": "سجل البريد الإلكتروني للخادم",
-  "Server Email Logs": "سجلات البريد الإلكتروني للخادم"
+  "Server Email Logs": "سجلات البريد الإلكتروني للخادم",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها."
 }

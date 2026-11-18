@@ -56807,5 +56807,6 @@
   "Server Alert State": "Состояние оповещений сервера",
   "Server Alerts by Push": "Оповещения сервера через push",
   "Server Email Log": "Журнал писем сервера",
-  "Server Email Logs": "Журналы писем сервера"
+  "Server Email Logs": "Журналы писем сервера",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Этот проект уже получает эти данные, поэтому этот шаг завершится, когда появится новый сервис. Данные без указания сервиса появляются в обозревателе по мере поступления."
 }

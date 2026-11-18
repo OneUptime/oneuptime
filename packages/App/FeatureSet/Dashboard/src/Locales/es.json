@@ -56807,5 +56807,6 @@
   "Server Alert State": "Estado de las alertas del servidor",
   "Server Alerts by Push": "Alertas del servidor por push",
   "Server Email Log": "Registro de correos del servidor",
-  "Server Email Logs": "Registros de correos del servidor"
+  "Server Email Logs": "Registros de correos del servidor",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Este proyecto ya recibe estos datos, así que este paso termina cuando un servicio nuevo informa. Los datos que no nombran ningún servicio aparecen en el explorador en cuanto llegan."
 }

@@ -56807,5 +56807,6 @@
   "Server Alert State": "伺服器警示狀態",
   "Server Alerts by Push": "透過推送傳送的伺服器警示",
   "Server Email Log": "伺服器電子郵件日誌",
-  "Server Email Logs": "伺服器電子郵件日誌"
+  "Server Email Logs": "伺服器電子郵件日誌",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此專案已在接收這些資料，因此此步驟會在新服務回報時完成。未指明服務的資料一送達就會顯示在瀏覽器中。"
 }

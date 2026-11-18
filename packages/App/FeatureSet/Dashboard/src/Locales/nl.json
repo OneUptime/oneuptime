@@ -56807,5 +56807,6 @@
   "Server Alert State": "Status van serverwaarschuwingen",
   "Server Alerts by Push": "Serverwaarschuwingen via push",
   "Server Email Log": "E-maillogboek van de server",
-  "Server Email Logs": "E-maillogboeken van de server"
+  "Server Email Logs": "E-maillogboeken van de server",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Dit project ontvangt deze gegevens al, dus deze stap is klaar zodra een nieuwe service zich meldt. Gegevens die geen service noemen, verschijnen in de verkenner zodra ze binnenkomen."
 }

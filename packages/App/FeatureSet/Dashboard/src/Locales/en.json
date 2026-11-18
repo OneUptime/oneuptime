@@ -56807,5 +56807,6 @@
   "Server Alert State": "Server Alert State",
   "Server Alerts by Push": "Server Alerts by Push",
   "Server Email Log": "Server Email Log",
-  "Server Email Logs": "Server Email Logs"
+  "Server Email Logs": "Server Email Logs",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives."
 }

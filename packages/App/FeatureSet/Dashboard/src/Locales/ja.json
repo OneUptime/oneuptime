@@ -56807,5 +56807,6 @@
   "Server Alert State": "サーバーアラートの状態",
   "Server Alerts by Push": "プッシュによるサーバーアラート",
   "Server Email Log": "サーバーのメールのログ",
-  "Server Email Logs": "サーバーのメールのログ"
+  "Server Email Logs": "サーバーのメールのログ",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "このプロジェクトはすでにこのデータを受信しているため、このステップは新しいサービスがデータを送信すると完了します。サービス名のないデータは、届きしだいエクスプローラーに表示されます。"
 }

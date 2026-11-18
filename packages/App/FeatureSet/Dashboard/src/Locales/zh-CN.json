@@ -56807,5 +56807,6 @@
   "Server Alert State": "服务器警报状态",
   "Server Alerts by Push": "通过推送发送的服务器警报",
   "Server Email Log": "服务器电子邮件日志",
-  "Server Email Logs": "服务器电子邮件日志"
+  "Server Email Logs": "服务器电子邮件日志",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此项目已在接收这些数据，因此此步骤会在新服务上报时完成。未指明服务的数据一送达就会显示在浏览器中。"
 }

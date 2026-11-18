@@ -56807,5 +56807,6 @@
   "Server Alert State": "Tillstånd för serverlarm",
   "Server Alerts by Push": "Serverlarm via push",
   "Server Email Log": "Serverns e-postlogg",
-  "Server Email Logs": "Serverns e-postloggar"
+  "Server Email Logs": "Serverns e-postloggar",
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Det här projektet tar redan emot dessa data, så det här steget slutförs när en ny tjänst rapporterar. Data som inte anger någon tjänst visas i utforskaren så snart de kommer in."
 }
