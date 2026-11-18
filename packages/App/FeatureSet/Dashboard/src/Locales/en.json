@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} has not verified {{channels}} yet, so those steps were left out.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
+  "An invitation to this project hasn't been accepted yet.": "An invitation to this project hasn't been accepted yet.",
+  "More to set up": "More to set up",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works."
 }

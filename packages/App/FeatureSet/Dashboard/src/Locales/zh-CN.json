@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤，在此期间保留其自己的{{kept}}步骤。",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在值班，但没有此项目要求每位值班人员都具备的已验证电话联系方式。",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "从 App Store 或 Google Play 安装应用，登录 {{serverUrl}}，并在应用请求时允许通知和重要警报。"
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "从 App Store 或 Google Play 安装应用，登录 {{serverUrl}}，并在应用请求时允许通知和重要警报。",
+  "An invitation to this project hasn't been accepted yet.": "此项目的一份邀请尚未被接受。",
+  "More to set up": "更多可设置的内容",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "目前只能通过电子邮件呼叫您。添加您的电话或移动应用，然后给自己发送一条测试呼叫。",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "创建事件或警报时通知合适的人。测试呼叫被确认后即完成。在此之前，项目所有者会收到电子邮件。",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "您的第一步已完成。随时可以继续设置：每一项一旦生效就会自动勾选。"
 }

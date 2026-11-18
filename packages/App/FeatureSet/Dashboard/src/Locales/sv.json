@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} har inte verifierat {{channels}} än, så de stegen utelämnades, och de behåller tills vidare sina egna steg via {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} har inte verifierat {{channels}} än, så de stegen utelämnades.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} har jour men ingen verifierad telefonmetod, vilket det här projektet ber alla i jour att ha.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installera appen från App Store eller Google Play, logga in på {{serverUrl}} och tillåt aviseringar och kritiska larm när den frågar."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installera appen från App Store eller Google Play, logga in på {{serverUrl}} och tillåt aviseringar och kritiska larm när den frågar.",
+  "An invitation to this project hasn't been accepted yet.": "En inbjudan till det här projektet har inte accepterats än.",
+  "More to set up": "Mer att konfigurera",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Just nu kan bara e-post larma dig. Lägg till din telefon eller mobilappen och skicka ett testlarm till dig själv.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Larma rätt person när en incident eller ett larm öppnas. Klart när ett testlarm har bekräftats. Fram till dess får Projektägarna ett e-postmeddelande.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Dina första steg är klara. Konfigurera mer när du vill: varje steg bockar av sig självt så snart det fungerar."
 }

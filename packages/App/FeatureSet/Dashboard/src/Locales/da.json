@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin blev udeladt, og de beholder indtil videre deres egne trin med {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin blev udeladt.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} er på vagt, men har ingen bekræftet telefonmetode, som dette projekt beder alle på vagt om at have.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installér appen fra App Store eller Google Play, log ind på {{serverUrl}}, og tillad notifikationer og kritiske advarsler, når den spørger."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installér appen fra App Store eller Google Play, log ind på {{serverUrl}}, og tillad notifikationer og kritiske advarsler, når den spørger.",
+  "An invitation to this project hasn't been accepted yet.": "En invitation til dette projekt er ikke accepteret endnu.",
+  "More to set up": "Mere at sætte op",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Lige nu kan kun e-mail tilkalde dig. Tilføj din telefon eller mobilappen, og send dig selv et testkald.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Tilkald den rette person, når en hændelse eller advarsel åbnes. Færdig, når et testkald er bekræftet. Indtil da får Projektejerne en e-mail.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Dine første trin er færdige. Sæt mere op, når du vil: hvert trin krydser sig selv af, så snart det virker."
 }

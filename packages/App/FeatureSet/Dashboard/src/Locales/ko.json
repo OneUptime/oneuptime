@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌으며, 그동안 본인의 {{kept}} 단계는 유지됩니다.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}}님은 아직 {{channels}}을(를) 인증하지 않아 해당 단계가 빠졌습니다.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}}님은 온콜 담당이지만, 이 프로젝트가 모든 온콜 담당자에게 요청하는 인증된 전화 연락 방법이 없습니다.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store 또는 Google Play에서 앱을 설치하고 {{serverUrl}}에 로그인한 다음, 요청하면 알림과 중요 알림을 허용하세요."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store 또는 Google Play에서 앱을 설치하고 {{serverUrl}}에 로그인한 다음, 요청하면 알림과 중요 알림을 허용하세요.",
+  "An invitation to this project hasn't been accepted yet.": "이 프로젝트 초대가 아직 수락되지 않았습니다.",
+  "More to set up": "더 설정할 항목",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "지금은 이메일로만 호출을 받을 수 있습니다. 전화나 모바일 앱을 추가하고 자신에게 테스트 호출을 보내세요.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "인시던트나 경고가 열리면 적절한 담당자에게 알립니다. 테스트 호출이 인지되면 완료됩니다. 그 전까지는 프로젝트 소유자에게 이메일이 전송됩니다.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "첫 단계를 마쳤습니다. 원할 때 더 설정하세요. 각 항목은 작동하는 즉시 스스로 체크됩니다."
 }

@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند و تا آن زمان گام‌های {{kept}} خودش می‌ماند.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} هنوز {{channels}} را تأیید نکرده است، پس آن گام‌ها کنار گذاشته شدند.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} آنکال است اما هیچ روش تلفنی تأییدشده‌ای ندارد، که این پروژه از همهٔ افراد آنکال می‌خواهد.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "برنامه را از App Store یا Google Play نصب کنید، به {{serverUrl}} وارد شوید و وقتی برنامه درخواست کرد، اجازهٔ اعلان‌ها و هشدارهای بحرانی را بدهید."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "برنامه را از App Store یا Google Play نصب کنید، به {{serverUrl}} وارد شوید و وقتی برنامه درخواست کرد، اجازهٔ اعلان‌ها و هشدارهای بحرانی را بدهید.",
+  "An invitation to this project hasn't been accepted yet.": "یک دعوت به این پروژه هنوز پذیرفته نشده است.",
+  "More to set up": "موارد دیگر برای راه‌اندازی",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "اکنون فقط ایمیل می‌تواند به شما فراخوان برساند. تلفن خود یا برنامهٔ موبایل را اضافه کنید و یک فراخوان آزمایشی برای خودتان بفرستید.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "وقتی حادثه یا هشداری باز می‌شود، به فرد مناسب خبر دهید. وقتی یک فراخوان آزمایشی تأیید شود، انجام شده است. تا آن زمان، مالکان پروژه ایمیل می‌گیرند.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "نخستین گام‌های شما انجام شده است. هر وقت خواستید موارد دیگری راه‌اندازی کنید: هر کدام به‌محض اینکه کار کند خودش تیک می‌خورد."
 }

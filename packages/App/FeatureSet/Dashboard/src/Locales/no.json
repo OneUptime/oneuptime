@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} har ikke verifisert {{channels}} ennå, så de trinnene ble utelatt, og de beholder inntil videre sine egne trinn med {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} har ikke verifisert {{channels}} ennå, så de trinnene ble utelatt.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} er på vakt, men har ingen verifisert telefonmetode, som dette prosjektet ber alle på vakt om å ha.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installer appen fra App Store eller Google Play, logg på {{serverUrl}}, og tillat varsler og kritiske varsler når den spør."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installer appen fra App Store eller Google Play, logg på {{serverUrl}}, og tillat varsler og kritiske varsler når den spør.",
+  "An invitation to this project hasn't been accepted yet.": "En invitasjon til dette prosjektet er ikke godtatt ennå.",
+  "More to set up": "Mer å sette opp",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Akkurat nå kan bare e-post kalle deg opp. Legg til telefonen din eller mobilappen, og send deg selv et testoppkall.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Varsle rett person når en hendelse eller et varsel åpnes. Ferdig når et testoppkall er bekreftet. Inntil da får Prosjekteierne en e-post.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "De første stegene dine er ferdige. Sett opp mer når du vil: hvert steg krysser seg selv av så snart det virker."
 }

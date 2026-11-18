@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} ainda não verificou {{channels}}, então essas etapas ficaram de fora, e enquanto isso mantém as próprias etapas por {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} ainda não verificou {{channels}}, então essas etapas ficaram de fora.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de plantão, mas não tem nenhum método por telefone verificado, que este projeto pede a todos de plantão.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instale o app pela App Store ou pelo Google Play, entre em {{serverUrl}} e permita notificações e alertas críticos quando ele pedir."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instale o app pela App Store ou pelo Google Play, entre em {{serverUrl}} e permita notificações e alertas críticos quando ele pedir.",
+  "An invitation to this project hasn't been accepted yet.": "Um convite para este projeto ainda não foi aceito.",
+  "More to set up": "Mais para configurar",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Por enquanto, só o e-mail pode acionar você. Adicione seu telefone ou o app móvel e envie uma chamada de teste para você mesmo.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Acione a pessoa certa quando um incidente ou alerta for aberto. Concluído quando uma chamada de teste for confirmada. Até lá, os Proprietários do projeto recebem um e-mail.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Suas primeiras etapas estão concluídas. Configure mais quando quiser: cada uma se marca sozinha assim que funciona."
 }

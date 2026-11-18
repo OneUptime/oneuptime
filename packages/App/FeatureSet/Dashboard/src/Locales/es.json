@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} aún no ha verificado {{channels}}, así que esos pasos se han omitido, y conserva mientras tanto sus propios pasos por {{kept}}.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} aún no ha verificado {{channels}}, así que esos pasos se han omitido.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} está de guardia pero no tiene ningún método telefónico verificado, que este proyecto pide a todas las personas de guardia.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instala la app desde App Store o Google Play, inicia sesión en {{serverUrl}} y permite las notificaciones y las alertas críticas cuando te lo pida."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Instala la app desde App Store o Google Play, inicia sesión en {{serverUrl}} y permite las notificaciones y las alertas críticas cuando te lo pida.",
+  "An invitation to this project hasn't been accepted yet.": "Aún no se ha aceptado una invitación a este proyecto.",
+  "More to set up": "Más por configurar",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Ahora solo el correo puede avisarte. Añade tu teléfono o la app móvil, y envíate un aviso de prueba.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Avisa a la persona adecuada cuando se abre un incidente o una alerta. Listo cuando se reconozca un aviso de prueba. Hasta entonces, los Propietarios del proyecto reciben un correo electrónico.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Tus primeros pasos están listos. Configura más cuando quieras: cada uno se marca solo en cuanto funciona."
 }

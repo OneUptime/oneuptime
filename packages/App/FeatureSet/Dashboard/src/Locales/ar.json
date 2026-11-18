@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "لم يتحقق {{name}} من {{channels}} بعد، لذا استُبعدت تلك الخطوات، وتبقى خطواته الخاصة عبر {{kept}} إلى ذلك الحين.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "لم يتحقق {{name}} من {{channels}} بعد، لذا استُبعدت تلك الخطوات.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} في المناوبة لكن ليست لديه طريقة هاتفية مُتحقق منها، وهي ما يطلبه هذا المشروع من كل المناوبين.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "ثبّت التطبيق من App Store أو Google Play، وسجّل الدخول إلى {{serverUrl}}، واسمح بالإشعارات والتنبيهات الحرجة عندما يطلب التطبيق ذلك."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "ثبّت التطبيق من App Store أو Google Play، وسجّل الدخول إلى {{serverUrl}}، واسمح بالإشعارات والتنبيهات الحرجة عندما يطلب التطبيق ذلك.",
+  "An invitation to this project hasn't been accepted yet.": "لم تُقبل بعدُ دعوة إلى هذا المشروع.",
+  "More to set up": "المزيد لإعداده",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "لا يمكن استدعاؤك الآن إلا بالبريد الإلكتروني. أضف هاتفك أو تطبيق الهاتف المحمول، وأرسل لنفسك استدعاء اختبار.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "استدعِ الشخص المناسب عند فتح حادثة أو تنبيه. يكتمل حين يُقَرّ باستدعاء اختبار. وحتى ذلك الحين، يتلقى مالكو المشروع بريدًا إلكترونيًا.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "اكتملت خطواتك الأولى. أعِدّ المزيد متى شئت: تُعلَّم كل خطوة من تلقاء نفسها بمجرد أن تعمل."
 }

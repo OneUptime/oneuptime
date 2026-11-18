@@ -56773,5 +56773,10 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out, and they keep their own {{kept}} steps meanwhile.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten, en de eigen stappen via {{kept}} blijven intussen behouden.",
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} heeft dienst maar geen geverifieerde telefoonmethode, waar dit project iedereen met dienst om vraagt.",
-  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installeer de app via de App Store of Google Play, log in op {{serverUrl}} en sta meldingen en kritieke waarschuwingen toe als de app erom vraagt."
+  "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installeer de app via de App Store of Google Play, log in op {{serverUrl}} en sta meldingen en kritieke waarschuwingen toe als de app erom vraagt.",
+  "An invitation to this project hasn't been accepted yet.": "Een uitnodiging voor dit project is nog niet geaccepteerd.",
+  "More to set up": "Meer om in te stellen",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Nu kan alleen e-mail je oproepen. Voeg je telefoon of de mobiele app toe, en stuur jezelf een testoproep.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Roep de juiste persoon op wanneer een incident of waarschuwing wordt geopend. Klaar zodra een testoproep is bevestigd. Tot die tijd krijgen de Projecteigenaren een e-mail.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Je eerste stappen zijn klaar. Stel meer in wanneer je wilt: elke stap vinkt zichzelf af zodra hij werkt."
 }
