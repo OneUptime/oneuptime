@@ -4600,6 +4600,27 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddServerEmailLogPostgres.test.ts
           --forceExit
 
+      # The sample projects' removal on a database whose deletes of a "User"
+      # row outlast the session's statement timeout, as OneUptime Cloud's
+      # do (15.0.0's one DELETE timed out there and its migrate Job failed):
+      # RemoveSampleProject deletes one made-up person, then one sample, a
+      # statement, within OnlineDdl's long limits; a real project, person
+      # and incident stay; the columns, key and index stay for the release
+      # before; and KeepSampleProjectColumns puts them back where 15.0.0
+      # already dropped them. In a schema of its own.
+      - name: Test removing the sample projects on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SAMPLE_REMOVAL_TESTS: "true"
+          SAMPLE_REMOVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SAMPLE_REMOVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SAMPLE_REMOVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/RemoveSampleProjectPostgres.test.ts
+          --forceExit
+
       # #6879: master admins told when the server's email or its global
       # probes stop working. GlobalConfig, cloned as it was before
       # AddServerAlerts: three nullable columns added with the row kept as
