@@ -43,7 +43,10 @@ export default class ResellerPlan extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "resellerId",
     type: TableColumnType.Entity,
-    modelType: Reseller,
+    // Lazy: Reseller imports User, which imports Project, which imports this model (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Reseller;
+    },
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
