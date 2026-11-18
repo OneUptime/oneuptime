@@ -5,6 +5,7 @@ import {
   PagingMethodColumn,
   getChannelForPagingMethodColumn,
   getPagingLadderMethodKey,
+  getPagingLadderStepKey,
   getPagingMethodColumnForChannel,
   isPagingMethodColumn,
   normalizePagingLadderSteps,
@@ -563,6 +564,73 @@ export const getPagingLadderFromDefault: (data: {
     leftOutChannels: leftOutChannels,
     keptSteps: keptSteps,
   };
+};
+
+// Whether two ladders page the same way: the same steps, push settings included.
+export const isSamePagingLadder: (
+  first: ReadonlyArray<PagingLadderStep>,
+  second: ReadonlyArray<PagingLadderStep>,
+) => boolean = (
+  first: ReadonlyArray<PagingLadderStep>,
+  second: ReadonlyArray<PagingLadderStep>,
+): boolean => {
+  const signature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
+    steps: ReadonlyArray<PagingLadderStep>,
+  ): string => {
+    return normalizePagingLadderSteps(steps)
+      .map(getPagingLadderStepKey)
+      .join(",");
+  };
+
+  return signature(first) === signature(second);
+};
+
+/*
+ * START FROM THE PROJECT'S DEFAULT, ON HOW TO REACH ME (#9445).
+ *
+ * Somebody who joined before the project had a default ladder, or who has
+ * changed theirs since, can put the default into their own ladder without
+ * asking an admin: their steps are filled with it, mapped to their verified
+ * methods as Readiness's Apply Default Ladder maps it
+ * (getPagingLadderFromDefault: a channel they have not verified is left out
+ * and named, and they keep their own steps in its place). Nothing is saved
+ * until they press Save Changes: their own change, through the ladder's own
+ * save. An admin on a member's page gets the same draft, saved for the
+ * member with its audit entries and its one email.
+ *
+ * Offered only when it would change their steps: the project has a default,
+ * they have verified a method of one of its channels, and their ladder is
+ * not already what the default gives them. Null when it is not offered.
+ */
+export const getPagingLadderDefaultStart: (data: {
+  defaultSteps: ReadonlyArray<PagingLadderDefaultStep>;
+  // Their verified methods: one still waiting for its code is no step.
+  methods: ReadonlyArray<PagingLadderMethodReference>;
+  // Their ladder as saved (readPagingLadder's steps).
+  currentSteps: ReadonlyArray<PagingLadderStep>;
+}) => PagingLadderFromDefault | null = (data: {
+  defaultSteps: ReadonlyArray<PagingLadderDefaultStep>;
+  methods: ReadonlyArray<PagingLadderMethodReference>;
+  currentSteps: ReadonlyArray<PagingLadderStep>;
+}): PagingLadderFromDefault | null => {
+  if (readPagingLadderDefault(data.defaultSteps).length === 0) {
+    return null;
+  }
+
+  const fromDefault: PagingLadderFromDefault = getPagingLadderFromDefault({
+    defaultSteps: data.defaultSteps,
+    methods: data.methods,
+    currentSteps: data.currentSteps,
+  });
+
+  if (
+    fromDefault.steps.length === 0 ||
+    isSamePagingLadder(fromDefault.steps, data.currentSteps)
+  ) {
+    return null;
+  }
+
+  return fromDefault;
 };
 
 /*

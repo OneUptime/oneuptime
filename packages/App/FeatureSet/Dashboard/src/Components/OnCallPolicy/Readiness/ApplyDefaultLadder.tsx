@@ -4,6 +4,7 @@ import {
   APPLY_DEFAULT_LADDER_TITLE,
 } from "./ApplyDefaultLadderWords";
 import { StepChip } from "../../NotificationRule/PagingLadder/PagingLadderParts";
+import { describeChannelsInSentence } from "../../NotificationRule/PagingLadder/PagingLadderWords";
 import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import { getDefaultLadderChannelChoices } from "../../NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -26,7 +27,6 @@ import {
 } from "Common/Types/NotificationRule/PagingLadderDefault";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import ObjectID from "Common/Types/ObjectID";
-import { toSentenceTerm } from "Common/Types/Translator";
 import {
   BULK_ITEM_CHANGED,
   BulkActionRunResult,
@@ -41,17 +41,11 @@ import {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import { joinList } from "Common/UI/Utils/ListSeparator";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
-import {
-  ComposedValue,
-  Translator,
-  composedValue,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { MutableRefObject, ReactElement, useRef } from "react";
 
 /*
@@ -131,24 +125,6 @@ export const applyDefaultLadderToMember: (
   return result;
 };
 
-// Channels named in a sentence of the reader's: "SMS and phone call".
-const channelNames: (
-  channels: ReadonlyArray<OnCallPageChannel>,
-) => ComposedValue = (
-  channels: ReadonlyArray<OnCallPageChannel>,
-): ComposedValue => {
-  return composedValue((translator: Translator): string => {
-    return joinList(
-      channels.map((channel: OnCallPageChannel): string => {
-        return toSentenceTerm(
-          NotificationMethodUtil.getMethodName(translator, channel),
-          translator.language,
-        );
-      }),
-    );
-  });
-};
-
 // One member's answer, beside the name the list shows for them.
 export interface AnsweredMember {
   name: string;
@@ -186,13 +162,15 @@ export const getDefaultLadderLeftOutLines: (
             APPLY_DEFAULT_LADDER_COPY.leftOutKeepingOwn,
             {
               name: member.name,
-              channels: channelNames(member.result.leftOutChannels),
-              kept: channelNames(kept),
+              channels: describeChannelsInSentence(
+                member.result.leftOutChannels,
+              ),
+              kept: describeChannelsInSentence(kept),
             },
           )
         : translator.translateTemplate(APPLY_DEFAULT_LADDER_COPY.leftOut, {
             name: member.name,
-            channels: channelNames(member.result.leftOutChannels),
+            channels: describeChannelsInSentence(member.result.leftOutChannels),
           });
     });
 };

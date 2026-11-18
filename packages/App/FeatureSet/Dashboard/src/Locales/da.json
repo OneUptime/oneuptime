@@ -56814,5 +56814,14 @@
   "Nothing can reach you yet.": "Intet kan nå dig endnu.",
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Tilkald {{policy}} én gang, uden en hændelse, for at se, at politikken når ud til folk. Hver besked siger TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Vælg en overført politik, og tilkald den én gang, uden en hændelse, for at se, at den når ud til folk. Hver besked siger TEST.",
-  "Some severities have no notification rule yet.": "Nogle alvorligheder har endnu ingen notifikationsregel."
+  "Some severities have no notification rule yet.": "Nogle alvorligheder har endnu ingen notifikationsregel.",
+  "Not sent right now": "Sendes ikke lige nu",
+  "Start From the Project's Default": "Start fra projektets standardrækkefølge",
+  "Started from the project's default ladder.": "Startet fra projektets standardrækkefølge.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "Denne server kan ikke sende sms eller foretage opkald lige nu, så disse numre får hverken sms eller opkald. Bed din serveradministrator om at sætte sms og opkald op.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "Denne server kan ikke sende sms eller foretage opkald lige nu, så disse numre får hverken sms eller opkald. Sæt sms og opkald op i Admin Dashboard.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og dine egne trin med {{kept}} bliver indtil videre.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "Du har endnu ikke bekræftet {{channels}}, så de trin er udeladt.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt, og deres egne trin med {{kept}} bliver indtil videre.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har endnu ikke bekræftet {{channels}}, så de trin er udeladt."
 }

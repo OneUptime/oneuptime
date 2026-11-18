@@ -120,6 +120,8 @@ export enum ProductEventName {
    */
   PagingLadderDefaultSaved = "paging_ladder/default_saved",
   PagingLadderDefaultApplied = "paging_ladder/default_applied",
+  // A person's own steps filled with the project's default (#9445).
+  PagingLadderStartedFromDefault = "paging_ladder/started_from_default",
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
@@ -489,6 +491,16 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
       { name: "applied_count" },
       { name: "skipped_count" },
       { name: "failed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.PagingLadderStartedFromDefault,
+    description:
+      "Start From the Project's Default filled a paging ladder on How to Reach Me with the project's default, before it was saved: by the person or for a member, how many steps it gave, and how many of the default's channels it left out as not verified.",
+    properties: [
+      { name: "is_own" },
+      { name: "step_count" },
+      { name: "left_out_count" },
     ],
   },
   {

@@ -19,9 +19,11 @@ import {
   getChannelsOfPagingLadderSteps,
   getPagingLadderDefaultChannels,
   getPagingLadderDefaultProblem,
+  getPagingLadderDefaultStart,
   getPagingLadderDefaultStepsForChannel,
   getPagingLadderFromDefault,
   isMissingRequiredPhoneMethod,
+  isSamePagingLadder,
   readPagingLadderDefault,
   readPagingLadderDefaultMemberResults,
   toPagingLadderDefaultJSON,
@@ -595,6 +597,182 @@ describe("getPagingLadderFromDefault", () => {
       step("userCallId", CALL, 5),
       step("userCallId", CALL, 15),
     ]);
+  });
+});
+
+describe("isSamePagingLadder", () => {
+  test("the same steps in any order, said any number of times, are one ladder", () => {
+    expect(
+      isSamePagingLadder(
+        [step("userCallId", CALL, 5), step("userSmsId", SMS, 0)],
+        [
+          step("userSmsId", SMS, 0),
+          step("userCallId", CALL, 5),
+          step("userSmsId", SMS, 0),
+        ],
+      ),
+    ).toBe(true);
+    expect(isSamePagingLadder([], [])).toBe(true);
+  });
+
+  test("a push that sounds or repeats otherwise is another ladder; one left at its defaults is not", () => {
+    const criticalOnce: PagingLadderStep = {
+      ...step("userPushId", PUSH, 0),
+      pushNotificationLevel: PushNotificationLevel.Critical,
+      repeatEveryMinutes: 0,
+    };
+
+    expect(
+      isSamePagingLadder([criticalOnce], [step("userPushId", PUSH, 0)]),
+    ).toBe(true);
+    expect(
+      isSamePagingLadder(
+        [criticalOnce],
+        [
+          {
+            ...criticalOnce,
+            pushNotificationLevel: PushNotificationLevel.Standard,
+          },
+        ],
+      ),
+    ).toBe(false);
+    expect(
+      isSamePagingLadder(
+        [criticalOnce],
+        [{ ...criticalOnce, repeatEveryMinutes: 5 }],
+      ),
+    ).toBe(false);
+  });
+
+  test("another wait or another method is another ladder", () => {
+    expect(
+      isSamePagingLadder(
+        [step("userSmsId", SMS, 0)],
+        [step("userSmsId", SMS, 5)],
+      ),
+    ).toBe(false);
+    expect(
+      isSamePagingLadder(
+        [step("userSmsId", SMS, 0)],
+        [step("userSmsId", SMS_2, 0)],
+      ),
+    ).toBe(false);
+  });
+});
+
+/*
+ * Start From the Project's Default, on How to Reach Me (#9445): offered only
+ * when it would change somebody's steps, with the same mapping Readiness's
+ * Apply Default Ladder saves.
+ */
+describe("getPagingLadderDefaultStart", () => {
+  const EVERY_METHOD: Array<{
+    methodColumn: PagingLadderStep["methodColumn"];
+    methodId: string;
+  }> = [
+    { methodColumn: "userEmailId", methodId: EMAIL },
+    { methodColumn: "userSmsId", methodId: SMS },
+    { methodColumn: "userCallId", methodId: CALL },
+    { methodColumn: "userPushId", methodId: PUSH },
+  ];
+
+  test("somebody whose ladder is not the default is offered it, as getPagingLadderFromDefault maps it", () => {
+    const currentSteps: Array<PagingLadderStep> = [
+      step("userEmailId", EMAIL, 0),
+    ];
+
+    expect(
+      getPagingLadderDefaultStart({
+        defaultSteps: PUSH_SMS_THEN_CALL,
+        methods: EVERY_METHOD,
+        currentSteps: currentSteps,
+      }),
+    ).toEqual(
+      getPagingLadderFromDefault({
+        defaultSteps: PUSH_SMS_THEN_CALL,
+        methods: EVERY_METHOD,
+        currentSteps: currentSteps,
+      }),
+    );
+  });
+
+  test("somebody whose ladder already is the default is offered nothing", () => {
+    expect(
+      getPagingLadderDefaultStart({
+        defaultSteps: PUSH_SMS_THEN_CALL,
+        methods: EVERY_METHOD,
+        // In another order, push at its defaults: the same ladder.
+        currentSteps: [
+          step("userCallId", CALL, 5),
+          step("userSmsId", SMS, 0),
+          step("userPushId", PUSH, 0),
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  test("no default, or a default that cannot be read, offers nothing", () => {
+    for (const defaultSteps of [
+      [],
+      [{ channel: "Pager" as OnCallPageChannel, notifyAfterMinutes: 0 }],
+    ]) {
+      expect(
+        getPagingLadderDefaultStart({
+          defaultSteps: defaultSteps,
+          methods: EVERY_METHOD,
+          currentSteps: [step("userEmailId", EMAIL, 0)],
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("somebody who has verified none of the default's channels is offered nothing: it would leave them no step", () => {
+    expect(
+      getPagingLadderDefaultStart({
+        defaultSteps: PUSH_SMS_THEN_CALL,
+        methods: [{ methodColumn: "userEmailId", methodId: EMAIL }],
+        currentSteps: [step("userEmailId", EMAIL, 0)],
+      }),
+    ).toBeNull();
+  });
+
+  test("a channel they have not verified is left out and named, and their own steps stay in its place", () => {
+    const start: PagingLadderFromDefault | null = getPagingLadderDefaultStart({
+      defaultSteps: PUSH_SMS_THEN_CALL,
+      methods: [
+        { methodColumn: "userEmailId", methodId: EMAIL },
+        { methodColumn: "userPushId", methodId: PUSH },
+      ],
+      currentSteps: [step("userEmailId", EMAIL, 0)],
+    });
+
+    expect(start).not.toBeNull();
+    expect(start!.leftOutChannels).toEqual([
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Call,
+    ]);
+    expect(start!.steps).toEqual(
+      normalizePagingLadderSteps([
+        step("userEmailId", EMAIL, 0),
+        step("userPushId", PUSH, 0),
+      ]),
+    );
+  });
+
+  test("an empty ladder is offered the default", () => {
+    expect(
+      getPagingLadderDefaultStart({
+        defaultSteps: PUSH_SMS_THEN_CALL,
+        methods: EVERY_METHOD,
+        currentSteps: [],
+      })?.steps,
+    ).toEqual(
+      normalizePagingLadderSteps([
+        step("userPushId", PUSH, 0),
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 5),
+      ]),
+    );
   });
 });
 

@@ -1,5 +1,6 @@
 import { PagingMethodChoice } from "./PagingLadderMethods";
 import { PAGING_LADDER_COPY } from "./PagingLadderWords";
+import { getAdminServerSetupUrl } from "../../../Utils/ServerEmail";
 import OnCallSetupApi, {
   AddedNumber,
   ProjectPhoneFacts,
@@ -33,6 +34,7 @@ import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Toast from "Common/UI/Utils/Toast";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -47,7 +49,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *   - add their phone: one number, one code, for SMS and phone calls - the
  *     on-call guided setup's step (OnCallSetupApi.addSmsNumber, then
  *     addCallNumber, which a number proven by text needs no second code
- *     for). Not offered while SMS is off in the project, which is said;
+ *     for). Not offered while SMS is off in the project, which is said, nor
+ *     while this server can't send SMS right now (GET /project-can-send,
+ *     #9446): no code could reach the number, and that is said as the
+ *     guided setup says it, with who can fix it;
  *   - use this browser: registered the one way Notification Methods and the
  *     guided setup register one (RegisterThisBrowser), from the click, so
  *     the browser can ask its permission;
@@ -62,12 +67,13 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  */
 
 export const ADD_WAYS_COPY: {
-  addYourPhone: string;
+  addYourPhoneTitle: string;
   phoneAdded: string;
   phoneAsked: string;
   recheck: string;
 } = {
-  addYourPhone: translationKey("Add your phone"),
+  // A button's words, never a number: the phone guard reads a name ending in Title as such.
+  addYourPhoneTitle: translationKey("Add your phone"),
   phoneAdded: translationKey(
     "Phone added. It can text and call you now: put it in your ladder.",
   ),
@@ -84,6 +90,13 @@ export interface ComponentProps {
   isPushTurnedOff: boolean;
   // The project asks everyone on call for a phone method.
   isPhoneMethodRequired: boolean;
+  /*
+   * Whether this server can send SMS right now (GET /project-can-send):
+   * false, and the phone's code could not be sent, so Add your phone says
+   * why and who can fix it instead of asking for a number (#9446). Not
+   * known, and the server decides.
+   */
+  canSendSms?: boolean | null | undefined;
   // A way was added: read the ladder again, keeping what is on screen.
   onAdded: () => void;
 }
@@ -299,6 +312,9 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
   };
 
   const isSmsOff: boolean = phoneFacts?.isSmsOn === false;
+  // The project has SMS on, but the server can't send it right now (#9446).
+  const isSmsNotSentNow: boolean = !isSmsOff && props.canSendSms === false;
+  const isMasterAdmin: boolean = Boolean(UserUtil.isMasterAdmin());
 
   return (
     <div className="flex flex-col gap-2" data-testid="paging-ladder-add-ways">
@@ -318,7 +334,7 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
       <div className="flex flex-wrap items-center gap-2">
         {ways.isPhoneOffered && !isPhoneFormOpen ? (
           <Button
-            title={ADD_WAYS_COPY.addYourPhone}
+            title={ADD_WAYS_COPY.addYourPhoneTitle}
             icon={IconProp.Phone}
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
@@ -371,6 +387,36 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
               getChannelGatedMethodList(ChannelGatedMethodList.SMS).offSentence,
             )}
           </p>
+        ) : isSmsNotSentNow ? (
+          /*
+           * No code could reach the number: said as the on-call guided
+           * setup says it at the same step, and who can fix it.
+           */
+          <div
+            className="flex max-w-3xl flex-col items-start gap-1"
+            data-testid="paging-ladder-sms-not-sent"
+          >
+            <p className="text-sm text-amber-700">
+              {translator.translateText(
+                isMasterAdmin
+                  ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
+                  : ON_CALL_SETUP_COPY.serverNoTwilio,
+              )}
+            </p>
+            {isMasterAdmin ? (
+              <a
+                href={getAdminServerSetupUrl().toString()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-indigo-600 underline-offset-2 hover:text-indigo-800 hover:underline"
+                data-testid="paging-ladder-set-up-sms"
+              >
+                {translator.translateText(ON_CALL_SETUP_COPY.setUpTwilio)}
+              </a>
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <form
             className="flex max-w-xl flex-col gap-2"
