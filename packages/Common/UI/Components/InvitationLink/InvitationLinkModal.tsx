@@ -49,6 +49,10 @@ export const INVITATION_LINK_COPY: {
   failed: string;
   done: string;
   getLink: string;
+  notSentDescription: string;
+  notSentRegisteredDescription: string;
+  notSentMemberDescription: string;
+  notSentFailed: string;
 } = {
   // What a master admin's invite dialog says before Invite is pressed.
   inviteDescriptionForAdmin: translationKey(
