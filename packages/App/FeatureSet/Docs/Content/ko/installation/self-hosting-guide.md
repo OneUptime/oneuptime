@@ -167,6 +167,7 @@ Let's Encrypt에는 인터넷에서 접근할 수 있는 포트 80과 443, 그�
 :::cards
 - [빠른 시작](/docs/introduction/quickstart): 모니터, 온콜 정책, 상태 페이지를 15분 만에.
 - [Docker Compose](/docs/installation/docker-compose): 직접 운영하는 프록시, 백업, 업데이트, 운영 환경 체크리스트.
+- [Kubernetes 및 Helm](/docs/installation/kubernetes): Kubernetes 설치를 백업하고 키를 보관합니다.
 - [업그레이드](/docs/installation/upgrading): 새 릴리스로, 한 번에 메이저 버전 하나씩 옮겨 갑니다.
 - [아키텍처](/docs/self-hosted/architecture): OneUptime의 구성 요소가 어떻게 맞물리는지.
 :::

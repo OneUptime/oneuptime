@@ -242,6 +242,21 @@ export default class ScreenDriver {
     await this.settle();
   }
 
+  /*
+   * What a shot rings (DocsScreen.highlight): the next thing to press, by
+   * its words - or, where no button or link has them, the field to fill
+   * in, by its label ("Paged after (in minutes)", #9419).
+   */
+  private async highlighted(area: Locator, english: string): Promise<Locator> {
+    const button: Locator = this.button(area, english);
+
+    if ((await button.count()) > 0) {
+      return button;
+    }
+
+    return area.getByLabel(namePattern(this.lang, english));
+  }
+
   // What the shot is cropped to: the first visible match of its selector.
   public crop(selector: string): Locator {
     return this.page.locator(`${selector} >> visible=true`).first();
@@ -346,9 +361,17 @@ export default class ScreenDriver {
     });
     await this.page.mouse.move(0, 0);
 
+    // Where the ring is drawn, in the page's pixels, once there is one.
+    let ringBox: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    } | null = null;
+
     if (highlight) {
-      const target: Locator = this.button(crop, highlight).first();
-      await target.evaluate((element: Element) => {
+      const target: Locator = (await this.highlighted(crop, highlight)).first();
+      ringBox = await target.evaluate((element: Element) => {
         const box: DOMRect = element.getBoundingClientRect();
         const ring: HTMLDivElement = document.createElement("div");
         ring.setAttribute("data-docs-screens-ring", "");
@@ -365,6 +388,13 @@ export default class ScreenDriver {
           "box-sizing:border-box",
         ].join(";");
         document.body.appendChild(ring);
+
+        return {
+          left: box.left + window.scrollX - 5,
+          top: box.top + window.scrollY - 5,
+          right: box.right + window.scrollX + 5,
+          bottom: box.bottom + window.scrollY + 5,
+        };
       });
     }
 
@@ -379,8 +409,19 @@ export default class ScreenDriver {
           height: rect.height,
         };
       });
-    // A ring sticks out of the crop by 5px: the picture holds it whole.
-    const margin: number = padding + (highlight ? 6 : 0);
+    /*
+     * A ring at the crop's edge sticks out of it by 5px: the picture holds it
+     * whole. One well inside it needs no room of its own - around a dialog,
+     * that room would draw the page behind it (#9419).
+     */
+    const sticksOut: boolean = Boolean(
+      ringBox &&
+        (ringBox.left < box.x ||
+          ringBox.top < box.y ||
+          ringBox.right > box.x + box.width ||
+          ringBox.bottom > box.y + box.height),
+    );
+    const margin: number = padding + (sticksOut ? 6 : 0);
     const x: number = Math.max(0, Math.floor(box.x - margin));
     const y: number = Math.max(0, Math.floor(box.y - margin));
     const clip: { x: number; y: number; width: number; height: number } = {

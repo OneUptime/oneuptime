@@ -62,6 +62,8 @@ Klicken Sie unter **Benachrichtigen** auf **Empfänger hinzufügen**, suchen Sie
 
 **Eskalieren nach (in Minuten)** ist die Wartezeit auf eine Bestätigung, bevor die nächste Stufe alarmiert wird. Der Wert beginnt bei **30 Minuten**; ändern Sie ihn so, wie es zur Stufe passt.
 
+![Der Dialog „Eskalationsregel hinzufügen“ einer Richtlinie mit einer Stufe, „Alarmiert nach (in Minuten)“ ist markiert](screen:escalation-rule-paged-after)
+
 Eine Regel, die nach der ersten hinzukommt, fragt stattdessen **Alarmiert nach (in Minuten)**: wie lange die Stufe davor auf eine Bestätigung wartet, bevor diese alarmiert wird. Der Wert beginnt bei der Wartezeit dieser Stufe und wird als ihre Wartezeit gespeichert; die neue Stufe selbst wartet 30 Minuten, bis Sie eine weitere nach ihr hinzufügen. Wer Regeln hinzufügen, aber nicht ändern darf, wird nach **Eskalieren nach (in Minuten)** gefragt, und der Dialog sagt, wann die neue Stufe alarmiert wird.
 
 ### Die Regel benennen, wenn Sie möchten

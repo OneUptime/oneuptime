@@ -22,6 +22,8 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 O formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta** a quem pode adicionar regras de plantão. Ele adiciona uma regra em **Incidentes → Regras → Regras de plantão** e outra em **Alertas → Regras → Regras de plantão**, cada uma correspondendo a tudo e executando esta política. Começa ativado na primeira política de um projeto, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão, e desativado nas seguintes: disparar duas políticas a cada novo incidente e a cada novo alerta é uma escolha a fazer. Desativado, a política não aciona ninguém até que uma regra, um monitor ou uma pessoa a execute.
 
+![A explicação da lista "Políticas de plantão" vazia, com "Configuração guiada" destacado](screen:on-call-policies-guided-setup)
+
 Para ser guiado passo a passo, do seu celular até um acionamento de teste, clique em **Configuração guiada**: na lista vazia de **Políticas de plantão** ou em **Como funciona**. Veja [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
 
 A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.

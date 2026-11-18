@@ -21,6 +21,14 @@
  *               for a teammate (#7254)
  *   - status-page   a status page, "Acme status", that shows nothing yet:
  *               the website guided setup's step 4 offers it (#7053)
+ *   - on-call-policy   an on-call policy, "Website on-call", with one
+ *               level that pages Ada: the docs' shot of a second level's
+ *               "Paged after (in minutes)" (#9419)
+ *   - busy      a project in use (#7143): a hundred monitors carrying
+ *               labels, three monitor groups, two status pages - the
+ *               older showing two monitors - and five services reporting
+ *               telemetry; what the status page and telemetry guided
+ *               setups are looked at as a busy project
  *
  * Also here: the API routes the journeys' pages call beyond ModelAPI, and
  * what the server does after a create that a journey's next page shows.
@@ -42,6 +50,10 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
+import Label from "Common/Models/DatabaseModels/Label";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -85,6 +97,9 @@ export const MONITOR_ID = "50000000-0000-4000-8000-000000000001";
 export const SERVICE_ID = "50000000-0000-4000-8000-000000000002";
 export const TEAMMATE_MONITOR_ID = "50000000-0000-4000-8000-000000000003";
 export const STATUS_PAGE_ID = "50000000-0000-4000-8000-000000000004";
+// ?seed=on-call-policy's policy and its one level.
+export const ON_CALL_POLICY_ID = "50000000-0000-4000-8000-000000000005";
+export const ON_CALL_POLICY_RULE_ID = "50000000-0000-4000-8000-000000000006";
 // The address ?seed=teammate-monitor's monitor checks.
 export const TEAMMATE_MONITOR_ADDRESS = "https://acme-commerce.example";
 // The test page a guided setup sends (#6804): its run, acknowledged at once.
@@ -140,6 +155,170 @@ const INGESTION_KEYS = [
       "Made for the marketing site rollout. No origins listed yet, so nothing is accepted.",
   },
 ];
+
+/*
+ * ?seed=busy (#7143): a project in use. A hundred monitors, a component in
+ * each of four regions, the production ones and the staging ones labelled
+ * so; three monitor groups; two status pages, the older showing two of
+ * the monitors; five services that report.
+ */
+const BUSY_COMPONENTS = [
+  "Accounts",
+  "Admin",
+  "Auth",
+  "Billing",
+  "Cart",
+  "Catalog",
+  "Checkout",
+  "Docs",
+  "Gateway",
+  "Inventory",
+  "Media",
+  "Mobile API",
+  "Notifications",
+  "Orders",
+  "Partner API",
+  "Payments",
+  "Pricing",
+  "Recommendations",
+  "Reports",
+  "Reviews",
+  "Search",
+  "Shipping",
+  "Status",
+  "Storefront",
+  "Webhooks",
+];
+const BUSY_REGIONS = ["us-east", "us-west", "eu-west", "ap-south"];
+export const BUSY_LABELS = [
+  ["61000000-0000-4000-8000-000000000001", "production", "#dc2626"],
+  ["61000000-0000-4000-8000-000000000002", "staging", "#d97706"],
+  ["61000000-0000-4000-8000-000000000003", "team-payments", "#7c3aed"],
+];
+export const BUSY_GROUPS = [
+  ["62000000-0000-4000-8000-000000000001", "Checkout"],
+  ["62000000-0000-4000-8000-000000000002", "Payments"],
+  ["62000000-0000-4000-8000-000000000003", "Storefront"],
+];
+// The older status page, made by Ada a month ago, and the newer, by Grace.
+export const BUSY_STATUS_PAGES = [
+  [
+    "63000000-0000-4000-8000-000000000001",
+    "Acme Commerce Status",
+    ADA_ID,
+    "2026-10-12T09:00:00.000Z",
+  ],
+  [
+    "63000000-0000-4000-8000-000000000002",
+    "Acme Partner Status",
+    GRACE_ID,
+    "2026-11-02T09:00:00.000Z",
+  ],
+];
+export const BUSY_SERVICES = [
+  "cart-api",
+  "search-api",
+  "payments-api",
+  "inventory-worker",
+  "storefront-web",
+];
+
+// The id of the busy project's monitor at `index` (0 to 99).
+export function busyMonitorId(index) {
+  return `64000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+}
+
+function seedBusyProject(store, statuses) {
+  const labels = BUSY_LABELS.map(([_id, name, color]) => {
+    return store.insert(Label, { _id, name, color: new Color(color) });
+  });
+  const [production, staging, paymentsTeam] = labels;
+  const monitors = [];
+
+  BUSY_COMPONENTS.forEach((component, componentIndex) => {
+    BUSY_REGIONS.forEach((region, regionIndex) => {
+      const index = componentIndex * BUSY_REGIONS.length + regionIndex;
+      // A few not operational, as a project in use has.
+      const status =
+        index === 13 ? statuses[2] : index % 37 === 5 ? statuses[1] : statuses[0];
+      const carried = [region === "ap-south" ? staging : production];
+
+      if (["Billing", "Checkout", "Payments"].includes(component)) {
+        carried.push(paymentsTeam);
+      }
+
+      monitors.push(
+        store.insert(Monitor, {
+          _id: busyMonitorId(index),
+          name: `${component} ${region}`,
+          monitorType: MonitorType.Website,
+          currentMonitorStatusId: new ObjectID(status._id),
+          currentMonitorStatus: status,
+          createdByUserId: new ObjectID(ADA_ID),
+          isAllProbesDisconnectedFromThisMonitor: false,
+          isNoProbeEnabledOnThisMonitor: false,
+          disableActiveMonitoring: false,
+          labels: carried.map((label) => {
+            return { _id: label._id };
+          }),
+        }),
+      );
+    });
+  });
+
+  for (const [_id, name] of BUSY_GROUPS) {
+    store.insert(MonitorGroup, {
+      _id,
+      name,
+      labels: [{ _id: production._id }],
+    });
+    for (const monitor of monitors) {
+      if (monitor.name.startsWith(`${name} `)) {
+        store.insert(MonitorGroupResource, {
+          monitorGroupId: new ObjectID(_id),
+          monitorId: new ObjectID(monitor._id),
+        });
+      }
+    }
+  }
+
+  for (const [_id, name, createdBy, createdAt] of BUSY_STATUS_PAGES) {
+    store.insert(StatusPage, {
+      _id,
+      name,
+      isArchived: false,
+      createdByUserId: new ObjectID(createdBy),
+      createdAt: new Date(createdAt),
+    });
+  }
+
+  // The older page shows the two us-east monitors of Checkout and Payments.
+  [
+    monitors.find((monitor) => monitor.name === "Checkout us-east"),
+    monitors.find((monitor) => monitor.name === "Payments us-east"),
+  ].forEach((monitor, order) => {
+    store.insert(StatusPageResource, {
+      statusPageId: new ObjectID(BUSY_STATUS_PAGES[0][0]),
+      monitorId: new ObjectID(monitor._id),
+      displayName: monitor.name,
+      order: order + 1,
+      showCurrentStatus: true,
+      showUptimePercent: true,
+      showStatusHistoryChart: true,
+    });
+  });
+
+  BUSY_SERVICES.forEach((name, index) => {
+    store.insert(Service, {
+      _id: `65000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      name,
+      lastSeenAt: store.NOW,
+      serviceColor: new Color(
+        ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899"][index],
+      ),
+    });
+  });
+}
 
 const OWNERS_TEAM_ID = "30000000-0000-4000-8000-000000000001";
 const ADMINS_TEAM_ID = "30000000-0000-4000-8000-000000000002";
@@ -405,6 +584,35 @@ export function seedNewProject(options) {
     });
   }
 
+  /*
+   * A policy made earlier, with its first level: Ada, paged at once, the
+   * next level after 30 minutes - what Create On-Call Policy leaves.
+   */
+  if (options.seeds.includes("on-call-policy")) {
+    store.insert(OnCallDutyPolicy, {
+      _id: ON_CALL_POLICY_ID,
+      name: "Website on-call",
+      isArchived: false,
+      createdByUserId: new ObjectID(ADA_ID),
+    });
+    store.insert(OnCallDutyPolicyEscalationRule, {
+      _id: ON_CALL_POLICY_RULE_ID,
+      name: "Level 1",
+      order: 1,
+      escalateAfterInMinutes: 30,
+      onCallDutyPolicyId: new ObjectID(ON_CALL_POLICY_ID),
+    });
+    store.insert(OnCallDutyPolicyEscalationRuleUser, {
+      onCallDutyPolicyId: new ObjectID(ON_CALL_POLICY_ID),
+      onCallDutyPolicyEscalationRuleId: new ObjectID(ON_CALL_POLICY_RULE_ID),
+      userId: new ObjectID(ADA_ID),
+    });
+  }
+
+  if (options.seeds.includes("busy")) {
+    seedBusyProject(store, statuses);
+  }
+
   if (options.seeds.includes("ingestion-keys")) {
     for (const key of INGESTION_KEYS) {
       store.insert(TelemetryIngestionKey, {
@@ -437,18 +645,22 @@ export function seedNewProject(options) {
  * a member invited a minute ago (a Project Member). The permissions are the
  * snapshot the API would hand the Dashboard. `admin` is Ada as the
  * self-hosted server's master admin too, on a server with no Twilio
- * (dashboardRoutes' /global-config/sending-status).
+ * (dashboardRoutes' /global-config/sending-status). `viewer` is Grace as a
+ * Project Viewer, who reads everything and may create nothing (#7143).
  */
 export function signIn(project, who) {
-  const isMember = who === "member";
+  const isViewer = who === "viewer";
+  const isMember = who === "member" || isViewer;
   const isMasterAdmin = who === "admin";
   const user = isMember ? project.grace : project.ada;
   // Who Home's Welcome card is for (dashboardRoutes' /welcome-checklist).
   project.signedInAs = isMember ? "member" : "owner";
   project.isMasterAdmin = isMasterAdmin;
-  const held = isMember
-    ? [Permission.ProjectMember]
-    : [Permission.ProjectOwner];
+  const held = isViewer
+    ? [Permission.Viewer]
+    : isMember
+      ? [Permission.ProjectMember]
+      : [Permission.ProjectOwner];
 
   UserUtil.setUserId(new ObjectID(user._id));
   UserUtil.setEmail(user.email);

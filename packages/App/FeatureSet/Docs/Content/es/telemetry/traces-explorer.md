@@ -36,7 +36,7 @@ El explorador tiene cinco pestañas:
 
 ## Antes de empezar
 
-- **Trazas que llegan.** Instrumente sus servicios con [OpenTelemetry](/docs/telemetry/open-telemetry). La pestaña **Guía de configuración** muestra el código para su lenguaje.
+- **Trazas que llegan.** Instrumente sus servicios con [OpenTelemetry](/docs/telemetry/open-telemetry). La pestaña **Guía de configuración** muestra el código para su lenguaje. Hasta que llegan los primeros datos, esta página ofrece **Configuración guiada**, que te lleva desde tus primeros registros, métricas y trazas hasta las alertas sobre ellos, junto a **Enviar tus primeras trazas**, la guía de configuración sola.
 - **Un rol que pueda leer telemetría.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría o Visor de telemetría, o un rol personalizado con el permiso Read Traces. Su ámbito decide de quién son los spans que ve: consulte [Telemetría](/docs/permissions/index#telemetría).
 
 ## Encontrar una solicitud

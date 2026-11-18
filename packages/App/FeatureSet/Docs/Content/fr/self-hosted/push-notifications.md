@@ -256,6 +256,10 @@ Via le relais push (sans `EXPO_ACCESS_TOKEN`), cela fonctionne de la même faço
 
 Si rien de tout cela n'aide, écrivez-nous à [hello@oneuptime.com](mailto:hello@oneuptime.com) avec les erreurs de vos logs OneUptime.
 
+### L'Admin Dashboard indique que le push échoue
+
+L'Admin Dashboard indique que le push échoue quand les notifications push du serveur ne partent plus : le relais push, Expo Push ou Web Push les a refusées, ou n'a pas pu être joint. Il indique depuis quand, et ce qui a été répondu. Un push refusé par un seul appareil, par exemple vers une app désinstallée, ne compte pas. Dès qu'un push repart, le push est indiqué comme fonctionnant. Envoyez une notification push de test pour le vérifier.
+
 ## Étapes suivantes
 
 :::cards

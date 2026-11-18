@@ -62,6 +62,8 @@ In **Notifica**, fai clic su **Aggiungi destinatario**, cerca e scegli tutte le 
 
 **Escala dopo (in minuti)** è quanto attendere una conferma prima di avvisare il livello successivo. Parte da **30 minuti**; cambialo in base al livello.
 
+![La finestra «Aggiungi regola di escalation» di una policy con un livello, con «Chiamato dopo (in minuti)» evidenziato](screen:escalation-rule-paged-after)
+
 Una regola aggiunta dopo la prima chiede invece **Chiamato dopo (in minuti)**: quanto il livello precedente attende una conferma prima che venga chiamato questo. Parte dall'attesa di quel livello e viene salvato come sua attesa; il nuovo livello attende 30 minuti finché non ne aggiungi uno dopo. Chi può aggiungere regole ma non modificarle vede **Escala dopo (in minuti)**, e la finestra di dialogo dice quando viene chiamato il nuovo livello.
 
 ### Dai un nome alla regola, se vuoi

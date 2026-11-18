@@ -171,6 +171,25 @@ Med Docker Compose angiver du `GLOBAL_EMAIL_`-indstillingerne i `config.env` og 
 
 OneUptime læser variablerne, når den starter. Hvis en af dem er forkert, for eksempel en port, der ikke er et tal, eller en manglende adgangskode, sender serveren ingen e-mails, før det er rettet; serverens log, e-mailindstillingerne i Admin Dashboard og tjeklisten på `/admin/setup` nævner variablen. Adgangskoder og nøgler vises aldrig. For at ændre indstillingerne ændrer du variablerne og genstarter OneUptime: Admin Dashboard ændrer dem ikke.
 
+## Se, hvad serveren har sendt
+
+På en selvhostet server slutter **Indstillinger > Notifikationer > E-mails** i Admin Dashboard med kortet **E-maillog**. Det viser alle e-mails, som serveren har sendt gennem sine egne indstillinger, og som ikke hører til et projekt, f.eks. en nulstilling af adgangskode, et login-link eller en invitation, og alle e-mails, den ikke kunne sende, også et projekts: hvem den gik til, hvornår, hvad den var, og hvad mailtjenesten svarede.
+
+- Slå **Kun mislykkede e-mails** til for kun at se de e-mails, der ikke blev sendt.
+- Et projekts e-mail, der blev sendt, står i projektets egne logs, ikke her. En e-mail, der blev sendt gennem et projekts egen mailserver, står her aldrig.
+- Loggen gemmer aldrig selve beskeden, for en nulstilling af adgangskode eller et login-link lukker den ind, der har det. Et link i en emnelinje gemmes som `[link]`.
+- Kun masteradministratorer kan læse den. Hver e-mail gemmes i 30 dage.
+
+## Få besked, når e-mail eller sonderne stopper
+
+Når serverens e-mail holder op med at virke, eller alle globale sonder holder op med at rapportere, giver OneUptime masteradministratorerne besked, og igen når det virker igen. Vælg hvor i kortet **Besked om nedbrud** på samme side:
+
+- **Push til hovedadministratorernes enheder** sender en push-notifikation til alle enheder, hvor en masteradministrator er logget ind i OneUptime-appen. Den er slået til, indtil du slår den fra.
+- **Send sms til dette nummer** sender en sms gennem serverens egne sms-indstillinger.
+- **Admin-notifikations-e-mail** får også besked om sonderne.
+
+En besked går aldrig gennem den kanal, der stoppede, så en besked om e-mail sendes aldrig som e-mail, og aldrig gennem en kanal, serveren ikke kan sende gennem lige nu. Kun en ændring meldes, højst én gang i timen for hver, og projektmedlemmer får aldrig besked.
+
 ## Fejlfinding
 
 En test-e-mail, der ikke bliver sendt, siger hvorfor. For enhver anden e-mail åbner du fanen **E-mail** under **Projektindstillinger > Notifikationer > Notifikationslogs** og vælger **Vis statusbesked** i dens række.

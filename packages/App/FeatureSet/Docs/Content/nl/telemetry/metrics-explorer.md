@@ -36,7 +36,7 @@ De verkenner heeft zes tabbladen:
 
 ## Voordat u begint
 
-- **Binnenkomende metrieken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), of vanuit een agent zoals de [OpenTelemetry-collector voor hosts](/docs/telemetry/host-otel-collector) of de [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
+- **Binnenkomende metrieken.** Stuur ze met [OpenTelemetry](/docs/telemetry/open-telemetry), of vanuit een agent zoals de [OpenTelemetry-collector voor hosts](/docs/telemetry/host-otel-collector) of de [Kubernetes-agent](/docs/telemetry/kubernetes-agent). Tot de eerste gegevens binnenkomen, biedt deze pagina **Begeleide installatie** aan, dat u van uw eerste logboeken, metrieken en traces naar waarschuwingen daarop leidt, naast **Je eerste metrieken sturen**, de installatiegids alleen.
 - **Een rol die telemetrie mag lezen.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Telemetriebeheerder, Telemetrielid of Telemetriekijker, of een aangepaste rol met de machtiging Read Metrics. Zie [Telemetrie](/docs/permissions/index#telemetrie) voor welke metrieken die rol leest.
 
 ## Een metriek vinden

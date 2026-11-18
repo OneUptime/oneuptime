@@ -256,6 +256,10 @@ Tramite il relay push (senza `EXPO_ACCESS_TOKEN`) funziona allo stesso modo: il 
 
 Se nulla di tutto questo aiuta, scrivici a [hello@oneuptime.com](mailto:hello@oneuptime.com) con gli errori dei tuoi log di OneUptime.
 
+### L'Admin Dashboard dice che i push non funzionano
+
+L'Admin Dashboard dice che i push non funzionano quando le notifiche push del server non partono più: il relay push, Expo Push o Web Push le ha rifiutate o non era raggiungibile. Indica da quando e che cosa è stato risposto. Un push rifiutato da un solo dispositivo, come uno verso un'app disinstallata, non conta. Appena un push riparte, i push risultano funzionanti. Invia un push di prova per verificarlo.
+
 ## Passaggi successivi
 
 :::cards

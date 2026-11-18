@@ -1,7 +1,12 @@
 import { APP_API_URL } from "../Config";
 import API from "./API/API";
 import GlobalConfigUtil, { GlobalConfigVars } from "./GlobalConfig";
+import ProjectUtil from "./Project";
 import UserUtil from "./User";
+import ProjectCanSend, {
+  PROJECT_CAN_SEND_API_PATH,
+  ProjectCanSendAnswer,
+} from "../../Types/ServerSending/ProjectCanSend";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../Types/API/HTTPMethod";
 import HTTPResponse from "../../Types/API/HTTPResponse";
@@ -116,6 +121,7 @@ export default class ServerSendingStatusLoader {
   public static clear(): void {
     this.pending = null;
     GlobalConfigUtil.clearCache();
+    ProjectCanSendLoader.clear();
 
     for (const listener of Array.from(this.listeners)) {
       try {
@@ -158,6 +164,113 @@ export default class ServerSendingStatusLoader {
     }
   }
 }
+
+/*
+ * WHETHER A PAGE CAN REACH THIS PROJECT'S PEOPLE (#7151, #6880): GET
+ * /project-can-send, which any member of the project reads - three
+ * yes-or-noes, never why (Types/ServerSending/ProjectCanSend). One request
+ * per project for the page's life, shared by every component that asks;
+ * one that fails is asked again by the next.
+ */
+export class ProjectCanSendLoader {
+  private static pending: Map<string, Promise<ProjectCanSendAnswer | null>> =
+    new Map<string, Promise<ProjectCanSendAnswer | null>>();
+
+  public static load(projectId: string): Promise<ProjectCanSendAnswer | null> {
+    const kept: Promise<ProjectCanSendAnswer | null> | undefined =
+      this.pending.get(projectId);
+
+    if (kept) {
+      return kept;
+    }
+
+    const pending: Promise<ProjectCanSendAnswer | null> = this.fetch(projectId);
+
+    this.pending.set(projectId, pending);
+
+    pending
+      .then((answer: ProjectCanSendAnswer | null): void => {
+        // Ask again next time rather than keep a failure for the page's life.
+        if (!answer && this.pending.get(projectId) === pending) {
+          this.pending.delete(projectId);
+        }
+      })
+      .catch((): void => {
+        this.pending.delete(projectId);
+      });
+
+    return pending;
+  }
+
+  public static clear(): void {
+    this.pending.clear();
+  }
+
+  private static async fetch(
+    projectId: string,
+  ): Promise<ProjectCanSendAnswer | null> {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.GET,
+          url: URL.fromURL(APP_API_URL).addRoute(
+            new Route(PROJECT_CAN_SEND_API_PATH),
+          ),
+          headers: { tenantid: projectId },
+        });
+
+      if (!response.isSuccess()) {
+        return null;
+      }
+
+      return ProjectCanSend.parse(response.data);
+    } catch {
+      // Not known: every page says what it always said, and the server decides.
+      return null;
+    }
+  }
+}
+
+/*
+ * Whether a page can reach the current project's people by email, SMS and
+ * call; null while that is not known - the answer is on its way, there is
+ * no project, or it could not be read. A page says a channel cannot reach
+ * anyone only once it knows: `answer?.sms === false`.
+ */
+export const useProjectCanSend: () => ProjectCanSendAnswer | null =
+  (): ProjectCanSendAnswer | null => {
+    const projectId: string =
+      ProjectUtil.getCurrentProjectId()?.toString() || "";
+    const [answer, setAnswer] = useState<ProjectCanSendAnswer | null>(null);
+
+    useEffect(() => {
+      let isCurrent: boolean = true;
+
+      setAnswer(null);
+
+      if (!projectId) {
+        return () => {
+          isCurrent = false;
+        };
+      }
+
+      ProjectCanSendLoader.load(projectId)
+        .then((loaded: ProjectCanSendAnswer | null): void => {
+          if (isCurrent) {
+            setAnswer(loaded);
+          }
+        })
+        .catch((): void => {
+          // load() never rejects; nothing to say if it did.
+        });
+
+      return () => {
+        isCurrent = false;
+      };
+    }, [projectId]);
+
+    return answer;
+  };
 
 /*
  * The sending status, once loaded; null before, for anyone else, or on a

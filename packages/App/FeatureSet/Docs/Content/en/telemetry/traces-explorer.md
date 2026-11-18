@@ -36,7 +36,7 @@ The explorer has five tabs:
 
 ## Before you begin
 
-- **Traces arriving.** Instrument your services with [OpenTelemetry](/docs/telemetry/open-telemetry). The **Setup Guide** tab shows the code for your language.
+- **Traces arriving.** Instrument your services with [OpenTelemetry](/docs/telemetry/open-telemetry). The **Setup Guide** tab shows the code for your language. Until the first data arrives, this page offers **Guided setup**, which takes you from your first logs, metrics and traces to alerts on them, beside **Send your first traces**, the setup guide alone.
 - **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Traces permission. Its scope decides whose spans you see: see [Telemetry](/docs/permissions/index#telemetry).
 
 ## Find a request

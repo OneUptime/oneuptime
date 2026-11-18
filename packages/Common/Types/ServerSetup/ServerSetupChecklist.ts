@@ -6,6 +6,9 @@ import ServerSendingStatusUtil, {
   ServerSendingChannel,
   ServerSendingState,
 } from "../ServerSending/ServerSendingStatus";
+import ServerSetUpProblem, {
+  ServerSetUpProblemWords,
+} from "../ServerSending/ServerSetUpProblem";
 
 /*
  * WHAT A NEW SELF-HOSTED SERVER NEEDS, AND WHERE EACH STANDS.
@@ -130,8 +133,9 @@ export enum ServerInstallKind {
 }
 
 /*
- * The guides: docs pages a server serves itself (/docs/...), or the Helm
- * chart's own docs, which only GitHub has.
+ * The guides: docs pages the server serves itself (/docs/...), every one of
+ * them, so an air-gapped server's admin can open each, and each describes
+ * the version the server runs.
  */
 export const SERVER_SETUP_GUIDES: {
   https: string;
@@ -152,12 +156,15 @@ export const SERVER_SETUP_GUIDES: {
    */
   backups: "/docs/installation/docker-compose#back-up-and-restore",
   /*
-   * What a Kubernetes install backs up with instead: the Helm chart's
-   * production checklist, Back up your data - the cloud's backups of the
-   * volumes, or CloudNativePG's volume snapshots (#9378).
+   * What a Kubernetes install backs up with instead: the Kubernetes and
+   * Helm docs page's Back up your data, as the Helm chart's production
+   * checklist says it - the cloud's backups of the volumes, or
+   * CloudNativePG's volume snapshots (#9378). It was that checklist on
+   * GitHub's main branch, which an air-gapped server's admin could not
+   * open, and which could describe a newer chart than the one installed
+   * (#9438).
    */
-  backupsOnKubernetes:
-    "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+  backupsOnKubernetes: "/docs/installation/kubernetes#back-up-your-data",
   updateChecks: "/docs/self-hosted/update-checks",
   browserPush: "/docs/self-hosted/push-notifications#self-hosted-setup",
 };
@@ -417,6 +424,10 @@ export const SERVER_SETUP_STATUS_WORDS: Readonly<
     [ServerSetupStatus.NotSetUp]: translationKey(
       "Not set up: browser notifications need VAPID keys in config.env. Mobile push works without them.",
     ),
+    // The server's own pushes fail: the push relay unreachable, its keys refused (#6881).
+    [ServerSetupStatus.Failing]: translationKey(
+      "Failing: push notifications have not gone out since {{time}}.",
+    ),
     [ServerSetupStatus.Done]: translationKey(
       "Set up: people can get alerts as browser notifications.",
     ),
@@ -564,6 +575,12 @@ export interface ServerSetupCheckResult {
   sentThrough: string | null;
   // Why it fails, in the provider's words, or what its settings are missing.
   reason: string | null;
+  /*
+   * What its settings are missing, in words every language has
+   * (ServerSetUpProblem, #9437): beside `reason`, while it is one of
+   * OneUptime's own sentences. Left out by an older server.
+   */
+  reasonWords?: ServerSetUpProblemWords | undefined;
   // Per channel, for SMS and calls: what went out when.
   channels: Array<ServerChannelStatus & { sentThrough: string | null }>;
   choice: ServerSetupChoice | null;
@@ -805,6 +822,7 @@ export default class ServerSetupChecklistUtil {
     time?: string | null | undefined;
     sentThrough?: string | null | undefined;
     reason?: string | null | undefined;
+    reasonWords?: ServerSetUpProblemWords | null | undefined;
     channels?: ServerSetupCheckResult["channels"] | undefined;
     tests?: Array<ServerSendingChannel> | undefined;
     /*
@@ -839,6 +857,10 @@ export default class ServerSetupChecklistUtil {
       time: data.time || null,
       sentThrough: data.sentThrough || null,
       reason: data.reason || null,
+      // Words only beside the sentence they say.
+      ...(data.reason && data.reasonWords
+        ? { reasonWords: data.reasonWords }
+        : {}),
       channels: data.channels || [],
       choice: choice,
       /*
@@ -875,6 +897,11 @@ export default class ServerSetupChecklistUtil {
           : status === ServerSetupStatus.NotSetUp
             ? facts.email.setUpProblem
             : null,
+      // What is missing, in words every language has (#9437); a provider's answer has none.
+      reasonWords:
+        status === ServerSetupStatus.NotSetUp
+          ? facts.email.setUpProblemWords
+          : null,
       tests:
         status === ServerSetupStatus.NotSetUp
           ? []
@@ -1154,9 +1181,9 @@ export default class ServerSetupChecklistUtil {
   /*
    * The test push (#7028) goes to the admin's own phones and browsers,
    * which need no VAPID keys on a phone: offered whenever push is not
-   * turned off for the server, done or not, since nothing yet says how the
-   * server's pushes go (#6881). A server that does not say where push
-   * stands offers none.
+   * turned off for the server, done or not - browser push set up says
+   * nothing of phones. A server that does not say where push stands offers
+   * none.
    */
   private static getPushTests(
     facts: ServerSetupFacts,
@@ -1164,6 +1191,36 @@ export default class ServerSetupChecklistUtil {
     return facts.push && facts.push.state !== ServerSendingState.NotSetUp
       ? [ServerSendingChannel.Push]
       : [];
+  }
+
+  /*
+   * Push: done once browsers can be pushed to (VAPID keys) - and failing,
+   * whatever the keys, while the server's own pushes fail (#6881): the push
+   * relay cannot be reached, or the keys are refused. Then no phone and no
+   * browser gets a page, and the row says since when and why. Optional
+   * still: it never brings the Dashboard's card back.
+   */
+  private static evaluatePush(facts: ServerSetupFacts): ServerSetupCheckResult {
+    const tests: Array<ServerSendingChannel> =
+      ServerSetupChecklistUtil.getPushTests(facts);
+
+    if (facts.push && facts.push.state === ServerSendingState.Failing) {
+      return ServerSetupChecklistUtil.result({
+        id: ServerSetupCheckId.BrowserPush,
+        status: ServerSetupStatus.Failing,
+        facts: facts,
+        time: facts.push.failingSince,
+        reason: facts.push.lastFailure,
+        tests: tests,
+      });
+    }
+
+    return ServerSetupChecklistUtil.evaluateYesNo({
+      id: ServerSetupCheckId.BrowserPush,
+      isDone: facts.isBrowserPushSetUp,
+      facts: facts,
+      tests: tests,
+    });
   }
 
   // Every check, in the catalogue's order, as they stand at `now`.
@@ -1191,12 +1248,7 @@ export default class ServerSetupChecklistUtil {
       }),
       ServerSetupChecklistUtil.evaluateBackups(facts, now),
       ServerSetupChecklistUtil.evaluateUpdateChecks(facts),
-      ServerSetupChecklistUtil.evaluateYesNo({
-        id: ServerSetupCheckId.BrowserPush,
-        isDone: facts.isBrowserPushSetUp,
-        facts: facts,
-        tests: ServerSetupChecklistUtil.getPushTests(facts),
-      }),
+      ServerSetupChecklistUtil.evaluatePush(facts),
       ServerSetupChecklistUtil.evaluateYesNo({
         id: ServerSetupCheckId.AiProvider,
         isDone: facts.hasAiProvider,
@@ -1318,6 +1370,12 @@ export default class ServerSetupChecklistUtil {
         });
       }
 
+      const reason: string | null = readText(row["reason"]);
+      // Words only beside the sentence they say, and only ones this page knows.
+      const reasonWords: ServerSetUpProblemWords | null = reason
+        ? ServerSetUpProblem.parse(row["reasonWords"])
+        : null;
+
       checks.push({
         id: id,
         tier: definition.tier,
@@ -1325,7 +1383,8 @@ export default class ServerSetupChecklistUtil {
         isFinished: ServerSetupChecklistUtil.isFinished(status),
         time: readDate(row["time"]),
         sentThrough: readText(row["sentThrough"], 200),
-        reason: readText(row["reason"]),
+        reason: reason,
+        ...(reasonWords ? { reasonWords: reasonWords } : {}),
         channels: channels,
         choice:
           isObject(storedChoice) &&

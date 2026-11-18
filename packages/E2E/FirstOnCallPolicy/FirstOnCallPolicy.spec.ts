@@ -515,8 +515,11 @@ test.describe("the guided setup, from On-Call itself (#7148)", () => {
 
     await setup.click();
 
+    // Saying where it was opened from, for guided_setup/started (#7054).
     await expect(page).toHaveURL(
-      new RegExp(`/dashboard/${PROJECT_ID}/on-call-duty/setup$`),
+      new RegExp(
+        `/dashboard/${PROJECT_ID}/on-call-duty/setup\\?from=empty_list$`,
+      ),
     );
     await expect(page.getByTestId(SETUP_OPENED)).toBeAttached();
   });

@@ -32,11 +32,17 @@ Serveren din trenger et eget vertsnavn med en A-post som peker på den, for ekse
 
 På siden **Hjem** i prosjektet ditt klikker du på **Publiser en statusside** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Fortelle kundene mine det med en statusside**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `status page` og velger **Publiser en statusside**.
 
+Også **Statussider** åpner det: klikk på **Veiledet oppsett** i den tomme listen, eller under **Slik fungerer det** når prosjektet har en statusside.
+
 ### Gi den et navn og velg hva den viser
 
 ![Steget «Gi den et navn og velg hva den viser», med «Opprett statussiden» uthevet](screen:status-page-pick)
 
 Under **Gi den et navn og velg hva den viser** beholder du forslaget i **Navn på statussiden** eller skriver inn ditt eget. Under **Hva den viser** krysser du av for monitorene kundene dine skal se, eller klikker på **Velg alle**. Klikk på **Opprett statussiden**. Fra nå av er siden offentlig på lenken sin og viser bare monitorene du krysset av for.
+
+Har prosjektet allerede en statusside, legger steget til monitorene du krysser av, og merker dem den allerede viser som **På siden**. Med flere sider velger du én under **Statusside**. For en ny side klikker du på **Opprett en ny statusside i stedet**.
+
+Med mange monitorer skriver du en del av et navn i **Søk etter navn**, eller velger en etikett under **Alle etiketter**: **Velg alle** krysser da av det listen viser. En monitorgruppe vises på siden som én rad.
 
 ### Se hva kundene dine ser
 

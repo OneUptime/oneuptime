@@ -36,7 +36,7 @@ Utforskeren har seks faner:
 
 ## Før du begynner
 
-- **Målinger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
+- **Målinger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Til de første dataene kommer, tilbyr denne siden **Veiledet oppsett**, som tar deg fra de første loggene, målingene og sporene dine til varsler på dem, ved siden av **Send de første målingene dine**, oppsettsguiden alene.
 - **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) for hvilke målinger den leser.
 
 ## Finn en måling

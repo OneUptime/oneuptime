@@ -283,6 +283,12 @@ describe("a test email", () => {
     expect(answer.message).toBe(
       "SMTP: the Port is not set under Settings > Emails.",
     );
+    // #9437: the same, in words the Admin Dashboard says in its reader's language.
+    expect(answer.messageWords).toEqual({
+      template:
+        "{{provider}}: the {{field}} is not set under Settings > Emails.",
+      values: { provider: "SMTP", field: "Port" },
+    });
     expect(mailSend).not.toHaveBeenCalled();
 
     config = null;
@@ -446,6 +452,9 @@ describe("a test SMS and a test call", () => {
     expect(sms.message).toContain("SMS gateway");
     expect(call.result).toBe(ServerTestSendResult.NotSetUp);
     expect(call.message).toContain("call gateway");
+    // #9437: in words the Admin Dashboard says in its reader's language.
+    expect(sms.messageWords).toEqual({ template: sms.message, values: {} });
+    expect(call.messageWords).toEqual({ template: call.message, values: {} });
     expect(smsSend).not.toHaveBeenCalled();
     expect(makeCall).not.toHaveBeenCalled();
   });
@@ -744,6 +753,8 @@ describe("a test push", () => {
       to: "",
       sentThrough: null,
       message: PUSH_TURNED_OFF_PROBLEM,
+      // In words the Admin Dashboard says in its reader's language (#9437).
+      messageWords: { template: PUSH_TURNED_OFF_PROBLEM, values: {} },
     });
     expect(PUSH_TURNED_OFF_PROBLEM).toBe(SERVER_TEST_PUSH_REASONS.turnedOff);
     expect(findDevices).not.toHaveBeenCalled();

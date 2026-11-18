@@ -171,6 +171,25 @@ Con Docker Compose, imposta le voci `GLOBAL_EMAIL_` in `config.env`, poi esegui 
 
 OneUptime legge le variabili all'avvio. Se una è errata, per esempio una porta che non è un numero o una password mancante, il server non invia e-mail finché non viene corretta; il log del server, le impostazioni e-mail dell'Admin Dashboard e la checklist in `/admin/setup` indicano la variabile. Password e chiavi non vengono mai mostrate. Per cambiare le impostazioni, modifica le variabili e riavvia OneUptime: l'Admin Dashboard non le modifica.
 
+## Vedere che cosa ha inviato il server
+
+Su un server self-hosted, **Impostazioni > Notifiche > E-mail** nell'Admin Dashboard termina con la scheda **Log delle email**. Elenca ogni email che il server ha inviato con le proprie impostazioni e che non appartiene a nessun progetto, come un ripristino della password, un link di accesso o un invito, e ogni email che non è riuscito a inviare, anche quelle di un progetto: a chi è andata, quando, che cosa era e che cosa ha risposto il servizio di posta.
+
+- Attiva **Solo email non riuscite** per vedere solo le email che non sono partite.
+- L'email di un progetto che è partita si trova nei log di quel progetto, non qui. Una inviata tramite il server di posta di un progetto non è mai qui.
+- Il log non conserva mai il messaggio stesso, perché un ripristino della password o un link di accesso fa entrare chiunque lo abbia. Un link nell'oggetto viene conservato come `[link]`.
+- Solo gli amministratori principali possono leggerlo. Ogni email viene conservata per 30 giorni.
+
+## Essere avvisati quando l'email o le sonde si fermano
+
+Quando l'email del server smette di funzionare, o nessuna sonda globale invia più dati, OneUptime avvisa gli amministratori principali, e ancora una volta quando torna a funzionare. Scegli dove nella scheda **Notifiche di interruzione** della stessa pagina:
+
+- **Push sui dispositivi degli amministratori principali** invia una notifica push a ogni dispositivo su cui un amministratore principale ha effettuato l'accesso all'app OneUptime. È attivo finché non lo disattivi.
+- **Invia SMS a questo numero** invia un SMS tramite le impostazioni SMS del server.
+- Anche l'**E-mail di notifica admin** viene avvisata delle sonde.
+
+Un messaggio non passa mai dal canale che si è fermato, quindi un messaggio sull'email non arriva mai per email, né da un canale da cui il server non può inviare in questo momento. Viene segnalato solo un cambiamento, al massimo una volta all'ora per ciascuno, e i membri dei progetti non vengono mai avvisati.
+
 ## Risoluzione dei problemi
 
 Un'e-mail di prova che non parte dice perché. Per qualsiasi altra e-mail, apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Log di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.

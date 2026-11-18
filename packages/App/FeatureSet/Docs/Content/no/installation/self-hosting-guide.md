@@ -167,6 +167,7 @@ Let's Encrypt trenger portene 80 og 443, som kan nås fra internett, og domenena
 :::cards
 - [Hurtigstart](/docs/introduction/quickstart): En monitor, en vaktpolicy og en statusside på et kvarter.
 - [Docker Compose](/docs/installation/docker-compose): Din egen proxy, sikkerhetskopier, oppdateringer og sjekklisten for produksjon.
+- [Kubernetes og Helm](/docs/installation/kubernetes): Ta sikkerhetskopi av en Kubernetes-installasjon, og ta vare på nøklene.
 - [Oppgradering](/docs/installation/upgrading): Gå over til en ny utgivelse, én hovedversjon om gangen.
 - [Arkitektur](/docs/self-hosted/architecture): Hvordan delene av OneUptime henger sammen.
 :::

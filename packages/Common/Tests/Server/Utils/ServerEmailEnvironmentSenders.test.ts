@@ -268,6 +268,15 @@ describe("whether the server can send email (ServerChannelSetup)", () => {
     );
     expect(problem).not.toContain(ENV_PASSWORD);
     expect(problem).not.toContain("saved-password");
+
+    /*
+     * #9437: it names the variables, so it has no words of OneUptime's own
+     * in another language: a page draws it as it came.
+     */
+    expect(ServerChannelSetup.readEmailSetUpProblem(savedSettings())).toEqual({
+      english: problem,
+      words: null,
+    });
   });
 
   test("set to SendGrid: the saved mail server does not make it set up", () => {

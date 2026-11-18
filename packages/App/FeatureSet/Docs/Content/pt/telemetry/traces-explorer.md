@@ -36,7 +36,7 @@ O explorador tem cinco abas:
 
 ## Antes de começar
 
-- **Traços chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem.
+- **Traços chegando.** Instrumente seus serviços com [OpenTelemetry](/docs/telemetry/open-telemetry). A aba **Guia de configuração** mostra o código para a sua linguagem. Até chegarem os primeiros dados, esta página oferece **Configuração guiada**, que leva você dos seus primeiros registros, métricas e traços até os alertas sobre eles, ao lado de **Enviar seus primeiros traços**, o guia de configuração sozinho.
 - **Uma função que possa ler telemetria.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Traces. O escopo dela decide de quem são os spans que você vê: veja [Telemetria](/docs/permissions/index#telemetria).
 
 ## Encontrar uma requisição

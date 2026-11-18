@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "온콜",
+      "알맞은 사람에게, 매번 알림이 갑니다",
+      "1",
+      "온콜 정책 만들기",
+      "2",
+      "각 에스컬레이션 규칙에 일정 또는 사람 추가",
+      "3",
+      "모니터, 인시던트, 경고에 연결",
+      "안내형 설정",
+      "온콜 정책 만들기",
+      "단계별 가이드",
+      "문서"
+    ],
+    "outline": [
+      "heading: 알맞은 사람에게, 매번 알림이 갑니다",
+      "button: 안내형 설정",
+      "button: 온콜 정책 만들기",
+      "link: 단계별 가이드",
+      "link: 문서"
+    ],
+    "width": 417,
+    "height": 328
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "에스컬레이션 규칙 추가",
+      "이 정책의 2단계를 추가합니다: 누구를, 언제 호출할지.",
+      "알림",
+      "온콜 스케줄은 현재 온콜 담당자에게 알립니다. 로테이션의 다음 사람은 그다음 사람에게 알립니다. 팀은 모든 구성원에게 알립니다.",
+      "응답자 추가",
+      "이 규칙은 누가 호출되는지를 정합니다. 각 사람에게 어떤 방법으로, 얼마 후에 연락하는지는 본인의 나에게 연락하는 방법에서 정합니다.",
+      "호출 대기 시간(분)",
+      "이 단계가 호출되기 전에 Level 1이(가) 확인을 기다리는 시간입니다. Level 1의 대기 시간으로 저장됩니다.",
+      "추가 필드· 이름, 설명",
+      "취소",
+      "규칙 만들기",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: 에스컬레이션 규칙 추가",
+      "button: 닫기",
+      "button: 응답자 추가",
+      "link: 나에게 연락하는 방법",
+      "field number: 30",
+      "button: 추가 필드· 이름, 설명",
+      "button: 취소",
+      "button: 규칙 만들기"
+    ],
+    "width": 512,
+    "height": 508
+  },
   "ingestion-keys": {
     "text": [
       "수집 키",
@@ -554,18 +607,13 @@
       "4개 중 1-4개 표시",
       "페이지당 행 수",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: 이름, 설명으로 수집 키 검색…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: 수집 키",
@@ -591,13 +639,13 @@
       "field checkbox: 수집 키: Marketing site 선택",
       "button: 수집 키 보기",
       "button: 수집 키: Marketing site에 대한 추가 작업",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: 이전 페이지로 이동",
       "button: 1페이지",
       "button: 다음 페이지로 이동"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

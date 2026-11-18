@@ -871,7 +871,7 @@ describe("the order a page reaches each person (#7154)", () => {
   const method: (
     channel: OnCallPageChannel,
     minutes: number,
-    isVerified: boolean = true,
+    isVerified?: boolean,
   ) => OnCallTestPagePreviewMethod = (
     channel: OnCallPageChannel,
     minutes: number,

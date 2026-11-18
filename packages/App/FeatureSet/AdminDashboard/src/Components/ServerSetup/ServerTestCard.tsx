@@ -23,7 +23,7 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import { UseServerSetupChecklistResult } from "Common/UI/Utils/ServerSetupChecklist";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -104,10 +104,10 @@ const ServerTestCard: FunctionComponent<ComponentProps> = (
 
   const words: (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }) => string = (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }): string => {
     return translator.translateTemplate(sentence.template, sentence.values);
   };
@@ -155,7 +155,7 @@ const ServerTestCard: FunctionComponent<ComponentProps> = (
                     (
                       sentence: {
                         template: string;
-                        values: Record<string, string>;
+                        values: TemplateValues;
                       },
                       index: number,
                     ): ReactElement => {

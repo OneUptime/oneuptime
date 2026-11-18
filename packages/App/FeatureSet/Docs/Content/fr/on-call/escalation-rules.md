@@ -62,6 +62,8 @@ Sous **Notifier**, cliquez sur **Ajouter un intervenant**, recherchez et choisis
 
 **Escalader après (en minutes)** est le temps d'attente d'un accusé de réception avant d'alerter le niveau suivant. La valeur de départ est **30 minutes** ; adaptez-la au niveau.
 
+![La boîte de dialogue « Ajouter une règle d'escalade » d'une politique à un niveau, avec « Appelé après (en minutes) » entouré](screen:escalation-rule-paged-after)
+
 Une règle ajoutée après la première demande plutôt **Appelé après (en minutes)** : le temps pendant lequel le niveau précédent attend un accusé de réception avant que celui-ci soit appelé. La valeur de départ est le délai de ce niveau, et elle est enregistrée comme son délai ; le nouveau niveau attend lui-même 30 minutes jusqu'à ce que vous en ajoutiez un après lui. Une personne qui peut ajouter des règles sans pouvoir les modifier voit **Escalader après (en minutes)**, et la boîte de dialogue indique quand le nouveau niveau est appelé.
 
 ### Nommer la règle, si vous le souhaitez

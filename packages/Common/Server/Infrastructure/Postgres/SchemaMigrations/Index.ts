@@ -1056,6 +1056,8 @@ import { AddOnCallFireDrillResults1809183100000 } from "./1809183100000-AddOnCal
 import { AddOnCallFireDrillResultsIndexAndKey1809183110000 } from "./1809183110000-AddOnCallFireDrillResultsIndexAndKey";
 import { AddBackupScriptLastRun1809183200000 } from "./1809183200000-AddBackupScriptLastRun";
 import { AddProjectDefaultPagingLadder1809183250000 } from "./1809183250000-AddProjectDefaultPagingLadder";
+import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
+import { AddServerAlerts1809183400000 } from "./1809183400000-AddServerAlerts";
 
 export default [
   InitialMigration,
@@ -2116,4 +2118,6 @@ export default [
   AddOnCallFireDrillResultsIndexAndKey1809183110000,
   AddBackupScriptLastRun1809183200000,
   AddProjectDefaultPagingLadder1809183250000,
+  AddServerEmailLog1809183300000,
+  AddServerAlerts1809183400000,
 ];

@@ -62,6 +62,8 @@ En **Notificar**, haz clic en **Añadir destinatario**, busca y elige tantas pro
 
 **Escalar después de (en minutos)** es cuánto esperar a que alguien reconozca el aviso antes de avisar al siguiente nivel. Empieza en **30 minutos**; cámbialo a lo que convenga al nivel.
 
+![El diálogo «Añadir regla de escalado» de una política con un nivel, con «Avisado tras (en minutos)» resaltado](screen:escalation-rule-paged-after)
+
 Una regla que se añade después de la primera pregunta en cambio **Avisado tras (en minutos)**: cuánto espera el nivel anterior a que alguien reconozca antes de avisar a este. Empieza en la espera de ese nivel y se guarda como su espera; el nuevo nivel espera 30 minutos hasta que añadas otro después. Quien puede añadir reglas pero no cambiarlas ve **Escalar después de (en minutos)**, y el diálogo dice cuándo se avisa al nuevo nivel.
 
 ### Ponle nombre a la regla, si quieres

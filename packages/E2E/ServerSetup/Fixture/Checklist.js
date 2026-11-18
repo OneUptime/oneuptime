@@ -36,6 +36,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import Port from "Common/Types/Port";
 import ServerSetupChecklistUtil from "Common/Types/ServerSetup/ServerSetupChecklist";
+import { SERVER_SET_UP_PROBLEMS } from "Common/Types/ServerSending/ServerSetUpProblem";
 import { SERVER_TEST_PUSH_REASONS } from "Common/Types/ServerSetup/ServerTestSend";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -74,10 +75,21 @@ const now = () => {
  * push went nowhere: the admin has no device registered.
  */
 const NOT_SET_UP = {
-  email: "Nothing is set up under Settings > Emails yet.",
-  sms: "No Twilio account or SMS gateway is set up under Settings > Call and SMS.",
-  call: "No Twilio account or call gateway is set up under Settings > Call and SMS.",
+  email: SERVER_SET_UP_PROBLEMS.emailNotSetUp,
+  sms: SERVER_SET_UP_PROBLEMS.smsNotSetUp,
+  call: SERVER_SET_UP_PROBLEMS.callNotSetUp,
   push: SERVER_TEST_PUSH_REASONS.noDevices,
+};
+
+/*
+ * The same, as words the page says in its reader's language (#9437), as
+ * the server sends them beside the English. A test push's own reasons are
+ * keys of the Admin Dashboard already, and come as they are.
+ */
+const NOT_SET_UP_WORDS = {
+  email: { template: SERVER_SET_UP_PROBLEMS.emailNotSetUp, values: {} },
+  sms: { template: SERVER_SET_UP_PROBLEMS.smsNotSetUp, values: {} },
+  call: { template: SERVER_SET_UP_PROBLEMS.callNotSetUp, values: {} },
 };
 
 // What took a test, as the server names it.
@@ -105,6 +117,9 @@ function channel(name, state, extra) {
     failingSince: null,
     lastFailure: null,
     setUpProblem: state === "not-set-up" ? NOT_SET_UP[name] : null,
+    ...(state === "not-set-up" && NOT_SET_UP_WORDS[name]
+      ? { setUpProblemWords: NOT_SET_UP_WORDS[name] }
+      : {}),
     ...(extra || {}),
   };
 }
@@ -314,6 +329,9 @@ function testSend(name, body) {
       to: to,
       sentThrough: null,
       message: NOT_SET_UP[name],
+      ...(NOT_SET_UP_WORDS[name]
+        ? { messageWords: NOT_SET_UP_WORDS[name] }
+        : {}),
     };
   }
 

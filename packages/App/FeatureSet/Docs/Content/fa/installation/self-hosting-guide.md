@@ -167,6 +167,7 @@ Let's Encrypt به پورت‌های ۸۰ و ۴۴۳ در دسترس از این�
 :::cards
 - [شروع سریع](/docs/introduction/quickstart): یک مانیتور، یک سیاست آماده‌به‌کار و یک صفحهٔ وضعیت در پانزده دقیقه.
 - [Docker Compose](/docs/installation/docker-compose): پراکسی خودتان، پشتیبان‌گیری، به‌روزرسانی و فهرست بررسی محیط تولید.
+- [Kubernetes و Helm](/docs/installation/kubernetes): از نصب روی Kubernetes پشتیبان بگیرید و کلیدهایش را نگه دارید.
 - [ارتقا](/docs/installation/upgrading): رفتن به یک نسخهٔ تازه، هر بار یک نسخهٔ اصلی.
 - [معماری](/docs/self-hosted/architecture): بخش‌های OneUptime چگونه کنار هم کار می‌کنند.
 :::

@@ -14,6 +14,8 @@ import CallAndSmsGatewayTest, {
   CallAndSmsGatewayTestResult,
 } from "../Utils/CallAndSmsGatewayTest";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import ServerEmailLogReader from "../Utils/ServerSending/ServerEmailLogReader";
+import { ServerEmailLogAnswer } from "../../Types/Email/ServerEmailLog";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
 import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
@@ -192,6 +194,36 @@ export default class GlobalConfigAPI extends BaseAPI<
             req,
             res,
             JSON.parse(JSON.stringify(answer)) as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/email-log - the server's own email log (#6878,
+     * Types/Email/ServerEmailLog): one page of it, newest first, every
+     * email or the failed ones only. Master admins only - whom an email
+     * went to is personal data - and never cached.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/email-log`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const answer: ServerEmailLogAnswer = await ServerEmailLogReader.read(
+            ServerEmailLogReader.readQuery(
+              (req.query || {}) as { [name: string]: unknown },
+            ),
+          );
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
           );
         } catch (err) {
           return next(err);
