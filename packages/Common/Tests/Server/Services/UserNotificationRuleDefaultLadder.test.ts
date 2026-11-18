@@ -149,7 +149,9 @@ function waitsOf(rules: Array<Model>): Array<number> {
     });
 }
 
-function verify(notificationMethod: NotificationMethodDescriptor): Promise<void> {
+function verify(
+  notificationMethod: NotificationMethodDescriptor,
+): Promise<void> {
   return UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
     {
       projectId: PROJECT_ID,
@@ -295,7 +297,8 @@ describe("a channel the default names", () => {
         const query: Record<string, unknown> = findBy.query;
 
         if (
-          query["ruleType"] === NotificationRuleType.ON_CALL_EXECUTED_INCIDENT &&
+          query["ruleType"] ===
+            NotificationRuleType.ON_CALL_EXECUTED_INCIDENT &&
           String(query["incidentSeverityId"]) === INCIDENT_SEV_1.toString()
         ) {
           return Promise.resolve(new Model());
@@ -364,9 +367,7 @@ describe("a member who joins (addDefaultNotificationRuleForUser)", () => {
     email._id = EMAIL_ID.toString();
     email.isVerified = true;
 
-    jest
-      .spyOn(UserEmailService, "findOneBy")
-      .mockResolvedValue(email as never);
+    jest.spyOn(UserEmailService, "findOneBy").mockResolvedValue(email as never);
   });
 
   function join(): Promise<void> {

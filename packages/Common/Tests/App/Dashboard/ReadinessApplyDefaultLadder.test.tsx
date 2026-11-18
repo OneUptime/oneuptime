@@ -74,7 +74,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 jest.mock("../../../UI/Utils/PermissionGate", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Utils/PermissionGate",
-  );
+  ) as Record<string, unknown>;
   const gate: Record<string, unknown> = actual["default"] as Record<
     string,
     unknown
@@ -405,24 +405,27 @@ describe("who is offered Apply Default Ladder", () => {
   test.each([
     ["no default", null],
     ["an empty default", []],
-  ])("a project with %s: nothing is offered", async (_name, value) => {
-    withDefault(value);
+  ])(
+    "a project with %s: nothing is offered",
+    async (_name: string, value: unknown): Promise<void> => {
+      withDefault(value);
 
-    await renderPage();
+      await renderPage();
 
-    await waitFor((): void => {
-      expect(getItemMock).toHaveBeenCalled();
-    });
+      await waitFor((): void => {
+        expect(getItemMock).toHaveBeenCalled();
+      });
 
-    tick("Cy Unreachable");
-    openBulkMenu();
+      tick("Cy Unreachable");
+      openBulkMenu();
 
-    expect(
-      screen.queryByRole("menuitem", {
-        name: APPLY_DEFAULT_LADDER_COPY.action,
-      }),
-    ).toBeNull();
-  });
+      expect(
+        screen.queryByRole("menuitem", {
+          name: APPLY_DEFAULT_LADDER_COPY.action,
+        }),
+      ).toBeNull();
+    },
+  );
 
   test("a default that cannot be read offers nothing, and the page reads as it did", async () => {
     getItemMock.mockRejectedValue(new Error("Could not read the project."));
@@ -513,9 +516,7 @@ describe("applying it", () => {
 
     await screen.findByText("1 member now pages by the default ladder");
 
-    expect(
-      screen.getByText("1 member left as they were"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("1 member left as they were")).toBeInTheDocument();
     expect(screen.getByText("1 member not changed")).toBeInTheDocument();
     // Why Ben was left as he was, and why Cy was not changed, in their words.
     expect(
@@ -532,12 +533,15 @@ describe("applying it", () => {
       "Ada Lopez has not verified push notification, phone call yet, so those steps were left out, and they keep their own email steps meanwhile.",
     );
 
-    expect(sendEventMock).toHaveBeenCalledWith("paging_ladder/default_applied", {
-      member_count: 3,
-      applied_count: 1,
-      skipped_count: 1,
-      failed_count: 1,
-    });
+    expect(sendEventMock).toHaveBeenCalledWith(
+      "paging_ladder/default_applied",
+      {
+        member_count: 3,
+        applied_count: 1,
+        skipped_count: 1,
+        failed_count: 1,
+      },
+    );
   });
 
   test("afterwards the list is read again, as Refresh reads it", async () => {

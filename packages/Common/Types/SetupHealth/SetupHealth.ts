@@ -1314,7 +1314,9 @@ export function getResponderPhoneFindings(
 ): Array<SetupHealthFinding> {
   return facts.responders
     .filter((responder: SetupHealthResponderFact): boolean => {
-      return Boolean(responder.isMissingPhoneMethod) && !responder.isNotReachable;
+      return (
+        Boolean(responder.isMissingPhoneMethod) && !responder.isNotReachable
+      );
     })
     .map((responder: SetupHealthResponderFact): SetupHealthFinding => {
       return makeSetupHealthFinding({

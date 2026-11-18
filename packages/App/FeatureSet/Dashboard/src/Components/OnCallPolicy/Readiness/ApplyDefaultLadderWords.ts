@@ -1,4 +1,7 @@
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE WORDS OF APPLYING THE PROJECT'S DEFAULT LADDER FROM ON-CALL READINESS

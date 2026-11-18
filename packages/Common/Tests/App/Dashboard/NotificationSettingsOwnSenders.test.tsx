@@ -332,9 +332,9 @@ describe.each([false, true])(
         `${PHONE_FOR_ON_CALL_TITLE}: On`,
       ]);
       // Both cards are this project's.
-      expect(
-        String(latestPropsOf("default-ladder-card")["projectId"]),
-      ).toBe(PROJECT_ID);
+      expect(String(latestPropsOf("default-ladder-card")["projectId"])).toBe(
+        PROJECT_ID,
+      );
       expect(header()).toHaveAttribute("aria-expanded", "false");
     });
 

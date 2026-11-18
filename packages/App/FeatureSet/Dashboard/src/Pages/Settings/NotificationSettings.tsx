@@ -8,7 +8,6 @@ import {
   PhoneForOnCallCard,
 } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaults";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
@@ -33,7 +32,7 @@ import {
   PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";

@@ -161,15 +161,18 @@ describe("a project that asks people on call for a phone", () => {
     ReadinessMethodType.SMS,
     ReadinessMethodType.Call,
     ReadinessMethodType.WhatsApp,
-  ])("a verified %s number is a phone method", (methodType: ReadinessMethodType) => {
-    const readiness: UserReadiness = readinessOf({
-      methods: [method(ReadinessMethodType.Email), method(methodType)],
-      isPhoneMethodRequired: true,
-    });
+  ])(
+    "a verified %s number is a phone method",
+    (methodType: ReadinessMethodType) => {
+      const readiness: UserReadiness = readinessOf({
+        methods: [method(ReadinessMethodType.Email), method(methodType)],
+        isPhoneMethodRequired: true,
+      });
 
-    expect(readiness.isMissingPhoneMethod).toBeUndefined();
-    expect(readiness.reasons).toEqual([]);
-  });
+      expect(readiness.isMissingPhoneMethod).toBeUndefined();
+      expect(readiness.reasons).toEqual([]);
+    },
+  );
 
   test("a number never verified is not one", () => {
     const readiness: UserReadiness = readinessOf({

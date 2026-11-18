@@ -16,7 +16,9 @@ import {
 } from "../../../Types/NotificationRule/PagingLadderDefault";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import {
   afterAll,
   afterEach,
@@ -125,18 +127,23 @@ describePostgres("a project's default ladder, on a migrated Postgres", () => {
     return id;
   };
 
-  const insertMember: (projectId: string, userId: string) => Promise<void> =
-    async (projectId: string, userId: string): Promise<void> => {
-      await database.query(
-        `INSERT INTO "TeamMember" ("_id", "version", "projectId", "userId", "teamId", "hasAcceptedInvitation", "createdAt") VALUES ($1, 1, $2, $3, $4, true, now())`,
-        [
-          ObjectID.generate().toString(),
-          projectId,
-          userId,
-          ObjectID.generate().toString(),
-        ],
-      );
-    };
+  const insertMember: (
+    projectId: string,
+    userId: string,
+  ) => Promise<void> = async (
+    projectId: string,
+    userId: string,
+  ): Promise<void> => {
+    await database.query(
+      `INSERT INTO "TeamMember" ("_id", "version", "projectId", "userId", "teamId", "hasAcceptedInvitation", "createdAt") VALUES ($1, 1, $2, $3, $4, true, now())`,
+      [
+        ObjectID.generate().toString(),
+        projectId,
+        userId,
+        ObjectID.generate().toString(),
+      ],
+    );
+  };
 
   const insertSeverities: (projectId: string) => Promise<void> = async (
     projectId: string,
@@ -339,9 +346,7 @@ describePostgres("a project's default ladder, on a migrated Postgres", () => {
           [id],
         );
 
-        await new AddProjectDefaultPagingLadder1809183250000().up(
-          queryRunner,
-        );
+        await new AddProjectDefaultPagingLadder1809183250000().up(queryRunner);
 
         expect(
           await queryRunner.query(
@@ -373,9 +378,7 @@ describePostgres("a project's default ladder, on a migrated Postgres", () => {
           ),
         ).toEqual([{ name: "Acme" }]);
 
-        await new AddProjectDefaultPagingLadder1809183250000().up(
-          queryRunner,
-        );
+        await new AddProjectDefaultPagingLadder1809183250000().up(queryRunner);
 
         expect(
           (
@@ -499,7 +502,10 @@ describePostgres("a project's default ladder, on a migrated Postgres", () => {
           id: new ObjectID(projectId),
           data: {
             defaultPagingLadder: [
-              { channel: OnCallPageChannel.CustomChannel, notifyAfterMinutes: 0 },
+              {
+                channel: OnCallPageChannel.CustomChannel,
+                notifyAfterMinutes: 0,
+              },
             ],
           } as never,
           props: { isRoot: true },

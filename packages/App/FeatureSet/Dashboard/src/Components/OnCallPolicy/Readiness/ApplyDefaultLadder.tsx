@@ -305,7 +305,9 @@ export function useApplyDefaultLadderBulkAction<T extends GenericObject>(
         >
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {translator.translateText(APPLY_DEFAULT_LADDER_COPY.ladderHeading)}
+              {translator.translateText(
+                APPLY_DEFAULT_LADDER_COPY.ladderHeading,
+              )}
             </p>
             <div
               className="mt-1.5 flex flex-wrap items-center gap-1.5"

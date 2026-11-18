@@ -144,7 +144,12 @@ export const loadPagingLadderData: (
 ) => Promise<PagingLadderData> = async (
   userId: ObjectID,
 ): Promise<PagingLadderData> => {
-  const [incidentSeverities, alertSeverities, ruleList, isPhoneMethodRequired]: [
+  const [
+    incidentSeverities,
+    alertSeverities,
+    ruleList,
+    isPhoneMethodRequired,
+  ]: [
     Array<IncidentSeverity | AlertSeverity>,
     Array<IncidentSeverity | AlertSeverity>,
     ListResult<UserNotificationRule>,

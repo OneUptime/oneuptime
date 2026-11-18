@@ -30,7 +30,6 @@ import {
 } from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadder";
 import { APPLY_DEFAULT_LADDER_COPY } from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadderWords";
 import { PagingLadderDefaultStep } from "Common/Types/NotificationRule/PagingLadderDefault";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import UserElement from "../../Components/User/User";
 import SendTestPageModal from "../../Components/OnCallTestPage/SendTestPageModal";
 import { canSendTestPageToMember } from "../../Components/OnCallTestPage/OnCallTestPageAccess";
@@ -50,7 +49,10 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkActionButtonSchema,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";

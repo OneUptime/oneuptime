@@ -196,11 +196,11 @@ describe("the default ladder card", () => {
 
     expect(groups).toHaveLength(2);
     expect(
-      within(groups[0]!).getAllByTestId("paging-ladder-method").map(
-        (method: HTMLElement): string => {
+      within(groups[0]!)
+        .getAllByTestId("paging-ladder-method")
+        .map((method: HTMLElement): string => {
           return method.textContent || "";
-        },
-      ),
+        }),
     ).toEqual(["Push notification", "SMS"]);
     expect(
       within(groups[1]!).getByTestId("paging-ladder-method"),
@@ -270,16 +270,15 @@ describe("the default ladder card", () => {
     await screen.findByText(PROJECT_PAGING_DEFAULTS_COPY.saved);
 
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
-    expect(
-      (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id,
-    ).toBe(PROJECT_ID);
+    expect((updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id).toBe(
+      PROJECT_ID,
+    );
     expect(savedDefault()).toEqual([
       { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
     ]);
-    expect(sendEventMock).toHaveBeenCalledWith(
-      "paging_ladder/default_saved",
-      { step_count: 1 },
-    );
+    expect(sendEventMock).toHaveBeenCalledWith("paging_ladder/default_saved", {
+      step_count: 1,
+    });
     expect(stepCounts).toEqual([0, 1]);
   });
 
@@ -287,9 +286,9 @@ describe("the default ladder card", () => {
     await renderCard();
 
     fireEvent.click(
-      within(
-        screen.getAllByTestId("paging-ladder-wait-group")[1]!,
-      ).getByTestId("paging-ladder-step-wait"),
+      within(screen.getAllByTestId("paging-ladder-wait-group")[1]!).getByTestId(
+        "paging-ladder-step-wait",
+      ),
     );
     fireEvent.click(screen.getByTestId("paging-ladder-wait-option-10"));
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
@@ -317,16 +316,17 @@ describe("the default ladder card", () => {
 
     expect(savedDefault()).toBeNull();
     await screen.findByText(PROJECT_PAGING_DEFAULTS_COPY.noDefault);
-    expect(sendEventMock).toHaveBeenCalledWith(
-      "paging_ladder/default_saved",
-      { step_count: 0 },
-    );
+    expect(sendEventMock).toHaveBeenCalledWith("paging_ladder/default_saved", {
+      step_count: 0,
+    });
   });
 
   test("a save the server refuses says so, and keeps the steps", async () => {
     getItemMock.mockResolvedValue({ defaultPagingLadder: null } as never);
     updateByIdMock.mockRejectedValue(
-      new Error("A default ladder has at most 20 steps. Remove some, then save."),
+      new Error(
+        "A default ladder has at most 20 steps. Remove some, then save.",
+      ),
     );
 
     await renderCard();

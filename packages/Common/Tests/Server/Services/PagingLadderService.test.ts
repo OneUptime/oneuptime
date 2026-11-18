@@ -1148,8 +1148,10 @@ describe("applying the project's default ladder", () => {
       },
     );
 
-    const reading: { steps: Array<{ methodId: string }>; isOneLadder: boolean } =
-      readPagingLadder({ cells: cells(), rules: own });
+    const reading: {
+      steps: Array<{ methodId: string }>;
+      isOneLadder: boolean;
+    } = readPagingLadder({ cells: cells(), rules: own });
 
     expect(reading.isOneLadder).toBe(true);
 
@@ -1336,9 +1338,7 @@ describe("applying the project's default ladder", () => {
   });
 
   test("never for somebody who is not a member; the others still get it (partial results)", async () => {
-    memberSpy.mockImplementation((async (data: {
-      targetUserId: ObjectID;
-    }) => {
+    memberSpy.mockImplementation((async (data: { targetUserId: ObjectID }) => {
       if (data.targetUserId.toString() === BOB.toString()) {
         throw new BadDataException(
           "Cannot create a notification rule for this user because they are not a member of this project.",
@@ -1422,14 +1422,24 @@ describe("applying the project's default ladder", () => {
   describe("who may apply it", () => {
     test.each([
       ["a member", []],
-      ["a member holding only Read", [Permission.ReadProjectUserNotificationRule]],
-      ["a member of the on-call team", [Permission.EditProjectOnCallDutyPolicy]],
+      [
+        "a member holding only Read",
+        [Permission.ReadProjectUserNotificationRule],
+      ],
+      [
+        "a member of the on-call team",
+        [Permission.EditProjectOnCallDutyPolicy],
+      ],
     ])(
       "%s may not - not even to themselves",
       async (_name: string, permissions: Array<Permission>) => {
         for (const target of [ANA, BOB]) {
-          await expect(applyTo([target], bobProps(permissions))).rejects.toThrow(
-            new NotAuthorizedException(PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE),
+          await expect(
+            applyTo([target], bobProps(permissions)),
+          ).rejects.toThrow(
+            new NotAuthorizedException(
+              PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+            ),
           );
         }
 

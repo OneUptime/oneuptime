@@ -191,7 +191,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
@@ -1582,10 +1582,7 @@ describe("adding a way to reach you from the ladder", () => {
     await waitFor(() => {
       expect(saveMock).toHaveBeenCalledWith({
         userId: undefined,
-        steps: [
-          step("userSmsId", NEW_SMS, 0),
-          step("userCallId", NEW_CALL, 5),
-        ],
+        steps: [step("userSmsId", NEW_SMS, 0), step("userCallId", NEW_CALL, 5)],
       });
     });
     expect(navigateSpy).not.toHaveBeenCalled();
