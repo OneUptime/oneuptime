@@ -35,17 +35,36 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *
  * Asked first, as the Twilio card asks what its account is used for: then
  * only what that answer needs. The secret waits under More fields, since it
- * is made for the admin; clearing it and saving makes a new one. Send test
- * posts one request to the gateway as saved, to nobody
- * (CallAndSmsGatewayTest).
+ * is made for the admin; clearing it and saving makes a new one.
+ *
+ * Check Gateway posts one signed request to the gateway as saved, to
+ * nobody (CallAndSmsGatewayTest): whether the gateway answers, for whoever
+ * builds it. It was called Send Test, on every server, beside the page's
+ * Send test SMS and Make test call, which do send one - two kinds of test
+ * with one name, and on a server that sends through Twilio it only said it
+ * had nothing to try (#7029). Now it says what it checks, and is offered
+ * only while the server sends through its gateway.
  */
 
 export const CALL_AND_SMS_GATEWAY_CARD_TEST_ID: string =
   "call-and-sms-gateway-card";
 
-// Where Send test asks the server to try the gateway.
+// Where Check Gateway asks the server to try the gateway.
 export const CALL_AND_SMS_GATEWAY_TEST_PATH: string =
   "/global-config/call-and-sms-gateway/test";
+
+// What Check Gateway and its dialog say.
+export const CHECK_GATEWAY_COPY: {
+  button: string;
+  title: string;
+  checking: string;
+  answered: string;
+} = {
+  button: "Check Gateway",
+  title: "Check Gateway",
+  checking: "Checking your gateway…",
+  answered: "Your gateway answered the test request.",
+};
 
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
@@ -73,6 +92,8 @@ const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // Whether the server sends through its gateway, as saved: Check Gateway is offered then.
+  const [isGatewaySaved, setIsGatewaySaved] = useState<boolean>(false);
   const [isTestShown, setIsTestShown] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testMessage, setTestMessage] = useState<string>("");
@@ -120,16 +141,18 @@ const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
           title: "SMS and Call Provider",
           description:
             "What OneUptime sends SMS and calls through: the Twilio account below, or your own gateway. Projects with a Twilio config of their own still send through it.",
-          buttons: [
-            {
-              title: "Send Test",
-              buttonStyle: ButtonStyleType.NORMAL,
-              icon: IconProp.Play,
-              onClick: () => {
-                void sendTest();
-              },
-            },
-          ],
+          buttons: isGatewaySaved
+            ? [
+                {
+                  title: CHECK_GATEWAY_COPY.button,
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  icon: IconProp.CheckCircle,
+                  onClick: () => {
+                    void sendTest();
+                  },
+                },
+              ]
+            : [],
         }}
         isEditable={true}
         editButtonText="Edit Provider"
@@ -191,6 +214,9 @@ const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
         modelDetailProps={{
           modelType: GlobalConfig,
           id: "model-detail-call-and-sms-gateway",
+          onItemLoaded: (item: GlobalConfig): void => {
+            setIsGatewaySaved(sendsThroughGateway(item));
+          },
           fields: [
             {
               field: {
@@ -234,13 +260,12 @@ const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
 
       {isTestShown ? (
         <ConfirmModal
-          title="Send test: SMS and call gateway"
+          title={CHECK_GATEWAY_COPY.title}
           error={testError}
           description={
             isTesting
-              ? "Sending a test request…"
-              : testMessage ||
-                (testError ? "" : "Sending a test request to your gateway.")
+              ? CHECK_GATEWAY_COPY.checking
+              : testMessage || (testError ? "" : CHECK_GATEWAY_COPY.answered)
           }
           submitButtonText={"Close"}
           isLoading={isTesting}

@@ -42,6 +42,11 @@ const api: Record<string, MockFunction> = {
   isMonitorOwner: getJestMockFunction(),
   ensureMonitorOwner: getJestMockFunction(),
   needsPaymentMethod: getJestMockFunction(),
+  findOtherMonitor: getJestMockFunction(),
+  loadDefaultLocationCount: getJestMockFunction(),
+  loadStatusPages: getJestMockFunction(),
+  findStatusPageShowing: getJestMockFunction(),
+  addToStatusPage: getJestMockFunction(),
 };
 
 jest.mock(
@@ -61,6 +66,11 @@ jest.mock(
       "isMonitorOwner",
       "ensureMonitorOwner",
       "needsPaymentMethod",
+      "findOtherMonitor",
+      "loadDefaultLocationCount",
+      "loadStatusPages",
+      "findStatusPageShowing",
+      "addToStatusPage",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -74,6 +84,12 @@ jest.mock(
         return true;
       },
       mayAddPaymentMethod: (): boolean => {
+        return true;
+      },
+      mayAddToStatusPage: (): boolean => {
+        return true;
+      },
+      mayUseOnCallSetup: (): boolean => {
         return true;
       },
       isPaymentRequired: (): boolean => {
@@ -192,6 +208,7 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 import WebsiteDownGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
+  CHECK_HELP_FROM_LOCATIONS,
   WEBSITE_DOWN_COPY,
   buildWebsiteMonitor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
@@ -393,6 +410,11 @@ beforeEach(() => {
   api["isMonitorOwner"]!.mockResolvedValue(true);
   api["ensureMonitorOwner"]!.mockResolvedValue(true);
   api["needsPaymentMethod"]!.mockResolvedValue(false);
+  api["findOtherMonitor"]!.mockResolvedValue(null);
+  api["loadDefaultLocationCount"]!.mockResolvedValue(2);
+  api["loadStatusPages"]!.mockResolvedValue([]);
+  api["findStatusPageShowing"]!.mockResolvedValue(null);
+  api["addToStatusPage"]!.mockResolvedValue(undefined);
   getResultMock.mockResolvedValue(acknowledged);
   getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
 });
@@ -506,6 +528,115 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
     expect(api["createMonitor"]).not.toHaveBeenCalled();
   });
 
+  /*
+   * A teammate's monitor for the address (#7254): the sentence in the
+   * reader's words, the monitor's name and the person kept as written and
+   * set apart, so a right-to-left sentence keeps them in order.
+   */
+  test("a monitor a teammate made for the address: said in their words, before anything is made (#7254)", async () => {
+    api["findOtherMonitor"]!.mockResolvedValue({
+      id: "50000000-0000-4000-8000-000000000099",
+      name: "Acme storefront",
+      creatorName: "Grace Hopper",
+      isOwn: false,
+      record: { ...MONITOR, id: "50000000-0000-4000-8000-000000000099" },
+    });
+    await renderSetup();
+
+    fireEvent.change(screen.getByTestId("guided-setup-address"), {
+      target: { value: "acme.example" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-start-checking"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-other-monitor-sentence"),
+      ).toBeInTheDocument();
+    });
+
+    const drawn: string =
+      screen.getByTestId("guided-setup-other-monitor-sentence").textContent ||
+      "";
+
+    expect(withoutIsolateMarks(drawn)).toBe(
+      fill(language, WEBSITE_DOWN_COPY.otherMonitorMadeBy, {
+        name: "Acme storefront",
+        person: "Grace Hopper",
+      }),
+    );
+    /*
+     * In a sentence read right to left, the name and the person in Latin
+     * letters are set apart from the words around them.
+     */
+    if (language === "ar" || language === "fa") {
+      expect(drawn).not.toBe(withoutIsolateMarks(drawn));
+    }
+    expect(screen.getByTestId("guided-setup-other-monitor")).toHaveTextContent(
+      fill(language, WEBSITE_DOWN_COPY.otherMonitorChoice, {}),
+    );
+    expect(
+      screen.getByTestId("guided-setup-create-own-monitor"),
+    ).toHaveTextContent(fill(language, WEBSITE_DOWN_COPY.createOwnMonitor, {}));
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Step 1's help with its number (#7461), and its Glossary words (#7057),
+   * in the reader's language: the number in their digits.
+   */
+  test("step 1 says from how many locations in their words, the Glossary's words in them (#7461, #7057)", async () => {
+    api["loadDefaultLocationCount"]!.mockResolvedValue(3);
+    await renderSetup();
+
+    const help: string = withoutIsolateMarks(
+      screen.getByTestId("guided-setup-check-help").textContent || "",
+    ).replace(/[\u00A0\u202F]/g, " ");
+    const table: Record<string, string> = readDashboardLocale(language);
+    const worded: string = table[CHECK_HELP_FROM_LOCATIONS.other]!;
+
+    expect(help).toBe(
+      worded
+        .replace("{{monitor}}", table["monitor"]!)
+        .replace("{{incident}}", table["incident"]!)
+        .replace(
+          "{{count}}",
+          new Intl.NumberFormat(language === "fa" ? "fa" : "en").format(3),
+        )
+        .replace(/[\u00A0\u202F]/g, " "),
+    );
+    expect(help).not.toContain("OneUptime makes a");
+  });
+
+  test("step 2's How to Reach Me link reads as their page is named (#7757)", async () => {
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({ monitorId: MONITOR_ID }),
+    );
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-how-to-reach-me"),
+      ).toBeInTheDocument();
+    });
+
+    const name: string = readDashboardLocale(language)["How to Reach Me"]!;
+
+    expect(name).not.toBe("How to Reach Me");
+    expect(
+      screen.getByTestId("guided-setup-how-to-reach-me"),
+    ).toHaveTextContent(name);
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("guided-setup-who-create-help").textContent || "",
+      ),
+    ).toBe(
+      fill(language, WEBSITE_DOWN_COPY.whoCreateHelp, { howToReachMe: name }),
+    );
+  });
+
   test("a policy added while the page was open: the step says so in their words (#7059)", async () => {
     window.localStorage.setItem(
       RUN_KEY,
@@ -574,8 +705,15 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
 
     expect(name).toBeTruthy();
     expect(name).not.toBe("Default on-call policy");
+    /*
+     * The Glossary's word for an on-call policy, marked in the sentence
+     * (#7057), is the reader's too.
+     */
     expect(withoutIsolateMarks(document.body.textContent || "")).toContain(
-      fill(language, WEBSITE_DOWN_COPY.whoCreatePolicyNote, { policy: name }),
+      fill(language, WEBSITE_DOWN_COPY.whoCreatePolicyNote, {
+        policy: name,
+        onCallPolicy: readDashboardLocale(language)["on-call policy"]!,
+      }),
     );
 
     await act(async () => {

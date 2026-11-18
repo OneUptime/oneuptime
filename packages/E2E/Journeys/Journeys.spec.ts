@@ -506,8 +506,8 @@ journey(
       "/admin",
       page.getByRole("heading", { name: "Finish setting up this server" }),
     );
+    // It opens Settings > Emails in the mail server's form (#7460).
     await person.press("Set up email");
-    await person.press("Edit SMTP Config");
     await person.type("Hostname", "smtp.acme-commerce.example");
     await person.type(/^Username/, "oneuptime@acme-commerce.example");
     await person.type(/^Password/, "smtp-app-password");

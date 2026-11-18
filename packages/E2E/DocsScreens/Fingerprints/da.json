@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Hvad skal vi tjekke?",
-      "OneUptime tjekker den hvert 5. minut. Der åbnes en hændelse, når alle placeringer, der tjekker den, finder den nede: intet svar eller et svar med en fejl.",
+      "OneUptime opretter en monitor, der tjekker den hvert 5. minut fra 2 placeringer. Der åbnes en hændelse, når de alle finder den nede: intet svar eller et svar med en fejl.",
       "Adresse på website eller API",
       "Dette er et API-endpoint",
       "Start tjekket",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: hændelse",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Start tjekket",
@@ -205,12 +207,14 @@
       "Tilføj teammedlemmer",
       "AL",
       "Ada Lovelace",
-      "Det opretter vagtpolitikken \"Standardvagtpolitik\", som tilkalder dem ved hver ny hændelse og hver ny advarsel i dette projekt.",
+      "Det opretter en vagtpolitik, \"Standardvagtpolitik\", som tilkalder dem ved hver ny hændelse og hver ny advarsel i dette projekt.",
       "Gem og fortsæt"
     ],
     "outline": [
+      "link: Sådan når man mig",
       "button: Tilføj teammedlemmer",
       "button: Fjern Ada Lovelace",
+      "button: vagtpolitik",
       "button: Gem og fortsæt"
     ],
     "width": 768,

@@ -179,7 +179,7 @@
     "text": [
       "1",
       "무엇을 확인할까요?",
-      "OneUptime이 5분마다 확인합니다. 확인하는 모든 위치에서 다운(응답 없음 또는 오류 응답)으로 확인되면 인시던트가 열립니다.",
+      "OneUptime이 2개 위치에서 5분마다 확인하는 모니터를 만듭니다. 모든 위치에서 다운(응답 없음 또는 오류 응답)으로 확인되면 인시던트가 열립니다.",
       "웹사이트 또는 API 주소",
       "API 엔드포인트입니다",
       "확인 시작",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: 모니터",
+      "button: 인시던트",
       "field text: https://example.com",
       "field checkbox: ",
       "button: 확인 시작",
@@ -209,8 +211,10 @@
       "저장하고 계속"
     ],
     "outline": [
+      "link: 나에게 연락하는 방법",
       "button: 팀 멤버 추가",
       "button: Ada Lovelace 제거",
+      "button: 온콜 정책",
       "button: 저장하고 계속"
     ],
     "width": 768,

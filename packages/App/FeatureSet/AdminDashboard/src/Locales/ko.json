@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "이 서버는 아직 이메일을 보낼 수 없습니다. 여기에서 비밀번호를 설정하거나, 비워 두고 직접 보낼 링크를 받으세요.",
   "This server cannot send email yet. Set up email under Settings > Emails.": "이 서버는 아직 이메일을 보낼 수 없습니다. 설정 > 이메일에서 이메일을 설정하세요.",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "이 서버는 아직 이메일을 보낼 수 없어 비밀번호 재설정 링크를 보내지 못했습니다. 설정 > 이메일에서 이메일을 설정하거나 비밀번호를 직접 설정하세요.",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "이 사용자에게는 이미 비밀번호가 있어 복사할 비밀번호 설정 링크가 없습니다. 대신 인증 페이지에서 비밀번호 재설정 링크를 보내세요."
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "이 사용자에게는 이미 비밀번호가 있어 복사할 비밀번호 설정 링크가 없습니다. 대신 인증 페이지에서 비밀번호 재설정 링크를 보내세요.",
+  "How to back up with Docker Compose": "Docker Compose로 백업하는 방법",
+  "How to back up on Kubernetes": "Kubernetes에서 백업하는 방법",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "오래됨: 마지막 백업이 {{time}}에 끝났으며 일주일 이상 지났습니다.",
+  "Backed up with npm run backup.": "npm run backup으로 백업하고 있습니다.",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup이 백업을 끝내지 못했습니다. 이유를 보려면 서버에서 실행하세요.",
+  "Send test push": "테스트 푸시 보내기",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "{{to}}에 보낼 테스트 푸시가 접수되었습니다. 표시되지 않으면 그 휴대폰이나 브라우저의 알림 설정을 확인하세요.",
+  "None of your devices took the test push: {{reason}}": "어떤 디바이스도 테스트 푸시를 받지 않았습니다: {{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "푸시 알림이 설정 > 푸시 알림에서 꺼져 있습니다.",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "푸시 알림용으로 등록한 휴대폰이나 브라우저가 없습니다. Dashboard의 사용자 설정 > 알림 방법에서 등록하세요.",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "이 서버는 브라우저에 푸시를 보낼 수 없습니다: VAPID 키가 없습니다. VAPID_PUBLIC_KEY와 VAPID_PRIVATE_KEY를 설정하거나 OneUptime On-Call 앱으로 휴대폰을 등록하세요.",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "테스트 알림은 푸시 알림용으로 등록한 내 휴대폰과 브라우저로만 갑니다.",
+  "Test push notifications": "푸시 알림 테스트",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "내 휴대폰과 브라우저로 테스트 푸시를 보내 푸시 알림이 도착하는지 확인하세요.",
+  "Check Gateway": "게이트웨이 확인",
+  "Checking your gateway…": "게이트웨이를 확인하는 중…",
+  "Your gateway answered the test request.": "게이트웨이가 테스트 요청에 응답했습니다."
 }

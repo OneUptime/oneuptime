@@ -40,6 +40,8 @@ export interface ComponentProps {
   transport: GlobalEmailProviderTransport;
   // The settings were saved: the page reads again where email stands.
   onSaveSuccess?: (() => void) | undefined;
+  // Opens in its form: the page was opened to set email up (#7460).
+  startsEditing?: boolean | undefined;
 }
 
 interface ProviderCardCopy {
@@ -206,6 +208,7 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
       editButtonText={t(copy.editButtonKey)}
       // Titled like the button that opens it, not "Edit Global Config".
       editModalTitle={t(copy.editButtonKey)}
+      startsEditing={props.startsEditing}
       onSaveSuccess={() => {
         props.onSaveSuccess?.();
       }}

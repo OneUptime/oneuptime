@@ -94,6 +94,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * back, as it is while the permission snapshot loads.
    */
   editLock?: PermissionGateResult | undefined;
+  /*
+   * Opens the Edit dialog once, as the card is first drawn, as if Edit had
+   * been pressed - and only when it could be. For a link that came to set
+   * this card's record up: Server Setup's "Set up email" lands in the mail
+   * server's form, not on a page of four cards to choose from (#7460).
+   */
+  startsEditing?: boolean | undefined;
   className?: string | undefined;
   name: string;
   modelAPI?: typeof ModelAPI | undefined;
@@ -260,33 +267,61 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
    * refresher, a button the page added after the first paint stayed missing
    * until something else changed.
    */
-  const cardButtons: Array<CardButtonSchema | ReactElement> = useMemo(() => {
-    /*
-     * This used to look at project permissions only, so a permission granted
-     * globally did not count, and it read the raw updateRecordPermissions
-     * field rather than going through the model's own accessor.
-     *
-     * It then looked at the record's update list alone. The form leaves out
-     * every field its viewer may not change, and many columns are narrower
-     * than their record - a project's name is not a Project Admin's to
-     * change, its notification channels are a Billing Admin's - so somebody
-     * the record let in but none of the card's fields did was handed an
-     * Edit button that opened an empty form. The button now locks for them
-     * too, naming what would open it (PermissionGate.checkFormUpdate).
-     */
-    const kindGate: PermissionGateResult = props.formFields
-      ? PermissionGate.checkFormUpdate(
-          model,
-          props.formFields,
-          privateRecordOptions,
-        )
-      : PermissionGate.check(model, ModelAction.Update, privateRecordOptions);
+  /*
+   * Whether Edit may be pressed, and why not.
+   *
+   * This used to look at project permissions only, so a permission granted
+   * globally did not count, and it read the raw updateRecordPermissions
+   * field rather than going through the model's own accessor.
+   *
+   * It then looked at the record's update list alone. The form leaves out
+   * every field its viewer may not change, and many columns are narrower
+   * than their record - a project's name is not a Project Admin's to
+   * change, its notification channels are a Billing Admin's - so somebody
+   * the record let in but none of the card's fields did was handed an
+   * Edit button that opened an empty form. The button now locks for them
+   * too, naming what would open it (PermissionGate.checkFormUpdate).
+   */
+  const getUpdateGate: () => PermissionGateResult =
+    (): PermissionGateResult => {
+      const kindGate: PermissionGateResult = props.formFields
+        ? PermissionGate.checkFormUpdate(
+            model,
+            props.formFields,
+            privateRecordOptions,
+          )
+        : PermissionGate.check(model, ModelAction.Update, privateRecordOptions);
 
-    // The kind's refusal names what is missing, so it is said first.
-    const updateGate: PermissionGateResult =
-      kindGate.isAllowed && props.editLock && !props.editLock.isAllowed
+      // The kind's refusal names what is missing, so it is said first.
+      return kindGate.isAllowed && props.editLock && !props.editLock.isAllowed
         ? props.editLock
         : kindGate;
+    };
+
+  // Edit, pressed once for the page that says so (startsEditing).
+  const hasStartedEditingRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (
+      !props.startsEditing ||
+      !props.isEditable ||
+      hasStartedEditingRef.current ||
+      !getUpdateGate().isAllowed
+    ) {
+      return;
+    }
+
+    if (onBeforeEditRef.current && onBeforeEditRef.current() === false) {
+      return;
+    }
+
+    hasStartedEditingRef.current = true;
+    setShowModal(true);
+  }, [props.startsEditing, props.isEditable, privateRecordOptions]);
+
+  const cardButtons: Array<CardButtonSchema | ReactElement> = useMemo(() => {
+    const updateGate: PermissionGateResult = getUpdateGate();
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
 

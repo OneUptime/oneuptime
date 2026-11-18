@@ -30,7 +30,7 @@ flowchart TB
 1. 在 Admin Dashboard 中，前往 **设置 > 通话和短信**，然后在 **SMS and Call Provider** 卡片上点击 **Edit Provider**。
 2. 选择 **Your own gateway**，并输入 **Gateway URL**。网关可以位于你的私有网络中。
 3. 保存。OneUptime 会为你生成一个签名密钥。从卡片上复制它，并配置到你的网关中。
-4. 点击 **Send Test**。你的网关应以 2xx 状态响应，并且不发送任何内容。
+4. 点击 **检查网关**。你的网关应以 2xx 状态响应，并且不发送任何内容。
 :::
 
 要更换密钥，请在 **更多字段** 下清空 **签名密钥** 并保存：OneUptime 会生成一个新的密钥。要改回 Twilio，请选择 **Twilio** 并保存。
@@ -116,7 +116,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 
 ## 测试请求
 
-**发送测试** 会发送一个 `event` 设为 `test`，且 `to`、`project` 和 `actions` 设为 `null` 的请求。请以 2xx 状态响应，并且不要发送任何内容。
+**检查网关** 会发送一个 `event` 设为 `test`，且 `to`、`project` 和 `actions` 设为 `null` 的请求。请以 2xx 状态响应，并且不要发送任何内容。
 
 ## 后续步骤
 

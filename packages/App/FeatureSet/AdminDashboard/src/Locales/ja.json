@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "このサーバーはまだメールを送信できません。ここでパスワードを設定するか、空欄のままにして直接送るためのリンクを取得してください。",
   "This server cannot send email yet. Set up email under Settings > Emails.": "このサーバーはまだメールを送信できません。[設定] > [メール] でメールを設定してください。",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "このサーバーはまだメールを送信できないため、パスワードリセット用のリンクは送信されませんでした。[設定] > [メール] でメールを設定するか、パスワードを直接設定してください。",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "このユーザーにはすでにパスワードがあるため、コピーできるパスワード設定用リンクはありません。代わりに認証ページからパスワードリセット用のリンクを送ってください。"
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "このユーザーにはすでにパスワードがあるため、コピーできるパスワード設定用リンクはありません。代わりに認証ページからパスワードリセット用のリンクを送ってください。",
+  "How to back up with Docker Compose": "Docker Compose でのバックアップ方法",
+  "How to back up on Kubernetes": "Kubernetes でのバックアップ方法",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "古くなっています：前回のバックアップは {{time}} に終わり、1 週間以上前です。",
+  "Backed up with npm run backup.": "npm run backup でバックアップしています。",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup はバックアップを完了しませんでした。理由を確かめるには、サーバーで実行してください。",
+  "Send test push": "テストプッシュを送信",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "テストプッシュは {{to}} 宛てに受け付けられました。表示されない場合は、その電話またはブラウザーの通知設定を確認してください。",
+  "None of your devices took the test push: {{reason}}": "どのデバイスもテストプッシュを受け取りませんでした：{{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "プッシュ通知は [設定] > [プッシュ通知] でオフになっています。",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "プッシュ通知用に登録した電話もブラウザーもありません。Dashboard の [ユーザー設定] > [通知方法] で登録してください。",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "このサーバーからブラウザーにプッシュ通知を送れません：VAPID キーがありません。VAPID_PUBLIC_KEY と VAPID_PRIVATE_KEY を設定するか、OneUptime On-Call アプリで電話を登録してください。",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "テスト通知は、あなたがプッシュ通知用に登録した電話とブラウザーにだけ届きます。",
+  "Test push notifications": "プッシュ通知のテスト",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "自分の電話とブラウザーにテストプッシュを送り、プッシュ通知が届くか確かめます。",
+  "Check Gateway": "ゲートウェイを確認",
+  "Checking your gateway…": "ゲートウェイを確認しています…",
+  "Your gateway answered the test request.": "ゲートウェイがテストリクエストに応答しました。"
 }

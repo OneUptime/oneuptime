@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Hva skal vi sjekke?",
-      "OneUptime sjekker den hvert 5. minutt. En hendelse åpnes når alle plasseringer som sjekker den, finner den nede: ikke noe svar, eller et svar med en feil.",
+      "OneUptime oppretter en monitor som sjekker den hvert 5. minutt fra 2 plasseringer. En hendelse åpnes når alle finner den nede: ikke noe svar, eller et svar med en feil.",
       "Adresse til nettsted eller API",
       "Dette er et API-endepunkt",
       "Start sjekkingen",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: hendelse",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Start sjekkingen",
@@ -205,12 +207,14 @@
       "Legg til teammedlemmer",
       "AL",
       "Ada Lovelace",
-      "Dette oppretter vaktpolicyen «Standard vaktpolicy», som tilkaller dem for hver nye hendelse og hvert nye varsel i dette prosjektet.",
+      "Dette oppretter en vaktpolicy, «Standard vaktpolicy», som tilkaller dem for hver nye hendelse og hvert nye varsel i dette prosjektet.",
       "Lagre og fortsett"
     ],
     "outline": [
+      "link: Slik når man meg",
       "button: Legg til teammedlemmer",
       "button: Fjern Ada Lovelace",
+      "button: vaktpolicy",
       "button: Lagre og fortsett"
     ],
     "width": 768,

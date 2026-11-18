@@ -1,3 +1,4 @@
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "Common/Types/API/Route";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -79,6 +80,17 @@ export const PRODUCT_ONBOARDINGS: Record<
     showcase: MONITORS_SHOWCASE,
     docsRoute: docs("monitor/create-monitor"),
     guideRoute: docs("guides/website-down"),
+    /*
+     * "Know when my website or API is down" (#6804), from the product
+     * itself (#7054): Home's button, its checklist and Search led there,
+     * and the empty Monitors list and How it works offered only Create
+     * Monitor, beside the importer's quiet link.
+     */
+    guidedSetup: {
+      page: PageMap.MONITOR_GUIDED_SETUP,
+      buttonTitle: translationKey("Guided setup"),
+      modelType: Monitor,
+    },
   },
   [ProductKey.Incidents]: {
     page: PageMap.INCIDENTS,

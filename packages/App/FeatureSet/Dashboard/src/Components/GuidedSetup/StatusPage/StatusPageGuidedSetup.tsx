@@ -13,9 +13,11 @@ import {
   StatusPageSetupProgressFacts,
   StatusPageSetupRunValue,
   StatusPageSetupStep,
+  STATUS_PAGE_SETUP_MONITOR_QUERY,
   describeExtraPlan,
   describeShownMonitors,
   getDefaultStatusPageName,
+  getMonitorPickedOnOpen,
   getPickDoneLine,
   getPickedMonitors,
   getStartOverStatusPageName,
@@ -49,6 +51,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { BILLING_ENABLED, STATUS_PAGE_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
@@ -211,6 +214,14 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       setStatusPage(loadedPage);
       setShown(loadedShown);
       setMonitors(loadedMonitors);
+      setPicked(
+        getMonitorPickedOnOpen({
+          monitorId: Navigation.getQueryStringByName(
+            STATUS_PAGE_SETUP_MONITOR_QUERY,
+          ),
+          monitors: loadedMonitors,
+        }),
+      );
       setOpenStepKey(
         getFirstOpenStepKey(
           getStatusPageSetupProgress({

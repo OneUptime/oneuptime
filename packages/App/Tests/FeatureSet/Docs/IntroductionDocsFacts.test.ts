@@ -578,12 +578,15 @@ describe("Quickstart", () => {
         routedGuidedSetup("MONITOR_GUIDED_SETUP").setupFile,
         "utf8",
       );
-      const summaryLink: string = oneLine(
+      const summaryRoute: string = oneLine(
         blockFrom(
           websiteSetup,
-          "to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}",
-          "</AppLink>",
+          "const statusPageSetupRoute: Route | null =",
+          ": null;",
         ),
+      );
+      const summaryLink: string = oneLine(
+        blockFrom(websiteSetup, "to={statusPageSetupRoute}", "</AppLink>"),
       );
 
       expect(where).toEqual({
@@ -599,6 +602,9 @@ describe("Quickstart", () => {
       );
 
       // The website setup's summary links the same setup, by these words.
+      expect(summaryRoute).toContain(
+        "routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)",
+      );
       expect(summaryLink).toContain("WEBSITE_DOWN_COPY.nextStatusPage");
       expect(setupWord(QUICKSTART_SETUP_COPIES.website, "nextStatusPage")).toBe(
         "Show it on a status page",
@@ -612,9 +618,10 @@ describe("Quickstart", () => {
      * By the on-call section, the website setup's own policy pages the reader
      * and its test page was acknowledged: either ticks the on-call step, and
      * a ticked step is no longer a button. So the section opens the setup
-     * from Search, and says the step opens it only while it is not ticked.
+     * from the website setup's summary (#7370), or later from Search, and
+     * says the step opens it only while it is not ticked.
      */
-    it("opens the on-call setup from Search, because the website setup has ticked its checklist step", () => {
+    it("opens the on-call setup from the website setup's summary or from Search, because the website setup has ticked its checklist step", () => {
       const task: ChecklistTask = checklistTaskOf("OnCall");
       const where: StepDestinations = stepDestinations(task);
       const setup: RoutedGuidedSetup = routedGuidedSetup(where.mayCreate);
@@ -699,9 +706,40 @@ describe("Quickstart", () => {
       expect(section).toContain(
         `so the checklist ticks **${task.title}** as done.`,
       );
+      /*
+       * The summary's "Get paged by SMS or phone call" opens the setup for
+       * whoever may use it, as the project's owner may (#7370).
+       */
+      const phoneLink: string = oneLine(
+        blockFrom(
+          dashboard(
+            "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+          ),
+          'dataTestId="guided-setup-next-phone"',
+          "</AppLink>",
+        ),
+      );
+      const phonePage: string = oneLine(
+        blockFrom(
+          dashboard("Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts"),
+          "export const getPagedByPhonePage",
+          "};",
+        ),
+      );
+      const phoneWords: string = setupWord(
+        QUICKSTART_SETUP_COPIES.website,
+        "nextPhone",
+      );
+
+      expect(phoneLink).toContain("WEBSITE_DOWN_COPY.nextPhone");
+      expect(phonePage).toContain(
+        `return mayUseOnCallSetup ? PageMap.${where.mayCreate} :`,
+      );
+      expect(phoneWords).toBe("Get paged by SMS or phone call");
+
       expect(first.heading).toBe("Open the on-call setup");
       expect(first.body).toBe(
-        `Press \`Ctrl+K\` (\`Cmd+K\` on a Mac), type \`get paged\` and choose **${setup.title}**. While the checklist has not ticked **${task.title}**, that step opens the same guided setup.`,
+        `On the website setup's summary, click **${phoneWords}**: it opens the guided setup **${setup.title}**. To open it later, press \`Ctrl+K\` (\`Cmd+K\` on a Mac), type \`get paged\` and choose it. While the checklist has not ticked **${task.title}**, that step opens the same guided setup.`,
       );
     });
 
@@ -918,7 +956,7 @@ describe("Quickstart", () => {
       "monitoringInterval: DEFAULT_MONITORING_INTERVAL,",
     );
     expect(setupWord(QUICKSTART_SETUP_COPIES.website, "checkHelp")).toContain(
-      "OneUptime checks it every 5 minutes",
+      "OneUptime makes a {{monitor}} that checks it every 5 minutes",
     );
     expect(QUICKSTART).toContain("checks your website every five minutes");
     expect(QUICKSTART).toContain(

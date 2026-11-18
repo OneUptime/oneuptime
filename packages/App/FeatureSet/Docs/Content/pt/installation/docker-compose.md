@@ -413,6 +413,8 @@ npm run backup
 
 Ele pede sua senha de sudo e grava `Backups/db-<day of the month>.backup`, de modo que os backups diários substituem os de um mês antes. Execute-o pelo menos uma vez por dia.
 
+Cada execução diz ao OneUptime como foi, então Configuração do servidor, no Admin Dashboard, mostra quando o último backup terminou e avisa quando um backup falhou ou o último tem mais de uma semana. Uma execução cujo dump falhou diz isso e termina com um erro, para que um job do cron perceba.
+
 ### Copie os backups para fora do servidor
 
 Um backup no mesmo disco que o banco de dados não sobrevive à perda desse disco.

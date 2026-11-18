@@ -115,6 +115,27 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Send another test",
       "Skip the test",
       "I did not get it",
+      // The ways in from Monitors itself (#7054).
+      "Monitors",
+      "Guided setup",
+      "How it works",
+      "Create Monitor",
+      "Website",
+      "API",
+      // A teammate's monitor for the address (#7254).
+      "Create my own monitor",
+      // Step 2's link, and the test page dialog's line (#7757, #7756).
+      "How to Reach Me",
+      // Step 4, where the project has a status page (#7053).
+      "Show it to customers?",
+      "Status page",
+      "Add to status page",
+      "Not now",
+      "Show it on a status page",
+      // The summary's way to paging by phone (#7370).
+      "What next",
+      "Get paged by SMS or phone call",
+      "Page the right person when something breaks",
     ],
     referencePages: ["monitor/website-monitor", "monitor/api-monitor"],
     quickstartSection: "Monitor your website",

@@ -17,6 +17,9 @@
  *                  server that has no Twilio: no SMS and no calls
  *   - billing=on   OneUptime Cloud (server.js sets BILLING_ENABLED)
  *   - theme=dark   the dark theme (server.js draws the light one otherwise)
+ *   - email=off    a server that cannot send email yet (its admin has not
+ *                  set it up): /global-config/vars says so
+ *   - test=unanswered  a test page nobody acknowledges: it keeps paging
  *
  * Recorded on window.__journeyFixture: every write (`writes`: creates,
  * updates and deletes, with the misc data sent beside a create), every API
@@ -74,6 +77,8 @@ const project = seedNewProject({
     .split(",")
     .filter(Boolean),
   billing: params.billing === "on",
+  canSendEmail: params.email !== "off",
+  isTestPageAnswered: params.test !== "unanswered",
 });
 
 signIn(

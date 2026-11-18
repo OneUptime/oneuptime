@@ -2,6 +2,8 @@
 
 Um monitor verifica algo que você opera, como um site, uma API, um host ou um cluster Kubernetes, e avisa quando isso para de funcionar. **Criar monitor** pergunta primeiro o que monitorar, depois o que verificar e então com que frequência. Tudo, exceto o tipo, o nome e o que verificar, começa com padrões que servem para a maioria dos monitores.
 
+Para um site ou uma API, uma configuração guiada leva você do endereço até uma chamada de teste: clique em **Configuração guiada** na lista vazia de **Monitores**, ou em **Como funciona**. **Criar monitor** também a oferece, assim que você escolhe **Site** ou **API**. Veja [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 > [!NOTE]
 > Para criar um monitor, você precisa da função Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou de uma função personalizada com a permissão Create Monitor.
 

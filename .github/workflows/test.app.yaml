@@ -332,19 +332,25 @@ jobs:
           # 23.4 each, past the 22 they are kept to). Each group lists its
           # suites slowest first, as they start. Until then each group carried
           # the history of the suites that joined and left it, one at a time;
-          # git log has it.
+          # git log has it. The same day the guided setups' suites took
+          # places: the on-call setup's (group 13's alone until then, #9418)
+          # in group 2, never beside the journeys, whose fixture server it
+          # shares, and the website setup's (#7056) in group 5. Four short
+          # suites moved to make room (Profiles to 1, Suite Helpers to 5,
+          # Exceptions AI to 10, Give Feedback to 11): each group 21.3 to
+          # 21.9 minutes.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
               test-event-overview-ui
               test-exception-detail-ui
+              test-profiles-ui
               test-vmware-pages-ui
               test-traces-ai-ui
               test-llm-provider-test-ui
               test-dashboard-table-thresholds-ui
               test-openshift-pages-ui
               test-archivable-values-ui
-              test-suite-helpers-ui
               test-storage-array-pages-ui
               test-runbook-variables-ui
               test-first-on-call-policy-ui
@@ -360,8 +366,8 @@ jobs:
               test-list-delete-ui
               test-product-onboarding-ui
               test-host-collectors-ui
+              test-on-call-guided-setup-ui
               test-resource-onboarding-ui
-              test-give-feedback-ui
           - group: 3
             event_overview_shard: 3/3
             suites: >-
@@ -396,8 +402,9 @@ jobs:
               test-openstack-pages-ui
               test-status-page-theme-ui
               test-home-overview-ui
-              test-exceptions-ai-ui
               test-security-hunts-ui
+              test-suite-helpers-ui
+              test-website-down-guided-setup-ui
               test-runbook-triggers-ui
               test-custom-field-files-ui
               test-custom-field-options-ui
@@ -464,7 +471,7 @@ jobs:
               test-cloud-connect-ui
               test-model-tables-ui
               test-metrics-ai-ui
-              test-profiles-ui
+              test-exceptions-ai-ui
               test-status-page-search-ui
               test-packet-capture-ui
               test-multi-device-snmp-walk-ui
@@ -482,6 +489,7 @@ jobs:
               test-owners-on-create-ui
               test-runbook-steps-ui
               test-test-page-ui
+              test-give-feedback-ui
           - group: 12
             model_tables_shard: 2/2
             monitor_overview_shard: 1/2
@@ -495,12 +503,7 @@ jobs:
               test-dashboard-value-widget-ui
               test-sign-in-options-ui
               test-side-by-side-pages-ui
-          # The guided on-call setup, looked at (#7152): added on 2026-11-17,
-          # when no group had 1.3 minutes of room left on its two lanes.
-          # Move suites here when a group runs past its 22.
-          - group: 13
-            suites: >-
-              test-on-call-guided-setup-ui
+              test-server-setup-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -742,6 +745,8 @@ jobs:
             output/playwright/first-on-call-policy-ui/test-results
             output/playwright/on-call-guided-setup-ui/*.png
             output/playwright/on-call-guided-setup-ui/test-results
+            output/playwright/website-down-guided-setup-ui/*.png
+            output/playwright/website-down-guided-setup-ui/test-results
             output/playwright/journeys-ui/*.md
             output/playwright/journeys-ui/*.json
             output/playwright/journeys-ui/test-results
@@ -759,6 +764,8 @@ jobs:
             output/playwright/docker-swarm-pages-ui/test-results
             output/playwright/side-by-side-pages-ui/*.png
             output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/server-setup-ui/*.png
+            output/playwright/server-setup-ui/test-results
             output/playwright/permissions-per-tab-ui/*.png
             output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png

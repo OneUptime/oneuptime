@@ -356,8 +356,9 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   },
   {
     name: ProductEventName.GuidedSetupStarted,
-    description: "A guided setup was opened.",
-    properties: [token("setup")],
+    description:
+      "A guided setup was opened, and where from when the way in names itself (from: empty_list, how_it_works, create_monitor, website_down_summary).",
+    properties: [token("setup"), token("from")],
   },
   {
     name: ProductEventName.GuidedSetupStepReached,
