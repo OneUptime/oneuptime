@@ -365,11 +365,13 @@ that afternoon with the maintainer's go-ahead; the payments profile is done;
 and `editions.json` marks the edition ready, so the Marketplace Release
 workflow pushed 15.0.0's images and deployer that evening, and release
 `15.0` is saved on the Container images page (step 8). Google's validation
-of it failed: the deployer refused the edition, and the scan the PostgreSQL
-image (step 8 says why); the edition was fixed the same day. **Left**:
-pushing 15.0.0 again and Google's validation of it, that page's review once
-the validation passes (step 8), then **Publish** once all three reviews are
-approved (each the maintainer's go-ahead). Google's Marketplace Operations team supports the
+of it failed: the deployer refused the edition, and the scan flagged the
+PostgreSQL image (step 8 says why). The edition was fixed the same day and
+15.0.0 pushed again; the second validation flagged no image, but its test failed
+on the tester itself, which is fixed too. **Left**: pushing 15.0.0 a third
+time and Google's validation of it, that page's review once the validation
+passes (step 8), then **Publish** once all three reviews are approved (each
+the maintainer's go-ahead). Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
@@ -547,6 +549,15 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    the app's image, and builds PostgreSQL without `gosu`
    (`GOOGLE_CLOUD_BUILT_IMAGES` in `build.py`); the chart suite's
    marketplace checks hold it to all four.
+
+   The second validation (the same evening) flagged no image, and the
+   deployer installed OneUptime on all three clusters, but the test failed.
+   Google's report names only the deployer job; reading what the tester
+   asked for shows why. The tester reached OneUptime by the nginx Service's
+   name, which OneUptime takes for a status page's custom domain (any host
+   but its own, `localhost` and `ingress`): with no status page there, the
+   dashboard answered 404. The tester now asks by the deployment's own
+   host (the **Domain name** buyers fill in, `localhost` in Google's test).
 
 ### The release workflow: one-time setup
 
@@ -813,13 +824,29 @@ mpdev verify --deployer="$REGISTRY/deployer:$VERSION"
 
 `mpdev verify` installs the app, waits for it to be ready (up to 30 minutes:
 the first start migrates the database), runs the tester (it opens
-`/status/ready`, `/status`, `/dashboard` and `/accounts`) and removes the app.
+`/status/ready`, `/status`, `/dashboard` and `/accounts` through nginx, under
+the deployment's own host) and removes the app.
 `mpdev` gives the deployment a reporting secret that is not real, so such an
 installation logs that it cannot report and stays unlicensed: expected.
 
 In Producer Portal, add the version on the **Container images** page (the
 deployer image and its track; step 8 of the setup lists the fields), then
 **Submit** it for review (maintainer).
+
+**Pushing a version again** (a fix after a failed validation): the workflow
+finds the version's deployer in Artifact Registry and pushes nothing, so
+remove that tag first. The image itself stays, under the track's tag, until
+the run moves it:
+
+```bash
+gcloud artifacts docker tags delete "$REGISTRY/deployer:$VERSION"
+```
+
+Then run the workflow for the version and `google-cloud`. On the **Container
+images** page, **Edit** the releases: the track's old digest shows as **Out of
+sync**; pick the track again at its new digest (the other fields stay), then
+**Save and Validate**. 15.0.0 went to Google a second time this way on 17
+November 2026.
 
 ## Checking an installation
 
@@ -1365,6 +1392,9 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Release `15.0` saved on the Container images page; Google's validation running                      | Agent      |
 | 2026-11-17 | Google      | Validation of `15.0` failed: the deployer job on all three test clusters; gosu in PostgreSQL        | Google     |
 | 2026-11-17 | Google      | Edition fixed: deployer values, deploy-info, the tester's image; PostgreSQL built without gosu      | Agent      |
+| 2026-11-17 | Google      | Fixes merged; 15.0.0 pushed again (its deployer's tag removed first) and `15.0` saved from it       | Agent      |
+| 2026-11-17 | Google      | Second validation of `15.0`: no image flagged; the test failed on a 404 from /dashboard             | Google     |
+| 2026-11-17 | Google      | Tester fixed: it asks for OneUptime by the deployment's own host, not the Service's name            | Agent      |
 | 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
