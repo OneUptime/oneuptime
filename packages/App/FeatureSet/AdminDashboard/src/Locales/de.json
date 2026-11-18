@@ -283,7 +283,6 @@
       "columnJoinedAt": "Beigetreten am",
       "columnInvitedAt": "Eingeladen am",
       "statusMember": "Mitglied",
-      "statusInvited": "Einladung gesendet",
       "pendingInvitations": "{{pending}} ausstehende Einladung(en)",
       "teamsCardTitle": "Teammitgliedschaften",
       "teamsCardDescription": "Alle Teams, zu denen dieser Benutzer gehört, projektübergreifend. Das Entfernen einer Zeile entfernt ihn nur aus diesem Team.",
@@ -4271,5 +4270,12 @@
   "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Der Einladungslink konnte nicht gelesen werden. Vielleicht ist die Person nicht mehr zu diesem Projekt eingeladen: Laden Sie sie auf dessen Seite Benutzer erneut ein.",
   "Master admins are told when this server's email stops working, every global probe stops reporting or one falls behind, and again once it is right: never through the channel that stopped, at most once an hour.": "Die Master-Administratoren werden benachrichtigt, wenn die E-Mail dieses Servers nicht mehr funktioniert, keine globale Sonde mehr meldet oder eine in Rückstand gerät, und noch einmal, sobald alles wieder stimmt: nie über den ausgefallenen Kanal und höchstens einmal pro Stunde.",
   "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.": "{{probe}} ist mit ihren Netzwerkgeräten im Rückstand: Seit {{time}} warten sie mehr als eine Minute über ihre Abfragezeit hinaus, daher werden sie seltener abgefragt als eingestellt.",
-  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "Lassen Sie die Sonde mehr Geräte gleichzeitig abfragen: Erhöhen Sie GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env oder networkDevicePollConcurrency der Sonde in den Helm-Werten, und geben Sie ihr die passende CPU."
+  "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.": "Lassen Sie die Sonde mehr Geräte gleichzeitig abfragen: Erhöhen Sie GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env oder networkDevicePollConcurrency der Sonde in den Helm-Werten, und geben Sie ihr die passende CPU.",
+  "Email Not Sent": "E-Mail nicht gesendet",
+  "Their invitation email was not sent.": "Die Einladungs-E-Mail wurde nicht gesendet.",
+  "Resend Invitation": "Einladung erneut senden",
+  "Send their invitation email to {{email}} again?": "Die Einladungs-E-Mail erneut an {{email}} senden?",
+  "Send their invitation email again?": "Die Einladungs-E-Mail erneut senden?",
+  "Invitation sent to {{email}}": "Einladung an {{email}} gesendet",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "An diese Adresse wurden in der letzten Stunde zu viele Einladungen gesendet. Sie können sie nach {{time}} erneut senden."
 }

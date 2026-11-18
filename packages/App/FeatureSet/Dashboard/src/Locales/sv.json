@@ -56919,9 +56919,14 @@
   "Whether this probe polls its network devices as often as they are set.": "Om den här sonden avfrågar sina nätverksenheter så ofta som de är inställda.",
   "{{behind}} of {{total}} behind": "{{behind}} av {{total}} ligger efter",
   "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.": "{{probeStatusSummary}}\n\nEn sond ligger efter när monitorerna den kontrollerar, eller nätverksenheterna den avfrågar, väntar mer än en minut efter sin tid, så de kontrolleras mer sällan än inställt. Dess sida säger vad som hjälper den att komma ikapp. Det här löser sig självt när ingen av sonderna som den här monitorn bevakar ligger efter.",
-  "Check their email address, then remove them and invite them again.": "Kontrollera deras e-postadress, ta sedan bort dem och bjud in dem igen.",
   "Email Not Sent": "Mejl inte skickat",
-  "Once email works, remove them and invite them again, or ask your server's admin for their invitation link.": "När e-posten fungerar tar du bort dem och bjuder in dem igen, eller ber serveradministratören om deras inbjudningslänk.",
   "Their invitation email was not sent.": "Inbjudningsmejlet skickades inte.",
-  "They can still join: send them their invitation link yourself.": "De kan fortfarande gå med: skicka deras inbjudningslänk själv."
+  "They can still join: send them their invitation link yourself.": "De kan fortfarande gå med: skicka deras inbjudningslänk själv.",
+  "Check their email address, then use Resend Invitation.": "Kontrollera deras e-postadress och använd sedan ”Skicka inbjudan igen”.",
+  "Invitation sent to {{email}}": "Inbjudan skickad till {{email}}",
+  "Once email works, use Resend Invitation, or ask your server's admin for their invitation link.": "När e-posten fungerar använder du ”Skicka inbjudan igen”, eller ber serveradministratören om deras inbjudningslänk.",
+  "Resend Invitation": "Skicka inbjudan igen",
+  "Send their invitation email again?": "Skicka inbjudningsmejlet igen?",
+  "Send their invitation email to {{email}} again?": "Skicka inbjudningsmejlet till {{email}} igen?",
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}."
 }
