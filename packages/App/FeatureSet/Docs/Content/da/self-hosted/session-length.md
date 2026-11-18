@@ -53,7 +53,7 @@ flowchart TB
 - Serveren tæller begge længder ud fra selve sessionen: hvornår den loggede ind, og hvornår dens person sidst var aktiv. Den tjekker dem ved hver forespørgsel, hver fornyelse og hver liveopdatering og overlader aldrig udlogningen til browseren.
 - Inaktivitetsperioden tæller fra det seneste klik, tastetryk eller den seneste rulning i en hvilken som helst fane på dashboardet eller Admin Dashboard. En fane, der står åben, holder ikke en session i live. At åbne OneUptime igen bringer den heller ikke tilbage: den, der har været væk længere end inaktivitetsperioden, med browseren lukket eller computeren i dvale, logger ind igen.
 - I mobilappen tæller inaktivitetsperioden fra det seneste tryk eller tastetryk. Tid, hvor appen er i baggrunden eller lukket, tæller som tid uden brug: den, der åbner den igen efter inaktivitetsperioden, logger ind igen. Med en inaktivitetsperiode på 15 minutter kræver appen en version nyere end 1.6.0: version 1.6.0 og tidligere logges ud hvert 15. minut, uanset hvor meget de bruges. Versioner nyere end 1.6.0 fortæller også på login-skærmen, hvorfor serveren loggede personen ud.
-- Når en session slutter, går browseren til login-siden, som fortæller hvorfor. Efter at have logget ind igen kommer personen tilbage til den side, de var på.
+- Når en session slutter, går browseren til login-siden, som fortæller hvorfor. Efter at have logget ind igen kommer personen tilbage til den side, de var på. En session, der er slut, på grund af sin længde eller et log ud, en ny adgangskode eller en blokering, afvises med det samme på alle servere fra sin næste anmodning.
 
 | Ændring | Hvad der sker med dem, der er logget ind nu |
 | --- | --- |

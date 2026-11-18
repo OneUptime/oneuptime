@@ -1,4 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
 import SsoTeamMembership, {
@@ -409,6 +410,8 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         emailClaimName: true,
         nameClaimName: true,
         teams: { _id: true },
+        // Whether the session keeps what a sign-out at the provider needs.
+        signOutOfIdentityProvider: true,
       },
       props: { isRoot: true },
     });
@@ -733,6 +736,21 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
           ssoProviderName: projectOidc.name,
           ssoProjectId: projectId,
         },
+        /*
+         * With "Sign out of the identity provider too" on, a browser's
+         * sign-out ends the provider's session as well: what that takes is
+         * kept with this session, server-side, its ID token encrypted.
+         */
+        identityProviderSignOut: IdentityProviderSignOut.forSignIn({
+          signOutOfIdentityProvider: projectOidc.signOutOfIdentityProvider,
+          isMobileRequest: isMobileRequest,
+          providerType: SsoProviderType.ProjectOIDC,
+          providerId: projectOidcId,
+          getEndSessionEndpoint: (): string | null => {
+            return OIDCUtil.getEndSessionEndpoint(client);
+          },
+          idToken: result.idToken,
+        }),
       });
 
     if (isMobileRequest) {

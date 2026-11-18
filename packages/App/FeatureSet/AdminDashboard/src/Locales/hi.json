@@ -4277,5 +4277,9 @@
   "Send their invitation email to {{email}} again?": "उनका आमंत्रण ईमेल {{email}} पर फिर से भेजें?",
   "Send their invitation email again?": "उनका आमंत्रण ईमेल फिर से भेजें?",
   "Invitation sent to {{email}}": "निमंत्रण {{email}} पर भेजा गया",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "पिछले एक घंटे में इस पते पर बहुत ज़्यादा निमंत्रण भेजे गए। आप इसे {{time}} के बाद फिर से भेज सकते हैं।"
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "पिछले एक घंटे में इस पते पर बहुत ज़्यादा निमंत्रण भेजे गए। आप इसे {{time}} के बाद फिर से भेज सकते हैं।",
+  "Sign Out of the Identity Provider Too": "पहचान प्रदाता से भी साइन आउट करें",
+  "Signing out of OneUptime also signs people out of this provider, and of every other app that uses it. Turn on for shared computers.": "OneUptime से साइन आउट करने पर लोग इस प्रदाता से, और इसे इस्तेमाल करने वाले हर दूसरे ऐप से भी, साइन आउट हो जाते हैं। साझा कंप्यूटरों के लिए चालू करें।",
+  "Sign-out Redirect URI:": "साइन आउट के बाद रीडायरेक्ट URI:",
+  "Register the redirect URI with your OIDC identity provider, and the sign-out redirect URI too when Sign Out of the Identity Provider Too is on.": "रीडायरेक्ट URI को अपने OIDC पहचान प्रदाता के साथ पंजीकृत करें, और जब \"पहचान प्रदाता से भी साइन आउट करें\" चालू हो, तो साइन आउट के बाद रीडायरेक्ट URI भी।"
 }

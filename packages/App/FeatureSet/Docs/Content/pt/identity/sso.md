@@ -259,6 +259,12 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 6. Abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor, para fazer login por ele antes de exigir SSO no projeto.
 :::
 
+### Sair também do provedor de identidade
+
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, como uma tela do NOC ou um quiosque, a próxima pessoa que escolhe o provedor na página de entrada entra como quem saiu. Ative **Sair também do provedor de identidade** em **Mais campos** para que sair do OneUptime também encerre a sessão no provedor. Vem desativado: em um notebook pessoal, também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+
+Com a opção ativada, o navegador passa pela saída do provedor assim que o OneUptime encerra a sessão, e o provedor o devolve à página de entrada do OneUptime. Registre essa página no seu provedor: a caixa de diálogo **Configuração OIDC** a mostra como URI de redirecionamento após sair, que os provedores chamam de post-logout redirect URI. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la. Ela vale para as pessoas que entram em um navegador depois de ativada; o app para celular sai apenas do OneUptime. Provedores SAML nunca encerram a sessão de ninguém no provedor de identidade.
+
 ## Funções e equipes dos usuários de SSO
 
 O OneUptime não mapeia funções nem grupos do seu provedor de identidade. O que alguém pode fazer depende das equipes em que está: um provedor adiciona os recém-chegados às **Equipes** dele, e você gerencia as equipes e suas permissões no OneUptime, como descreve [Usuários, equipes e permissões](/docs/permissions/index). Para manter a participação nas equipes alinhada ao seu provedor de identidade, use o [SCIM](/docs/identity/scim). Cada equipe em que alguém entra ao fazer login é registrada na página **Registros de auditoria** dessa equipe, como uma alteração feita pela pessoa que fez login.

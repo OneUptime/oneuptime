@@ -91,6 +91,12 @@ Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una 
 
 Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
 
+## Cerrar sesión también en el proveedor de identidad
+
+Cerrar sesión en OneUptime deja a la persona con la sesión iniciada en el proveedor de identidad, así que en un ordenador compartido la siguiente persona que inicia sesión con ese proveedor entra como la que se fue. En un proveedor OpenID Connect, haz clic en **Editar configuración** y activa **Cerrar sesión también en el proveedor de identidad** en **Más campos**: cerrar sesión en OneUptime termina entonces también la sesión en el proveedor, y el proveedor devuelve el navegador a la página de inicio de sesión de OneUptime. Está desactivado por defecto, porque en un portátil personal también cerraría la sesión de la persona en todas las demás aplicaciones que usan el proveedor.
+
+Registra en tu proveedor la URI de redirección tras cerrar sesión que muestra la tarjeta **URL del proveedor de identidad**, como post-logout redirect URI permitida. Un proveedor cuyo documento de descubrimiento no nombra ningún `end_session_endpoint`, como Google, no puede activarla.
+
 ## Imponer SSO
 
 Configurar un proveedor global no obliga a nadie a usarlo; el inicio de sesión con contraseña sigue funcionando. Para exigir SSO, activa la exigencia en un proyecto o en toda la instancia:

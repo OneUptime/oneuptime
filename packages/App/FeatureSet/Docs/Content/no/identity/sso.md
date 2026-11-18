@@ -259,6 +259,12 @@ Et prosjekt kan også logge inn via en OpenID Connect-leverandør, for eksempel 
 6. Åpne lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren for å logge inn via den før du krever SSO for prosjektet.
 :::
 
+### Logg også ut av identitetsleverandøren
+
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin, som en NOC-skjerm eller en kiosk, kommer den neste som velger leverandøren på påloggingssiden, inn som den som gikk. Slå på **Logg også ut av identitetsleverandøren** under **Flere felt** for å avslutte økten hos leverandøren når noen logger ut av OneUptime. Den er slått av som standard: På en personlig bærbar ville den også logge personen ut av alle andre apper som bruker leverandøren.
+
+Når den er slått på, går nettleseren til leverandørens egen utlogging så snart OneUptime har logget den ut, og leverandøren sender den tilbake til påloggingssiden til OneUptime. Registrer den siden hos leverandøren din: Dialogen **OIDC-konfigurasjon** viser den som omdirigerings-URI etter utlogging, som leverandører kaller en post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på. Den gjelder for personer som logger inn i en nettleser etter at den er slått på; mobilappen logger bare ut av OneUptime. SAML-leverandører logger aldri noen ut av identitetsleverandøren.
+
 ## Roller og team for SSO-brukere
 
 OneUptime overtar ikke roller eller grupper fra identitetsleverandøren din. Hva en person kan gjøre, følger av teamene vedkommende er med i: en leverandør legger nye personer til i sine **Team**, og du administrerer team og tillatelsene deres i OneUptime, slik [Brukere, team og tillatelser](/docs/permissions/index) beskriver. Bruk [SCIM](/docs/identity/scim) for å holde teammedlemskap i takt med identitetsleverandøren din. Hvert team noen blir med i når de logger på, registreres på teamets side **Revisjonslogger** som en endring gjort av personen som logget på.

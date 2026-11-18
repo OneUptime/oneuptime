@@ -26,7 +26,7 @@ Click your picture at the top right of the dashboard.
 | **Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
 | **Admin Settings** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
 | **Theme** | Sets the dashboard's theme: **Light**, **Dark** or **System**, which is light or dark as your device is set. |
-| **Sign Out** | Signs you out. |
+| **Sign Out** | Signs you out, at once on every OneUptime server. Where your administrator has set it up, it signs you out of your identity provider too. |
 
 **User Profile** has its own side menu. **Basic** holds **Overview** and **Profile Picture**. **Security** and **Danger Zone** are folded: click a section's title to open it.
 

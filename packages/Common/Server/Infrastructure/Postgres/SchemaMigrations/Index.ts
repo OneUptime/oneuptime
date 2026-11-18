@@ -1070,6 +1070,7 @@ import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddData
 import { AddTableHealthAttemptedAt1809184570000 } from "./1809184570000-AddTableHealthAttemptedAt";
 import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./1809184620000-AddBiLineageSummaryAndDashboardUpstream";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
+import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
 
 export default [
   InitialMigration,
@@ -2144,4 +2145,5 @@ export default [
   AddTableHealthAttemptedAt1809184570000,
   AddBiLineageSummaryAndDashboardUpstream1809184620000,
   AddDataStoreFindingSampleRecords1809184700000,
+  AddIdentityProviderSignOut1809184710000,
 ];

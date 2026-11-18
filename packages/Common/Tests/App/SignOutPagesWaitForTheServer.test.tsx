@@ -382,3 +382,90 @@ describe("Delete Account", () => {
     expectTheSignOutReachedTheServer(DASHBOARD_SIGN_OUT);
   });
 });
+
+/*
+ * A PERSON WHO SIGNED IN THROUGH AN IDENTITY PROVIDER SET TO SIGN PEOPLE OUT
+ * OF IT TOO GOES TO THE PROVIDER'S SIGN-OUT, NOT THE SIGN-IN PAGE (#9535).
+ *
+ * The server's answer to the sign-out names the provider's own sign-out,
+ * which ends the person's session there and comes back to the sign-in page.
+ * The page still waits for that answer - the OneUptime session ends first -
+ * and follows only an http(s) address.
+ */
+describe("Sign Out of a session whose identity provider signs people out too", () => {
+  const PROVIDER_SIGN_OUT: string =
+    "https://idp.example.com/realms/acme/protocol/openid-connect/logout?id_token_hint=eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1In0.c2ln&client_id=oneuptime&post_logout_redirect_uri=https%3A%2F%2Foneuptime.example.com%2Faccounts";
+
+  const pages: Array<{ name: string; render: () => ReactElement }> = [
+    {
+      name: "the Dashboard",
+      render: (): ReactElement => {
+        return (
+          <DashboardLogout
+            pageRoute={new Route("/dashboard/logout")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
+        );
+      },
+    },
+    {
+      name: "the Admin Dashboard",
+      render: (): ReactElement => {
+        return <AdminLogout />;
+      },
+    },
+  ];
+
+  test.each(pages)(
+    "on $name, the provider's sign-out opens once the server has answered",
+    async (page: { name: string; render: () => ReactElement }) => {
+      const gate: Gate = createGate();
+
+      server.on(HTTPMethod.POST, DASHBOARD_SIGN_OUT, [
+        {
+          status: 200,
+          gate: gate.promise,
+          data: { identityProviderSignOutUrl: PROVIDER_SIGN_OUT },
+        },
+      ]);
+
+      await act(async () => {
+        render(page.render());
+      });
+      await letTheSignOutRun();
+
+      // The OneUptime session ends first: nothing opens before the answer.
+      expect(navigated).toEqual([]);
+
+      await act(async () => {
+        gate.open();
+        await settle();
+      });
+
+      expect(navigated).toEqual([{ to: PROVIDER_SIGN_OUT, force: false }]);
+      expectTheSignOutReachedTheServer(DASHBOARD_SIGN_OUT);
+    },
+  );
+
+  test.each(pages)(
+    "on $name, an address of any other scheme is never followed: the sign-in page opens",
+    async (page: { name: string; render: () => ReactElement }) => {
+      server.on(HTTPMethod.POST, DASHBOARD_SIGN_OUT, [
+        {
+          status: 200,
+          data: { identityProviderSignOutUrl: "javascript:alert(1)" },
+        },
+      ]);
+
+      await act(async () => {
+        render(page.render());
+      });
+      await letTheSignOutRun();
+
+      expect(navigated).toEqual([
+        { to: ACCOUNTS_URL.toString(), force: false },
+      ]);
+    },
+  );
+});
