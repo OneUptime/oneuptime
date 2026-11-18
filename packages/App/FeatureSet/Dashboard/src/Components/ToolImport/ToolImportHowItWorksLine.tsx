@@ -48,7 +48,7 @@ const ToolImportHowItWorksLine: FunctionComponent<ComponentProps> = (
       className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
       data-testid={TOOL_IMPORT_HOW_IT_WORKS_TEST_ID}
     >
-      <span>{translator.translateText(TOOL_IMPORT_HOW_IT_WORKS_QUESTION)}</span>
+      <span>{translator.translateText(TOOL_IMPORT_HOW_IT_WORKS_QUESTION)}</span>{" "}
       <Link
         to={getToolImportOfferRoute(offer)}
         onClick={props.onOpen}
