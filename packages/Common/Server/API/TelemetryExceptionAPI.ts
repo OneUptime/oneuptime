@@ -177,6 +177,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/ai-explanation/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.explainWithAI(req, res);
@@ -215,6 +216,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/similar-ai-check/:telemetryExceptionId`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.checkDuplicatesWithAI(req, res);
@@ -234,6 +236,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/ai-digest`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.digestWithAI(req, res);

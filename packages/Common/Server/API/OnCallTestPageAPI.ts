@@ -537,6 +537,7 @@ router.get(
 router.post(
   `${ON_CALL_TEST_PAGE_API_PATH}/acknowledge/:userOnCallLogTimelineId`,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
