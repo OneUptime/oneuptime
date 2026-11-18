@@ -15,6 +15,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/Types/Translator";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import WhereToLookWords from "Common/UI/Components/ErrorMessage/WhereToLookWords";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL } from "Common/UI/Config";
@@ -51,6 +52,7 @@ export const INSTALLATION_HEALTH_COPY: {
   description: string;
   allRight: string;
   loadError: string;
+  loadFailed: string;
   readTheGuide: string;
 } = {
   title: translationKey("What needs attention"),
@@ -58,17 +60,25 @@ export const INSTALLATION_HEALTH_COPY: {
     "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.",
   ),
   allRight: INSTALLATION_HEALTH_ALL_RIGHT,
+  // What a page that is not the doctor's answer (a proxy's, say) is said as.
   loadError: translationKey(
     "What needs attention could not be read. Reload the page to try again.",
   ),
+  // What failed, first, when the server's own answer explains why.
+  loadFailed: translationKey("What needs attention could not be read."),
   readTheGuide: translationKey("Read the guide"),
 };
 
-// The card's state: still loading, the answer, or a read that failed.
+/*
+ * The card's state: still loading, the answer, or a read that failed, with
+ * what to say: the server's answer as API.getFriendlyMessage words it, so a
+ * failure nobody explained gives its reference and, on a self-hosted
+ * server, where to look (ErrorExplanation).
+ */
 export type InstallationHealthState =
   | { kind: "loading" }
   | { kind: "answer"; answer: InstallationHealthAnswer }
-  | { kind: "failed" };
+  | { kind: "failed"; message: string };
 
 export const readInstallationHealth: () => Promise<InstallationHealthState> =
   async (): Promise<InstallationHealthState> => {
@@ -81,15 +91,17 @@ export const readInstallationHealth: () => Promise<InstallationHealthState> =
         });
 
       if (response instanceof HTTPErrorResponse) {
-        return { kind: "failed" };
+        return { kind: "failed", message: API.getFriendlyMessage(response) };
       }
 
       const answer: InstallationHealthAnswer | null =
         InstallationHealthUtil.parseAnswer(response.data);
 
-      return answer ? { kind: "answer", answer: answer } : { kind: "failed" };
-    } catch {
-      return { kind: "failed" };
+      return answer
+        ? { kind: "answer", answer: answer }
+        : { kind: "failed", message: INSTALLATION_HEALTH_COPY.loadError };
+    } catch (err) {
+      return { kind: "failed", message: API.getFriendlyMessage(err) };
     }
   };
 
@@ -111,6 +123,12 @@ export const FindingRow: FunctionComponent<{
     ? translator.translateTemplate(finding.fix, finding.values)
     : null;
 
+  /*
+   * The title on a line of its own, then what is wrong, then the fix: run
+   * together, "Email Not set up yet: ..." read as one sentence, in every
+   * language. A word too long for the line - a migration's name, a disk's -
+   * breaks rather than run out of the card on a phone.
+   */
   return (
     <li
       className="flex items-start gap-3 px-4 py-3"
@@ -122,23 +140,28 @@ export const FindingRow: FunctionComponent<{
         size={SizeProp.Regular}
         className={`mt-0.5 h-5 w-5 flex-shrink-0 ${isFix ? "text-red-500" : "text-amber-500"}`}
       />
-      <div className="min-w-0 space-y-1 text-sm">
-        <div className="text-gray-900">
+      <div className="min-w-0 flex-1 space-y-1 break-words text-sm">
+        <p
+          className="font-semibold text-gray-900"
+          data-testid="installation-health-finding-title"
+        >
           {finding.adminPath && !isServerSetupFinding(finding) ? (
             <Link
               to={new Route(finding.adminPath)}
-              className="font-semibold text-indigo-600 hover:underline"
+              className="text-indigo-600 hover:underline"
             >
               {title}
             </Link>
           ) : (
-            <span className="font-semibold">{title}</span>
+            title
           )}
-          <span className="text-gray-700">
-            {" "}
-            {translator.translateTemplate(finding.words, finding.values)}
-          </span>
-        </div>
+        </p>
+        <p
+          className="text-gray-700"
+          data-testid="installation-health-finding-words"
+        >
+          {translator.translateTemplate(finding.words, finding.values)}
+        </p>
         {fix && isServerSetupFinding(finding) ? (
           <Link
             to={RouteUtil.populateRouteParams(
@@ -176,6 +199,8 @@ const InstallationHealthSummary: FunctionComponent = (): ReactElement => {
   const [state, setState] = useState<InstallationHealthState>({
     kind: "loading",
   });
+  // Bumped by Try again: the card reads the answer again, and stays while it does.
+  const [attempt, setAttempt] = useState<number>(0);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -186,16 +211,16 @@ const InstallationHealthSummary: FunctionComponent = (): ReactElement => {
           setState(next);
         }
       })
-      .catch((): void => {
+      .catch((err: unknown): void => {
         if (isCurrent) {
-          setState({ kind: "failed" });
+          setState({ kind: "failed", message: API.getFriendlyMessage(err) });
         }
       });
 
     return (): void => {
       isCurrent = false;
     };
-  }, []);
+  }, [attempt]);
 
   if (state.kind === "loading") {
     return <></>;
@@ -204,14 +229,37 @@ const InstallationHealthSummary: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title={INSTALLATION_HEALTH_COPY.title}
-      description={INSTALLATION_HEALTH_COPY.description}
+      description={
+        /*
+         * The doctor's command drawn as one, with a copy button (#7539), in
+         * the reader's language around it.
+         */
+        <p data-testid="installation-health-description">
+          <WhereToLookWords
+            text={translator.translateTemplate(
+              INSTALLATION_HEALTH_COPY.description,
+            )}
+          />
+        </p>
+      }
     >
       <div data-testid="installation-health">
         {state.kind === "failed" ? (
+          /*
+           * What failed, then the server's own answer: why and what to do,
+           * and for a failure nobody explained, its reference and where to
+           * look. Try again reads it again.
+           */
           <ErrorMessage
-            message={translator.translateTemplate(
-              INSTALLATION_HEALTH_COPY.loadError,
+            message={state.message}
+            whatFailed={translator.translateTemplate(
+              INSTALLATION_HEALTH_COPY.loadFailed,
             )}
+            onRefreshClick={(): void => {
+              setAttempt((count: number): number => {
+                return count + 1;
+              });
+            }}
           />
         ) : state.answer.findings.length === 0 ? (
           <div

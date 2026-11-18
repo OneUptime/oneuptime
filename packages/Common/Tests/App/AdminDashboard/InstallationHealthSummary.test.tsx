@@ -23,6 +23,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const mockGet: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/API/API", () => {
+  // The server's answers, worded as every page words them.
+  const actual: { getFriendlyMessage: (err: unknown) => string } =
+    jest.requireActual<{
+      default: { getFriendlyMessage: (err: unknown) => string };
+    }>("../../../UI/Utils/API/API").default;
+
   return {
     __esModule: true,
     default: {
@@ -30,7 +36,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
         return mockGet(...args);
       },
       getFriendlyMessage: (err: unknown): string => {
-        return err instanceof Error ? err.message : String(err);
+        return actual.getFriendlyMessage(err);
       },
     },
   };
@@ -61,6 +67,13 @@ import ServerSetupChecklistUtil, {
   SERVER_SETUP_STATUS_WORDS,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
 import { getTemplatePlaceholders } from "../../../Types/Translator";
+import {
+  getUnexplainedServerErrorMessage,
+  ERROR_REFERENCE_FIELD,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { getOneUptimeHealthUrl } from "../../../UI/Utils/OneUptimeHealthLink";
+import User from "../../../UI/Utils/User";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -202,10 +215,13 @@ async function renderIn(
 
 beforeEach(() => {
   mockGet.mockReset();
+  // The reader: the Admin Dashboard's, a master admin of a self-hosted server.
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
 });
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("the card", () => {
@@ -256,12 +272,51 @@ describe("the card", () => {
         return row.getAttribute("data-level");
       }),
     ).toEqual(["fix", "fix", "warn", "warn"]);
-    expect(rows[0]).toHaveTextContent(
-      "Valkey Valkey does not answer, so background jobs and live updates stop.",
+    // The title on a line of its own, then what is wrong, then the fix.
+    expect(
+      within(rows[0]!).getByTestId("installation-health-finding-title"),
+    ).toHaveTextContent("Valkey");
+    expect(
+      within(rows[0]!).getByTestId("installation-health-finding-words"),
+    ).toHaveTextContent(
+      "Valkey does not answer, so background jobs and live updates stop.",
     );
     expect(rows[0]).toHaveTextContent(
       "Check that Valkey is running, and read its log for the reason.",
     );
+  });
+
+  test("a word too long for the line breaks in the card, rather than run out of it", async () => {
+    respond(answerOf(busyFacts()));
+
+    await renderIn("en");
+
+    for (const row of screen.getAllByRole("listitem")) {
+      const words: HTMLElement = within(row).getByTestId(
+        "installation-health-finding-words",
+      );
+
+      expect(words.parentElement).toHaveClass("min-w-0");
+      expect(words.parentElement).toHaveClass("break-words");
+    }
+  });
+
+  test("its description names npm run doctor as a command, with a copy button", async () => {
+    respond(answerOf(busyFacts()));
+
+    await renderIn("en");
+
+    const description: HTMLElement = screen.getByTestId(
+      "installation-health-description",
+    );
+    const command: HTMLElement = within(description).getByTestId(
+      "error-where-to-look-command",
+    );
+
+    expect(command.querySelector("code")).toHaveTextContent("npm run doctor");
+    expect(command.querySelector("code")).toHaveAttribute("dir", "ltr");
+    expect(within(command).getByRole("button")).toHaveAccessibleName("Copy");
+    expect(description.textContent).toBe(INSTALLATION_HEALTH_COPY.description);
   });
 
   test("a step of the server setup checklist, in its own words, sends the admin to Server setup", async () => {
@@ -304,15 +359,110 @@ describe("the card", () => {
     expect(guide).toHaveAttribute("target", "_blank");
   });
 
-  test("a read that fails says so", async () => {
+  /*
+   * A read the server could not explain says what failed, why, the
+   * reference of its log lines with a copy button, and where to look - the
+   * doctor's command - but no link to OneUptime Health, which is the page
+   * the reader is on. Try again reads it again, in place.
+   */
+  test("a read the server could not explain says what failed, its reference and where to look, and Try again reads it again", async () => {
+    const reference: string = "9c4e1a07";
+
+    mockGet.mockResolvedValueOnce(
+      new HTTPErrorResponse(
+        500,
+        {
+          message: getUnexplainedServerErrorMessage(reference),
+          [ERROR_REFERENCE_FIELD]: reference,
+        },
+        {},
+      ),
+    );
+
+    await renderIn("en");
+
+    const card: HTMLElement = screen.getByTestId("installation-health");
+
+    expect(within(card).getByTestId("error-what-failed")).toHaveTextContent(
+      INSTALLATION_HEALTH_COPY.loadFailed,
+    );
+    expect(within(card).getByTestId("error-reference")).toHaveTextContent(
+      reference,
+    );
+    expect(
+      within(card).getByTestId("error-where-to-look-command"),
+    ).toHaveTextContent("npm run doctor -- --logs");
+
+    // On OneUptime Health itself, nothing sends the reader to it.
+    window.history.pushState(
+      {},
+      "",
+      new globalThis.URL(getOneUptimeHealthUrl().toString()).pathname,
+    );
+
+    try {
+      cleanup();
+      mockGet.mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          {
+            message: getUnexplainedServerErrorMessage(reference),
+            [ERROR_REFERENCE_FIELD]: reference,
+          },
+          {},
+        ),
+      );
+      await renderIn("en");
+
+      expect(screen.queryByTestId("error-open-health")).toBeNull();
+      expect(screen.getByTestId("installation-health")).not.toHaveTextContent(
+        UnexplainedErrorWords.openHealth,
+      );
+
+      respond(answerOf(busyFacts()));
+
+      await act(async () => {
+        screen.getByTestId("refresh-button").click();
+      });
+      await flush();
+
+      expect(screen.getAllByRole("listitem").length).toBe(4);
+      expect(mockGet).toHaveBeenCalledTimes(3);
+    } finally {
+      window.history.pushState({}, "", "/");
+    }
+  });
+
+  test("a gateway's 502 says the server did not answer, with no reference", async () => {
     mockGet.mockResolvedValue(
-      new HTTPErrorResponse(500, { message: "boom" }, {}),
+      new HTTPErrorResponse(502, { message: "Bad Gateway" }, {}),
+    );
+
+    await renderIn("en");
+
+    const card: HTMLElement = screen.getByTestId("installation-health");
+
+    expect(card).toHaveTextContent(INSTALLATION_HEALTH_COPY.loadFailed);
+    expect(card).toHaveTextContent(UnexplainedErrorWords.serverDownWhy);
+    expect(within(card).queryByTestId("error-reference")).toBeNull();
+    expect(
+      within(card).getByTestId("error-where-to-look-command"),
+    ).toHaveTextContent("npm run doctor");
+  });
+
+  test("a refusal the server worded is said as it is", async () => {
+    mockGet.mockResolvedValue(
+      new HTTPErrorResponse(
+        422,
+        { message: "Only master admins can see this." },
+        {},
+      ),
     );
 
     await renderIn("en");
 
     expect(screen.getByTestId("installation-health")).toHaveTextContent(
-      INSTALLATION_HEALTH_COPY.loadError,
+      "Only master admins can see this.",
     );
   });
 
@@ -362,6 +512,7 @@ const CARD_WORDS: Array<string> = [
   INSTALLATION_HEALTH_COPY.description,
   INSTALLATION_HEALTH_COPY.allRight,
   INSTALLATION_HEALTH_COPY.loadError,
+  INSTALLATION_HEALTH_COPY.loadFailed,
   INSTALLATION_HEALTH_COPY.readTheGuide,
   INSTALLATION_HEALTH_SETUP_FIX,
   ...Object.values(INSTALLATION_HEALTH_WORDS).flatMap(

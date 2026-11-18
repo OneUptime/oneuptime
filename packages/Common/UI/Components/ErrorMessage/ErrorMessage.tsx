@@ -35,8 +35,16 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
    * Persian page, in an isolate of its own. Words in the page's own way are
    * drawn as they always were.
    */
+  /*
+   * Its lines are centred, so the reference's row of an error nobody
+   * explained is centred under them too, not left at their start.
+   */
   const words: ReactElement = (
-    <ErrorMessageText message={props.message} whatFailed={props.whatFailed} />
+    <ErrorMessageText
+      message={props.message}
+      whatFailed={props.whatFailed}
+      isCentered={true}
+    />
   );
   return (
     <div className="text-center my-10 text-gray-500 text-sm">

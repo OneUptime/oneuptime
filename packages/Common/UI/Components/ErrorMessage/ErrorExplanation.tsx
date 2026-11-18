@@ -1,14 +1,17 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Link from "../Link/Link";
 import WhereToLookWords from "./WhereToLookWords";
-import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "../../Config";
+import { BILLING_ENABLED } from "../../Config";
 import NewVersion, {
   NewVersionAudience,
 } from "../../Utils/NewVersion/NewVersion";
+import {
+  getOneUptimeHealthUrl,
+  isOnOneUptimeHealth,
+} from "../../Utils/OneUptimeHealthLink";
 import { Translator } from "../../Utils/TranslateTemplate";
 import User from "../../Utils/User";
 import useTranslator from "../../Utils/UseTranslator";
-import URL from "../../../Types/API/URL";
 import { joinSentences } from "../../Utils/SentenceSeparator";
 import {
   getExplanationWords,
@@ -100,13 +103,17 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
     isVisitor: isVisitor,
   });
 
-  // OneUptime Health answers only while the server does.
+  /*
+   * OneUptime Health answers only while the server does, and is no link
+   * from OneUptime Health itself.
+   */
   const showHealthLink: boolean =
     !BILLING_ENABLED &&
     !isVisitor &&
     isMasterAdmin &&
     (error.kind === UnexplainedErrorKind.ServerWithReference ||
-      error.kind === UnexplainedErrorKind.Server);
+      error.kind === UnexplainedErrorKind.Server) &&
+    !isOnOneUptimeHealth();
 
   return (
     <span className="block" data-testid="error-explanation">
@@ -150,9 +157,7 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
               {" "}
               <Link
                 className="underline"
-                to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
-                  "/health",
-                )}
+                to={getOneUptimeHealthUrl()}
                 dataTestId="error-open-health"
               >
                 {say(UnexplainedErrorWords.openHealth)}
