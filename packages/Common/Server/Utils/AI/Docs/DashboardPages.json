@@ -389,6 +389,40 @@
     "kind": "page"
   },
   {
+    "title": "Default Ladder for New Members",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Channels"
+    ],
+    "keywords": [
+      "default ladder",
+      "default paging ladder",
+      "default notification rules",
+      "default on-call rules",
+      "new member notification",
+      "how to reach me default"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#default-ladder-for-new-members",
+    "kind": "action"
+  },
+  {
+    "title": "Phone for People on Call",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Channels"
+    ],
+    "keywords": [
+      "require phone",
+      "phone method",
+      "require sms",
+      "on-call phone"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#phone-for-people-on-call",
+    "kind": "action"
+  },
+  {
     "title": "Custom SMTP Configs",
     "where": [
       "Project Settings",
