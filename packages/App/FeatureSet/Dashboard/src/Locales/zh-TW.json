@@ -56966,6 +56966,8 @@
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。",
   "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
   "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "留空則只匯入裝置。每個監測器都會複製範本的條件、間隔、標籤和自訂欄位預設值，可能會產生費用。",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "還沒有網路裝置、Ping、IP、連接埠或 NTP 監測器範本。透過「管理範本」建立一個，回到此步驟時就會出現在清單中。",
   "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
   "Table Health Attempted At": "Table Health Attempted At",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",

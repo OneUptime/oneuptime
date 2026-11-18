@@ -56966,6 +56966,8 @@
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "أُرسل عدد كبير جدًا من الدعوات إلى هذا العنوان خلال الساعة الماضية. يمكنك إعادة إرسالها بعد {{time}}.",
   "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
   "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "اتركه فارغًا لاستيراد الأجهزة فقط. تنسخ كل مراقبة معايير القالب وفاصله الزمني وتسمياته والقيم الافتراضية لحقوله المخصصة، وقد تُحتسب في الفوترة.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "لا يوجد بعد قالب مراقبة من نوع «جهاز شبكة» أو Ping أو IP أو منفذ أو NTP. أنشئ واحدًا من «إدارة القوالب»، وسيظهر في القائمة عندما تعود إلى هذه الخطوة.",
   "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
   "Table Health Attempted At": "Table Health Attempted At",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",

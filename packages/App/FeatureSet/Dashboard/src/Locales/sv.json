@@ -56966,6 +56966,8 @@
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "För många inbjudningar har skickats till den här adressen under den senaste timmen. Du kan skicka den igen efter {{time}}.",
   "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
   "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Lämna tomt för att bara importera enheter. Varje övervakning kopierar mallens kriterier, intervall, etiketter och standardvärden för anpassade fält, och kan debiteras.",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ingen övervakningsmall för nätverksenheter, Ping, IP, Port eller NTP ännu. Skapa en med ”Hantera mallar”, så visas den när du kommer tillbaka till det här steget.",
   "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
   "Table Health Attempted At": "Table Health Attempted At",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",

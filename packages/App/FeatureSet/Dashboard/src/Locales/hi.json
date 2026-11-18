@@ -56966,6 +56966,8 @@
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "पिछले एक घंटे में इस पते पर बहुत ज़्यादा निमंत्रण भेजे गए। आप इसे {{time}} के बाद फिर से भेज सकते हैं।",
   "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
   "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "केवल डिवाइस आयात करने के लिए खाली छोड़ें। हर मॉनिटर टेम्पलेट की शर्तें, अंतराल, लेबल और कस्टम फ़ील्ड डिफ़ॉल्ट कॉपी करता है, और इसका बिल बन सकता है।",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "अभी कोई नेटवर्क डिवाइस, Ping, IP, पोर्ट या NTP मॉनिटर टेम्पलेट नहीं है। \"टेम्पलेट प्रबंधित करें\" से एक बनाएं, और इस चरण पर लौटने पर वह सूची में दिखेगा।",
   "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
   "Table Health Attempted At": "Table Health Attempted At",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",

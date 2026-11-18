@@ -38,6 +38,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import IP from "../../../Types/IP/IP";
+import Port from "../../../Types/Port";
+import { DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, describe, expect, it } from "@jest/globals";
@@ -159,6 +162,34 @@ function mockMonitorTemplate(
   return jest
     .spyOn(MonitorTemplateService, "findOneById")
     .mockResolvedValue(monitorTemplate);
+}
+
+// A Ping, IP, Port or NTP template's steps: one per port (undefined: none).
+function addressSteps(
+  monitorType: MonitorType,
+  ports: Array<number | undefined>,
+): MonitorSteps {
+  const statusId: ObjectID = ObjectID.generate();
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+  monitorSteps.data = {
+    monitorStepsInstanceArray: ports.map(
+      (port: number | undefined): MonitorStep => {
+        const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+          monitorName: "Kiosk",
+          monitorType: monitorType,
+          onlineMonitorStatusId: statusId,
+          offlineMonitorStatusId: statusId,
+          defaultIncidentSeverityId: statusId,
+          defaultAlertSeverityId: statusId,
+        });
+        step.setMonitorDestination(IP.fromString("192.0.2.10"));
+        step.setPort(port ? new Port(port) : undefined);
+        return step;
+      },
+    ),
+    defaultMonitorStatusId: statusId,
+  };
+  return monitorSteps;
 }
 
 /*
@@ -396,16 +427,96 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     ).rejects.toThrow(BadDataException);
   });
 
-  it("rejects a template for any other monitor type", async () => {
-    mockMonitorTemplate({ monitorType: MonitorType.Ping });
+  /*
+   * ISSUE #9510. A rule offered only Network Device templates, so a
+   * customer's Ping template - labels, interval and criteria set up - could
+   * not be picked ("No options available"). Every kind a device's monitor
+   * can be made from is accepted now, as Review Results accepts them.
+   */
+  it.each([
+    [MonitorType.Ping, undefined],
+    [MonitorType.IP, undefined],
+    [MonitorType.Port, 22],
+    [MonitorType.NTP, undefined],
+  ] as Array<[MonitorType, number | undefined]>)(
+    "accepts a %s template that checks something",
+    async (monitorType: MonitorType, port: number | undefined) => {
+      mockMonitorTemplate({
+        monitorType: monitorType,
+        monitorSteps: addressSteps(monitorType, port ? [port] : [undefined]),
+      });
+
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each([
+    MonitorType.Manual,
+    MonitorType.IncomingRequest,
+    MonitorType.IncomingEmail,
+    MonitorType.Website,
+    MonitorType.API,
+    MonitorType.SSLCertificate,
+    MonitorType.DNS,
+    MonitorType.Logs,
+    MonitorType.Server,
+  ])(
+    "rejects a %s template, which cannot check a device, saying which kinds can",
+    async (monitorType: MonitorType) => {
+      mockMonitorTemplate({ monitorType: monitorType });
+
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        ),
+      ).rejects.toThrow(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
+    },
+  );
+
+  it("rejects a Ping template with no steps: its monitors would check nothing", async () => {
+    const empty: MonitorSteps = new MonitorSteps();
+    empty.data = { monitorStepsInstanceArray: [] } as never;
+    mockMonitorTemplate({ monitorType: MonitorType.Ping, monitorSteps: empty });
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
         makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
       ),
     ).rejects.toThrow(
-      "Monitor template must be a Network Device monitor template.",
+      "This monitor template has no steps, so a monitor made from it would check nothing.",
     );
+  });
+
+  it("rejects a Port template with a step that names no port", async () => {
+    mockMonitorTemplate({
+      monitorType: MonitorType.Port,
+      monitorSteps: addressSteps(MonitorType.Port, [22, undefined]),
+    });
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).rejects.toThrow(
+      "Every step of a Port monitor template must name the port it checks.",
+    );
+  });
+
+  it("still refuses a Ping template an exclusion rule names: it imports nothing to monitor", async () => {
+    mockMonitorTemplate({
+      monitorType: MonitorType.Ping,
+      monitorSteps: addressSteps(MonitorType.Ping, [undefined]),
+    });
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID, isExclusion: true }),
+      ),
+    ).rejects.toThrow("Exclusion rules cannot select a monitor template.");
   });
 
   it("rejects a Network Device template without usable monitor steps", async () => {
@@ -821,6 +932,28 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
   it("accepts selecting a valid template by ID", async () => {
     mockExistingRule();
     mockMonitorTemplate();
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("checks a Ping template picked on an edit too", async () => {
+    mockExistingRule();
+    mockMonitorTemplate({ monitorType: MonitorType.Website });
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).rejects.toThrow(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
+
+    mockMonitorTemplate({
+      monitorType: MonitorType.Ping,
+      monitorSteps: addressSteps(MonitorType.Ping, [undefined]),
+    });
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(

@@ -56966,6 +56966,8 @@
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去1時間にこのアドレスへ送信された招待が多すぎます。{{time}} 以降に再送信できます。",
   "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
   "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "空欄ならデバイスのみをインポートします。各モニターはテンプレートの条件、間隔、ラベル、カスタムフィールドの既定値を引き継ぎ、課金対象になる場合があります。",
+  "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "ネットワークデバイス、Ping、IP、ポート、NTP のモニターテンプレートはまだありません。「テンプレートを管理」で作成すると、このステップに戻ったときに一覧に表示されます。",
   "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
   "Table Health Attempted At": "Table Health Attempted At",
   "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
