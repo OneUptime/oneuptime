@@ -15,6 +15,13 @@
   `ifCond` compares two values and takes no boolean operators, so the isNewUser
   split is nested inside each branch rather than combined. The `else` arms keep
   the original invitation wording for anything that does not set the variable.
+
+  Who invited them (#7471, Server/Utils/TeamMember/InvitationInviter):
+  `inviterLabel` is "Ada Walker (ada@walk.co)", and `inviterName` "Ada
+  Walker" - a name the reader knows, and the address to check it by. Both are
+  the inviter's own words, so they are printed escaped (plainInfo), never as
+  HTML. An invitation that names nobody - one OneUptime, an API key or a
+  workflow made - reads as it always did.
 --}}
 
 {{#ifCond isInvitationAccepted "true"}}
@@ -22,7 +29,11 @@
 {{> EmailTitle title=(concat "You've Been Added to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". Create your account to get started - your access is already waiting for you.")}}
+{{else}}
 {{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Create your account to get started - your access is already waiting for you.")}}
+{{/if}}
 
 {{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
 
@@ -30,7 +41,11 @@
 
 {{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " added you to " projectName " on " (brandName) ". Sign in to get started - there is nothing for you to accept.")}}
+{{else}}
 {{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Sign in to get started - there is nothing for you to accept.")}}
+{{/if}}
 
 {{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
 
@@ -44,7 +59,11 @@
 {{> EmailTitle title=(concat "You're Invited to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". Create your account to get started.")}}
+{{else}}
 {{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Create your account to get started.")}}
+{{/if}}
 
 {{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
 
@@ -52,7 +71,11 @@
 
 {{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
+{{#if inviterLabel}}
+{{> InfoBlock plainInfo=(concat inviterLabel " invited you to join " projectName " on " (brandName) ". Sign in to view and manage your invitations.")}}
+{{else}}
 {{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Sign in to view and manage your invitations.")}}
+{{/if}}
 
 {{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
 
@@ -65,8 +88,12 @@
 
 {{> VerticalSpace this}}
 
-{{> InfoBlock info="<em>If you don't have an account yet, you'll be redirected to create one first.</em>"}}
-
+{{!--
+  Where they ask (Partials/SupportBlock, #8190): on a self-hosted server the
+  person who invited them, named by inviterName - who also gets a reply to
+  this email - or the server's admin, never OneUptime's support (#7471); on
+  OneUptime Cloud, its support.
+--}}
 {{> SupportBlock this }}
 
 {{> Footer this}}

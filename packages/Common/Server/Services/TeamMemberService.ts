@@ -76,6 +76,9 @@ import ProjectLeaveResourceCleanup, {
 import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
 import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
+import InvitationInviterUtil, {
+  InvitationInviter,
+} from "../Utils/TeamMember/InvitationInviter";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
@@ -734,6 +737,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
                 .addQueryParam("email", email.toString(), true)
                 .toString();
 
+          /*
+           * Who is inviting them, named in the subject and the first line,
+           * and - on a self-hosted server - whom they ask, and whom a reply
+           * reaches (#7471, InvitationInviter). Nobody, for an invitation
+           * OneUptime, an API key or a workflow makes.
+           */
+          const inviter: InvitationInviter | null =
+            await InvitationInviterUtil.read({
+              props: createBy.props,
+              inviteeUserId: user.id,
+            });
+
           MailService.sendMail(
             {
               toEmail: email,
@@ -757,11 +772,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
                 isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
                 projectName: project.name!,
                 homeUrl: new URL(httpProtocol, host).toString(),
+                ...InvitationInviterUtil.getTemplateVars(inviter),
               },
-              subject: isInvitationAcceptedOnCreate
-                ? "You have been added to " + project.name
-                : "You have been invited to " + project.name,
+              subject: InvitationInviterUtil.getSubject({
+                projectName: project.name!,
+                inviter: inviter,
+                isAccepted: isInvitationAcceptedOnCreate,
+              }),
               isSubjectLiteral: true,
+              replyToEmail: InvitationInviterUtil.getReplyTo({
+                inviter: inviter,
+                isSelfHosted: !IsBillingEnabled,
+              }),
             },
             {
               projectId: createBy.data.projectId!,

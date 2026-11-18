@@ -90,6 +90,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -117,6 +118,9 @@ let testIndex: number = 0;
 beforeEach(() => {
   jest.clearAllMocks();
   stubProjectDirectory({});
+
+  // Who invited them is held in TeamMemberInvitationEmailById: nobody here.
+  jest.spyOn(InvitationInviterUtil, "read").mockResolvedValue(null);
 
   redis = new FakeCounterRedis();
   (Redis.getClient as unknown as MockedFn).mockReturnValue(redis);
