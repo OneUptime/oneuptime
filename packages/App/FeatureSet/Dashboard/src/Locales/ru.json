@@ -56762,7 +56762,7 @@
   "No default ladder: a member is paged by every method they verify, at once.": "Последовательности по умолчанию нет: участника сразу вызывают каждым методом, который он подтвердит.",
   "No phone method": "Нет телефонного метода",
   "On-Call Readiness and Setup health name everyone on a policy without one, and a setup reminder asks them to add one. Nobody is locked out.": "«Готовность к дежурству» и «Состояние настройки» называют всех в политике, у кого его нет, а напоминание о настройке просит их добавить его. Никого не блокируют.",
-  "Only a Project Owner or Project Admin can change the default ladder.": "Изменить последовательность по умолчанию может только владелец проекта или администратор проекта.",
+  "Only a Project Owner or Project Admin can change the default ladder.": "Изменить последовательность по умолчанию может только Владелец проекта или Администратор проекта.",
   "Phone added. It can text and call you now: put it in your ladder.": "Телефон добавлен. Теперь с вами можно связаться по SMS и звонком: добавьте его в свою последовательность.",
   "Phone for People on Call": "Телефон для дежурных",
   "Require Phone Method for On-Call": "Требовать телефонный метод для дежурства",
