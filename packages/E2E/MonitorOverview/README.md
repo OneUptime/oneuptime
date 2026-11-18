@@ -118,6 +118,9 @@ created as `MonitorTest` creates it and answers on its first read, judged by the
 steps' criteria as the server judges it (`MonitorTestEvaluation`): the first criteria, top to
 bottom, whose name says online for an answer that is up, or offline for one that is down.
 
+A monitor's last fire drill (`GET /on-call-test-page/fire-drill/last/:monitorId`, #9386), which
+When this goes down reads under its chain, answers that none was run.
+
 `?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
 already an owner of this monitor."), as the server refuses a second row for an owner.
 

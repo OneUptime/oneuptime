@@ -4093,6 +4093,18 @@ async function handleApi(method, options) {
     );
   }
 
+  /*
+   * A monitor's last fire drill (GET /on-call-test-page/fire-drill/last/
+   * :monitorId, #9386), which When this goes down reads under its chain:
+   * this workspace has run none, so the card ends where it did.
+   */
+  if (
+    method === "GET" &&
+    parsed.pathname.includes("/on-call-test-page/fire-drill/last/")
+  ) {
+    return ok({ fireDrill: null });
+  }
+
   // What refers to a monitor (?usedBy=).
   if (method === "GET" && parsed.pathname.includes("/used-by/monitor/")) {
     if (failures.has("used-by") && !hasFailedUsedBy) {
