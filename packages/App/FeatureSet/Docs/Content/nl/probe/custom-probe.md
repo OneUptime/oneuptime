@@ -384,6 +384,16 @@ Verzoeken die slagen maar langer duren dan `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_
 
 Ook aan de serverkant van OneUptime wordt een sondeverzoek gelogd dat traag wordt beantwoord, of dat de sonde opgaf voordat er een antwoord werd gestuurd, met de id van de sonde. Die twee logs samen vertellen aan welke kant van de verbinding de fout zit.
 
+### Een sonde loopt achter
+
+Een sonde **Loopt achter** als haar monitoren meer dan een minuut na hun controletijd wachten, zodat ze minder vaak worden gecontroleerd dan ingesteld. De **Status** in de tabel **Aangepaste sondes** toont dan **Loopt achter**, en de pagina van de sonde zegt onder **Monitorcontroles** sinds wanneer. Voor de sondes die een zelf gehoste OneUptime zelf draait, meldt OneUptime-gezondheid in het Admin-dashboard het.
+
+Een sonde controleert tot `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitoren tegelijk, 10 met de standaardinstellingen, en vraagt om meer zodra er ruimte is. Ze raakt achter als er meer monitoren aan de beurt zijn dan ze kan controleren, bijvoorbeeld als veel van hun controles doorlopen tot hun time-out. Zo haalt ze de achterstand in:
+
+- Werk de sonde bij. Een oudere sonde vraagt maar één keer per minuut om haar monitoren, en controleert dus hoogstens `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitoren per minuut.
+- Laat haar meer monitoren tegelijk controleren: verhoog `PROBE_MONITORING_WORKERS` en start de sonde opnieuw. Voor de sondes die een zelf gehoste OneUptime draait, is dat `GLOBAL_PROBE_1_MONITORING_WORKERS` in `config.env` met Docker Compose, of de `monitoringWorkers` van de sonde in de waarden van de Helm-chart.
+- Geef haar meer CPU en geheugen, of draai nog een kopie met dezelfde `PROBE_ID` en dezelfde `PROBE_KEY`: de kopieën verdelen haar monitoren.
+
 ### Andere problemen
 
 :::details De sonde stopt meteen na het starten

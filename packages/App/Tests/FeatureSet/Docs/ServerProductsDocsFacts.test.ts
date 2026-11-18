@@ -1,5 +1,9 @@
 import { getProductTitle } from "Common/Types/Product/ProductCatalog";
 import ProductKey from "Common/Types/Product/ProductKey";
+import RunbookTriggerType, {
+  RUNBOOK_TRIGGER_TYPES,
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
+} from "Common/Types/Runbook/RunbookTriggerType";
 import {
   PRODUCTS_OF_PRESET,
   SERVER_PRODUCTS_ENV_VAR,
@@ -133,6 +137,51 @@ const ENGLISH_SECTION: string = section(
   "## Run only what you need",
 );
 
+// A page's section where the English page has "Run only what you need".
+const productsSection: (markdown: string) => string = (
+  markdown: string,
+): string => {
+  const headings: (text: string) => Array<string> = (
+    text: string,
+  ): Array<string> => {
+    return text.split("\n").filter((line: string): boolean => {
+      return line.startsWith("## ");
+    });
+  };
+  const at: number = headings(ENGLISH_COMPOSE).indexOf(
+    "## Run only what you need",
+  );
+
+  return section(markdown, headings(markdown)[at]!);
+};
+
+const bulletsOf: (markdown: string) => Array<string> = (
+  markdown: string,
+): Array<string> => {
+  return markdown.split("\n").filter((line: string): boolean => {
+    return line.startsWith("- ");
+  });
+};
+
+// Each way a runbook run starts, as the English page names it.
+const RUNBOOK_TRIGGER_WORDS: Record<RunbookTriggerType, string> = {
+  [RunbookTriggerType.Manual]: "a person",
+  [RunbookTriggerType.Rule]: "rules",
+  [RunbookTriggerType.AutoRemediation]: "auto-remediation",
+  [RunbookTriggerType.AI]: "OneUptime AI",
+  [RunbookTriggerType.Schedule]: "schedule",
+  [RunbookTriggerType.Webhook]: "webhook",
+  [RunbookTriggerType.SecurityPlaybook]: "a security playbook",
+};
+
+// "a, b and c" / "a, b or c".
+const listed: (words: Array<string>, last: string) => string = (
+  words: Array<string>,
+  last: string,
+): string => {
+  return words.join(", ").replace(/, ([^,]*)$/, ` ${last} $1`);
+};
+
 const PROFILE_BLOCK: string = [
   "```bash",
   "SERVER_PRODUCTS=monitoring-and-status-pages",
@@ -217,6 +266,30 @@ describe("the English section", () => {
     expect(ENGLISH_SECTION).toContain("Reading still works");
   });
 
+  test("says OneUptime AI starts no work on a product that is off, and what still starts a runbook while Runbooks is off (#9489)", () => {
+    expect(ENGLISH_SECTION).toContain(
+      "OneUptime AI starts no work on the product: no investigation, postmortem draft, fix, code fix or insight.",
+    );
+
+    // What still starts a run, and what no longer does, as the code says.
+    const still: Array<string> = RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.map(
+      (trigger: RunbookTriggerType): string => {
+        return RUNBOOK_TRIGGER_WORDS[trigger];
+      },
+    );
+    const refused: Array<string> = RUNBOOK_TRIGGER_TYPES.filter(
+      (trigger: RunbookTriggerType): boolean => {
+        return !RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.includes(trigger);
+      },
+    ).map((trigger: RunbookTriggerType): string => {
+      return RUNBOOK_TRIGGER_WORDS[trigger];
+    });
+
+    expect(ENGLISH_SECTION).toContain(
+      `While ${getProductTitle(ProductKey.Runbooks)} is off, a runbook still runs by its own ${listed(still, "and")}, and nothing else starts one: not ${listed(refused, "or")}.`,
+    );
+  });
+
   test("names the telemetry products stopped ingestion turns off", () => {
     for (const product of TELEMETRY_INGESTION_PRODUCTS) {
       expect(ENGLISH_SECTION).toContain(getProductTitle(product));
@@ -258,9 +331,10 @@ describe("the English section", () => {
     expect(ENGLISH_SECTION).not.toContain("Size the server by the");
   });
 
-  test("says how many monitors one probe checks a minute, and what the measurement set", () => {
+  test("says how many monitors one probe checks at once, that it is not held to that many a minute, and what the measurement set", () => {
     const compose: string = read("docker-compose.base.yml");
     const example: string = read("config.example.env");
+    const fetchList: string = read("packages/Probe/Jobs/Monitor/FetchList.ts");
 
     expect(example).toMatch(/^GLOBAL_PROBE_1_MONITORING_WORKERS=5$/m);
     expect(example).toMatch(/^GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=10$/m);
@@ -270,11 +344,29 @@ describe("the English section", () => {
     expect(compose).toContain(
       "PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}",
     );
-    expect(ENGLISH_SECTION).toContain(
-      "One probe checks at most 50 monitors a minute with its default settings: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`).",
+    // At once: the workers times the monitors each asks for (#9488).
+    expect(fetchList).toContain(
+      "MONITOR_CHECKS_AT_ONCE: number =\n  PROBE_MONITORING_WORKERS * PROBE_MONITOR_FETCH_LIMIT;",
     );
     expect(ENGLISH_SECTION).toContain(
-      "`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`",
+      "With its default settings, one probe checks up to 50 monitors at once: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`).",
+    );
+    /*
+     * Measured for #9488 with the perf kit (Scripts/Perf): one probe with
+     * these defaults and 252 monitors due every minute - 126 Website, 84
+     * API and 42 Port; the seed's other 42 Website monitors were paused by
+     * manual incidents, so not due - checked each of them once every minute
+     * for 12 minutes. The probe before #9488 checked 50 a minute, and the
+     * rest waited longer and longer.
+     */
+    expect(ENGLISH_SECTION).toContain(
+      "It asks for more as soon as it has room, so it is not limited to 50 monitors a minute: measured with 252 Website, API and Port monitors that check every minute, it checked each of them every minute.",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "The probe of release 15.0.0 asked only once a minute, so it checked at most 50 monitors a minute: for the 100 monitors to be checked every minute, the measurement above set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`.",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "A probe that falls behind says so on OneUptime Health in the Admin Dashboard",
     );
   });
 });
@@ -301,6 +393,20 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
 
     expect(compose).toContain("`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`");
     expect(compose).toContain("`docker stats`");
+  });
+
+  test("say how many monitors one probe checks at once, with its settings, and how many it kept up with (#9488)", () => {
+    const stated: Set<string> = statedNumbers(compose);
+
+    for (const value of [50, 252]) {
+      expect({ value, stated: true }).toEqual({
+        value,
+        stated: stated.has(String(value)),
+      });
+    }
+
+    expect(compose).toContain("`GLOBAL_PROBE_1_MONITORING_WORKERS`");
+    expect(compose).toContain("`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`");
   });
 
   test("carry the profile's settings word for word", () => {
@@ -332,6 +438,24 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
     expect(english.indexOf("## Run only what you need")).toBe(
       english.indexOf("## Back up and restore") + 1,
     );
+  });
+
+  test("say, as the English page does, what OneUptime AI and a runbook still do while a product is off (#9489)", () => {
+    const bullets: Array<string> = bulletsOf(productsSection(compose));
+    const english: Array<string> = bulletsOf(ENGLISH_SECTION);
+
+    expect(bullets).toHaveLength(english.length);
+
+    /*
+     * Beside what the API refuses: OneUptime AI starts no work on it, and is
+     * among what no longer starts a runbook while Runbooks is off.
+     */
+    const refuses: number = bullets.findIndex((line: string): boolean => {
+      return line.includes("Mattermost");
+    });
+
+    expect(refuses).toBeGreaterThan(-1);
+    expect(bullets[refuses + 1]!.split("OneUptime AI")).toHaveLength(3);
   });
 
   test("link Project Settings > Products to the section", () => {

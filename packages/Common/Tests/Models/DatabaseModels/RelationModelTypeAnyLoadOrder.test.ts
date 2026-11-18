@@ -37,15 +37,21 @@ const unresolvedRelationsWhenLoadedFirst: (first: string) => Array<string> = (
   jest.isolateModules(() => {
     jest.requireActual(`../../../Models/DatabaseModels/${first}`);
 
-    const models: Array<ModelType> = jest.requireActual<{
-      default: Array<ModelType>;
-    }>("../../../Models/DatabaseModels/Index").default;
-    const Base: ModelType = jest.requireActual<{ default: ModelType }>(
-      "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel",
+    const models: Array<ModelType> = (
+      jest.requireActual("../../../Models/DatabaseModels/Index") as {
+        default: Array<ModelType>;
+      }
     ).default;
-    const TableColumnType: typeof TableColumnTypeEnum = jest.requireActual<{
-      default: typeof TableColumnTypeEnum;
-    }>("../../../Types/Database/TableColumnType").default;
+    const Base: ModelType = (
+      jest.requireActual(
+        "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel",
+      ) as { default: ModelType }
+    ).default;
+    const TableColumnType: typeof TableColumnTypeEnum = (
+      jest.requireActual("../../../Types/Database/TableColumnType") as {
+        default: typeof TableColumnTypeEnum;
+      }
+    ).default;
 
     for (const modelType of models) {
       const model: BaseModel = new modelType();

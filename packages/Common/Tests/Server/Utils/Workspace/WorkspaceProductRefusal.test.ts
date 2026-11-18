@@ -41,6 +41,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 
@@ -59,7 +60,7 @@ import path from "path";
 const INCIDENTS_OFF_MESSAGE: string =
   "Incidents is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.";
 
-let getOff: jest.SpiedFunction<typeof ServerProducts.getOff>;
+let getOff: SpyInstance<typeof ServerProducts.getOff>;
 
 const switchOff: (products: Array<ProductKey>) => void = (
   products: Array<ProductKey>,
@@ -179,7 +180,7 @@ describe("Slack", () => {
       .mockImplementation((_req: unknown, _res: unknown, text: string) => {
         sent.push(text);
       });
-    const sendRefusal: jest.SpiedFunction<
+    const sendRefusal: SpyInstance<
       typeof SlackActionAuthorization.sendRefusal
     > = jest
       .spyOn(SlackActionAuthorization, "sendRefusal")
@@ -205,10 +206,10 @@ describe("Slack", () => {
   test("a press of a product that is on goes on, with nothing sent", async () => {
     switchOff([ProductKey.Alerts]);
 
-    const sendText: jest.SpiedFunction<typeof Response.sendTextResponse> = jest
+    const sendText: SpyInstance<typeof Response.sendTextResponse> = jest
       .spyOn(Response, "sendTextResponse")
       .mockImplementation(() => {});
-    const sendRefusal: jest.SpiedFunction<
+    const sendRefusal: SpyInstance<
       typeof SlackActionAuthorization.sendRefusal
     > = jest
       .spyOn(SlackActionAuthorization, "sendRefusal")
@@ -227,7 +228,7 @@ describe("Slack", () => {
   });
 
   test("a write refused for its product is told where it was pressed, not thrown", async () => {
-    const sendRefusal: jest.SpiedFunction<
+    const sendRefusal: SpyInstance<
       typeof SlackActionAuthorization.sendRefusal
     > = jest
       .spyOn(SlackActionAuthorization, "sendRefusal")

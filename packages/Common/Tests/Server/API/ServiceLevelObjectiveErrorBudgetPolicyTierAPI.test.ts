@@ -27,6 +27,7 @@ import {
   SloRecommendedPolicyTier,
   parseSloRecommendedPolicyTiers,
 } from "../../../Utils/Slo/SloErrorBudgetPolicy";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * "Use the recommended policy" over the API: the preview the confirmation
@@ -206,7 +207,8 @@ afterEach(() => {
 describe("the routes", () => {
   test("sit beside the tier table's CRUD path, behind the user middleware only", () => {
     for (const uri of [PREVIEW, ADD]) {
-      expect(routeOf(uri).handlers).toHaveLength(2);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(routeOf(uri).handlers)).toHaveLength(2);
       expect(routeOf(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
     }
 

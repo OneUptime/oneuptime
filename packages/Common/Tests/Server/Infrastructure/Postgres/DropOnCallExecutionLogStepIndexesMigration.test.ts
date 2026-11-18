@@ -121,7 +121,7 @@ describe("DropOnCallExecutionLogStepIndexes1809182000000", () => {
     }
   });
 
-  test("the model keeps the indexes that are read: the rule a run is on (the cascade), its status, the lists, what triggered it", () => {
+  test("the model keeps the indexes that are read: the rule a run is on (the cascade), its status, the lists, what triggered it, a monitor's fire drills", () => {
     const indexes: Array<string> = modelIndexes();
 
     for (const columns of [
@@ -134,12 +134,24 @@ describe("DropOnCallExecutionLogStepIndexes1809182000000", () => {
       ["triggeredByAlertId"],
       ["triggeredByAlertEpisodeId"],
       ["triggeredByIncidentEpisodeId"],
+      /*
+       * A monitor's fire drills, newest first (#9386,
+       * AddOnCallFireDrillResultsIndexAndKey1809183110000): the monitor's
+       * When this goes down card reads its last drill by it, and a deleted
+       * monitor's ON DELETE SET NULL finds its drills' tests by it. Partial
+       * - only a drill's tests name a monitor - and on no column a step
+       * writes, so a step's update stays HOT.
+       */
+      ["testPageFireDrillMonitorId", "createdAt"],
     ]) {
       expect(indexes).toContain(JSON.stringify(columns));
     }
 
-    // Nine indexes besides the primary key, where there were thirteen.
-    expect(indexes).toHaveLength(9);
+    /*
+     * Ten indexes besides the primary key: thirteen, less the four a step
+     * wrote, and a monitor's fire drills' since.
+     */
+    expect(indexes).toHaveLength(10);
   });
 
   test("drops the four indexes online, outside a transaction, and nothing else", async () => {

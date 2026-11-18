@@ -188,6 +188,7 @@ import {
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 // -- Harness ----------------------------------------------------------------
 
@@ -656,7 +657,13 @@ describe("ScheduledMaintenanceCalendarAPI: route registration", () => {
       ["POST", TEAM_FEED_PUBLISH_ROUTE],
       ["POST", TEAM_FEED_ROTATE_ROUTE],
     ] as Array<[string, string]>) {
-      expect(routeFor(method, uri).middlewares).toHaveLength(2);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(routeFor(method, uri).middlewares)).toHaveLength(
+        2,
+      );
+      expect(countRefusals(routeFor(method, uri).middlewares)).toBe(
+        method === "POST" ? 1 : 0,
+      );
     }
 
     expect(routeFor("ALL", TEAM_FEED_FALLBACK_ROUTE)).toBeDefined();

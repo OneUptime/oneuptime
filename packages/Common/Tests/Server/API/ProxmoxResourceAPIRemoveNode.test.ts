@@ -43,6 +43,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { FindOperator } from "typeorm";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * POST /proxmox-resource/remove-node/:clusterId   { nodeName }
@@ -344,7 +345,11 @@ describe("ProxmoxResourceAPI remove-node", () => {
         "post",
         REMOVE_NODE_ROUTE,
       );
-      expect(route.middlewares).toEqual([UserMiddleware.getUserMiddleware]);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route.middlewares)).toEqual([
+        UserMiddleware.getUserMiddleware,
+      ]);
+      expect(countRefusals(route.middlewares)).toBe(1);
     });
 
     test("keeps the inventory-summary route next to it", () => {

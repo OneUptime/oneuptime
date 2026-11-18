@@ -15,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { SECURITY_WATCHLIST_MESSAGES } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * POST /security-watchlist/read-now (#5391): a list read from an address,
@@ -144,7 +145,9 @@ describe("POST /security-watchlist/read-now", () => {
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
     ]);
-    expect(route().handlers).toHaveLength(3);
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(withoutRefusals(route().handlers)).toHaveLength(3);
+    expect(countRefusals(route().handlers)).toBe(1);
   });
 
   test("the list read as the caller may read it; what the read did answered", async () => {

@@ -13,11 +13,14 @@ import { moveApprovalsBeforeTheirSteps } from "../../../Types/Runbook/RunbookSte
 import { RunbookStepExecutionState } from "../../../Types/Runbook/RunbookStepExecution";
 import RunbookStepExecutionStatus from "../../../Types/Runbook/RunbookStepExecutionStatus";
 import RunbookTriggerType, {
+  RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF,
   UNATTENDED_RUNBOOK_TRIGGER_TYPES,
 } from "../../../Types/Runbook/RunbookTriggerType";
 import { hasRunbookInputs } from "../../../Types/Runbook/RunbookInputs";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import UserType from "../../../Types/UserType";
+import ServerProducts from "../ServerProducts/ServerProducts";
+import ProductKey from "../../../Types/Product/ProductKey";
 
 /*
  * THE ONE WAY A RUNBOOK RUN STARTS.
@@ -30,6 +33,9 @@ import UserType from "../../../Types/UserType";
  *     project's, is turned off (isEnabled), or has no steps;
  *   - refuses a run nobody is watching (a schedule, a webhook) for a project
  *     a master admin has blocked, as a blocked project's workflows are;
+ *   - refuses, while the server has Runbooks switched off, a run asked for
+ *     from inside OneUptime - a person, auto-remediation, OneUptime AI, a
+ *     security playbook (RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF);
  *   - snapshots the steps into a new execution, recording what started it
  *     (triggerType, triggerDetails), the person if there was one, the
  *     incident, alert or maintenance event it is for, and the values it was
@@ -58,6 +64,8 @@ export enum RunbookStartRefusal {
   NoSteps = "NoSteps",
   // A schedule or a webhook, in a project a master admin blocked.
   ProjectBlocked = "ProjectBlocked",
+  // Asked for from inside OneUptime while Runbooks is switched off on the server.
+  ProductSwitchedOff = "ProductSwitchedOff",
   // The run was written but could not be queued; it is failed with the reason.
   NotQueued = "NotQueued",
 }
@@ -262,6 +270,16 @@ export class RunbookStarterClass {
       (await ProjectService.isProjectBlocked(request.projectId))
     ) {
       return { isStarted: false, refusal: RunbookStartRefusal.ProjectBlocked };
+    }
+
+    if (
+      !RUNBOOK_TRIGGERS_WHILE_SWITCHED_OFF.includes(request.trigger) &&
+      (await ServerProducts.getOffReasonOfServerWork(ProductKey.Runbooks))
+    ) {
+      return {
+        isStarted: false,
+        refusal: RunbookStartRefusal.ProductSwitchedOff,
+      };
     }
 
     const created: RunbookExecution = await RunbookExecutionService.create({

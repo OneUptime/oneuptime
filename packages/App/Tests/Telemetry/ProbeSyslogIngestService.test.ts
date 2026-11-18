@@ -619,10 +619,7 @@ describe("the project's first logs", () => {
       name: "Their Switch",
       hostname: SWITCH_ADDRESS,
     });
-    probeDevicesByAddress[SWITCH_ADDRESS] = [
-      SWITCH_DEVICE,
-      otherProjectSwitch,
-    ];
+    probeDevicesByAddress[SWITCH_ADDRESS] = [SWITCH_DEVICE, otherProjectSwitch];
 
     await ingest([
       fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS),

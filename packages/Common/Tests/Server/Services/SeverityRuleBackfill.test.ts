@@ -637,7 +637,9 @@ beforeEach(() => {
     .mockImplementation(((): Promise<Project> => {
       const project: Project = new Project();
       project._id = PROJECT_ID.toString();
-      project.defaultPagingLadder = projectDefaultLadder || undefined;
+      if (projectDefaultLadder) {
+        project.defaultPagingLadder = projectDefaultLadder;
+      }
 
       return Promise.resolve(project);
     }) as never);

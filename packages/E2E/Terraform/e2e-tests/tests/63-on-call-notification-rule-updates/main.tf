@@ -25,6 +25,10 @@ provider "oneuptime" {
 # runner's drift gate (terraform plan -detailed-exitcode) after the apply,
 # and again after update.tf, is the "plan after create" check. verify.sh
 # reads what the server stored.
+#
+# Each notification_rule is written as the Dashboard writes a rule, without
+# a _type: the server reads a rule's kind from its event_type, and the
+# provider refuses at plan time a _type that is not a OneUptime object type.
 
 resource "oneuptime_workspace_notification_rule" "key_updates" {
   name           = "terraform-e2e-on-call-key-updates"
@@ -33,7 +37,6 @@ resource "oneuptime_workspace_notification_rule" "key_updates" {
   workspace_type = "Slack"
 
   notification_rule = jsonencode({
-    _type                       = "OnCallDutyPolicyNotificationRule"
     filterCondition             = "All"
     filters                     = []
     shouldPostToExistingChannel = true
@@ -49,7 +52,6 @@ resource "oneuptime_workspace_notification_rule" "every_update" {
   workspace_type = "Slack"
 
   notification_rule = jsonencode({
-    _type                       = "OnCallDutyPolicyNotificationRule"
     filterCondition             = "All"
     filters                     = []
     shouldPostToExistingChannel = true

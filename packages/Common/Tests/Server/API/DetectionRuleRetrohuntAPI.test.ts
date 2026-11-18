@@ -20,6 +20,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { DetectionRetrohuntResult } from "../../../Types/SecurityEvent/DetectionRetrohunt";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * POST /detection-rule/retrohunt: Run on Past Events. Who may ask (a role
@@ -200,7 +201,9 @@ describe("POST /detection-rule/retrohunt", () => {
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
     ]);
-    expect(found?.handlers).toHaveLength(3);
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(withoutRefusals(found!.handlers)).toHaveLength(3);
+    expect(countRefusals(found!.handlers)).toBe(1);
   });
 
   test.each([

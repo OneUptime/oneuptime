@@ -17,6 +17,7 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
+import { withoutRefusals } from "./RouteRefusals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -223,9 +224,10 @@ describe.each(TEMPLATE_ROUTES)(
   "POST $uri with an expired session",
   (route: TemplateRoute) => {
     test("is mounted behind getUserMiddleware only, so the handler is the gate", () => {
-      expect(mockRouter.match("post", route.uri).middlewares).toEqual([
-        UserMiddleware.getUserMiddleware,
-      ]);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(
+        withoutRefusals(mockRouter.match("post", route.uri).middlewares),
+      ).toEqual([UserMiddleware.getUserMiddleware]);
     });
 
     test("answers a caller with no credentials (only a tenantid header) with 401 and changes nothing", async () => {

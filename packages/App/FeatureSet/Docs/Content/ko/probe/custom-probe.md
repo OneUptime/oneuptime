@@ -384,6 +384,16 @@ OneUptime에 보낸 요청이 실패할 때마다 `stalledAt`과 `whatThisMeans`
 
 OneUptime 서버 쪽에서도 느리게 응답한 프로브 요청이나, 응답을 보내기 전에 프로브가 포기한 요청이 프로브의 id와 함께 기록됩니다. 이 두 로그를 함께 보면 연결의 어느 쪽에 문제가 있는지 알 수 있습니다.
 
+### 프로브가 지연됨
+
+프로브의 모니터가 확인 시각을 1분 넘게 기다려 설정보다 덜 자주 확인되면 프로브는 **지연됨** 상태입니다. 이때 **사용자 지정 프로브** 테이블의 프로브 **상태**가 **지연됨**으로 표시되고, 프로브 페이지의 **모니터 확인**에 언제부터인지 표시됩니다. 자체 호스팅 OneUptime이 직접 실행하는 프로브는 관리자 대시보드의 OneUptime 상태에 표시됩니다.
+
+프로브는 한 번에 최대 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT`개(기본값으로 10개)의 모니터를 확인하고, 자리가 나는 대로 더 요청합니다. 확인할 수 있는 것보다 많은 모니터의 확인 시각이 되면, 예를 들어 많은 확인이 시간 초과까지 걸리면 지연됩니다. 따라잡게 하려면:
+
+- 프로브를 업데이트하세요. 이전 버전의 프로브는 1분에 한 번만 모니터를 요청하므로 1분에 최대 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT`개만 확인합니다.
+- 한 번에 더 많은 모니터를 확인하게 하세요. `PROBE_MONITORING_WORKERS` 값을 높인 다음 프로브를 다시 시작하세요. 자체 호스팅 OneUptime이 실행하는 프로브라면 Docker Compose에서는 `config.env`의 `GLOBAL_PROBE_1_MONITORING_WORKERS`, Helm 차트에서는 값의 프로브 `monitoringWorkers`입니다.
+- CPU와 메모리를 더 주거나, 같은 `PROBE_ID`와 `PROBE_KEY`로 프로브를 하나 더 실행하세요. 복사본끼리 모니터를 나눠 맡습니다.
+
 ### 그 밖의 문제
 
 :::details 프로브가 시작하자마자 멈춥니다

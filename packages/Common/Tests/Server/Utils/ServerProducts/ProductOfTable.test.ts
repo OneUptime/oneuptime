@@ -30,7 +30,7 @@ import {
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * THE API REFUSES TO CHANGE A PRODUCT THAT IS OFF (#6815, #7479).
@@ -73,9 +73,9 @@ describe("which product a record belongs to", () => {
 });
 
 type FakeService = DatabaseService<BaseModel> & {
-  create: jest.Mock;
-  updateOneById: jest.Mock;
-  deleteOneById: jest.Mock;
+  create: Mock;
+  updateOneById: Mock;
+  deleteOneById: Mock;
 };
 
 const makeApi: (modelType: { new (): BaseModel }) => {
@@ -121,9 +121,9 @@ describe("BaseAnalyticsAPI", () => {
       switchOff([ProductKey.Logs]);
 
       const service: {
-        create: jest.Mock;
-        updateOneById: jest.Mock;
-        deleteOneById: jest.Mock;
+        create: Mock;
+        updateOneById: Mock;
+        deleteOneById: Mock;
       } = {
         create: jest.fn(),
         updateOneById: jest.fn(),

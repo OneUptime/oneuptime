@@ -384,6 +384,16 @@ Forespørsler som lykkes, men tar lengre tid enn `PROBE_API_SLOW_REQUEST_THRESHO
 
 På OneUptime-serverens side logges også en sondeforespørsel som besvares tregt, eller som sonden ga opp før et svar ble sendt, med sondens id. Disse to loggene til sammen forteller hvilken side av tilkoblingen feilen ligger på.
 
+### En sonde er på etterskudd
+
+En sonde er **På etterskudd** når monitorene ventet mer enn ett minutt etter sjekktidspunktet sitt, så de sjekkes sjeldnere enn innstilt. **Status** i tabellen **Egendefinerte sonder** viser da **På etterskudd**, og siden til sonden sier under **Monitorsjekker** siden når. For sondene som en selvhostet OneUptime kjører selv, sier OneUptime-tilstand i Admin-dashbordet fra.
+
+En sonde sjekker opptil `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer samtidig, 10 med standardinnstillingene, og ber om flere så snart den har plass. Den kommer på etterskudd når flere monitorer står for tur enn den kan sjekke, for eksempel når mange av sjekkene varer til de får tidsavbrudd. Slik tar den igjen etterslepet:
+
+- Oppdater sonden. En eldre sonde ber om monitorene sine bare én gang i minuttet, så den sjekker høyst `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer i minuttet.
+- La den sjekke flere monitorer samtidig: øk `PROBE_MONITORING_WORKERS`, og start sonden på nytt. For sondene som en selvhostet OneUptime kjører, er det `GLOBAL_PROBE_1_MONITORING_WORKERS` i `config.env` med Docker Compose, eller sondens `monitoringWorkers` i verdiene til Helm-chartet.
+- Gi den mer CPU og minne, eller kjør en kopi til med samme `PROBE_ID` og samme `PROBE_KEY`: kopiene deler monitorene.
+
 ### Andre problemer
 
 :::details Sonden stopper rett etter at den starter

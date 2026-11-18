@@ -23,6 +23,8 @@ import WorkspaceChannelMembersUtil, {
   WorkspaceChannelAddAnswer,
   WorkspaceRecordChannels,
 } from "../../Types/Workspace/WorkspaceChannelMembers";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
 
 /*
  * WHO IS IN A RECORD'S OWN CHANNEL, AND ADDING PEOPLE TO IT
@@ -38,7 +40,9 @@ import WorkspaceChannelMembersUtil, {
  *   { channelId, userIds?, teamIds? }: adds those people, and everybody in
  *   those teams, to one of the record's own Slack or Mattermost channels, and
  *   answers for each: { channelState?, results: [{ userId, name, outcome }] }.
- *   For a signed-in member of the project who may edit the record.
+ *   For a signed-in member of the project who may edit the record. Refused
+ *   while the server has the record type's product switched off (#9489), as
+ *   editing the record is.
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -147,6 +151,9 @@ router.post(
   `${WORKSPACE_CHANNEL_MEMBERS_ROUTE}/:recordType/:recordId/${WORKSPACE_CHANNEL_MEMBERS_ADD_PATH}`,
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
+  ServerProductRoutes.refuseWhileOffFor(
+    ProductsOfRequest.workspaceChannelRecord,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

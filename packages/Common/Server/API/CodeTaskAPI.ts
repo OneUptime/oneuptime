@@ -96,6 +96,8 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { CodeHost } from "../../Types/CodeRepository/CodeHost";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * CODE: the project's repositories, their tasks, and asking OneUptime AI to
@@ -178,6 +180,13 @@ export const CODE_TASK_BRANCHES_NOT_READ_MESSAGE: string =
 const DEFAULT_PAGE_SIZE: number = 20;
 const MAX_PAGE_SIZE: number = 50;
 
+// What a route of Code's pages answers, for the caller in the project.
+type CodeTaskRouteHandler = (
+  req: ExpressRequest,
+  props: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+) => Promise<JSONObject>;
+
 export default class CodeTaskAPI {
   public router!: ExpressRouter;
 
@@ -190,25 +199,30 @@ export default class CodeTaskAPI {
     return this.router;
   }
 
+  /*
+   * A route that reads (read), or one that sets OneUptime AI to work in a
+   * repository or stops it (change): a change is refused while the server
+   * has Code switched off (#9489), and a read is not.
+   */
   private initRoutes(): void {
-    this.route("/code-task/repositories", this.listRepositories);
-    this.route("/code-task/repository/:repositoryId", this.getRepository);
-    this.route("/code-task/list", this.listTasks);
-    this.route("/code-task/branches/:repositoryId", this.listBranches);
-    this.route("/code-task/get/:taskId", this.getTask);
-    this.route("/code-task/progress/:taskId", this.getTurnProgress);
-    this.route("/code-task/create", this.createTask);
-    this.route("/code-task/reply/:taskId", this.replyToTask);
-    this.route("/code-task/retry/:taskId", this.retryTask);
-    this.route("/code-task/retry-many", this.retryTasks);
-    this.route("/code-task/summaries", this.summarizeTasks);
-    this.route("/code-task/stop/:taskId", this.stopTask);
-    this.route("/code-task/review-again/:taskId", this.reviewAgain);
-    this.route(
+    this.read("/code-task/repositories", this.listRepositories);
+    this.read("/code-task/repository/:repositoryId", this.getRepository);
+    this.read("/code-task/list", this.listTasks);
+    this.read("/code-task/branches/:repositoryId", this.listBranches);
+    this.read("/code-task/get/:taskId", this.getTask);
+    this.read("/code-task/progress/:taskId", this.getTurnProgress);
+    this.change("/code-task/create", this.createTask);
+    this.change("/code-task/reply/:taskId", this.replyToTask);
+    this.change("/code-task/retry/:taskId", this.retryTask);
+    this.change("/code-task/retry-many", this.retryTasks);
+    this.read("/code-task/summaries", this.summarizeTasks);
+    this.change("/code-task/stop/:taskId", this.stopTask);
+    this.change("/code-task/review-again/:taskId", this.reviewAgain);
+    this.change(
       "/code-task/review-pull-request/:repositoryId",
       this.reviewPullRequest,
     );
-    this.route("/code-task/source-links", this.getSourceLinks);
+    this.read("/code-task/source-links", this.getSourceLinks);
   }
 
   /*
@@ -270,42 +284,55 @@ export default class CodeTaskAPI {
     };
   }
 
-  private route(
-    path: string,
-    handler: (
-      req: ExpressRequest,
-      props: DatabaseCommonInteractionProps,
-      projectId: ObjectID,
-    ) => Promise<JSONObject>,
-  ): void {
+  private read(path: string, handler: CodeTaskRouteHandler): void {
     this.router.post(
       path,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        try {
-          const props: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(props);
-
-          const result: JSONObject = await handler.call(
-            this,
-            req,
-            props,
-            projectId,
-          );
-
-          Response.sendJsonObjectResponse(req, res, result);
-        } catch (err) {
-          next(err);
-        }
-      },
+      this.answerWith(handler),
     );
+  }
+
+  private change(path: string, handler: CodeTaskRouteHandler): void {
+    this.router.post(
+      path,
+      UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Code),
+      this.answerWith(handler),
+    );
+  }
+
+  // A route's handler, for a signed-in member of the project of the request.
+  private answerWith(
+    handler: CodeTaskRouteHandler,
+  ): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const props: DatabaseCommonInteractionProps =
+          await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+        const projectId: ObjectID =
+          CommonAPI.assertAuthenticatedProjectMember(props);
+
+        const result: JSONObject = await handler.call(
+          this,
+          req,
+          props,
+          projectId,
+        );
+
+        Response.sendJsonObjectResponse(req, res, result);
+      } catch (err) {
+        next(err);
+      }
+    };
   }
 
   // Code's first page: every repository the caller may read, at a glance.

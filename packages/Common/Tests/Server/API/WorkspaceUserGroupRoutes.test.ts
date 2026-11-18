@@ -36,6 +36,11 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductSwitchedOffException from "../../../Types/Exception/ProductSwitchedOffException";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../Types/Product/ServerProducts";
 
 /*
  * THE ROUTES THE SCHEDULE PAGE'S USER GROUP CARD CALLS
@@ -179,10 +184,63 @@ describe("the on-call user group routes", () => {
 
   test("each is mounted behind the user middleware and requireUserAuthentication", () => {
     for (const route of ROUTES) {
-      expect(mockRouter.match(route.method, route.uri).middlewares).toEqual([
+      const middlewares: Array<unknown> = mockRouter.match(
+        route.method,
+        route.uri,
+      ).middlewares;
+
+      expect(middlewares.slice(0, 2)).toEqual([
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
+
+      /*
+       * What changes a group is refused while the server has On-Call
+       * switched off (#9489); what reads one is not.
+       */
+      expect(middlewares.slice(2).map(ServerProductRoutes.isRefusal)).toEqual(
+        route.method === "POST" ? [true] : [],
+      );
+    }
+  });
+
+  test("connecting, disconnecting and Try again are refused while On-Call is switched off on the server, before anything changes in the chat", async () => {
+    jest.spyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.OnCall]: ServerProductOffReason.SwitchedOff,
+    });
+
+    for (const route of ROUTES.filter(
+      (candidate: { method: string }): boolean => {
+        return candidate.method === "POST";
+      },
+    )) {
+      const refusal: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = mockRouter.match(route.method, route.uri)
+        .middlewares[2] as unknown as (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void>;
+      const handedOn: Array<unknown> = [];
+
+      await refusal(
+        { body: {}, params: {} } as unknown as ExpressRequest,
+        {} as ExpressResponse,
+        ((err?: unknown): void => {
+          handedOn.push(err);
+        }) as NextFunction,
+      );
+
+      expect({ uri: route.uri, refused: handedOn[0] }).toEqual({
+        uri: route.uri,
+        refused: expect.any(ProductSwitchedOffException),
+      });
+      expect((handedOn[0] as Error).message).toBe(
+        "On-Call is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+      );
     }
   });
 

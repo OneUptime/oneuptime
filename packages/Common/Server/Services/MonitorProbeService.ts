@@ -48,6 +48,13 @@ export const CLAIM_CANDIDATES_PER_MONITOR_PROBE: number = 2;
  */
 export const PENDING_MONITOR_PROBE_COUNT_CAP: number = 10000;
 
+/*
+ * How many probes one statement of getOldestWaitingCheckDueAt reads: each
+ * is one short index range, so a server with thousands of probes still
+ * reads them in a few statements a minute.
+ */
+export const PROBES_PER_LATE_CHECK_READ: number = 500;
+
 export class Service extends ProjectReferencesService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
@@ -689,6 +696,92 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       : undefined;
 
     return Number(count) || 0;
+  }
+
+  /*
+   * For each probe, when its longest-waiting check was due: the oldest
+   * nextPingAt, at or before `dueAt`, of the monitor probes the claim would
+   * hand it now (getProbeableSql), or null when none waits. What
+   * Probe:UpdateBehind reads once a minute to say a probe is behind - its
+   * monitors checked later than their interval (Types/Probe/ProbeBehind,
+   * OneUptime issue #9488).
+   *
+   * Per probe, the claim's own range of the (probeId, isEnabled,
+   * nextPingAt) index, stopped at its first row that may be probed: a
+   * probe that keeps up has next to nothing in it, and the claim sets aside
+   * the due rows nothing may probe. PROBES_PER_LATE_CHECK_READ probes a
+   * statement.
+   */
+  public async getOldestWaitingCheckDueAt(data: {
+    probeIds: Array<ObjectID>;
+    dueAt: Date;
+  }): Promise<Map<string, Date | null>> {
+    const oldest: Map<string, Date | null> = new Map<string, Date | null>();
+    const probeIds: Array<string> = Array.from(
+      new Set(
+        data.probeIds
+          .map((id: ObjectID): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    for (
+      let start: number = 0;
+      start < probeIds.length;
+      start += PROBES_PER_LATE_CHECK_READ
+    ) {
+      const chunk: Array<string> = probeIds.slice(
+        start,
+        start + PROBES_PER_LATE_CHECK_READ,
+      );
+
+      const rows: unknown = await this.getRepository().manager.query(
+        `
+          SELECT pr."probeId"::text AS "probeId",
+            (
+              SELECT mp."nextPingAt"
+              FROM "MonitorProbe" mp
+              INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
+              INNER JOIN "Project" p ON mp."projectId" = p."_id"
+              WHERE mp."probeId" = pr."probeId"
+                AND mp."isEnabled" = true
+                AND mp."nextPingAt" <= $2
+                AND ${Service.getProbeableSql("$3")}
+              ORDER BY mp."nextPingAt" ASC
+              LIMIT 1
+            ) AS "oldestDueAt"
+          FROM unnest($1::uuid[]) AS pr("probeId")
+        `,
+        [
+          chunk,
+          data.dueAt,
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        ],
+      );
+
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const probeRow: {
+          probeId?: string;
+          oldestDueAt?: Date | string | null;
+        } = row as { probeId?: string; oldestDueAt?: Date | string | null };
+
+        if (probeRow.probeId) {
+          oldest.set(probeRow.probeId, Service.toDate(probeRow.oldestDueAt));
+        }
+      }
+    }
+
+    for (const probeId of probeIds) {
+      if (!oldest.has(probeId)) {
+        oldest.set(probeId, null);
+      }
+    }
+
+    return oldest;
   }
 
   /*
