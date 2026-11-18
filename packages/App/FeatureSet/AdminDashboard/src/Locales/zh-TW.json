@@ -4216,5 +4216,12 @@
   "No emails yet.": "尚無電子郵件。",
   "No failed emails.": "沒有傳送失敗的郵件。",
   "The email log could not be loaded.": "無法載入電子郵件日誌。",
-  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此伺服器未設定電子郵件，因此這封郵件未寄出。請聯絡伺服器管理員設定電子郵件。"
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此伺服器未設定電子郵件，因此這封郵件未寄出。請聯絡伺服器管理員設定電子郵件。",
+  "Outage Notifications": "故障通知",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "當此伺服器的電子郵件停止運作，或所有全域探針都停止回報時，會通知主要管理員，恢復正常時再通知一次：絕不透過已停止的管道，且每小時最多一次。探針的狀況也會通知管理員通知電子郵件。",
+  "Edit Outage Notifications": "編輯故障通知",
+  "Text This Number": "傳送簡訊到此號碼",
+  "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "透過此伺服器本身的簡訊設定傳送簡訊到此號碼。留空則不傳送。",
+  "Push to Master Admins' Devices": "推播到主要管理員的裝置",
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "推播通知會傳送到主要管理員登入了 OneUptime 應用程式的每部裝置。"
 }

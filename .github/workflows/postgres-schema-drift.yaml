@@ -4579,6 +4579,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddServerEmailLogPostgres.test.ts
           --forceExit
 
+      # #6879: master admins told when the server's email or its global
+      # probes stop working. GlobalConfig, cloned as it was before
+      # AddServerAlerts: three nullable columns added with the row kept as
+      # it was, then the job through GlobalConfigService on that row - its
+      # first look tells nobody, email that fails is told by push and SMS
+      # and written once, nothing more after - and down() and up() again.
+      # Shard 3: the job is App's, and App is installed there.
+      - name: Test telling master admins of outages on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_ALERTS_TESTS: "true"
+          SERVER_ALERTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_ALERTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_ALERTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerAlertsPostgres.test.ts
+          --forceExit
+
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and
       # an AI rule's runbooks, repositories and MCP servers) through the
