@@ -451,9 +451,7 @@ describe("a database's Overview: its health beside its liveness", () => {
       }),
     );
 
-    expect(screen.getByTestId("resource-overview-health").tagName).toBe(
-      "SPAN",
-    );
+    expect(screen.getByTestId("resource-overview-health").tagName).toBe("SPAN");
   });
 
   test("calm readings: Healthy, and no Needs attention card", async () => {

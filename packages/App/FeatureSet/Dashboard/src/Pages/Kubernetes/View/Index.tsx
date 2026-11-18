@@ -2349,8 +2349,7 @@ const KubernetesClusterOverview: FunctionComponent<
                     </>
                   );
 
-                  const problem: KubernetesStatusChip["problem"] =
-                    chip.problem;
+                  const problem: KubernetesStatusChip["problem"] = chip.problem;
 
                   if (problem) {
                     return (

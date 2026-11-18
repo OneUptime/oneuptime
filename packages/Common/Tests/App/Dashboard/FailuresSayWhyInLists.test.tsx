@@ -125,7 +125,9 @@ describe("a Kubernetes list row says why under its status", () => {
     return reasons.map(kubernetesHealthTextInEnglish);
   }
 
-  function podAssessment(status: Record<string, unknown>): KubernetesHealthAssessment {
+  function podAssessment(
+    status: Record<string, unknown>,
+  ): KubernetesHealthAssessment {
     return assessKubernetesResource({
       kind: "Pod",
       namespaceKey: "shop",
@@ -173,7 +175,9 @@ describe("a Kubernetes list row says why under its status", () => {
         {
           type: "Ready",
           status: "False",
-          lastTransitionTime: new Date(NOW.getTime() - 5 * 60 * 1000).toISOString(),
+          lastTransitionTime: new Date(
+            NOW.getTime() - 5 * 60 * 1000,
+          ).toISOString(),
         },
       ],
       containerStatuses: [

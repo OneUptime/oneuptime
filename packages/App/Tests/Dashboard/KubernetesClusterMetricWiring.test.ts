@@ -40,7 +40,6 @@ const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
 const WHITESPACE: RegExp = /\s+/g;
 const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
 const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/;
-const LABEL_PROPERTY: RegExp = /label: "([^"]+)"/;
 const TILE_WINDOW: RegExp = /const TILE_WINDOW_MINUTES: number = (\d+);/;
 const TOP_POD_SLICE: RegExp = /\.slice\(0, (\d+)\)/g;
 const IDLE_THRESHOLDS: RegExp =
@@ -168,7 +167,9 @@ const RIGHT_SIZING_RECORD: string =
   "KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS";
 
 const OVERVIEW: string = readCode("Pages/Kubernetes/View/Index.tsx");
-const POD_STATUS: string = readCode("Pages/Kubernetes/Utils/KubernetesPodStatus.ts");
+const POD_STATUS: string = readCode(
+  "Pages/Kubernetes/Utils/KubernetesPodStatus.ts",
+);
 const RIGHT_SIZING: string = readCode(
   "Pages/Kubernetes/View/KubernetesRightSizingCard.tsx",
 );

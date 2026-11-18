@@ -106,10 +106,14 @@ import {
   OpenShiftClusterOperatorState,
   OpenShiftClusterVersionState,
 } from "../../../Types/Kubernetes/OpenShiftObjectParser";
-import { KubernetesEventRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesEventsModel";
-import { KubernetesEventsTypeFilter } from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesEventsModel";
+import {
+  KubernetesEventRow,
+  KubernetesEventsTypeFilter,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesEventsModel";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import {
+  ResourceAttentionEvent,
+  ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
@@ -252,7 +256,11 @@ function crashLooping(
   });
 }
 
-function failed(name: string, minutesAgo: number, owner?: [string, string]): KubernetesHealthRow {
+function failed(
+  name: string,
+  minutesAgo: number,
+  owner?: [string, string],
+): KubernetesHealthRow {
   return pod(name, {
     phase: "Failed",
     owner: owner,
@@ -292,13 +300,15 @@ function event(
 }
 
 function textOf(item: ResourceAttentionItem): Array<string> {
-  return item.reasons.map((reason: { text: string; values?: Record<string, string> }) => {
-    let filled: string = reason.text;
-    for (const [key, value] of Object.entries(reason.values || {})) {
-      filled = filled.split(`{{${key}}}`).join(value);
-    }
-    return filled;
-  });
+  return item.reasons.map(
+    (reason: { text: string; values?: Record<string, string> }) => {
+      let filled: string = reason.text;
+      for (const [key, value] of Object.entries(reason.values || {})) {
+        filled = filled.split(`{{${key}}}`).join(value);
+      }
+      return filled;
+    },
+  );
 }
 
 describe("which pods a count lists", () => {
@@ -318,11 +328,12 @@ describe("which pods a count lists", () => {
   ];
 
   function names(kind: KubernetesProblemKind, reason?: string): Array<string> {
-    return selectKubernetesProblemPods(rows, { kind: kind, reason: reason }).map(
-      (row: KubernetesHealthRow): string => {
-        return row.name || "";
-      },
-    );
+    return selectKubernetesProblemPods(rows, {
+      kind: kind,
+      reason: reason,
+    }).map((row: KubernetesHealthRow): string => {
+      return row.name || "";
+    });
   }
 
   test("a word for pods that cannot run lists exactly those pods", () => {
@@ -353,11 +364,13 @@ describe("which pods a count lists", () => {
 
   test("a node count reads nodes", () => {
     expect(
-      getKubernetesProblemObjectKind({ kind: KubernetesProblemKind.NodesNotReady }),
+      getKubernetesProblemObjectKind({
+        kind: KubernetesProblemKind.NodesNotReady,
+      }),
     ).toBe("Node");
-    expect(getKubernetesProblemObjectKind({ kind: KubernetesProblemKind.Failed })).toBe(
-      "Pod",
-    );
+    expect(
+      getKubernetesProblemObjectKind({ kind: KubernetesProblemKind.Failed }),
+    ).toBe("Pod");
   });
 });
 
@@ -378,7 +391,9 @@ describe("a pod's row", () => {
       "Last restart: OOMKilled",
     ]);
     expect(item.message).toBe("back-off 5m0s restarting failed container=app");
-    expect(item.route?.toString()).toBe("/k8s/Pod/shop/checkout-7d9f8b6c5-x2k4q");
+    expect(item.route?.toString()).toBe(
+      "/k8s/Pod/shop/checkout-7d9f8b6c5-x2k4q",
+    );
 
     expect(item.since?.template).toBe("Failing since {{time}}");
     expect(item.since?.at.toISOString()).toBe(ago(95));
@@ -395,7 +410,11 @@ describe("a pod's row", () => {
         label: KUBERNETES_PROBLEM_FACT_LABELS.workload,
         valueKind: "Deployment",
         value: "checkout",
-        route: routeFor({ kind: "Deployment", name: "checkout", namespace: "shop" }),
+        route: routeFor({
+          kind: "Deployment",
+          name: "checkout",
+          namespace: "shop",
+        }),
       },
       {
         key: "node",
@@ -427,15 +446,25 @@ describe("a pod's row", () => {
     expect(textOf(item)).toEqual(["Failed", "Error, exit code 1"]);
     expect(item.message).toBe("panic: config not found");
     expect(item.since?.template).toBe("Failed {{time}}");
-    expect(item.facts?.find((fact) => fact.key === "workload")).toMatchObject({
+    expect(
+      item.facts?.find((fact: ResourceAttentionFact): boolean => {
+        return fact.key === "workload";
+      }),
+    ).toMatchObject({
       valueKind: "Job",
       value: "nightly-29001000",
     });
-    expect(item.facts?.find((fact) => fact.key === "container")?.value).toBe(
-      "worker",
-    );
+    expect(
+      item.facts?.find((fact: ResourceAttentionFact): boolean => {
+        return fact.key === "container";
+      })?.value,
+    ).toBe("worker");
     // A pod that never restarted says nothing about restarts.
-    expect(item.facts?.some((fact) => fact.key === "restarts")).toBe(false);
+    expect(
+      item.facts?.some((fact: ResourceAttentionFact): boolean => {
+        return fact.key === "restarts";
+      }),
+    ).toBe(false);
   });
 
   test("an evicted pod says why the node evicted it", () => {
@@ -444,7 +473,9 @@ describe("a pod's row", () => {
         phase: "Failed",
         reason: "Evicted",
         message: "The node was low on resource: memory.",
-        containers: [{ name: "app", ready: false, state: "terminated", reason: "" }],
+        containers: [
+          { name: "app", ready: false, state: "terminated", reason: "" },
+        ],
         conditions: [condition("Ready", "False", ago(60 * 24 * 2))],
       }),
       kind: KubernetesProblemKind.Failed,
@@ -457,7 +488,12 @@ describe("a pod's row", () => {
 
   test("a pod still starting has no reason yet, and reads as its status", () => {
     const item: ResourceAttentionItem = toKubernetesPodProblemItem({
-      row: pod("new-1", { phase: "Pending", containers: [], conditions: [], createdMinutesAgo: 1 }),
+      row: pod("new-1", {
+        phase: "Pending",
+        containers: [],
+        conditions: [],
+        createdMinutesAgo: 1,
+      }),
       kind: KubernetesProblemKind.Pending,
       routeFor: routeFor,
     });
@@ -487,7 +523,7 @@ describe("a pod's row", () => {
         objectName: "checkout-1",
         message: "Back-off restarting failed container app",
         count: 12,
-        lastSeenAt: new Date(NOW.getTime() - 1 * MINUTE),
+        lastSeenAt: new Date(NOW.getTime() - MINUTE),
       }),
       event({
         reason: "BackOff",
@@ -515,9 +551,23 @@ describe("a pod's row", () => {
         lastSeenAt: new Date(NOW.getTime() - 5 * MINUTE),
       }),
       // Another namespace's pod of the same name, a Normal event, a node's.
-      event({ reason: "BackOff", objectName: "checkout-1", namespace: "payments" }),
-      event({ reason: "Pulled", objectName: "checkout-1", isWarning: false, type: "Normal" }),
-      event({ reason: "NodeNotReady", objectName: "checkout-1", objectKind: "Node", namespace: "" }),
+      event({
+        reason: "BackOff",
+        objectName: "checkout-1",
+        namespace: "payments",
+      }),
+      event({
+        reason: "Pulled",
+        objectName: "checkout-1",
+        isWarning: false,
+        type: "Normal",
+      }),
+      event({
+        reason: "NodeNotReady",
+        objectName: "checkout-1",
+        objectKind: "Node",
+        namespace: "",
+      }),
     ];
 
     const item: ResourceAttentionItem = toKubernetesPodProblemItem({
@@ -597,7 +647,13 @@ describe("the list, most urgent first", () => {
       ].map((row: KubernetesHealthRow, index: number) => {
         // The last one says no time.
         return index === 4
-          ? { ...row, status: { ...(row.status as JSONObject), conditions: [] } as JSONObject }
+          ? {
+              ...row,
+              status: {
+                ...(row.status as JSONObject),
+                conditions: [],
+              } as JSONObject,
+            }
           : row;
       }),
       query: { kind: KubernetesProblemKind.Failed },
@@ -622,7 +678,11 @@ describe("the list, most urgent first", () => {
   test("a crash loop comes before a pod that is only pending", () => {
     const items: Array<ResourceAttentionItem> = buildKubernetesProblemItems({
       rows: [
-        pod("queued", { phase: "Pending", containers: [], createdMinutesAgo: 20 }),
+        pod("queued", {
+          phase: "Pending",
+          containers: [],
+          createdMinutesAgo: 20,
+        }),
         crashLooping("checkout-1", 30),
       ],
       query: { kind: KubernetesProblemKind.CannotRun },
@@ -637,19 +697,31 @@ describe("the list, most urgent first", () => {
 describe("the warning Events a row keeps", () => {
   test("none when Kubernetes reported none", () => {
     expect(
-      getKubernetesProblemEvents([], { kind: "Pod", name: "a", namespace: "shop" }),
+      getKubernetesProblemEvents([], {
+        kind: "Pod",
+        name: "a",
+        namespace: "shop",
+      }),
     ).toEqual([]);
   });
 
   test("an Event that says no time still counts, after those that do", () => {
-    const events = getKubernetesProblemEvents(
+    const events: Array<ResourceAttentionEvent> = getKubernetesProblemEvents(
       [
-        event({ reason: "FailedScheduling", objectName: "a", lastSeenAt: null }),
+        event({
+          reason: "FailedScheduling",
+          objectName: "a",
+          lastSeenAt: null,
+        }),
         event({ reason: "BackOff", objectName: "a" }),
       ],
       { kind: "Pod", name: "a", namespace: "shop" },
     );
-    expect(events.map((row) => row.reason)).toEqual(["BackOff", "FailedScheduling"]);
+    expect(
+      events.map((row: ResourceAttentionEvent): string => {
+        return row.reason;
+      }),
+    ).toEqual(["BackOff", "FailedScheduling"]);
     expect(events[1]?.lastSeenAt).toBeUndefined();
   });
 });
@@ -690,7 +762,13 @@ describe("the hero's counts", () => {
   test("fall back to an older server's phases, with nothing counted as unable to run", () => {
     expect(
       parseKubernetesPodStatusCounts({
-        podPhaseCounts: { running: 71, pending: 0, failed: 3, succeeded: 2, unknown: 5 },
+        podPhaseCounts: {
+          running: 71,
+          pending: 0,
+          failed: 3,
+          succeeded: 2,
+          unknown: 5,
+        },
       } as unknown as JSONObject),
     ).toEqual({
       running: 71,
@@ -772,7 +850,9 @@ describe("the hero's chips", () => {
     const running: KubernetesStatusChip = chips[0]!;
     expect(running.tone).toBe("positive");
     expect(running.problem).toBeUndefined();
-    expect(running.description).toBe(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsRunning);
+    expect(running.description).toBe(
+      KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsRunning,
+    );
   });
 
   test("every other chip opens exactly its pods or nodes, with words of its own", () => {
@@ -780,7 +860,9 @@ describe("the hero's chips", () => {
     expect(crash.tone).toBe("danger");
     expect(crash.reasonAsWritten).toBe("CrashLoopBackOff");
     expect(crash.word).toBeUndefined();
-    expect(getKubernetesStatusChipValues(crash)).toEqual({ reason: "CrashLoopBackOff" });
+    expect(getKubernetesStatusChipValues(crash)).toEqual({
+      reason: "CrashLoopBackOff",
+    });
     expect(crash.problem?.query).toEqual({
       kind: KubernetesProblemKind.CannotRun,
       reason: "CrashLoopBackOff",
@@ -812,7 +894,9 @@ describe("the hero's chips", () => {
       other: "{{count}} failed pods",
     });
     expect(chips[5]?.problem?.query.kind).toBe(KubernetesProblemKind.Unknown);
-    expect(chips[6]?.problem?.query.kind).toBe(KubernetesProblemKind.NodesNotReady);
+    expect(chips[6]?.problem?.query.kind).toBe(
+      KubernetesProblemKind.NodesNotReady,
+    );
     expect(chips[6]?.plural).toEqual({
       one: "{{count}} Node Not Ready",
       other: "{{count}} Nodes Not Ready",
@@ -832,7 +916,9 @@ describe("the hero's chips", () => {
 });
 
 describe("what OpenShift adds to a Degraded cluster's reasons", () => {
-  function health(fields: Partial<OpenShiftClusterHealth>): OpenShiftClusterHealth {
+  function health(
+    fields: Partial<OpenShiftClusterHealth>,
+  ): OpenShiftClusterHealth {
     return {
       version: "4.16.3",
       desiredVersion: "4.16.3",
@@ -869,7 +955,10 @@ describe("what OpenShift adds to a Degraded cluster's reasons", () => {
       progressing: "",
       degraded: "",
       version: "4.16.3",
-      reason: state === OpenShiftClusterOperatorState.Degraded ? "RouteHealthDegraded" : "",
+      reason:
+        state === OpenShiftClusterOperatorState.Degraded
+          ? "RouteHealthDegraded"
+          : "",
       message: `${name} says so`,
       since: ago(42),
     };
@@ -919,7 +1008,10 @@ describe("what OpenShift adds to a Degraded cluster's reasons", () => {
     expect(items).toHaveLength(1);
     expect(items[0]?.kind).toBe("ClusterVersion");
     expect(items[0]?.name).toBe("4.16.4");
-    expect(textOf(items[0]!)).toEqual(["Update failing", "ClusterOperatorDegraded"]);
+    expect(textOf(items[0]!)).toEqual([
+      "Update failing",
+      "ClusterOperatorDegraded",
+    ]);
     expect(items[0]?.message).toBe("Cluster operator ingress is degraded");
   });
 
@@ -946,7 +1038,10 @@ describe("the read a count's dialog makes", () => {
     expect(
       getKubernetesProblemModelQuery({
         clusterId: CLUSTER,
-        query: { kind: KubernetesProblemKind.CannotRun, reason: "CrashLoopBackOff" },
+        query: {
+          kind: KubernetesProblemKind.CannotRun,
+          reason: "CrashLoopBackOff",
+        },
       }),
     ).toEqual({
       kubernetesClusterId: CLUSTER,
@@ -1011,13 +1106,20 @@ describe("the read a count's dialog makes", () => {
       crashLooping("checkout-3", 5),
     ] as unknown as Array<Record<string, unknown>>;
     mockEventRows = [
-      event({ reason: "BackOff", objectName: "checkout-3", message: "Back-off restarting" }),
+      event({
+        reason: "BackOff",
+        objectName: "checkout-3",
+        message: "Back-off restarting",
+      }),
     ] as unknown as Array<Record<string, unknown>>;
 
     const read: ResourceAttentionDialogRead = await loadKubernetesProblemItems({
       clusterId: CLUSTER,
       clusterIdentifier: "production-us-east-1",
-      query: { kind: KubernetesProblemKind.CannotRun, reason: "CrashLoopBackOff" },
+      query: {
+        kind: KubernetesProblemKind.CannotRun,
+        reason: "CrashLoopBackOff",
+      },
     });
 
     expect(mockListCalls).toHaveLength(1);
@@ -1030,7 +1132,13 @@ describe("the read a count's dialog makes", () => {
     expect(
       Object.keys(mockListCalls[0]?.["select"] as Record<string, unknown>),
     ).toEqual(
-      expect.arrayContaining(["status", "spec", "ownerReferences", "labels", "phase"]),
+      expect.arrayContaining([
+        "status",
+        "spec",
+        "ownerReferences",
+        "labels",
+        "phase",
+      ]),
     );
 
     // Only the count's word, the newest failure first.
@@ -1042,7 +1150,9 @@ describe("the read a count's dialog makes", () => {
     expect(read.isTruncated).toBe(false);
 
     expect(mockEventReads).toHaveLength(1);
-    expect(mockEventReads[0]?.["clusterIdentifier"]).toBe("production-us-east-1");
+    expect(mockEventReads[0]?.["clusterIdentifier"]).toBe(
+      "production-us-east-1",
+    );
     expect(mockEventReads[0]?.["scope"]).toEqual({
       kind: "objects",
       objectKind: "Pod",
@@ -1059,7 +1169,9 @@ describe("the read a count's dialog makes", () => {
   });
 
   test("still lists the pods, with why from their status, when their Events cannot be read", async () => {
-    mockListRows = [failed("batch-1", 5)] as unknown as Array<Record<string, unknown>>;
+    mockListRows = [failed("batch-1", 5)] as unknown as Array<
+      Record<string, unknown>
+    >;
     mockEventRows = new Error("ClickHouse is down");
 
     const read: ResourceAttentionDialogRead = await loadKubernetesProblemItems({
@@ -1074,7 +1186,9 @@ describe("the read a count's dialog makes", () => {
   });
 
   test("says when more matched than one read lists", async () => {
-    mockListRows = [failed("batch-1", 5)] as unknown as Array<Record<string, unknown>>;
+    mockListRows = [failed("batch-1", 5)] as unknown as Array<
+      Record<string, unknown>
+    >;
     mockListCount = 450;
 
     const read: ResourceAttentionDialogRead = await loadKubernetesProblemItems({
@@ -1087,14 +1201,18 @@ describe("the read a count's dialog makes", () => {
   });
 
   test("asks for no Events when nothing matched, or the cluster has no name to find them by", async () => {
-    const empty: ResourceAttentionDialogRead = await loadKubernetesProblemItems({
-      clusterId: CLUSTER,
-      clusterIdentifier: "production-us-east-1",
-      query: { kind: KubernetesProblemKind.Pending },
-    });
+    const empty: ResourceAttentionDialogRead = await loadKubernetesProblemItems(
+      {
+        clusterId: CLUSTER,
+        clusterIdentifier: "production-us-east-1",
+        query: { kind: KubernetesProblemKind.Pending },
+      },
+    );
     expect(empty.items).toEqual([]);
 
-    mockListRows = [failed("batch-1", 5)] as unknown as Array<Record<string, unknown>>;
+    mockListRows = [failed("batch-1", 5)] as unknown as Array<
+      Record<string, unknown>
+    >;
     await loadKubernetesProblemItems({
       clusterId: CLUSTER,
       clusterIdentifier: "",
@@ -1133,9 +1251,11 @@ describe("the read a count's dialog makes", () => {
       query: { kind: KubernetesProblemKind.NodesNotReady },
     });
 
-    expect(read.items.map((item: ResourceAttentionItem) => item.name)).toEqual([
-      "node-3",
-    ]);
+    expect(
+      read.items.map((item: ResourceAttentionItem) => {
+        return item.name;
+      }),
+    ).toEqual(["node-3"]);
     expect(textOf(read.items[0]!)).toEqual(["Not ready"]);
     expect(read.items[0]?.message).toBe("container runtime network not ready");
     expect(

@@ -248,7 +248,10 @@ export function getKubernetesStatusChips(data: {
       word: STATUS_PENDING,
       problem: {
         query: { kind: KubernetesProblemKind.Pending },
-        title: { one: "{{count}} pending pod", other: "{{count}} pending pods" },
+        title: {
+          one: "{{count}} pending pod",
+          other: "{{count}} pending pods",
+        },
         description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsPending,
         emptyMessage: PENDING_EMPTY,
         whatFailed: PODS_WHAT_FAILED,

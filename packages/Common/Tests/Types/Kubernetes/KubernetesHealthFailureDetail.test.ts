@@ -125,7 +125,10 @@ function pod(
   };
 }
 
-function node(conditions: Array<JSONObject>, isReady: boolean): KubernetesHealthRow {
+function node(
+  conditions: Array<JSONObject>,
+  isReady: boolean,
+): KubernetesHealthRow {
   return {
     kind: "Node",
     namespaceKey: "",
@@ -182,7 +185,11 @@ describe("since when a pod has been failing", () => {
     const fromContainersReady: KubernetesHealthAssessment = assessKubernetesPod(
       pod({
         containers: [
-          container({ ready: false, state: "waiting", reason: "CrashLoopBackOff" }),
+          container({
+            ready: false,
+            state: "waiting",
+            reason: "CrashLoopBackOff",
+          }),
         ],
         conditions: [condition("ContainersReady", "False", { at: ago(40) })],
       }),
@@ -209,7 +216,11 @@ describe("since when a pod has been failing", () => {
     const fromCreation: KubernetesHealthAssessment = assessKubernetesPod(
       pod({
         containers: [
-          container({ ready: false, state: "waiting", reason: "ImagePullBackOff" }),
+          container({
+            ready: false,
+            state: "waiting",
+            reason: "ImagePullBackOff",
+          }),
         ],
         conditions: [],
         createdMinutesAgo: 30,
@@ -260,7 +271,12 @@ describe("since when a pod has been failing", () => {
 
   test("any other pending pod: since it was created, even while it is still starting", () => {
     const starting: KubernetesHealthAssessment = assessKubernetesPod(
-      pod({ phase: "Pending", containers: [], conditions: [], createdMinutesAgo: 2 }),
+      pod({
+        phase: "Pending",
+        containers: [],
+        conditions: [],
+        createdMinutesAgo: 2,
+      }),
     );
     expect(starting.severity).toBeNull();
     expect(starting.since).toBe(at(2));
@@ -354,7 +370,13 @@ describe("which container a pod's verdict is about", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesPod(
       pod({
         phase: "Pending",
-        containers: [container({ ready: false, state: "waiting", reason: "PodInitializing" })],
+        containers: [
+          container({
+            ready: false,
+            state: "waiting",
+            reason: "PodInitializing",
+          }),
+        ],
         initContainers: [
           container({
             name: "migrate",
@@ -375,8 +397,18 @@ describe("which container a pod's verdict is about", () => {
         pod({
           phase: "Failed",
           containers: [
-            container({ name: "proxy", state: "terminated", reason: "Completed", exitCode: 0 }),
-            container({ name: "job", state: "terminated", reason: "Error", exitCode: 1 }),
+            container({
+              name: "proxy",
+              state: "terminated",
+              reason: "Completed",
+              exitCode: 0,
+            }),
+            container({
+              name: "job",
+              state: "terminated",
+              reason: "Error",
+              exitCode: 1,
+            }),
           ],
           conditions: [condition("Ready", "False", { at: ago(5) })],
         }),
@@ -404,7 +436,10 @@ describe("how a container's own run ended, exit code and all", () => {
     );
     expect(reasonWords(assessment)).toEqual(["Failed", "Error, exit code 1"]);
     // Kubernetes' word stays a value: drawn as written in every language.
-    expect(assessment.reasons[1]?.values).toEqual({ reason: "Error", code: "1" });
+    expect(assessment.reasons[1]?.values).toEqual({
+      reason: "Error",
+      code: "1",
+    });
   });
 
   test("an OOM kill's code and a clean exit's say nothing more than the word", () => {
@@ -412,7 +447,12 @@ describe("how a container's own run ended, exit code and all", () => {
       pod({
         phase: "Failed",
         containers: [
-          container({ ready: false, state: "terminated", reason: "OOMKilled", exitCode: 137 }),
+          container({
+            ready: false,
+            state: "terminated",
+            reason: "OOMKilled",
+            exitCode: 137,
+          }),
         ],
         conditions: [condition("Ready", "False", { at: ago(3) })],
       }),
@@ -423,7 +463,12 @@ describe("how a container's own run ended, exit code and all", () => {
       pod({
         phase: "Failed",
         containers: [
-          container({ ready: false, state: "terminated", reason: "DeadlineExceeded", exitCode: 0 }),
+          container({
+            ready: false,
+            state: "terminated",
+            reason: "DeadlineExceeded",
+            exitCode: 0,
+          }),
         ],
         conditions: [condition("Ready", "False", { at: ago(3) })],
       }),
@@ -435,7 +480,12 @@ describe("how a container's own run ended, exit code and all", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesPod(
       pod({
         containers: [
-          container({ ready: false, state: "terminated", reason: "Error", exitCode: 143 }),
+          container({
+            ready: false,
+            state: "terminated",
+            reason: "Error",
+            exitCode: 143,
+          }),
         ],
         conditions: [condition("Ready", "False", { at: ago(0) })],
       }),
@@ -448,9 +498,21 @@ describe("how a container's own run ended, exit code and all", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesPod(
       pod({
         phase: "Pending",
-        containers: [container({ ready: false, state: "waiting", reason: "PodInitializing" })],
+        containers: [
+          container({
+            ready: false,
+            state: "waiting",
+            reason: "PodInitializing",
+          }),
+        ],
         initContainers: [
-          container({ name: "migrate", ready: false, state: "terminated", reason: "Error", exitCode: 3 }),
+          container({
+            name: "migrate",
+            ready: false,
+            state: "terminated",
+            reason: "Error",
+            exitCode: 3,
+          }),
         ],
       }),
     );
@@ -484,7 +546,15 @@ describe("how a container's own run ended, exit code and all", () => {
 describe("since when a node, a Job and a CronJob's run have been wrong", () => {
   test("a node not ready: since its Ready condition changed", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesNode(
-      node([condition("Ready", "Unknown", { at: ago(33), message: "Kubelet stopped posting node status." })], false),
+      node(
+        [
+          condition("Ready", "Unknown", {
+            at: ago(33),
+            message: "Kubelet stopped posting node status.",
+          }),
+        ],
+        false,
+      ),
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Critical);
     expect(assessment.since).toBe(at(33));
@@ -562,7 +632,11 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
       getKubernetesPodStatusBucket(
         pod({
           containers: [
-            container({ ready: false, state: "waiting", reason: "CrashLoopBackOff" }),
+            container({
+              ready: false,
+              state: "waiting",
+              reason: "CrashLoopBackOff",
+            }),
           ],
         }),
       ),
@@ -578,7 +652,11 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
         pod({
           phase: "Pending",
           containers: [
-            container({ ready: false, state: "waiting", reason: "ImagePullBackOff" }),
+            container({
+              ready: false,
+              state: "waiting",
+              reason: "ImagePullBackOff",
+            }),
           ],
         }),
       ),
@@ -595,7 +673,13 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
           phase: "Pending",
           containers: [],
           initContainers: [
-            container({ name: "migrate", ready: false, state: "terminated", reason: "Error", exitCode: 1 }),
+            container({
+              name: "migrate",
+              ready: false,
+              state: "terminated",
+              reason: "Error",
+              exitCode: 1,
+            }),
           ],
         }),
       ),
@@ -610,10 +694,15 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
       expect(
         getKubernetesPodStatusBucket(
           pod({
-            containers: [container({ ready: false, state: "waiting", reason: reason })],
+            containers: [
+              container({ ready: false, state: "waiting", reason: reason }),
+            ],
           }),
         ),
-      ).toEqual({ bucket: KubernetesPodStatusBucket.CannotRun, reason: reason });
+      ).toEqual({
+        bucket: KubernetesPodStatusBucket.CannotRun,
+        reason: reason,
+      });
     }
   });
 
@@ -623,7 +712,11 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
         pod({
           phase: "Pending",
           containers: [
-            container({ ready: false, state: "waiting", reason: "ContainerCreating" }),
+            container({
+              ready: false,
+              state: "waiting",
+              reason: "ContainerCreating",
+            }),
           ],
         }),
       ).bucket,
@@ -635,14 +728,20 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
       KubernetesPodStatusBucket.Running,
     );
     expect(
-      getKubernetesPodStatusBucket(pod({ phase: "Pending", containers: [] })).bucket,
+      getKubernetesPodStatusBucket(pod({ phase: "Pending", containers: [] }))
+        .bucket,
     ).toBe(KubernetesPodStatusBucket.Pending);
     expect(
       getKubernetesPodStatusBucket(
         pod({
           phase: "Failed",
           containers: [
-            container({ ready: false, state: "terminated", reason: "Error", exitCode: 1 }),
+            container({
+              ready: false,
+              state: "terminated",
+              reason: "Error",
+              exitCode: 1,
+            }),
           ],
         }),
       ).bucket,
@@ -652,7 +751,12 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
         pod({
           phase: "Succeeded",
           containers: [
-            container({ ready: false, state: "terminated", reason: "Completed", exitCode: 0 }),
+            container({
+              ready: false,
+              state: "terminated",
+              reason: "Completed",
+              exitCode: 0,
+            }),
           ],
         }),
       ).bucket,
@@ -671,10 +775,34 @@ describe("how the cluster's hero counts a pod: once, as kubectl's STATUS says it
   test("a pod is counted unable to run exactly when ingest stores it critical", () => {
     const rows: Array<KubernetesHealthRow> = [
       pod(),
-      pod({ containers: [container({ ready: false, state: "waiting", reason: "CrashLoopBackOff" })] }),
-      pod({ phase: "Pending", containers: [container({ ready: false, state: "waiting", reason: "ErrImagePull" })] }),
+      pod({
+        containers: [
+          container({
+            ready: false,
+            state: "waiting",
+            reason: "CrashLoopBackOff",
+          }),
+        ],
+      }),
+      pod({
+        phase: "Pending",
+        containers: [
+          container({ ready: false, state: "waiting", reason: "ErrImagePull" }),
+        ],
+      }),
       pod({ phase: "Pending", containers: [], createdMinutesAgo: 30 }),
-      pod({ phase: "Failed", containers: [container({ ready: false, state: "terminated", reason: "Error", exitCode: 1 })], conditions: [condition("Ready", "False", { at: ago(2) })] }),
+      pod({
+        phase: "Failed",
+        containers: [
+          container({
+            ready: false,
+            state: "terminated",
+            reason: "Error",
+            exitCode: 1,
+          }),
+        ],
+        conditions: [condition("Ready", "False", { at: ago(2) })],
+      }),
       pod({ phase: "Unknown" }),
     ];
     for (const row of rows) {

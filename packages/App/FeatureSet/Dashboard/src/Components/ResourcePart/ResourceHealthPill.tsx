@@ -79,9 +79,7 @@ const ResourceHealthPill: FunctionComponent<ComponentProps> = (
   const dataHealth: string = props.isConnected ? props.health : "Unknown";
 
   const isExplained: boolean =
-    props.isConnected &&
-    props.health !== "Healthy" &&
-    props.items.length > 0;
+    props.isConnected && props.health !== "Healthy" && props.items.length > 0;
 
   if (isExplained) {
     const isUnhealthy: boolean = props.health === "Unhealthy";

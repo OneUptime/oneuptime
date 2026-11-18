@@ -920,7 +920,10 @@ describePostgres("KubernetesResource health on Postgres", () => {
       });
     }
 
-    function waiting(reason: string, name: string = "app"): Record<string, unknown> {
+    function waiting(
+      reason: string,
+      name: string = "app",
+    ): Record<string, unknown> {
       return {
         name: name,
         ready: false,
@@ -1010,7 +1013,8 @@ describePostgres("KubernetesResource health on Postgres", () => {
       // The SQL's word for each is the rules' word for it.
       const byRules: Map<string, number> = new Map<string, number>();
       for (const pod of pods) {
-        const of: KubernetesPodStatusBucketOf = getKubernetesPodStatusBucket(pod);
+        const of: KubernetesPodStatusBucketOf =
+          getKubernetesPodStatusBucket(pod);
         if (of.bucket === KubernetesPodStatusBucket.CannotRun) {
           byRules.set(of.reason || "", (byRules.get(of.reason || "") || 0) + 1);
         }
@@ -1036,7 +1040,9 @@ describePostgres("KubernetesResource health on Postgres", () => {
     });
 
     test("leaves another cluster's and a deleted pod out", async () => {
-      await upsert([podIn("crash-1", "Running", [waiting("CrashLoopBackOff")])]);
+      await upsert([
+        podIn("crash-1", "Running", [waiting("CrashLoopBackOff")]),
+      ]);
       await upsert(
         [podIn("crash-2", "Running", [waiting("CrashLoopBackOff")])],
         OTHER_CLUSTER_ID,

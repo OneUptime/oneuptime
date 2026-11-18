@@ -96,7 +96,8 @@ export function getKubernetesProblemEventsWindow(data: {
   const start: number =
     known.length > 0
       ? Math.max(Math.min(...known) - 60 * 60 * 1000, earliestAllowed)
-      : end.getTime() - KUBERNETES_PROBLEM_EVENTS_DEFAULT_HOURS * 60 * 60 * 1000;
+      : end.getTime() -
+        KUBERNETES_PROBLEM_EVENTS_DEFAULT_HOURS * 60 * 60 * 1000;
   return new InBetween<Date>(new Date(Math.min(start, end.getTime())), end);
 }
 

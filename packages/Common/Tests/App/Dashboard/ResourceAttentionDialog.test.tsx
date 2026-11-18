@@ -149,7 +149,12 @@ function crashLoopingPod(): ResourceAttentionItem {
         count: 1,
         lastSeenAt: new Date(NOW - 5 * 60 * 1000),
       },
-      { key: "e3", reason: "Unhealthy", message: "Readiness probe failed", count: 3 },
+      {
+        key: "e3",
+        reason: "Unhealthy",
+        message: "Readiness probe failed",
+        count: 3,
+      },
       { key: "e4", reason: "FailedMount", message: "never shown", count: 1 },
     ],
   };
@@ -232,13 +237,18 @@ describe("the dialog a count opens", () => {
     );
 
     // The newest three events, with how often and when.
-    const events: Array<HTMLElement> = within(first).getAllByTestId("failed-event");
+    const events: Array<HTMLElement> =
+      within(first).getAllByTestId("failed-event");
     expect(events).toHaveLength(RESOURCE_ATTENTION_EVENTS_SHOWN);
     expect(events[0]).toHaveTextContent(
       "BackOff Back-off restarting failed container app · 12 times, last 2 minutes ago",
     );
-    expect(events[1]).toHaveTextContent("OOMKilling Memory cgroup out of memory · 5 minutes ago");
-    expect(events[2]).toHaveTextContent("Unhealthy Readiness probe failed · 3 times");
+    expect(events[1]).toHaveTextContent(
+      "OOMKilling Memory cgroup out of memory · 5 minutes ago",
+    );
+    expect(events[2]).toHaveTextContent(
+      "Unhealthy Readiness probe failed · 3 times",
+    );
     expect(first).not.toHaveTextContent("never shown");
 
     // View: a step from the part's own page.
@@ -466,7 +476,12 @@ describe("a count that opens the dialog", () => {
     await act(async () => {
       await i18next.changeLanguage("de");
     });
-    i18next.addResource("de", "translation", "Show which pods and why", "Zeigen, welche Pods und warum");
+    i18next.addResource(
+      "de",
+      "translation",
+      "Show which pods and why",
+      "Zeigen, welche Pods und warum",
+    );
 
     render(
       <ResourceAttentionPill
@@ -556,7 +571,9 @@ describe("a resource's health pill", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("health-dialog-item")).toHaveLength(1);
-    expect(screen.getByTestId("health-dialog-name")).toHaveTextContent("queued");
+    expect(screen.getByTestId("health-dialog-name")).toHaveTextContent(
+      "queued",
+    );
     expect(screen.getByTestId("health-dialog-view")).toHaveAttribute(
       "href",
       "/dashboard/k8s/pods/queued",

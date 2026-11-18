@@ -374,7 +374,9 @@ function notReadySinceOf(conditions: Array<Condition>): number | null {
 }
 
 // A time Kubernetes recorded, or nothing: never NaN, never null.
-function sinceOf(...times: Array<number | null | undefined>): number | undefined {
+function sinceOf(
+  ...times: Array<number | null | undefined>
+): number | undefined {
   for (const time of times) {
     if (typeof time === "number" && Number.isFinite(time)) {
       return time;
@@ -601,7 +603,10 @@ function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
  * when that says more: "Error, exit code 1". An OOM kill's code (137) and a
  * clean exit's (0) add nothing to the word.
  */
-function endedReason(word: string, exitCode: number | null): KubernetesHealthText {
+function endedReason(
+  word: string,
+  exitCode: number | null,
+): KubernetesHealthText {
   if (exitCode !== null && exitCode !== 0 && !word.endsWith("OOMKilled")) {
     return text(REASON_ENDED_WITH_CODE, {
       reason: word,

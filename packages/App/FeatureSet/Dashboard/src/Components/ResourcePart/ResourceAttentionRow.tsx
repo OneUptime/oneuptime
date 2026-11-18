@@ -354,7 +354,9 @@ const ResourceAttentionRow: FunctionComponent<ComponentProps> = (
                                 other: "{{count}} times, last {{time}}",
                               },
                               event.count,
-                              { time: relativeTimeValue(event.lastSeenAt, now) },
+                              {
+                                time: relativeTimeValue(event.lastSeenAt, now),
+                              },
                               { setsValuesApart: true },
                             )
                           : event.count > 1

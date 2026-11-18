@@ -1134,20 +1134,27 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
         return relative(candidate.file) === file;
       });
       expect(hero).toBeDefined();
-      expect({ file, draws: identityOf(hero!).getText().includes(health) }).toEqual(
-        { file, draws: true },
-      );
+      expect({
+        file,
+        draws: identityOf(hero!).getText().includes(health),
+      }).toEqual({ file, draws: true });
     }
 
     const containerHostPill: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components/ContainerHost/ContainerHostHealthPill.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components/ContainerHost/ContainerHostHealthPill.tsx",
+      ),
       "utf8",
     );
     expect(containerHostPill).toContain("<ResourceHealthPill");
     expect(containerHostPill).toContain("items={props.items}");
 
     const pill: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components/ResourcePart/ResourceHealthPill.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components/ResourcePart/ResourceHealthPill.tsx",
+      ),
       "utf8",
     );
     expect(pill).toContain("getResourceHealthLabel({");

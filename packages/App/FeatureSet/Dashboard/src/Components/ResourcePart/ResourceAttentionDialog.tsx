@@ -7,8 +7,9 @@ import React, {
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
+  ButtonSize,
+  ButtonStyleType,
   OUTLINE_BUTTON_CLASS_NAME,
   OUTLINE_BUTTON_HOVER_CLASS_NAMES,
 } from "Common/UI/Components/Button/Button";
@@ -101,30 +102,31 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
     return translator.translateText(text) || text;
   };
 
-  const loadItems: () => Promise<void> = useCallback(async (): Promise<void> => {
-    const load: (() => Promise<ResourceAttentionDialogRead>) | undefined =
-      loadRef.current;
-    if (!load) {
-      return;
-    }
-    const thisRead: number = ++readCount.current;
-    setIsLoading(true);
-    setError("");
-    try {
-      const result: ResourceAttentionDialogRead = await load();
-      if (thisRead === readCount.current) {
-        setRead(result);
+  const loadItems: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const load: (() => Promise<ResourceAttentionDialogRead>) | undefined =
+        loadRef.current;
+      if (!load) {
+        return;
       }
-    } catch (err) {
-      if (thisRead === readCount.current) {
-        setError(API.getFriendlyMessage(err));
+      const thisRead: number = ++readCount.current;
+      setIsLoading(true);
+      setError("");
+      try {
+        const result: ResourceAttentionDialogRead = await load();
+        if (thisRead === readCount.current) {
+          setRead(result);
+        }
+      } catch (err) {
+        if (thisRead === readCount.current) {
+          setError(API.getFriendlyMessage(err));
+        }
+      } finally {
+        if (thisRead === readCount.current) {
+          setIsLoading(false);
+        }
       }
-    } finally {
-      if (thisRead === readCount.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
+    }, []);
 
   // Once, when the dialog opens: a read for what the page does not hold.
   useEffect(() => {

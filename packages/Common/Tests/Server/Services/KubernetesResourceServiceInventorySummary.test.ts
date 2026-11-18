@@ -44,8 +44,9 @@ describe("KubernetesResourceService.getInventorySummary counts each pod once", (
 
   beforeEach(() => {
     podRows = [];
-    query = jest.fn<QueryFunction>().mockImplementation(
-      async (sql: string): Promise<unknown> => {
+    query = jest
+      .fn<QueryFunction>()
+      .mockImplementation(async (sql: string): Promise<unknown> => {
         if (sql.includes(`"cannotRunReason"`)) {
           return podRows;
         }
@@ -67,8 +68,7 @@ describe("KubernetesResourceService.getInventorySummary counts each pod once", (
           ];
         }
         return [{ total: "90" }];
-      },
-    );
+      });
     jest.spyOn(KubernetesResourceService, "getRepository").mockReturnValue({
       manager: { query },
     } as never);
@@ -158,7 +158,11 @@ describe("KubernetesResourceService.getInventorySummary counts each pod once", (
       { phase: "Pending", cannotRunReason: null, count: "1" },
       { phase: "Pending", cannotRunReason: "ImagePullBackOff", count: "2" },
       { phase: "Running", cannotRunReason: "ImagePullBackOff", count: "1" },
-      { phase: "Pending", cannotRunReason: "Init:CrashLoopBackOff", count: "1" },
+      {
+        phase: "Pending",
+        cannotRunReason: "Init:CrashLoopBackOff",
+        count: "1",
+      },
     ];
 
     const summary: InventorySummary = await summarize();
@@ -177,7 +181,11 @@ describe("KubernetesResourceService.getInventorySummary counts each pod once", (
     podRows = [
       { phase: "Running", cannotRunReason: "RunContainerError", count: "1" },
       { phase: "Running", cannotRunReason: "CrashLoopBackOff", count: "4" },
-      { phase: "Pending", cannotRunReason: "CreateContainerConfigError", count: "1" },
+      {
+        phase: "Pending",
+        cannotRunReason: "CreateContainerConfigError",
+        count: "1",
+      },
     ];
 
     const summary: InventorySummary = await summarize();

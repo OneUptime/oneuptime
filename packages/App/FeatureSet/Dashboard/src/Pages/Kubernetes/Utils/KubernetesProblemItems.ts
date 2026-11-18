@@ -405,7 +405,8 @@ export function buildKubernetesProblemItems(data: {
   routeFor: KubernetesPartRouteFor;
   events?: Array<KubernetesEventRow> | undefined;
 }): Array<ResourceAttentionItem> {
-  const isNodes: boolean = data.query.kind === KubernetesProblemKind.NodesNotReady;
+  const isNodes: boolean =
+    data.query.kind === KubernetesProblemKind.NodesNotReady;
 
   const ranked: Array<{
     row: KubernetesHealthRow;
@@ -466,4 +467,3 @@ export function getKubernetesProblemObjectKind(
 ): "Pod" | "Node" {
   return query.kind === KubernetesProblemKind.NodesNotReady ? "Node" : "Pod";
 }
-
