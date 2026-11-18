@@ -11,7 +11,6 @@ import {
 } from "../../../FeatureSet/Docs/Utils/Redirects";
 import { getDocsPagePaths } from "../../../FeatureSet/Docs/Utils/Sitemap";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import DocsNav, { NavGroup } from "../../../FeatureSet/Docs/Utils/Nav";
 import { NAV_PAGES } from "./DocsContentSupport";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import { describe, expect, it } from "@jest/globals";
@@ -221,13 +220,18 @@ describe("getDocsPagePaths", () => {
   });
 
   it("leaves out the nav's links to other sites", () => {
-    const external: number = DocsNav.flatMap((group: NavGroup) => {
-      return group.links;
-    }).filter((link: { url: string }): boolean => {
-      return !link.url.startsWith("/docs/");
-    }).length;
-
-    expect(external).toBeGreaterThan(0);
+    expect(
+      getDocsPagePaths([
+        {
+          title: "A",
+          section: "Get Started",
+          links: [
+            { title: "One", url: "/docs/a/one" },
+            { title: "Out", url: "https://example.com/docs/x" },
+          ],
+        },
+      ]),
+    ).toEqual(["a/one"]);
     for (const page of getDocsPagePaths()) {
       expect(page).not.toMatch(/^https?:/);
     }
