@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "Добавлено групп мониторов: {{count}}",
   "{{count}} monitor groups added_one": "{{count}} группа мониторов добавлена",
   "{{count}} monitors added": "Добавлено мониторов: {{count}}",
-  "{{count}} monitors added_one": "{{count}} монитор добавлен"
+  "{{count}} monitors added_one": "{{count}} монитор добавлен",
+  "Is Sample Project": "Пример проекта",
+  "Sample Project": "Пример проекта",
+  "Sample Project ID": "ID примера проекта"
 }

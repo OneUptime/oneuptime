@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "مجموعات المراقبات المُضافة: {{count}}",
   "{{count}} monitor groups added_one": "أُضيفت {{count}} مجموعة مراقبات",
   "{{count}} monitors added": "المراقبات المُضافة: {{count}}",
-  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة"
+  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة",
+  "Is Sample Project": "مشروع تجريبي",
+  "Sample Project": "المشروع التجريبي",
+  "Sample Project ID": "معرّف المشروع التجريبي"
 }

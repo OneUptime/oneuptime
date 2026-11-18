@@ -56831,5 +56831,8 @@
   "{{count}} monitor groups added": "{{count}} grupos de monitores añadidos",
   "{{count}} monitor groups added_one": "{{count}} grupo de monitores añadido",
   "{{count}} monitors added": "{{count}} monitores añadidos",
-  "{{count}} monitors added_one": "{{count}} monitor añadido"
+  "{{count}} monitors added_one": "{{count}} monitor añadido",
+  "Is Sample Project": "Es un proyecto de ejemplo",
+  "Sample Project": "Proyecto de ejemplo",
+  "Sample Project ID": "ID del proyecto de ejemplo"
 }
