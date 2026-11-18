@@ -739,7 +739,8 @@ function normalizeServiceTemplate(
     resourceType: MonitorRecommendationResourceType.Service,
     /*
      * Read off the template rather than fixed, because the service catalog —
-     * like RUM's — deliberately spans metric, trace and exception monitors.
+     * like RUM's — deliberately spans metric, trace, log and exception
+     * monitors.
      */
     monitorType: template.monitorType,
     template: template,
@@ -1204,10 +1205,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Service,
+      /*
+       * Logs too: a spike in the service's error logs
+       * (ServiceAlertTemplates' service-error-log-spike, #7146).
+       */
       monitorTypes: [
         MonitorType.Metrics,
         MonitorType.Traces,
         MonitorType.Exceptions,
+        MonitorType.Logs,
       ],
       resourceLabel: "Service",
       identifierFieldName: "serviceId",

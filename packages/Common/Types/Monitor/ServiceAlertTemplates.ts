@@ -18,10 +18,11 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import { ServiceLanguage } from "../Service/ServiceLanguage";
+import LogSeverity from "../Log/LogSeverity";
 
 /*
  * The curated alert library for an APM telemetry service — a backend process
- * reporting OpenTelemetry traces, metrics and exceptions under one
+ * reporting OpenTelemetry traces, metrics, logs and exceptions under one
  * `service.name`.
  *
  * WHAT MAKES THIS MODULE DIFFERENT FROM THE OTHER NINE
@@ -43,10 +44,10 @@ import { ServiceLanguage } from "../Service/ServiceLanguage";
  * THREE CONSTRAINTS THE PLATFORM IMPOSES, WHICH SHAPE EVERY TEMPLATE HERE
  *
  *   1. Only one CheckOn exists per telemetry monitor type: `MetricValue` for
- *      Metrics, `SpanCount` for Traces, `ExceptionCount` for Exceptions. There
- *      is no span-duration CheckOn (`TraceMonitorResponse` carries only a
- *      count), so latency alerts MUST be metric monitors over a duration
- *      histogram, never trace monitors.
+ *      Metrics, `SpanCount` for Traces, `LogCount` for Logs, `ExceptionCount`
+ *      for Exceptions. There is no span-duration CheckOn
+ *      (`TraceMonitorResponse` carries only a count), so latency alerts MUST
+ *      be metric monitors over a duration histogram, never trace monitors.
  *
  *   2. Cumulative monotonic counters are unusable. Ingest stores OTel counters
  *      raw — the per-second-rate transform on `MetricQueryConfigData` is a
@@ -171,6 +172,7 @@ interface CountCriteriaArgs {
   args: ServiceAlertTemplateArgs;
   checkOn:
     | CheckOn.SpanCount
+    | CheckOn.LogCount
     | CheckOn.ExceptionCount
     | CheckOn.NewExceptionCount
     | CheckOn.RegressedExceptionCount;
@@ -828,6 +830,76 @@ const unhandledExceptionsTemplate: ServiceAlertTemplate = {
         incidentTitle: `[Service] Unhandled exception - ${args.monitorName}`,
         incidentDescription:
           "The service reported an unresolved exception. Inspect the exception group, its stack trace, the release it appeared in, and how many distinct requests it affected.",
+      }),
+    );
+
+    return step;
+  },
+};
+
+/*
+ * A spike in the service's error logs (#7146, the third monitor #6806 asked
+ * the telemetry guided setup to suggest): more than 25 logs at Error or Fatal
+ * in five minutes. A Logs monitor on the service's own logs
+ * (telemetryServiceIds) counted over a rolling window, as the span and
+ * exception counts above are, so a service that sends only logs is watched
+ * too: the trace and exception templates would never fire on it.
+ *
+ * The same bar as Error Burst: an app that logs an error now and then is
+ * normal, twenty-five in five minutes is something breaking. Warning rather
+ * than Critical, because an error log is often a failure the app handled.
+ * Not grouped: the service is the thing that broke, and its name is in the
+ * alert's title.
+ */
+export const SERVICE_ERROR_LOG_SPIKE_TEMPLATE_ID: string =
+  "service-error-log-spike";
+
+export const SERVICE_ERROR_LOG_SEVERITIES: ReadonlyArray<LogSeverity> = [
+  LogSeverity.Error,
+  LogSeverity.Fatal,
+];
+
+const errorLogSpikeTemplate: ServiceAlertTemplate = {
+  id: SERVICE_ERROR_LOG_SPIKE_TEMPLATE_ID,
+  name: "Error Log Spike",
+  description:
+    "Alert when the service writes more than 25 error or fatal logs in five minutes, far more than a handled failure now and then.",
+  category: "Errors",
+  severity: "Warning",
+  monitorType: MonitorType.Logs,
+  getMonitorStep: (args: ServiceAlertTemplateArgs): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Logs,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setLogMonitor({
+      attributes: {},
+      body: "",
+      severityTexts: [...SERVICE_ERROR_LOG_SEVERITIES],
+      telemetryServiceIds: [new ObjectID(args.serviceId)],
+      entityKeys: [],
+      // Five minutes, as Error Burst counts its error spans.
+      lastXSecondsOfLogs: 300,
+    });
+
+    step.setMonitorCriteria(
+      buildCountCriteria({
+        args: args,
+        checkOn: CheckOn.LogCount,
+        unhealthyFilterType: FilterType.GreaterThan,
+        healthyFilterType: FilterType.LessThanOrEqualTo,
+        threshold: 25,
+        unhealthyName: "Error logs above 25 in five minutes",
+        unhealthyDescription:
+          "Triggers when the service writes more than 25 error or fatal logs in five minutes.",
+        incidentTitle: `[Service] Error Log Spike - ${args.monitorName}`,
+        incidentDescription:
+          "The service is writing error logs far faster than usual. Open its Logs filtered to Error and Fatal to see which message rose, and check what deployed recently.",
       }),
     );
 
@@ -1531,6 +1603,7 @@ const goTemplates: Array<ServiceAlertTemplate> = [
 const ALL_SERVICE_ALERT_TEMPLATES: Array<ServiceAlertTemplate> = [
   failedOperationsTemplate,
   errorBurstTemplate,
+  errorLogSpikeTemplate,
   unhandledExceptionsTemplate,
   newExceptionTemplate,
   regressedExceptionTemplate,
