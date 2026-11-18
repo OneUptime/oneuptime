@@ -9,6 +9,7 @@ import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCall
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import logger from "Common/Server/Utils/Logger";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
@@ -68,8 +69,9 @@ export enum FailurePoint {
   // The claim that moves a run on (claimEscalationAdvance).
   ClaimMoveOn = "ClaimMoveOn",
   /*
-   * The read of the rule a run moves on to: EscalationRule findOneBy, and
-   * the read of its policy's levels it picks the next from (findBy).
+   * The read of the rule a run starts at or moves on to: EscalationRule
+   * findOneBy (a run's first rule, its policy's lowest place), and the read
+   * of its policy's levels it picks the next from (findBy).
    */
   ReadNextRule = "ReadNextRule",
   // The read of a rule as it starts (startRuleExecution's findOneById).
@@ -101,6 +103,12 @@ interface PlannedFailure {
 }
 
 type AnyFunction = (...args: Array<any>) => any;
+
+// A read of escalation rules, as the services ask for it.
+interface RuleRead {
+  query?: Record<string, unknown> | undefined;
+  sort?: { order?: unknown } | undefined;
+}
 
 const CREATED_STATE: ObjectID = new ObjectID(
   "0f500000-0000-4000-8000-0000000007a1",
@@ -460,11 +468,18 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       },
     );
 
+    /*
+     * A run starts at its policy's first rule, read as its lowest place
+     * (findFirstOfPolicy, #9369): a read that asks for no order, the rules
+     * sorted by it. A failure planned for one level's read - by its order -
+     * is told the order of the rule that read picks, as a read of the
+     * policy's levels is told the level the run moves on to (below).
+     */
     this.wrap(
       OnCallDutyPolicyEscalationRuleService,
       "findOneBy",
       (args: Array<unknown>) => {
-        this.hit(FailurePoint.ReadNextRule, args);
+        this.hit(FailurePoint.ReadNextRule, this.withOrderItPicks(args));
       },
     );
 
@@ -612,6 +627,34 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       getOnCallRunNextLevel({ run: run, levels: this.rules }) ||
       getOnCallPolicyFirstLevel(this.rules)
     )?.order;
+  }
+
+  /*
+   * A read of one rule, its query naming the order of the rule it picks:
+   * the order it asks for, or - a read of the policy's first rule, which
+   * asks for none and sorts by it (findFirstOfPolicy) - the lowest place.
+   */
+  private withOrderItPicks(args: Array<unknown>): Array<unknown> {
+    const read: RuleRead = (args[0] as RuleRead | undefined) || {};
+    const query: Record<string, unknown> = read.query || {};
+
+    if (
+      query["order"] !== undefined ||
+      read.sort?.order !== SortOrder.Ascending
+    ) {
+      return args;
+    }
+
+    return [
+      {
+        ...read,
+        query: {
+          ...query,
+          order: getOnCallPolicyFirstLevel(this.rules)?.order,
+        },
+      },
+      ...args.slice(1),
+    ];
   }
 
   private plan(point: FailurePoint, failure: PlannedFailure): void {
