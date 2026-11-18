@@ -78,6 +78,11 @@ import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import {
+  ProjectRemovalReach,
+  useProjectRemovalReach,
+} from "../../Utils/ProjectRemovalReach";
+import ProjectRemovalBulkDetails from "../../Components/User/ProjectRemovalBulkDetails";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -113,6 +118,13 @@ const Users: FunctionComponent<PageComponentProps> = (
   const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
     canGetInvitationLinks(serverEmail),
   );
+
+  /*
+   * Someone who may remove people only from the teams they own cannot take
+   * a person off a team they do not (#6599): the row's Remove from Project
+   * says so, and which teams keep them, before it is pressed.
+   */
+  const removalReach: ProjectRemovalReach = useProjectRemovalReach();
 
   /*
    * The team Invite User starts on: the project's members team, when the
@@ -362,9 +374,29 @@ const Users: FunctionComponent<PageComponentProps> = (
                 buttons: [ModalTableBulkDefaultActions.Delete],
                 deleteConfirmationWarning:
                   "Each selected user will be removed from every team in this project and lose access to it immediately.",
+                /*
+                 * Who stays, said before it runs. Once it has, they are
+                 * listed among those not removed, with why: the row lock
+                 * below keeps them from being sent at all.
+                 */
+                deleteConfirmationDetails: (
+                  items: Array<TeamMember>,
+                ): ReactElement => {
+                  return (
+                    <ProjectRemovalBulkDetails
+                      items={items}
+                      getPersonKept={removalReach.getPersonKept}
+                    />
+                  );
+                },
               }
             : undefined
         }
+        /*
+         * Remove from Project stays in the row's menu, locked, for someone
+         * the reader's role would leave on some of their teams (#6599).
+         */
+        getDeleteDisabledReason={removalReach.getDeleteDisabledReason}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -386,7 +418,10 @@ const Users: FunctionComponent<PageComponentProps> = (
             },
           }),
         ]}
-        onFetchSuccess={membersNotSignedUp.onFetchSuccess}
+        onFetchSuccess={(rows: Array<TeamMember>) => {
+          membersNotSignedUp.onFetchSuccess(rows);
+          removalReach.onFetchSuccess(rows);
+        }}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
