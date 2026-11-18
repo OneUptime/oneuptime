@@ -44,6 +44,35 @@ export const LINEAGE_MAP_HIDEABLE_KINDS: ReadonlyArray<DataLineageMapNodeKind> =
     DataLineageMapNodeKind.Dashboard,
   ];
 
+/*
+ * The cards that go with a kind left off: a dashboard's datasets and data
+ * sources (Power BI's own lineage) go with the dashboards.
+ */
+const KINDS_THAT_GO_WITH: Readonly<
+  Partial<Record<DataLineageMapNodeKind, Array<DataLineageMapNodeKind>>>
+> = {
+  [DataLineageMapNodeKind.Dashboard]: [
+    DataLineageMapNodeKind.Dataset,
+    DataLineageMapNodeKind.Source,
+  ],
+};
+
+// Whether a card is left off by the kinds a reader switched off.
+export function isLineageMapKindHidden(
+  kind: DataLineageMapNodeKind,
+  hiddenKinds: ReadonlySet<DataLineageMapNodeKind>,
+): boolean {
+  if (hiddenKinds.has(kind)) {
+    return true;
+  }
+
+  return Array.from(hiddenKinds).some(
+    (hidden: DataLineageMapNodeKind): boolean => {
+      return (KINDS_THAT_GO_WITH[hidden] || []).includes(kind);
+    },
+  );
+}
+
 export interface LineageMapFilter {
   // Words a card's name, database, tool or namespace holds, or a pipeline named on an arrow.
   search: string;
@@ -81,6 +110,8 @@ export function countLineageMapKinds(
     [DataLineageMapNodeKind.Table]: 0,
     [DataLineageMapNodeKind.Pipeline]: 0,
     [DataLineageMapNodeKind.Dashboard]: 0,
+    [DataLineageMapNodeKind.Dataset]: 0,
+    [DataLineageMapNodeKind.Source]: 0,
   };
 
   for (const node of map.nodes) {
@@ -173,7 +204,7 @@ export function filterLineageMap(
 ): DataLineageMap {
   let nodes: Array<DataLineageMapNode> = map.nodes.filter(
     (node: DataLineageMapNode): boolean => {
-      return !filter.hiddenKinds.has(node.kind);
+      return !isLineageMapKindHidden(node.kind, filter.hiddenKinds);
     },
   );
   let kept: Set<string> = new Set(
