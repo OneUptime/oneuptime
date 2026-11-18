@@ -5187,12 +5187,17 @@ function composerFrame(page: Page): Locator {
     .first();
 }
 
+/*
+ * Send, and Stop in its place while the AI works: the shared Button's icon
+ * buttons (#9195), each named by what it does - and Send by its key - as
+ * its tooltip says it.
+ */
 function sendButton(page: Page): Locator {
-  return conversation(page).getByTitle("Send (Enter)");
+  return conversation(page).getByRole("button", { name: "Send (Enter)" });
 }
 
 function stopButton(page: Page): Locator {
-  return conversation(page).getByTitle("Stop generating");
+  return conversation(page).getByRole("button", { name: "Stop generating" });
 }
 
 function modePicker(page: Page): Locator {
