@@ -141,6 +141,7 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start">
           <div className="min-w-0 sm:flex-1">
             <Input
+              isSearchOrFilter={true}
               value={filter.search}
               placeholder={STATUS_PAGE_SETUP_COPY.searchPlaceholder}
               ariaLabel={searchLabel}
