@@ -150,7 +150,9 @@ export const getHomeQuickActions: (
   const isOffered: (definition: QuickActionDefinition) => boolean = (
     definition: QuickActionDefinition,
   ): boolean => {
-    return definition.isAllowed(gates) && !isOfProductOff(definition, offOnServer);
+    return (
+      definition.isAllowed(gates) && !isOfProductOff(definition, offOnServer)
+    );
   };
 
   return {

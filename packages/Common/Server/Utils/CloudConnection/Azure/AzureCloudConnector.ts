@@ -304,9 +304,7 @@ export function mergeAzureSelections(
  */
 export function pickAzureDefinitionSamples<
   T extends { kind?: string | undefined },
->(
-  resources: Array<T>,
-): Array<T> {
+>(resources: Array<T>): Array<T> {
   const picked: Array<T> = [];
   const kinds: Set<string> = new Set<string>();
 
