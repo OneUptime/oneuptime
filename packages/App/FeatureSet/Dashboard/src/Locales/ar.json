@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "استدعِ {{policy}} مرة واحدة، دون حادثة، لترى أن السياسة تصل إلى الأشخاص. تقول كل رسالة اختبار.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "اختر سياسة نقلتها واستدعها مرة واحدة، دون حادثة، لترى أنها تصل إلى الأشخاص. تقول كل رسالة اختبار.",
   "Some severities have no notification rule yet.": "بعض درجات الخطورة ليس لها قاعدة إشعارات بعد.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "يستقبل هذا المشروع هذه البيانات بالفعل، لذا تنتهي هذه الخطوة عندما تُبلِغ خدمة جديدة. تظهر البيانات التي لا تسمّي أي خدمة في المستكشف فور وصولها.",
+  "None. The status page's name is used.": "لا يوجد. يُستخدم اسم صفحة الحالة.",
+  "{{count}} monitor groups added": "مجموعات المراقبات المُضافة: {{count}}",
+  "{{count}} monitor groups added_one": "أُضيفت {{count}} مجموعة مراقبات",
+  "{{count}} monitors added": "المراقبات المُضافة: {{count}}",
+  "{{count}} monitors added_one": "أُضيفت {{count}} مراقبة"
 }

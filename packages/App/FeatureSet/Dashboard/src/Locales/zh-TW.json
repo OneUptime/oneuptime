@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "在沒有事件的情況下呼叫 {{policy}} 一次，確認此策略能通知到人。每則訊息都會註明「測試」。",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "選擇一個匯入的策略，在沒有事件的情況下呼叫一次，確認它能通知到人。每則訊息都會註明「測試」。",
   "Some severities have no notification rule yet.": "部分嚴重程度還沒有通知規則。",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此專案已在接收這些資料，因此此步驟會在新服務回報時完成。未指明服務的資料一送達就會顯示在瀏覽器中。"
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "此專案已在接收這些資料，因此此步驟會在新服務回報時完成。未指明服務的資料一送達就會顯示在瀏覽器中。",
+  "None. The status page's name is used.": "無。使用狀態頁面的名稱。",
+  "{{count}} monitor groups added": "已新增 {{count}} 個監測器群組",
+  "{{count}} monitor groups added_one": "已新增 {{count}} 個監測器群組",
+  "{{count}} monitors added": "已新增 {{count}} 個監測器",
+  "{{count}} monitors added_one": "已新增 {{count}} 個監測器"
 }

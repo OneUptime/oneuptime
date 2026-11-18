@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "インシデントなしで {{policy}} を一度呼び出し、ポリシーが担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "取り込んだポリシーを選び、インシデントなしで一度呼び出して、担当者に届くことを確かめます。すべてのメッセージに「テスト」と表示されます。",
   "Some severities have no notification rule yet.": "一部の重大度にはまだ通知ルールがありません。",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "このプロジェクトはすでにこのデータを受信しているため、このステップは新しいサービスがデータを送信すると完了します。サービス名のないデータは、届きしだいエクスプローラーに表示されます。"
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "このプロジェクトはすでにこのデータを受信しているため、このステップは新しいサービスがデータを送信すると完了します。サービス名のないデータは、届きしだいエクスプローラーに表示されます。",
+  "None. The status page's name is used.": "なし。ステータスページの名前が使われます。",
+  "{{count}} monitor groups added": "モニターグループを {{count}} 件追加しました",
+  "{{count}} monitor groups added_one": "モニターグループを {{count}} 件追加しました",
+  "{{count}} monitors added": "モニターを {{count}} 件追加しました",
+  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました"
 }

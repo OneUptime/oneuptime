@@ -318,6 +318,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       setStatusPage(statusPage);
 
+      // The name every page of it names the browser tab after (#7467).
+      StatusPageUtil.setStatusPageName(statusPage.pageTitle);
+
       /*
        * The page's theme, from its settings: what the server sent the page's
        * HTML in when it could read them, and the light page otherwise.
@@ -419,6 +422,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       "statusPage.darkThemeLogoFile",
     ) as BaseModel) || undefined;
 
+  // This page's overview, its id filled in on the preview.
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
+    props.isPreview
+      ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+      : RouteMap[PageMap.OVERVIEW]!,
+  );
+
+  /*
+   * The page's name as visitors read it: the server sends its Page Title,
+   * else its name, as pageTitle (StatusPageAPI.readMasterPage, #7467).
+   */
+  const publicName: string = (statusPage?.pageTitle || "").trim();
+
   const links: Array<Link> = (
     (JSONFunctions.getJSONValueInPath(
       masterPageData || {},
@@ -467,18 +483,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             logo={logo}
             darkLogo={darkLogo}
             logoAltText={
-              statusPage?.logoAltText || statusPage?.pageTitle || "Status Page"
+              statusPage?.logoAltText || publicName || t("common.statusPage")
             }
+            name={publicName}
+            overviewRoute={overviewRoute}
             links={links}
             onLogoClicked={() => {
-              // This page's overview, its id filled in on the preview.
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  props.isPreview
-                    ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                    : RouteMap[PageMap.OVERVIEW]!,
-                ),
-              );
+              Navigation.navigate(overviewRoute);
             }}
           />
         ) : (

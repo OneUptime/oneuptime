@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Alertez {{policy}} une fois, sans incident, pour voir que la politique joint bien des personnes. Chaque message indique TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Choisissez une politique importée et alertez-la une fois, sans incident, pour voir qu'elle joint bien des personnes. Chaque message indique TEST.",
   "Some severities have no notification rule yet.": "Certaines gravités n'ont pas encore de règle de notification.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Ce projet reçoit déjà ces données, donc cette étape se termine quand un nouveau service se signale. Les données qui ne nomment aucun service apparaissent dans l'explorateur dès leur arrivée."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Ce projet reçoit déjà ces données, donc cette étape se termine quand un nouveau service se signale. Les données qui ne nomment aucun service apparaissent dans l'explorateur dès leur arrivée.",
+  "None. The status page's name is used.": "Aucun. Le nom de la page de statut est utilisé.",
+  "{{count}} monitor groups added": "{{count}} groupes de moniteurs ajoutés",
+  "{{count}} monitor groups added_one": "{{count}} groupe de moniteurs ajouté",
+  "{{count}} monitors added": "{{count}} moniteurs ajoutés",
+  "{{count}} monitors added_one": "{{count}} moniteur ajouté"
 }

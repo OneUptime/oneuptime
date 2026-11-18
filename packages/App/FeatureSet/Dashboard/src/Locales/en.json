@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.",
   "Some severities have no notification rule yet.": "Some severities have no notification rule yet.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.",
+  "None. The status page's name is used.": "None. The status page's name is used.",
+  "{{count}} monitor groups added": "{{count}} monitor groups added",
+  "{{count}} monitor groups added_one": "{{count}} monitor group added",
+  "{{count}} monitors added": "{{count}} monitors added",
+  "{{count}} monitors added_one": "{{count}} monitor added"
 }

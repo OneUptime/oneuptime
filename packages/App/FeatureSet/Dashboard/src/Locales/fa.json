@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "{{policy}} را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید سیاست به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "سیاستی را که منتقل کرده‌اید انتخاب کنید و آن را یک بار، بدون هیچ حادثه‌ای، فرا بخوانید تا ببینید به افراد می‌رسد. هر پیام می‌گوید آزمایشی.",
   "Some severities have no notification rule yet.": "برخی سطح‌های شدت هنوز قاعدهٔ اعلان ندارند.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "این پروژه همین حالا این داده‌ها را دریافت می‌کند، پس این مرحله وقتی پایان می‌یابد که سرویسی تازه گزارش دهد. داده‌هایی که نام هیچ سرویسی را ندارند، به محض رسیدن در کاوشگر نمایش داده می‌شوند."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "این پروژه همین حالا این داده‌ها را دریافت می‌کند، پس این مرحله وقتی پایان می‌یابد که سرویسی تازه گزارش دهد. داده‌هایی که نام هیچ سرویسی را ندارند، به محض رسیدن در کاوشگر نمایش داده می‌شوند.",
+  "None. The status page's name is used.": "هیچ. نام صفحه وضعیت به کار می‌رود.",
+  "{{count}} monitor groups added": "{{count}} گروه مانیتور اضافه شد",
+  "{{count}} monitor groups added_one": "{{count}} گروه مانیتور اضافه شد",
+  "{{count}} monitors added": "{{count}} مانیتور اضافه شد",
+  "{{count}} monitors added_one": "{{count}} مانیتور اضافه شد"
 }

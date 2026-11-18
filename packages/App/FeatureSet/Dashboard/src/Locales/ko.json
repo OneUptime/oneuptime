@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "인시던트 없이 {{policy}}을(를) 한 번 호출해 정책이 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "가져온 정책을 골라 인시던트 없이 한 번 호출해 사람들에게 전달되는지 확인하세요. 모든 메시지에 '테스트'라고 표시됩니다.",
   "Some severities have no notification rule yet.": "일부 심각도에 아직 알림 규칙이 없습니다.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "이 프로젝트는 이미 이 데이터를 받고 있으므로, 새 서비스가 보고하면 이 단계가 완료됩니다. 서비스 이름이 없는 데이터는 도착하는 대로 탐색기에 표시됩니다."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "이 프로젝트는 이미 이 데이터를 받고 있으므로, 새 서비스가 보고하면 이 단계가 완료됩니다. 서비스 이름이 없는 데이터는 도착하는 대로 탐색기에 표시됩니다.",
+  "None. The status page's name is used.": "없음. 상태 페이지의 이름이 사용됩니다.",
+  "{{count}} monitor groups added": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitor groups added_one": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitors added": "모니터 {{count}}개를 추가했습니다",
+  "{{count}} monitors added_one": "모니터 {{count}}개를 추가했습니다"
 }

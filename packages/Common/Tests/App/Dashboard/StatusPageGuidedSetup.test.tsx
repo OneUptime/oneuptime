@@ -584,6 +584,37 @@ describe("2. This is what your customers see", () => {
     expect(preview).toHaveTextContent("Database");
   });
 
+  /*
+   * #7467: the public page names itself by its Page Title, else its name,
+   * and the preview says the same. A new page has no Page Title: its name.
+   */
+  test("names a new page by its name, as its public page's header and tab do", async () => {
+    await reachReview();
+
+    expect(screen.getByTestId("guided-setup-preview-name")).toHaveTextContent(
+      /^Acme Status$/,
+    );
+  });
+
+  test("names a page with a Page Title by it, as its visitors read it, never by its own name", async () => {
+    api["loadStatusPage"]!.mockResolvedValue({
+      id: PAGE_ID,
+      name: "acme-prod",
+      pageTitle: "Acme Status",
+    });
+    keepRun({ statusPageId: PAGE_ID });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-preview-name")).toHaveTextContent(
+        /^Acme Status$/,
+      );
+    });
+    expect(screen.getByTestId("guided-setup-preview")).not.toHaveTextContent(
+      "acme-prod",
+    );
+  });
+
   test("gives the public link, opening in a new tab", async () => {
     await reachReview();
 
@@ -1549,6 +1580,26 @@ describe("a project that has a status page already (#7517)", () => {
     expect(
       screen.queryByTestId("guided-setup-existing-status-page"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #7467: the preview names the page as its public page does, in its
+   * header and its tab - its Page Title, else its name. A page of the
+   * project's with a Page Title is previewed by it, never by the name its
+   * team gave it.
+   */
+  test("a page of the project's with a Page Title is previewed by it, as its visitors read it", async () => {
+    api["loadEditableStatusPages"]!.mockResolvedValue([
+      { ...WALK_CO, pageTitle: "Walk Co Public Status" },
+    ]);
+
+    await renderSetup();
+    await press("guided-setup-monitor-m-api");
+    await pressTitled("guided-setup-create-status-page");
+
+    const name: HTMLElement = screen.getByTestId("guided-setup-preview-name");
+    expect(name).toHaveTextContent("Walk Co Public Status");
+    expect(name).not.toHaveTextContent("Walk Co Status");
   });
 
   test("what the page shows already is ticked and locked, On the page, and only the rest is added", async () => {

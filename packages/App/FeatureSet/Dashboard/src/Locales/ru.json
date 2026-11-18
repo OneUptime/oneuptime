@@ -56815,5 +56815,10 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Отправьте тестовый вызов по политике {{policy}}, без инцидента, чтобы убедиться, что она доходит до людей. В каждом сообщении сказано ТЕСТ.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Выберите перенесённую политику и отправьте по ней тестовый вызов, без инцидента, чтобы убедиться, что она доходит до людей. В каждом сообщении сказано ТЕСТ.",
   "Some severities have no notification rule yet.": "Для некоторых уровней серьёзности ещё нет правила уведомлений.",
-  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Этот проект уже получает эти данные, поэтому этот шаг завершится, когда появится новый сервис. Данные без указания сервиса появляются в обозревателе по мере поступления."
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Этот проект уже получает эти данные, поэтому этот шаг завершится, когда появится новый сервис. Данные без указания сервиса появляются в обозревателе по мере поступления.",
+  "None. The status page's name is used.": "Нет. Используется название страницы статуса.",
+  "{{count}} monitor groups added": "Добавлено групп мониторов: {{count}}",
+  "{{count}} monitor groups added_one": "{{count}} группа мониторов добавлена",
+  "{{count}} monitors added": "Добавлено мониторов: {{count}}",
+  "{{count}} monitors added_one": "{{count}} монитор добавлен"
 }
