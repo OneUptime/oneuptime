@@ -88,150 +88,23 @@ export default class VideoCallTranscriptReader {
     const http: VideoCallHttpClient = data.http || new VideoCallHttpClient();
     const isSignIn: boolean = isVideoCallOAuth(settings.authMethod);
     const meetingId: string = call.externalMeetingId || "";
+    // Whose sign-in reads it: kept with the transcript (withSignIn).
+    const signInAccountId: string | undefined = isSignIn
+      ? connection.connectedAccountId || undefined
+      : undefined;
 
     try {
-      if (settings.provider === VideoCallProvider.Zoom) {
-        const token: ZoomAccessToken = isSignIn
-          ? await VideoCallTranscriptReader.getZoomSignInToken({
-              connection,
-              http,
-            })
-          : await new ZoomMeetingClient(
-              {
-                accountId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "accountId",
-                ),
-                clientId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "clientId",
-                ),
-                clientSecret: VideoCallConnectionSettingsUtil.readSecret(
-                  settings.secrets,
-                  "clientSecret",
-                ),
-                hostEmail: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "hostEmail",
-                ),
-              },
-              http,
-            ).getAccessToken();
-
-        const grantedScope: JSONValue | undefined = settings.secrets["scope"];
-
-        return await ZoomTranscriptClient.readTranscript({
+      return VideoCallTranscriptReader.withSignIn(
+        await VideoCallTranscriptReader.readWith({
+          call,
+          connection,
+          settings,
           http,
-          token,
-          meetingId,
           isSignIn,
-          grantedScope:
-            isSignIn && typeof grantedScope === "string"
-              ? grantedScope
-              : undefined,
-        });
-      }
-
-      if (settings.provider === VideoCallProvider.GoogleMeet) {
-        const accessToken: string = isSignIn
-          ? (
-              await VideoCallTranscriptReader.getSignInToken({
-                connection,
-                http,
-              })
-            ).accessToken
-          : await new GoogleMeetClient(
-              {
-                serviceAccountJson: VideoCallConnectionSettingsUtil.readSecret(
-                  settings.secrets,
-                  "serviceAccountJson",
-                ),
-                impersonatedUserEmail:
-                  VideoCallConnectionSettingsUtil.readString(
-                    settings.config,
-                    "impersonatedUserEmail",
-                  ),
-                accessType: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "accessType",
-                ),
-              },
-              http,
-            ).getAccessToken();
-
-        return await GoogleMeetTranscriptClient.readTranscript({
-          http,
-          accessToken,
-          spaceName: meetingId,
-          isSignIn,
-          ownerLabel: connection.connectedAccount || undefined,
-        });
-      }
-
-      if (settings.provider === VideoCallProvider.MicrosoftTeams) {
-        const accessToken: string = isSignIn
-          ? (
-              await VideoCallTranscriptReader.getSignInToken({
-                connection,
-                http,
-              })
-            ).accessToken
-          : await new MicrosoftTeamsMeetingClient(
-              {
-                tenantId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "tenantId",
-                ),
-                clientId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "clientId",
-                ),
-                clientSecret: VideoCallConnectionSettingsUtil.readSecret(
-                  settings.secrets,
-                  "clientSecret",
-                ),
-                organizerUserId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "organizerUserId",
-                ),
-                lobbyBypass: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "lobbyBypass",
-                ),
-              },
-              http,
-            ).getAccessToken();
-
-        const grantedScope: JSONValue | undefined = settings.secrets["scope"];
-
-        return await MicrosoftTeamsTranscriptClient.readTranscript({
-          http,
-          accessToken,
-          organizer: isSignIn
-            ? {
-                path: "/me",
-                label:
-                  connection.connectedAccount || "the Microsoft Teams account",
-                isSignIn: true,
-              }
-            : MicrosoftTeamsMeetingClient.getAppOrganizer({
-                organizerUserId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "organizerUserId",
-                ),
-                clientId: VideoCallConnectionSettingsUtil.readString(
-                  settings.config,
-                  "clientId",
-                ),
-              }),
           meetingId,
-          grantedScope:
-            isSignIn && typeof grantedScope === "string"
-              ? grantedScope
-              : undefined,
-          callStartedAt: call.startedAt,
-        });
-      }
+        }),
+        signInAccountId,
+      );
     } catch (error) {
       /*
        * A provider that does not answer, or answers with a 5xx or a rate
@@ -246,6 +119,175 @@ export default class VideoCallTranscriptReader {
         VideoCallTranscriptUnavailableReason.ConnectionProblem,
         VideoCallConnectionServiceType.getErrorMessage(error),
       );
+    }
+  }
+
+  /*
+   * A transcript found through a connection made by signing in names the
+   * account whose sign-in read it.
+   */
+  public static withSignIn(
+    read: VideoCallTranscriptRead,
+    signInAccountId: string | undefined,
+  ): VideoCallTranscriptRead {
+    if (!read.found || !signInAccountId) {
+      return read;
+    }
+
+    return { ...read, signInAccountId };
+  }
+
+  // Asks the call's provider, with its connection's sign-in or credentials.
+  private static async readWith(data: {
+    call: VideoCallTranscriptReaderCall;
+    connection: VideoCallConnection;
+    settings: VideoCallConnectionSettings;
+    http: VideoCallHttpClient;
+    isSignIn: boolean;
+    meetingId: string;
+  }): Promise<VideoCallTranscriptRead> {
+    const { call, connection, settings, http, isSignIn, meetingId } = data;
+
+    if (settings.provider === VideoCallProvider.Zoom) {
+      const token: ZoomAccessToken = isSignIn
+        ? await VideoCallTranscriptReader.getZoomSignInToken({
+            connection,
+            http,
+          })
+        : await new ZoomMeetingClient(
+            {
+              accountId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "accountId",
+              ),
+              clientId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "clientId",
+              ),
+              clientSecret: VideoCallConnectionSettingsUtil.readSecret(
+                settings.secrets,
+                "clientSecret",
+              ),
+              hostEmail: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "hostEmail",
+              ),
+            },
+            http,
+          ).getAccessToken();
+
+      const grantedScope: JSONValue | undefined = settings.secrets["scope"];
+
+      return await ZoomTranscriptClient.readTranscript({
+        http,
+        token,
+        meetingId,
+        isSignIn,
+        grantedScope:
+          isSignIn && typeof grantedScope === "string"
+            ? grantedScope
+            : undefined,
+      });
+    }
+
+    if (settings.provider === VideoCallProvider.GoogleMeet) {
+      const accessToken: string = isSignIn
+        ? (
+            await VideoCallTranscriptReader.getSignInToken({
+              connection,
+              http,
+            })
+          ).accessToken
+        : await new GoogleMeetClient(
+            {
+              serviceAccountJson: VideoCallConnectionSettingsUtil.readSecret(
+                settings.secrets,
+                "serviceAccountJson",
+              ),
+              impersonatedUserEmail: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "impersonatedUserEmail",
+              ),
+              accessType: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "accessType",
+              ),
+            },
+            http,
+          ).getAccessToken();
+
+      return await GoogleMeetTranscriptClient.readTranscript({
+        http,
+        accessToken,
+        spaceName: meetingId,
+        isSignIn,
+        ownerLabel: connection.connectedAccount || undefined,
+      });
+    }
+
+    if (settings.provider === VideoCallProvider.MicrosoftTeams) {
+      const accessToken: string = isSignIn
+        ? (
+            await VideoCallTranscriptReader.getSignInToken({
+              connection,
+              http,
+            })
+          ).accessToken
+        : await new MicrosoftTeamsMeetingClient(
+            {
+              tenantId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "tenantId",
+              ),
+              clientId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "clientId",
+              ),
+              clientSecret: VideoCallConnectionSettingsUtil.readSecret(
+                settings.secrets,
+                "clientSecret",
+              ),
+              organizerUserId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "organizerUserId",
+              ),
+              lobbyBypass: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "lobbyBypass",
+              ),
+            },
+            http,
+          ).getAccessToken();
+
+      const grantedScope: JSONValue | undefined = settings.secrets["scope"];
+
+      return await MicrosoftTeamsTranscriptClient.readTranscript({
+        http,
+        accessToken,
+        organizer: isSignIn
+          ? {
+              path: "/me",
+              label:
+                connection.connectedAccount || "the Microsoft Teams account",
+              isSignIn: true,
+            }
+          : MicrosoftTeamsMeetingClient.getAppOrganizer({
+              organizerUserId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "organizerUserId",
+              ),
+              clientId: VideoCallConnectionSettingsUtil.readString(
+                settings.config,
+                "clientId",
+              ),
+            }),
+        meetingId,
+        grantedScope:
+          isSignIn && typeof grantedScope === "string"
+            ? grantedScope
+            : undefined,
+        callStartedAt: call.startedAt,
+      });
     }
 
     return VideoCallTranscriptReader.getNotSupported(call.provider);

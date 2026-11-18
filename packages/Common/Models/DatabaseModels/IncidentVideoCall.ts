@@ -103,6 +103,19 @@ const deletePermissions: Array<Permission> = [
     "Video calls for an incident: a Zoom, Google Meet or Microsoft Teams meeting, a Slack huddle, or a meeting link.",
 })
 @Index(["incidentId", "createdAt"])
+/*
+ * The calls whose transcript was read through an account's sign-in, found
+ * when that account removes OneUptime (Zoom's app_deauthorized), and the
+ * calls waiting for what was read through it to be deleted, which a
+ * Workers job reads every minute. Partial: each holds only the calls that
+ * have the value, a few of all of them.
+ */
+@Index(["transcriptSignInAccountId"], {
+  where: '"transcriptSignInAccountId" IS NOT NULL',
+})
+@Index(["transcriptSignInRemovedAt"], {
+  where: '"transcriptSignInRemovedAt" IS NOT NULL',
+})
 export default class IncidentVideoCall extends BaseModel {
   @ColumnAccessControl({
     create: createPermissions,
@@ -785,6 +798,87 @@ export default class IncidentVideoCall extends BaseModel {
     nullable: true,
   })
   public transcriptFetchNextAttemptAt?: Date = undefined;
+
+  /*
+   * Where OneUptime posted each reading of the call's transcripts, so that
+   * removing the transcript takes all of it back (CallSummaryPosts). Only
+   * OneUptime reads and writes it: it names channels and messages, which
+   * are no reader's business.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    computed: true,
+    title: "Call Summary Posts",
+    description:
+      "Where OneUptime posted what OneUptime AI read in the call's transcripts: each reading's item in the incident's feed, and its messages in the incident's Slack, Microsoft Teams and Mattermost channels. Removing the transcript deletes them too. Written and read only by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public callSummaryPosts?: JSONObject = undefined;
+
+  /*
+   * The account whose sign-in OneUptime read the call's transcript through,
+   * so that when that account removes OneUptime (Zoom's app_deauthorized),
+   * what was read through it is found and deleted
+   * (IncidentCallTranscriptRemoval). Kept while anything read through it is
+   * on the call: a transcript a person adds in its place does not clear it,
+   * since what OneUptime AI read in the one it replaced may still be posted.
+   * Only the account that hosts a meeting can read its transcript, so a
+   * call's is never read through two.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Transcript Sign-In Account ID",
+    description:
+      "The provider's id of the account (a Zoom user ID) whose sign-in OneUptime read the call's transcript through, when it read one from Zoom, Google Meet or Microsoft Teams with a connection made by signing in. When that account removes OneUptime, what was read through it is deleted. Written and read only by OneUptime.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public transcriptSignInAccountId?: string = undefined;
+
+  /*
+   * When the account whose sign-in read the transcript removed OneUptime at
+   * the provider: what it read is deleted by the Workers job
+   * (DeleteTranscriptsOfRemovedSignIns), which clears this once it has.
+   * Zoom expects its event answered in seconds, and a call's channel
+   * messages take longer to delete than that.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Transcript Sign-In Removed At",
+    description:
+      "When the account whose sign-in OneUptime read the call's transcript through removed OneUptime at the provider. OneUptime then deletes what it read through that sign-in - the transcript, and what OneUptime AI read in it - within minutes, and clears this. Written and read only by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public transcriptSignInRemovedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

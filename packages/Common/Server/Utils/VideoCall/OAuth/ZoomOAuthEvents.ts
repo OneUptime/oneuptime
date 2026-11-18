@@ -28,6 +28,15 @@ export const ZOOM_DEAUTHORIZED_EVENT: string = "app_deauthorized";
 // Zoom delivers an event within seconds; one older than this is a replay.
 export const ZOOM_EVENT_MAX_AGE_IN_SECONDS: number = 5 * 60;
 
+/*
+ * What a connection signed out by the account at Zoom says until it is
+ * reconnected (VideoCallConnectionService.removeSignIn). Kept as written:
+ * a data migration finds the connections Zoom signed out by it
+ * (IncidentCallTranscriptSignInBackfill).
+ */
+export const ZOOM_SIGN_IN_REMOVED_MESSAGE: string =
+  "OneUptime was removed from the Zoom account this connection signed in with, so its sign-in was deleted. Reconnect Zoom in Project Settings > Workspace > Video Calls to start calls again.";
+
 // Zoom's plain tokens are short and URL-safe. Anything else is not Zoom's.
 const PLAIN_TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{1,256}$/;
 

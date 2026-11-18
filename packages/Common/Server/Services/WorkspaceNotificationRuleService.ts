@@ -143,6 +143,8 @@ import WorkspaceRecordOwners, {
   OwnedRecordKey,
 } from "../Utils/Workspace/WorkspaceRecordOwners";
 import NotificationRuleConditionIds from "../Utils/Workspace/NotificationRuleConditionIds";
+import WorkspacePostedMessages from "../Utils/Workspace/WorkspacePostedMessages";
+import WorkspacePostedMessage from "../../Types/Workspace/WorkspacePostedMessage";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -2036,6 +2038,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
        * (true), or only where none does (false).
        */
       mentioning?: boolean | undefined;
+      /*
+       * Told where the message was posted - each channel and chat, with
+       * the id the workspace gave the post - once it is, for a message
+       * OneUptime may have to take back: what OneUptime AI read in a call's
+       * transcript, deleted with the transcript (CallSummaryPosts). Told
+       * nothing when nothing was posted.
+       */
+      onPosted?:
+        | ((messages: Array<WorkspacePostedMessage>) => void)
+        | undefined;
     };
   }): Promise<void> {
     /*
@@ -2188,6 +2200,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId,
         messagePayloadsByWorkspace: workspaceNotificationPaylaods,
       });
+
+    // Said before anything else can fail: a post that was made is kept.
+    if (data.workspaceNotification.onPosted) {
+      data.workspaceNotification.onPosted(
+        WorkspacePostedMessages.fromSend({
+          payloads: workspaceNotificationPaylaods,
+          responses: responses,
+        }),
+      );
+    }
 
     await this.logSendResponses({
       projectId: data.projectId,

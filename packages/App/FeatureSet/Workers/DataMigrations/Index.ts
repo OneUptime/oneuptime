@@ -141,6 +141,7 @@ import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -1461,6 +1462,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillProductAnalyticsFromKeptSessions(),
+  /*
+   * Names the account whose sign-in read each incident call transcript an
+   * earlier release read from Zoom, Google Meet or Microsoft Teams
+   * (IncidentVideoCall.transcriptSignInAccountId, #9289), and marks for
+   * deletion those read through a sign-in Zoom already removed. After the
+   * schema migration that adds the column; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new BackfillIncidentCallTranscriptSignInAccount(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

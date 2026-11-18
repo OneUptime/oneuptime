@@ -2040,6 +2040,41 @@ export default class MattermostUtil extends WorkspaceBase {
     }
   }
 
+  /*
+   * Deletes a post the bot made. One Mattermost answers as not found
+   * (isMessageGoneError) was deleted already.
+   */
+  @CaptureSpan()
+  public static override async deleteMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+  }): Promise<void> {
+    const connection: MattermostConnectionData =
+      MattermostConnection.fromAuthToken(data.authToken);
+
+    const postId: string = MattermostConnection.assertMattermostId(
+      data.messageId,
+      "post",
+    );
+
+    try {
+      await MattermostUtil.callServer<JSONObject>({
+        ...connection,
+        method: HTTPMethod.DELETE,
+        path: `/api/v4/posts/${postId}`,
+        retry: true,
+      });
+    } catch (error) {
+      if (this.isMessageGoneError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  }
+
   // A post somebody deleted is answered as not found: a new one has to be posted.
   public static override isMessageGoneError(error: unknown): boolean {
     return MattermostUtil.isNotFoundError(error);
