@@ -29,8 +29,9 @@ jest.mock("../../../../Server/Utils/Logger");
  * to, a connection OneUptime cannot post with - so a caller that reports
  * each channel (a workspace summary's Notification Logs) says that, not
  * that the message was sent. And a send that throws what is not an Error -
- * Slack's and Microsoft Graph's own HTTP error response - is said in the
- * workspace's words, never "[object Object]".
+ * Slack's and Microsoft Graph's own HTTP error response - is said as the
+ * workspace's refusal: what happened and what to do, in OneUptime's words,
+ * then the workspace's own answer (#7119) - never "[object Object]".
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -284,7 +285,7 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says why it did n
   );
 });
 
-describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send threw, in its words", () => {
+describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send threw, in words a person can act on", () => {
   beforeEach(() => {
     connections[WorkspaceType.Slack] = connection({
       workspaceType: WorkspaceType.Slack,
@@ -294,7 +295,7 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send 
     });
   });
 
-  test("Slack's HTTP error response, thrown as it is: Slack's error, never [object Object]", async () => {
+  test("Slack's HTTP error response, thrown as it is: what Slack's code means, then the code - never [object Object]", async () => {
     jest
       .spyOn(SlackUtil, "sendMessage")
       .mockRejectedValue(
@@ -312,13 +313,14 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send 
           name: "incidents",
           workspaceType: WorkspaceType.Slack,
         },
-        error: "ratelimited",
+        error:
+          "Slack asked OneUptime to slow down. Wait a minute, then try again. Slack said: ratelimited.",
       },
     ]);
     expect(response.notSentReason).toBeUndefined();
   });
 
-  test("Microsoft Graph's HTTP error response: Graph's message", async () => {
+  test("Microsoft Graph's HTTP error response: what to do about it, then Graph's status, code and message", async () => {
     jest.spyOn(MicrosoftTeamsUtil, "sendMessage").mockRejectedValue(
       new HTTPErrorResponse(
         403,
@@ -337,11 +339,11 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send 
     )[0]!;
 
     expect(response.errors?.[0]?.error).toBe(
-      "Missing role permissions on the request.",
+      "Microsoft Teams did not let OneUptime do this: the app is missing a permission here. Please ask a Project Admin to reconnect Microsoft Teams in Project Settings > Workspace > Microsoft Teams. Microsoft Teams said: 403 Forbidden: Missing role permissions on the request.",
     );
   });
 
-  test("an HTTP error response with nothing to say: its status", async () => {
+  test("an HTTP error response with nothing to say: Slack could not answer, and its status", async () => {
     jest
       .spyOn(SlackUtil, "sendMessage")
       .mockRejectedValue(new HTTPErrorResponse(503, {}, {}));
@@ -351,7 +353,7 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot says what a send 
     )[0]!;
 
     expect(response.errors?.[0]?.error).toBe(
-      "Request failed with HTTP status 503",
+      "Slack could not answer just now. Try again in a few minutes. Slack said: http_503.",
     );
   });
 
