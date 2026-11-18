@@ -56831,5 +56831,12 @@
   "{{count}} monitor groups added": "{{count}} grupos de monitores añadidos",
   "{{count}} monitor groups added_one": "{{count}} grupo de monitores añadido",
   "{{count}} monitors added": "{{count}} monitores añadidos",
-  "{{count}} monitors added_one": "{{count}} monitor añadido"
+  "{{count}} monitors added_one": "{{count}} monitor añadido",
+  "Behind": "Con retraso",
+  "Checks Last Late At": "Última comprobación con retraso",
+  "Checks Late Since": "Comprobaciones con retraso desde",
+  "Monitor Checks": "Comprobaciones de monitores",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Desde {{time}}, sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada.",
+  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "Actualiza la sonda o deja que compruebe más monitores a la vez: aumenta PROBE_MONITORING_WORKERS en la sonda y reiníciala.",
+  "Whether this probe checks its monitors as often as they are set.": "Si esta sonda comprueba sus monitores con la frecuencia configurada."
 }

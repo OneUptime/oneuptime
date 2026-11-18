@@ -56831,5 +56831,12 @@
   "{{count}} monitor groups added": "{{count}} monitor groups added",
   "{{count}} monitor groups added_one": "{{count}} monitor group added",
   "{{count}} monitors added": "{{count}} monitors added",
-  "{{count}} monitors added_one": "{{count}} monitor added"
+  "{{count}} monitors added_one": "{{count}} monitor added",
+  "Behind": "Behind",
+  "Checks Last Late At": "Checks Last Late At",
+  "Checks Late Since": "Checks Late Since",
+  "Monitor Checks": "Monitor Checks",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.",
+  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.",
+  "Whether this probe checks its monitors as often as they are set.": "Whether this probe checks its monitors as often as they are set."
 }

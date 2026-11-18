@@ -12,7 +12,9 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import React, {
@@ -24,6 +26,9 @@ import React, {
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import ProbeChecksElement, {
+  PROBE_CHECKS_COPY,
+} from "../../../Components/Probe/ProbeChecks";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -222,6 +227,10 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         modelDetailProps={{
           modelType: Probe,
           id: "model-detail-team",
+          // When its checks first and last ran late: whether it is behind.
+          selectMoreFields: {
+            checksLastLateAt: true,
+          },
           fields: [
             {
               field: {
@@ -237,7 +246,29 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               title: "Connection Status",
               fieldType: FieldType.Element,
               getElement: (item: Probe): ReactElement => {
-                return <ProbeStatusElement probe={item} />;
+                return (
+                  <ProbeStatusElement probe={item} isConnectionOnly={true} />
+                );
+              },
+            },
+            {
+              /*
+               * Whether it keeps up with its monitors (#9488): only while
+               * it is connected, since a disconnected probe checks nothing.
+               */
+              field: {
+                checksLateSince: true,
+              },
+              title: PROBE_CHECKS_COPY.title,
+              description: PROBE_CHECKS_COPY.description,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  item.connectionStatus === ProbeConnectionStatus.Connected
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeChecksElement probe={item} />;
               },
             },
           ],

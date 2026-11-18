@@ -4226,5 +4226,8 @@
   "Text This Number": "Sms naar dit nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Er gaat een sms naar dit nummer via de sms-instellingen van deze server. Laat het leeg om er geen te sturen.",
   "Push to Master Admins' Devices": "Push naar de apparaten van hoofdbeheerders",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld.",
+  "Behind": "Loopt achter",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} loopt achter: sinds {{time}} wachten de monitoren meer dan een minuut na hun controletijd, dus worden ze minder vaak gecontroleerd dan ingesteld.",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Geef de sonde meer CPU en geheugen, of laat hem meer monitoren tegelijk controleren: verhoog GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, of de monitoringWorkers van de sonde in de Helm-waarden."
 }

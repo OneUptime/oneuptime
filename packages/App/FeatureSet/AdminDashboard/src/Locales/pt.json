@@ -4226,5 +4226,8 @@
   "Text This Number": "Enviar SMS para este número",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Um SMS é enviado para este número pelas configurações de SMS deste servidor. Deixe em branco para não enviar nenhum.",
   "Push to Master Admins' Devices": "Push para os dispositivos dos administradores principais",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Uma notificação push vai para cada dispositivo em que um administrador principal entrou no app do OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Uma notificação push vai para cada dispositivo em que um administrador principal entrou no app do OneUptime.",
+  "Behind": "Atrasado",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} está atrasada: desde {{time}}, os monitores dela esperam mais de um minuto além do horário de verificação, então são verificados com menos frequência do que o configurado.",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Dê à sonda mais CPU e memória, ou deixe que ela verifique mais monitores ao mesmo tempo: aumente GLOBAL_PROBE_1_MONITORING_WORKERS no config.env, ou o monitoringWorkers da sonda nos valores do Helm."
 }

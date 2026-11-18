@@ -4226,5 +4226,8 @@
   "Text This Number": "この番号に SMS を送る",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "このサーバー自身の SMS 設定を使って、この番号に SMS を送ります。送らない場合は空のままにしてください。",
   "Push to Master Admins' Devices": "マスター管理者のデバイスにプッシュ",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "マスター管理者が OneUptime アプリにサインインしているすべてのデバイスにプッシュ通知を送ります。"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "マスター管理者が OneUptime アプリにサインインしているすべてのデバイスにプッシュ通知を送ります。",
+  "Behind": "遅延中",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} は遅れています。{{time}} 以降、モニターがチェック時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかチェックされていません。",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "プローブに CPU とメモリを増やすか、一度にチェックするモニターを増やしてください。config.env の GLOBAL_PROBE_1_MONITORING_WORKERS、または Helm の値でプローブの monitoringWorkers を引き上げます。"
 }

@@ -56831,5 +56831,12 @@
   "{{count}} monitor groups added": "{{count}} monitorgroepen toegevoegd",
   "{{count}} monitor groups added_one": "{{count}} monitorgroep toegevoegd",
   "{{count}} monitors added": "{{count}} monitoren toegevoegd",
-  "{{count}} monitors added_one": "{{count}} monitor toegevoegd"
+  "{{count}} monitors added_one": "{{count}} monitor toegevoegd",
+  "Behind": "Loopt achter",
+  "Checks Last Late At": "Controles laatst te laat",
+  "Checks Late Since": "Controles te laat sinds",
+  "Monitor Checks": "Monitorcontroles",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Sinds {{time}} wachten de monitoren meer dan een minuut na hun controletijd, dus worden ze minder vaak gecontroleerd dan ingesteld.",
+  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "Werk de sonde bij, of laat hem meer monitoren tegelijk controleren: verhoog PROBE_MONITORING_WORKERS op de sonde en start hem opnieuw.",
+  "Whether this probe checks its monitors as often as they are set.": "Of deze sonde zijn monitoren zo vaak controleert als ingesteld."
 }

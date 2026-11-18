@@ -56831,5 +56831,12 @@
   "{{count}} monitor groups added": "モニターグループを {{count}} 件追加しました",
   "{{count}} monitor groups added_one": "モニターグループを {{count}} 件追加しました",
   "{{count}} monitors added": "モニターを {{count}} 件追加しました",
-  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました"
+  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました",
+  "Behind": "遅延中",
+  "Checks Last Late At": "チェックが最後に遅れた日時",
+  "Checks Late Since": "チェックの遅れの開始日時",
+  "Monitor Checks": "モニターのチェック",
+  "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{time}} 以降、このプローブのモニターはチェック時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかチェックされていません。",
+  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "プローブを更新するか、一度にチェックするモニターを増やしてください。プローブで PROBE_MONITORING_WORKERS を引き上げ、再起動します。",
+  "Whether this probe checks its monitors as often as they are set.": "このプローブが、設定どおりの頻度でモニターをチェックしているかどうか。"
 }
