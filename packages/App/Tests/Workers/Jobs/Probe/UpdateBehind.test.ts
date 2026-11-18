@@ -132,9 +132,19 @@ function addProbe(data: Partial<FakeProbe>): FakeProbe {
 function asProbe(probe: FakeProbe): Probe {
   const model: Probe = new Probe();
   model.id = probe.id;
-  model.connectionStatus = probe.connectionStatus || undefined;
-  model.checksLateSince = probe.checksLateSince || undefined;
-  model.checksLastLateAt = probe.checksLastLateAt || undefined;
+
+  if (probe.connectionStatus) {
+    model.connectionStatus = probe.connectionStatus;
+  }
+
+  if (probe.checksLateSince) {
+    model.checksLateSince = probe.checksLateSince;
+  }
+
+  if (probe.checksLastLateAt) {
+    model.checksLastLateAt = probe.checksLastLateAt;
+  }
+
   return model;
 }
 

@@ -56837,6 +56837,6 @@
   "Checks Late Since": "تأخر الفحوص منذ",
   "Monitor Checks": "فحوص المراقبات",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "منذ {{time}}، تنتظر مراقباته أكثر من دقيقة بعد موعد فحصها، لذا تُفحص أقل مما هو مضبوط.",
-  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "حدّث المسبار، أو دعه يفحص مراقبات أكثر في الوقت نفسه: ارفع PROBE_MONITORING_WORKERS على المسبار ثم أعد تشغيله.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "حدّث المسبار، أو دعه يفحص مراقبات أكثر في الوقت نفسه: ارفع {{setting}} على المسبار ثم أعد تشغيله.",
   "Whether this probe checks its monitors as often as they are set.": "ما إذا كان هذا المسبار يفحص مراقباته بالتكرار المضبوط لها."
 }

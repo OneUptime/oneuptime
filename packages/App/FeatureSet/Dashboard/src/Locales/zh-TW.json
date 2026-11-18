@@ -56837,6 +56837,6 @@
   "Checks Late Since": "檢查延遲開始時間",
   "Monitor Checks": "監測器檢查",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "自 {{time}} 起，它的監測器已在檢查時間過後等待超過 1 分鐘，因此檢查頻率低於設定。",
-  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "請更新探測器，或讓它一次檢查更多監測器：在探測器上調高 PROBE_MONITORING_WORKERS 並重新啟動它。",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "請更新探測器，或讓它一次檢查更多監測器：在探測器上調高 {{setting}} 並重新啟動它。",
   "Whether this probe checks its monitors as often as they are set.": "此探測器是否依設定的頻率檢查其監測器。"
 }

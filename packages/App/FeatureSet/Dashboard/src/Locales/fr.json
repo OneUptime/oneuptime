@@ -56837,6 +56837,6 @@
   "Checks Late Since": "Vérifications en retard depuis",
   "Monitor Checks": "Vérifications des moniteurs",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Depuis {{time}}, ses moniteurs attendent plus d'une minute au-delà de leur heure de vérification, ils sont donc vérifiés moins souvent que prévu.",
-  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "Mettez la sonde à jour, ou laissez-la vérifier plus de moniteurs à la fois : augmentez PROBE_MONITORING_WORKERS sur la sonde et redémarrez-la.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "Mettez la sonde à jour, ou laissez-la vérifier plus de moniteurs à la fois : augmentez {{setting}} sur la sonde et redémarrez-la.",
   "Whether this probe checks its monitors as often as they are set.": "Indique si cette sonde vérifie ses moniteurs aussi souvent que prévu."
 }

@@ -56837,6 +56837,6 @@
   "Checks Late Since": "जाँचें कब से देर से",
   "Monitor Checks": "मॉनिटर जाँचें",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{time}} से इसके मॉनिटर अपने जाँच समय के बाद एक मिनट से ज़्यादा इंतज़ार कर रहे हैं, इसलिए वे तय से कम बार जाँचे जाते हैं।",
-  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "प्रोब को अपडेट करें, या उसे एक साथ ज़्यादा मॉनिटर जाँचने दें: प्रोब पर PROBE_MONITORING_WORKERS बढ़ाएँ और उसे फिर से चालू करें।",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "प्रोब को अपडेट करें, या उसे एक साथ ज़्यादा मॉनिटर जाँचने दें: प्रोब पर {{setting}} बढ़ाएँ और उसे फिर से चालू करें।",
   "Whether this probe checks its monitors as often as they are set.": "क्या यह प्रोब अपने मॉनिटर उतनी बार जाँचता है जितनी बार वे तय हैं।"
 }

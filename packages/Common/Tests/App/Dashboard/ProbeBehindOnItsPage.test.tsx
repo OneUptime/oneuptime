@@ -11,6 +11,7 @@ import ProbeStatusElement from "../../../../App/FeatureSet/Dashboard/src/Compone
 import ProbeChecksElement, {
   PROBE_BEHIND_GUIDE_PATH,
   PROBE_CHECKS_COPY,
+  PROBE_WORKERS_SETTING,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeChecks";
 import Probe, {
   ProbeConnectionStatus,
@@ -175,6 +176,11 @@ describe("Monitor Checks, on the probe's page", () => {
       "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.",
     );
 
+    // The setting reads as one, to copy as it is.
+    const setting: HTMLElement | null = behind.querySelector("code");
+    expect(setting?.textContent).toBe("PROBE_MONITORING_WORKERS");
+    expect(PROBE_WORKERS_SETTING).toBe("PROBE_MONITORING_WORKERS");
+
     const guide: HTMLElement = screen.getByRole("link", {
       name: "Read the guide",
     });
@@ -197,9 +203,18 @@ describe("Monitor Checks, on the probe's page", () => {
     );
 
     expect(text).toContain(locale[PROBE_CHECKS_COPY.behind]!);
-    expect(text).toContain(locale[PROBE_CHECKS_COPY.behindFix]!);
+    expect(text).toContain(
+      locale[PROBE_CHECKS_COPY.behindFix]!.replace(
+        "{{setting}}",
+        PROBE_WORKERS_SETTING,
+      ),
+    );
     expect(text).toContain(locale[PROBE_CHECKS_COPY.readTheGuide]!);
     expect(text).not.toContain("monitors have waited");
+    expect(
+      screen.getByTestId("probe-checks-behind").querySelector("code")
+        ?.textContent,
+    ).toBe(PROBE_WORKERS_SETTING);
   });
 });
 
@@ -243,8 +258,9 @@ describe("in every language the Dashboard speaks", () => {
         });
       }
 
-      expect(locale[PROBE_CHECKS_COPY.behindFix]).toContain(
-        "PROBE_MONITORING_WORKERS",
+      // The setting is drawn in the slot, never translated or retyped.
+      expect(locale[PROBE_CHECKS_COPY.behindFix]).not.toContain(
+        PROBE_WORKERS_SETTING,
       );
     },
   );

@@ -56837,6 +56837,6 @@
   "Checks Late Since": "Sjekker forsinket siden",
   "Monitor Checks": "Monitorsjekker",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Siden {{time}} har monitorene ventet mer enn ett minutt etter sjekktidspunktet sitt, så de sjekkes sjeldnere enn innstilt.",
-  "Update the probe, or let it check more monitors at once: raise PROBE_MONITORING_WORKERS on the probe and restart it.": "Oppdater sonden, eller la den sjekke flere monitorer samtidig: øk PROBE_MONITORING_WORKERS på sonden og start den på nytt.",
+  "Update the probe, or let it check more monitors at once: raise {{setting}} on the probe and restart it.": "Oppdater sonden, eller la den sjekke flere monitorer samtidig: øk {{setting}} på sonden og start den på nytt.",
   "Whether this probe checks its monitors as often as they are set.": "Om denne sonden sjekker monitorene sine så ofte som de er innstilt til."
 }
