@@ -136,6 +136,8 @@ Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, 
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
 - **Pipeline Is Late**: ingen kjøring har startet på lengre tid enn tidsplanen tillater.
 
+Fanen **Eiere** for en pipeline nevner personene og teamene som tar seg av den, og varslene dens går til dem. **Oversikt** og **Problemer** nevner eierne av en pipeline som feilet eller er sen, eller viser **Ingen eier**, med en måte å legge til en på.
+
 Siden for en pipeline har kortet **Opphav**, det første stedet å se når en kjøring feiler eller er forsinket: til venstre tabellene den leser, til høyre tabellene den skriver, pipelinen imellom, og hvert kort viser hvordan det står til nå. Velg flere trinn for å se hva disse tabellene er bygget fra, og hva som er bygget fra dem, og åpne en hvilken som helst tabell for å se dens egen fane **Opphav**. Et tall for tabeller som ikke er tegnet, på pipelinens kort eller en tabells, tegner flere av dem på stedet her også.
 
 ## Én sak per årsak
