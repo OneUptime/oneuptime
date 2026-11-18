@@ -1,6 +1,7 @@
 import {
   DEVICES_WITH_INTERFACES_DOWN_SELECTION,
   DEVICE_STATUS_FACET_KEY,
+  DOWN_DEVICES_FACET_SELECTION,
   DeviceStatusFacetValue,
 } from "./DeviceFacets";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
@@ -67,11 +68,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     caption:
       "The last poll (ping or SNMP), or the bound monitor, could not reach the device.",
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.devicesDown,
-    selection: {
-      facetKey: DEVICE_STATUS_FACET_KEY,
-      values: [DeviceStatusFacetValue.Down],
-      operator: "is",
-    },
+    selection: DOWN_DEVICES_FACET_SELECTION,
   },
   {
     key: "devices-pending",
