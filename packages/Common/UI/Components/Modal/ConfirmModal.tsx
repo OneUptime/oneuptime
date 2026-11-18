@@ -46,6 +46,21 @@ export interface ComponentProps {
   secondaryButton?: ModalSecondaryButton | undefined;
   // The focus starts on the dialog, not its button (Modal's own prop).
   isInitialFocusOnDialog?: boolean | undefined;
+  /*
+   * The focus starts on Cancel though the submit is not destructive
+   * (Modal's own prop): the leave question, whose Save Changes saves what
+   * others see.
+   */
+  isInitialFocusOnCloseButton?: boolean | undefined;
+  /*
+   * At the footer's start, apart from Cancel and the submit button: the
+   * leave question's Discard Changes, beside its Keep Editing and Save
+   * Changes (Modal's own prop). Never a filled button: the submit is the
+   * dialog's one.
+   */
+  leftFooterElement?: ReactElement | undefined;
+  // Cancel, the X, Escape and a press outside wait (Modal's own prop).
+  isCloseDisabled?: boolean | undefined;
 }
 
 /*
@@ -116,6 +131,9 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       errorWhatFailed={props.errorWhatFailed}
       secondaryButton={props.secondaryButton}
       isInitialFocusOnDialog={props.isInitialFocusOnDialog}
+      isInitialFocusOnCloseButton={props.isInitialFocusOnCloseButton}
+      leftFooterElement={props.leftFooterElement}
+      isCloseDisabled={props.isCloseDisabled}
       describedById={descriptionId}
     >
       {/*

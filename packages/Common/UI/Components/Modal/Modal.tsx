@@ -4,6 +4,7 @@ import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
@@ -114,6 +115,24 @@ export interface ComponentProps {
    */
   isInitialFocusOnDialog?: boolean | undefined;
   /*
+   * Starts the focus on the close button (Cancel, Keep Editing), as a
+   * destructive confirmation does, though the submit button is not
+   * destructive: for a question whose primary answer does something others
+   * see or are paged by - the leave question's Save Changes saves a board
+   * the project opens, or the layers that decide who is on call - and whose
+   * close changes nothing. A stray Enter keeps the person where they were.
+   */
+  isInitialFocusOnCloseButton?: boolean | undefined;
+  /*
+   * The way out waits while what the dialog started runs: the close button
+   * is locked (faded, the not-allowed cursor), the header's X too, and
+   * Escape and a press outside do nothing. For an action that takes a step
+   * once it lands - Save Changes in the leave question saves, then leaves -
+   * so closing the dialog half way could not leave the person where they
+   * asked to stay.
+   */
+  isCloseDisabled?: boolean | undefined;
+  /*
    * The id of what the dialog says, when its words are in its body rather
    * than under its title - a ConfirmModal's one sentence: a screen reader
    * reads it out with the dialog's name ("Leave without saving?, You have
@@ -182,11 +201,14 @@ export const pickInitialFocusElement: (data: {
   footer: HTMLElement | null;
   isSubmitDestructive: boolean;
   header?: HTMLElement | null | undefined;
+  // The dialog asks to start on Cancel (isInitialFocusOnCloseButton).
+  isCloseButtonPreferred?: boolean | undefined;
 }) => HTMLElement | undefined = (data: {
   focusableElements: Array<HTMLElement>;
   footer: HTMLElement | null;
   isSubmitDestructive: boolean;
   header?: HTMLElement | null | undefined;
+  isCloseButtonPreferred?: boolean | undefined;
 }): HTMLElement | undefined => {
   const header: HTMLElement | null | undefined = data.header;
   const candidates: Array<HTMLElement> = data.focusableElements.filter(
@@ -228,9 +250,10 @@ export const pickInitialFocusElement: (data: {
     "modal-footer-close-button",
   );
 
-  const preferred: HTMLElement | undefined = data.isSubmitDestructive
-    ? cancelButton || submitButton
-    : submitButton || cancelButton;
+  const preferred: HTMLElement | undefined =
+    data.isSubmitDestructive || data.isCloseButtonPreferred
+      ? cancelButton || submitButton
+      : submitButton || cancelButton;
 
   return preferred || candidates[0];
 };
@@ -275,6 +298,13 @@ const Modal: FunctionComponent<ComponentProps> = (
     useRef<boolean>(false);
   const isInitialFocusOnDialogRef: React.MutableRefObject<boolean> =
     useRef<boolean>(Boolean(props.isInitialFocusOnDialog));
+  const isInitialFocusOnCloseButtonRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(Boolean(props.isInitialFocusOnCloseButton));
+  // Whether the way out waits, as the Escape handler reads it (isCloseDisabled).
+  const isCloseDisabledRef: React.MutableRefObject<boolean> = useRef<boolean>(
+    Boolean(props.isCloseDisabled),
+  );
+  isCloseDisabledRef.current = Boolean(props.isCloseDisabled);
   isSubmitDestructiveRef.current =
     submitButtonStyleType === ButtonStyleType.DANGER ||
     submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
@@ -486,6 +516,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             footer,
             isSubmitDestructive: isSubmitDestructiveRef.current,
             header,
+            isCloseButtonPreferred: isInitialFocusOnCloseButtonRef.current,
           });
 
     const placedFocusElement: HTMLElement = initialFocusElement || modal;
@@ -591,7 +622,12 @@ const Modal: FunctionComponent<ComponentProps> = (
 
       if (event.key === "Escape" && onCloseRef.current) {
         event.preventDefault();
-        onCloseRef.current();
+
+        // What the dialog started is still running: it stays (isCloseDisabled).
+        if (!isCloseDisabledRef.current) {
+          onCloseRef.current();
+        }
+
         return;
       }
 
@@ -727,6 +763,7 @@ const Modal: FunctionComponent<ComponentProps> = (
 
     if (
       props.disableCloseOnBackdropClick ||
+      props.isCloseDisabled ||
       !props.onClose ||
       !pressStartedOutside ||
       pressEndedInside ||
@@ -837,7 +874,14 @@ const Modal: FunctionComponent<ComponentProps> = (
                   aria-label={translatedCloseLabel}
                   data-testid="close-button"
                   onClick={props.onClose}
-                  className="-mr-1.5 -mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  // Locked while what the dialog started runs (isCloseDisabled).
+                  disabled={Boolean(props.isCloseDisabled)}
+                  className={`-mr-1.5 -mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
+                    {
+                      isLocked: Boolean(props.isCloseDisabled),
+                      hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+                    },
+                  )}`}
                 >
                   <Icon icon={IconProp.Close} className="h-4 w-4" />
                 </button>
@@ -916,6 +960,7 @@ const Modal: FunctionComponent<ComponentProps> = (
               }
               onSubmit={props.onSubmit}
               onClose={props.onClose ? props.onClose : undefined}
+              isCloseDisabled={props.isCloseDisabled}
               isLoading={props.isLoading || false}
               disableSubmitButton={
                 props.isBodyLoading || props.disableSubmitButton
