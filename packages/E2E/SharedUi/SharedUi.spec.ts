@@ -2623,14 +2623,7 @@ test.describe("keyboard only", () => {
         expect(hideBox.width).toBeGreaterThanOrEqual(20);
 
         // The page never scrolls sideways, on a phone neither.
-        expect(
-          await page.evaluate((): number => {
-            return (
-              document.documentElement.scrollWidth -
-              document.documentElement.clientWidth
-            );
-          }),
-        ).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
 
         await screenshot(page, `bell-setup-item-${width}-${theme}`, {
           fullPage: false,
