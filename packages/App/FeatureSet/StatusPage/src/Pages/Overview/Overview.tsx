@@ -81,6 +81,7 @@ import StatusPageGroupTreeUtil, {
   StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "Common/Utils/StatusPage/GroupTree";
+import StatusPageResourceExplorerUtil from "Common/Utils/StatusPage/ResourceExplorer";
 import StatusPageGroupNestingLayoutUtil, {
   StatusPageGroupRollupKind,
 } from "Common/Utils/StatusPage/GroupNestingLayout";
@@ -133,22 +134,6 @@ const readNotMonitoredResourceIds: (value: unknown) => ReadonlySet<string> = (
   }
 
   return ids;
-};
-
-const parseAxisValues: (raw?: string) => Array<string> = (
-  raw?: string,
-): Array<string> => {
-  if (!raw) {
-    return [];
-  }
-  return raw
-    .split(",")
-    .map((value: string): string => {
-      return value.trim();
-    })
-    .filter((value: string): boolean => {
-      return value.length > 0;
-    });
 };
 
 const tintFromHex: (hex: string, alpha: number) => string = (
@@ -1519,11 +1504,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   type GetGridForGroupFunction = (group: StatusPageGroup) => ReactElement;
 
+  /*
+   * For a group drawn as a grid (StatusPageGroupNestingLayoutUtil.
+   * isDrawnAsGrid), which has a row and a column. A grid group with no rows
+   * or no columns yet is drawn as a list instead.
+   */
   const getGridForGroup: GetGridForGroupFunction = (
     group: StatusPageGroup,
   ): ReactElement => {
-    const rowValues: Array<string> = parseAxisValues(group.rowAxisValues);
-    const columnValues: Array<string> = parseAxisValues(group.columnAxisValues);
+    const rowValues: Array<string> =
+      StatusPageResourceExplorerUtil.parseAxisValues(group.rowAxisValues);
+    const columnValues: Array<string> =
+      StatusPageResourceExplorerUtil.parseAxisValues(group.columnAxisValues);
 
     /*
      * A matrix where this many columns fit the grid's box, a stack where
@@ -1531,14 +1523,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
      */
     const layout: PublicResourceGridClassNames =
       getPublicResourceGridClassNames(columnValues.length);
-
-    if (rowValues.length === 0 || columnValues.length === 0) {
-      return (
-        <div className="mb-5">
-          <ErrorMessage message={t("overview.gridAxesNotConfigured")} />
-        </div>
-      );
-    }
 
     const resourcesInGroup: Array<StatusPageResource> =
       statusPageResources.filter((resource: StatusPageResource) => {
@@ -2000,7 +1984,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return isResourceVisible(resource);
       });
 
-    const isGrid: boolean = group.viewMode === StatusPageGroupViewMode.Grid;
+    /*
+     * A grid group with no rows or no columns yet is drawn as a list group
+     * is: its resources, or its empty line. Its visitors cannot add the
+     * axes, and an error in their place read as the page failing (#9476).
+     */
+    const isGrid: boolean =
+      StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(group);
+    const isGridWithoutAxes: boolean =
+      group.viewMode === StatusPageGroupViewMode.Grid && !isGrid;
 
     const showOwnResources: boolean =
       StatusPageGroupNestingLayoutUtil.shouldRenderOwnResources({
@@ -2052,6 +2044,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
               <div
                 className={StatusPageGroupNestingLayoutUtil.getResourceListClassName()}
               >
+                {isGridWithoutAxes && StatusPageUtil.isPreviewPage() ? (
+                  /*
+                   * For the page's owner, on the Dashboard's preview only:
+                   * why this grid group is drawn as a list. A quiet note,
+                   * not an error - nothing on the page failed, and its
+                   * visitors read the list without it.
+                   */
+                  <div
+                    className="flex items-start gap-2 text-sm text-gray-500"
+                    data-testid="status-page-grid-axes-not-configured"
+                  >
+                    <Icon
+                      icon={IconProp.Info}
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+                    />
+                    <span>{t("overview.gridAxesNotConfigured")}</span>
+                  </div>
+                ) : (
+                  <></>
+                )}
                 {getMonitorOverviewListInGroup(group)}
                 {getUptimeTimeAxis({ statusPageGroup: group })}
               </div>

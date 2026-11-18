@@ -1,6 +1,7 @@
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageGroupViewMode from "../../Types/StatusPage/StatusPageGroupViewMode";
+import StatusPageResourceExplorerUtil from "./ResourceExplorer";
 
 /*
  * Status page groups nest (Corporate Unit -> Region -> Market -> Site) and the
@@ -326,6 +327,36 @@ export default class StatusPageGroupNestingLayoutUtil {
   }
 
   /*
+   * Whether a group's resources are drawn as a grid: it is in grid view, and
+   * it has a row and a column to draw. A grid group with no rows or no
+   * columns yet has no cells, so the public page draws its resources the way
+   * a list group does, or the group's empty line if it has none. Its
+   * visitors cannot add the axes, and the error that stood in their place
+   * read as the status page failing (#9476). The values are read as the
+   * Dashboard's Resources screen reads them (parseAxisValues), so the two
+   * agree on which grids have no rows or columns.
+   */
+  public static isDrawnAsGrid(
+    statusPageGroup: StatusPageGroup | null,
+  ): boolean {
+    if (
+      !statusPageGroup ||
+      statusPageGroup.viewMode !== StatusPageGroupViewMode.Grid
+    ) {
+      return false;
+    }
+
+    return (
+      StatusPageResourceExplorerUtil.parseAxisValues(
+        statusPageGroup.rowAxisValues,
+      ).length > 0 &&
+      StatusPageResourceExplorerUtil.parseAxisValues(
+        statusPageGroup.columnAxisValues,
+      ).length > 0
+    );
+  }
+
+  /*
    * Whether a group draws the time axis under its own resource list.
    *
    * Once per resource list rather than once per resource: every bar in one list
@@ -334,14 +365,15 @@ export default class StatusPageGroupNestingLayoutUtil {
    * bars are indented past this one, and they may be collapsed, so an axis up
    * here would be labelling a column that is not there.
    *
-   * A group in grid view draws a matrix of cells instead of bars, so its
-   * resources are not something a time axis describes.
+   * A group drawn as a grid draws a matrix of cells instead of bars, so its
+   * resources are not something a time axis describes. A grid group with no
+   * rows or columns yet is drawn as a list (isDrawnAsGrid), bars and axis.
    */
   public static shouldRenderTimeAxis(data: {
     statusPageGroup: StatusPageGroup | null;
     statusPageResources: Array<StatusPageResource>;
   }): boolean {
-    if (data.statusPageGroup?.viewMode === StatusPageGroupViewMode.Grid) {
+    if (this.isDrawnAsGrid(data.statusPageGroup)) {
       return false;
     }
 
