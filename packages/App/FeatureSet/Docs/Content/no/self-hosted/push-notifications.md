@@ -256,6 +256,10 @@ Gjennom push-reléet (ingen `EXPO_ACCESS_TOKEN`) virker dette på samme måte: R
 
 Hvis ingenting av dette hjelper, kontakter du oss på [hello@oneuptime.com](mailto:hello@oneuptime.com) med feilene fra OneUptime-loggene dine.
 
+### Admin Dashboard sier at push feiler
+
+Admin Dashboard sier at push feiler når serverens egne push-varslinger har sluttet å gå ut: push-reléet, Expo Push eller Web Push avviste dem, eller kunne ikke nås. Det står siden når, og hva som ble svart. En push som én enhet avviste, for eksempel en til en app som er avinstallert, teller ikke. Så snart en push går ut igjen, står push som i orden. Send en test-push for å sjekke det.
+
 ## Neste steg
 
 :::cards

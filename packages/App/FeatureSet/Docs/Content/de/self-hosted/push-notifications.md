@@ -256,6 +256,10 @@ Um das Gerät zurückzuholen, öffnen Sie darauf die mobile App, während Sie an
 
 Wenn nichts davon hilft, schreiben Sie uns an [hello@oneuptime.com](mailto:hello@oneuptime.com) mit den Fehlern aus Ihren OneUptime-Logs.
 
+### Das Admin Dashboard meldet, dass Push fehlschlägt
+
+Das Admin Dashboard meldet, dass Push fehlschlägt, wenn die eigenen Push-Benachrichtigungen des Servers nicht mehr versendet werden: Das Push-Relay, Expo Push oder Web Push hat sie abgelehnt oder war nicht erreichbar. Es nennt, seit wann, und was geantwortet wurde. Ein Push, den ein einzelnes Gerät abgelehnt hat, etwa an eine deinstallierte App, zählt nicht. Sobald wieder ein Push versendet wird, gilt Push als funktionierend. Senden Sie einen Test-Push, um es zu prüfen.
+
 ## Nächste Schritte
 
 :::cards

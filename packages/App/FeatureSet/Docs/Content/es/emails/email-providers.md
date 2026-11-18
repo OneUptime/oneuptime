@@ -171,6 +171,25 @@ Con Docker Compose, define los ajustes `GLOBAL_EMAIL_` en `config.env` y despué
 
 OneUptime lee las variables al arrancar. Si alguna es incorrecta, como un puerto que no es un número o una contraseña que falta, el servidor no envía correos hasta que se corrija; el log del servidor, los ajustes de correo del Admin Dashboard y la lista de comprobación de `/admin/setup` nombran la variable. Las contraseñas y las claves nunca se muestran. Para cambiar los ajustes, cambia las variables y reinicia OneUptime: el Admin Dashboard no los modifica.
 
+## Ver lo que envió el servidor
+
+En un servidor autoalojado, **Ajustes > Notificaciones > Correos** del Admin Dashboard termina con la tarjeta **Registro de correos**. Muestra cada correo que el servidor envió con sus propios ajustes y que no pertenece a ningún proyecto, como un restablecimiento de contraseña, un enlace de inicio de sesión o una invitación, y cada correo que no pudo enviar, también los de un proyecto: a quién fue, cuándo, qué era y qué respondió el servicio de correo.
+
+- Activa **Solo correos fallidos** para ver solo los correos que no salieron.
+- El correo de un proyecto que salió está en los registros del propio proyecto, no aquí. Uno enviado por el servidor de correo propio de un proyecto nunca está aquí.
+- El registro nunca guarda el mensaje en sí, porque un restablecimiento de contraseña o un enlace de inicio de sesión deja entrar a quien lo tenga. Un enlace en un asunto se guarda como `[link]`.
+- Solo los administradores maestros pueden leerlo. Cada correo se guarda 30 días.
+
+## Recibir un aviso cuando el correo o las sondas se detienen
+
+Cuando el correo del servidor deja de funcionar, o ninguna sonda global informa, OneUptime avisa a los administradores maestros, y una vez más cuando vuelve a funcionar. Elige dónde en la tarjeta **Avisos de caídas** de la misma página:
+
+- **Push a los dispositivos de los administradores maestros** envía una notificación push a cada dispositivo en el que un administrador maestro inició sesión en la app de OneUptime. Está activado hasta que lo desactives.
+- **Enviar SMS a este número** envía un SMS con los ajustes de SMS del propio servidor.
+- El **Correo de notificación admin** también recibe el aviso de las sondas.
+
+Un aviso nunca va por el canal que se detuvo, así que un aviso sobre el correo nunca va por correo, ni por un canal por el que el servidor no puede enviar ahora mismo. Solo se avisa de un cambio, como mucho una vez por hora para cada uno, y nunca se avisa a los miembros de los proyectos.
+
 ## Solución de problemas
 
 Un correo de prueba que no sale dice por qué. Para cualquier otro correo, abre la pestaña **Correo electrónico** de **Ajustes del proyecto > Notificaciones > Registros de notificación** y selecciona **Ver mensaje de estado** en su fila.

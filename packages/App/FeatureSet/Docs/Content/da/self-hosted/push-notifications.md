@@ -256,6 +256,10 @@ Gennem push-relayet (intet `EXPO_ACCESS_TOKEN`) virker det på samme måde: Rela
 
 Hvis intet af dette hjælper, så kontakt os på [hello@oneuptime.com](mailto:hello@oneuptime.com) med fejlene fra dine OneUptime-logs.
 
+### Admin Dashboard siger, at push fejler
+
+Admin Dashboard siger, at push fejler, når serverens egne push-notifikationer er holdt op med at blive sendt: push-relayet, Expo Push eller Web Push afviste dem eller kunne ikke nås. Det står, siden hvornår, og hvad der blev svaret. Et push, som én enhed afviste, f.eks. til en app, der er afinstalleret, tæller ikke. Så snart et push bliver sendt igen, står push som virkende. Send et test-push for at tjekke det.
+
 ## Næste trin
 
 :::cards
