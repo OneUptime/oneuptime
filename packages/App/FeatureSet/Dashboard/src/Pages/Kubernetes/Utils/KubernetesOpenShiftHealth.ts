@@ -1,4 +1,10 @@
 import { KubernetesCondition } from "./KubernetesObjectParser";
+import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionSeverity,
+} from "../../../Components/ResourcePart/ResourceAttention";
 import {
   OpenShiftClusterOperatorObject,
   OpenShiftClusterOperatorState,
@@ -287,4 +293,106 @@ export function getOpenShiftClusterHealth(data: {
     counts,
     health: getHealth({ counts, updateState }),
   };
+}
+
+/*
+ * What OpenShift's own health adds to what needs attention, for the list a
+ * Degraded or Unhealthy pill opens (ResourceHealthPill): each operator that
+ * is down (critical) or degraded (to look at), and an update that fails. An
+ * operator rolling out, or one whose state is not reported, is neither. On
+ * OpenShift these make the cluster Degraded while every pod still runs, so
+ * without them the pill would say Degraded and list nothing.
+ */
+const OPERATOR_UNAVAILABLE: string = translationKey("Unavailable");
+const OPERATOR_DEGRADED: string = translationKey("Degraded");
+const UPDATE_FAILING: string = translationKey("Update failing");
+const OPERATOR_UNAVAILABLE_SINCE: string = translationKey(
+  "Unavailable since {{time}}",
+);
+const OPERATOR_DEGRADED_SINCE: string = translationKey(
+  "Degraded since {{time}}",
+);
+
+function toDate(value: string): Date | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const date: Date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : undefined;
+}
+
+export function getOpenShiftAttentionItems(
+  health: OpenShiftClusterHealth | null | undefined,
+): Array<ResourceAttentionItem> {
+  if (!health) {
+    return [];
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+
+  for (const operator of health.operatorsToReview) {
+    const isDown: boolean =
+      operator.state === OpenShiftClusterOperatorState.Unavailable;
+    if (!isDown && operator.state !== OpenShiftClusterOperatorState.Degraded) {
+      continue;
+    }
+    const item: ResourceAttentionItem = {
+      key: `ClusterOperator:${operator.name}`,
+      kind: "ClusterOperator",
+      kindAsWritten: true,
+      icon: IconProp.Settings,
+      name: operator.name,
+      severity: isDown
+        ? ResourceAttentionSeverity.Critical
+        : ResourceAttentionSeverity.Warning,
+      reasons: [{ text: isDown ? OPERATOR_UNAVAILABLE : OPERATOR_DEGRADED }],
+      message: operator.message || undefined,
+    };
+    if (operator.reason) {
+      item.reasons.push({
+        text: "{{reason}}",
+        values: { reason: operator.reason },
+      });
+    }
+    const since: Date | undefined = toDate(operator.since);
+    if (since) {
+      item.since = {
+        at: since,
+        template: isDown ? OPERATOR_UNAVAILABLE_SINCE : OPERATOR_DEGRADED_SINCE,
+      };
+    }
+    items.push(item);
+  }
+
+  if (health.updateState === OpenShiftClusterVersionState.Failing) {
+    const item: ResourceAttentionItem = {
+      key: "ClusterVersion:version",
+      kind: "ClusterVersion",
+      kindAsWritten: true,
+      icon: IconProp.Refresh,
+      name: health.desiredVersion || health.version || "version",
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: UPDATE_FAILING }],
+      message: health.updateMessage || undefined,
+    };
+    if (health.updateReason) {
+      item.reasons.push({
+        text: "{{reason}}",
+        values: { reason: health.updateReason },
+      });
+    }
+    items.push(item);
+  }
+
+  // Down before degraded; the update last (a stable sort keeps the rest).
+  return items.sort(
+    (a: ResourceAttentionItem, b: ResourceAttentionItem): number => {
+      const rank: (item: ResourceAttentionItem) => number = (
+        item: ResourceAttentionItem,
+      ): number => {
+        return item.severity === ResourceAttentionSeverity.Critical ? 0 : 1;
+      };
+      return rank(a) - rank(b);
+    },
+  );
 }

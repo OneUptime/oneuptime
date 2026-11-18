@@ -402,6 +402,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Read only.",
     "This project, and only the services this repository serves.",
     "No private incidents",
+    // A pull request's readers are not the project's roles (#9576).
+    "What everyone may read.",
     "Bounded.",
     // What a production review reads of the changed code, and its rules.
     "Operations",
@@ -409,6 +411,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Aggregates only.",
     "Private incidents.",
     "Public repositories get a link.",
+    "Everyone who can read the repository reads it.",
     "Outside contributors cannot start one.",
     "The token comments.",
   ],

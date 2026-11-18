@@ -26,6 +26,14 @@ import ObjectID from "../../../../Types/ObjectID";
 import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../../Types/ServiceLevelObjective/SloWindowType";
 import { IMPACT_SECTION_TITLE } from "../../../../Utils/AI/InvestigationReport";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Permission from "../../../../Types/Permission";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  keptForAudience,
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 
 /*
  * Contract under test - the SLOs an investigation's starting context names
@@ -59,6 +67,8 @@ const MONITOR_B: string = "aaaa5555-5555-4555-8555-555555555555";
 const SLO_LINKED: string = "aaaa6666-6666-4666-8666-666666666666";
 const SLO_COUNTING: string = "aaaa7777-7777-4777-8777-777777777777";
 const MEASURED_AT: Date = new Date("2026-11-04T09:00:00.000Z");
+// Everyone who may see the record, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 
 function monitor(id: string, name: string): Monitor {
   const row: Monitor = new Monitor(new ObjectID(id));
@@ -130,6 +140,7 @@ describe("the SLOs that count a record", () => {
 
   test("linked and counting SLOs are read in the record's project, enabled and not archived", async () => {
     await InvestigationImpactContext.readForIncident({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       incidentId: INCIDENT_ID,
     });
@@ -180,6 +191,7 @@ describe("the SLOs that count a record", () => {
 
     const impact: InvestigationImpact | null =
       await InvestigationImpactContext.readForIncident({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
       });
@@ -206,6 +218,7 @@ describe("the SLOs that count a record", () => {
 
     const impact: InvestigationImpact | null =
       await InvestigationImpactContext.readForIncident({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
       });
@@ -235,6 +248,7 @@ describe("the SLOs that count a record", () => {
 
     const impact: InvestigationImpact | null =
       await InvestigationImpactContext.readForAlert({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         alertId: ALERT_ID,
       });
@@ -257,6 +271,7 @@ describe("the SLOs that count a record", () => {
 
     expect(
       await InvestigationImpactContext.readForIncident({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
       }),
@@ -367,5 +382,120 @@ describe("the context's Impact block", () => {
     expect(line).not.toContain("data:image/png;base64,AAAA");
     expect(line).toContain('counts monitor "Mon\\"itor"');
     expect(line.length).toBeLessThan(800);
+  });
+});
+
+/*
+ * WHAT THE REPORT'S READERS MAY READ (#9576). Everyone who may see the
+ * record reads the report, so the SLOs are read for them: where some role
+ * reads SLOs only for some labels, an SLO counting the record's monitors
+ * that carries a label is set apart from somebody who reads the report. It
+ * is never named, nor counted among the ones "more" than named. The SLOs
+ * linked to the record are its own: its Affected Resources name them to
+ * every reader. A project whose roles narrow nobody reads them all.
+ */
+describe("the SLOs the record's readers may read", () => {
+  const SET_APART: string = sloId(1);
+  const NARROWED: ReadAudience = readAudienceOf({
+    projectId: PROJECT_ID,
+    labelledPermissions: [Permission.ReadServiceLevelObjective],
+    named: { ServiceLevelObjective: [SLO_LINKED] },
+  });
+  let reads: Array<DatabaseCommonInteractionProps>;
+
+  beforeEach(() => {
+    reads = [];
+
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(
+      (() => {
+        const incident: Incident = new Incident(INCIDENT_ID);
+        incident.monitors = [monitor(MONITOR_A, "Checkout API")];
+        incident.serviceLevelObjectives = [
+          new ServiceLevelObjective(new ObjectID(SLO_LINKED)),
+        ];
+        return incident;
+      })(),
+    );
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findBy")
+      .mockImplementation(
+        async (
+          findBy: FindBy<ServiceLevelObjective>,
+        ): Promise<Array<ServiceLevelObjective>> => {
+          reads.push(findBy.props);
+          const query: JSONObject = findBy.query as unknown as JSONObject;
+          // The linked SLO carries a label too: the subject names it.
+          const rows: Array<ServiceLevelObjective> =
+            query["_id"] !== undefined
+              ? [slo(SLO_LINKED, { name: "Checkout availability" })]
+              : [
+                  slo(SET_APART, { name: "Payroll export (HR only)" }),
+                  slo(SLO_COUNTING, { name: "Cart latency" }),
+                ];
+
+          return keptForAudience({
+            modelType: ServiceLevelObjective,
+            rows,
+            props: findBy.props,
+            setApartIds: [SET_APART, SLO_LINKED],
+          });
+        },
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("every SLO is read for the record's readers, never as OneUptime alone", async () => {
+    await InvestigationImpactContext.readForIncident({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      readAudience: NARROWED,
+    });
+
+    expect(reads).toHaveLength(2);
+
+    for (const props of reads) {
+      expect(props).toEqual(readAudienceProps(NARROWED));
+    }
+  });
+
+  test("an SLO set apart from one of them is never named nor counted; the linked one still is", async () => {
+    const impact: InvestigationImpact | null =
+      await InvestigationImpactContext.readForIncident({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        readAudience: NARROWED,
+      });
+    const section: string =
+      InvestigationImpactContext.buildContextSection(impact);
+
+    expect(
+      impact!.slos.map((each: ImpactSlo): string => {
+        return each.id;
+      }),
+    ).toEqual([SLO_LINKED, SLO_COUNTING]);
+    expect(impact!.hasMoreSlos).toBe(false);
+    expect(section).not.toContain("Payroll");
+    expect(section).not.toContain(SET_APART);
+    expect(section).toContain("Checkout availability");
+    expect(section).toContain("Cart latency");
+  });
+
+  test("a project whose roles narrow nobody names every SLO that counts the record, as before", async () => {
+    const impact: InvestigationImpact | null =
+      await InvestigationImpactContext.readForIncident({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        readAudience: READERS,
+      });
+
+    expect(
+      impact!.slos.map((each: ImpactSlo): string => {
+        return each.id;
+      }),
+    ).toEqual([SLO_LINKED, SET_APART, SLO_COUNTING]);
   });
 });

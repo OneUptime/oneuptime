@@ -37,6 +37,26 @@ import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import ReadAudienceReader, {
+  ReadAudienceSubject,
+} from "../../../../Server/Utils/ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import { readAudienceOf } from "../../../Helpers/ReadAudienceFixtures";
+
+/*
+ * Who reads the report: everyone who may see its incident or alert, worked
+ * out before the starting context is read (ReadAudienceReader, #9576) - here
+ * a project whose roles narrow nobody.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(ReadAudienceReader, "forSubject")
+    .mockImplementation(
+      async (subject: ReadAudienceSubject): Promise<ReadAudience> => {
+        return readAudienceOf({ projectId: subject.projectId });
+      },
+    );
+});
 
 /*
  * THE RUNNERS WIRE THE LINKED INFRASTRUCTURE AND THE FOLLOW-UP CHECK
@@ -199,7 +219,12 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
 
     const request: InvestigationRequest = sentRequest(executeRun);
 
-    expect(readForIncident).toHaveBeenCalledWith({ projectId, incidentId });
+    // For everyone who may see the incident (#9576).
+    expect(readForIncident).toHaveBeenCalledWith({
+      projectId,
+      incidentId,
+      readAudience: readAudienceOf({ projectId }),
+    });
     expect(request.contextSummary).toContain("# Linked infrastructure");
     expect(request.contextSummary).toContain(
       `- Host "web-1" (resourceType: Host, resourceId: ${HOST_ID})`,
@@ -254,6 +279,7 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
       projectId,
       incidentId,
       alertId: followUpAlertId,
+      readAudience: readAudienceOf({ projectId }),
     });
     expect(
       request.contextSummary.startsWith("# Why you are checking again\n"),
@@ -533,6 +559,7 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
     expect(LinkedInfrastructureContext.readForAlert).toHaveBeenCalledWith({
       projectId,
       alertId,
+      readAudience: readAudienceOf({ projectId }),
     });
     expect(request.contextSummary).toContain("# Linked infrastructure");
     expect(request.contextSummary).toContain("minutes before this alert");

@@ -10,6 +10,8 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataCheckService from "../../Services/DataCheckService";
 import DatabaseService from "../../Services/DatabaseService";
 import OwnedByFilter from "../../Types/Database/OwnedByFilter";
+import ReadAudiencePermission from "../../Types/Database/Permissions/ReadAudiencePermission";
+import ReadAudience from "../../../Types/BaseDatabase/ReadAudience";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import { CheckReadPermissionType } from "../../Types/Database/Permissions/ReadPermission";
 import Query from "../../Types/Database/Query";
@@ -173,6 +175,64 @@ export default class DataObservabilityReadScope {
       },
       pipelineQuery: { projectId, _id: unownedPipeline },
     };
+  }
+
+  /*
+   * WHAT EVERYONE WHO MAY SEE A SUBJECT MAY READ (#9576): nobodyInParticular
+   * made exact for a project that narrows nobody. The audience of an
+   * investigation knows which kinds some team, custom role or API key reads
+   * only by owner or label (ReadAudiencePermission): tables and pipelines
+   * nobody is narrowed on are read whole - every reader of the alert who
+   * may read tables reads all of them - and the others as nobody in
+   * particular may read them, by the owners or the labels that narrow
+   * somebody, beside what the subject names itself.
+   */
+  public static forAudience(audience: ReadAudience): DataObservabilityScope {
+    const projectId: ObjectID = new ObjectID(audience.projectId);
+    const table: FindWhereProperty<any> | null =
+      ReadAudiencePermission.getKeptCondition(DataAsset, audience, {
+        followReferences: true,
+      });
+    const pipeline: FindWhereProperty<any> | null =
+      ReadAudiencePermission.getKeptCondition(DataPipeline, audience, {
+        followReferences: true,
+      });
+
+    if (!table && !pipeline) {
+      return this.wholeProject(projectId);
+    }
+
+    return {
+      isWholeProject: false,
+      assetQuery: table ? { projectId, _id: table } : { projectId },
+      checkQuery: table
+        ? {
+            projectId,
+            dataAssetId: QueryHelper.inRecordsWhere({
+              tableName: new DataAsset().tableName || "DataAsset",
+              condition: table,
+            }),
+          }
+        : { projectId },
+      pipelineQuery: pipeline ? { projectId, _id: pipeline } : { projectId },
+    };
+  }
+
+  /*
+   * What a run of OneUptime's own reads as: its audience's (forAudience)
+   * when it carries one, else nobody in particular (a run read as root for
+   * no subject's readers in particular).
+   */
+  public static forRootRun(
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps | undefined | null,
+  ): DataObservabilityScope {
+    const audience: ReadAudience | null =
+      ReadAudiencePermission.getAudience(props);
+
+    return audience
+      ? this.forAudience(audience)
+      : this.nobodyInParticular(projectId);
   }
 
   /*

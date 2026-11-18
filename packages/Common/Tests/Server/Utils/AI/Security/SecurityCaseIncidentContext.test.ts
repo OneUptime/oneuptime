@@ -10,6 +10,11 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityConnection";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import ObjectID from "../../../../../Types/ObjectID";
+import ReadAudience from "../../../../../Types/BaseDatabase/ReadAudience";
+import {
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../../Helpers/ReadAudienceFixtures";
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -31,6 +36,11 @@ const incidentId: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const caseId: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+// Everyone who may see the incident, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({
+  projectId,
+  named: { Incident: [incidentId.toString()] },
+});
 
 function makeCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   return {
@@ -198,7 +208,7 @@ describe("SecurityCaseIncidentContext", () => {
     );
   });
 
-  test("reads the cases naming what the incident affects as root; a read that fails reads as none", async () => {
+  test("reads the cases naming what the incident affects for its readers; a read that fails reads as none", async () => {
     jest.spyOn(SecurityCaseService, "findBy").mockResolvedValue([]);
     const read: jest.SpyInstance = jest
       .spyOn(IncidentSecurity, "read")
@@ -212,12 +222,14 @@ describe("SecurityCaseIncidentContext", () => {
       await SecurityCaseIncidentContext.buildContextSectionFor({
         projectId,
         incidentId,
+        readAudience: READERS,
       }),
     ).toContain("SEC-7");
+    // For everyone who may see the incident (#9576).
     expect(read).toHaveBeenCalledWith({
       projectId,
       incidentId,
-      props: { isRoot: true },
+      props: readAudienceProps(READERS),
     });
 
     read.mockRejectedValue(new Error("ClickHouse is not answering"));
@@ -229,11 +241,12 @@ describe("SecurityCaseIncidentContext", () => {
       await SecurityCaseIncidentContext.buildContextSectionFor({
         projectId,
         incidentId,
+        readAudience: READERS,
       }),
     ).toBe("");
   });
 
-  test("reads the incident's cases as root, newest first, a few at most", async () => {
+  test("reads the incident's cases for its readers, newest first, a few at most", async () => {
     const find: jest.SpyInstance = jest
       .spyOn(SecurityCaseService, "findBy")
       .mockResolvedValue([makeCase()]);
@@ -243,6 +256,7 @@ describe("SecurityCaseIncidentContext", () => {
       await SecurityCaseIncidentContext.buildContextSectionFor({
         projectId,
         incidentId,
+        readAudience: READERS,
       });
 
     expect(section).toContain("CASE-42");
@@ -254,7 +268,7 @@ describe("SecurityCaseIncidentContext", () => {
         securityCasePriority: { name: true },
       },
       limit: MAX_INCIDENT_SECURITY_CASES,
-      props: { isRoot: true },
+      props: readAudienceProps(READERS),
     });
   });
 });

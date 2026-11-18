@@ -31,6 +31,8 @@ import {
   AiRemediationCommandPlanUtil,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import ServiceKnowledge, { NamedService } from "./ServiceKnowledge";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 
 /*
  * AI SRE — episodic memory (Phase 4, "I've seen this before").
@@ -78,6 +80,12 @@ import ServiceKnowledge, { NamedService } from "./ServiceKnowledge";
  * Both end with what OneUptime AI has learned about the services the
  * subject is on (ServiceKnowledge): the failures each keeps having, with the
  * fixes that worked.
+ *
+ * Every read is made for the subject's readers (readAudience, #9576): a
+ * past incident or alert set apart by an owner or a label from somebody who
+ * reads this report - and its fix, its analysis - is never one of them, nor
+ * counted, wherever some role reads incidents or alerts only by owner or
+ * label (ReadAudiencePermission).
  */
 
 // How many recent incidents (or alerts) to consider, and how many to surface.
@@ -146,6 +154,8 @@ export default class AIMemory {
     // What the incident says happened, for the match by meaning.
     title?: string | undefined;
     description?: string | undefined;
+    // Everyone who may see the incident: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<string> {
     let services: Array<NamedService> = [];
     let recurrence: string = "";
@@ -154,6 +164,7 @@ export default class AIMemory {
       services = await ServiceKnowledge.readServicesOfIncident({
         projectId: data.projectId,
         incidentId: data.currentIncidentId,
+        readAudience: data.readAudience,
       });
 
       recurrence = await AIMemory.buildIncidentRecurrence({
@@ -170,6 +181,7 @@ export default class AIMemory {
         projectId: data.projectId,
         services,
         excludeIncidentId: data.currentIncidentId,
+        readAudience: data.readAudience,
       }))
     );
   }
@@ -187,6 +199,8 @@ export default class AIMemory {
   public static async getPriorSimilarAlertsContext(data: {
     projectId: ObjectID;
     currentAlertId: ObjectID;
+    // Everyone who may see the alert: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<string> {
     let services: Array<NamedService> = [];
     let recurrence: string = "";
@@ -206,7 +220,7 @@ export default class AIMemory {
           labels: { name: true },
           services: { _id: true, name: true },
         },
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
 
       if (!current) {
@@ -217,6 +231,7 @@ export default class AIMemory {
         projectId: data.projectId,
         services: current.services,
         monitorId: current.monitorId,
+        readAudience: data.readAudience,
       });
 
       recurrence = await AIMemory.buildAlertRecurrence({
@@ -224,6 +239,7 @@ export default class AIMemory {
         currentAlertId: data.currentAlertId,
         current,
         services,
+        readAudience: data.readAudience,
       });
     } catch (error) {
       logger.error(
@@ -237,6 +253,7 @@ export default class AIMemory {
         projectId: data.projectId,
         services,
         excludeAlertId: data.currentAlertId,
+        readAudience: data.readAudience,
       }))
     );
   }
@@ -251,6 +268,7 @@ export default class AIMemory {
     projectId: ObjectID;
     kind: MemorySubjectKind;
     ids: Array<ObjectID>;
+    readAudience: ReadAudience;
   }): Promise<Map<string, string>> {
     const analyses: Map<string, string> = new Map<string, string>();
 
@@ -280,7 +298,7 @@ export default class AIMemory {
         sort: { createdAt: SortOrder.Descending },
         limit: MAX_ANALYSES_READ,
         skip: 0,
-        props: { isRoot: true },
+        props: ReadAudiencePermission.getReadProps(data.readAudience),
       });
 
       for (const run of runs) {
@@ -310,11 +328,13 @@ export default class AIMemory {
   public static async readVerifiedFixes(data: {
     projectId: ObjectID;
     incidentIds: Array<ObjectID>;
+    readAudience: ReadAudience;
   }): Promise<Map<string, string>> {
     return await AIMemory.readVerifiedFixesOf({
       projectId: data.projectId,
       column: "incidentId",
       ids: data.incidentIds,
+      readAudience: data.readAudience,
     });
   }
 
@@ -322,11 +342,13 @@ export default class AIMemory {
   public static async readVerifiedAlertFixes(data: {
     projectId: ObjectID;
     alertIds: Array<ObjectID>;
+    readAudience: ReadAudience;
   }): Promise<Map<string, string>> {
     return await AIMemory.readVerifiedFixesOf({
       projectId: data.projectId,
       column: "alertId",
       ids: data.alertIds,
+      readAudience: data.readAudience,
     });
   }
 
@@ -401,6 +423,7 @@ export default class AIMemory {
     title?: string | undefined;
     description?: string | undefined;
     services: Array<NamedService>;
+    readAudience: ReadAudience;
   }): Promise<string> {
     /*
      * The project's resolved incidents (Common/Utils/ResolvedState): in
@@ -438,7 +461,7 @@ export default class AIMemory {
       },
       limit: CANDIDATE_LIMIT,
       skip: 0,
-      props: { isRoot: true },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
 
     const currentIdString: string = data.currentIncidentId.toString();
@@ -455,6 +478,7 @@ export default class AIMemory {
     // A cause no one recorded may be OneUptime AI's analysis, confirmed.
     const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       kind: "incident",
       ids: eligible
         .filter((incident: Incident): boolean => {
@@ -590,6 +614,7 @@ export default class AIMemory {
 
     const fixes: Map<string, string> = await AIMemory.readVerifiedFixes({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       incidentIds: chosen
         .map((item: { incident: Incident }): ObjectID | undefined => {
           return item.incident.id || undefined;
@@ -653,6 +678,7 @@ export default class AIMemory {
     currentAlertId: ObjectID;
     current: Alert;
     services: Array<NamedService>;
+    readAudience: ReadAudience;
   }): Promise<string> {
     const current: Alert = data.current;
 
@@ -693,7 +719,7 @@ export default class AIMemory {
           sort: { createdAt: SortOrder.Descending },
           limit: CANDIDATE_LIMIT,
           skip: 0,
-          props: { isRoot: true },
+          props: ReadAudiencePermission.getReadProps(data.readAudience),
         }),
         current.monitorId
           ? AlertService.findBy({
@@ -706,7 +732,7 @@ export default class AIMemory {
               sort: { createdAt: SortOrder.Descending },
               limit: SAME_MONITOR_CANDIDATE_LIMIT,
               skip: 0,
-              props: { isRoot: true },
+              props: ReadAudiencePermission.getReadProps(data.readAudience),
             })
           : Promise.resolve([]),
       ]);
@@ -749,6 +775,7 @@ export default class AIMemory {
     // A cause no one recorded may be OneUptime AI's analysis, confirmed.
     const analyses: Map<string, string> = await AIMemory.readConfirmedAnalyses({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       kind: "alert",
       ids: alerts
         .filter((alert: Alert): boolean => {
@@ -852,6 +879,7 @@ export default class AIMemory {
 
     const fixes: Map<string, string> = await AIMemory.readVerifiedAlertFixes({
       projectId: data.projectId,
+      readAudience: data.readAudience,
       alertIds: scored
         .map((item: { alert: Alert }): ObjectID | undefined => {
           return item.alert.id || undefined;
@@ -985,6 +1013,7 @@ export default class AIMemory {
     projectId: ObjectID;
     column: "incidentId" | "alertId";
     ids: Array<ObjectID>;
+    readAudience: ReadAudience;
   }): Promise<Map<string, string>> {
     const fixes: Map<string, string> = new Map<string, string>();
 
@@ -1012,7 +1041,7 @@ export default class AIMemory {
           sort: { createdAt: SortOrder.Descending },
           limit: MAX_FIXES_READ,
           skip: 0,
-          props: { isRoot: true },
+          props: ReadAudiencePermission.getReadProps(data.readAudience),
         });
 
       for (const suggestion of suggestions) {

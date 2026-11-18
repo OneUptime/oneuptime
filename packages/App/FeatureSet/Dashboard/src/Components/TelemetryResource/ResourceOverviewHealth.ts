@@ -1,3 +1,5 @@
+import { ResourceAttentionItem } from "../ResourcePart/ResourceAttention";
+
 /*
  * The health pill an Overview drawn with ResourceOverview shows beside its
  * status pill: a database's, by the lines of its engine's recommended
@@ -24,4 +26,12 @@ export interface ResourceOverviewHealth {
   description?: string | undefined;
   // The (i)'s own name, English: "Database Health".
   descriptionLabel?: string | undefined;
+  /*
+   * What needs attention: what the health was worked out from. A pill that
+   * says something is wrong opens it, under dialogTitle (English, one whole
+   * sentence: "Why this database is Degraded"), as every hero's health
+   * pill does (ResourceHealthPill, #9537).
+   */
+  items?: Array<ResourceAttentionItem> | undefined;
+  dialogTitle?: string | undefined;
 }

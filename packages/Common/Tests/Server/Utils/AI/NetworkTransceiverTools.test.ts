@@ -30,6 +30,14 @@ import {
   TransceiverThresholds,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  keptForAudience,
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
+import Permission from "../../../../Types/Permission";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -44,6 +52,8 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 const DEVICE_ID: string = "22222222-2222-4222-8222-222222222222";
 
 const LR_RX: TransceiverThresholds = {
@@ -361,6 +371,7 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
         projectId: PROJECT_ID,
         monitorIds: [monitorId],
         focusText: "Transceiver no longer detected in Te1/1/2",
+        readAudience: READERS,
       },
     );
 
@@ -383,11 +394,58 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
     ).toBe(true);
   });
 
+  test("a device set apart from somebody who may see the subject is never told; one nobody set apart still is (#9576)", async () => {
+    const reads: Array<DatabaseCommonInteractionProps> = [];
+    // A team of the project reads devices only for some labels; this one carries one.
+    const narrowed: ReadAudience = readAudienceOf({
+      projectId: PROJECT_ID,
+      labelledPermissions: [Permission.ProjectMember],
+    });
+
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([deviceMonitor(DEVICE_ID)]);
+    jest
+      .spyOn(NetworkDeviceService, "findBy")
+      .mockImplementation(
+        async (findBy: {
+          props: DatabaseCommonInteractionProps;
+        }): Promise<Array<NetworkDevice>> => {
+          reads.push(findBy.props);
+
+          return keptForAudience({
+            modelType: NetworkDevice,
+            rows: [storedDevice([FADING, PULLED])],
+            props: findBy.props,
+            setApartIds: [DEVICE_ID],
+          });
+        },
+      );
+
+    expect(
+      await NetworkTransceiverContext.buildContextSection({
+        projectId: PROJECT_ID,
+        monitorIds: [ObjectID.generate()],
+        readAudience: narrowed,
+      }),
+    ).toBe("");
+    expect(reads[0]).toEqual(readAudienceProps(narrowed));
+
+    expect(
+      await NetworkTransceiverContext.buildContextSection({
+        projectId: PROJECT_ID,
+        monitorIds: [ObjectID.generate()],
+        readAudience: READERS,
+      }),
+    ).toContain("### core-switch-1");
+  });
+
   test("no monitors, no queries", async () => {
     const monitorFind: jest.SpyInstance = jest.spyOn(MonitorService, "findBy");
 
     await expect(
       NetworkTransceiverContext.buildContextSection({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         monitorIds: [],
       }),
@@ -406,6 +464,7 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
 
     await expect(
       NetworkTransceiverContext.buildContextSection({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         monitorIds: [ObjectID.generate()],
       }),
@@ -422,6 +481,7 @@ describe("NetworkTransceiverContext.buildContextSection", () => {
 
     await expect(
       NetworkTransceiverContext.buildContextSection({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         monitorIds: [ObjectID.generate()],
       }),
