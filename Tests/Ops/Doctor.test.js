@@ -2314,6 +2314,17 @@ describe("the Docker Compose guide", () => {
     expect(check).toContain("```bash\nnpm run doctor -- --logs\n```");
     expect(check).toContain("It exits with `1` when something marked ✗");
     expect(check).toContain("**Everything looks right.**");
+    // A proxy in front (#7050), the products switched off (#7481), diagnose.sh's address check (#7051).
+    expect(check).toContain(
+      "a proxy in front of it passes on the host name and `X-Forwarded-Proto`",
+    );
+    expect(check).toContain(
+      "Lines marked • are worth knowing but no fault, and are not counted: which products are switched off on this server",
+    );
+    expect(check).toContain("A name in `SERVER_PRODUCTS`");
+    expect(check).toContain(
+      "`HelmChart/Public/diagnose.sh` prints it, then checks the address people open and its certificate.",
+    );
     expect(
       guide.slice(guide.indexOf("\n## Troubleshooting\n")).split("\n")[3],
     ).toBe(
@@ -2362,6 +2373,10 @@ describe("the Docker Compose guide", () => {
       expect(check).toContain("`1`");
       expect(check).toContain("**Everything looks right.**");
       expect(check).toContain("HelmChart/Public/diagnose.sh");
+      // The proxy check, the note's mark and SERVER_PRODUCTS, written as the doctor writes them.
+      expect(check).toContain("`X-Forwarded-Proto`");
+      expect(check).toContain("•");
+      expect(check).toContain("`SERVER_PRODUCTS`");
       expect(
         page
           .slice(page.indexOf(`\n${headings[headings.length - 2]}\n`))
