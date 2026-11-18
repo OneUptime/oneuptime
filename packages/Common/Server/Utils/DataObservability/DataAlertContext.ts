@@ -28,13 +28,22 @@ import { describeDataAlertColumn } from "./DataAlertColumnLineage";
 import DataAlertLineageReader, {
   DataAlertLineageRow,
   DataAlertRowReader,
+  getDataAlertNamed,
 } from "./DataAlertLineage";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+} from "./DataObservabilityReadScope";
 import DataTableAnswerer, {
   DataTableAnswer,
   describeDuration,
   formatDataTableAnswer,
 } from "./DataTableAnswer";
-import DataTableLineageReader from "./DataTableLineage";
+import DataTableLineageReader, {
+  DataLineageNamed,
+  DataLineageReadable,
+  keepReadableWrites,
+  withNamedReadable,
+} from "./DataTableLineage";
 import { describeDataAlertLineage } from "./DataTableLineageAnswer";
 
 /*
@@ -77,6 +86,16 @@ import { describeDataAlertLineage } from "./DataTableLineageAnswer";
  * which everyone who may see the alert reads. A private alert - seen only
  * by its owners - is never named there, nor its title written; nor is it
  * counted on a table, or placed in the lineage.
+ *
+ * Nor is a table or pipeline set apart for some of them (#9562). A role
+ * limited to what its members own, or to some labels, reads only the
+ * tables and pipelines set apart for it, so the other tables and
+ * pipelines are read as nobody in particular may read them
+ * (DataObservabilityReadScope.nobodyInParticular): none that an owner or a
+ * label sets apart - beside the alert's own table or pipeline, which the
+ * alert names itself. One left out is never named, nor counted, nor
+ * reached through: the lineage, the writers and the dashboards are read
+ * through it as a narrowed person's Lineage tab is (scopeDataLineageReader).
  */
 
 const COLUMN_CHANGE_EVENTS: ReadonlyArray<DataAssetFeedEventType> = [
@@ -93,6 +112,16 @@ const MAX_RUNS_PER_PIPELINE: number = 5;
 const MAX_WRITERS: number = 5;
 const MAX_CHANGES: number = 10;
 const MAX_ERROR_LENGTH: number = 300;
+// The most rows read of the pipelines that write the table.
+const MAX_WRITING_PIPELINE_ROWS: number = 20;
+
+/*
+ * What the context says of the tables and pipelines it leaves out (#9562),
+ * the same words whether it left any out or not: they tell nobody that a
+ * table or pipeline is set apart, only that one would not be named.
+ */
+export const DATA_ALERT_READ_SCOPE_LINE: string =
+  "- The tables and pipelines named below are the ones everyone who may see this alert may read: its own, and those no owner or label sets apart. Any other is left out, never named or counted.";
 
 function clip(text: string | null | undefined, max: number): string {
   const value: string = (text || "").replace(/\s+/g, " ").trim();
@@ -165,8 +194,28 @@ export default class DataAlertContext {
     const sections: Array<string> = [
       "\n\n## Data Observability: this is a data alert",
       "A data alert is most often explained by what is next to it: a failed or missing run of a pipeline that writes the table, a writer service whose writes started failing or that was deployed shortly before, or a table upstream that went stale first. Name the run, deploy or upstream table behind it when these facts show one.",
+      DATA_ALERT_READ_SCOPE_LINE,
     ];
 
+    /*
+     * The tables and pipelines everyone who may see the alert may read
+     * (#9562): none an owner or a label sets apart, and what the alert
+     * names itself. Its lineage, its writers and its table's dashboards
+     * are all read through it.
+     */
+    const scope: DataObservabilityScope =
+      DataObservabilityReadScope.nobodyInParticular(data.projectId);
+    const named: DataLineageNamed = getDataAlertNamed(dataAlert);
+    const readable: DataLineageReadable = withNamedReadable(
+      DataTableLineageReader.getReadable(scope),
+      named,
+    );
+
+    /*
+     * The alert it is a consequence of, as its own feed names it to every
+     * reader of it (DataAlertCause.describeConsequence): a private one
+     * never.
+     */
     if (dataAlert.causeAlertId) {
       const cause: Alert | null = await orNothing(
         AlertService.findOneBy({
@@ -201,16 +250,23 @@ export default class DataAlertContext {
       alertId: data.alertId,
       dataAlert,
       now: data.now,
+      scope,
+      named,
     });
 
     if (dataAlert.dataAssetId) {
-      // For nobody in particular: the table's alerts that are not private.
+      /*
+       * For nobody in particular: the table's alerts that are not private,
+       * and the writers and dashboards everyone who may see the alert may
+       * read.
+       */
       const answer: DataTableAnswer | null = await orNothing(
         DataTableAnswerer.answer(
           data.projectId,
           dataAlert.dataAssetId,
           data.now,
           null,
+          readable,
         ),
         null,
       );
@@ -221,18 +277,28 @@ export default class DataAlertContext {
         );
       }
 
+      // The pipelines that write it, by the rule its lineage is read by: none set apart.
       const writes: Array<DataAssetLineage> = await orNothing(
-        DataAssetLineageService.findBy({
-          query: {
-            projectId: data.projectId,
-            downstreamDataAssetId: dataAlert.dataAssetId,
-            dataPipelineId: QueryHelper.notNull(),
-          },
-          select: { dataPipelineId: true },
-          limit: 20,
-          skip: 0,
-          props: { isRoot: true },
-        }),
+        (async (): Promise<Array<DataAssetLineage>> => {
+          return await keepReadableWrites(
+            await DataAssetLineageService.findBy({
+              query: {
+                projectId: data.projectId,
+                downstreamDataAssetId: dataAlert.dataAssetId!,
+                dataPipelineId: QueryHelper.notNull(),
+              },
+              select: {
+                upstreamDataAssetId: true,
+                downstreamDataAssetId: true,
+                dataPipelineId: true,
+              },
+              limit: MAX_WRITING_PIPELINE_ROWS,
+              skip: 0,
+              props: { isRoot: true },
+            }),
+            readable,
+          );
+        })(),
         [] as Array<DataAssetLineage>,
       );
 
@@ -294,12 +360,20 @@ export default class DataAlertContext {
    * the report's readers are the people who may see it. An alert from a
    * check on one column is then told where that column comes from and
    * where it goes (DataAlertColumnLineage).
+   *
+   * Its tables and pipelines are read through `scope`, as a narrowed
+   * person's are (getScopedDatabaseReader, #9562): one set apart is never
+   * drawn, counted, followed into or named on an arrow, and no way to a
+   * cause or a consequence goes through it - the alert's own table or
+   * pipeline (`named`) is read whatever sets it apart.
    */
   private static async describeLineage(data: {
     projectId: ObjectID;
     alertId: ObjectID;
     dataAlert: DataAlert;
     now: Date;
+    scope: DataObservabilityScope;
+    named: DataLineageNamed;
   }): Promise<Array<string>> {
     const own: DataAlertLineageRow = {
       alertId: data.alertId.toString(),
@@ -318,26 +392,37 @@ export default class DataAlertContext {
     const everyone: DataAlertRowReader =
       DataAlertLineageReader.getDatabaseAlertReader(data.projectId, null);
     const answer: DataAlertLineageAnswer | null = await orNothing(
-      DataAlertLineageReader.build({
-        alertId: own.alertId,
-        now: data.now,
-        alerts: {
-          readAlert: async (): Promise<DataAlertLineageRow | null> => {
-            return own;
+      (async (): Promise<DataAlertLineageAnswer | null> => {
+        return await DataAlertLineageReader.build({
+          alertId: own.alertId,
+          now: data.now,
+          alerts: {
+            readAlert: async (): Promise<DataAlertLineageRow | null> => {
+              return own;
+            },
+            readSubject: everyone.readSubject,
+            readConsequences: everyone.readConsequences,
+            /*
+             * A check on one column: its lineage is read with its arrows'
+             * columns, to follow it. A check that cannot be read leaves
+             * only the column out: the lineage is told as a table check's
+             * is.
+             */
+            readCheckColumn: async (
+              alertId: string,
+            ): Promise<string | null> => {
+              return await orNothing(everyone.readCheckColumn(alertId), null);
+            },
           },
-          readSubject: everyone.readSubject,
-          readConsequences: everyone.readConsequences,
-          /*
-           * A check on one column: its lineage is read with its arrows'
-           * columns, to follow it. A check that cannot be read leaves only
-           * the column out: the lineage is told as a table check's is.
-           */
-          readCheckColumn: async (alertId: string): Promise<string | null> => {
-            return await orNothing(everyone.readCheckColumn(alertId), null);
-          },
-        },
-        reader: DataTableLineageReader.getDatabaseReader(data.projectId, null),
-      }),
+          // Its open alerts counted as nobody in particular may see them.
+          reader: await DataTableLineageReader.getScopedDatabaseReader(
+            data.projectId,
+            null,
+            data.scope,
+            data.named,
+          ),
+        });
+      })(),
       null,
     );
 

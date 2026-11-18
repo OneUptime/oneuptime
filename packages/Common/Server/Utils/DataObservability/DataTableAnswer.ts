@@ -21,6 +21,7 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataProductService from "../../Services/DataProductService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
+import { DataLineageReadable, keepReadableWrites } from "./DataTableLineage";
 
 /*
  * "IS THIS TABLE FRESH?" - ONE ANSWER, FOR AN AI AGENT, SLACK AND TEAMS.
@@ -54,6 +55,14 @@ import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
  * The clause is added to a read as OneUptime: anyone who may read data
  * assets may read what a data alert is about (DataAlert), while the alert
  * table's own read rules would refuse the data roles outright.
+ *
+ * WHAT ITS READER MAY READ decides which other tables and pipelines it
+ * names (#9526, #9562): its writers, and the tables built from it that a
+ * dashboard is reached through, are only those its reader may read, by
+ * the rule every lineage view keeps (DataLineageReadableCache) - a role
+ * limited to what its members own, or to some labels, is told of none it
+ * may not read, and an investigation's report of none an owner or a label
+ * sets apart. Nothing left out is counted.
  */
 
 // The most tables a reference answers with, and the most of each list told.
@@ -269,13 +278,16 @@ export default class DataTableAnswerer {
 
   /*
    * The answer about one table, for its reader: the props of the person who
-   * asked, or null when nobody in particular reads it (see above).
+   * asked, or null when nobody in particular reads it (see above), and the
+   * tables and pipelines they may read - left out or null, every one (a
+   * scope that narrows nothing). The table itself is one they may read.
    */
   public static async answer(
     projectId: ObjectID,
     dataAssetId: ObjectID,
     now: Date,
     reader: DatabaseCommonInteractionProps | null,
+    readable?: DataLineageReadable | null | undefined,
   ): Promise<DataTableAnswer | null> {
     const asset: DataAsset | null = await DataAssetService.findOneBy({
       query: { projectId, _id: dataAssetId },
@@ -319,6 +331,9 @@ export default class DataTableAnswerer {
           dataPipelineId: QueryHelper.notNull(),
         },
         select: {
+          // Both ends: a writer moving data from a table its reader may not read is not theirs to be told of.
+          upstreamDataAssetId: true,
+          downstreamDataAssetId: true,
           dataPipelineId: true,
           dataPipeline: {
             jobName: true,
@@ -395,7 +410,11 @@ export default class DataTableAnswerer {
     const seenPipelines: Set<string> = new Set();
     const writerPipelines: DataTableAnswer["writerPipelines"] = [];
 
-    for (const edge of edges as Array<DataAssetLineage>) {
+    // Its writers its reader may be told of (keepReadableWrites): none they may not read.
+    for (const edge of await keepReadableWrites(
+      edges as Array<DataAssetLineage>,
+      readable || null,
+    )) {
       const id: string = edge.dataPipelineId?.toString() || "";
 
       if (!edge.dataPipeline || seenPipelines.has(id)) {
@@ -446,7 +465,12 @@ export default class DataTableAnswerer {
         },
       ),
       dashboards: (
-        await DataTableDashboards.find({ projectId, dataAssetId: asset.id })
+        await DataTableDashboards.find({
+          projectId,
+          dataAssetId: asset.id,
+          // Reached only through the tables its reader may read.
+          readable: readable || null,
+        })
       ).map((dashboard: TableDashboard) => {
         return {
           name: dashboard.name,
