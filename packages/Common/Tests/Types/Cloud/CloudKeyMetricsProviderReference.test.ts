@@ -2,13 +2,18 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  AWS_KEY_METRICS,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AwsKeyMetric,
+  AwsNamespaceKeyMetrics,
   AzureKeyMetric,
   AzureTypeKeyMetrics,
   GCP_KEY_METRICS,
   GcpKeyMetric,
   GcpTypeKeyMetrics,
+  getAwsKeyMetrics,
+  getAwsProbeMetricNames,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
   SelectedMetric,
@@ -33,6 +38,9 @@ import { AzureMetricDefinition } from "../../../Server/Utils/CloudConnection/Azu
  *     platform metric.
  *   - Google Cloud: the metrics list of Cloud Monitoring - each metric
  *     type's launch stage, kind, value type, unit and monitored resources.
+ *   - AWS: each service's CloudWatch metrics page - each metric's name,
+ *     unit, statistics, dimensions, and whether it needs a paid or opt-in
+ *     feature.
  *
  * To refresh a reference, read the provider's table again and replace the
  * rows of the metrics the catalog reads; a new key metric needs its row.
@@ -454,5 +462,275 @@ describe("Google Cloud key metrics, as Cloud Monitoring's metrics list documents
         byType.set(metric.metricType, metric);
       }
     }
+  });
+});
+
+/*
+ * ---- AWS: each service's CloudWatch metrics page -------------------------
+ *
+ * Several services' pages give no unit or no statistics for a metric (a
+ * load balancer's, Lambda's, RDS's): a fact the page does not give is
+ * null in the reference, and only what a page does give is held here.
+ */
+
+interface AwsReferenceMetric {
+  exists: boolean;
+  exactName: string;
+  unit: string | null;
+  statistics: Array<string> | null;
+  // Whether a series with only the namespace's identity dimensions exists.
+  identitySeries: boolean | null;
+  publishedBy: string | null;
+  page: string;
+}
+
+interface AwsReference {
+  source: string;
+  readOn: string;
+  namespaces: Record<
+    string,
+    { pages: Array<string>; metrics: Record<string, AwsReferenceMetric> }
+  >;
+}
+
+const AWS: AwsReference = readReference<AwsReference>(
+  "AwsCloudWatchMetrics.json",
+);
+
+/*
+ * A page's unit that is a description, not the unit CloudWatch publishes
+ * the metric with, which the read writes on it: a T instance's
+ * CPUCreditBalance is "Credits (vCPU-minutes)" on the page, a VPN tunnel's
+ * TunnelState "Fractional value between 0 and 1", a certificate's
+ * DaysToExpiry "Integer".
+ */
+const AWS_UNIT_AS_PUBLISHED: Record<string, Record<string, string>> = {
+  "AWS/EC2": { CPUCreditBalance: "Count" },
+  "AWS/VPN": { TunnelState: "None" },
+  "AWS/CertificateManager": { DaysToExpiry: "None" },
+};
+
+/*
+ * A statistic the read reads that the page does not call the most useful,
+ * each for a reason: a Classic Load Balancer's UnHealthyHostCount is read
+ * at its Maximum, the most hosts out in a period, as its health rule
+ * judges it; API Gateway counts each request as 1, so the Sum of Count is
+ * its SampleCount, read as every other count is.
+ */
+const AWS_STATISTIC_KEPT: Record<string, Record<string, string>> = {
+  "AWS/ELB": { UnHealthyHostCount: "Maximum" },
+  "AWS/ApiGateway": { Count: "Sum" },
+};
+
+/*
+ * Metrics with no series on the namespace's identity dimensions alone,
+ * read on the fewest dimensions they have (AwsCloudConnector): S3's daily
+ * storage by bucket and storage type, and an MSK cluster's per-broker
+ * metrics, a series per broker.
+ */
+const AWS_READ_ON_MORE_DIMENSIONS: Record<string, Array<string>> = {
+  "AWS/S3": ["BucketSizeBytes", "NumberOfObjects"],
+  "AWS/Kafka": [
+    "UnderReplicatedPartitions",
+    "KafkaDataLogsDiskUsed",
+    "CpuUser",
+  ],
+};
+
+function awsReferenceOf(namespace: string, metric: string): AwsReferenceMetric {
+  const reference: AwsReferenceMetric | undefined =
+    AWS.namespaces[namespace]?.metrics[metric];
+
+  expect({ namespace, metric, documented: Boolean(reference) }).toEqual({
+    namespace,
+    metric,
+    documented: true,
+  });
+
+  return reference!;
+}
+
+describe("AWS key metrics, as each service's CloudWatch metrics page documents them", () => {
+  test("the reference says where it is from and when it was read", () => {
+    expect(AWS.source).toContain("docs.aws.amazon.com");
+    expect(AWS.readOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    for (const [namespace, entry] of Object.entries(AWS.namespaces)) {
+      expect({ namespace, pages: entry.pages.length > 0 }).toEqual({
+        namespace,
+        pages: true,
+      });
+
+      for (const page of entry.pages) {
+        expect(page).toMatch(/^https:\/\/docs\.aws\.amazon\.com\//);
+      }
+    }
+  });
+
+  test("every namespace read has its page, and the reference holds the key metrics' rows alone", () => {
+    expect(
+      AWS_KEY_METRICS.map((entry: AwsNamespaceKeyMetrics): string => {
+        return entry.namespace;
+      }).sort(),
+    ).toEqual(Object.keys(AWS.namespaces).sort());
+
+    for (const entry of AWS_KEY_METRICS) {
+      expect(
+        Object.keys(AWS.namespaces[entry.namespace]!.metrics).sort(),
+      ).toEqual(
+        entry.metrics
+          .map((metric: AwsKeyMetric): string => {
+            return metric.metricName;
+          })
+          .sort(),
+      );
+    }
+  });
+
+  test("every key metric exists under exactly that name", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const row: AwsReferenceMetric = awsReferenceOf(
+          entry.namespace,
+          metric.metricName,
+        );
+
+        expect({ metric: metric.metricName, exists: row.exists }).toEqual({
+          metric: metric.metricName,
+          exists: true,
+        });
+        expect(row.exactName).toBe(metric.metricName);
+        expect(row.page).toMatch(/^https:\/\/docs\.aws\.amazon\.com\//);
+      }
+    }
+  });
+
+  test("each is written in the unit its page gives, where it gives one", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const row: AwsReferenceMetric = awsReferenceOf(
+          entry.namespace,
+          metric.metricName,
+        );
+        const published: string | undefined =
+          AWS_UNIT_AS_PUBLISHED[entry.namespace]?.[metric.metricName];
+
+        if (published !== undefined) {
+          expect(metric.unit).toBe(published);
+          // The exception names a page that does give another unit.
+          expect(row.unit).not.toBe(published);
+          continue;
+        }
+
+        if (row.unit !== null) {
+          expect({
+            namespace: entry.namespace,
+            metric: metric.metricName,
+            unit: metric.unit,
+          }).toEqual({
+            namespace: entry.namespace,
+            metric: metric.metricName,
+            unit: row.unit,
+          });
+        }
+      }
+    }
+  });
+
+  test("each is read with a statistic its page names, where it names some", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const row: AwsReferenceMetric = awsReferenceOf(
+          entry.namespace,
+          metric.metricName,
+        );
+        const kept: string | undefined =
+          AWS_STATISTIC_KEPT[entry.namespace]?.[metric.metricName];
+
+        if (kept !== undefined) {
+          expect(metric.statistic).toBe(kept);
+          expect(row.statistics || []).not.toContain(kept);
+          continue;
+        }
+
+        // "All": the page says any statistic applies.
+        if (row.statistics && !row.statistics.includes("All")) {
+          expect({
+            namespace: entry.namespace,
+            metric: metric.metricName,
+            documented: row.statistics.includes(metric.statistic),
+          }).toEqual({
+            namespace: entry.namespace,
+            metric: metric.metricName,
+            documented: true,
+          });
+        }
+      }
+    }
+  });
+
+  test("none needs a paid or opt-in feature turned on", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        expect({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          publishedBy: awsReferenceOf(entry.namespace, metric.metricName)
+            .publishedBy,
+        }).toEqual({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          publishedBy: expect.stringMatching(
+            /^(default|only-when-nonzero|only-some-resources)$/,
+          ),
+        });
+      }
+    }
+  });
+
+  test("each has a series on its namespace's identity dimensions alone, but those read on more", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const identitySeries: boolean | null = awsReferenceOf(
+          entry.namespace,
+          metric.metricName,
+        ).identitySeries;
+        const onMore: boolean = (
+          AWS_READ_ON_MORE_DIMENSIONS[entry.namespace] || []
+        ).includes(metric.metricName);
+
+        expect({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          identitySeries: onMore ? false : identitySeries !== false,
+        }).toEqual({
+          namespace: entry.namespace,
+          metric: metric.metricName,
+          identitySeries: onMore ? identitySeries : true,
+        });
+      }
+    }
+  });
+
+  test("a namespace is swept for with metrics it reads, its first metric first", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      const probes: Array<string> = getAwsProbeMetricNames(entry);
+
+      expect(probes[0]).toBe(entry.metrics[0]!.metricName);
+
+      for (const probe of probes) {
+        expect(
+          entry.metrics.some((metric: AwsKeyMetric): boolean => {
+            return metric.metricName === probe;
+          }),
+        ).toBe(true);
+      }
+    }
+
+    // An Amazon MQ broker's CPU, whichever engine it runs.
+    expect(getAwsProbeMetricNames(getAwsKeyMetrics("AWS/AmazonMQ")!)).toEqual([
+      "CpuUtilization",
+      "SystemCpuUtilization",
+    ]);
   });
 });

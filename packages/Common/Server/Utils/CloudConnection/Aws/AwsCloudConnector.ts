@@ -3,6 +3,7 @@ import {
   AWS_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  getAwsProbeMetricNames,
   getAwsStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
@@ -431,7 +432,12 @@ export default class AwsCloudConnector implements CloudConnector {
     );
   }
 
-  // Does the namespace have a resource reporting its first key metric.
+  /*
+   * Does the namespace have a resource reporting its first key metric - or
+   * any of its probe metrics, asked in turn until one is listed
+   * (getAwsProbeMetricNames: an Amazon MQ broker's CPU is CpuUtilization on
+   * ActiveMQ and SystemCpuUtilization on RabbitMQ).
+   */
   private async hasResources(data: {
     region: string;
     namespace: AwsNamespaceKeyMetrics;
@@ -439,25 +445,31 @@ export default class AwsCloudConnector implements CloudConnector {
     options: CloudConnectorCallOptions;
     budget?: CloudReadBudget | undefined;
   }): Promise<boolean> {
-    const listed: Array<AwsListedMetric> = await listMetrics(
-      {
-        transport: data.options.transport,
-        credentials: data.credentials,
-        region: data.region,
-        now: data.options.now,
-        timeoutInMs: data.options.requestTimeoutInMs,
-        sleep: data.options.sleep,
-        budget: data.budget,
-      },
-      {
-        namespace: data.namespace.namespace,
-        metricName: data.namespace.metrics[0]!.metricName,
-        firstPageOnly: true,
-        includeQuiet: data.namespace.isListedWhenQuiet,
-      },
-    );
+    for (const metricName of getAwsProbeMetricNames(data.namespace)) {
+      const listed: Array<AwsListedMetric> = await listMetrics(
+        {
+          transport: data.options.transport,
+          credentials: data.credentials,
+          region: data.region,
+          now: data.options.now,
+          timeoutInMs: data.options.requestTimeoutInMs,
+          sleep: data.options.sleep,
+          budget: data.budget,
+        },
+        {
+          namespace: data.namespace.namespace,
+          metricName,
+          firstPageOnly: true,
+          includeQuiet: data.namespace.isListedWhenQuiet,
+        },
+      );
 
-    return listed.length > 0;
+      if (listed.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /*

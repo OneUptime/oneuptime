@@ -146,6 +146,7 @@ describe("AWS", () => {
           unit: "None",
           group: CloudKeyMetricGroup.Availability,
           periodSeconds: HOURLY_PERIOD_SECONDS,
+          isStreamed: true,
         },
       ],
     });
@@ -657,8 +658,8 @@ describe("Google Cloud", () => {
 
 describe("key metric counts", () => {
   test("per cloud, by type or namespace", () => {
-    expect(getKeyMetricCount(CloudProvider.AWS, "AWS/EC2")).toBe(4);
-    expect(getKeyMetricCount(CloudProvider.AWS, "AWS::EC2::Instance")).toBe(4);
+    expect(getKeyMetricCount(CloudProvider.AWS, "AWS/EC2")).toBe(7);
+    expect(getKeyMetricCount(CloudProvider.AWS, "AWS::EC2::Instance")).toBe(7);
     expect(
       getKeyMetricCount(
         CloudProvider.Azure,
