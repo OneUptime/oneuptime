@@ -372,11 +372,21 @@ describe("TelemetryDocumentation", () => {
       });
     };
 
+    /*
+     * The fold, once the guide holds the key: the picker draws the key it
+     * picked first and hands it to the guide after, in an effect, so the
+     * fold under it comes a moment after the key is on screen.
+     */
+    const testLogShown: () => Promise<HTMLElement> =
+      async (): Promise<HTMLElement> => {
+        return screen.findByTestId("telemetry-test-log");
+      };
+
     test("is folded under the endpoint and the key, to one line that says what it is for", async () => {
       renderGuide("logs");
       await keyShown();
 
-      const fold: HTMLElement = screen.getByTestId("telemetry-test-log");
+      const fold: HTMLElement = await testLogShown();
       const toggle: HTMLElement = screen.getByTestId(
         "telemetry-test-log-toggle",
       );
@@ -398,7 +408,9 @@ describe("TelemetryDocumentation", () => {
       renderGuide("logs");
       await keyShown();
 
-      fireEvent.click(screen.getByTestId("telemetry-test-log-toggle"));
+      fireEvent.click(
+        within(await testLogShown()).getByTestId("telemetry-test-log-toggle"),
+      );
 
       const body: HTMLElement = screen.getByTestId("telemetry-test-log-body");
 
