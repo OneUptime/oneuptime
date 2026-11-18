@@ -30,6 +30,11 @@ export const POWER_BI_EXPRESSIONS_SETTING: string =
 export const POWER_BI_SETTINGS_PLACE: string =
   "Tenant settings > Admin API settings";
 
+// A fixed sentence in the reader's language, or in English when it has none.
+function translated(translator: Translator, text: string): string {
+  return translator.translateText(text) || text;
+}
+
 const NO_DATABASES: string = translationKey("No database connected yet");
 const NO_TABLES: string = translationKey("Power BI sent no tables");
 const NO_QUERIES: string = translationKey("Power BI sent no table queries");
@@ -70,11 +75,11 @@ export function getBiLineageReason(
 
   switch (problem) {
     case DataBiLineageProblem.NoDatabases:
-      return translator.translateText(NO_DATABASES);
+      return translated(translator, NO_DATABASES);
     case DataBiLineageProblem.NoTablesFromTool:
-      return translator.translateText(NO_TABLES);
+      return translated(translator, NO_TABLES);
     case DataBiLineageProblem.NoQueriesFromTool:
-      return translator.translateText(NO_QUERIES);
+      return translated(translator, NO_QUERIES);
     case DataBiLineageProblem.DatabasesNotConnected:
       return translator.translatePlural(
         DATABASES_NOT_CONNECTED,
@@ -86,14 +91,14 @@ export function getBiLineageReason(
         summary.unwatchedTables.length,
       );
     case DataBiLineageProblem.Dataflows:
-      return translator.translateText(FROM_DATAFLOWS);
+      return translated(translator, FROM_DATAFLOWS);
     case DataBiLineageProblem.SchemaErrors:
       return translator.translatePlural(
         NOT_DESCRIBED,
         summary.datasets?.withSchemaError || 0,
       );
     case DataBiLineageProblem.NotDatabases:
-      return translator.translateText(NOT_DATABASES);
+      return translated(translator, NOT_DATABASES);
     default:
       return null;
   }
@@ -161,7 +166,7 @@ export function getBiLineageStep(
   problem: DataBiLineageProblem,
   summary: DataBiLineageSummary,
 ): BiLineageStep {
-  const title: string = translator.translateText(STEP_TITLES[problem]);
+  const title: string = translated(translator, STEP_TITLES[problem]);
   const settings: Record<string, string> = {
     place: POWER_BI_SETTINGS_PLACE,
     detailedMetadata: POWER_BI_DETAILED_METADATA_SETTING,
@@ -170,7 +175,7 @@ export function getBiLineageStep(
 
   switch (problem) {
     case DataBiLineageProblem.NoDatabases:
-      return { title, text: translator.translateText(NO_DATABASES_TEXT) };
+      return { title, text: translated(translator, NO_DATABASES_TEXT) };
     case DataBiLineageProblem.NoTablesFromTool:
       return {
         title,
@@ -220,7 +225,7 @@ export function getBiLineageStep(
         ),
       };
     default:
-      return { title, text: translator.translateText(NOT_DATABASES_TEXT) };
+      return { title, text: translated(translator, NOT_DATABASES_TEXT) };
   }
 }
 
@@ -252,7 +257,7 @@ export function getBiLineageFacts(
       ? translator.translatePlural(TABLES_WATCHED, summary.tableCount, {
           matched: translator.formatNumber(summary.matchedTableCount),
         })
-      : translator.translateText(NO_TABLES_READ),
+      : translated(translator, NO_TABLES_READ),
   ];
 }
 
@@ -287,20 +292,20 @@ export function getBiSourceStanding(
         ? translator.translateTemplate(WATCHED_AS, {
             name: source.dataStoreName,
           })
-        : translator.translateText(WATCHED),
+        : translated(translator, WATCHED),
     };
   }
 
   if (source.engine) {
     return {
       standing: BiSourceStanding.NotConnected,
-      text: translator.translateText(NOT_CONNECTED),
+      text: translated(translator, NOT_CONNECTED),
     };
   }
 
   return {
     standing: BiSourceStanding.Elsewhere,
-    text: translator.translateText(NOT_WATCHABLE),
+    text: translated(translator, NOT_WATCHABLE),
   };
 }
 
