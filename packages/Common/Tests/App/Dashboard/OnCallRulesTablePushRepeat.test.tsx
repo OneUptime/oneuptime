@@ -169,9 +169,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import OnCallRulesTable, {
-  NotificationMethodChoice,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
+import { NotificationMethodChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/NotificationMethodChoice";
+import OnCallRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable";
 import { PUSH_REPEAT_DROPDOWN_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PushRepeatControl";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";

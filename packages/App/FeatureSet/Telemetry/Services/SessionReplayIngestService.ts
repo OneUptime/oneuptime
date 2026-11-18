@@ -2534,6 +2534,12 @@ export default class SessionReplayIngestService {
       recorderKind: envelope.recorderKind,
       recorderVersion: envelope.recorderVersion,
       rrwebVersion: envelope.rrwebVersion,
+      /*
+       * The page's own app version (issue #6625), as the device fields
+       * beside it: from this chunk's meta, which every chunk that writes a
+       * header carries in the shipped recorder.
+       */
+      appVersion: envelope.meta?.appVersion ?? "",
       hasError: carry.errorCount > 0,
       triggerReason: carry.triggerReason,
       samplePercentageAtCapture: SessionSampling.clampPercentage(

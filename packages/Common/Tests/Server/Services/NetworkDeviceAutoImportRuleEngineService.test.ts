@@ -1461,7 +1461,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       });
 
       expect(result.monitorFailureReasons).toEqual([
-        "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+        "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
       ]);
       expect(monitorCreateMock).not.toHaveBeenCalled();
 
@@ -1473,7 +1473,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
        */
       expect(
         loggerErrorMock.mock.calls.filter((call: Array<unknown>): boolean => {
-          return String(call[0]).includes("is missing, deleted, or not valid");
+          return String(call[0]).includes("is missing, deleted, or not a");
         }),
       ).toHaveLength(1);
       expect(monitorFindByMock.mock.calls.length).toBeLessThanOrEqual(2);

@@ -1,9 +1,15 @@
 import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
 import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
+import { getLateTablesRoute } from "../../../Components/DataObservability/DataObservabilityListRoutes";
+import StoreCollectionMessage from "../../../Components/DataObservability/StoreCollectionMessage";
 import StoreStatusPill from "../../../Components/DataObservability/StoreStatusPill";
 import StoreAlertStatus, {
   isStoreWithoutAlerts,
 } from "../../../Components/DataObservability/StoreAlertStatus";
+import useCollectNow, {
+  CollectNow,
+} from "../../../Components/DataObservability/UseCollectNow";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import PageMap from "../../../Utils/PageMap";
@@ -11,7 +17,10 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { StoreViewOutletContext, useStoreView } from "./StoreViewContext";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import { DataObservabilityCollector } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import {
+  DataObservabilityCollector,
+  DataObservabilityStoreSummary,
+} from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -20,13 +29,22 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+
+export const STORE_LATE_TABLES_TILE_LINK_TEST_ID: string =
+  "data-observability-store-late-tables-tile-link";
 
 /*
  * One database at a glance: how many of its tables are watched and late,
- * who reads its catalog and how the last read went - with Collect Now - and
- * the way to its recommended monitors, saying whether any is on: with none,
+ * who reads its catalog and how the last read went - with Collect Now, which
+ * waits for the collection it asks for and then shows how it went - and the
+ * way to its recommended monitors, saying whether any is on: with none,
  * nobody is told when its tables break.
  */
 const StoreOverviewPage: FunctionComponent<
@@ -35,28 +53,22 @@ const StoreOverviewPage: FunctionComponent<
   const translator: Translator = useTranslator();
   const { dataStoreId, store, refresh }: StoreViewOutletContext =
     useStoreView();
-  const [isCollecting, setIsCollecting] = useState<boolean>(false);
   const [isConfirmingStop, setIsConfirmingStop] = useState<boolean>(false);
   const [isChangingWatch, setIsChangingWatch] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
+  const watchedStores: Array<DataObservabilityStoreSummary> = useMemo(() => {
+    return store ? [store] : [];
+  }, [store]);
+  const collection: CollectNow = useCollectNow({
+    stores: watchedStores,
+    refresh,
+  });
 
   if (!store) {
     return <></>;
   }
 
-  const collectNow: () => Promise<void> = async (): Promise<void> => {
-    setActionError("");
-    setIsCollecting(true);
-
-    try {
-      await DataObservabilityApi.collectNow(dataStoreId);
-      refresh();
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setIsCollecting(false);
-  };
+  const isCollecting: boolean = collection.isCollecting(store.dataStoreId);
 
   const setWatched: (isWatched: boolean) => Promise<void> = async (
     isWatched: boolean,
@@ -94,7 +106,20 @@ const StoreOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           label="Late Tables"
-          value={translator.formatNumber(store.lateAssetCount)}
+          value={
+            // Opens this database's Tables, showing the late ones (#6550).
+            store.lateAssetCount > 0 ? (
+              <AppLink
+                to={getLateTablesRoute(dataStoreId)}
+                className="hover:text-indigo-700 hover:underline"
+                dataTestId={STORE_LATE_TABLES_TILE_LINK_TEST_ID}
+              >
+                {translator.formatNumber(store.lateAssetCount)}
+              </AppLink>
+            ) : (
+              translator.formatNumber(store.lateAssetCount)
+            )
+          }
           icon={IconProp.Clock}
           description={translator.translateText(
             "Tables that have gone well past their usual interval without a change.",
@@ -135,7 +160,8 @@ const StoreOverviewPage: FunctionComponent<
             isLoading: isCollecting,
             disabled: !store.isTableHealthEnabled,
             onClick: () => {
-              void collectNow();
+              setActionError("");
+              void collection.collectNow(store);
             },
           },
           store.isTableHealthEnabled
@@ -160,7 +186,7 @@ const StoreOverviewPage: FunctionComponent<
       >
         <div className="space-y-2 text-sm text-gray-700">
           <div className="flex flex-wrap items-center gap-2">
-            <StoreStatusPill store={store} />
+            <StoreStatusPill store={store} isCollecting={isCollecting} />
             <span className="text-gray-500">{store.kind}</span>
           </div>
           <p>
@@ -170,20 +196,18 @@ const StoreOverviewPage: FunctionComponent<
                 })
               : translator.translateText("Collected by OneUptime")}
           </p>
-          {store.message ? (
-            <p
-              className={`whitespace-pre-line ${
-                store.status === "Failed" ? "text-red-600" : "text-amber-700"
-              }`}
-            >
-              {store.message}
-            </p>
-          ) : (
-            <></>
-          )}
-          {actionError ? (
+          <StoreCollectionMessage
+            store={store}
+            isCollecting={isCollecting}
+            hasWaitedLong={collection.hasWaitedLong(store.dataStoreId)}
+            size="normal"
+          />
+          {actionError || collection.error ? (
             <p className="text-red-600">
-              <ErrorInSentence message={actionError} showWhereToLook={true} />
+              <ErrorInSentence
+                message={actionError || collection.error}
+                showWhereToLook={true}
+              />
             </p>
           ) : (
             <></>

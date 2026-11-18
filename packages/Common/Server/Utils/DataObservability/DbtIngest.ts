@@ -15,6 +15,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import DataCheckIngest, { buildCheckMetricRow } from "./DataCheckIngest";
+import DataCheckHealthSync from "./DataCheckHealthSync";
 import { matchDataset } from "./DatasetMatching";
 import {
   DbtInvocationOutcome,
@@ -562,6 +563,7 @@ export default class DbtIngest {
     const assets: Map<string, UsageAsset> = new Map();
     const stores: Map<string, UsageStore> = new Map();
     const rows: Array<JSONObject> = [];
+    const recordedCheckIds: Array<ObjectID> = [];
     let recorded: number = 0;
 
     for (const asset of data.catalog.assets) {
@@ -595,6 +597,7 @@ export default class DbtIngest {
           } as never,
         });
         recorded++;
+        recordedCheckIds.push(check.id);
       } catch (error) {
         logger.error(
           `Data Observability: could not record the result of dbt test ${result.uniqueId}`,
@@ -637,6 +640,12 @@ export default class DbtIngest {
     }
 
     await DataCheckIngest.writeCheckMetricRows(data.projectId, rows);
+
+    // dbt's verdict on each test, kept on its check for Checks' order (#6554).
+    await DataCheckHealthSync.refreshChecks({
+      checkIds: recordedCheckIds,
+      projectId: data.projectId,
+    });
 
     return recorded;
   }

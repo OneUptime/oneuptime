@@ -1168,6 +1168,22 @@ export default class DataStore extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Table Health Attempted At",
+    description:
+      "When the last collection of the store's tables ended, whether it collected them or failed.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public tableHealthAttemptedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
     computed: true,

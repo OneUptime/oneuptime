@@ -310,6 +310,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataIssueReport",
     "DataObservabilitySetting",
     "DataPipeline",
+    "DataPipelineOwnerTeam",
+    "DataPipelineOwnerUser",
     "DataPipelineRun",
     "DataProduct",
     "DataReconciliation",

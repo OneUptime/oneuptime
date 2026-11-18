@@ -184,13 +184,21 @@ export function getAttentionRoute(item: DataAttentionItem): Route {
 
 /*
  * Where an item's owners are named: a data product's Settings, whose Owner
- * Team it is, or its table's Owners page, for an item about a table.
+ * Team it is, a pipeline's Owners page for a failed or late run (#6551), or
+ * its table's Owners page, for an item about a table.
  */
 export function getAttentionOwnersRoute(item: DataAttentionItem): Route | null {
   if (item.dataProductId) {
     return routeOf(
       PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS,
       item.dataProductId,
+    );
+  }
+
+  if (item.dataPipelineId) {
+    return routeOf(
+      PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,
+      item.dataPipelineId,
     );
   }
 

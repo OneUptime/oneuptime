@@ -416,6 +416,44 @@ export const SESSION_REPLAY_MAX_CLICK_TEXT_LENGTH: number = 40;
 export const SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH: number = 80;
 
 /*
+ * The version of the page's own app (issue #6625): "2.3.1", "2026.11.18",
+ * a build id. The browser recorder takes it as the appVersion init option
+ * and sends it with the session's metadata and every product analytics
+ * event, so Product Analytics can break a web app's sessions and events
+ * down by release, as a mobile app's already are. 64 characters, the
+ * events' cap on every value of what a session runs on
+ * (PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH).
+ */
+export const SESSION_REPLAY_MAX_APP_VERSION_LENGTH: number = 64;
+
+/*
+ * Any control character: a value holding one is no version. no-control-regex
+ * is disabled for it on purpose: matching control characters is exactly
+ * what it is for.
+ */
+// eslint-disable-next-line no-control-regex
+const NOT_PRINTABLE_PATTERN: RegExp = /[\u0000-\u001f\u007f-\u009f]/;
+
+/*
+ * An app version as both sides keep it: trimmed and cut to
+ * SESSION_REPLAY_MAX_APP_VERSION_LENGTH, or "" for anything that is not a
+ * string, is empty, or holds a control character - such a value is
+ * dropped whole rather than stored as part of a version nobody typed.
+ */
+export function toSessionReplayAppVersion(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const version: string = value
+    .trim()
+    .slice(0, SESSION_REPLAY_MAX_APP_VERSION_LENGTH)
+    .trim();
+
+  return NOT_PRINTABLE_PATTERN.test(version) ? "" : version;
+}
+
+/*
  * ---- Player-side activity model. ----
  *
  * A stretch with no user input for at least this long is an idle band on
@@ -688,6 +726,14 @@ export interface SessionReplayChunkMeta {
    * reaches the header.
    */
   tags?: Record<string, string>;
+
+  /*
+   * The page's own app version, from the browser recorder's appVersion
+   * init option (toSessionReplayAppVersion). Absent when the page set
+   * none, and from a recorder that predates it; a mobile app reports its
+   * version as browserVersion instead.
+   */
+  appVersion?: string;
 }
 
 /*

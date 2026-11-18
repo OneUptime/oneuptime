@@ -43,6 +43,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
+import { fakeEmpty, isPreferRejectedByDataverse } from "./FakeDataverse";
 
 jest.mock("mssql", () => {
   return { __esModule: true, ConnectionPool: jest.fn() };
@@ -57,8 +58,10 @@ jest.mock("mssql", () => {
  * on its TDS endpoint. What is held here: only the default tables (the core
  * business tables and the environment's own custom tables) and the tables
  * the connection names are read, so a bill never carries Dataverse's own
- * hundreds; an excluded table costs no request; a 429 leaves the rest of a
- * collection's reads to the next; a table missing from a column read is
+ * hundreds; an excluded table costs no request; a 429 longer than a
+ * collection waits leaves the rest of its reads to the next (the waiting
+ * and the failures of a collection are DataverseCollectionFailures.test.ts's
+ * to test, issue #9506); a table missing from a column read is
  * unread, never "every column dropped"; a check's values are written in as
  * strings that cannot break out of their quotes; and the secret never
  * reaches an error.
@@ -471,13 +474,26 @@ describe("inlineDataverseSqlParameters", () => {
 });
 
 describe("DataverseApi", () => {
+  // How long the client waited between tries, without waiting.
+  let waits: Array<number> = [];
+
+  beforeEach(() => {
+    waits = [];
+  });
+
   function api(
     transport: (
       request: DataSourceHttpRequest,
     ) => Promise<DataSourceHttpResponse>,
     overrides: Partial<DataverseConnection> = {},
   ): DataverseApi {
-    return new DataverseApi({ connection: connection(overrides), transport });
+    return new DataverseApi({
+      connection: connection(overrides),
+      transport,
+      sleep: async (ms: number): Promise<void> => {
+        waits.push(ms);
+      },
+    });
   }
 
   test("the app's token is bought once, for the environment, then sent", async () => {
@@ -643,9 +659,11 @@ describe("DataverseApi", () => {
       },
     );
 
+    // Dataverse's own code is said beside its status, and a refusal is never asked again.
     await expect(client.listTables()).rejects.toThrow(
-      /refused the app \(403\): The user is not a member of the organization\. Add it to the environment as an application user/,
+      /^Dataverse refused the app \(403, 0x80072560\) while listing the tables \(EntityDefinitions\): The user is not a member of the organization\. Add it to the environment as an application user/,
     );
+    expect(waits).toEqual([]);
   });
 
   test("the tables' definitions: no rows, and only what is needed of each", async () => {
@@ -713,7 +731,12 @@ describe("DataverseApi", () => {
         return `cr123_t${index}`;
       },
     );
-    const counts: Map<string, number> = await client.countRows(names);
+    const read: Awaited<ReturnType<DataverseApi["countRows"]>> =
+      await client.countRows(names);
+    const counts: Map<string, number> = read.result;
+
+    expect(read.skipped).toEqual([]);
+    expect(read.throttle).toBe(null);
 
     expect(
       asked.map((chunk: Array<string>) => {
@@ -799,13 +822,18 @@ describe("DataverseApi", () => {
   });
 
   test("a 429 is a throttle, with how long to wait", async () => {
+    let asked: number = 0;
     const client: DataverseApi = api(
       async (
         request: DataSourceHttpRequest,
       ): Promise<DataSourceHttpResponse> => {
-        return request.url === TOKEN_URL
-          ? json({ access_token: "token-1" })
-          : json({}, 429, { "retry-after": "17" });
+        if (request.url === TOKEN_URL) {
+          return json({ access_token: "token-1" });
+        }
+
+        asked++;
+
+        return json({}, 429, { "retry-after": "17" });
       },
     );
     const error: unknown = await client
@@ -819,6 +847,9 @@ describe("DataverseApi", () => {
     expect((error as Error).message).toMatch(
       /slow down \(429\), for 17 seconds/,
     );
+    // Seventeen seconds is waited out, twice, before the throttle is given up to.
+    expect(asked).toBe(3);
+    expect(waits).toHaveLength(2);
   });
 
   /*
@@ -898,10 +929,9 @@ describe("DataverseApi", () => {
         return `t${index}`;
       },
     );
-    const columns: Map<string, Array<JSONObject>> = await client.listColumns([
-      ...names,
-      "Bad-Name",
-    ]);
+    const columns: Map<string, Array<JSONObject>> = (
+      await client.listColumns([...names, "Bad-Name"])
+    ).result;
 
     expect(filters).toHaveLength(2);
     expect(filters[0]).toBe(
@@ -1008,6 +1038,11 @@ function useEnvironment(environment: FakeEnvironment): void {
         environment.requests.push(
           `${path}${url.search ? "?" : ""}${decodeURIComponent(url.search.slice(1))}`,
         );
+
+        // As Dataverse does (issue #9506): a preference its OData library rejects is an empty 500.
+        if (isPreferRejectedByDataverse(request.headers)) {
+          return fakeEmpty(500);
+        }
 
         if (path === "/EntityDefinitions" && !url.searchParams.has("$expand")) {
           return json({
@@ -1148,6 +1183,11 @@ function tableOf(snapshot: TableHealthSnapshot, name: string): CollectedTable {
 }
 
 describe("collecting a Dataverse environment", () => {
+  beforeEach(() => {
+    // The waits between tries pass at once.
+    jest.spyOn(DataverseApi, "sleep").mockResolvedValue(undefined);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -1359,9 +1399,15 @@ describe("collecting a Dataverse environment", () => {
 
     expect(tableOf(snapshot, "account").estimatedRows).toBe(null);
     expect(tableOf(snapshot, "account").secondsSinceChange).not.toBe(null);
+    // Halved once to find a table at fault: both halves failing, the fault is the count's.
     expect(snapshot.warnings).toEqual([
-      "Row counts were left out: Dataverse answered 500: Snapshot unavailable.",
+      "The row counts of 4 tables could not be read (account, contact, cr123_project, email): Dataverse answered 500: Snapshot unavailable.",
     ]);
+    expect(
+      environment.requests.filter((request: string): boolean => {
+        return request.startsWith("/RetrieveTotalRecordCount");
+      }),
+    ).toHaveLength(9);
   });
 
   test("a table list cut at the limit says the rest were not collected", async () => {

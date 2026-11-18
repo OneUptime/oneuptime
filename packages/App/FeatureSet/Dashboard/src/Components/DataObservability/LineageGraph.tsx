@@ -1089,6 +1089,8 @@ interface LineageArrowData {
   isLabelHighlighted?: boolean | undefined;
   // The pipeline named is the alert's cause: Cause under its name, as a cause's card says.
   isCause?: boolean | undefined;
+  // An alert it caused is on the pipeline named: Consequence under its name, as a consequence's card says (#6853).
+  isConsequence?: boolean | undefined;
   // On an alert's way: drawn over a halo.
   isHighlighted?: boolean | undefined;
 }
@@ -1100,7 +1102,9 @@ interface LineageArrowData {
  * name reads the way it is written - a Latin name on a Persian page still
  * ends in "..." at its own end. When the pipeline is the alert's cause,
  * the card's own small Cause chip sits under the name, inside the same
- * room. An arrow on an alert's way is drawn over a wide, faint indigo
+ * room; when an alert it caused is on the pipeline, the card's own
+ * Consequence chip does - a word too long for the room ends in "...",
+ * never cut in the middle. An arrow on an alert's way is drawn over a wide, faint indigo
  * halo. The label sits on a curved arrow's middle and just over a level
  * one (isLineageArrowLevel), so a level arrow and its head still show; its
  * words are a shade darker than the arrow, and lighter on a dark page, so
@@ -1171,6 +1175,17 @@ const LineageArrow: FunctionComponent<EdgeProps<LineageArrowData>> = (
               >
                 <Pill
                   text={ROLE_LABELS[LineageCardRole.Cause]}
+                  color={Indigo500}
+                  size={PillSize.Small}
+                />
+              </span>
+            ) : props.data.isConsequence ? (
+              <span
+                className="mt-0.5 flex max-w-full"
+                data-testid="lineage-edge-consequence"
+              >
+                <Pill
+                  text={ROLE_LABELS[LineageCardRole.Consequence]}
                   color={Indigo500}
                   size={PillSize.Small}
                 />
@@ -1386,6 +1401,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
                 : look.label.pipeline.name,
               ...(look.label.isFailed ? {} : { isLabelHighlighted: true }),
               ...(look.label.isCause ? { isCause: true } : {}),
+              ...(look.label.isConsequence ? { isConsequence: true } : {}),
             }
           : {}),
         ...(look.isHighlighted ? { isHighlighted: true } : {}),

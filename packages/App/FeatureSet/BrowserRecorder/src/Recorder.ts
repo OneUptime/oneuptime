@@ -3756,6 +3756,15 @@ export default class Recorder {
       meta.visitorId = this.visitorId;
     }
 
+    /*
+     * The page's own app version (the appVersion init option, issue #6625),
+     * so Product Analytics breaks this session down by release. Left off
+     * when the page set none, so a chunk carries what it always carried.
+     */
+    if (this.initOptions.appVersion) {
+      meta.appVersion = this.initOptions.appVersion;
+    }
+
     return meta;
   }
 

@@ -234,7 +234,12 @@ export default class DataAlertLineageReader {
       alertId: data.alertId.toString(),
       now: data.now,
       alerts: this.getDatabaseAlertReader(data.projectId, data.reader),
-      reader: DataTableLineageReader.getDatabaseReader(
+      /*
+       * Only the tables and pipelines its reader may read (#9526): an alert
+       * whose own table they may not read draws nothing, and no way to a
+       * cause or a consequence goes through one.
+       */
+      reader: await DataTableLineageReader.getScopedDatabaseReader(
         data.projectId,
         data.reader,
       ),
@@ -528,6 +533,17 @@ export default class DataAlertLineageReader {
 
     answer.lineage = lineage;
     answer.column = column;
+
+    // The table's own order of its columns, for the picker to offer the check's first and then these.
+    if (column && focus.dataAssetId && data.reader.readColumnOrder) {
+      const order: Array<string> = await data.reader.readColumnOrder(
+        focus.dataAssetId,
+      );
+
+      if (order.length > 0) {
+        answer.columnOrder = order;
+      }
+    }
     answer.isCauseDrawn = Boolean(causeKey && picked.causes.has(causeKey));
     answer.drawnConsequenceCount = consequences.rows.filter(
       (row: DataAlertLineageRow): boolean => {
@@ -730,6 +746,7 @@ export default class DataAlertLineageReader {
     const consequenceNodeIds: Set<string> = new Set();
     const dataPipelineIds: Set<string> = new Set();
     const causeDataPipelineIds: Set<string> = new Set();
+    const consequenceDataPipelineIds: Set<string> = new Set();
     const causes: Set<string> = new Set();
     const consequences: Set<string> = new Set();
 
@@ -809,9 +826,11 @@ export default class DataAlertLineageReader {
 
         dataPipelineIds.add(entry.way.dataPipelineId || "");
 
-        // The cause's pipeline: its arrows say Cause, an alert it caused's do not.
+        // The cause's pipeline: its arrows say Cause; an alert it caused's say Consequence.
         if (entry.isCause) {
           causeDataPipelineIds.add(entry.way.dataPipelineId || "");
+        } else {
+          consequenceDataPipelineIds.add(entry.way.dataPipelineId || "");
         }
       }
 
@@ -845,6 +864,9 @@ export default class DataAlertLineageReader {
         dataPipelineIds: Array.from(dataPipelineIds).sort(compareText),
         causeDataPipelineIds:
           Array.from(causeDataPipelineIds).sort(compareText),
+        consequenceDataPipelineIds: Array.from(consequenceDataPipelineIds).sort(
+          compareText,
+        ),
       },
       causes,
       consequences,

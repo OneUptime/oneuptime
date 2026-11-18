@@ -1,14 +1,10 @@
 import DataMigrationBase from "./DataMigrationBase";
-import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
-import RumProductAnalyticsSession from "Common/Models/AnalyticsModels/RumProductAnalyticsSession";
-import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
-import MetricService from "Common/Server/Services/MetricService";
 import {
-  applyClusterToMaterializedViewQuery,
-  onClusterClause,
-} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
+  getProductAnalyticsSessionView,
+  getProductAnalyticsSessionViewModifyQueryStatement,
+  replaceProductAnalyticsSessionViewQuery,
+} from "./ProductAnalyticsSessionViewQuery";
 import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
-import logger from "Common/Server/Utils/Logger";
 
 /*
  * Issue #8194: the Product Analytics overview filed every session of a
@@ -26,7 +22,8 @@ import logger from "Common/Server/Utils/Logger";
  * model's own SELECT as boot would create it (the local source table). It
  * is one atomic change: no insert into RumSessionV1 goes by with no view to
  * file it, as it would between a DROP and a CREATE, and a process that runs
- * this at the same time as another writes the same query.
+ * this at the same time as another writes the same query
+ * (ProductAnalyticsSessionViewQuery).
  *
  * Every session header written from then on - a session's provisional
  * header, the finalizer's, a pinned copy - files the route. The table keeps
@@ -47,14 +44,7 @@ export default class ReadHashRoutesInProductAnalyticsEntryPages extends DataMigr
   }
 
   public static getView(): MaterializedView {
-    const view: MaterializedView | undefined = new RumProductAnalyticsSession()
-      .materializedViews[0];
-
-    if (!view) {
-      throw new Error("RumProductAnalyticsSession declares no view");
-    }
-
-    return view;
+    return getProductAnalyticsSessionView();
   }
 
   /*
@@ -62,44 +52,14 @@ export default class ReadHashRoutesInProductAnalyticsEntryPages extends DataMigr
    * source table), set as the view's query.
    */
   public static getModifyQueryStatement(): string {
-    const view: MaterializedView =
-      ReadHashRoutesInProductAnalyticsEntryPages.getView();
-    const create: string = applyClusterToMaterializedViewQuery(view.query);
-    const select: number = create.search(/\bAS\s+SELECT\b/);
-
-    if (select === -1) {
-      throw new Error(`${view.name} has no AS SELECT`);
-    }
-
-    return `ALTER TABLE ${view.name}${onClusterClause()} MODIFY QUERY ${create
-      .slice(select)
-      .replace(/^AS\s+/, "")}`;
+    return getProductAnalyticsSessionViewModifyQueryStatement();
   }
 
   public override async migrate(): Promise<void> {
-    const view: MaterializedView =
-      ReadHashRoutesInProductAnalyticsEntryPages.getView();
-
-    /*
-     * Boot and the migrate Job create the views before data migrations run;
-     * one that is not there is created from the model, with this query, by
-     * the next boot.
-     */
-    if (!(await ClickHouseMigrationUtil.tableExists(view.name))) {
-      logger.info(
-        `ReadHashRoutesInProductAnalyticsEntryPages: ${view.name} does not exist; boot creates it from the model.`,
-      );
-      return;
-    }
-
-    await MetricService.execute(
-      ReadHashRoutesInProductAnalyticsEntryPages.getModifyQueryStatement(),
-      MigrationExecuteOptions,
-    );
-
-    logger.info(
-      `ReadHashRoutesInProductAnalyticsEntryPages: ${view.name} now files a hash router's route as the entry page.`,
-    );
+    await replaceProductAnalyticsSessionViewQuery({
+      migrationName: this.name,
+      outcome: "now files a hash router's route as the entry page.",
+    });
   }
 
   public override async rollback(): Promise<void> {

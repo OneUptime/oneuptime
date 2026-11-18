@@ -35,6 +35,10 @@ import {
   checkSessionReplayFrustrationSettings,
 } from "../../Utils/Rum/SessionReplayFrustrationSettingsValidation";
 import { normalizeProductAnalyticsUserPropertyKeys } from "../../Types/Rum/ProductAnalyticsEvents";
+import {
+  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS,
+} from "../../Types/Rum/ProductAnalytics";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "rum-application-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -85,6 +89,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.canonicalizeFrustrationSignals(data);
     this.canonicalizeProductAnalyticsUserPropertyKeys(data);
+    this.checkProductAnalyticsRetention(data);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -97,6 +102,38 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.canonicalizeFrustrationSignals(data);
     this.canonicalizeProductAnalyticsUserPropertyKeys(data);
+    this.checkProductAnalyticsRetention(data);
+  }
+
+  /*
+   * How long product analytics keeps the application's numbers (issue
+   * #6626) is one of the choices the page offers. Anything else is refused
+   * rather than stored and kept as the default, which would keep data for
+   * longer, or shorter, than the person who set it meant. Cleared, it goes
+   * back to the default.
+   */
+  private checkProductAnalyticsRetention(data: Record<string, unknown>): void {
+    const value: unknown = data["productAnalyticsRetentionInMonths"];
+
+    // A write that leaves the retention alone is not judged on it.
+    if (value === undefined) {
+      return;
+    }
+
+    if (value === null) {
+      data["productAnalyticsRetentionInMonths"] =
+        DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS;
+      return;
+    }
+
+    if (
+      typeof value !== "number" ||
+      !PRODUCT_ANALYTICS_RETENTION_MONTHS_OPTIONS.includes(value)
+    ) {
+      throw new BadDataException(
+        "Product analytics can be kept for 3, 6, 13 or 25 months. Choose one of these.",
+      );
+    }
   }
 
   /*

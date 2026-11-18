@@ -9,6 +9,7 @@ import {
   isNoiseFeedback,
   planDataAlertRetune,
 } from "../../../Types/DataObservability/DataAlertFeedback";
+import { getDataAssetLateAt } from "../../../Types/DataObservability/DataAssetFreshness";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -131,6 +132,8 @@ export default class DataAlertFeedbackRecorder {
       select: {
         updateIntervalInSeconds: true,
         rowCountChangeTolerancePercent: true,
+        assetKind: true,
+        lastChangedAt: true,
       },
       props: { isRoot: true },
     });
@@ -144,7 +147,22 @@ export default class DataAlertFeedbackRecorder {
     if (retune) {
       await DataAssetService.updateColumnsByIdWithoutHooks({
         id: data.dataAssetId,
-        data: retune as never,
+        data: {
+          ...retune,
+          /*
+           * A longer usual interval moves when the table is late: the Late
+           * filter and the menu's count read it from lateAt (#6550).
+           */
+          ...(retune.updateIntervalInSeconds !== undefined
+            ? {
+                lateAt: getDataAssetLateAt({
+                  kind: asset?.assetKind,
+                  lastChangedAt: asset?.lastChangedAt,
+                  updateIntervalInSeconds: retune.updateIntervalInSeconds,
+                }),
+              }
+            : {}),
+        } as never,
       });
     }
   }

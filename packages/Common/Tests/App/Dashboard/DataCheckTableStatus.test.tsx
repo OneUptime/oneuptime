@@ -50,18 +50,23 @@ jest.mock("react-i18next", () => {
 });
 
 import DataObservabilityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityApi";
-import DataCheckTable from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTable";
+import DataCheckTable, {
+  HEALTH_OPTIONS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTable";
+import { CHECK_HEALTH_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/CheckHealthCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import Route from "../../../Types/API/Route";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
   DataCheckRunStatus,
   DataCheckType,
 } from "../../../Types/DataObservability/DataCheckType";
 import {
+  DATA_CHECK_HEALTH_ORDER,
   DataCheckHealth,
   DataCheckHealthAnswer,
 } from "../../../Types/DataObservability/DataObservabilityAttention";
@@ -230,6 +235,34 @@ describe("before the alerts are read", () => {
 
     expect(screen.getByText("Waiting for first run")).toBeInTheDocument();
   });
+
+  /*
+   * The health kept on each check (#6554) - worked out from the alerts
+   * every reader may see - says how it stands until the reader's own answer
+   * comes: the list is sorted by it, so its rows say why they are where they
+   * are.
+   */
+  test("a check's kept health says how it stands until the reader's own answer comes", async () => {
+    await openTable();
+
+    expect(
+      renderStatus(check(FAILING, { health: DataCheckHealth.Failing })),
+    ).toHaveAttribute("data-check-health", DataCheckHealth.Failing);
+    expect(screen.getByText("Failing")).toBeInTheDocument();
+
+    expect(
+      renderStatus(check(PASSING, { health: DataCheckHealth.Passing })),
+    ).toHaveAttribute("data-check-health", DataCheckHealth.Passing);
+  });
+
+  test("a kept health OneUptime does not know is not trusted: the last run says how it stands", async () => {
+    await openTable();
+
+    expect(renderStatus(check(FAILING, { health: "Broken" }))).toHaveAttribute(
+      "data-check-health",
+      DataCheckHealth.NoAlert,
+    );
+  });
 });
 
 describe("once the page of checks is fetched", () => {
@@ -275,6 +308,16 @@ describe("once the page of checks is fetched", () => {
     expect(screen.queryByText(/is open$/)).toBeNull();
   });
 
+  test("the reader's own answer wins over the health kept on the check", async () => {
+    await openTable();
+    await fetched(CHECKS);
+
+    // Kept as passing - its only open alert private - but this reader may see it.
+    expect(
+      renderStatus(check(FAILING, { health: DataCheckHealth.Passing })),
+    ).toHaveAttribute("data-check-health", DataCheckHealth.Failing);
+  });
+
   test("an empty page asks nothing", async () => {
     await openTable();
     await fetched([]);
@@ -305,6 +348,47 @@ describe("the table", () => {
       isEnabled: true,
       lastRunAt: true,
       lastRunMessage: true,
+    });
+  });
+
+  test("opens on the failing checks, then the ones that could not run, sorted on the server by how each stands", async () => {
+    await openTable();
+
+    expect(latestProps()["sortBy"]).toBe("healthRank");
+    expect(latestProps()["sortOrder"]).toBe(SortOrder.Ascending);
+    // Its Status column sorts the same way.
+    expect(statusColumn().field).toEqual({ healthRank: true });
+  });
+
+  test("reads the health kept on each check, and its last run, for its Status", async () => {
+    await openTable();
+
+    expect(latestProps()["selectMoreFields"]).toMatchObject({
+      health: true,
+      lastRunStatus: true,
+    });
+  });
+
+  test("filters by Status: worst first, in the words its Status draws", async () => {
+    await openTable();
+
+    const filter: CapturedFilter | undefined = (
+      latestProps()["filters"] as Array<CapturedFilter>
+    ).find((each: CapturedFilter): boolean => {
+      return each.title === "Status";
+    });
+
+    expect(filter?.field).toEqual({ health: true });
+    expect(filter?.type).toBe(FieldType.Dropdown);
+    expect(filter?.filterDropdownOptions).toEqual(HEALTH_OPTIONS);
+    expect(
+      HEALTH_OPTIONS.map((option: { value: unknown }): unknown => {
+        return option.value;
+      }),
+    ).toEqual([...DATA_CHECK_HEALTH_ORDER]);
+    expect(HEALTH_OPTIONS[0]).toEqual({
+      value: DataCheckHealth.Failing,
+      label: CHECK_HEALTH_COPY[DataCheckHealth.Failing].label,
     });
   });
 

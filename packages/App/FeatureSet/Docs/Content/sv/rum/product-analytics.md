@@ -13,7 +13,7 @@ Produktanalys räknar de människor som använder en RUM-applikation, hur deras 
 
 ## Hur personer räknas
 
-En applikations sidomeny har ett avsnitt **Produktanalys**: **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden** och **Analysinställningar**. **Användare** och **Sessioner** räknar de sessioner som Sessionsuppspelning spelar in, så de börjar när applikationens inspelare gör det, och en session som uppspelningspolicyn inte spelar in räknas inte. Varje session räknas för en person, eller för ingen:
+En applikations sidomeny har ett avsnitt **Produktanalys**: **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden** och **Analysinställningar**. **Användare** och **Sessioner** räknar de sessioner som Sessionsuppspelning spelar in, så de börjar när applikationens inspelare gör det, och en session som uppspelningspolicyn inte spelar in räknas inte. På en installation som uppgraderats från en version utan Produktanalys kopierar uppgraderingen in de sessioner som Sessionsuppspelning fortfarande sparade, så de börjar med den äldsta inspelning som sparas. Varje session räknas för en person, eller för ingen:
 
 ```mermaid title="Vem en session räknas för"
 flowchart TB
@@ -42,12 +42,12 @@ Dagar räknas i din egen tidszon.
 | **Nya användare** | Aktiva användare vars första besök var under intervallet. |
 | **Återkommande användare** | Aktiva användare som hade kommit innan intervallet började. |
 | **Inloggade användare** | Aktiva användare som din app loggade in med `identify()`, och deras andel av alla aktiva användare. |
-| **Totalt antal användare** | Alla som applikationen har sett under de senaste 13 månaderna. |
+| **Totalt antal användare** | Alla som applikationen har sett under de månader som dess siffror sparas, 13 som standard. |
 | **Inaktiva användare** | Personer som kom tidigare men inte under de senaste 30 dagarna, eller de 7, 14, 60 eller 90 dagar du väljer. |
 
 De tre första visar också hur de har ändrats jämfört med perioden före. Under rutorna ritar **Aktiva användare** för varje dag de personer som kom den dagen, de som kom under de 7 dagarna fram till den och de som kom under de 30 dagarna fram till den, och **Nya och återkommande användare** delar varje dags personer i två.
 
-**Personer** listar alla som rutorna räknar, en rad per person, de senast sedda först, och dess filter visar en rutas personer, de anonyma besökarna eller alla. Öppna en person för att se första och senaste besöket och var och en av personens sessioner från de senaste 13 månaderna, med **Titta** på varje session vars inspelning fortfarande sparas.
+**Personer** listar alla som rutorna räknar, en rad per person, de senast sedda först, och dess filter visar en rutas personer, de anonyma besökarna eller alla. Öppna en person för att se första och senaste besöket och var och en av personens sessioner från de månader som siffrorna sparas, med **Titta** på varje session vars inspelning fortfarande sparas.
 
 ## Sessioner
 
@@ -55,7 +55,7 @@ De tre första visar också hur de har ändrats jämfört med perioden före. Un
 
 - **Sessioner per enhet** ritar varje dags sessioner från datorer, telefoner och surfplattor. En mobilapps session på en skärm vars kortare sida är 600 punkter eller mer räknas som en surfplattas.
 - **Sessionslängd** delar in de avslutade sessionerna efter hur länge de varade, från under 10 sekunder till över 30 minuter. En session som fortfarande spelas in har ingen längd än.
-- **Uppdelning** rangordnar användare och sessioner efter enhetstyp, webbläsare, operativsystem, land, appversion, startsida eller sida, flest användare först.
+- **Uppdelning** rangordnar användare och sessioner efter enhetstyp, webbläsare, operativsystem, land, appversion, startsida eller sida, flest användare först. En webbapps version är den som sidan ger inspelarens `appVersion`-alternativ; en mobilapp rapporterar sin egen.
 
 ## Skicka händelser och mätvärden
 
@@ -138,9 +138,9 @@ En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpan
 
 ## Integritet och lagring
 
-- **13 månader.** En månads siffror tas bort den första dagen i den 13:e månaden efter, så de senaste 12 hela månaderna finns alltid kvar, oavsett inspelningarnas egen lagringstid (7 dagar som standard). Händelser sparas på samma sätt.
+- **13 månader.** En månads siffror tas bort den första dagen i den 13:e månaden efter, så de senaste 12 hela månaderna finns alltid kvar, oavsett inspelningarnas egen lagringstid (7 dagar som standard). Händelser sparas på samma sätt. 13 månader är standard: en applikation kan i stället behålla 3, 6 eller 25, valt i **Lagringstid för produktanalys** under **Fler inställningar** på dess sida **Analysinställningar**, och ett kortare val tar bort de äldre månaderna inom ett dygn.
 - **Inga namn sparade.** Siffrorna sparar en inloggad användares envägsnyckel och en webbläsares besökar-id, aldrig referensen eller en IP-adress, och av egenskaperna bara de användaregenskaper du anger. En rad namnger en inloggad användare bara så länge någon av hens inspelningar fortfarande sparas, och bara för en roll som får läsa identitet; annars står det **Inloggad användare** eller **Anonym besökare** och början av id:t.
-- **Raderas på begäran.** En raderingsbegäran tar också bort de matchande siffrorna och händelserna här (se [Radera sessioner](/docs/telemetry/session-replay#radera-sessioner)).
+- **Raderas på begäran.** En raderingsbegäran tar också bort de matchande siffrorna och händelserna här (se [Radera sessioner](/docs/telemetry/session-replay#radera-sessioner)). Dess siffra `productAnalyticsRowsDeleted` anger hur många rader den tog bort här.
 
 ## Vem kan se det
 
@@ -148,7 +148,7 @@ Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRu
 
 Att spara, byta namn på och ta bort sparade trattar och kvarhållningstabeller kräver samma behörigheter som att läsa de här sidorna, och en widget på en instrumentpanel visar en bara för en läsare som har dem.
 
-Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektägare, Projektadministratör eller Projektmedlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer.
+Att slå på eller av händelserna kräver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektägare, Projektadministratör eller Projektmedlem. Att ange användaregenskaper kräver `EditRumApplication` eller rollen som ägare eller administratör, eftersom det avgör vad som sparas om inloggade personer. Att välja hur länge siffrorna sparas kräver samma sak som att slå på eller av händelserna.
 
 ## Nästa steg
 

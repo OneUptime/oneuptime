@@ -82,6 +82,30 @@ export interface DataAttentionItem {
   alert: DataAttentionAlert | null;
 }
 
+/*
+ * WHAT AN ITEM'S OWNERS OWN: its table - a late table, a check's table - its
+ * pipeline (#6551), or its data product, as "asset:<id>", "pipeline:<id>" or
+ * "product:<id>". Null for what nothing owns here: a database, a
+ * reconciliation. The Overview's rows and the Issues page's owner filter
+ * read the same answer.
+ */
+export function getDataAttentionOwnerKey(
+  item: Pick<
+    DataAttentionItem,
+    "dataProductId" | "dataPipelineId" | "dataAssetId"
+  >,
+): string | null {
+  if (item.dataProductId) {
+    return `product:${item.dataProductId}`;
+  }
+
+  if (item.dataPipelineId) {
+    return `pipeline:${item.dataPipelineId}`;
+  }
+
+  return item.dataAssetId ? `asset:${item.dataAssetId}` : null;
+}
+
 function rankOf(kind: DataAttentionKind): number {
   const rank: number = DATA_ATTENTION_KIND_ORDER.indexOf(kind);
 
@@ -180,6 +204,42 @@ export function getDataCheckHealth(data: {
 export interface DataCheckHealthAnswer {
   health: DataCheckHealth;
   alert: DataAttentionAlert | null;
+}
+
+/*
+ * THE ORDER CHECKS ARE LISTED IN, WORST FIRST: failing, could not run, then
+ * passing, then the checks with nothing to say yet - no alert to judge by,
+ * not run yet, turned off.
+ *
+ * Kept on the check with its health (DataCheck.health and healthRank), so
+ * Checks sorts and filters on the server: a failing check is on the first
+ * page, never on the third.
+ */
+export const DATA_CHECK_HEALTH_ORDER: ReadonlyArray<DataCheckHealth> = [
+  DataCheckHealth.Failing,
+  DataCheckHealth.CouldNotRun,
+  DataCheckHealth.Passing,
+  DataCheckHealth.NoAlert,
+  DataCheckHealth.Waiting,
+  DataCheckHealth.Off,
+];
+
+// A check's place in DATA_CHECK_HEALTH_ORDER: 0 for failing.
+export function getDataCheckHealthRank(health: DataCheckHealth): number {
+  const rank: number = DATA_CHECK_HEALTH_ORDER.indexOf(health);
+
+  return rank === -1 ? DATA_CHECK_HEALTH_ORDER.length : rank;
+}
+
+// The checks the Overview counts as needing someone (CheckFailing, CheckCouldNotRun).
+export const DATA_CHECK_HEALTHS_NEEDING_ATTENTION: ReadonlyArray<DataCheckHealth> =
+  [DataCheckHealth.Failing, DataCheckHealth.CouldNotRun];
+
+export function isDataCheckHealth(value: unknown): value is DataCheckHealth {
+  return (
+    typeof value === "string" &&
+    (Object.values(DataCheckHealth) as Array<string>).includes(value)
+  );
 }
 
 /*

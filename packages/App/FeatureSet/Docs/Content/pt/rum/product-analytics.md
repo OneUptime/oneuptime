@@ -13,7 +13,7 @@ A análise de produto conta as pessoas que usam uma aplicação RUM, como correm
 
 ## Como as pessoas são contadas
 
-O menu lateral de uma aplicação tem uma seção **Análise de produto**: **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários** e **Configurações de análise**. **Usuários** e **Sessões** contam as sessões que a Reprodução de sessões grava, por isso começam quando o gravador da aplicação começa, e uma sessão que a política de reprodução deixa sem gravar não é contada. Cada sessão conta para uma pessoa, ou para ninguém:
+O menu lateral de uma aplicação tem uma seção **Análise de produto**: **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários** e **Configurações de análise**. **Usuários** e **Sessões** contam as sessões que a Reprodução de sessões grava, por isso começam quando o gravador da aplicação começa, e uma sessão que a política de reprodução deixa sem gravar não é contada. Numa instalação atualizada a partir de uma versão sem Análise de produto, a atualização copia as sessões que a Reprodução de sessões ainda mantinha, então elas começam pela gravação mais antiga mantida. Cada sessão conta para uma pessoa, ou para ninguém:
 
 ```mermaid title="Para quem uma sessão conta"
 flowchart TB
@@ -42,12 +42,12 @@ Os dias são contados no seu próprio fuso horário.
 | **Novos usuários** | Usuários ativos cuja primeira visita foi no intervalo. |
 | **Usuários recorrentes** | Usuários ativos que já tinham vindo antes de o intervalo começar. |
 | **Usuários conectados** | Usuários ativos que a sua aplicação conectou com `identify()`, e a parte deles em todos os usuários ativos. |
-| **Total de usuários** | Todos os que a aplicação viu nos últimos 13 meses. |
+| **Total de usuários** | Todos os que a aplicação viu nos meses em que mantém seus números, 13 por padrão. |
 | **Usuários inativos** | Pessoas que vieram antes, mas não nos últimos 30 dias, ou nos 7, 14, 60 ou 90 dias que você escolher. |
 
 Os três primeiros também dizem como mudaram em relação ao período anterior. Abaixo dos blocos, **Usuários ativos** traça, para cada dia, as pessoas que vieram nesse dia, as que vieram nos 7 dias até ele e as que vieram nos 30 dias até ele, e **Usuários novos e recorrentes** divide em dois as pessoas de cada dia.
 
-**Pessoas** lista todos os que os blocos contam, uma linha por pessoa, primeiro os vistos mais recentemente, e o seu filtro mostra as pessoas de um bloco, os visitantes anônimos ou todos. Abra uma pessoa para ver a primeira e a última visita e cada uma das suas sessões dos últimos 13 meses, com **Assistir** em cada uma cuja gravação ainda é mantida.
+**Pessoas** lista todos os que os blocos contam, uma linha por pessoa, primeiro os vistos mais recentemente, e o seu filtro mostra as pessoas de um bloco, os visitantes anônimos ou todos. Abra uma pessoa para ver a primeira e a última visita e cada uma das suas sessões dos meses em que os números são mantidos, com **Assistir** em cada uma cuja gravação ainda é mantida.
 
 ## Sessões
 
@@ -55,7 +55,7 @@ Os três primeiros também dizem como mudaram em relação ao período anterior.
 
 - **Sessões por dispositivo** traça as sessões de cada dia vindas de computadores, telefones e tablets. A sessão de um aplicativo móvel numa tela cujo lado menor mede 600 pontos ou mais conta como de tablet.
 - **Duração das sessões** ordena as sessões terminadas pelo tempo que duraram, de menos de 10 segundos a mais de 30 minutos. Uma sessão que ainda está sendo gravada ainda não tem duração.
-- **Detalhamento** classifica usuários e sessões por tipo de dispositivo, navegador, sistema operacional, país, versão do aplicativo, página de entrada ou página, primeiro os com mais usuários.
+- **Detalhamento** classifica usuários e sessões por tipo de dispositivo, navegador, sistema operacional, país, versão do aplicativo, página de entrada ou página, primeiro os com mais usuários. A versão de um aplicativo web é a que a página dele passa à opção `appVersion` do gravador; um aplicativo móvel informa a sua.
 
 ## Enviar eventos e métricas
 
@@ -138,9 +138,9 @@ Um funil ou uma tabela de retenção salvos também vão para um painel: os widg
 
 ## Privacidade e retenção
 
-- **13 meses.** Os números de um mês são removidos no primeiro dia do 13º mês seguinte, por isso os últimos 12 meses completos estão sempre lá, seja qual for a retenção própria das gravações (7 dias por padrão). Os eventos são guardados da mesma forma.
+- **13 meses.** Os números de um mês são removidos no primeiro dia do 13º mês seguinte, por isso os últimos 12 meses completos estão sempre lá, seja qual for a retenção própria das gravações (7 dias por padrão). Os eventos são guardados da mesma forma. 13 meses é o padrão: um aplicativo pode manter 3, 6 ou 25 no lugar, escolhidos em **Retenção da análise de produto** sob **Mais configurações** na sua página **Configurações de análise**, e uma escolha mais curta remove os meses mais antigos em até um dia.
 - **Nenhum nome guardado.** Os números guardam a chave unidirecional de um usuário conectado e o ID de visitante de um navegador, nunca a referência ou um endereço IP, e das características só as propriedades de usuário que você lista. Uma linha nomeia um usuário conectado só enquanto uma das suas gravações ainda é mantida, e só para uma função que pode ler a identidade; senão, mostra **Usuário conectado** ou **Visitante anônimo** e o início do ID.
-- **Apagado a pedido.** Um pedido de apagamento remove também aqui os números e eventos correspondentes (veja [Apagar sessões](/docs/telemetry/session-replay#apagar-sessões)).
+- **Apagado a pedido.** Um pedido de apagamento remove também aqui os números e eventos correspondentes (veja [Apagar sessões](/docs/telemetry/session-replay#apagar-sessões)). A contagem `productAnalyticsRowsDeleted` diz quantas linhas ela removeu aqui.
 
 ## Quem pode vê-la
 
@@ -148,7 +148,7 @@ Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionRep
 
 Salvar, renomear e excluir funis e tabelas de retenção salvos exige as mesmas permissões que ler estas páginas, e um widget de painel só mostra um a quem as tem.
 
-Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função Proprietário do projeto, Administrador do projeto ou Membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas.
+Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função Proprietário do projeto, Administrador do projeto ou Membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas. Escolher por quanto tempo os números são mantidos exige o mesmo que ativar ou desativar os eventos.
 
 ## Próximos passos
 

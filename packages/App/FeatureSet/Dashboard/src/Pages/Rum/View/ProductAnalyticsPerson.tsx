@@ -54,13 +54,14 @@ import {
   buildProductAnalyticsSearch,
   readProductAnalyticsUrlState,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsUrlState";
+import { readProductAnalyticsRetentionMonths } from "../../../Components/ProductAnalytics/ProductAnalyticsRetention";
 import useProductAnalyticsRead, {
   ProductAnalyticsRead,
 } from "../../../Components/ProductAnalytics/useProductAnalyticsRead";
 
 /*
  * One person of Product Analytics > Users (issue #6444): when they first
- * and last came, how many sessions the last 13 months hold, and each of
+ * and last came, how many sessions the months kept hold, and each of
  * those sessions, newest first, with a link to watch the ones whose
  * recording is still kept.
  *
@@ -481,17 +482,32 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
   }
 
   const person: ProductAnalyticsPersonDto | null = detail.data.person;
+  /* How long the application keeps these numbers (issue #6626). */
+  const retentionMonths: number = readProductAnalyticsRetentionMonths(
+    detail.data,
+  );
 
   if (!person) {
     return (
       <EmptyState
         id="product-analytics-person-not-found"
         icon={IconProp.User}
-        title="Nobody by this ID in the last 13 months"
+        title={translator.translatePlural(
+          {
+            one: "Nobody by this ID in the last {{count}} month",
+            other: "Nobody by this ID in the last {{count}} months",
+          },
+          retentionMonths,
+        )}
         description={
           <span>
-            {translator.translateText(
-              "Their sessions may be older than the 13 months these numbers are kept, or may have been erased.",
+            {translator.translatePlural(
+              {
+                one: "Their sessions may be older than the {{count}} month these numbers are kept, or may have been erased.",
+                other:
+                  "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.",
+              },
+              retentionMonths,
             )}
           </span>
         }
@@ -505,12 +521,20 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
       <ProductAnalyticsPersonCard
         person={person}
         includesLabels={detail.data.includesLabels}
+        retentionMonths={retentionMonths}
         backLink={backLink}
       />
       <div className="mt-5">
         <Card
           title="Sessions"
-          description="Every session of theirs the last 13 months hold, newest first."
+          description={translator.translatePlural(
+            {
+              one: "Every session of theirs the last {{count}} month holds, newest first.",
+              other:
+                "Every session of theirs the last {{count}} months hold, newest first.",
+            },
+            retentionMonths,
+          )}
         >
           <Table<SessionRow>
             id="product-analytics-person-sessions"

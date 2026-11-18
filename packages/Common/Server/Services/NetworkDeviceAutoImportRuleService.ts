@@ -24,6 +24,10 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import DeviceMonitorTemplateUtil, {
+  DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+  isDeviceMonitorTemplateType,
+} from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import {
@@ -587,16 +591,29 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(MONITOR_TEMPLATE_NOT_FOUND_MESSAGE);
     }
 
-    if (monitorTemplate.monitorType !== MonitorType.NetworkDevice) {
-      throw new BadDataException(
-        "Monitor template must be a Network Device monitor template.",
-      );
+    /*
+     * Every kind a device's monitor can be made from, as Review Results
+     * offers them (issue #9510): a Network Device template's monitor reads
+     * each imported device's polls, a Ping, IP, Port or NTP template's checks
+     * each device's address. A Website, DNS, database or telemetry template
+     * has nothing of a device's to check, so it is refused here, where the
+     * person picking it reads why, rather than failing every monitor later.
+     */
+    if (!isDeviceMonitorTemplateType(monitorTemplate.monitorType)) {
+      throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
     }
 
-    NetworkDeviceMonitorTemplateUtil.validateMonitorSteps(
-      monitorTemplate.monitorSteps,
-      "Monitor template",
-    );
+    if (monitorTemplate.monitorType === MonitorType.NetworkDevice) {
+      NetworkDeviceMonitorTemplateUtil.validateMonitorSteps(
+        monitorTemplate.monitorSteps,
+        "Monitor template",
+      );
+    } else {
+      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        monitorType: monitorTemplate.monitorType,
+        monitorSteps: monitorTemplate.monitorSteps,
+      });
+    }
 
     /*
      * NO TEMPLATE IS SHARED WITH A NETWORK ALERT POLICY. This is the rule

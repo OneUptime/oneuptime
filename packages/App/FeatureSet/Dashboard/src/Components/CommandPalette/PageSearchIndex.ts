@@ -3007,6 +3007,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_ISSUES,
+            title: "Issues",
+            icon: IconProp.Alert,
+            keywords: [
+              "data incidents",
+              "data issues",
+              "failed runs",
+              "failing checks",
+              "late tables",
+              "no owner",
+            ],
+          },
+          {
             page: PageMap.DATA_OBSERVABILITY_TABLES,
             title: "Tables",
             icon: IconProp.TableCells,

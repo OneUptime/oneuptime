@@ -15,6 +15,7 @@ import CloudResourceOwnerUserService from "../../Services/CloudResourceOwnerUser
 import DashboardOwnerUserService from "../../Services/DashboardOwnerUserService";
 import DataAssetOwnerUserService from "../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerUserService from "../../Services/DataStoreOwnerUserService";
+import DataPipelineOwnerUserService from "../../Services/DataPipelineOwnerUserService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseServerOwnerUserService from "../../Services/DatabaseServerOwnerUserService";
 import DockerHostOwnerUserService from "../../Services/DockerHostOwnerUserService";
@@ -157,6 +158,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(CloudResourceOwnerUserService, "cloudResourceId"),
       ownerUserTable(DashboardOwnerUserService, "dashboardId"),
       ownerUserTable(DataAssetOwnerUserService, "dataAssetId"),
+      ownerUserTable(DataPipelineOwnerUserService, "dataPipelineId"),
       ownerUserTable(DataStoreOwnerUserService, "dataStoreId"),
       ownerUserTable(DatabaseServerOwnerUserService, "databaseServerId"),
       ownerUserTable(DockerHostOwnerUserService, "dockerHostId"),

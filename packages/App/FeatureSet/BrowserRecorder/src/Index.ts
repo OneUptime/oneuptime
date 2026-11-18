@@ -533,7 +533,8 @@ function startProductAnalytics(
         deviceType: Recorder.getDeviceType(userAgent),
         browserName: Recorder.getBrowserName(userAgent),
         osName: Recorder.getOsName(userAgent),
-        appVersion: "",
+        /* The page's own (the appVersion init option, issue #6625), or "". */
+        appVersion: initOptions.appVersion || "",
       },
     },
     analyticsConfig,

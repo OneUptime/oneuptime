@@ -90,6 +90,7 @@ Le script à `/v1/recorder.js` est un petit chargeur. Il vérifie Do Not Track, 
 | `data-oneuptime-respect-do-not-track` | Non | Respecte par défaut Do Not Track et Global Privacy Control. Réglez-le sur `"false"` pour enregistrer quel que soit le signal ; voir [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | Non | `"true"` affiche les décisions de l'enregistreur dans la console. Voir [Dépannage de la relecture de session](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | Non | Réglez-le sur `"false"` pour garder les fragments enregistrés pendant que le visiteur est hors ligne en mémoire seulement, au lieu de les garder aussi dans l'IndexedDB du navigateur. Voir [Mode hors ligne](#mode-hors-ligne). |
+| `data-oneuptime-app-version` | Non | La version de votre application, comme `2.3.1`, jusqu'à 64 caractères. L'Analyse produit ventile les utilisateurs et les sessions selon elle. |
 
 Les mêmes options peuvent être données sur un objet global plutôt que sur la balise, ce qu'utilisent les gestionnaires de balises et les installations empaquetées :
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ Pour satisfaire une demande de suppression, déposez une demande d'effacement vi
 
 Deux limites honnêtes de `ByIdentifiedUserKey`. La clé n'est affichée nulle part dans le tableau de bord : elle revient sous la forme `identifiedUserKey` sur chaque ligne de l'API de la liste des sessions (`POST /telemetry/rum/session-replay/list`), si bien qu'aujourd'hui un effacement par utilisateur commence par une recherche `user:` à cet endroit et une copie de ce champ. Et une session enregistrée pendant que **Capturer l'identité de l'utilisateur final** était désactivé n'a pas de clé du tout — rien sur la personne n'a été stocké — elle ne peut donc être atteinte que par id de session, plage de dates ou application.
 
-Chaque demande consigne son `status` (`Pending`, `InProgress`, `Completed`, `Failed`), les compteurs `sessionsDeleted` et `chunksDeleted` et un éventuel `failureReason` ; `ReadRumSessionErasureRequest` permet à quelqu'un de les consulter. L'effacement supprime l'enregistrement et la télémétrie liée à ces sessions, et tout enregistrement encore en transit quand la demande se termine est jeté plutôt qu'écrit. Un lien vers une session effacée répond « erased » plutôt que « not found ». La télémétrie liée est :
+Chaque demande consigne son `status` (`Pending`, `InProgress`, `Completed`, `Failed`), les compteurs `sessionsDeleted`, `chunksDeleted` et `productAnalyticsRowsDeleted` et un éventuel `failureReason` ; `ReadRumSessionErasureRequest` permet à quelqu'un de les consulter. L'effacement supprime l'enregistrement et la télémétrie liée à ces sessions, et tout enregistrement encore en transit quand la demande se termine est jeté plutôt qu'écrit. Un lien vers une session effacée répond « erased » plutôt que « not found ». La télémétrie liée est :
 
 - chaque span et chaque exception marqués de l'id de la session, y compris les spans backend marqués [automatiquement](#corréler-avec-le-reste-de-votre-télémétrie) dans chaque service qui a transmis le contexte de trace, et tout journal qui porte lui-même l'id ;
 - les journaux, exceptions et spans de chaque trace qui appartient aux seules sessions effacées : chaque span marqué de la trace porte l'un de leurs ids, et rien dans la trace n'a commencé plus de dix minutes avant le premier ou après le dernier de ces spans. Cela couvre les journaux backend des requêtes que vos pages ont faites vers leur propre origine, qui partagent un id de trace avec ces spans marqués.
