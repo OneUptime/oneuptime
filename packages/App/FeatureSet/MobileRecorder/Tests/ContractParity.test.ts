@@ -36,7 +36,9 @@ import {
   SESSION_REPLAY_USER_REF_HEADER as COMMON_USER_REF_HEADER,
   SESSION_REPLAY_SCHEMA_VERSION as COMMON_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION as COMMON_WIRE_VERSION,
+  SESSION_REPLAY_MAX_APP_VERSION_LENGTH as COMMON_MAX_APP_VERSION_LENGTH,
   SessionReplayFidelityNotice as CommonFidelityNotice,
+  toSessionReplayAppVersion,
 } from "../../../../Common/Types/Rum/SessionReplay";
 import {
   isSessionReplayCustomSignalPayload,
@@ -77,10 +79,6 @@ import {
 } from "../../../../Common/Types/Rum/ProductAnalyticsEvents";
 import { PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE as COMMON_PA_TABLET_MIN_SHORT_SIDE } from "../../../../Common/Types/Rum/ProductAnalytics";
 import {
-  SESSION_REPLAY_MAX_APP_VERSION_LENGTH as COMMON_MAX_APP_VERSION_LENGTH,
-  toSessionReplayAppVersion,
-} from "../../../../Common/Types/Rum/SessionReplay";
-import {
   PRODUCT_ANALYTICS_CONTENT_TYPE,
   PRODUCT_ANALYTICS_EVENTS_PATH,
   PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
@@ -115,6 +113,7 @@ import {
   MAX_CUSTOM_EVENT_PROPERTY_KEYS,
   MAX_TRAIT_KEY_LENGTH,
   MAX_TRAIT_VALUE_LENGTH,
+  sanitizeRoute,
 } from "../src/Sanitize";
 import {
   CUSTOM_EVENT_TAG,
@@ -166,7 +165,6 @@ import {
   readCustomSignals,
   readPathAsWritten,
 } from "../src/CustomSignals";
-import { sanitizeRoute } from "../src/Sanitize";
 import fs from "node:fs";
 import path from "node:path";
 import UrlScrubber from "../../../../Common/Utils/Rum/UrlScrubber";
@@ -716,8 +714,7 @@ describe("published SDK wire contract", () => {
 
     test("reads an event name, a metric name and an app version exactly as Common does", () => {
       const random: SeededRandom = seededRandom(6629);
-      const alphabet: string =
-        "aZ09 ._-/\n\t\u0000\u007f\u0085oneuptime.é日😀";
+      const alphabet: string = "aZ09 ._-/\n\t\u0000\u007f\u0085oneuptime.é日😀";
       const text: (maxLength: number) => string = (
         maxLength: number,
       ): string => {

@@ -162,7 +162,7 @@ interface HeldItem {
 }
 
 function itemAt(item: HeldItem): number {
-  return item.event ? item.event.at : (item.metric?.at ?? 0);
+  return item.event ? item.event.at : item.metric?.at ?? 0;
 }
 
 function sameScope(
@@ -974,10 +974,10 @@ export default class MobileProductAnalytics {
      */
     const retryAfterMs: number =
       status === 429 || status === 503
-        ? (RetryAfter.msFromHeaders(response.headers, {
+        ? RetryAfter.msFromHeaders(response.headers, {
             maxMs: RETRY_AFTER_LIMIT_SECONDS * 1000,
             nowMs: now,
-          }) ?? 0)
+          }) ?? 0
         : 0;
 
     /* 409 (consent not given), 429, 5xx: the same batch later. */
@@ -1024,8 +1024,7 @@ export default class MobileProductAnalytics {
       }
     }
 
-    const connectivity: ReplayConnectivity | undefined =
-      this.host.connectivity;
+    const connectivity: ReplayConnectivity | undefined = this.host.connectivity;
 
     if (!connectivity) {
       return;

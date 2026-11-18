@@ -3768,7 +3768,7 @@ export default class MobileReplayRecorder {
           return this.analyticsSessionId(this.now(), false);
         },
         getVisitorId: (): string => {
-          return this.identityPersisted ? (this.identity?.visitorId ?? "") : "";
+          return this.identityPersisted ? this.identity?.visitorId ?? "" : "";
         },
         getConsentState: (): SessionReplayConsentState => {
           return this.consentState();

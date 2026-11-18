@@ -3,7 +3,12 @@ import {
   ProductAnalyticsBatchParseResult,
   parseProductAnalyticsBatch,
 } from "../../../../Common/Types/Rum/ProductAnalyticsEvents";
-import { MobileReplayStartOptions, ReplayFetch } from "../src/Config";
+import {
+  MobileReplayStartOptions,
+  ReplayFetch,
+  validateStartOptions,
+  ValidatedStartOptions,
+} from "../src/Config";
 import {
   CUSTOM_EVENT_TAG,
   RrwebEvent,
@@ -18,11 +23,9 @@ import { productAnalyticsSessionKey } from "../src/ProductAnalytics";
 import {
   PRODUCT_ANALYTICS_EVENTS_PATH,
   PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
-  ProductAnalyticsEventKind,
   ProductAnalyticsWireBatch,
   ProductAnalyticsWireEvent,
 } from "../src/ProductAnalyticsContract";
-import { validateStartOptions, ValidatedStartOptions } from "../src/Config";
 import {
   enabledConfig,
   FakeAppState,

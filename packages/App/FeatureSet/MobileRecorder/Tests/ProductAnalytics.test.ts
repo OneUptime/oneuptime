@@ -115,7 +115,10 @@ describe("MobileProductAnalytics", (): void => {
       requiresConsent: (): boolean => {
         return state.requiresConsent;
       },
-      getIdentity: (): { userRef: string; traits: Record<string, string> | null } => {
+      getIdentity: (): {
+        userRef: string;
+        traits: Record<string, string> | null;
+      } => {
         return { userRef: state.userRef, traits: state.traits };
       },
       toProperties: (value: unknown): Record<string, string> => {
@@ -199,8 +202,7 @@ describe("MobileProductAnalytics", (): void => {
         url: string,
         init?: Parameters<ReplayFetch>[1],
       ): Promise<ReplayFetchResponse> => {
-        const requestInit: NonNullable<Parameters<ReplayFetch>[1]> =
-          init ?? {};
+        const requestInit: NonNullable<Parameters<ReplayFetch>[1]> = init ?? {};
         sent.push({
           url: url,
           init: requestInit,
@@ -270,7 +272,9 @@ describe("MobileProductAnalytics", (): void => {
       expect(batch.sessionId).toBe(SESSION_A);
       expect(batch.visitorId).toBe(VISITOR);
       expect(batch.consentState).toBe("NotRequired");
-      expect(batch.sentAt).toBe(STARTED_AT + PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS);
+      expect(batch.sentAt).toBe(
+        STARTED_AT + PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
+      );
       expect(batch.context).toEqual({
         deviceType: "mobile",
         browserName: "",
@@ -356,7 +360,11 @@ describe("MobileProductAnalytics", (): void => {
 
     it("sends the signed-in user's reference and only the listed traits", async (): Promise<void> => {
       state.userRef = "user-42";
-      state.traits = { plan: "••••", region: "••••", email: "••••••••••••••••" };
+      state.traits = {
+        plan: "••••",
+        region: "••••",
+        email: "••••••••••••••••",
+      };
 
       await startChannel({ userPropertyKeys: ["plan", "region", "missing"] });
       await nextFlush();
@@ -595,12 +603,16 @@ describe("MobileProductAnalytics", (): void => {
       channel.metric("orphan.value", 1);
       await nextFlush();
 
-      expect(allEvents().map((event: ProductAnalyticsWireEvent) => {
-        return event.name;
-      })).toEqual([""]);
-      expect(sent.flatMap((request: SentRequest) => {
-        return request.batch.metrics;
-      })).toEqual([]);
+      expect(
+        allEvents().map((event: ProductAnalyticsWireEvent) => {
+          return event.name;
+        }),
+      ).toEqual([""]);
+      expect(
+        sent.flatMap((request: SentRequest) => {
+          return request.batch.metrics;
+        }),
+      ).toEqual([]);
     });
 
     it("looks at the session on its timer without counting it as activity", async (): Promise<void> => {
@@ -620,7 +632,11 @@ describe("MobileProductAnalytics", (): void => {
     it("sends at once when a batch's worth of events is held, and never more than a batch's worth", async (): Promise<void> => {
       const channel: MobileProductAnalytics = await startChannel();
 
-      for (let index: number = 0; index < PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH + 5; index++) {
+      for (
+        let index: number = 0;
+        index < PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH + 5;
+        index++
+      ) {
         channel.track(`Event ${index}`);
       }
 
@@ -633,13 +649,19 @@ describe("MobileProductAnalytics", (): void => {
       await settle();
       /* The rest go once the first is answered. */
       expect(sent).toHaveLength(2);
-      expect(allEvents()).toHaveLength(PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH + 6);
+      expect(allEvents()).toHaveLength(
+        PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH + 6,
+      );
     });
 
     it("sends at once when a batch's worth of metric points is held", async (): Promise<void> => {
       const channel: MobileProductAnalytics = await startChannel();
 
-      for (let index: number = 0; index < PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH; index++) {
+      for (
+        let index: number = 0;
+        index < PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH;
+        index++
+      ) {
         channel.metric("cart.value", index);
       }
       await settle();
@@ -711,12 +733,18 @@ describe("MobileProductAnalytics", (): void => {
 
       const channel: MobileProductAnalytics = await startChannel();
 
-      for (let index: number = 0; index < PRODUCT_ANALYTICS_MAX_PENDING_EVENTS + 25; index++) {
+      for (
+        let index: number = 0;
+        index < PRODUCT_ANALYTICS_MAX_PENDING_EVENTS + 25;
+        index++
+      ) {
         channel.track(`Held ${index}`);
       }
 
       expect(channel.getDroppedEventCount()).toBe(25);
-      expect(channel.getPendingCount()).toBe(PRODUCT_ANALYTICS_MAX_PENDING_EVENTS);
+      expect(channel.getPendingCount()).toBe(
+        PRODUCT_ANALYTICS_MAX_PENDING_EVENTS,
+      );
       expect(channel.getDiagnostics()).toEqual({
         state: "on",
         pending: PRODUCT_ANALYTICS_MAX_PENDING_EVENTS,
@@ -818,9 +846,11 @@ describe("MobileProductAnalytics", (): void => {
       await settle();
 
       expect(sent[0]!.batch.sessionId).toBe(SESSION_A);
-      expect(sent[0]!.batch.events.map((event: ProductAnalyticsWireEvent) => {
-        return `${event.kind}:${event.name}`;
-      })).toEqual(["session:", "custom:Before"]);
+      expect(
+        sent[0]!.batch.events.map((event: ProductAnalyticsWireEvent) => {
+          return `${event.kind}:${event.name}`;
+        }),
+      ).toEqual(["session:", "custom:Before"]);
     });
 
     it("drops what it held when consent is withdrawn, forgets the session it announced, and keeps nothing until a new grant", async (): Promise<void> => {
@@ -995,7 +1025,11 @@ describe("MobileProductAnalytics", (): void => {
       [403, "origin-not-allowed", "origin-not-allowed"],
     ])(
       "stops for good on a %d, saying why",
-      async (status: number, stopReason: string, reason: string): Promise<void> => {
+      async (
+        status: number,
+        stopReason: string,
+        reason: string,
+      ): Promise<void> => {
         answers.push({
           status: status,
           headers: { "x-oneuptime-replay-reason": reason },
@@ -1077,9 +1111,11 @@ describe("MobileProductAnalytics", (): void => {
       await settle();
 
       expect(sent).toHaveLength(1);
-      expect(sent[0]!.batch.events.map((event: ProductAnalyticsWireEvent) => {
-        return event.name;
-      })).toEqual(["", "Offline"]);
+      expect(
+        sent[0]!.batch.events.map((event: ProductAnalyticsWireEvent) => {
+          return event.name;
+        }),
+      ).toEqual(["", "Offline"]);
 
       channel.stop();
       expect(unsubscribedConnectivity).toBe(1);
