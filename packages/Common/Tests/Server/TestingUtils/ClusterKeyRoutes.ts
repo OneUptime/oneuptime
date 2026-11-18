@@ -260,6 +260,21 @@ export interface ClusterKeyRouteToolCaller {
    * never the key - or left out: the doctor's POST carries none.
    */
   body?: string | undefined;
+  /*
+   * The function the tool asks, before the request, whether the key is a
+   * value this repository ships - which the app refuses from every caller,
+   * so presenting it only earns an HTTP 401 that says nothing of why
+   * (#7588). The request is made only in the branch where it is not:
+   * `if (... && !<check>(<the key>))`. The scripts on a Docker Compose host
+   * share ReplacePlaceholderSecrets' isPlaceholderValue; diagnose.sh's pod
+   * script, which cannot import anything of the repository's, keeps its own
+   * copy of EnvironmentConfig.isShippedSecretValue, declared as
+   * `checkDeclaration` says, and ClusterKeyGuard runs that copy and the
+   * original over the same values.
+   */
+  check: "isPlaceholderValue" | "isShippedSecretValue";
+  // The check's declaration in the script, when the script declares it itself.
+  checkDeclaration?: string | undefined;
 }
 
 const DOCTOR_ROUTE: ClusterKeyRouteToolCaller["route"] = {
@@ -286,8 +301,11 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       address: ['const port = process.env.PORT || "3002";'],
       path: "/api/admin/health/doctor",
       key: 'process.env.ONEUPTIME_SECRET || ""',
-      presents: 'encodeURIComponent(process.env.ONEUPTIME_SECRET || "")',
+      presents: "encodeURIComponent(secret)",
       client: "fetch",
+      check: "isShippedSecretValue",
+      checkDeclaration:
+        'const isShippedSecretValue = (value) => { const trimmed = String(value || "").trim(); return trimmed === "" || trimmed === "secret" || trimmed.indexOf("please-change-this") !== -1; };',
     },
     // `npm run doctor`: the ingress on this host, with the key in its config.env.
     {
@@ -305,6 +323,7 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       key: 'String(settings.get("ONEUPTIME_SECRET") || "").trim()',
       presents: "encodeURIComponent(secret)",
       client: "node-http",
+      check: "isPlaceholderValue",
     },
     /*
      * `npm run backup`: backup.sh, through WithConfig.sh, hands it
@@ -327,6 +346,7 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       presents: "encodeURIComponent(secret)",
       client: "node-http",
       body: "outcome",
+      check: "isPlaceholderValue",
     },
   ];
 

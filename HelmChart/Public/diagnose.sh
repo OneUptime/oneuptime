@@ -832,37 +832,66 @@ check_ingress() {
 # getClusterKey), so a key with + / = @ & % or a letter beyond ASCII is
 # accepted too; the POST changes nothing. A redirect is not followed, so the
 # key goes to no other address.
+#
+# A key the app refuses from every caller - unset, blank, or a value the
+# repository ships (EnvironmentConfig.isShippedSecretValue) - is not
+# presented at all: the app would only answer HTTP 401, and its log says
+# nothing about why (#7588). The script says so in its own words instead,
+# since nothing outside it may name the key.
 # ---------------------------------------------------------------------------
 
 # Run with node inside the app pod. Prints one line a finding,
-# LEVEL|TITLE|WHAT IS WRONG|FIX, then VERSION|<version>; ERROR|<why> when the
-# app does not answer.
+# LEVEL|TITLE|WHAT IS WRONG|FIX, then VERSION|<version> and PROOF|<a proof
+# only this installation answers, for the address check after it>;
+# SKIP|WHY|FIX when the pod's key is one the app refuses, so nothing is
+# asked; ERROR|<why> when the app does not answer.
 SERVER_FINDINGS_SCRIPT='
 const port = process.env.PORT || "3002";
 const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
-fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
-  method: "POST",
-  redirect: "manual",
-  headers: { clusterkey: encodeURIComponent(process.env.ONEUPTIME_SECRET || "") },
-})
-  .then(async (response) => {
-    if (response.status !== 200) {
-      console.log("ERROR|the app answered HTTP " + response.status);
-      return;
-    }
-    const answer = await response.json();
-    for (const finding of answer.findings || []) {
-      if (finding.level !== "fix" && finding.level !== "warn") {
-        continue;
-      }
-      console.log([finding.level, clean(finding.title), clean(finding.sentence), clean(finding.fixSentence)].join("|"));
-    }
-    console.log("VERSION|" + clean(answer.version && answer.version.current));
+/*
+ * The rule of EnvironmentConfig.isShippedSecretValue, which this pod cannot
+ * import: unset or blank, "secret", or a "please-change-this" placeholder.
+ * The app refuses such a key from every caller. Common runs both over the
+ * same values, so they never drift apart.
+ */
+const isShippedSecretValue = (value) => {
+  const trimmed = String(value || "").trim();
+  return trimmed === "" || trimmed === "secret" || trimmed.indexOf("please-change-this") !== -1;
+};
+const secret = process.env.ONEUPTIME_SECRET || "";
+if (!isShippedSecretValue(secret)) {
+  fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
+    method: "POST",
+    redirect: "manual",
+    headers: { clusterkey: encodeURIComponent(secret) },
   })
-  .catch((error) => {
-    console.log("ERROR|" + clean(error && error.message));
-  });
+    .then(async (response) => {
+      if (response.status !== 200) {
+        console.log("ERROR|the app answered HTTP " + response.status);
+        return;
+      }
+      const answer = await response.json();
+      for (const finding of answer.findings || []) {
+        if (finding.level !== "fix" && finding.level !== "warn") {
+          continue;
+        }
+        console.log([finding.level, clean(finding.title), clean(finding.sentence), clean(finding.fixSentence)].join("|"));
+      }
+      console.log("VERSION|" + clean(answer.version && answer.version.current));
+      if (/^[0-9a-f]{32}\.[0-9a-f]{64}$/.test(String(answer.addressProof || ""))) {
+        console.log("PROOF|" + answer.addressProof);
+      }
+    })
+    .catch((error) => {
+      console.log("ERROR|" + clean(error && error.message));
+    });
+} else {
+  console.log("SKIP|Could not ask OneUptime how it is: oneuptimeSecret (ONEUPTIME_SECRET in the app pod) is empty or still a value OneUptime ships, and OneUptime refuses that value from every caller.|Set oneuptimeSecret in your Helm values to a long random value, such as the output of openssl rand -hex 32, or put one in the Secret that externalSecrets.oneuptimeSecret names. Then run helm upgrade, and this script again.");
+}
 '
+
+# Set from the script's PROOF line, for check_external_address.
+SERVER_ADDRESS_PROOF=""
 
 # Turns the script's lines into findings: fix is CRIT, warn is WARN.
 report_server_findings() {
@@ -887,6 +916,17 @@ report_server_findings() {
         ;;
       VERSION\|*)
         [ -n "${line#VERSION|}" ] && info "OneUptime ${line#VERSION|}"
+        ;;
+      PROOF\|*)
+        SERVER_ADDRESS_PROOF="${line#PROOF|}"
+        ;;
+      SKIP\|*)
+        line="${line#SKIP|}"
+        sentence="${line%%|*}"
+        fix="${line#*|}"
+        warn "$sentence"
+        add_finding "WARN" "app" "$sentence" "$fix"
+        return
         ;;
       ERROR\|*)
         warn "OneUptime could not say how it is: ${line#ERROR|}"
