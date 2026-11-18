@@ -2355,6 +2355,8 @@ describe("an alert's drawing with a column followed", () => {
       dataPipelineIds: new Set(),
       causeDataPipelineIds: new Set(),
       causeEdgeIds: new Set(),
+      consequenceDataPipelineIds: new Set(),
+      consequenceEdgeIds: new Set(),
     };
   }
 
