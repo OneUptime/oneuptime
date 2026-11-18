@@ -56,11 +56,14 @@ import { getMetadataArgsStorage } from "typeorm";
  *   - A PRIVATE INCIDENT, ALERT OR EPISODE is read by its owners alone, so
  *     never by the run, unless it is the subject.
  *   - A RECORD READ THROUGH OTHERS - a status timeline through its monitor,
- *     a note through its incident, an exception group through its service -
- *     is left out with any record it names that is left out: the records
- *     the label rule weighs it by (ReadPermission.getLabelledReferences),
- *     and the one it takes its owners from (@OwnedThrough). A permission of
- *     its own held only by owner or label narrows it through them as well.
+ *     a note through its incident, an exception group through its service,
+ *     a table through its data store - is left out with any record it names
+ *     that is left out: the records the label rule weighs a model without
+ *     labels of its own by (ReadPermission.getLabelledReferences), and the
+ *     one a model without owners of its own takes them from (@OwnedThrough).
+ *     A permission of its own held only by owner or label narrows it
+ *     through them as well. All of it is one condition on the record's id
+ *     (getKeptCondition).
  *
  * What is left out is never named, counted or reached through: each read's
  * own query leaves it out, so no list holds it, no count adds it and no
@@ -95,7 +98,7 @@ const PRIVATE_KINDS: ReadonlySet<string> = new Set<string>([
 // The column a private kind marks its private records by.
 const PRIVATE_COLUMN: string = "isPrivate";
 
-// A condition a read of one model takes, on its id or on another column.
+// The condition a read of one model takes, and the column it is on (its id).
 export interface ReadAudienceCondition {
   column: string;
   condition: FindWhereProperty<any>;
@@ -173,8 +176,8 @@ export default class ReadAudiencePermission {
 
   /*
    * Whether records of the model can be set apart by their own owners,
-   * labels or privacy: a kind. Every other model is read through the kinds
-   * it names (getConditions).
+   * labels or privacy: a kind, which a record read through others can name
+   * (getReferences).
    */
   public static isKind(modelType: ModelType): boolean {
     return (
