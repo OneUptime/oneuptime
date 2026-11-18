@@ -207,6 +207,39 @@ export default class EmailLog extends BaseModel {
   })
   public subject?: string = undefined;
 
+  /*
+   * Which of OneUptime's emails it was, as the server's email log names it
+   * (ServerEmailLog.templateType): "InviteMember.hbs" for an invitation.
+   * The Users list finds a person's invitation emails by it, to say when
+   * the latest one was not sent (#9511). Empty on rows written before it
+   * was kept, and on an email written without a template.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Template",
+    description: "Which of OneUptime's emails it was.",
+    canReadOnRelationQuery: false,
+    example: "InviteMember.hbs",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public templateType?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
