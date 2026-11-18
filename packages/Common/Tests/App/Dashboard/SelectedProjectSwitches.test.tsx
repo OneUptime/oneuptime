@@ -22,7 +22,8 @@ import { getJestSpyOn } from "../../Spy";
 /*
  * The dashboard reads Monitor Groups off the project it has selected (the
  * Monitors menu's Monitor Groups page, a status page's Resources item), and
- * the switch on Settings > Feature Flags saves it without a reload. So the
+ * the switch on Settings > Products, under Monitors, saves it without a
+ * reload. So the
  * dashboard follows the switch's saves (Utils/SelectedProjectSwitches and
  * UseSelectedProjectSwitches, wired in App.tsx): a save for the selected
  * project swaps in a copy of it with the new value, and the menus follow at
@@ -52,7 +53,7 @@ import {
   SELECTED_PROJECT_SWITCH_COLUMNS,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/SelectedProjectSwitches";
 import useSelectedProjectSwitches from "../../../../App/FeatureSet/Dashboard/src/Utils/UseSelectedProjectSwitches";
-import MonitorGroupsSwitchCard from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchCard";
+import MonitorGroupsSwitchRow from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchRow";
 import {
   MONITOR_GROUPS_SWITCH_COLUMN,
   MONITOR_GROUPS_SWITCH_TEST_ID,
@@ -322,7 +323,8 @@ describe("the Monitor Groups switch and the menus", () => {
   /*
    * A stand-in for App.tsx and the Monitors menu: the selected project in
    * state, followed by the hook, and a menu that shows Monitor Groups when
-   * the project has them on - the way Pages/Monitor/SideMenu reads it.
+   * the project has them on - the way Pages/Monitor/SideMenu reads it. The
+   * switch reads the same project, as Settings > Products hands it in.
    */
   const Dashboard: () => ReactElement = (): ReactElement => {
     const [selectedProject, setSelectedProject] = useState<Project | null>(
@@ -342,7 +344,11 @@ describe("the Monitor Groups switch and the menus", () => {
             ? " | Monitor Groups"
             : ""}
         </nav>
-        <MonitorGroupsSwitchCard projectId={new ObjectID(PROJECT_ID)} />
+        {selectedProject ? (
+          <MonitorGroupsSwitchRow project={selectedProject} />
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -390,5 +396,32 @@ describe("the Monitor Groups switch and the menus", () => {
     expect(screen.getByTestId("monitors-menu")).not.toHaveTextContent(
       "Monitor Groups",
     );
+  });
+
+  test("the switch follows a save made elsewhere, as the menu does", async () => {
+    render(<Dashboard />);
+
+    const control: HTMLElement = screen.getByTestId(
+      MONITOR_GROUPS_SWITCH_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    await act(async () => {
+      announceModelSwitchSaved({
+        modelType: Project,
+        modelId: new ObjectID(PROJECT_ID),
+        column: MONITOR_GROUPS_SWITCH_COLUMN,
+        value: true,
+        source: "another-place",
+      });
+      await Promise.resolve();
+    });
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("monitors-menu")).toHaveTextContent(
+      "Monitor Groups",
+    );
+    expect(updateByIdMock).not.toHaveBeenCalled();
   });
 });

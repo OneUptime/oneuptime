@@ -43,13 +43,13 @@ Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page 
 ## Activer les groupes de moniteurs
 
 :::steps
-### Ouvrir les drapeaux de fonctionnalités
+### Ouvrir la page Produits
 
-Allez dans **Paramètres du projet → Avancé → Drapeaux de fonctionnalités**. **Avancé** est replié dans le menu latéral : dépliez-le d'abord.
+Allez dans **Paramètres du projet → Basique → Produits**.
 
 ### Basculer l'interrupteur
 
-Activez l'interrupteur **Groupes de moniteurs**. Il est enregistré aussitôt : **Groupes de moniteurs** apparaît dans le menu latéral **Moniteurs**, et l'entrée **Moniteurs** de chaque page de statut devient **Ressources**, où vous pouvez ajouter un groupe.
+Activez l'interrupteur **Groupes de moniteurs**, sous **Moniteurs**. Il est enregistré aussitôt : **Groupes de moniteurs** apparaît dans le menu latéral **Moniteurs**, et l'entrée **Moniteurs** de chaque page de statut devient **Ressources**, où vous pouvez ajouter un groupe.
 :::
 
 Désactiver de nouveau l'interrupteur masque **Groupes de moniteurs** du menu. Aucun groupe n'est supprimé.
@@ -143,7 +143,7 @@ Un groupe est `/api/monitor-group`, et chaque moniteur qu'il contient est une li
 ## Dépannage
 
 :::details Groupes de moniteurs n'est pas dans le menu Moniteurs
-L'interrupteur **Groupes de moniteurs** est désactivé. Activez-le sous **Paramètres du projet → Avancé → Drapeaux de fonctionnalités**. Sur OneUptime Cloud, les groupes nécessitent aussi le plan Scale.
+L'interrupteur **Groupes de moniteurs** est désactivé. Activez-le sous **Paramètres du projet → Basique → Produits**. Sur OneUptime Cloud, les groupes nécessitent aussi le plan Scale.
 :::
 
 :::details Le groupe affiche Hors ligne, mais la plupart de ses moniteurs fonctionnent

@@ -32,6 +32,8 @@ import {
   SiteAssignmentRuleRunResult,
 } from "Common/Types/NetworkAutomation/RuleRunResult";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "Common/Types/Product/ProductKey";
 
 /*
  * ------------------------------------------------------------------
@@ -199,6 +201,7 @@ export default class NetworkRuleRunAPI {
     router.post(
       "/network-site-assignment-rule/:ruleId/run",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -246,6 +249,7 @@ export default class NetworkRuleRunAPI {
     router.post(
       "/network-device-auto-import-rule/:ruleId/run",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -347,6 +351,7 @@ export default class NetworkRuleRunAPI {
     router.post(
       "/network-device-label-rule/:ruleId/run",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Network),
       async (
         req: ExpressRequest,
         res: ExpressResponse,

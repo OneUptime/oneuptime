@@ -257,7 +257,6 @@ describe("the page is reachable", () => {
       "Advanced",
       "Domains",
       "API Keys",
-      "Feature Flags",
       PAGE_TITLE,
     ]);
 
@@ -348,7 +347,6 @@ describe("the page is reachable", () => {
     expect(pageTitlesOf(entry?.section)).toEqual([
       "Domains",
       "API Keys",
-      "Feature Flags",
       PAGE_TITLE,
     ]);
 
@@ -376,7 +374,6 @@ describe("the page is reachable", () => {
     for (const [page, title] of [
       ["SETTINGS_DOMAINS", "Domains"],
       ["SETTINGS_APIKEYS", "API Keys"],
-      ["SETTINGS_FEATURE_FLAGS", "Feature Flags"],
       [PAGE_ID, PAGE_TITLE],
     ] as Array<[string, string]>) {
       const opening: string = `BuildBreadcrumbLinksByTitles(PageMap.${page}, [`;

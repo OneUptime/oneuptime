@@ -1,6 +1,6 @@
 # Projekteinstellungen
 
-Die Projekteinstellungen enthalten, was für das ganze Projekt gilt: seinen Namen, die Werkzeuge, mit denen es verbunden ist, seine Schlüssel, wie sich Personen anmelden, seine Abrechnung und seinen Prüfpfad. Das meiste richten Sie einmal ein und kommen selten zurück. Diese Seite ist eine Karte davon und behandelt die Einstellungen ohne eigene Seite: die Details des Projekts, Beschriftungen, Feature-Flags und das Löschen des Projekts.
+Die Projekteinstellungen enthalten, was für das ganze Projekt gilt: seinen Namen, die Werkzeuge, mit denen es verbunden ist, seine Schlüssel, wie sich Personen anmelden, seine Abrechnung und seinen Prüfpfad. Das meiste richten Sie einmal ein und kommen selten zurück. Diese Seite ist eine Karte davon und behandelt die Einstellungen ohne eigene Seite: die Details des Projekts, Beschriftungen und das Löschen des Projekts.
 
 :::cards
 - [Eine Einstellung finden](#eine-einstellung-finden): Was jeder Abschnitt des Seitenmenüs enthält.
@@ -36,7 +36,7 @@ flowchart LR
 | **Telemetrie & APM** | **Ingestion-Schlüssel**, **Datenaufbewahrung**, **Nutzung** | [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys), [Datenaufbewahrung](/docs/telemetry/data-retention), [Telemetrie-Nutzung](/docs/telemetry/usage) |
 | **Benachrichtigungen** | **Benachrichtigungskanäle**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
 | **KI** | **KI-Funktionen**, **LLM-Anbieter**, **Externe MCP-Server**, **KI-Guthaben**, **KI-Ergebnisse**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [Externe MCP-Server](/docs/ai/external-mcp-servers), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |
-| **Erweitert** | **Domänen**, **API-Schlüssel**, **Feature-Flags**, **Import aus anderem Tool** | [Eigene Domains](/docs/status-pages/branding-and-domains#eigene-domains), [API-Schlüssel](/docs/permissions/index#api-schlüssel), [Feature-Flags](#feature-flags), [Wechsel von Opsgenie](/docs/moving-to-oneuptime/opsgenie) und die anderen Umzugsanleitungen |
+| **Erweitert** | **Domänen**, **API-Schlüssel**, **Import aus anderem Tool** | [Eigene Domains](/docs/status-pages/branding-and-domains#eigene-domains), [API-Schlüssel](/docs/permissions/index#api-schlüssel), [Wechsel von Opsgenie](/docs/moving-to-oneuptime/opsgenie) und die anderen Umzugsanleitungen |
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
 | **Audit-Protokolle** | **Audit-Protokolle**, **Einstellungen**, **Export** | [Audit-Protokolle](/docs/configuration/audit-logs), [Audit-Protokoll-Export](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ Jedes Produkt sagt, was es für dieses Projekt ist: **In Verwendung**, **Nicht e
 
 Projektinhaber, Projektadministratoren und alle, die das Projekt bearbeiten dürfen, ändern sie; alle anderen im Projekt können sie sehen.
 
+Unter **Monitore** fügt der Schalter **Monitor-Gruppen** Monitor-Gruppen zum Monitore-Menü hinzu. In einem neuen Projekt ist er aus, er speichert beim Umlegen, und das Ausschalten löscht keine Gruppe. Das Ändern erfordert die Rolle Projektinhaber oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Project oder Manage Billing. Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups).
+
 ## Beschriftungen
 
 Beschriftungen sind Markierungen, die Sie an Monitore, Vorfälle, Statusseiten und andere Ressourcen hängen. Sie filtern und gruppieren Listen, und sie begrenzen, wie weit die Berechtigungen eines Teams und die Regeln des Projekts reichen.
@@ -101,10 +103,6 @@ Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Men
 - **Benachrichtigungskanäle**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Projektinhaber, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, wie Mitglieder standardmäßig alarmiert werden, unter **Standardablauf für neue Mitglieder** und **Telefon für Personen im Bereitschaftsdienst** (siehe [Der Standardablauf](/docs/notifications/on-call-rules#der-standardablauf)), die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
 - **Benachrichtigungsprotokolle**: jede Benachrichtigung, die das Projekt gesendet hat, mit einem Tab pro Kanal: **E-Mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anruf**, **Push** und **Arbeitsbereich**. Der Tab **Webhook** hält jede Adresse nur mit Schema und Host fest: Der Rest ist das Geheimnis des Webhooks.
 - **Mobile Apps**: wo Sie die Apps für iOS und Android bekommen. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
-
-## Feature-Flags
-
-**Projekteinstellungen → Erweitert → Feature-Flags** schaltet optionale Funktionen für das Projekt ein oder aus. Jede ist ein Schalter, der beim Umlegen speichert. Heute enthält es **Monitor-Gruppen**, in einem neuen Projekt aus: Schalten Sie es ein, um Monitor-Gruppen zum Monitore-Menü hinzuzufügen. Das Ausschalten löscht keine Gruppe. Siehe [Monitor-Gruppen](/docs/monitor/monitor-groups).
 
 ## Das Projekt löschen
 

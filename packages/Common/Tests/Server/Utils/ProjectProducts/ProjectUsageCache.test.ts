@@ -55,7 +55,10 @@ import ActivationMilestone from "../../../../Types/Analytics/ActivationMilestone
 import ObjectID from "../../../../Types/ObjectID";
 import ProductKey from "../../../../Types/Product/ProductKey";
 import { PRODUCT_OF_TABLE } from "../../../../Types/Product/ProductOfTable";
-import { PRODUCT_USAGE_MILESTONES } from "../../../../Types/Product/ProductUsage";
+import {
+  PRODUCT_USAGE_MILESTONES,
+  PRODUCT_USAGE_TABLES,
+} from "../../../../Types/Product/ProductUsage";
 
 /*
  * WHAT EACH PROJECT USES, KEPT A FEW MINUTES PER SERVER, AND A CHANGE TO IT
@@ -247,6 +250,83 @@ describe("a product's first record", () => {
       expect(reads).toBe(2);
     },
   );
+
+  /*
+   * #7325: the products counted by some records of a table (an inventory
+   * item, a data store, a cloud resource, a security source) are read again
+   * too when the first of those records is made.
+   */
+  test.each(Object.keys(PRODUCT_USAGE_TABLES))(
+    "a %s created has the usage of the products it counts read again",
+    async (tableName: string) => {
+      expect(ProjectUsageCache.getProductsOfTable(tableName)).toEqual(
+        PRODUCT_USAGE_TABLES[tableName],
+      );
+
+      await usageOf();
+
+      await ProjectUsageCache.afterCreate({
+        tableName: tableName,
+        row: rowOf(),
+      });
+      await usageOf();
+
+      expect(reads).toBe(2);
+    },
+  );
+
+  test("a data store counts for Data Observability and Data Security: either not yet in use has it read again", async () => {
+    stored = {
+      [ProductKey.DataObservability]: false,
+      [ProductKey.DataSecurity]: true,
+    };
+    await usageOf();
+
+    stored = {
+      [ProductKey.DataObservability]: true,
+      [ProductKey.DataSecurity]: true,
+    };
+    await ProjectUsageCache.afterCreate({
+      tableName: "DataStore",
+      row: rowOf(),
+    });
+
+    expect((await usageOf())[ProductKey.DataObservability]).toBe(true);
+    expect(reads).toBe(2);
+
+    // Both known in use: a second data store costs no read.
+    ProjectUsageCache.clear();
+    reads = 0;
+    await usageOf();
+    await ProjectUsageCache.afterCreate({
+      tableName: "DataStore",
+      row: rowOf(),
+    });
+    await usageOf();
+    expect(reads).toBe(1);
+  });
+
+  test("the last data store deleted has both its products read again", async () => {
+    stored = {
+      [ProductKey.DataObservability]: true,
+      [ProductKey.DataSecurity]: true,
+    };
+    await usageOf();
+
+    stored = {
+      [ProductKey.DataObservability]: false,
+      [ProductKey.DataSecurity]: false,
+    };
+    await ProjectUsageCache.afterDelete({
+      tableName: "DataStore",
+      rows: [rowOf()],
+    });
+
+    const usage: ProjectUsage = await usageOf();
+    expect(usage[ProductKey.DataObservability]).toBe(false);
+    expect(usage[ProductKey.DataSecurity]).toBe(false);
+    expect(reads).toBe(2);
+  });
 
   test("only its own project's usage is read again", async () => {
     await usageOf(ProjectUsageCache, PROJECT_ID);

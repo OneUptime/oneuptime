@@ -1482,8 +1482,13 @@ describe("Project Settings", () => {
       new Project().getTableColumnMetadata("isFeatureFlagMonitorGroupsEnabled")
         .defaultValue,
     ).toBe(false);
-    expect(section(page, "## Feature flags")).toContain(
-      "Today it holds **Monitor Groups**, off in a new project",
+    // Feature Flags' one switch is on Products, under Monitors (#7324).
+    expect(page).not.toContain("## Feature flags");
+    expect(section(page, "## Products")).toContain(
+      "Under **Monitors**, the **Monitor Groups** switch adds Monitor Groups to the Monitors menu. It is off in a new project and saves when you flip it, and turning it off deletes no group.",
+    );
+    expect(section(page, "## Products")).toContain(
+      "Changing it takes the Project Owner role, or a custom role with the Edit Project or Manage Billing permission.",
     );
   });
 

@@ -46,7 +46,7 @@ Tutti e tre riuniscono le cose, per lettori diversi. Funzionano anche insieme: i
 | [Servizio](/docs/telemetry/services) | Un'applicazione che OneUptime ha trovato nella tua telemetria, con i suoi log, tracce, metriche, incidenti e proprietari su un'unica pagina. | Vuoi tutto ciò che riguarda un'applicazione in un solo posto. Compare da sola a partire dal suo `service.name`. |
 | [Etichetta](/docs/configuration/label-and-owner-rules) | Un tag che applichi a monitor e alla maggior parte degli altri record. Un record può averne molte. | Vuoi filtrare elenchi, limitare le autorizzazioni di un team o selezionare record nelle regole. |
 
-I gruppi di monitor partono disattivati: attivali in **Impostazioni del progetto → Avanzato → Flag delle funzionalità**.
+I gruppi di monitor partono disattivati: attivali in **Impostazioni del progetto → Base → Prodotti**.
 
 ## Sonda, agente, collector o Runner?
 

@@ -80,7 +80,7 @@ Clique em **Adicionar monitor**. A linha aparece no grupo e na página de status
 Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que o monitor fica, acima de **Mais campos**; veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 > [!TIP]
-> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Adicione um grupo de monitores em vez disso.** Clique nele e **Monitor** vira **Grupo de monitores** (**Selecionar Grupo de Monitores**); **Adicione um monitor em vez disso.** volta atrás.
+> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Básico** > **Produtos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Adicione um grupo de monitores em vez disso.** Clique nele e **Monitor** vira **Grupo de monitores** (**Selecionar Grupo de Monitores**); **Adicione um monitor em vez disso.** volta atrás.
 
 ### Adicionar vários de uma vez
 

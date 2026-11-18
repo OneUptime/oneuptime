@@ -8,7 +8,10 @@ import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
 import { getProductOfTable } from "../../../Types/Product/ProductOfTable";
-import { PRODUCT_USAGE_MILESTONES } from "../../../Types/Product/ProductUsage";
+import {
+  PRODUCT_USAGE_MILESTONES,
+  getProductsCountingTable,
+} from "../../../Types/Product/ProductUsage";
 
 /*
  * WHAT EACH PROJECT USES, KEPT A FEW MINUTES PER SERVER, AND A CHANGE TO IT
@@ -282,19 +285,47 @@ export default class ProjectUsageCache {
   }
 
   /*
-   * After a record is created: the first record of a product (ProductOfTable)
-   * that this process has seen in NOTED_TTL_MS starts a new generation of
-   * its project's usage, unless the usage kept says the product is in use
-   * already. Never fails the create.
+   * The products a table's records count for: its main record's product
+   * (ProductOfTable), and the products counted by some of their records
+   * (ProductUsage.PRODUCT_USAGE_TABLES, #7325) - a data store is Data
+   * Observability's and Data Security's.
+   */
+  public static getProductsOfTable(
+    tableName: string | null | undefined,
+  ): Array<ProductKey> {
+    const products: Array<ProductKey> = [];
+    const main: ProductKey | null = getProductOfTable(tableName);
+
+    if (main) {
+      products.push(main);
+    }
+
+    for (const product of getProductsCountingTable(tableName)) {
+      if (!products.includes(product)) {
+        products.push(product);
+      }
+    }
+
+    return products;
+  }
+
+  /*
+   * After a record is created: the first record of a product (ProductOfTable,
+   * or one a product counts, PRODUCT_USAGE_TABLES) that this process has seen
+   * in NOTED_TTL_MS starts a new generation of its project's usage, unless
+   * the usage kept says the product is in use already. Never fails the
+   * create.
    */
   public static async afterCreate(data: {
     tableName: string | null | undefined;
     row: unknown;
   }): Promise<void> {
     try {
-      const product: ProductKey | null = getProductOfTable(data.tableName);
+      const products: Array<ProductKey> = ProjectUsageCache.getProductsOfTable(
+        data.tableName,
+      );
 
-      if (!product) {
+      if (products.length === 0) {
         return;
       }
 
@@ -304,19 +335,30 @@ export default class ProjectUsageCache {
         return;
       }
 
-      const notedKey: string = ProjectUsageCache.toNotedKey(projectId, product);
+      let isEveryProductKeptInUse: boolean = true;
 
-      if (ProjectUsageCache.noted.get(notedKey)) {
-        return;
+      for (const product of products) {
+        const notedKey: string = ProjectUsageCache.toNotedKey(
+          projectId,
+          product,
+        );
+
+        if (ProjectUsageCache.noted.get(notedKey)) {
+          continue;
+        }
+
+        ProjectUsageCache.noted.set(
+          notedKey,
+          true,
+          ProjectUsageCache.NOTED_TTL_MS,
+        );
+
+        if (!(await ProjectUsageCache.isKeptAsInUse(projectId, product))) {
+          isEveryProductKeptInUse = false;
+        }
       }
 
-      ProjectUsageCache.noted.set(
-        notedKey,
-        true,
-        ProjectUsageCache.NOTED_TTL_MS,
-      );
-
-      if (await ProjectUsageCache.isKeptAsInUse(projectId, product)) {
+      if (isEveryProductKeptInUse) {
         return;
       }
 
@@ -337,9 +379,11 @@ export default class ProjectUsageCache {
     rows: Array<unknown>;
   }): Promise<void> {
     try {
-      const product: ProductKey | null = getProductOfTable(data.tableName);
+      const products: Array<ProductKey> = ProjectUsageCache.getProductsOfTable(
+        data.tableName,
+      );
 
-      if (!product || !data.rows || data.rows.length === 0) {
+      if (products.length === 0 || !data.rows || data.rows.length === 0) {
         return;
       }
 
@@ -356,9 +400,11 @@ export default class ProjectUsageCache {
       );
 
       for (const projectId of projectIds) {
-        ProjectUsageCache.noted.delete(
-          ProjectUsageCache.toNotedKey(projectId, product),
-        );
+        for (const product of products) {
+          ProjectUsageCache.noted.delete(
+            ProjectUsageCache.toNotedKey(projectId, product),
+          );
+        }
       }
 
       await ProjectUsageCache.forgetProjects(projectIds);

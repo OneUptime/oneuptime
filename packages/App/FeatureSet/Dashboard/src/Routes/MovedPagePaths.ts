@@ -68,6 +68,14 @@ export const MOVED_USERS_SETTINGS_PATHS: {
 export const MOVED_OIDC_SETTINGS_PATH: string = "oidc";
 
 /*
+ * Project Settings > Advanced > Feature Flags held one switch, Monitor
+ * Groups, which decides what the Monitors menu shows: it moved to Project
+ * Settings > Products, under Monitors, beside the switches for every other
+ * menu (#7324). Relative to …/settings/.
+ */
+export const MOVED_FEATURE_FLAGS_SETTINGS_PATH: string = "feature-flags";
+
+/*
  * Incident forms became Forms (Incidents > Settings > Forms). Relative to
  * …/incidents/.
  */

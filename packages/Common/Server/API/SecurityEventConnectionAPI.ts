@@ -19,6 +19,8 @@ import SecurityEventConnectionTester from "../Utils/SecurityEvent/Connectors/Sec
 import { SecurityConnectorSettings } from "../Utils/SecurityEvent/Connectors/Types";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 export default class SecurityEventConnectionAPI extends BaseAPI<
   SecurityEventConnection,
@@ -39,6 +41,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/run`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -105,6 +108,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
       `${basePath}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

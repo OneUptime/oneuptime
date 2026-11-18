@@ -25,6 +25,8 @@ import {
 } from "../Utils/DataSource/Types";
 import ConnectorRegistry from "../Utils/DataSource/ConnectorRegistry";
 import logger from "../Utils/Logger";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * Upper bound on stored/ad-hoc query text. Real PromQL/SQL/DSL queries are
@@ -48,6 +50,7 @@ export default class DataSourceAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Dashboards),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const body: JSONObject = req.body;

@@ -27,6 +27,8 @@ import FileOwnership from "../Utils/File/FileOwnership";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // The one answer for evidence that is not there, not a file, or not the reader's.
 export const EVIDENCE_FILE_NOT_FOUND_MESSAGE: string = "Evidence not found";
@@ -69,6 +71,7 @@ export default class SecurityCaseEvidenceAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/add-events`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.addEvents(req, res);

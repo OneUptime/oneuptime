@@ -15,7 +15,7 @@ import { ENABLE_AI_COLUMN } from "../Components/AISettings/EnableAiColumn";
  * page's menu reads "Resources" or "Monitors".
  *
  * Such a column is saved by a switch that saves the moment it is flipped
- * (Settings -> Feature Flags), with no reload. So the dashboard listens for
+ * (Settings -> Products, under Monitors), with no reload. So the dashboard listens for
  * the switch's save (ModelSwitchEvents) and swaps in a copy of the project
  * that has the new value: the menus follow at once. Before, the card's Edit
  * dialog reloaded the whole dashboard after saving.

@@ -695,7 +695,8 @@ describe("one-switch cards in the frontends", () => {
         column: "letCustomerSupportAccessProject",
       },
       {
-        file: `${DASHBOARD}/Pages/Settings/FeatureFlags.tsx`,
+        // Feature Flags' one switch, on Products under Monitors now (#7324).
+        file: `${DASHBOARD}/Pages/Settings/Products.tsx`,
         column: "isFeatureFlagMonitorGroupsEnabled",
       },
       {

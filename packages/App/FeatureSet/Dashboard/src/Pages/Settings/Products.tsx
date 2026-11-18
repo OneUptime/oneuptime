@@ -4,12 +4,15 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * Settings -> Products (issue #6814): the products this project shows in
- * its menu, on Home and in Search's list. See ProductsSettings.
+ * its menu, on Home and in Search's list, and under Monitors the switch
+ * that adds Monitor Groups to its menu (#7324). See ProductsSettings.
  */
-const Products: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const Products: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
   return (
     <Fragment>
-      <ProductsSettings />
+      <ProductsSettings currentProject={props.currentProject} />
     </Fragment>
   );
 };

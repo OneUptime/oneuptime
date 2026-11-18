@@ -10,6 +10,7 @@
     "How to Reach Me's twelve looks at the project's default ladder and at steps the server can't send, of 2026-11-18 (#9445, #9446, 30.0 s locally), are added to its minutes the same way, times 1.26: 1.2 to 1.8, until App Test's runs measure it.",
     "The status page and telemetry guided setups' suite also measures a status page's Resources grid since 2026-11-18 (StatusPageResourcesGrid.spec.ts, #7239, #7430: 20 tests, 57.2 s locally beside its fixture, built once): added to its minutes the same way, times 1.26, 3.3 to 4.5, until App Test's runs measure it.",
     "The status page theme suite's checks of 2026-11-18 - a page with no logo named in its header, and Not monitored's contrast (StatusPageName.spec.ts, #7467, #6989: 11 tests, 13.5 s locally) - are added to its minutes the same way, times 1.26: 4.8 to 5.1, until App Test's runs measure it.",
+    "Products switched off on the server's suite of 2026-11-18 (#7480) took 45.9 s locally, its two bundles built, on a machine other work ran on: 0.8 minutes times 1.26, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -126,6 +127,7 @@
     "test-security-operations-ui 1/2": 13,
     "test-security-operations-ui 2/2": 15.4,
     "test-security-page-ui": 0.8,
+    "test-server-products-ui": 1,
     "test-server-setup-ui": 0.6,
     "test-shared-ui-ui": 2.8,
     "test-side-by-side-pages-ui": 1.1,

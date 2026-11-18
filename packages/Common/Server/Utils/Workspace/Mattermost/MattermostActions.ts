@@ -109,7 +109,10 @@ import {
   MattermostRecordType,
   MattermostSubmit,
   MattermostSubmitSpec,
+  getProductsOfMattermostAction,
 } from "./MattermostActionTypes";
+import WorkspaceProductRefusal from "../WorkspaceProductRefusal";
+import ProductKey from "../../../../Types/Product/ProductKey";
 import MattermostConnection from "./MattermostConnection";
 import MattermostPublicNoteApprovalActions from "./MattermostPublicNoteApprovalActions";
 import MattermostTeams, {
@@ -278,6 +281,25 @@ export default class MattermostActions {
   public static readonly NO_ON_CALL_POLICIES_MESSAGE: string =
     "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.";
 
+  /*
+   * What a press of these products is answered with while one of them is
+   * switched off on the server (#7479), or null while every one is on.
+   */
+  public static async getProductRefusal(
+    products: ReadonlyArray<ProductKey>,
+  ): Promise<string | null> {
+    for (const product of products) {
+      const refusal: string | null =
+        await WorkspaceProductRefusal.getRefusal(product);
+
+      if (refusal) {
+        return refusal;
+      }
+    }
+
+    return null;
+  }
+
   // A press of a button or a menu item: what its presser is told.
   @CaptureSpan()
   public static async handlePress(
@@ -315,6 +337,19 @@ export default class MattermostActions {
 
     if (!spec) {
       return { ephemeral_text: MattermostActions.UNSUPPORTED_PRESS_MESSAGE };
+    }
+
+    /*
+     * A button of a product the server switched off (#7479): answered to
+     * its presser, and nothing is opened, read out or changed.
+     */
+    const productRefusal: string | null =
+      await MattermostActions.getProductRefusal(
+        getProductsOfMattermostAction(spec),
+      );
+
+    if (productRefusal) {
+      return { ephemeral_text: mdText`${productRefusal}`.toString() };
     }
 
     const pendingKind: WorkspacePendingActionKind | undefined =
@@ -420,6 +455,16 @@ export default class MattermostActions {
 
     if (!form || !spec) {
       return { error: MattermostActions.UNVERIFIED_PRESS_MESSAGE };
+    }
+
+    // A form of a product the server switched off since it opened (#7479).
+    const productRefusal: string | null =
+      await MattermostActions.getProductRefusal(
+        getProductsOfMattermostAction(spec),
+      );
+
+    if (productRefusal) {
+      return { error: productRefusal };
     }
 
     try {
@@ -815,7 +860,8 @@ export default class MattermostActions {
     if (
       err instanceof NotAuthorizedException ||
       err instanceof BadDataException ||
-      err instanceof PaymentRequiredException
+      err instanceof PaymentRequiredException ||
+      WorkspaceProductRefusal.isRefusal(err)
     ) {
       return err.message;
     }

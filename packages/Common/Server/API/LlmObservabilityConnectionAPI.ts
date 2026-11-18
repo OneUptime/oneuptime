@@ -24,6 +24,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * AI connections: the CRUD routes, plus
@@ -58,6 +60,7 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
       `${basePath}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Llm),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -131,6 +134,7 @@ export default class LlmObservabilityConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/read-now`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Llm),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =

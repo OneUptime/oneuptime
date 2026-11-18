@@ -7,6 +7,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import ProductKey from "../../../../Types/Product/ProductKey";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
@@ -179,6 +180,25 @@ const TITLE_OR_NUMBER_ARGUMENT: string = "title or number";
 const STARTS_WITH_VOWEL: RegExp = /^[aeiou]/i;
 
 export default class MicrosoftTeamsCommands {
+  /*
+   * The product a list command reads (#7479): the active incidents
+   * Incidents', the active alerts Alerts', the maintenance events Scheduled
+   * Maintenance's - refused while the server has switched it off.
+   */
+  public static getProductOfListCommand(
+    listCommand: MicrosoftTeamsListCommand,
+  ): ProductKey {
+    switch (listCommand) {
+      case MicrosoftTeamsListCommand.ActiveIncidents:
+        return ProductKey.Incidents;
+      case MicrosoftTeamsListCommand.ActiveAlerts:
+        return ProductKey.Alerts;
+      case MicrosoftTeamsListCommand.ScheduledMaintenance:
+      case MicrosoftTeamsListCommand.OngoingMaintenance:
+        return ProductKey.ScheduledMaintenance;
+    }
+  }
+
   /*
    * The list command typed, exactly - "show active incidents" or "active
    * incidents" - or null: "show active incidents in eu-west-1" is a

@@ -1,6 +1,6 @@
 # 專案設定
 
-專案設定包含適用於整個專案的內容：名稱、它所連接的工具、金鑰、人員的登入方式、帳單以及稽核紀錄。大部分內容只需設定一次，之後很少再改動。本頁是這些設定的地圖，並說明沒有獨立頁面的設定：專案詳細資訊、標籤、功能旗標和刪除專案。
+專案設定包含適用於整個專案的內容：名稱、它所連接的工具、金鑰、人員的登入方式、帳單以及稽核紀錄。大部分內容只需設定一次，之後很少再改動。本頁是這些設定的地圖，並說明沒有獨立頁面的設定：專案詳細資訊、標籤和刪除專案。
 
 :::cards
 - [尋找設定](#尋找設定): 側邊選單中每個區段包含的內容。
@@ -36,7 +36,7 @@ flowchart LR
 | **遙測與 APM** | **擷取金鑰**、**資料保留**、**使用量** | [擷取金鑰](/docs/telemetry/ingestion-keys)、[資料保留](/docs/telemetry/data-retention)、[遙測使用量](/docs/telemetry/usage) |
 | **通知** | **通知管道**、**通知日誌**、**行動應用程式** | [通知](#通知) |
 | **人工智慧** | **AI 功能**、**LLM 提供商**、**外部 MCP 伺服器**、**AI 點數**、**AI 成效**、**AI 日誌**、**MCP 伺服器** | [LLM 提供者](/docs/ai/llm-provider)、[外部 MCP 伺服器](/docs/ai/external-mcp-servers)、[MCP 伺服器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
-| **進階** | **網域**、**API 金鑰**、**功能旗標**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[功能旗標](#功能旗標)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
+| **進階** | **網域**、**API 金鑰**、**從其他工具匯入** | [自訂網域](/docs/status-pages/branding-and-domains#自訂網域)、[API 金鑰](/docs/permissions/index#api-金鑰)、[從 Opsgenie 移轉](/docs/moving-to-oneuptime/opsgenie)及其他移轉指南 |
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **帳單與發票** | **帳單**、**發票** | [帳單與用量](/docs/configuration/billing) |
 | **稽核日誌** | **稽核日誌**、**設定**、**匯出** | [稽核日誌](/docs/configuration/audit-logs)、[稽核日誌匯出](/docs/configuration/audit-log-export) |
@@ -70,6 +70,8 @@ flowchart LR
 
 專案擁有者、專案管理員以及可以編輯專案的人可以變更它；專案中的其他所有人都可以查看。
 
+**監測器** 下方的 **監測器群組** 開關會把監測器群組加入監測器選單。它在新專案中預設關閉，切換後立即儲存，關閉它不會刪除任何群組。變更它需要專案擁有者角色，或擁有 Edit Project 或 Manage Billing 權限的自訂角色。請參閱[監測器群組](/docs/monitor/monitor-groups)。
+
 ## 標籤
 
 標籤是你貼在監測器、事件、狀態頁面和其他資源上的標記。它們用於篩選和分組清單，並限制團隊權限和專案規則的作用範圍。
@@ -101,10 +103,6 @@ flowchart LR
 - **通知管道**：**通知管道**卡片為專案開啟或關閉簡訊、電話、WhatsApp 和 Telegram。四者預設皆為關閉。由專案擁有者、**帳單管理員** 或擁有 **Manage Billing** 的人開啟它們。該頁面的 **更多設定** 中還包含成員預設的呼叫方式，位於 **新成員的預設聯絡順序** 和 **待命人員的電話** 下（請參閱[預設聯絡順序](/docs/notifications/on-call-rules#預設聯絡順序)）、專案自己的郵件伺服器，位於**自訂 SMTP 設定**下（請參閱[SMTP](/docs/emails/smtp)），以及專案自己的 Twilio 帳戶（請參閱[Twilio 整合](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它還包含支付這些訊息的餘額：請參閱[預付餘額](/docs/configuration/billing#預付餘額)。
 - **通知日誌**：專案傳送的每則通知，每個管道一個分頁：**電子郵件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**呼叫**、**推送**和**工作區**。 **Webhook** 分頁只保留每個地址的協定和主機，其餘部分是 Webhook 的密鑰。
 - **行動應用程式**：取得 iOS 和 Android 應用程式的位置。請參閱[應用程式概觀](/docs/mobile-desktop-apps/index)。
-
-## 功能旗標
-
-**專案設定 → 進階 → 功能旗標**為專案開啟或關閉選用功能。每個功能都是一個開關，切換後立即儲存。目前該頁面包含**監測器群組**，在新專案中預設關閉：開啟後，監測器選單中會加入監測器群組。關閉它不會刪除任何群組。請參閱[監測器群組](/docs/monitor/monitor-groups)。
 
 ## 刪除專案
 

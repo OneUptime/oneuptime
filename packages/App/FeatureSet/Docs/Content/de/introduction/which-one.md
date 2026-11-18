@@ -46,7 +46,7 @@ Alle drei fassen Dinge zusammen, für verschiedene Leser. Sie wirken auch zusamm
 | [Dienst](/docs/telemetry/services) | Eine Anwendung, die OneUptime in Ihrer Telemetrie gefunden hat, mit ihren Protokollen, Traces, Metriken, Vorfällen und Eigentümern auf einer Seite. | Sie wollen alles über eine Anwendung an einem Ort. Sie erscheint von selbst anhand ihres `service.name`. |
 | [Beschriftung](/docs/configuration/label-and-owner-rules) | Ein Schlagwort, das Sie an Monitore und die meisten anderen Datensätze hängen. Ein Datensatz kann viele tragen. | Sie wollen Listen filtern, die Berechtigungen eines Teams beschränken oder Datensätze in Regeln herausgreifen. |
 
-Monitor-Gruppen sind anfangs ausgeschaltet: Schalten Sie sie unter **Projekteinstellungen → Erweitert → Feature-Flags** ein.
+Monitor-Gruppen sind anfangs ausgeschaltet: Schalten Sie sie unter **Projekteinstellungen → Grundlegend → Produkte** ein.
 
 ## Sonde, Agent, Collector oder Runner?
 

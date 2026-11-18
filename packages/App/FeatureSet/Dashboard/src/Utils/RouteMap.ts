@@ -1598,7 +1598,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_VIDEO_CALLS]: "video-calls",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
-  [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_BILLING]: "billing",
@@ -9668,12 +9667,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_DOMAINS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_DOMAINS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_FEATURE_FLAGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_FEATURE_FLAGS]
     }`,
   ),
 

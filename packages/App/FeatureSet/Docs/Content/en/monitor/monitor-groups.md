@@ -43,13 +43,13 @@ A monitor group is not a status page group. A status page group is a heading on 
 ## Turn on monitor groups
 
 :::steps
-### Open Feature Flags
+### Open Products
 
-Go to **Project Settings → Advanced → Feature Flags**. **Advanced** starts collapsed in the side menu: expand it first.
+Go to **Project Settings → Basic → Products**.
 
 ### Flip the switch
 
-Flip the **Monitor Groups** switch. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.
+Flip the **Monitor Groups** switch, under **Monitors**. It saves at once: **Monitor Groups** appears in the **Monitors** side menu, and each status page's **Monitors** item is renamed **Resources**, where you can add a group.
 :::
 
 Turning the switch off again hides **Monitor Groups** from the menu. It deletes no group.
@@ -143,7 +143,7 @@ A group is `/api/monitor-group`, and each monitor in it is a row of `/api/monito
 ## Troubleshooting
 
 :::details Monitor Groups is not in the Monitors menu
-The **Monitor Groups** switch is off. Turn it on under **Project Settings → Advanced → Feature Flags**. On OneUptime Cloud, groups also need the Scale plan.
+The **Monitor Groups** switch is off. Turn it on under **Project Settings → Basic → Products**. On OneUptime Cloud, groups also need the Scale plan.
 :::
 
 :::details The group shows Offline, but most of its monitors are up

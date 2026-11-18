@@ -43,13 +43,13 @@ Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist ei
 ## Monitor-Gruppen einschalten
 
 :::steps
-### Feature-Flags öffnen
+### Produkte öffnen
 
-Gehen Sie zu **Projekteinstellungen → Erweitert → Feature-Flags**. **Erweitert** ist im Seitenmenü eingeklappt: Klappen Sie es zuerst auf.
+Gehen Sie zu **Projekteinstellungen → Grundlegend → Produkte**.
 
 ### Den Schalter umlegen
 
-Legen Sie den Schalter **Monitor-Gruppen** um. Er speichert sofort: **Monitor-Gruppen** erscheint im Seitenmenü **Monitore**, und der Eintrag **Monitore** jeder Statusseite heißt nun **Ressourcen**, wo Sie eine Gruppe hinzufügen können.
+Legen Sie den Schalter **Monitor-Gruppen** unter **Monitore** um. Er speichert sofort: **Monitor-Gruppen** erscheint im Seitenmenü **Monitore**, und der Eintrag **Monitore** jeder Statusseite heißt nun **Ressourcen**, wo Sie eine Gruppe hinzufügen können.
 :::
 
 Wenn Sie den Schalter wieder ausschalten, verschwindet **Monitor-Gruppen** aus dem Menü. Keine Gruppe wird gelöscht.
@@ -143,7 +143,7 @@ Eine Gruppe ist `/api/monitor-group`, und jeder Monitor darin ist eine Zeile von
 ## Fehlerbehebung
 
 :::details Monitor-Gruppen fehlt im Menü Monitore
-Der Schalter **Monitor-Gruppen** ist aus. Schalten Sie ihn unter **Projekteinstellungen → Erweitert → Feature-Flags** ein. In OneUptime Cloud erfordern Gruppen außerdem den Scale-Plan.
+Der Schalter **Monitor-Gruppen** ist aus. Schalten Sie ihn unter **Projekteinstellungen → Grundlegend → Produkte** ein. In OneUptime Cloud erfordern Gruppen außerdem den Scale-Plan.
 :::
 
 :::details Die Gruppe zeigt Offline, aber die meisten ihrer Monitore laufen

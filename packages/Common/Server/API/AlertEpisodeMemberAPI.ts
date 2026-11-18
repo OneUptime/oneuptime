@@ -19,6 +19,8 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * An alert episode's members: the CRUD routes every model has, and
@@ -43,6 +45,7 @@ export default class AlertEpisodeMemberAPI extends BaseAPI<
       ALERT_EPISODE_MEMBERS_ADD_PATH,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Alerts),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.addAlerts(req, res);

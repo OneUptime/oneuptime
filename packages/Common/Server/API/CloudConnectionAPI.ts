@@ -27,6 +27,8 @@ import LlmProviderError from "../Utils/LlmObservability/LlmProviderError";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * Cloud connections: the CRUD routes, plus
@@ -95,6 +97,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       `${basePath}/test`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -180,6 +183,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/read-now`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const props: DatabaseCommonInteractionProps =
@@ -227,6 +231,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/stream-key`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const target: StreamConnectionTarget =
@@ -264,6 +269,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/start-streaming`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const target: StreamConnectionTarget =
@@ -299,6 +305,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       `${basePath}/:connectionId/stop-streaming`,
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const target: StreamConnectionTarget =

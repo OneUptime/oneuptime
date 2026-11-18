@@ -122,6 +122,54 @@ export const GUIDED_SETUP_PRODUCTS: Readonly<
   ],
 };
 
+/*
+ * The pages outside a project that list one product's records from every
+ * project the person is in (#7478): Active Incidents and Active Incident
+ * Episodes are Incidents', Active Alerts and Active Alert Episodes Alerts',
+ * My On-Call Policies On-Call's. The bell opens them, and an old link can.
+ * The server's off list is the same in every project, so the current
+ * project's answer says whether their product is off.
+ */
+export const CROSS_PROJECT_PAGE_PRODUCTS: Readonly<
+  Partial<Record<PageMap, ProductKey>>
+> = {
+  [PageMap.ACTIVE_INCIDENTS]: ProductKey.Incidents,
+  [PageMap.ACTIVE_INCIDENT_EPISODES]: ProductKey.Incidents,
+  [PageMap.ACTIVE_ALERTS]: ProductKey.Alerts,
+  [PageMap.ACTIVE_ALERT_EPISODES]: ProductKey.Alerts,
+  [PageMap.MY_ON_CALL_POLICIES]: ProductKey.OnCall,
+};
+
+// An address without the slashes it may end with.
+const withoutTrailingSlashes: (address: string) => string = (
+  address: string,
+): string => {
+  let end: number = address.length;
+
+  while (end > 1 && address.charAt(end - 1) === "/") {
+    end--;
+  }
+
+  return address.substring(0, end);
+};
+
+// The product of a page outside a project, by its address, or null.
+const getProductOfCrossProjectPath: (pathname: string) => ProductKey | null = (
+  pathname: string,
+): ProductKey | null => {
+  const address: string = withoutTrailingSlashes(pathname || "");
+
+  for (const page of Object.keys(CROSS_PROJECT_PAGE_PRODUCTS) as Array<PageMap>) {
+    const route: Route | undefined = RouteMap[page];
+
+    if (route && withoutTrailingSlashes(route.toString()) === address) {
+      return CROSS_PROJECT_PAGE_PRODUCTS[page] || null;
+    }
+  }
+
+  return null;
+};
+
 // A route's path under its project: "logs" for /dashboard/:projectId/logs/*.
 export const getPathUnderProject: (template: string) => string | null = (
   template: string,
@@ -198,6 +246,13 @@ const getAddressUnderProject: (pathname: string) => string | null = (
 export const getProductOfPath: (pathname: string) => ProductKey | null = (
   pathname: string,
 ): ProductKey | null => {
+  const crossProjectProduct: ProductKey | null =
+    getProductOfCrossProjectPath(pathname);
+
+  if (crossProjectProduct) {
+    return crossProjectProduct;
+  }
+
   const address: string | null = getAddressUnderProject(pathname);
 
   if (address === null) {
