@@ -174,7 +174,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Re-investigation Cooldown (Minutes)",
               description:
-                "Incidents on a monitor investigated within this many minutes reuse that investigation. Leave empty to investigate every incident. At most 1440.",
+                "Same-title incidents on a monitor within this many minutes reuse the first investigation. Leave empty to investigate every incident. At most 1440.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No cooldown",

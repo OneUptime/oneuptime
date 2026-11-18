@@ -171,7 +171,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Re-investigation Cooldown (Minutes)",
               description:
-                "Alerts from the same monitor within this many minutes reuse the first investigation. Leave empty to investigate every alert. At most 1440.",
+                "Same-title alerts from one monitor within this many minutes reuse the first investigation. Leave empty to investigate every alert. At most 1440.",
               required: false,
               fieldType: FormFieldSchemaType.Number,
               placeholder: "No cooldown",

@@ -8,6 +8,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -331,8 +333,9 @@ export default class AIIncidentInvestigationRunner {
    * analysis someone was relying on.
    *
    * An incident affects a SET of monitors rather than one, so the dedupe key
-   * is "any of them" — a monitor storm that opens several incidents is
-   * exactly the repeat work this suppresses.
+   * is "any of them", with the incident's title — a monitor storm that opens
+   * the same incident again and again is exactly the repeat work this
+   * suppresses, while different incidents on one monitor are each looked at.
    */
   @CaptureSpan()
   public static async shouldInvestigateIncident(data: {
@@ -443,6 +446,12 @@ export default class AIIncidentInvestigationRunner {
      * Per-monitor cooldown: off unless the project sets one, clamped to at
      * most a day (see AIWorkloadLimits). An incident affecting no monitor has
      * no dedupe key.
+     *
+     * The key is the monitors and the incident's title: what waits out the
+     * cooldown is the same incident again, not every incident on those
+     * monitors. One monitor can open many different incidents - an Incoming
+     * Request monitor that another alerting system posts to opens one per
+     * host and check - and one investigation must not hold the others back.
      */
     const dedupeWindowMinutes: number = AIWorkloadLimits.getCooldownInMinutes(
       project?.incidentInvestigationDedupeWindowMinutes,
@@ -452,28 +461,51 @@ export default class AIIncidentInvestigationRunner {
       const windowStart: Date =
         OneUptimeDate.getSomeMinutesAgo(dedupeWindowMinutes);
 
-      const recentRunCount: number = (
-        await AIRunService.countBy({
-          query: {
-            projectId,
-            monitorId: QueryHelper.any(monitorIds),
-            runType: AIRunType.Investigation,
-            triggeredByIncidentId: QueryHelper.notNull(),
-            triggeredByAlertId: QueryHelper.isNull(),
-            createdAt: QueryHelper.greaterThan(windowStart),
-          },
-          props: { isRoot: true },
-        })
-      ).toNumber();
+      // The incidents these monitors' investigations in the window were for.
+      const recentRuns: Array<AIRun> = await AIRunService.findBy({
+        query: {
+          projectId,
+          monitorId: QueryHelper.any(monitorIds),
+          runType: AIRunType.Investigation,
+          triggeredByIncidentId: QueryHelper.notNull(),
+          triggeredByAlertId: QueryHelper.isNull(),
+          createdAt: QueryHelper.greaterThan(windowStart),
+        },
+        select: { triggeredByIncidentId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
 
-      if (recentRunCount > 0) {
-        return {
-          investigate: false,
-          notStartedCode: "monitor_cooldown",
-          notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
-          reason: `a monitor affected by this incident was already investigated within the last ${dedupeWindowMinutes} minutes`,
-          monitorId: primaryMonitorId,
-        };
+      const investigatedIncidentIds: Array<ObjectID> = recentRuns
+        .map((run: AIRun) => {
+          return run.triggeredByIncidentId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      if (investigatedIncidentIds.length > 0) {
+        const sameTitleCount: number = (
+          await IncidentService.countBy({
+            query: {
+              projectId,
+              _id: QueryHelper.any(investigatedIncidentIds),
+              title: incident.title || "",
+            },
+            props: { isRoot: true },
+          })
+        ).toNumber();
+
+        if (sameTitleCount > 0) {
+          return {
+            investigate: false,
+            notStartedCode: "monitor_cooldown",
+            notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
+            reason: `an incident with the same title on a monitor it affects was already investigated within the last ${dedupeWindowMinutes} minutes`,
+            monitorId: primaryMonitorId,
+          };
+        }
       }
     }
 

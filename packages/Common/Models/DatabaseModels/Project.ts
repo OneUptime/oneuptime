@@ -3816,7 +3816,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Alert Re-investigation Cooldown (Minutes)",
     description:
-      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset or 0 means no cooldown, so every alert is investigated; at most 1440 minutes (a day).",
+      "Repeat alerts (the same title from the same monitor) within this many minutes are not re-investigated by AI — the first analysis stands. Unset or 0 means no cooldown, so every alert is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
@@ -3905,7 +3905,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Incident Re-investigation Cooldown (Minutes)",
     description:
-      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset or 0 means no cooldown, so every incident is investigated; at most 1440 minutes (a day).",
+      "Repeat incidents (the same title on a monitor AI investigated) within this many minutes are not re-investigated — the first analysis stands. Unset or 0 means no cooldown, so every incident is investigated; at most 1440 minutes (a day).",
     example: 30,
   })
   @Column({
