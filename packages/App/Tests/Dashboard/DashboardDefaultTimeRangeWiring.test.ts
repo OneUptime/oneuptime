@@ -124,7 +124,7 @@ describe("the dashboard inside OneUptime", () => {
   test("Save Changes saves the board as edited, and stamps no view-mode interval onto it", () => {
     expect(code).not.toContain("refreshInterval: autoRefreshInterval");
     expect(code).toContain(
-      "const configToSave: DashboardViewConfig = dashboardViewConfig; saveDashboardViewConfig(configToSave)",
+      "const configToSave: DashboardViewConfig = dashboardViewConfig; await saveDashboardViewConfig(configToSave);",
     );
   });
 
