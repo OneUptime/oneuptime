@@ -13,7 +13,7 @@ Produktanalyse teller menneskene som bruker en RUM-applikasjon, hvordan øktene 
 
 ## Hvordan personer telles
 
-Sidemenyen til en applikasjon har en seksjon **Produktanalyse**: **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter** og **Analyseinnstillinger**. **Brukere** og **Økter** teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. Hver økt teller for én person, eller for ingen:
+Sidemenyen til en applikasjon har en seksjon **Produktanalyse**: **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter** og **Analyseinnstillinger**. **Brukere** og **Økter** teller øktene som Øktavspilling tar opp, så de begynner når applikasjonens opptaker gjør det, og en økt som avspillingspolicyen ikke tar opp, telles ikke. På en installasjon som er oppgradert fra en versjon uten Produktanalyse, kopierer oppgraderingen inn øktene Øktavspilling fortsatt lagret, så de begynner med det eldste opptaket som er lagret. Hver økt teller for én person, eller for ingen:
 
 ```mermaid title="Hvem en økt teller for"
 flowchart TB
@@ -42,12 +42,12 @@ Dager telles i din egen tidssone.
 | **Nye brukere** | Aktive brukere som hadde sitt første besøk i tidsrommet. |
 | **Tilbakevendende brukere** | Aktive brukere som hadde kommet før tidsrommet begynte. |
 | **Påloggede brukere** | Aktive brukere som appen din logget på med `identify()`, og andelen deres av alle aktive brukere. |
-| **Brukere totalt** | Alle applikasjonen har sett de siste 13 månedene. |
+| **Brukere totalt** | Alle applikasjonen har sett i månedene tallene lagres, 13 som standard. |
 | **Inaktive brukere** | Personer som kom før, men ikke de siste 30 dagene, eller de 7, 14, 60 eller 90 dagene du velger. |
 
 De tre første viser også hvordan de endret seg fra perioden før. Under flisene tegner **Aktive brukere** for hver dag personene som kom den dagen, dem som kom i de 7 dagene fram til den, og dem som kom i de 30 dagene fram til den, og **Nye og tilbakevendende brukere** deler hver dags personer i to.
 
-**Personer** viser alle flisene teller, én rad per person, de sist sette først, og filteret viser én flis' personer, de anonyme besøkende eller alle. Åpne en person for første og siste besøk og hver av vedkommendes økter fra de siste 13 månedene, med **Se** på hver økt der opptaket fortsatt er lagret.
+**Personer** viser alle flisene teller, én rad per person, de sist sette først, og filteret viser én flis' personer, de anonyme besøkende eller alle. Åpne en person for første og siste besøk og hver av vedkommendes økter fra månedene tallene lagres, med **Se** på hver økt der opptaket fortsatt er lagret.
 
 ## Økter
 
@@ -55,7 +55,7 @@ De tre første viser også hvordan de endret seg fra perioden før. Under flisen
 
 - **Økter etter enhet** tegner hver dags økter fra datamaskiner, telefoner og nettbrett. En mobilapps økt på en skjerm der den korte siden er 600 punkter eller mer, teller som et nettbretts.
 - **Øktlengde** deler de avsluttede øktene inn etter hvor lenge de varte, fra under 10 sekunder til over 30 minutter. En økt som fortsatt tas opp, har ingen lengde ennå.
-- **Oppdeling** rangerer brukere og økter etter enhetstype, nettleser, operativsystem, land, appversjon, inngangsside eller side, flest brukere først.
+- **Oppdeling** rangerer brukere og økter etter enhetstype, nettleser, operativsystem, land, appversjon, inngangsside eller side, flest brukere først. Versjonen til en webapp er den siden gir opptakerens `appVersion`-alternativ; en mobilapp rapporterer sin egen.
 
 ## Send hendelser og målinger
 
@@ -138,9 +138,9 @@ En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgete
 
 ## Personvern og oppbevaring
 
-- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte.
+- **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte. 13 måneder er standard: en applikasjon kan i stedet beholde 3, 6 eller 25, valgt i **Oppbevaring av produktanalyse** under **Flere innstillinger** på siden **Analyseinnstillinger**, og et kortere valg fjerner de eldre månedene innen et døgn.
 - **Ingen navn lagret.** Tallene tar vare på en pålogget brukers enveisnøkkel og en nettlesers besøks-ID, aldri referansen eller en IP-adresse, og av egenskapene bare brukeregenskapene du oppgir. En rad navngir en pålogget bruker bare så lenge et av vedkommendes opptak fortsatt er lagret, og bare for en rolle som kan lese identitet; ellers står det **Pålogget bruker** eller **Anonym besøkende** og starten av ID-en.
-- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene og hendelsene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)).
+- **Slettet på forespørsel.** En sletteforespørsel fjerner også de samsvarende tallene og hendelsene her (se [Slett økter](/docs/telemetry/session-replay#slett-økter)). Tallet `productAnalyticsRowsDeleted` sier hvor mange rader den fjernet her.
 
 ## Hvem kan se det
 
@@ -148,7 +148,7 @@ En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgete
 
 Å lagre, gi nytt navn til og slette lagrede trakter og lojalitetstabeller krever de samme tillatelsene som å lese disse sidene, og en dashbord-widget viser en bare til en leser som har dem.
 
-Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen Prosjekteier, Prosjektadministrator eller Prosjektmedlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
+Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen Prosjekteier, Prosjektadministrator eller Prosjektmedlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer. Å velge hvor lenge tallene lagres, krever det samme som å slå hendelsene på eller av.
 
 ## Neste steg
 
