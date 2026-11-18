@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "{{count}} grupos de monitores añadidos",
   "{{count}} monitor groups added_one": "{{count}} grupo de monitores añadido",
   "{{count}} monitors added": "{{count}} monitores añadidos",
-  "{{count}} monitors added_one": "{{count}} monitor añadido"
+  "{{count}} monitors added_one": "{{count}} monitor añadido",
+  "Your changes were not saved.": "Tus cambios no se guardaron."
 }

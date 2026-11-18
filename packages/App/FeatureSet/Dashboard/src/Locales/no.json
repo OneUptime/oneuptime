@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "{{count}} monitorgrupper lagt til",
   "{{count}} monitor groups added_one": "{{count}} monitorgruppe lagt til",
   "{{count}} monitors added": "{{count}} monitorer lagt til",
-  "{{count}} monitors added_one": "{{count}} monitor lagt til"
+  "{{count}} monitors added_one": "{{count}} monitor lagt til",
+  "Your changes were not saved.": "Endringene dine ble ikke lagret."
 }

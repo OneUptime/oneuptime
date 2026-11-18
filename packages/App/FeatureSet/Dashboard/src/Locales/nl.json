@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "{{count}} monitorgroepen toegevoegd",
   "{{count}} monitor groups added_one": "{{count}} monitorgroep toegevoegd",
   "{{count}} monitors added": "{{count}} monitoren toegevoegd",
-  "{{count}} monitors added_one": "{{count}} monitor toegevoegd"
+  "{{count}} monitors added_one": "{{count}} monitor toegevoegd",
+  "Your changes were not saved.": "Uw wijzigingen zijn niet opgeslagen."
 }

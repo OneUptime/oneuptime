@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "{{count}} گروه مانیتور اضافه شد",
   "{{count}} monitor groups added_one": "{{count}} گروه مانیتور اضافه شد",
   "{{count}} monitors added": "{{count}} مانیتور اضافه شد",
-  "{{count}} monitors added_one": "{{count}} مانیتور اضافه شد"
+  "{{count}} monitors added_one": "{{count}} مانیتور اضافه شد",
+  "Your changes were not saved.": "تغییرات شما ذخیره نشد."
 }

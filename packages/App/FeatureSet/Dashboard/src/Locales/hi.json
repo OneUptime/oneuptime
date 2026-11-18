@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "{{count}} मॉनिटर समूह जोड़े गए",
   "{{count}} monitor groups added_one": "{{count}} मॉनिटर समूह जोड़ा गया",
   "{{count}} monitors added": "{{count}} मॉनिटर जोड़े गए",
-  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया"
+  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया",
+  "Your changes were not saved.": "आपके बदलाव सहेजे नहीं गए।"
 }

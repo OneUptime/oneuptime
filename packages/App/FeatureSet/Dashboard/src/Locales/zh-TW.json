@@ -56831,5 +56831,6 @@
   "{{count}} monitor groups added": "已新增 {{count}} 個監測器群組",
   "{{count}} monitor groups added_one": "已新增 {{count}} 個監測器群組",
   "{{count}} monitors added": "已新增 {{count}} 個監測器",
-  "{{count}} monitors added_one": "已新增 {{count}} 個監測器"
+  "{{count}} monitors added_one": "已新增 {{count}} 個監測器",
+  "Your changes were not saved.": "您的變更未儲存。"
 }
