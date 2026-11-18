@@ -465,7 +465,7 @@ describe("the card", () => {
     expect(read!.limit).toBe(100);
   });
 
-  test("opens the first unscrubbed finding's newest records, each leading to the trace", async () => {
+  test("opens the first unscrubbed finding's records, each leading to the trace", async () => {
     renderCard();
 
     const records: HTMLElement = await screen.findByTestId(

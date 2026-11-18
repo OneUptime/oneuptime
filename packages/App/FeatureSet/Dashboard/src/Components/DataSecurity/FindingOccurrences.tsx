@@ -20,7 +20,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -322,12 +321,15 @@ const OccurrenceRow: FunctionComponent<{
           >
             {OneUptimeDate.fromNow(time)}
           </span>
+          {/*
+           * The service's own icon sets it apart: a dot before it would start
+           * the line it wraps to on a phone.
+           */}
           {ownerName ? (
             <span
               className="inline-flex min-w-0 items-center gap-1 text-xs text-gray-500"
               data-testid="data-security-finding-occurrence-service"
             >
-              <InlineSeparator markOnly={true} />
               <Icon
                 icon={IconProp.SquareStack}
                 className="h-3.5 w-3.5 shrink-0 text-gray-400"
