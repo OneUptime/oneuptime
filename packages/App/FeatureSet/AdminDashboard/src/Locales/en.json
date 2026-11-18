@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "The email log could not be loaded.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.",
   "Outage Notifications": "Outage Notifications",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.",
   "Edit Outage Notifications": "Edit Outage Notifications",
   "Text This Number": "Text This Number",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.",

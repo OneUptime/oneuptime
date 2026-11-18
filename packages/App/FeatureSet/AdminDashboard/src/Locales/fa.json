@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "گزارش ایمیل‌ها بارگذاری نشد.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "روی این سرور ایمیلی راه‌اندازی نشده است، پس این ایمیل فرستاده نشد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند.",
   "Outage Notifications": "اعلان‌های قطعی",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "وقتی ایمیل این سرور از کار بیفتد، یا هیچ پراب سراسری گزارش ندهد، به مدیران ارشد خبر داده می‌شود، و یک بار دیگر وقتی دوباره کار کند: هرگز از راه کانالی که از کار افتاده، و حداکثر ساعتی یک بار. به ایمیل اعلان مدیر هم دربارهٔ پراب‌ها خبر داده می‌شود.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "وقتی ایمیل این سرور از کار بیفتد، یا هیچ پراب سراسری گزارش ندهد، به مدیران ارشد خبر داده می‌شود، و یک بار دیگر وقتی دوباره کار کند: هرگز از راه کانالی که از کار افتاده، و حداکثر ساعتی یک بار.",
   "Edit Outage Notifications": "ویرایش اعلان‌های قطعی",
   "Text This Number": "پیامک به این شماره",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "پیامکی از راه تنظیمات پیامک خود این سرور به این شماره فرستاده می‌شود. برای نفرستادن، خالی بگذارید.",

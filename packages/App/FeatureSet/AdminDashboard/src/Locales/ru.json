@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "Не удалось загрузить журнал писем.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "На этом сервере не настроена почта, поэтому это письмо не отправлено. Попросите администратора сервера настроить почту.",
   "Outage Notifications": "Уведомления о сбоях",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Когда почта этого сервера перестаёт работать или ни один глобальный зонд не присылает отчёты, главные администраторы получают уведомление, а когда всё снова работает, — ещё одно: никогда через канал, который перестал работать, и не чаще раза в час. Об отказе зондов узнаёт и адрес для уведомлений администратора.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Когда почта этого сервера перестаёт работать или ни один глобальный зонд не присылает отчёты, главные администраторы получают уведомление, а когда всё снова работает, — ещё одно: никогда через канал, который перестал работать, и не чаще раза в час.",
   "Edit Outage Notifications": "Изменить уведомления о сбоях",
   "Text This Number": "Отправлять SMS на этот номер",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "SMS отправляется на этот номер через собственные настройки SMS этого сервера. Оставьте поле пустым, чтобы не отправлять SMS.",

@@ -4222,7 +4222,7 @@
   "The email log could not be loaded.": "Het e-maillogboek kon niet worden geladen.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Op deze server is geen e-mail ingesteld, dus deze e-mail is niet verzonden. Vraag uw serverbeheerder om e-mail in te stellen.",
   "Outage Notifications": "Storingsmeldingen",
-  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour. The Admin Notification Email is told about the probes too.": "Als de e-mail van deze server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht, en nog een keer zodra het weer werkt: nooit via het kanaal dat stopte, en hooguit één keer per uur. Het e-mailadres voor beheerdersmeldingen krijgt ook bericht over de sondes.",
+  "When this server's email stops working, or every global probe stops reporting, master admins are told, and once more when it works again: never through the channel that stopped, and at most once an hour.": "Als de e-mail van deze server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht, en nog een keer zodra het weer werkt: nooit via het kanaal dat stopte, en hooguit één keer per uur.",
   "Edit Outage Notifications": "Storingsmeldingen bewerken",
   "Text This Number": "Sms naar dit nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Er gaat een sms naar dit nummer via de sms-instellingen van deze server. Laat het leeg om er geen te sturen.",
