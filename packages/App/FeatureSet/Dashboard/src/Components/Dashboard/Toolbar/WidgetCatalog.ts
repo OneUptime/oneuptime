@@ -432,8 +432,13 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     name: "Product Analytics",
     group: WidgetCategoryGroup.Observability,
     icon: IconProp.PresentationChartLine,
+    /*
+     * Said before the widget is added, as External Data Sources says it: a
+     * public dashboard draws neither widget's numbers, which count the
+     * application's end users (issue #6717).
+     */
     description:
-      "Funnels and retention tables saved on a RUM application's product analytics pages.",
+      "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.",
     items: [
       {
         type: DashboardComponentType.ProductAnalyticsFunnel,

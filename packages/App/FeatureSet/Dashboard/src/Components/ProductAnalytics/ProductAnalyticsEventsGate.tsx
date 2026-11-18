@@ -259,7 +259,7 @@ export const ProductAnalyticsNoEventsYet: FunctionComponent<{
       description={
         <span>
           {translator.translateText(
-            "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:",
+            "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:",
           )}
         </span>
       }

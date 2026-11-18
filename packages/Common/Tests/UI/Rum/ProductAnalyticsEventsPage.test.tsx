@@ -964,10 +964,12 @@ describe("ProductAnalyticsEvents: before there is anything to read", () => {
     expect(await screen.findByText("No events yet")).toBeInTheDocument();
     /*
      * What arrives on its own, and what the code sends, in one line on a
-     * phone: an empty state's words are at most 150 characters (issue #6660).
+     * phone: an empty state's words are at most 150 characters (issue
+     * #6660). Both recorders send them (#6629): a React Native app's are
+     * as much on their way as a web page's.
      */
     const said: string =
-      "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:";
+      "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:";
 
     expect(screen.getByText(said)).toBeInTheDocument();
     expect(said.length).toBeLessThanOrEqual(150);
