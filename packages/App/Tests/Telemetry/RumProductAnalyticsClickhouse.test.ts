@@ -155,6 +155,8 @@ interface SessionFixture {
   viewport?: [number, number] | undefined;
   browserName: string;
   browserVersion?: string | undefined;
+  /* The web page's own app version, from the recorder's option (#6625). */
+  appVersion?: string | undefined;
   osName: string;
   recorderKind?: string | undefined;
   countryCode: string;
@@ -427,6 +429,7 @@ function headerRows(fixture: SessionFixture): Array<JSONObject> {
     viewportHeight: fixture.viewport?.[1] || 900,
     browserName: fixture.browserName,
     browserVersion: fixture.browserVersion || "unknown",
+    appVersion: fixture.appVersion || "",
     osName: fixture.osName,
     recorderKind: fixture.recorderKind || "dom",
     countryCode: fixture.countryCode,
@@ -1147,6 +1150,97 @@ integration("Product analytics against ClickHouse", () => {
       { value: "GB", users: 1, sessions: 1 },
       { value: "", users: 0, sessions: 1 },
     ]);
+  });
+
+  /*
+   * A web app's own version (issue #6625): the page gives the recorder its
+   * appVersion, the header keeps it, and the session view files it before a
+   * mobile app's browser version - so the Sessions page's breakdown by
+   * version tells a web app's releases apart, as it does a mobile app's.
+   */
+  test("a web app's sessions are broken down by the version its page gave the recorder", async () => {
+    const webApplicationId: ObjectID = new ObjectID("66000000000000000000a625");
+    const web: (data: {
+      seed: string;
+      visitor: string;
+      appVersion?: string | undefined;
+      recorderKind?: string | undefined;
+      browserVersion?: string | undefined;
+    }) => SessionFixture = (data: {
+      seed: string;
+      visitor: string;
+      appVersion?: string | undefined;
+      recorderKind?: string | undefined;
+      browserVersion?: string | undefined;
+    }): SessionFixture => {
+      return {
+        sessionId: sessionId(data.seed),
+        start: at(2, 600 + Number.parseInt(data.seed, 16)),
+        application: webApplicationId,
+        visitorId: hex(data.visitor, 32),
+        deviceType: data.recorderKind ? "android" : "desktop",
+        browserName: "Chrome",
+        browserVersion: data.browserVersion,
+        appVersion: data.appVersion,
+        osName: "macOS",
+        recorderKind: data.recorderKind,
+        countryCode: "DE",
+        entryUrl: "https://shop.example.com/",
+        routes: ["https://shop.example.com/"],
+        durationMs: 30000,
+        pageCount: 1,
+        errorCount: 0,
+        finalized: true,
+      };
+    };
+
+    const sessions: Array<SessionFixture> = [
+      web({ seed: "a1", visitor: "a9", appVersion: "2.3.1" }),
+      web({ seed: "a2", visitor: "a9", appVersion: "2.3.1" }),
+      web({ seed: "a3", visitor: "a8", appVersion: "2.4.0" }),
+      /* A page that set none. */
+      web({ seed: "a4", visitor: "a7" }),
+      /* A mobile app: its version is the browser version, as before. */
+      web({
+        seed: "a5",
+        visitor: "a6",
+        recorderKind: "rn-view-tree",
+        browserVersion: "5.0.0",
+      }),
+    ];
+
+    for (const fixture of sessions) {
+      for (const row of headerRows(fixture)) {
+        await RumSessionService.insertJsonRows([row], {
+          clickhouseSettings: { wait_for_async_insert: 1 },
+        });
+      }
+    }
+
+    /* The header keeps the page's version in its own column. */
+    expect(
+      await count(
+        `SELECT count() AS rows FROM ${database}.RumSessionV1 WHERE sessionId = '${sessionId("a3")}' AND appVersion = '2.4.0' AND browserVersion = 'unknown'`,
+      ),
+    ).toBeGreaterThan(0);
+
+    const versions: ProductAnalyticsBreakdownDto =
+      await RumProductAnalyticsReadService.getBreakdown({
+        projectId: projectId,
+        rumApplicationId: webApplicationId,
+        startTime: rangeStart,
+        endTime: rangeEnd,
+        dimension: ProductAnalyticsDimension.AppVersion,
+      });
+
+    expect(versions.rows).toEqual([
+      { value: "2.3.1", users: 1, sessions: 2 },
+      { value: "", users: 1, sessions: 1 },
+      { value: "2.4.0", users: 1, sessions: 1 },
+      { value: "5.0.0", users: 1, sessions: 1 },
+    ]);
+    expect(versions.totalSessions).toBe(5);
+    expect(versions.totalUsers).toBe(4);
   });
 
   test("the people list holds who came, with their history", async () => {

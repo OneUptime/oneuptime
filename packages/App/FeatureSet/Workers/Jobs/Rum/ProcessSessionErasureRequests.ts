@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import { SESSION_REPLAY_ERASURE_JOB_NAME } from "../../Utils/SessionReplayErasureLock";
 import { getActiveSessionsKey, getEndedSessionsKey } from "./FinalizeSessions";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import {
@@ -25,8 +26,11 @@ import RumProductAnalyticsUserService from "Common/Server/Services/RumProductAna
 import RumProductAnalyticsEventService from "Common/Server/Services/RumProductAnalyticsEventService";
 import {
   ProductAnalyticsErasureFilter,
+  buildProductAnalyticsBatchFilters,
+  buildProductAnalyticsCountStatement,
   buildProductAnalyticsDeleteStatement,
   buildProductAnalyticsErasureFilters,
+  buildProductAnalyticsSessionIdFilters,
   buildProductAnalyticsUserSessionLookup,
 } from "Common/Server/Utils/RumProductAnalytics/RumProductAnalyticsErasure";
 import AnalyticsDatabaseService, {
@@ -141,10 +145,23 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  *    and erased every recording it will, eraseProductAnalyticsSubject
  *    removes what only product analytics still holds: a user's summaries
  *    and monthly rows, an application's rows, a date range's summaries.
+ *
+ *    The request says how many of those rows it removed
+ *    (productAnalyticsRowsDeleted, issue #6628), counted under each
+ *    delete's own filter just before the delete is queued. The deletes of
+ *    one request never match the same rows (RumProductAnalyticsErasure
+ *    says how), and a user's sessions an earlier batch or pass already
+ *    erased - tombstoned - are deleted again but not counted again, so a
+ *    row counts once across the request's runs.
  * ------------------------------------------------------------------
  */
 
-const JOB_NAME: string = "Rum:ProcessSessionErasureRequests";
+/*
+ * The name its run lock is taken by, too: work that must not run beside an
+ * erasure - the product analytics backfill (#6624) - holds that lock
+ * (Utils/SessionReplayErasureLock).
+ */
+const JOB_NAME: string = SESSION_REPLAY_ERASURE_JOB_NAME;
 
 /*
  * Session ids per ALTER ... DELETE. One mutation per 1000 ids keeps each
@@ -300,6 +317,7 @@ const ERASURE_REQUEST_SELECT: Select<RumSessionErasureRequest> = {
   requestedAt: true,
   sessionsDeleted: true,
   chunksDeleted: true,
+  productAnalyticsRowsDeleted: true,
   attempts: true,
 };
 
@@ -1217,11 +1235,33 @@ async function purgeErasedSessionsFromSortedSet(data: {
   return removed;
 }
 
+/* What one batch removed, as the request counts it. */
+export interface SessionBatchErasureResult {
+  chunksDeleted: number;
+  /* Product analytics rows the batch's own deletes took (issue #6628). */
+  productAnalyticsRowsDeleted: number;
+}
+
+/*
+ * The request a batch was found for, as far as product analytics is
+ * concerned (buildProductAnalyticsBatchFilters): an application's batches
+ * leave its rows to the application-wide deletes, a date range's leave the
+ * summaries and the events inside the range to its range deletes. Left out,
+ * the batch takes its sessions' summaries and events by id, as an id list's
+ * and a user's batches do.
+ */
+export interface SessionBatchRequestScope {
+  requestType: RumSessionErasureRequestType;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
+}
+
 export async function eraseSessionBatch(data: {
   databaseName: string;
   projectId: ObjectID;
   sessionIds: Array<string>;
-}): Promise<number> {
+  request?: SessionBatchRequestScope | undefined;
+}): Promise<SessionBatchErasureResult> {
   await writeErasureTombstones({
     projectId: data.projectId.toString(),
     sessionIds: data.sessionIds,
@@ -1324,23 +1364,28 @@ export async function eraseSessionBatch(data: {
 
   /*
    * Product analytics' summaries of these sessions - every row of each,
-   * the anonymous first one of a session somebody signed in during too.
-   * Before the header, which is how a retry finds this batch again.
+   * the anonymous first one of a session somebody signed in during too -
+   * and the events those sessions sent (part two), as far as the request's
+   * own last deletes do not take them (buildProductAnalyticsBatchFilters).
+   * Each counted, then deleted. Before the header, which is how a retry
+   * finds this batch again.
    */
-  await eraseSessionRowsFromTable({
-    service: RumProductAnalyticsSessionService,
-    databaseName: data.databaseName,
-    projectId: data.projectId,
-    sessionIds: data.sessionIds,
-  });
+  const analyticsFilters: Array<ProductAnalyticsErasureFilter> =
+    buildProductAnalyticsBatchFilters({
+      projectId: data.projectId,
+      requestType:
+        data.request?.requestType || RumSessionErasureRequestType.BySessionId,
+      startDate: data.request?.startDate,
+      endDate: data.request?.endDate,
+      sessionIds: data.sessionIds,
+    });
 
-  /* And the events those sessions sent (product analytics, part two). */
-  await eraseSessionRowsFromTable({
-    service: RumProductAnalyticsEventService,
-    databaseName: data.databaseName,
-    projectId: data.projectId,
-    sessionIds: data.sessionIds,
-  });
+  const productAnalyticsRowsDeleted: number =
+    await eraseProductAnalyticsFilters({
+      databaseName: data.databaseName,
+      countFilters: analyticsFilters,
+      deleteFilters: analyticsFilters,
+    });
 
   /* The header, last of the ClickHouse deletes (see "Chunks first" above). */
   await eraseSessionRowsFromTable({
@@ -1374,7 +1419,10 @@ export async function eraseSessionBatch(data: {
     );
   }
 
-  return chunksDeleted;
+  return {
+    chunksDeleted: chunksDeleted,
+    productAnalyticsRowsDeleted: productAnalyticsRowsDeleted,
+  };
 }
 
 export interface ProductAnalyticsErasureResult {
@@ -1387,6 +1435,88 @@ export interface ProductAnalyticsErasureResult {
    * remain and the request must come back next run.
    */
   moreMayRemain: boolean;
+  /*
+   * Rows the deletes are about to remove, each counted once across the
+   * request (issue #6628): the user's sessions an earlier batch or pass
+   * already erased are deleted again here but not counted again.
+   */
+  rowsDeleted: number;
+}
+
+/* The service whose table a product analytics filter reads. */
+function productAnalyticsServiceFor(
+  tableName: AnalyticsTableName,
+): AnalyticsDatabaseService<AnalyticsBaseModel> {
+  if (tableName === AnalyticsTableName.RumProductAnalyticsUser) {
+    return RumProductAnalyticsUserService;
+  }
+
+  if (tableName === AnalyticsTableName.RumProductAnalyticsEvent) {
+    return RumProductAnalyticsEventService;
+  }
+
+  return RumProductAnalyticsSessionService;
+}
+
+/*
+ * The rows a filter's delete is about to remove, across the cluster. A
+ * count is how the request shows that analytics data went with the
+ * recordings, so a count that fails fails the run like a failed delete:
+ * the request is retried rather than completed with a number that is not
+ * true.
+ */
+async function countProductAnalyticsRows(data: {
+  databaseName: string;
+  filter: ProductAnalyticsErasureFilter;
+}): Promise<number> {
+  const resultSet: ClickhouseJsonResultSet = (await productAnalyticsServiceFor(
+    data.filter.tableName,
+  ).executeQuery(
+    buildProductAnalyticsCountStatement({
+      databaseName: data.databaseName,
+      filter: data.filter,
+    }),
+  )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+  const value: number = Number((parsed.data || [])[0]?.["paRows"]);
+
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/*
+ * Count, then delete: every count first, then every delete, one after
+ * another like the batches' own. The counts read the rows before any of
+ * these deletes is queued; `countFilters` are the rows of `deleteFilters`
+ * that have not been counted before (the caller leaves out what an earlier
+ * delete of the request already took). Returns the rows counted. Exported
+ * for the Keeper-backed suite, which runs a batch's deletes ON CLUSTER.
+ */
+export async function eraseProductAnalyticsFilters(data: {
+  databaseName: string;
+  countFilters: Array<ProductAnalyticsErasureFilter>;
+  deleteFilters: Array<ProductAnalyticsErasureFilter>;
+}): Promise<number> {
+  let rows: number = 0;
+
+  for (const filter of data.countFilters) {
+    rows += await countProductAnalyticsRows({
+      databaseName: data.databaseName,
+      filter: filter,
+    });
+  }
+
+  for (const filter of data.deleteFilters) {
+    await productAnalyticsServiceFor(filter.tableName).execute(
+      buildProductAnalyticsDeleteStatement({
+        databaseName: data.databaseName,
+        filter: filter,
+      }),
+      MigrationExecuteOptions,
+    );
+  }
+
+  return rows;
 }
 
 async function readProductAnalyticsSessionIds(
@@ -1416,13 +1546,23 @@ async function readProductAnalyticsSessionIds(
  *
  * A user's sessions are looked up in product analytics itself - their
  * headers may be long gone - and deleted by id, at most one run's cap of
- * them a run; their monthly rows go by key. The lookup also sees sessions
- * the batches just queued for deletion (a mutation lands later), which
- * costs one repeated delete of them, never a missed one.
+ * them a run; their monthly rows and the events that name them go by key
+ * on the pass that finds the last of their sessions. The lookup also sees
+ * sessions the batches just queued for deletion (a mutation lands later),
+ * which costs one repeated delete of them, never a missed one - and those
+ * are not counted again: a session a batch or an earlier pass erased is
+ * tombstoned, and a first attempt counts only the user's sessions that are
+ * not. A retry does not trust the tombstones, as resolveTargetSessionIds
+ * does not (the failed attempt may have written them and died before its
+ * deletes, and its counts were never kept), and leaves out only the
+ * sessions this run's batches erased. The sessions found are tombstoned
+ * before they are deleted, as the batches' are.
  */
 export async function eraseProductAnalyticsSubject(data: {
   databaseName: string;
   request: RumSessionErasureRequest;
+  /* The sessions this run's batches erased, and counted. */
+  erasedThisRun?: Array<string> | undefined;
 }): Promise<ProductAnalyticsErasureResult> {
   const request: RumSessionErasureRequest = data.request;
   const projectId: ObjectID | undefined = request.projectId;
@@ -1438,7 +1578,12 @@ export async function eraseProductAnalyticsSubject(data: {
   }
 
   if (requestType === RumSessionErasureRequestType.BySessionId) {
-    return { deletesSubmitted: 0, userSessionsFound: 0, moreMayRemain: false };
+    return {
+      deletesSubmitted: 0,
+      userSessionsFound: 0,
+      moreMayRemain: false,
+      rowsDeleted: 0,
+    };
   }
 
   let userSessionIds: Array<string> | undefined = undefined;
@@ -1481,7 +1626,7 @@ export async function eraseProductAnalyticsSubject(data: {
     );
   }
 
-  const filters: Array<ProductAnalyticsErasureFilter> =
+  const deleteFilters: Array<ProductAnalyticsErasureFilter> =
     buildProductAnalyticsErasureFilters({
       projectId: projectId,
       requestType: requestType,
@@ -1490,30 +1635,63 @@ export async function eraseProductAnalyticsSubject(data: {
       startDate: request.startDate,
       endDate: request.endDate,
       sessionIds: userSessionIds,
+      isFinalPass: !lookupFilled,
     });
 
-  /* One after another, like the batches' deletes. */
-  for (const filter of filters) {
-    const service: AnalyticsDatabaseService<AnalyticsBaseModel> =
-      filter.tableName === AnalyticsTableName.RumProductAnalyticsUser
-        ? RumProductAnalyticsUserService
-        : filter.tableName === AnalyticsTableName.RumProductAnalyticsEvent
-          ? RumProductAnalyticsEventService
-          : RumProductAnalyticsSessionService;
+  let countFilters: Array<ProductAnalyticsErasureFilter> = deleteFilters;
 
-    await service.execute(
-      buildProductAnalyticsDeleteStatement({
-        databaseName: data.databaseName,
-        filter: filter,
+  if (userSessionIds) {
+    /*
+     * Already erased, and counted, by whoever tombstoned them: a batch of
+     * this request, an earlier pass, or another request.
+     */
+    const alreadyErased: Set<string> =
+      (request.attempts || 0) > 0
+        ? new Set<string>(data.erasedThisRun || [])
+        : await readErasedSessionIds(projectId.toString());
+
+    countFilters = buildProductAnalyticsSessionIdFilters({
+      projectId: projectId,
+      rumApplicationId: request.rumApplicationId,
+      sessionIds: userSessionIds.filter((sessionId: string): boolean => {
+        return !alreadyErased.has(sessionId);
       }),
-      MigrationExecuteOptions,
+    });
+
+    /*
+     * The monthly rows are counted once, on the last pass, with their
+     * delete. The events that name the user by key are not: on the last
+     * pass every one of them belongs to a session the lookup found, whose
+     * events the deletes by id already count.
+     */
+    countFilters.push(
+      ...deleteFilters.filter(
+        (filter: ProductAnalyticsErasureFilter): boolean => {
+          return (
+            filter.tableName === AnalyticsTableName.RumProductAnalyticsUser
+          );
+        },
+      ),
     );
+
+    /* Tombstoned before anything is deleted, as a batch's sessions are. */
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: userSessionIds,
+    });
   }
 
+  const rowsDeleted: number = await eraseProductAnalyticsFilters({
+    databaseName: data.databaseName,
+    countFilters: countFilters,
+    deleteFilters: deleteFilters,
+  });
+
   return {
-    deletesSubmitted: filters.length,
+    deletesSubmitted: deleteFilters.length,
     userSessionsFound: userSessionIds ? userSessionIds.length : 0,
     moreMayRemain: lookupFilled,
+    rowsDeleted: rowsDeleted,
   };
 }
 
@@ -1565,6 +1743,7 @@ export async function processErasureRequest(data: {
     }
 
     let chunksDeleted: number = 0;
+    let productAnalyticsRowsDeleted: number = 0;
 
     /*
      * Batches run one after another, never in parallel: one concurrent
@@ -1576,17 +1755,21 @@ export async function processErasureRequest(data: {
       sessionIds,
       MAX_SESSION_IDS_PER_MUTATION,
     )) {
-      chunksDeleted += await eraseSessionBatch({
+      const erased: SessionBatchErasureResult = await eraseSessionBatch({
         databaseName: data.databaseName,
         projectId: projectId,
         sessionIds: batch,
+        request: {
+          requestType:
+            request.requestType || RumSessionErasureRequestType.BySessionId,
+          startDate: request.startDate,
+          endDate: request.endDate,
+        },
       });
-    }
 
-    const sessionsDeleted: number =
-      (request.sessionsDeleted || 0) + sessionIds.length;
-    const totalChunksDeleted: number =
-      (request.chunksDeleted || 0) + chunksDeleted;
+      chunksDeleted += erased.chunksDeleted;
+      productAnalyticsRowsDeleted += erased.productAnalyticsRowsDeleted;
+    }
 
     /*
      * What only product analytics still holds, once the recordings this
@@ -1599,13 +1782,28 @@ export async function processErasureRequest(data: {
         : await eraseProductAnalyticsSubject({
             databaseName: data.databaseName,
             request: request,
+            erasedThisRun: sessionIds,
           });
 
     if (productAnalytics && productAnalytics.deletesSubmitted > 0) {
       logger.info(
-        `${JOB_NAME}: submitted ${productAnalytics.deletesSubmitted} product analytics delete(s) for request ${requestId.toString()}${productAnalytics.userSessionsFound > 0 ? `, covering ${productAnalytics.userSessionsFound} of the user's session(s)` : ""}`,
+        `${JOB_NAME}: submitted ${productAnalytics.deletesSubmitted} product analytics delete(s), removing ${productAnalytics.rowsDeleted} row(s), for request ${requestId.toString()}${productAnalytics.userSessionsFound > 0 ? `, covering ${productAnalytics.userSessionsFound} of the user's session(s)` : ""}`,
       );
     }
+
+    productAnalyticsRowsDeleted += productAnalytics?.rowsDeleted || 0;
+
+    /*
+     * Each counter adds this run's to what earlier runs of the request
+     * kept. A run that fails keeps none of its own: its retry counts again
+     * what is still there to delete.
+     */
+    const sessionsDeleted: number =
+      (request.sessionsDeleted || 0) + sessionIds.length;
+    const totalChunksDeleted: number =
+      (request.chunksDeleted || 0) + chunksDeleted;
+    const totalProductAnalyticsRowsDeleted: number =
+      (request.productAnalyticsRowsDeleted || 0) + productAnalyticsRowsDeleted;
 
     /*
      * Hitting the per-run cap means more of this subject may remain, so
@@ -1626,6 +1824,7 @@ export async function processErasureRequest(data: {
           status: RumSessionErasureRequestStatus.Pending,
           sessionsDeleted: sessionsDeleted,
           chunksDeleted: totalChunksDeleted,
+          productAnalyticsRowsDeleted: totalProductAnalyticsRowsDeleted,
         },
         props: {
           isRoot: true,
@@ -1633,7 +1832,7 @@ export async function processErasureRequest(data: {
       });
 
       logger.info(
-        `${JOB_NAME}: erased ${sessionIds.length} session(s) and ${chunksDeleted} chunk row(s) for request ${requestId.toString()}; more remains, requeued for the next run`,
+        `${JOB_NAME}: erased ${sessionIds.length} session(s), ${chunksDeleted} chunk row(s) and ${productAnalyticsRowsDeleted} product analytics row(s) for request ${requestId.toString()}; more remains, requeued for the next run`,
       );
 
       return;
@@ -1643,10 +1842,11 @@ export async function processErasureRequest(data: {
       requestId: requestId,
       sessionsDeleted: sessionsDeleted,
       chunksDeleted: totalChunksDeleted,
+      productAnalyticsRowsDeleted: totalProductAnalyticsRowsDeleted,
     });
 
     logger.info(
-      `${JOB_NAME}: erased ${sessionIds.length} session(s) and ${chunksDeleted} chunk row(s) for request ${requestId.toString()}`,
+      `${JOB_NAME}: erased ${sessionIds.length} session(s), ${chunksDeleted} chunk row(s) and ${productAnalyticsRowsDeleted} product analytics row(s) for request ${requestId.toString()}`,
     );
   } catch (error) {
     /*

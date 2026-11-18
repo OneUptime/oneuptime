@@ -12,8 +12,8 @@ import Permission from "../../Types/Permission";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import RumApplication from "../DatabaseModels/RumApplication";
 import {
+  MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_IDENTIFIED_PREFIX,
-  PRODUCT_ANALYTICS_RETENTION_MONTHS,
   PRODUCT_ANALYTICS_VISITOR_PREFIX,
 } from "../../Types/Rum/ProductAnalytics";
 
@@ -38,8 +38,8 @@ import {
  *
  * The month is part of the key, so a person's months never merge into one
  * row: reads fold them with min, max and the -Merge combinators. That is
- * what lets a whole month be dropped PRODUCT_ANALYTICS_RETENTION_MONTHS
- * after it with the session rows of the same month, and keeps every
+ * what lets a whole month be dropped with the session rows of the same
+ * month, at the end of the application's retention, and keeps every
  * partition's rows expiring on one day.
  *
  * Who a signed-in user is - the readable reference identify() was given -
@@ -205,9 +205,21 @@ GROUP BY projectId, rumApplicationId, personKey, month`,
       primaryKeys: ["projectId", "rumApplicationId", "personKey", "month"],
       partitionKey: "toYYYYMM(month)",
       shardingKey: "cityHash64(projectId, personKey)",
+      /*
+       * Every row of a monthly partition expires on the same day, so whole
+       * parts are dropped rather than rewritten row by row. A MATERIALIZE
+       * TTL (as a TTL change queues) recalculates each part's expiry without
+       * rewriting the part (materialize_ttl_recalculate_only), so raising
+       * the TTL reaches the parts already on disk at the cost of reading
+       * the one column it names.
+       */
       tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: `month + INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
+        "ttl_only_drop_parts = 1, materialize_ttl_recalculate_only = 1, non_replicated_deduplication_window = 10000",
+      /*
+       * The longest retention an application can choose; a shorter one is
+       * kept by Rum:EnforceProductAnalyticsRetention (issue #6626).
+       */
+      ttlExpression: `month + INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`,
       includeBaseColumns: false,
       defaultSortColumn: "month",
     });

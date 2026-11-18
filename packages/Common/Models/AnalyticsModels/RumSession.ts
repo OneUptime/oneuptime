@@ -248,6 +248,19 @@ const LOW_CARDINALITY_COLUMNS: Array<{
     title: "rrweb Version",
     description: "Version of the underlying recording library",
   },
+  /*
+   * The web page's own app version (issue #6625), from the browser
+   * recorder's appVersion option; '' when the page set none. A mobile app
+   * reports its version as browserVersion, where it always has. Product
+   * Analytics' session summaries read either (RumProductAnalyticsSession's
+   * PRODUCT_ANALYTICS_SOURCE_APP_VERSION_SQL).
+   */
+  {
+    key: "appVersion",
+    title: "App Version",
+    description:
+      "The web app's own version, from the recorder's appVersion option; '' when the page set none (a mobile app's version is browserVersion)",
+  },
 ];
 
 @OperationalResource()

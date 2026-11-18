@@ -3,6 +3,7 @@ import {
   SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConfigResponse,
+  toSessionReplayAppVersion,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
@@ -204,6 +205,17 @@ export interface RecorderInitOptions {
    * data-oneuptime-offline-storage="false" or on the init global.
    */
   offlineStorage?: boolean;
+
+  /*
+   * The version of the page's own app - "2.3.1", a build id - sent with the
+   * session's metadata and every product analytics event, so Product
+   * Analytics can break a web app's sessions and events down by release
+   * (issue #6625). Optional: left out, nothing about the recording changes.
+   * Trimmed and cut to 64 characters, as the server keeps it; a value with
+   * a control character in it is dropped (toSessionReplayAppVersion). Set
+   * it with data-oneuptime-app-version or on the init global.
+   */
+  appVersion?: string;
 }
 
 export default class Config {
@@ -326,6 +338,7 @@ export default class Config {
         : undefined,
       debug: tag.getAttribute("data-oneuptime-debug"),
       offlineStorage: tag.getAttribute("data-oneuptime-offline-storage"),
+      appVersion: tag.getAttribute("data-oneuptime-app-version"),
     };
 
     return Config.normaliseOptions(dataset, "script-tag");
@@ -439,6 +452,17 @@ export default class Config {
      */
     if (typeof userRef === "string" && userRef) {
       options.userRef = userRef;
+    }
+
+    /*
+     * Kept as the server keeps it, and only when there is one: an absent,
+     * empty or unprintable value leaves the option out, as before it
+     * existed.
+     */
+    const appVersion: string = toSessionReplayAppVersion(raw["appVersion"]);
+
+    if (appVersion) {
+      options.appVersion = appVersion;
     }
 
     return options;

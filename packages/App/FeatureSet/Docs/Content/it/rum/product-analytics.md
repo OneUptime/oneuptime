@@ -13,7 +13,7 @@ L'analisi del prodotto conta le persone che usano un'applicazione RUM, come vann
 
 ## Come si contano le persone
 
-Il menu laterale di un'applicazione ha una sezione **Analisi del prodotto**: **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente** e **Impostazioni di analisi**. **Utenti** e **Sessioni** contano le sessioni che la Riproduzione delle sessioni registra, quindi iniziano quando inizia il registratore dell'applicazione, e una sessione che la policy di riproduzione non registra non viene contata. Ogni sessione conta per una persona, o per nessuno:
+Il menu laterale di un'applicazione ha una sezione **Analisi del prodotto**: **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente** e **Impostazioni di analisi**. **Utenti** e **Sessioni** contano le sessioni che la Riproduzione delle sessioni registra, quindi iniziano quando inizia il registratore dell'applicazione, e una sessione che la policy di riproduzione non registra non viene contata. Su un'installazione aggiornata da una versione senza Analisi del prodotto, l'aggiornamento vi copia le sessioni che la Riproduzione delle sessioni conservava ancora, quindi partono dalla registrazione più vecchia conservata. Ogni sessione conta per una persona, o per nessuno:
 
 ```mermaid title="Per chi conta una sessione"
 flowchart TB
@@ -42,12 +42,12 @@ I giorni sono contati nel tuo fuso orario.
 | **Nuovi utenti** | Gli utenti attivi la cui prima visita è stata nell'intervallo. |
 | **Utenti di ritorno** | Gli utenti attivi che erano già venuti prima dell'inizio dell'intervallo. |
 | **Utenti autenticati** | Gli utenti attivi che la tua app ha autenticato con `identify()`, e la loro quota di tutti gli utenti attivi. |
-| **Utenti totali** | Tutti quelli che l'applicazione ha visto negli ultimi 13 mesi. |
+| **Utenti totali** | Tutti quelli che l'applicazione ha visto nei mesi per cui conserva i suoi numeri, 13 per impostazione predefinita. |
 | **Utenti inattivi** | Le persone venute prima ma non negli ultimi 30 giorni, o nei 7, 14, 60 o 90 giorni che scegli. |
 
 I primi tre dicono anche come sono cambiati rispetto al periodo precedente. Sotto i riquadri, **Utenti attivi** traccia, per ogni giorno, le persone venute quel giorno, quelle venute nei 7 giorni fino a quel giorno e quelle venute nei 30 giorni fino a quel giorno, e **Utenti nuovi e di ritorno** divide in due le persone di ogni giorno.
 
-**Persone** elenca tutti quelli che i riquadri contano, una riga per persona, prima i visti più di recente, e il suo filtro mostra le persone di un riquadro, i visitatori anonimi o tutti. Apri una persona per vedere la sua prima e la sua ultima visita e ognuna delle sue sessioni degli ultimi 13 mesi, con **Guarda** su ognuna la cui registrazione è ancora conservata.
+**Persone** elenca tutti quelli che i riquadri contano, una riga per persona, prima i visti più di recente, e il suo filtro mostra le persone di un riquadro, i visitatori anonimi o tutti. Apri una persona per vedere la sua prima e la sua ultima visita e ognuna delle sue sessioni dei mesi per cui i numeri vengono conservati, con **Guarda** su ognuna la cui registrazione è ancora conservata.
 
 ## Sessioni
 
@@ -55,7 +55,7 @@ I primi tre dicono anche come sono cambiati rispetto al periodo precedente. Sott
 
 - **Sessioni per dispositivo** traccia le sessioni di ogni giorno da desktop, telefoni e tablet. La sessione di un'app mobile su uno schermo il cui lato corto misura 600 punti o più conta come quella di un tablet.
 - **Durata delle sessioni** ordina le sessioni concluse per quanto sono durate, da meno di 10 secondi a oltre 30 minuti. Una sessione che è ancora in registrazione non ha ancora una durata.
-- **Dettaglio** classifica utenti e sessioni per tipo di dispositivo, browser, sistema operativo, paese, versione dell'app, pagina di ingresso o pagina, prima quelli con più utenti.
+- **Dettaglio** classifica utenti e sessioni per tipo di dispositivo, browser, sistema operativo, paese, versione dell'app, pagina di ingresso o pagina, prima quelli con più utenti. La versione di un'app web è quella che la sua pagina passa all'opzione `appVersion` del registratore; un'app mobile indica la propria.
 
 ## Inviare eventi e metriche
 
@@ -138,9 +138,9 @@ Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: 
 
 ## Privacy e conservazione
 
-- **13 mesi.** I numeri di un mese vengono rimossi il primo giorno del 13° mese successivo, quindi gli ultimi 12 mesi completi ci sono sempre, qualunque sia la conservazione propria delle registrazioni (7 giorni per impostazione predefinita). Gli eventi vengono conservati allo stesso modo.
+- **13 mesi.** I numeri di un mese vengono rimossi il primo giorno del 13° mese successivo, quindi gli ultimi 12 mesi completi ci sono sempre, qualunque sia la conservazione propria delle registrazioni (7 giorni per impostazione predefinita). Gli eventi vengono conservati allo stesso modo. 13 mesi è il valore predefinito: un'applicazione può invece conservarne 3, 6 o 25, scelti in **Conservazione dell'analisi del prodotto** sotto **Altre impostazioni** nella sua pagina **Impostazioni di analisi**, e una scelta più breve rimuove i mesi più vecchi entro un giorno.
 - **Nessun nome memorizzato.** I numeri conservano la chiave unidirezionale di un utente autenticato e l'ID visitatore di un browser, mai il riferimento o un indirizzo IP, e dei tratti solo le proprietà utente che elenchi. Una riga nomina un utente autenticato solo finché una delle sue registrazioni è ancora conservata, e solo per un ruolo che può leggere l'identità; altrimenti mostra **Utente autenticato** o **Visitatore anonimo** e l'inizio dell'ID.
-- **Cancellati su richiesta.** Una richiesta di cancellazione rimuove anche qui i numeri e gli eventi corrispondenti (vedi [Cancellare le sessioni](/docs/telemetry/session-replay#cancellare-le-sessioni)).
+- **Cancellati su richiesta.** Una richiesta di cancellazione rimuove anche qui i numeri e gli eventi corrispondenti (vedi [Cancellare le sessioni](/docs/telemetry/session-replay#cancellare-le-sessioni)). Il suo conteggio `productAnalyticsRowsDeleted` dice quante righe ha rimosso qui.
 
 ## Chi può vederla
 
@@ -148,7 +148,7 @@ Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadR
 
 Salvare, rinominare ed eliminare funnel e tabelle di fidelizzazione salvati richiede gli stessi permessi della lettura di queste pagine, e un widget della dashboard ne mostra uno solo a chi li ha.
 
-Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo Proprietario del progetto, Amministratore del progetto o Membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate.
+Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo Proprietario del progetto, Amministratore del progetto o Membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate. Scegliere per quanto tempo vengono conservati i numeri richiede lo stesso che attivare o disattivare gli eventi.
 
 ## Passaggi successivi
 

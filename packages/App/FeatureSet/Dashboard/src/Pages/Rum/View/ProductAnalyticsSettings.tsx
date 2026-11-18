@@ -9,7 +9,27 @@ import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { normalizeProductAnalyticsUserPropertyKeys } from "Common/Types/Rum/ProductAnalyticsEvents";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import {
+  DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  getProductAnalyticsRetentionMonths,
+} from "Common/Types/Rum/ProductAnalytics";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+import {
+  PRODUCT_ANALYTICS_MORE_SETTINGS_TEST_ID,
+  PRODUCT_ANALYTICS_RETENTION_DESCRIPTION,
+  PRODUCT_ANALYTICS_RETENTION_FIELD_DESCRIPTION,
+  PRODUCT_ANALYTICS_RETENTION_LINE_TEST_ID,
+  PRODUCT_ANALYTICS_RETENTION_TITLE,
+  formatProductAnalyticsRetention,
+  getProductAnalyticsRetentionOptions,
+} from "../../../Components/ProductAnalytics/ProductAnalyticsRetention";
 import ProductAnalyticsEventsSwitchCopy, {
   PRODUCT_ANALYTICS_EVENTS_SWITCH_COLUMN,
   PRODUCT_ANALYTICS_EVENTS_SWITCH_TEST_ID,
@@ -63,8 +83,17 @@ export function ProductAnalyticsUserPropertyChips(props: {
 const RumApplicationProductAnalyticsSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /* Route is ":id/product-analytics-settings": the id is one segment before the end. */
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * How long the application keeps its numbers (issue #6626), once the card
+   * has read it: the folded header names it while it is not the default.
+   */
+  const [retentionMonths, setRetentionMonths] = useState<number>(
+    DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+  );
 
   return (
     <Fragment>
@@ -141,6 +170,75 @@ const RumApplicationProductAnalyticsSettings: FunctionComponent<
           modelId: modelId,
         }}
       />
+      {/*
+       * How long product analytics keeps the application's numbers: 13
+       * months unless someone chose otherwise, which few need - so it waits
+       * folded, named in the header with its value while it is not the
+       * default.
+       */}
+      <AdvancedPageSection
+        items={[
+          foldedSectionItem(PRODUCT_ANALYTICS_RETENTION_TITLE, {
+            isSet:
+              retentionMonths !== DEFAULT_PRODUCT_ANALYTICS_RETENTION_MONTHS,
+            value: formatProductAnalyticsRetention(retentionMonths, translator),
+          }),
+        ]}
+        dataTestId={PRODUCT_ANALYTICS_MORE_SETTINGS_TEST_ID}
+      >
+        <CardModelDetail<RumApplication>
+          name={PRODUCT_ANALYTICS_RETENTION_TITLE}
+          cardProps={{
+            title: PRODUCT_ANALYTICS_RETENTION_TITLE,
+            description: PRODUCT_ANALYTICS_RETENTION_DESCRIPTION,
+          }}
+          isEditable={true}
+          editButtonText="Edit Retention"
+          editModalTitle="Edit Retention"
+          formFields={[
+            {
+              field: { productAnalyticsRetentionInMonths: true },
+              title: "Retention",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions: getProductAnalyticsRetentionOptions(translator),
+              required: true,
+              description: PRODUCT_ANALYTICS_RETENTION_FIELD_DESCRIPTION,
+            },
+          ]}
+          modelDetailProps={{
+            modelType: RumApplication,
+            id: "model-detail-rum-application-product-analytics-retention",
+            onItemLoaded: (item: RumApplication): void => {
+              setRetentionMonths(
+                getProductAnalyticsRetentionMonths(
+                  item.productAnalyticsRetentionInMonths,
+                ),
+              );
+            },
+            fields: [
+              {
+                field: { productAnalyticsRetentionInMonths: true },
+                title: "Retention",
+                fieldType: FieldType.Element,
+                getElement: (item: RumApplication): ReactElement => {
+                  return (
+                    <span
+                      className="text-sm text-gray-900"
+                      data-testid={PRODUCT_ANALYTICS_RETENTION_LINE_TEST_ID}
+                    >
+                      {formatProductAnalyticsRetention(
+                        item.productAnalyticsRetentionInMonths,
+                        translator,
+                      )}
+                    </span>
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };

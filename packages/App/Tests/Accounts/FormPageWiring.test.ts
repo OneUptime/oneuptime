@@ -256,9 +256,12 @@ describe("the page talks to the server through its own client only", () => {
     expect(
       sliceBetween(clientSource, "public static override handleError(", "}"),
     ).toContain("return error;");
-    // Nothing between the braces: no storage cleared, no request, no navigation.
+    /*
+     * Nothing but a sign-out already over (BaseAPI waits for one, issue
+     * #9508): no storage cleared, no request, no navigation.
+     */
     expect(clientSource).toContain(
-      "public static override logoutUser(): void {}",
+      "public static override logoutUser(): Promise<void> { return Promise.resolve(); }",
     );
 
     const headers: string = sliceBetween(

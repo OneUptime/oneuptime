@@ -16,6 +16,11 @@ const Logout: () => JSX.Element = () => {
 
   const logout: PromiseVoidFunction = async (): Promise<void> => {
     if (StatusPageUtil.getStatusPageId()) {
+      /*
+       * The sign-in page opens only once the server has signed the reader
+       * out, or the wait for it is over (issue #9508): the page change
+       * would otherwise cancel the sign-out in Firefox.
+       */
       await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
       const navRoute: Route = StatusPageUtil.isPreviewPage()
         ? RouteUtil.populateRouteParams(
