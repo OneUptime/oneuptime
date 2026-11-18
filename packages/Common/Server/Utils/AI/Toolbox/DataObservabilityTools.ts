@@ -85,10 +85,13 @@ interface ToolReadScope {
  *     to what its members own, or to some labels, is told only of those,
  *     as on Data Observability's own routes;
  *   - a run of OneUptime's own, read as root - an investigation - what
- *     nobody in particular may read: none an owner or a label sets apart,
- *     beside what the alert it investigates names itself. Its report goes
- *     where everyone who may see that alert reads it, as the context it
- *     starts from was read (DataAlertContext).
+ *     everyone who may see its subject may read: none an owner or a label
+ *     sets apart from one of them, beside what the alert it investigates
+ *     names itself - every table and pipeline in a project whose roles read
+ *     none of them only by owner or label (DataObservabilityReadScope
+ *     .forRootRun, #9576). Its report goes where everyone who may see that
+ *     alert reads it, as the context it starts from was read
+ *     (DataAlertContext).
  */
 async function getToolReadScope(ctx: ToolContext): Promise<ToolReadScope> {
   if (!ctx.props.isRoot) {
@@ -99,7 +102,7 @@ async function getToolReadScope(ctx: ToolContext): Promise<ToolReadScope> {
   }
 
   return {
-    scope: DataObservabilityReadScope.nobodyInParticular(ctx.projectId),
+    scope: DataObservabilityReadScope.forRootRun(ctx.projectId, ctx.props),
     named: ctx.subjectAlertId
       ? await DataAlertLineageReader.readNamed(
           ctx.projectId,

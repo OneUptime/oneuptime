@@ -1127,6 +1127,7 @@ const DockerHostOverview: FunctionComponent<
                       <ContainerHostHealthPill
                         health={getContainerHostHealth(attentionItems)}
                         isConnected={isConnected}
+                        items={attentionItems}
                       />
                     ) : (
                       <></>

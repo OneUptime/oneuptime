@@ -420,6 +420,11 @@ export default class TelemetryIngestionKey extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     allowedValues: Object.values(TelemetryIngestionKeyType),
+    /*
+     * Readable through a relation, as the key's name is: a refusal says what
+     * kind of key was refused (INGEST_REFUSAL_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "Key Type",
     description:
       "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. This cannot be changed after the key is created - create a new key instead.",
@@ -502,6 +507,11 @@ export default class TelemetryIngestionKey extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    /*
+     * Readable through a relation, as the key's name is: a refusal says which
+     * service the refused key is pinned to (INGEST_REFUSAL_SELECT).
+     */
+    canReadOnRelationQuery: true,
     title: "Pinned Service Name",
     description:
       "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts.",

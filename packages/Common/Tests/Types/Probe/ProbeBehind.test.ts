@@ -3,6 +3,7 @@ import ProbeBehindUtil, {
   BEHIND_AFTER_MS,
   CHECK_LATE_AFTER_MS,
   ON_TIME_AFTER_MS,
+  ProbeBehindRead,
   ProbeBehindWork,
   ProbeLateChecks,
   ProbeLateDevicePolls,
@@ -260,6 +261,9 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
     devicePollsLateSince: at(2 * MINUTE),
     devicePollsLastLateAt: at(3 * MINUTE),
   };
+  // The same, as a page reads a probe late on only the one: both kinds of time.
+  const checksBehindRead: ProbeBehindRead = { ...checksBehind };
+  const pollsBehindRead: ProbeBehindRead = { ...pollsBehind };
 
   test("the device polls' times are judged as the checks' are, by the same rules", () => {
     const [first, second] = readings([true, true]);
@@ -285,8 +289,8 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
   });
 
   test("devices behind do not make the monitors behind, nor the other way round", () => {
-    expect(ProbeBehindUtil.isBehind(pollsBehind)).toBe(false);
-    expect(ProbeBehindUtil.isDevicePollsBehind(checksBehind)).toBe(false);
+    expect(ProbeBehindUtil.isBehind(pollsBehindRead)).toBe(false);
+    expect(ProbeBehindUtil.isDevicePollsBehind(checksBehindRead)).toBe(false);
     expect(ProbeBehindUtil.isDevicePollsBehind(pollsBehind)).toBe(true);
     expect(ProbeBehindUtil.isBehind(checksBehind)).toBe(true);
   });
@@ -379,7 +383,7 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
     // The checks' times are not the device polls'.
     expect(
       ProbeBehindUtil.hasDevicePollsChanged(
-        { ...checksBehind },
+        checksBehindRead,
         ProbeBehindUtil.clearedDevicePolls(),
       ),
     ).toBe(false);

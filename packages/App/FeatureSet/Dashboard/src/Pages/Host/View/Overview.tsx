@@ -83,9 +83,12 @@ import {
 import {
   ResourceHealth,
   getResourceConnectionLabel,
-  getResourceHealthLabel,
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
 import EmptyValue, {
   EMPTY_VALUE_MARK,
 } from "Common/UI/Components/Detail/EmptyValue";
@@ -151,11 +154,21 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   formatReaderFigure,
   getDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
+
+// What a Degraded or Unhealthy host's pill opens (ResourceHealthPill).
+export const HOST_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this host is Degraded"),
+  unhealthyTitle: translationKey("Why this host is Unhealthy"),
+};
 
 // Every alert OneUptime recommends for a host, as its Recommendations lists.
 const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
@@ -1250,6 +1263,44 @@ const HostOverview: FunctionComponent<
     });
   };
 
+  /*
+   * What on the host needs someone (HostHealth), for its Needs attention
+   * card and for what its Degraded or Unhealthy pill opens: one list, so the
+   * two never disagree. A host that is not reporting has none - what it last
+   * reported is no longer the truth.
+   */
+  const getAttentionItems: (row: Host) => Array<ResourceAttentionItem> = (
+    row: Host,
+  ): Array<ResourceAttentionItem> => {
+    if (!isHostReporting(row)) {
+      return [];
+    }
+    return getHostOwnAttentionItems({
+      host: row,
+      now: new Date(),
+      collectorName: getHostCollectorConfigLabel(
+        {
+          configName: row.collectorConfig?.name,
+          osType: row.osType,
+        },
+        translator,
+      ),
+      collectorRoute: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+        { modelId: modelId },
+      ),
+      getUnitRoute: (unitName: string): Route => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW] as Route,
+          {
+            modelId: modelId,
+            subModelId: encodeUnitNameForUrl(unitName),
+          },
+        );
+      },
+    });
+  };
+
   const renderHero: () => ReactElement | null = (): ReactElement | null => {
     if (!host) {
       return null;
@@ -1401,25 +1452,6 @@ const HostOverview: FunctionComponent<
     const showHealth: boolean = assessment.isReporting
       ? assessment.hasFreshReadings || assessment.severity !== null
       : Boolean(host.lastSeenAt);
-    const healthLabel: string = getResourceHealthLabel({
-      translator: translator,
-      health: health,
-      isConnected: assessment.isReporting,
-    });
-    const healthBadgeClass: string = !assessment.isReporting
-      ? "bg-gray-50 text-gray-600 ring-gray-200"
-      : health === "Healthy"
-        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-        : health === "Degraded"
-          ? "bg-amber-50 text-amber-700 ring-amber-200"
-          : "bg-red-50 text-red-700 ring-red-200";
-    const healthDotClass: string = !assessment.isReporting
-      ? "bg-gray-400"
-      : health === "Healthy"
-        ? "bg-emerald-500"
-        : health === "Degraded"
-          ? "bg-amber-500"
-          : "bg-red-500";
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1483,16 +1515,19 @@ const HostOverview: FunctionComponent<
                     </span>
                     {showHealth ? (
                       <span className="inline-flex items-center gap-1">
-                        <span
-                          data-testid="host-hero-health"
-                          data-health={assessment.state}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
-                          />
-                          {healthLabel}
-                        </span>
+                        {/*
+                         * Health Unknown in grey while the host is not
+                         * reporting; Degraded or Unhealthy opens why - its
+                         * Needs attention rows (ResourceHealthPill).
+                         */}
+                        <ResourceHealthPill
+                          health={health}
+                          isConnected={assessment.isReporting}
+                          items={getAttentionItems(host)}
+                          testId="host-hero-health"
+                          words={HOST_HEALTH_WORDS}
+                          showKind={true}
+                        />
                         <InfoTooltip
                           label="Host Health"
                           text={HOST_METRIC_DESCRIPTIONS.hostHealth}
@@ -2210,30 +2245,7 @@ const HostOverview: FunctionComponent<
       {host && isHostReporting(host) ? (
         <NeedsAttentionCard
           testId="host-needs-attention"
-          items={getHostOwnAttentionItems({
-            host: host,
-            now: new Date(),
-            collectorName: getHostCollectorConfigLabel(
-              {
-                configName: host.collectorConfig?.name,
-                osType: host.osType,
-              },
-              translator,
-            ),
-            collectorRoute: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
-              { modelId: modelId },
-            ),
-            getUnitRoute: (unitName: string): Route => {
-              return RouteUtil.populateRouteParams(
-                RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW] as Route,
-                {
-                  modelId: modelId,
-                  subModelId: encodeUnitNameForUrl(unitName),
-                },
-              );
-            },
-          })}
+          items={getAttentionItems(host)}
           current={HOST_ATTENTION_CURRENT}
         />
       ) : (

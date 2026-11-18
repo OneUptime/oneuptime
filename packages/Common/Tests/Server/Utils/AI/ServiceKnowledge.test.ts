@@ -27,6 +27,11 @@ import AIRunHumanVerdict from "../../../../Types/AI/AIRunHumanVerdict";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import {
+  readAudienceOf,
+  readAudienceProps,
+} from "../../../Helpers/ReadAudienceFixtures";
 import {
   afterEach,
   beforeEach,
@@ -55,6 +60,8 @@ import type { SpyInstance } from "jest-mock";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-cccc-4aaa-8bbb-000000000001",
 );
+// Everyone who may see the subject, in a project whose roles narrow nobody.
+const READERS: ReadAudience = readAudienceOf({ projectId: PROJECT_ID });
 const RESOLVED_STATE: ObjectID = new ObjectID(
   "0193c0de-cccc-4aaa-8bbb-000000000002",
 );
@@ -426,6 +433,7 @@ describe("reading what is known", () => {
     ];
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: [CHECKOUT],
     });
@@ -441,7 +449,7 @@ describe("reading what is known", () => {
     for (const read of [...incidentReads, ...alertReads, ...monitorReads]) {
       const query: JSONObject = read.query as unknown as JSONObject;
       expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(read.props).toEqual({ isRoot: true });
+      expect(read.props).toEqual(readAudienceProps(READERS));
     }
 
     for (const read of [...incidentReads, ...alertReads]) {
@@ -462,6 +470,7 @@ describe("reading what is known", () => {
     incidentsByService[1]!.id = CURRENT_INCIDENT;
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: [CHECKOUT],
       excludeIncidentId: CURRENT_INCIDENT,
@@ -482,6 +491,7 @@ describe("reading what is known", () => {
     runs = [run];
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: [CHECKOUT],
     });
@@ -512,6 +522,7 @@ describe("reading what is known", () => {
     fixes = [fix];
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: [CHECKOUT],
     });
@@ -543,6 +554,7 @@ describe("reading what is known", () => {
     ];
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: many,
     });
@@ -574,6 +586,7 @@ describe("reading what is known", () => {
     });
 
     const lessons: Array<ServiceLessons> = await ServiceKnowledge.read({
+      readAudience: READERS,
       projectId: PROJECT_ID,
       services: [CHECKOUT],
     });
@@ -583,10 +596,15 @@ describe("reading what is known", () => {
 
   test("no services: nothing is read", async () => {
     expect(
-      await ServiceKnowledge.read({ projectId: PROJECT_ID, services: [] }),
+      await ServiceKnowledge.read({
+        projectId: PROJECT_ID,
+        services: [],
+        readAudience: READERS,
+      }),
     ).toEqual([]);
     expect(
       await ServiceKnowledge.getContextSection({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         services: [],
       }),
@@ -604,6 +622,7 @@ describe("reading what is known", () => {
 
     expect(
       await ServiceKnowledge.getContextSection({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         services: [CHECKOUT],
       }),
@@ -631,6 +650,7 @@ describe("the services a subject is on", () => {
 
     expect(
       await ServiceKnowledge.readServicesOfIncident({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentId: CURRENT_INCIDENT,
       }),
@@ -645,6 +665,7 @@ describe("the services a subject is on", () => {
 
     expect(
       await ServiceKnowledge.readServicesOfIncident({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         incidentId: CURRENT_INCIDENT,
       }),
@@ -659,6 +680,7 @@ describe("the services a subject is on", () => {
 
     expect(
       await ServiceKnowledge.readServicesOfAlert({
+        readAudience: READERS,
         projectId: PROJECT_ID,
         services: [serviceRow(CHECKOUT)],
         monitorId: CHECKOUT_MONITOR,

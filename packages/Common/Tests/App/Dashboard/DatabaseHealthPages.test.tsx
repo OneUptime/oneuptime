@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -396,6 +402,56 @@ describe("a database's Overview: its health beside its liveness", () => {
     expect(
       within(card).getByTestId("database-needs-attention-summary"),
     ).toHaveTextContent("1 critical");
+  });
+
+  test("its Unhealthy pill opens why: the same rows, each a step from where its numbers are (#9537)", async () => {
+    await renderOverview(
+      ordersDb({
+        status: "connected",
+        collectorLastSeenAt: minutesAgo(2),
+        readings: {
+          ...CALM_POSTGRESQL,
+          "Sum|postgresql.backends|": 96,
+          "Max|postgresql.wal.delay|operation=replay": 42,
+        },
+      }),
+    );
+
+    const health: HTMLElement = screen.getByTestId("resource-overview-health");
+    expect(health.tagName).toBe("BUTTON");
+    expect(health).toHaveAttribute("aria-haspopup", "dialog");
+
+    fireEvent.click(health);
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Why this database is Unhealthy");
+    const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "resource-overview-health-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["connections", "replication"]);
+    expect(rows[0]).toHaveTextContent("Connections at 96% of max_connections");
+    expect(
+      within(rows[0]!).getByTestId("resource-overview-health-dialog-view"),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/databases/${DATABASE_ID_STRING}/metrics`),
+    );
+  });
+
+  test("calm readings: its Healthy pill opens nothing", async () => {
+    await renderOverview(
+      ordersDb({
+        status: "connected",
+        collectorLastSeenAt: minutesAgo(2),
+        readings: CALM_POSTGRESQL,
+      }),
+    );
+
+    expect(screen.getByTestId("resource-overview-health").tagName).toBe("SPAN");
   });
 
   test("calm readings: Healthy, and no Needs attention card", async () => {

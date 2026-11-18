@@ -80,7 +80,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,

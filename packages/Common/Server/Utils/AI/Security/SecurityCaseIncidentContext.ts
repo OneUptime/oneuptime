@@ -12,6 +12,8 @@ import {
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import { loadIncidentSecurity } from "../../SecurityEvent/Connections/ConnectionsLoader";
 import logger from "../../Logger";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 import {
   CONNECTION_KIND_NOUNS,
   securityValue,
@@ -36,6 +38,10 @@ import {
  * or a cluster the incident affects (IncidentSecurity, which the incident's
  * Security card shows), whichever came first - an outage on web-1 while a
  * brute force against web-1 is open is worth the investigation knowing.
+ *
+ * Both are read for the incident's readers (readAudience, #9576): a case
+ * that names a record set apart from one of them, where some role reads
+ * that kind only by owner or label, is never told.
  */
 
 export const MAX_INCIDENT_SECURITY_CASES: number = 3;
@@ -46,6 +52,7 @@ export default class SecurityCaseIncidentContext {
   public static async read(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    readAudience: ReadAudience;
   }): Promise<Array<SecurityCase>> {
     return await SecurityCaseService.findBy({
       query: {
@@ -65,7 +72,7 @@ export default class SecurityCaseIncidentContext {
       sort: { createdAt: SortOrder.Descending },
       limit: MAX_INCIDENT_SECURITY_CASES,
       skip: 0,
-      props: { isRoot: true },
+      props: ReadAudiencePermission.getReadProps(data.readAudience),
     });
   }
 
@@ -76,6 +83,7 @@ export default class SecurityCaseIncidentContext {
   public static async readNamingCases(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    readAudience: ReadAudience;
   }): Promise<IncidentSecurityJson["namingItsResources"]> {
     try {
       return (
@@ -83,7 +91,7 @@ export default class SecurityCaseIncidentContext {
           await loadIncidentSecurity().read({
             projectId: data.projectId,
             incidentId: data.incidentId,
-            props: { isRoot: true },
+            props: ReadAudiencePermission.getReadProps(data.readAudience),
           })
         )?.namingItsResources || []
       );
@@ -196,6 +204,8 @@ export default class SecurityCaseIncidentContext {
   public static async buildContextSectionFor(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    // Everyone who may see the incident: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<string> {
     const [cases, namingCases]: [
       Array<SecurityCase>,

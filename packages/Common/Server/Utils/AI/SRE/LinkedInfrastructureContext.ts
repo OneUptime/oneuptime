@@ -63,6 +63,10 @@ import {
   isOpenStackReachEmpty,
 } from "../../../../Types/OpenStack/OpenStackLinks";
 import ServiceService from "../../../Services/ServiceService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
 
 /*
  * AI SRE - the infrastructure an incident or alert is linked to, and the
@@ -89,6 +93,12 @@ import ServiceService from "../../../Services/ServiceService";
  *     another project;
  *   - a private alert: its title would reach the subject's report, which
  *     everyone who can see the subject reads;
+ *   - an alert, or an OpenStack cloud a resource runs on, set apart by an
+ *     owner or a label from somebody who reads the report, where some role
+ *     reads them only by owner or label: the alerts are read for the
+ *     subject's readers (readAudience, #9576), and a placement on a cloud
+ *     they may not read is never told. The resources themselves are the
+ *     subject's own: its Affected Resources name them to every reader;
  *   - for an alert subject, the alert itself.
  */
 
@@ -472,6 +482,8 @@ export default class LinkedInfrastructureContext {
   public static async readForIncident(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
+    // Everyone who may see the incident: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<LinkedInfrastructure | null> {
     const incident: {
       createdAt?: Date | undefined;
@@ -507,6 +519,7 @@ export default class LinkedInfrastructureContext {
         subjectKind: "incident",
         subjectCreatedAt: incident.createdAt,
         resources,
+        readAudience: data.readAudience,
       })),
       openStack: await LinkedInfrastructureContext.readOpenStack({
         projectId: data.projectId,
@@ -518,6 +531,7 @@ export default class LinkedInfrastructureContext {
         await LinkedInfrastructureContext.readOpenStackPlacements({
           projectId: data.projectId,
           resources,
+          readAudience: data.readAudience,
         }),
       openStackAttention:
         await LinkedInfrastructureContext.readOpenStackAttention({
@@ -532,6 +546,8 @@ export default class LinkedInfrastructureContext {
   public static async readForAlert(data: {
     projectId: ObjectID;
     alertId: ObjectID;
+    // Everyone who may see the alert: what every one of them may read.
+    readAudience: ReadAudience;
   }): Promise<LinkedInfrastructure | null> {
     const alert: Alert | null = await AlertService.findOneBy({
       query: { _id: data.alertId.toString(), projectId: data.projectId },
@@ -564,6 +580,7 @@ export default class LinkedInfrastructureContext {
         subjectCreatedAt: alert.createdAt,
         resources,
         excludeAlertId: data.alertId,
+        readAudience: data.readAudience,
       })),
       openStack: await LinkedInfrastructureContext.readOpenStack({
         projectId: data.projectId,
@@ -575,6 +592,7 @@ export default class LinkedInfrastructureContext {
         await LinkedInfrastructureContext.readOpenStackPlacements({
           projectId: data.projectId,
           resources,
+          readAudience: data.readAudience,
         }),
       openStackAttention:
         await LinkedInfrastructureContext.readOpenStackAttention({
@@ -589,6 +607,42 @@ export default class LinkedInfrastructureContext {
    * know rather than the thing an investigation stands on, so a read that fails says nothing.
    */
   private static async readOpenStackPlacements(data: {
+    projectId: ObjectID;
+    resources: Array<LinkedInfrastructureResource>;
+    readAudience: ReadAudience;
+  }): Promise<Array<OpenStackPlacementOfResource> | undefined> {
+    const found: Array<OpenStackPlacementOfResource> | undefined =
+      await LinkedInfrastructureContext.readEveryOpenStackPlacement(data);
+
+    if (!found) {
+      return undefined;
+    }
+
+    /*
+     * A placement names the cloud, its instance and project: one on a cloud
+     * the subject's readers may not read is never told (#9576).
+     */
+    const readableClouds: Set<string> =
+      await ReadAudienceReader.readReadableIds({
+        service: OpenStackCloudService,
+        ids: found.map((each: OpenStackPlacementOfResource): string => {
+          return each.placement.openStackCloudId;
+        }),
+        audience: data.readAudience,
+      });
+    const kept: Array<OpenStackPlacementOfResource> = found.filter(
+      (each: OpenStackPlacementOfResource): boolean => {
+        return readableClouds.has(
+          each.placement.openStackCloudId.toLowerCase(),
+        );
+      },
+    );
+
+    return kept.length > 0 ? kept : undefined;
+  }
+
+  // Where each linked resource is in a cloud, whoever may read the cloud.
+  private static async readEveryOpenStackPlacement(data: {
     projectId: ObjectID;
     resources: Array<LinkedInfrastructureResource>;
   }): Promise<Array<OpenStackPlacementOfResource> | undefined> {
@@ -771,6 +825,8 @@ export default class LinkedInfrastructureContext {
     subjectCreatedAt: Date;
     resources: Array<LinkedInfrastructureResource>;
     excludeAlertId?: ObjectID | undefined;
+    // The subject's readers: an alert set apart from one of them is never read.
+    readAudience: ReadAudience;
   }): Promise<LinkedInfrastructure> {
     const readAt: Date = OneUptimeDate.getCurrentDate();
     const windowStart: Date = OneUptimeDate.addRemoveMinutes(
@@ -818,20 +874,28 @@ export default class LinkedInfrastructureContext {
 
       const reads: Array<Promise<Array<Alert>>> = [
         // Opened in the window, whatever their state now.
-        LinkedInfrastructureContext.findAlerts(column, {
-          ...relationQuery,
-          createdAt: QueryHelper.greaterThanEqualTo(windowStart),
-        } as Query<Alert>),
+        LinkedInfrastructureContext.findAlerts(
+          column,
+          {
+            ...relationQuery,
+            createdAt: QueryHelper.greaterThanEqualTo(windowStart),
+          } as Query<Alert>,
+          data.readAudience,
+        ),
       ];
 
       // Opened before the window and still open.
       if (openStateIds.length > 0) {
         reads.push(
-          LinkedInfrastructureContext.findAlerts(column, {
-            ...relationQuery,
-            createdAt: QueryHelper.lessThan(windowStart),
-            currentAlertStateId: QueryHelper.any(openStateIds),
-          } as Query<Alert>),
+          LinkedInfrastructureContext.findAlerts(
+            column,
+            {
+              ...relationQuery,
+              createdAt: QueryHelper.lessThan(windowStart),
+              currentAlertStateId: QueryHelper.any(openStateIds),
+            } as Query<Alert>,
+            data.readAudience,
+          ),
         );
       }
 
@@ -1414,6 +1478,7 @@ export default class LinkedInfrastructureContext {
   private static async findAlerts(
     column: string,
     query: Query<Alert>,
+    readAudience: ReadAudience,
   ): Promise<Array<Alert>> {
     return await AlertService.findBy({
       query,
@@ -1436,7 +1501,8 @@ export default class LinkedInfrastructureContext {
       // One more than listed, to know when there were more.
       limit: MAX_RELATED_ALERTS + 1,
       skip: 0,
-      props: { isRoot: true },
+      // As everyone who may see the subject may read them (#9576).
+      props: ReadAudiencePermission.getReadProps(readAudience),
     });
   }
 

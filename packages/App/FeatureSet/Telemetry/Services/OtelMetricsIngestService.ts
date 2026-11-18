@@ -718,6 +718,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
 
+      /*
+       * A browser's or a mobile app's metrics are its RUM application's,
+       * as autoDiscoverHost refuses them: a kiosk app that names its device
+       * in host.name, with the os.type its SDK sets, is not a Host.
+       */
+      if (this.getRumClientType(ras)) {
+        continue;
+      }
+
       const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
 
       /*
