@@ -1,5 +1,7 @@
 import DocsFeatureSet from "../../../FeatureSet/Docs/Index";
 import { DocsSearchAnswer } from "../../../FeatureSet/Docs/Utils/DocsSearch";
+import DocsFeedbackStore from "../../../FeatureSet/Docs/Utils/DocsFeedbackStore";
+import { ProductFeedbackSubmission } from "Common/Types/ProductFeedback/ProductFeedback";
 import Express, {
   ExpressApplication,
   ExpressResponse,
@@ -30,7 +32,15 @@ import type * as FileSystem from "fs";
  *   - every page ends with "Was this page helpful?": on a self-hosted
  *     server it posts nothing and a no offers the GitHub issue, already
  *     written; where product analytics is set up it posts to /docs/feedback,
- *     which sends docs/feedback_given on and nothing else.
+ *     which sends docs/feedback_given on and nothing else; where a master
+ *     admin keeps the answers (#7209), the page says so and /docs/feedback
+ *     keeps each one on the server, through the keeper the App hands the
+ *     docs, and sends nothing anywhere;
+ *   - a search that found nothing (#7207) is reported only where product
+ *     analytics is set up: the search box says so (data-search-report), and
+ *     /docs/search/found-nothing sends docs/search_found_nothing on with no
+ *     word that could name or reach a person, and nothing on a self-hosted
+ *     server.
  */
 
 const mockConfig: { AnalyticsKey: string; AnalyticsHost: string } = {
@@ -163,6 +173,10 @@ afterAll(async () => {
   );
 });
 
+// What the keeper the App hands the docs (ProductFeedbackService) was given.
+const kept: Array<ProductFeedbackSubmission> = [];
+let isKeepingOn: boolean = false;
+
 beforeEach(() => {
   mockConfig.AnalyticsKey = "";
   mockConfig.AnalyticsHost = "";
@@ -170,7 +184,41 @@ beforeEach(() => {
   mockPost.mockImplementation(async () => {
     return new HTTPResponse(200, {}, {});
   });
+  kept.length = 0;
+  isKeepingOn = false;
+  DocsFeedbackStore.useKeeper({
+    isDocsFeedbackKept: async (): Promise<boolean> => {
+      return isKeepingOn;
+    },
+    keepDocsAnswer: async (
+      submission: ProductFeedbackSubmission,
+    ): Promise<boolean> => {
+      if (!isKeepingOn) {
+        return false;
+      }
+      kept.push(submission);
+      return true;
+    },
+  });
 });
+
+afterAll(() => {
+  DocsFeedbackStore.useKeeper(null);
+});
+
+const postFoundNothing: (body: unknown) => Promise<number> = async (
+  body: unknown,
+): Promise<number> => {
+  const response: Response = await fetch(
+    `${origin}/docs/search/found-nothing`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  return response.status;
+};
 
 const searchFor: (
   lang: string,
@@ -366,6 +414,154 @@ describe("Was this page helpful?, where product analytics is set up", () => {
         reason: "Your docs are bad and here is my email",
       }),
     ).toBe(400);
+    expect(mockPost).not.toHaveBeenCalled();
+  }, 600000);
+});
+
+describe("Was this page helpful?, where the server's admins keep the answers (#7209)", () => {
+  beforeEach(() => {
+    isKeepingOn = true;
+  });
+
+  it("says before anyone answers that the answer goes to this server's admins, and offers what went wrong", async () => {
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('data-feedback-mode="keep"');
+    expect(html).toContain("data-feedback-where");
+    expect(html).toContain(
+      "Answers go to this server's admins, with the page's address. Nothing else is sent, and nothing leaves this server.",
+    );
+    for (const reason of ["unclear", "missing", "wrong", "not_found"]) {
+      expect(html).toContain(`data-feedback-reason="${reason}"`);
+    }
+  }, 600000);
+
+  it("in the reader's language", async () => {
+    const html: string = await pageHtml("/docs/de/monitor/website-monitor");
+
+    expect(html).toContain("Antworten gehen an die Administratoren");
+  }, 600000);
+
+  it("keeps an answer on the server: the page, its language, the no and its reason - and sends it nowhere", async () => {
+    expect(
+      await postFeedback({
+        page: "monitor/website-monitor",
+        isHelpful: false,
+        reason: "missing",
+        language: "fr",
+      }),
+    ).toBe(204);
+
+    expect(kept).toEqual([
+      {
+        kind: "docs_page",
+        topic: "monitor/website-monitor",
+        score: null,
+        isPositive: false,
+        reason: "missing",
+        details: null,
+        page: "/docs/fr/monitor/website-monitor",
+        version: "",
+      },
+    ]);
+    expect(mockPost).not.toHaveBeenCalled();
+  }, 600000);
+
+  it("keeps nothing that is not an answer", async () => {
+    expect(await postFeedback({ page: "nope/nope", isHelpful: true })).toBe(
+      400,
+    );
+    expect(kept).toEqual([]);
+  }, 600000);
+
+  it("once switched off again, the page keeps nothing and asks nothing of the admins", async () => {
+    isKeepingOn = false;
+
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('data-feedback-mode="local"');
+    expect(html).not.toContain("data-feedback-where");
+    expect(
+      await postFeedback({
+        page: "monitor/website-monitor",
+        isHelpful: true,
+        language: "en",
+      }),
+    ).toBe(204);
+    expect(kept).toEqual([]);
+  }, 600000);
+
+  it("with no keeper - a server that never handed the docs one - keeps nothing", async () => {
+    DocsFeedbackStore.useKeeper(null);
+
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('data-feedback-mode="local"');
+  }, 600000);
+});
+
+describe("a docs search that found nothing (#7207)", () => {
+  it("on a self-hosted server: the search box never reports, and a report posted anyway is dropped", async () => {
+    const html: string = await pageHtml("/docs/en/monitor/website-monitor");
+
+    expect(html).toContain('data-search-report="off"');
+    expect(
+      await postFoundNothing({ query: "sentinelone", language: "en" }),
+    ).toBe(204);
+    expect(mockPost).not.toHaveBeenCalled();
+  }, 600000);
+
+  it("where product analytics is set up: the search box reports, on every page and the docs' 404 too", async () => {
+    mockConfig.AnalyticsKey = "phc_key";
+    mockConfig.AnalyticsHost = "https://analytics.example.com";
+
+    expect(await pageHtml("/docs/en/monitor/website-monitor")).toContain(
+      'data-search-report="send"',
+    );
+
+    const notFound: Response = await fetch(`${origin}/docs/en/no/such-page`);
+
+    expect(notFound.status).toBe(404);
+    expect(await notFound.text()).toContain('data-search-report="send"');
+  }, 600000);
+
+  it("sends docs/search_found_nothing on, with its length, its language and none of the words that could name or reach a person", async () => {
+    mockConfig.AnalyticsKey = "phc_key";
+    mockConfig.AnalyticsHost = "https://analytics.example.com";
+
+    expect(
+      await postFoundNothing({
+        query: "maya@acme.example sentinelone 10.0.0.4 import",
+        language: "de",
+      }),
+    ).toBe(204);
+
+    expect(mockPost).toHaveBeenCalledTimes(1);
+
+    const data: { event: string; properties: Record<string, unknown> } = (
+      mockPost.mock.calls[0]![0] as {
+        data: { event: string; properties: Record<string, unknown> };
+      }
+    ).data;
+
+    expect(data.event).toBe("docs/search_found_nothing");
+    expect(data.properties).toEqual({
+      source: "oneuptime-docs",
+      $process_person_profile: false,
+      query_length: 45,
+      query: "sentinelone import",
+      edition: "cloud",
+      language: "de",
+    });
+  }, 600000);
+
+  it("refuses a search shorter than two characters, or anything that is not one, and sends nothing for it", async () => {
+    mockConfig.AnalyticsKey = "phc_key";
+    mockConfig.AnalyticsHost = "https://analytics.example.com";
+
+    expect(await postFoundNothing({ query: " z ", language: "en" })).toBe(400);
+    expect(await postFoundNothing({ language: "en" })).toBe(400);
+    expect(await postFoundNothing(["sentinelone"])).toBe(400);
     expect(mockPost).not.toHaveBeenCalled();
   }, 600000);
 });

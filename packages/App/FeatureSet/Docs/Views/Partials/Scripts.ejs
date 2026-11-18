@@ -693,6 +693,7 @@
             searchInput.setAttribute('aria-expanded', query ? 'true' : 'false');
 
             if (!query) {
+                forgetFoundNothing();
                 matches = [];
                 highlightedIndex = -1;
                 searchInput.removeAttribute('aria-activedescendant');
@@ -705,6 +706,7 @@
 
             if (found.items.length === 0 && !hasServerAnswer && window.fetch) {
                 /* Nothing by title: say the search is on, and wait for the server, which forgives typos. */
+                forgetFoundNothing();
                 matches = [];
                 highlightedIndex = -1;
                 searchInput.removeAttribute('aria-activedescendant');
@@ -719,8 +721,16 @@
                 searchInput.removeAttribute('aria-activedescendant');
                 var message = (i18n.noResults || '').replace('{{query}}', rawQuery.trim());
                 searchResults.innerHTML = '<div class="docs-search__empty">' + escapeHtml(message) + '</div>';
+                /* The server answered, with nothing: a search that found nothing. */
+                if (serverAnswer && serverAnswer.query === rawQuery) {
+                    noteFoundNothing(rawQuery);
+                } else {
+                    forgetFoundNothing();
+                }
                 return;
             }
+
+            forgetFoundNothing();
 
             highlightedIndex = 0;
             searchResults.innerHTML = matches.map(function (item, index) {
@@ -765,6 +775,9 @@
         }
 
         function closeSearch() {
+            if (foundNothingFor) {
+                reportFoundNothing(false);
+            }
             searchOverlay.classList.remove('is-open');
             searchModal.classList.remove('is-open');
             document.body.classList.remove('overflow-hidden');
@@ -772,6 +785,58 @@
             if (lastFocused && lastFocused.focus) {
                 lastFocused.focus();
             }
+        }
+
+        /*
+         * A search that found nothing (#7207), reported where this server
+         * sends product analytics (data-search-report="send" on the search
+         * box: OneUptime Cloud) and only with the reader's consent, as
+         * "Was this page helpful?" is. A search is reported once it settles:
+         * 2 characters or more, the docs server's answer in and empty for a
+         * second, or the box closed on it - as the Dashboard's Search counts
+         * one. A search the server could not answer is not one that found
+         * nothing. Each search is reported once; the server takes out every
+         * word that could name or reach a person (Utils/DocsSearchReport).
+         */
+        var SEARCH_SETTLE_MS = 1000;
+        var SEARCH_REPORT_MIN_LENGTH = 2;
+        var isSearchReported = Boolean(searchModal) && searchModal.getAttribute('data-search-report') === 'send';
+        var foundNothingFor = null;
+        var reportedNothingFor = null;
+        var foundNothingTimer = null;
+
+        function reportFoundNothing(isLeaving) {
+            window.clearTimeout(foundNothingTimer);
+            var query = foundNothingFor;
+            foundNothingFor = null;
+            if (!query || query === reportedNothingFor || !isMeasurementAllowed()) {
+                return;
+            }
+            reportedNothingFor = query;
+            postToDocs('/docs/search/found-nothing', JSON.stringify({
+                query: query,
+                language: window.__docsLang || 'en'
+            }), isLeaving);
+        }
+
+        function noteFoundNothing(rawQuery) {
+            var query = String(rawQuery || '').trim();
+            if (!isSearchReported || query.length < SEARCH_REPORT_MIN_LENGTH || query === reportedNothingFor) {
+                return;
+            }
+            if (query === foundNothingFor) {
+                return;
+            }
+            foundNothingFor = query;
+            window.clearTimeout(foundNothingTimer);
+            foundNothingTimer = window.setTimeout(function () {
+                reportFoundNothing(false);
+            }, SEARCH_SETTLE_MS);
+        }
+
+        function forgetFoundNothing() {
+            foundNothingFor = null;
+            window.clearTimeout(foundNothingTimer);
         }
 
         if (searchModal && searchOverlay && searchInput && searchResults) {
@@ -846,12 +911,42 @@
          * the reader's consent, by the rule the Dashboard's events follow
          * (Common/Utils/Analytics isProductAnalyticsAllowed): never after
          * "Reject all", and not under Global Privacy Control unless the
-         * reader accepted. A no waits for its reason, and goes without one
-         * when the reader leaves the page or after a while. Anywhere else
-         * nothing is posted: a no offers the GitHub issue, already written.
+         * reader accepted. Where this server's admins keep the answers
+         * (data-feedback-mode="keep", #7209), it is posted to /docs/feedback
+         * too, for them: it names nobody and goes nowhere else, as the line
+         * under the question says, so it is the reader's answer to give. A
+         * no waits for its reason, and goes without one when the reader
+         * leaves the page or after a while. Anywhere else nothing is posted:
+         * a no offers the GitHub issue, already written.
          */
         var FEEDBACK_REASON_WAIT_MS = 30000;
         var feedbackBox = document.querySelector('[data-docs-feedback]');
+
+        /*
+         * Posts a few bytes of JSON to the docs server, as the page is left
+         * (a beacon) or not, and never says a word about a failure: an
+         * answer or a report is never worth an error on the page.
+         */
+        function postToDocs(url, body, isLeaving) {
+            try {
+                if (isLeaving && window.navigator && typeof window.navigator.sendBeacon === 'function') {
+                    window.navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+                    return;
+                }
+                if (window.fetch) {
+                    window.fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body,
+                        keepalive: true
+                    }).catch(function () {
+                        /* As above. */
+                    });
+                }
+            } catch (error) {
+                /* As above. */
+            }
+        }
 
         function isMeasurementAllowed() {
             var consent = 'unset';
@@ -890,35 +985,23 @@
                 });
             };
 
+            // Whether an answer is posted at all: sent with consent, or kept for the admins.
+            var isFeedbackPosted = feedbackMode === 'send' || feedbackMode === 'keep';
+
             var postFeedback = function (answer, isLeaving) {
-                if (feedbackMode !== 'send' || feedbackSent || !isMeasurementAllowed()) {
+                if (!isFeedbackPosted || feedbackSent) {
+                    return;
+                }
+                if (feedbackMode === 'send' && !isMeasurementAllowed()) {
                     return;
                 }
                 feedbackSent = true;
-                var body = JSON.stringify({
+                postToDocs('/docs/feedback', JSON.stringify({
                     page: feedbackBox.getAttribute('data-feedback-page') || '',
                     language: feedbackBox.getAttribute('data-feedback-language') || '',
                     isHelpful: answer.isHelpful,
                     reason: answer.reason || undefined
-                });
-                try {
-                    if (isLeaving && window.navigator && typeof window.navigator.sendBeacon === 'function') {
-                        window.navigator.sendBeacon('/docs/feedback', new Blob([body], { type: 'application/json' }));
-                        return;
-                    }
-                    if (window.fetch) {
-                        window.fetch('/docs/feedback', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: body,
-                            keepalive: true
-                        }).catch(function () {
-                            /* An answer is never worth an error on the page. */
-                        });
-                    }
-                } catch (error) {
-                    /* As above. */
-                }
+                }), isLeaving);
             };
 
             var sendPendingNo = function (isLeaving) {
@@ -939,7 +1022,7 @@
                         return;
                     }
                     showFeedbackStep('no');
-                    if (feedbackMode === 'send') {
+                    if (isFeedbackPosted) {
                         pendingNo = { isHelpful: false };
                         pendingTimer = window.setTimeout(function () {
                             sendPendingNo(false);
@@ -964,6 +1047,12 @@
 
             feedbackBox.hidden = false;
         }
+
+        window.addEventListener('pagehide', function () {
+            if (foundNothingFor) {
+                reportFoundNothing(true);
+            }
+        });
 
         /* ================= Scroll progress + header state ============== */
         var progressBar = document.getElementById('scroll-progress');

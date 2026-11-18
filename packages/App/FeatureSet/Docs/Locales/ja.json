@@ -68,6 +68,7 @@
     "feedbackYes": "はい",
     "feedbackNo": "いいえ",
     "feedbackThanks": "ご意見ありがとうございます。",
+    "feedbackKeptForAdmins": "回答はページのアドレスとともにこのサーバーの管理者に届きます。それ以外は送信されず、このサーバーの外には何も出ません。",
     "feedbackWhatWentWrong": "ありがとうございます。何が問題でしたか?",
     "feedbackReasonUnclear": "わかりにくい",
     "feedbackReasonMissing": "情報が足りない",

@@ -19,7 +19,14 @@ import path from "path";
  * the GitHub issue. Where analytics is set up, an answer is posted once,
  * only with the reader's consent: not after "Reject all", not under Global
  * Privacy Control unless they accepted. A no waits for its reason, and
- * goes without one when the page is left.
+ * goes without one when the page is left. Where the server's admins keep
+ * the answers (#7209), the page says so before anyone answers, and posts
+ * the answer for them: it goes nowhere else.
+ *
+ * A search that found nothing (#7207): reported only where analytics is
+ * set up and with the reader's consent, once it settled - 2 characters or
+ * more, the server's empty answer a second old, or the box closed on it -
+ * once per search, and never for a search the server could not answer.
  */
 
 const VIEWS: string = path.join(
@@ -47,7 +54,9 @@ interface FetchCall {
 }
 
 interface PageOptions {
-  mode?: "send" | "local" | undefined;
+  mode?: "send" | "keep" | "local" | undefined;
+  // The search box reports a search that found nothing (data-search-report).
+  isSearchReported?: boolean | undefined;
   consent?: "granted" | "denied" | "unset" | undefined;
   globalPrivacyControl?: boolean | undefined;
   // What /docs/search answers, by the query; "offline" rejects.
@@ -139,12 +148,15 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
       lang: "en",
       feedback: {
         page: "on-call/escalation-rules",
-        isSent: options.mode === "send",
+        mode: options.mode || "local",
         githubIssueUrl:
           "https://github.com/OneUptime/oneuptime/issues/new?title=Docs%3A%20Escalation%20Rules",
       },
     })}
-    ${render("SearchModal.ejs", { t })}
+    ${render("SearchModal.ejs", {
+      t,
+      searchReport: options.isSearchReported === true,
+    })}
     ${render("Scripts.ejs", { t, nav, lang: "en" })}
   </body></html>`;
 
@@ -299,6 +311,32 @@ const feedbackPosts: (page: OpenedPage) => Array<Record<string, unknown>> = (
       expect(call.init?.method).toBe("POST");
       return JSON.parse(call.init?.body || "{}") as Record<string, unknown>;
     });
+};
+
+const foundNothingPosts: (
+  page: OpenedPage,
+) => Array<Record<string, unknown>> = (
+  page: OpenedPage,
+): Array<Record<string, unknown>> => {
+  return page.fetches
+    .filter((call: FetchCall): boolean => {
+      return call.url === "/docs/search/found-nothing";
+    })
+    .map((call: FetchCall): Record<string, unknown> => {
+      expect(call.init?.method).toBe("POST");
+      return JSON.parse(call.init?.body || "{}") as Record<string, unknown>;
+    });
+};
+
+// What the docs server answers for a search that finds nothing.
+const FOUND_NOTHING: (query: string) => unknown = (query: string): unknown => {
+  return { query, words: [], results: [] };
+};
+
+const closeSearch: (page: OpenedPage) => void = (page: OpenedPage): void => {
+  page.document.dispatchEvent(
+    new page.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+  );
 };
 
 const ESCALATION_ANSWER: unknown = {
@@ -694,5 +732,230 @@ describe("Was this page helpful?, where analytics is set up", () => {
     await wait(page.window, 50);
 
     expect(feedbackPosts(page)).toHaveLength(1);
+  });
+});
+
+describe("Was this page helpful?, where the server's admins keep the answers (#7209)", () => {
+  test("says before anyone answers that the answer goes to this server's admins, and not after", async () => {
+    const page: OpenedPage = await openPage({ mode: "keep" });
+    const where: HTMLElement = page.document.querySelector(
+      "[data-feedback-where]",
+    ) as HTMLElement;
+
+    expect(where.textContent).toBe("ui.feedbackKeptForAdmins");
+    expect(where.hidden).toBe(false);
+
+    (
+      page.document.querySelector('[data-feedback-answer="no"]') as HTMLElement
+    ).click();
+
+    // Gone with the question: never read under the GitHub link a no offers.
+    expect(where.hidden).toBe(true);
+    expect(
+      (
+        page.document.querySelector("[data-feedback-github]") as HTMLElement
+      ).closest("[hidden]"),
+    ).toBeNull();
+  });
+
+  test("posts a yes for the admins, even after Reject all: it is no measurement, and names nobody", async () => {
+    const page: OpenedPage = await openPage({
+      mode: "keep",
+      consent: "denied",
+      globalPrivacyControl: true,
+    });
+
+    (
+      page.document.querySelector('[data-feedback-answer="yes"]') as HTMLElement
+    ).click();
+    await wait(page.window, 50);
+
+    expect(feedbackPosts(page)).toEqual([
+      { page: "on-call/escalation-rules", language: "en", isHelpful: true },
+    ]);
+  });
+
+  test("offers the four reasons after a no, and posts the one picked, once", async () => {
+    const page: OpenedPage = await openPage({ mode: "keep" });
+
+    (
+      page.document.querySelector('[data-feedback-answer="no"]') as HTMLElement
+    ).click();
+    expect(
+      page.document.querySelectorAll("[data-feedback-reason]"),
+    ).toHaveLength(4);
+
+    (
+      page.document.querySelector(
+        '[data-feedback-reason="missing"]',
+      ) as HTMLElement
+    ).click();
+    page.window.dispatchEvent(new page.window.Event("pagehide"));
+    await wait(page.window, 50);
+
+    expect(feedbackPosts(page)).toEqual([
+      {
+        page: "on-call/escalation-rules",
+        language: "en",
+        isHelpful: false,
+        reason: "missing",
+      },
+    ]);
+    expect(page.beacons).toEqual([]);
+  });
+
+  test("on a self-hosted server that keeps nothing, says nothing of the admins", async () => {
+    const page: OpenedPage = await openPage({ mode: "local" });
+
+    expect(page.document.querySelector("[data-feedback-where]")).toBeNull();
+  });
+});
+
+describe("a docs search that found nothing (#7207)", () => {
+  test("is reported once it settles: a second after the server answered with nothing, with what was typed and the language", async () => {
+    const page: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: true,
+      consent: "granted",
+    });
+
+    openSearch(page);
+    type(page, "sentinelone");
+    await searchSettled(page);
+
+    // Not yet: the reader may still be typing.
+    expect(foundNothingPosts(page)).toEqual([]);
+
+    await wait(page.window, 1100);
+    expect(foundNothingPosts(page)).toEqual([
+      { query: "sentinelone", language: "en" },
+    ]);
+
+    // Drawn again for the same words, it is not reported twice.
+    type(page, "sentinelone ");
+    await searchSettled(page);
+    await wait(page.window, 1100);
+    expect(foundNothingPosts(page)).toHaveLength(1);
+  });
+
+  test("is reported at once when the box closes on it", async () => {
+    const page: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: true,
+      consent: "granted",
+    });
+
+    openSearch(page);
+    type(page, "wazuh");
+    await searchSettled(page);
+    closeSearch(page);
+    await wait(page.window, 20);
+
+    expect(foundNothingPosts(page)).toEqual([
+      { query: "wazuh", language: "en" },
+    ]);
+  });
+
+  test("never for a search that found something, one shorter than 2 characters, or one the server could not answer", async () => {
+    const found: OpenedPage = await openPage({
+      search: (): unknown => {
+        return ESCALATION_ANSWER;
+      },
+      isSearchReported: true,
+      consent: "granted",
+    });
+
+    openSearch(found);
+    type(found, "escalaton");
+    await searchSettled(found);
+    await wait(found.window, 1100);
+    type(found, "z");
+    await wait(found.window, 1100);
+    closeSearch(found);
+    expect(foundNothingPosts(found)).toEqual([]);
+    found.window.close();
+
+    const offline: OpenedPage = await openPage({
+      search: "offline",
+      isSearchReported: true,
+      consent: "granted",
+    });
+
+    openSearch(offline);
+    type(offline, "zzqxv");
+    await searchSettled(offline);
+    await wait(offline.window, 1100);
+    closeSearch(offline);
+    expect(foundNothingPosts(offline)).toEqual([]);
+  });
+
+  test("never where the server sends no analytics: every self-hosted server", async () => {
+    const page: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: false,
+      consent: "granted",
+    });
+
+    openSearch(page);
+    type(page, "sentinelone");
+    await searchSettled(page);
+    await wait(page.window, 1100);
+    closeSearch(page);
+    page.window.dispatchEvent(new page.window.Event("pagehide"));
+    await wait(page.window, 20);
+
+    expect(foundNothingPosts(page)).toEqual([]);
+    expect(page.beacons).toEqual([]);
+  });
+
+  test("never after Reject all, nor under Global Privacy Control unless the reader accepted", async () => {
+    const refused: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: true,
+      consent: "denied",
+    });
+
+    openSearch(refused);
+    type(refused, "sentinelone");
+    await searchSettled(refused);
+    await wait(refused.window, 1100);
+    closeSearch(refused);
+    expect(foundNothingPosts(refused)).toEqual([]);
+    refused.window.close();
+
+    const privacy: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: true,
+      consent: "unset",
+      globalPrivacyControl: true,
+    });
+
+    openSearch(privacy);
+    type(privacy, "sentinelone");
+    await searchSettled(privacy);
+    await wait(privacy.window, 1100);
+    expect(foundNothingPosts(privacy)).toEqual([]);
+  });
+
+  test("goes as a beacon when the page is left on it", async () => {
+    const page: OpenedPage = await openPage({
+      search: FOUND_NOTHING,
+      isSearchReported: true,
+      consent: "granted",
+    });
+
+    openSearch(page);
+    type(page, "nagios import");
+    await searchSettled(page);
+    page.window.dispatchEvent(new page.window.Event("pagehide"));
+    await wait(page.window, 20);
+
+    expect(page.beacons).toEqual([
+      {
+        url: "/docs/search/found-nothing",
+        body: JSON.stringify({ query: "nagios import", language: "en" }),
+      },
+    ]);
+    expect(foundNothingPosts(page)).toEqual([]);
   });
 });

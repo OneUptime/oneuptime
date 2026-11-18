@@ -68,6 +68,7 @@
     "feedbackYes": "Ja",
     "feedbackNo": "Nei",
     "feedbackThanks": "Takk for at du sa ifra.",
+    "feedbackKeptForAdmins": "Svar går til administratorene for denne serveren, med sidens adresse. Ingenting annet sendes, og ingenting forlater denne serveren.",
     "feedbackWhatWentWrong": "Takk. Hva var galt?",
     "feedbackReasonUnclear": "Vanskelig å følge",
     "feedbackReasonMissing": "Noe mangler",

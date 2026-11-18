@@ -68,6 +68,7 @@
     "feedbackYes": "Yes",
     "feedbackNo": "No",
     "feedbackThanks": "Thanks for telling us.",
+    "feedbackKeptForAdmins": "Answers go to this server's admins, with the page's address. Nothing else is sent, and nothing leaves this server.",
     "feedbackWhatWentWrong": "Thanks. What went wrong?",
     "feedbackReasonUnclear": "Hard to follow",
     "feedbackReasonMissing": "Something is missing",
