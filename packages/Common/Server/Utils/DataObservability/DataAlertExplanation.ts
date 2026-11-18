@@ -51,8 +51,14 @@ import DataPipelineRunService from "../../Services/DataPipelineRunService";
 import DataPipelineService from "../../Services/DataPipelineService";
 import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import logger from "../Logger";
 import DataTableDashboards, { TableDashboard } from "./Bi/DataTableDashboards";
+import DataObservabilityReadScope from "./DataObservabilityReadScope";
+import DataTableLineageReader, {
+  DataLineageReadable,
+  keepReadableWrites,
+} from "./DataTableLineage";
 import { isFailedState } from "./OpenLineageIngest";
 import { TableHealthStatus } from "./TableHealthIngest";
 
@@ -66,6 +72,15 @@ import { TableHealthStatus } from "./TableHealthIngest";
  * database itself. And what depends on the table: tables down its lineage,
  * most relied on first, dashboards, the services reading it, and the people
  * who own any of them.
+ *
+ * Only the tables and pipelines its reader may read are told (#9526,
+ * #9562), as the alert's Lineage card beside it draws them: a role limited
+ * to what its members own, or to some labels, is never told of a pipeline
+ * or a table it may not read - not as a cause, not down the lineage, not
+ * as the table a dashboard reads, nor by its owners - and nothing left out
+ * is counted, not even in how many tables feed from one. An alert whose own
+ * table or pipeline they may not read is explained by its cause upstream
+ * alone, as its Lineage card draws nothing.
  *
  * A title the reader words itself is written with DataAlertCauseTitles: its
  * English, and its sentence's code with the names in it, so the Dashboard
@@ -141,8 +156,14 @@ export default class DataAlertExplanationReader {
   public static async read(data: {
     projectId: ObjectID;
     alertId: ObjectID;
+    /*
+     * Who it is explained to: the person, or API key, who asked, whose
+     * grants decide which tables and pipelines it tells of (see above).
+     * Left out, OneUptime's own read of every one.
+     */
+    reader?: DatabaseCommonInteractionProps | null | undefined;
   }): Promise<DataAlertExplanation | null> {
-    const row: DataAlert | null = await DataAlertService.findOneBy({
+    const found: DataAlert | null = await DataAlertService.findOneBy({
       query: { projectId: data.projectId, alertId: data.alertId },
       select: {
         dataAssetId: true,
@@ -155,9 +176,15 @@ export default class DataAlertExplanationReader {
       props: { isRoot: true },
     });
 
-    if (!row) {
+    if (!found) {
       return null;
     }
+
+    const readable: DataLineageReadable | null =
+      DataTableLineageReader.getNamedReadable(
+        await DataObservabilityReadScope.get(data.projectId, data.reader),
+      );
+    const row: DataAlert = await this.keepReadableSubject(found, readable);
 
     const alert: Alert | null = await AlertService.findOneBy({
       query: { projectId: data.projectId, _id: data.alertId },
@@ -177,7 +204,7 @@ export default class DataAlertExplanationReader {
     );
     const causes: Array<Array<DataAlertLikelyCause>> = await Promise.all([
       this.readUpstream(data.projectId, row),
-      this.readFailedRuns(data.projectId, row, windowStart),
+      this.readFailedRuns(data.projectId, row, windowStart, readable),
       this.readWriters(data.projectId, row, windowStart, windowEnd),
       this.readSchemaChanges(data.projectId, row, windowStart, windowEnd),
       this.readDatabase(data.projectId, row),
@@ -185,13 +212,65 @@ export default class DataAlertExplanationReader {
 
     return {
       causes: rankLikelyCauses(causes.flat()),
-      impact: await this.readImpact(data.projectId, row),
+      impact: await this.readImpact(data.projectId, row, readable),
       feedback: row.feedback || null,
       isCauseConfirmed:
         row.isCauseConfirmed === undefined || row.isCauseConfirmed === null
           ? null
           : row.isCauseConfirmed,
     };
+  }
+
+  /*
+   * What the alert is about, as its reader may be told it: its table and
+   * its pipeline only when they may read them (#9562). One they may not
+   * read leaves every fact read from it out - its writers, its runs, its
+   * columns, its database, what is built from it - as the alert's Lineage
+   * card draws nothing around it. Every one, for a reader whose scope
+   * narrows nothing (null).
+   */
+  private static async keepReadableSubject(
+    row: DataAlert,
+    readable: DataLineageReadable | null,
+  ): Promise<DataAlert> {
+    if (!readable) {
+      return row;
+    }
+
+    const kept: DataAlert = new DataAlert();
+
+    kept.causeAlertId = row.causeAlertId!;
+    kept.feedback = row.feedback!;
+    kept.isCauseConfirmed = row.isCauseConfirmed!;
+
+    if (row.dataAssetId) {
+      const tables: Set<string> = await readable.readableTableIds([
+        row.dataAssetId.toString(),
+      ]);
+
+      if (!tables.has(row.dataAssetId.toString())) {
+        return kept;
+      }
+
+      kept.dataAssetId = row.dataAssetId;
+    }
+
+    if (row.dataPipelineId) {
+      const pipelines: Set<string> = await readable.readablePipelineIds([
+        row.dataPipelineId.toString(),
+      ]);
+
+      if (!pipelines.has(row.dataPipelineId.toString())) {
+        return kept;
+      }
+
+      kept.dataPipelineId = row.dataPipelineId;
+    }
+
+    // A whole database's alert names its database itself.
+    kept.dataStoreId = row.dataStoreId!;
+
+    return kept;
   }
 
   private static async readUpstream(
@@ -233,24 +312,35 @@ export default class DataAlertExplanationReader {
     ];
   }
 
+  // The runs of the pipelines that write the table, of those its reader may be told of (keepReadableWrites).
   private static async readFailedRuns(
     projectId: ObjectID,
     row: DataAlert,
     windowStart: Date,
+    readable: DataLineageReadable | null,
   ): Promise<Array<DataAlertLikelyCause>> {
     const edges: Array<DataAssetLineage> = row.dataAssetId
       ? await orNothing(
-          DataAssetLineageService.findBy({
-            query: {
-              projectId,
-              downstreamDataAssetId: row.dataAssetId,
-              dataPipelineId: QueryHelper.notNull(),
-            },
-            select: { dataPipelineId: true },
-            limit: 20,
-            skip: 0,
-            props: { isRoot: true },
-          }),
+          (async (): Promise<Array<DataAssetLineage>> => {
+            return await keepReadableWrites(
+              await DataAssetLineageService.findBy({
+                query: {
+                  projectId,
+                  downstreamDataAssetId: row.dataAssetId!,
+                  dataPipelineId: QueryHelper.notNull(),
+                },
+                select: {
+                  upstreamDataAssetId: true,
+                  downstreamDataAssetId: true,
+                  dataPipelineId: true,
+                },
+                limit: 20,
+                skip: 0,
+                props: { isRoot: true },
+              }),
+              readable,
+            );
+          })(),
           [] as Array<DataAssetLineage>,
         )
       : [];
@@ -544,6 +634,7 @@ export default class DataAlertExplanationReader {
   private static async readImpact(
     projectId: ObjectID,
     row: DataAlert,
+    readable: DataLineageReadable | null,
   ): Promise<DataAlertExplanation["impact"]> {
     const impact: DataAlertExplanation["impact"] = {
       tables: [],
@@ -556,10 +647,15 @@ export default class DataAlertExplanationReader {
       return impact;
     }
 
-    // The tables down the lineage, and how many tables feed from each.
+    /*
+     * The tables down the lineage, and how many tables feed from each: of
+     * those its reader may read alone, walked through those alone - one
+     * they may not read is neither told nor counted as feeding from another.
+     */
     const dependents: Map<string, number> = new Map();
     let frontier: Array<string> = [row.dataAssetId.toString()];
     const seen: Set<string> = new Set(frontier);
+    const unreadable: Set<string> = new Set();
 
     for (let depth: number = 0; depth < LINEAGE_DEPTH; depth++) {
       if (frontier.length === 0 || seen.size > MAX_DOWNSTREAM_TABLES) {
@@ -580,11 +676,40 @@ export default class DataAlertExplanationReader {
         }),
         [] as Array<DataAssetLineage>,
       );
+
+      if (readable) {
+        const reached: Array<string> = Array.from(
+          new Set(
+            edges
+              .map((edge: DataAssetLineage): string => {
+                return edge.downstreamDataAssetId!.toString();
+              })
+              .filter((id: string): boolean => {
+                return !seen.has(id) && !unreadable.has(id);
+              }),
+          ),
+        );
+        const readableIds: Set<string> =
+          reached.length > 0
+            ? await readable.readableTableIds(reached)
+            : new Set();
+
+        for (const id of reached) {
+          if (!readableIds.has(id)) {
+            unreadable.add(id);
+          }
+        }
+      }
+
       const next: Array<string> = [];
 
       for (const edge of edges) {
         const upstream: string = edge.upstreamDataAssetId!.toString();
         const downstream: string = edge.downstreamDataAssetId!.toString();
+
+        if (unreadable.has(downstream)) {
+          continue;
+        }
 
         dependents.set(upstream, (dependents.get(upstream) || 0) + 1);
 
@@ -630,7 +755,12 @@ export default class DataAlertExplanationReader {
     }
 
     const dashboards: Array<TableDashboard> = await orNothing(
-      DataTableDashboards.find({ projectId, dataAssetId: row.dataAssetId }),
+      DataTableDashboards.find({
+        projectId,
+        dataAssetId: row.dataAssetId,
+        // Reached through the tables its reader may read alone.
+        readable,
+      }),
       [] as Array<TableDashboard>,
     );
 
