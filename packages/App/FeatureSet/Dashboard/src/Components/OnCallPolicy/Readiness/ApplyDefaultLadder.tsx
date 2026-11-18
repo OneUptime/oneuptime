@@ -28,6 +28,7 @@ import {
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  BULK_ACTION_CONCURRENCY,
   BULK_ITEM_CHANGED,
   BulkActionRunResult,
   BulkItemOutcome,
@@ -338,6 +339,11 @@ export function useApplyDefaultLadderBulkAction<T extends GenericObject>(
 
       const run: BulkActionRunResult<T> = await runBulkAction<T>({
         actionProps: actionProps,
+        /*
+         * Several members at once: each one's notification rules are their
+         * own, and the project's default ladder is only read.
+         */
+        concurrency: BULK_ACTION_CONCURRENCY,
         step: async (item: T): Promise<BulkItemOutcome> => {
           const result: PagingLadderDefaultMemberResult = await applyToMember(
             options.getUserId(item),

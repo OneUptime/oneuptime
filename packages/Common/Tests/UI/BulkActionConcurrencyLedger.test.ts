@@ -131,6 +131,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Link to Incident: every link is made to the same incident, whose own follow-ons each link runs.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ApplyDefaultLadder.tsx":
+    [
+      {
+        expression: SEVERAL,
+        why: "Apply the project's default paging ladder to members: each member's notification rules, audit entries and email are their own, and the project's default ladder is only read.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueListActions.tsx":
     [
       {
