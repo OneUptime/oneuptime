@@ -140,16 +140,3 @@ export const RESOURCE_COMPLIANCE_DESCRIPTIONS: Readonly<
     "How this service's telemetry stands against each framework, from its open issues. Turn off what does not apply to it.",
   ),
 };
-
-// What a resource that holds a database's compliance is called, in a sentence.
-export const RESOURCE_KIND_NOUNS: Readonly<
-  Record<DataStoreResourceKind, string>
-> = {
-  [DataStoreResourceKind.KubernetesCluster]:
-    translationKey("Kubernetes cluster"),
-  [DataStoreResourceKind.DockerHost]: translationKey("Docker host"),
-  [DataStoreResourceKind.PodmanHost]: translationKey("Podman host"),
-  [DataStoreResourceKind.DatabaseServer]: translationKey("database"),
-  [DataStoreResourceKind.CloudResource]: translationKey("cloud resource"),
-  [DataStoreResourceKind.Service]: translationKey("service"),
-};
