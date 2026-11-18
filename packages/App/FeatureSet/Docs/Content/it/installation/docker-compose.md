@@ -520,7 +520,7 @@ Quando qualcosa non funziona, esegui il doctor nella cartella `oneuptime`:
 npm run doctor
 ```
 
-Elenca cosa non va, prima il più grave, ogni riga con la correzione esatta, e termina con **Everything looks right.** o con il numero di cose da sistemare. Controlla ogni container e mostra le ultime righe del log di quelli che non sono in esecuzione, `config.env`, che `HOST` raggiunga questo server, il certificato quando `PROVISION_SSL` è attivo e lo spazio libero su disco. Chiede anche a OneUptime cosa vede di sé: PostgreSQL, ClickHouse e Valkey, le migrazioni, le code, la versione e i passaggi di configurazione del server, come l'email e le sonde. `npm start` termina con gli stessi controlli e dice solo cosa richiede attenzione.
+Elenca cosa non va, prima il più grave, ogni riga con la correzione esatta, e termina con **Everything looks right.** o con il numero di cose da sistemare. Controlla ogni container e mostra le ultime righe del log di quelli che non sono in esecuzione, `config.env`, che `HOST` raggiunga questo server e che un proxy davanti a esso inoltri il nome host e `X-Forwarded-Proto`, il certificato quando `PROVISION_SSL` è attivo e lo spazio libero su disco. Chiede anche a OneUptime cosa vede di sé: PostgreSQL, ClickHouse e Valkey, le migrazioni, le code, la versione e i passaggi di configurazione del server, come l'email e le sonde. Le righe segnate con • sono utili da sapere ma non sono un errore, e non vengono contate: quali prodotti sono disattivati su questo server, e dove è stato deciso. Un nome in `SERVER_PRODUCTS` che OneUptime non conosce è segnato con ! come da controllare. `npm start` termina con gli stessi controlli e dice solo cosa richiede attenzione.
 
 Per vedere anche gli errori recenti di ogni servizio, ciascuno con il nome del servizio:
 
@@ -528,7 +528,7 @@ Per vedere anche gli errori recenti di ogni servizio, ciascuno con il nome del s
 npm run doctor -- --logs
 ```
 
-Termina con il codice `1` quando qualcosa segnato con ✗ va sistemato, così uno script può eseguirlo. L'Admin Dashboard mostra cosa vede OneUptime di sé in cima a **Integrità di OneUptime**, e su Kubernetes lo stampa `HelmChart/Public/diagnose.sh`.
+Termina con il codice `1` quando qualcosa segnato con ✗ va sistemato, così uno script può eseguirlo. L'Admin Dashboard mostra cosa vede OneUptime di sé in cima a **Integrità di OneUptime**, e su Kubernetes lo stampa `HelmChart/Public/diagnose.sh`, che controlla anche l'indirizzo che le persone aprono e il suo certificato.
 
 ## Risoluzione dei problemi
 

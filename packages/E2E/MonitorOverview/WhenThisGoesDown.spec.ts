@@ -115,6 +115,9 @@ const SERVER_WHY: string =
   "The server ran into a problem it could not explain.";
 const SERVER_NEXT_WITH_REFERENCE: string =
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:";
+// Where the server's master admin looks (#7539).
+const ADMIN_WHERE_TO_LOOK_WITH_REFERENCE: string =
+  "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.";
 
 function localeOf(language: "de" | "fa"): Record<string, string> {
   return JSON.parse(
@@ -164,12 +167,17 @@ async function open(
     lang?: "de" | "fa";
     width?: number;
     fail?: "who-is-told" | "who-is-told-reference" | "who-is-told-recheck";
+    // The reader is also the server's master admin (#7539).
+    isServerAdmin?: boolean;
   } = {},
 ): Promise<Locator> {
   const width: number = options.width || 1440;
   await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
   await page.clock.setFixedTime(NOW);
   const query: URLSearchParams = new URLSearchParams({ type: "api" });
+  if (options.isServerAdmin) {
+    query.set("admin", "1");
+  }
   if (options.whoIsTold) {
     query.set("whoIsTold", options.whoIsTold);
   }
@@ -937,6 +945,116 @@ test.describe("When this goes down", () => {
     );
     await expectNoSidewaysScroll(page, { message: "Persian reference, 390" });
     await shoot(card, "error-reference-fa-390");
+  });
+
+  /*
+   * #7539: the server's master admin is told where to look - "run npm run
+   * doctor -- --logs in the server's oneuptime folder" - on the line after
+   * the card's sentence. The command is drawn as one: code, left to right,
+   * in a box that never breaks, with a copy button that copies it. Drawn as
+   * words it broke as "npm run doctor -- --" / "logs" in a narrow card, and
+   * its halves sat at opposite ends of two lines in Persian.
+   */
+  test("tells the server's master admin where to look: the doctor's command in one unbroken box, with a copy button that copies it", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    // The box and its button: one line, the button beside the command.
+    const expectOneLine: (
+      line: Locator,
+      label: string,
+    ) => Promise<void> = async (
+      line: Locator,
+      label: string,
+    ): Promise<void> => {
+      const box: Locator = line.getByTestId("error-where-to-look-command");
+      const code: Locator = box.locator("code");
+
+      await expect(code).toHaveText("npm run doctor -- --logs");
+      await expect(code).toHaveAttribute("dir", "ltr");
+
+      const lines: number = await code.evaluate((element: Element): number => {
+        const tops: Set<number> = new Set<number>();
+
+        for (const rect of Array.from(element.getClientRects())) {
+          if (rect.width > 0) {
+            tops.add(Math.round(rect.top));
+          }
+        }
+
+        return tops.size;
+      });
+
+      expect({ label, lines }).toEqual({ label, lines: 1 });
+
+      const copy: Locator = box.getByRole("button");
+      const [codeBox, copyBox] = await Promise.all([
+        code.boundingBox(),
+        copy.boundingBox(),
+      ]);
+
+      expect(codeBox).not.toBeNull();
+      expect(copyBox).not.toBeNull();
+      expect(
+        Math.abs(
+          codeBox!.y + codeBox!.height / 2 - (copyBox!.y + copyBox!.height / 2),
+        ),
+      ).toBeLessThan(6);
+    };
+
+    let card: Locator = await open(page, {
+      fail: "who-is-told-reference",
+      isServerAdmin: true,
+    });
+    let line: Locator = card.getByTestId("error-where-to-look");
+
+    await expect(line).toHaveText(
+      "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference. Open OneUptime Health",
+    );
+    await expectOneLine(line, "English, 1440");
+
+    const copy: Locator = line
+      .getByTestId("error-where-to-look-command")
+      .getByRole("button");
+
+    await expect(copy).toHaveAccessibleName("Copy");
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-state", "copied");
+    expect(
+      await page.evaluate(async (): Promise<string> => {
+        return await navigator.clipboard.readText();
+      }),
+    ).toBe("npm run doctor -- --logs");
+    await shoot(card, "where-to-look-1440");
+
+    // In Persian on a phone: the sentence in its words, the command one box.
+    const words: Record<string, string> = localeOf("fa");
+
+    card = await open(page, {
+      fail: "who-is-told-reference",
+      isServerAdmin: true,
+      lang: "fa",
+      width: 390,
+    });
+    line = card.getByTestId("error-where-to-look");
+
+    await expect(line).toBeVisible();
+    expect(await readText(line)).toContain(
+      words[ADMIN_WHERE_TO_LOOK_WITH_REFERENCE]!.replace(/\s+/g, " "),
+    );
+    await expectOneLine(line, "Persian, 390");
+    await expect(
+      line.getByTestId("error-where-to-look-command").getByRole("button"),
+    ).toHaveAccessibleName(words["Copy"]!);
+    await expectNoSidewaysScroll(page, {
+      message: "Persian where to look, 390",
+    });
+    await shoot(card, "where-to-look-fa-390");
   });
 });
 

@@ -520,7 +520,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 npm run doctor
 ```
 
-잘못된 점을 심각한 것부터 나열하고 각 줄에 정확한 해결 방법을 보여 주며, 마지막에 **Everything looks right.** 또는 고칠 항목의 수를 표시합니다. 모든 컨테이너를 확인하고 실행 중이 아닌 컨테이너의 마지막 로그 줄을 보여 주며, `config.env`, `HOST`가 이 서버에 닿는지, `PROVISION_SSL`이 켜져 있을 때의 인증서, 남은 디스크 공간도 확인합니다. 또한 OneUptime이 스스로 보는 상태도 묻습니다. PostgreSQL, ClickHouse, Valkey, 마이그레이션, 대기열, 버전, 그리고 이메일과 프로브 같은 서버 설정 단계입니다. `npm start`도 같은 확인으로 끝나며 확인이 필요한 것만 알려 줍니다.
+잘못된 점을 심각한 것부터 나열하고 각 줄에 정확한 해결 방법을 보여 주며, 마지막에 **Everything looks right.** 또는 고칠 항목의 수를 표시합니다. 모든 컨테이너를 확인하고 실행 중이 아닌 컨테이너의 마지막 로그 줄을 보여 주며, `config.env`, `HOST`가 이 서버에 닿는지, 앞단의 프록시가 호스트 이름과 `X-Forwarded-Proto`를 그대로 전달하는지, `PROVISION_SSL`이 켜져 있을 때의 인증서, 남은 디스크 공간도 확인합니다. 또한 OneUptime이 스스로 보는 상태도 묻습니다. PostgreSQL, ClickHouse, Valkey, 마이그레이션, 대기열, 버전, 그리고 이메일과 프로브 같은 서버 설정 단계입니다. • 표시된 줄은 알아 두면 좋은 정보일 뿐 문제가 아니며 개수에도 들어가지 않습니다. 이 서버에서 꺼져 있는 제품과 그것을 어디서 정했는지입니다. OneUptime이 모르는 이름이 `SERVER_PRODUCTS`에 있으면 살펴볼 항목으로 ! 표시가 붙습니다. `npm start`도 같은 확인으로 끝나며 확인이 필요한 것만 알려 줍니다.
 
 각 서비스의 최근 오류도 서비스 이름과 함께 보려면 다음을 실행하세요.
 
@@ -528,7 +528,7 @@ npm run doctor
 npm run doctor -- --logs
 ```
 
-✗ 표시된 항목을 고쳐야 하면 종료 코드 `1`로 끝나므로 스크립트에서도 실행할 수 있습니다. Admin Dashboard는 OneUptime이 스스로 보는 상태를 **OneUptime 상태** 맨 위에 보여 주고, Kubernetes에서는 `HelmChart/Public/diagnose.sh`가 출력합니다.
+✗ 표시된 항목을 고쳐야 하면 종료 코드 `1`로 끝나므로 스크립트에서도 실행할 수 있습니다. Admin Dashboard는 OneUptime이 스스로 보는 상태를 **OneUptime 상태** 맨 위에 보여 주고, Kubernetes에서는 `HelmChart/Public/diagnose.sh`가 출력하고, 이어서 사람들이 여는 주소와 그 인증서도 확인합니다.
 
 ## 문제 해결
 

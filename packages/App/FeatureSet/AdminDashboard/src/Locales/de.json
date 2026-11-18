@@ -2480,6 +2480,7 @@
   "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.": "Gerade eben geprüft, das Wichtigste zuerst. Auf dem Server prüft npm run doctor außerdem die Container, die Adresse und das Zertifikat.",
   "Everything looks right.": "Alles sieht gut aus.",
   "What needs attention could not be read. Reload the page to try again.": "Was Aufmerksamkeit braucht, konnte nicht gelesen werden. Laden Sie die Seite neu, um es erneut zu versuchen.",
+  "What needs attention could not be read.": "Was Aufmerksamkeit braucht, konnte nicht gelesen werden.",
   "Valkey": "Valkey",
   "Database migrations": "Datenbankmigrationen",
   "Background jobs": "Hintergrundaufgaben",

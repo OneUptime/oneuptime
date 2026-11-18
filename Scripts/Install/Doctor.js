@@ -24,7 +24,7 @@ const {
   resourceFindings,
   splitHost,
 } = require("./Preflight");
-const { MARKS } = require("./StartOutput");
+const { MARKS, listed } = require("./StartOutput");
 
 /*
  * WHY
@@ -49,6 +49,8 @@ const { MARKS } = require("./StartOutput");
  *   - HOST reaches this OneUptime from outside the containers: it asks HOST
  *     for a proof the server signed, so another server at that address is
  *     told apart.
+ *   - A proxy in front passes on the host name and the scheme the browser
+ *     used: the server says how that request reached it.
  *   - The certificate, when PROVISION_SSL is on: issued, for which name,
  *     expiring when; when not, the reason from the app's log.
  *   - Free disk where Docker keeps its images and volumes.
@@ -65,10 +67,14 @@ const { MARKS } = require("./StartOutput");
  * The Admin Dashboard's OneUptime Health page shows the same answer in
  * every edition, and on Kubernetes HelmChart/Public/diagnose.sh prints it.
  *
+ * The server's answer also says which products it switches off for every
+ * project, and what SERVER_PRODUCTS held that it did not know (#7481).
+ *
  * HOW IT ANSWERS
  *
  *   ✗  something required fails: OneUptime, or part of it, does not work
  *   !  worth a look; OneUptime works without it
+ *   •  worth knowing, and no fault: products an admin switched off
  *
  * Exit codes, so scripts can use it: 0 when nothing is marked ✗, 1 when
  * something is, 2 when the doctor itself failed.
@@ -128,11 +134,11 @@ const TROUBLESHOOTING_COVERAGE = {
   'npm start ends with "Maximum retries reached"':
     "Detected: every service that is not running or healthy, with its log, and whether OneUptime answers at the ingress.",
   'The browser says "OneUptime is not set up for this address"':
-    "Partly: HOST left at localhost or at a listening address, and whether HOST reaches this OneUptime. Not the address someone typed, which only their browser knows.",
+    "Partly: HOST left at localhost or at a listening address, whether HOST reaches this OneUptime, and whether a proxy in front passes on the host name, from the doctor's own request through it. Not the address someone typed, which only their browser knows.",
   "Some pages load, but live updates or uploads fail":
     "Partly, as above: which address people open is known only to their browsers.",
   'Signing up or signing in fails with "Page not found"':
-    "Partly: HOST without the ingress's port, and whether HOST reaches this OneUptime. Not whether a proxy passes on the Host header of every request, which takes a browser's request through it.",
+    "Detected: HOST without the ingress's port, whether HOST reaches this OneUptime, and whether a proxy in front passes on the host name the browser asked for, from the doctor's own request to HOST through it.",
   "The browser warns about the certificate after you set PROVISION_SSL":
     "Detected: the certificate HOST presents, and the app's CoreSSL lines when it is not issued.",
   "The bundled probe shows Disconnected after you moved the ingress port":
@@ -140,9 +146,11 @@ const TROUBLESHOOTING_COVERAGE = {
 };
 
 /*
- * A finding: { level: "fix" | "warn" | "ok", message, fix, details }.
- * `fix` is the exact fix, on the line under it; `details` are lines shown
- * under that (a service's log).
+ * A finding: { level: "fix" | "warn" | "note" | "ok", message, fix,
+ * details }. `fix` is the exact fix, on the line under it; `details` are
+ * lines shown under that (a service's log). A note is a fact worth knowing
+ * that is no fault - a product an admin switched off: always shown, after
+ * what needs attention, and never counted.
  */
 const finding = (level, message, fix, details) => {
   return {
@@ -560,6 +568,103 @@ const serverFindings = (response, publicUrl) => {
   return findings;
 };
 
+// Where the products to run are chosen, and what SERVER_PRODUCTS takes.
+const PRODUCTS_GUIDE = `${DOCS_URL}#run-only-what-you-need`;
+const PRODUCTS_ADMIN_PATH = "/admin/settings/products";
+
+// How many products a line names before "and N more".
+const PRODUCTS_NAMED = 6;
+
+// "Logs", "Logs and Traces", "Logs, Metrics and Traces", "A, B, C, D, E, F and 3 more".
+const productList = (products) => {
+  const titles = products.map((entry) => {
+    return String(entry.title || entry.product || "");
+  });
+
+  if (titles.length > PRODUCTS_NAMED) {
+    return `${titles.slice(0, PRODUCTS_NAMED).join(", ")} and ${titles.length - PRODUCTS_NAMED} more`;
+  }
+
+  return listed(titles);
+};
+
+/*
+ * Pure: which products the server switches off (#7481), from the server's
+ * answer (`products`, Common's InstallationHealthUtil.getProducts), so that
+ * "where did Logs go?" is answered on the command line too. A product an
+ * admin switched off is a choice, not a fault: notes, shown whenever there
+ * are any and never counted. Only what SERVER_PRODUCTS got wrong, while it
+ * is what applies, is worth a look. An older server says nothing of them.
+ */
+const productsFindings = (products, publicUrl) => {
+  if (!products || typeof products !== "object") {
+    return [];
+  }
+
+  const findings = [];
+  const switchedOff = Array.isArray(products.switchedOff)
+    ? products.switchedOff
+    : [];
+  const offByIngestion = Array.isArray(products.offByIngestion)
+    ? products.offByIngestion
+    : [];
+  const unknownNames = Array.isArray(products.unknownNames)
+    ? products.unknownNames.filter((name) => {
+        return typeof name === "string" && name;
+      })
+    : [];
+  const isSaved = products.source === "saved";
+
+  if (switchedOff.length === 0) {
+    findings.push(finding("ok", "Products: every product is switched on."));
+  } else {
+    const count = `${products.onCount} of ${products.switchableCount} on`;
+    const where = isSaved
+      ? `set in the Admin Dashboard${publicUrl ? ` at ${publicUrl}${PRODUCTS_ADMIN_PATH}` : ""}`
+      : `set by SERVER_PRODUCTS in ${CONFIG_FILE}`;
+
+    findings.push(
+      finding(
+        "note",
+        products.presetTitle
+          ? `Products: ${products.presetTitle} (${count}), ${where}.`
+          : `Products: ${count}, ${where}. Switched off: ${productList(switchedOff)}.`,
+      ),
+    );
+  }
+
+  // Once an admin saved the page, SERVER_PRODUCTS no longer applies.
+  if (!isSaved && unknownNames.length > 0) {
+    findings.push(
+      finding(
+        "warn",
+        `SERVER_PRODUCTS in ${CONFIG_FILE} names what OneUptime does not know, so it left ${unknownNames.length === 1 ? "it" : "them"} out: ${unknownNames.join(", ")}.`,
+        `Use everything, monitoring-and-status-pages, incident-response, or product keys such as monitors,incidents,status-pages, then run npm start. See ${PRODUCTS_GUIDE}`,
+      ),
+    );
+  }
+
+  if (products.isTelemetryIngestionStopped && offByIngestion.length > 0) {
+    findings.push(
+      finding(
+        "note",
+        `Telemetry ingestion is stopped (DISABLE_TELEMETRY_INGESTION=true), so ${productList(offByIngestion)} ${offByIngestion.length === 1 ? "is" : "are"} off for every project.`,
+      ),
+    );
+  }
+
+  if (products.shouldSuggestStoppingIngestion) {
+    findings.push(
+      finding(
+        "note",
+        `Every telemetry product is switched off, but telemetry ingestion still runs. You can also stop it to save memory: set DISABLE_TELEMETRY_INGESTION=true in ${CONFIG_FILE}, then run npm start.`,
+      ),
+    );
+  }
+
+  return findings;
+};
+
 /*
  * Pure: whether HOST reaches this OneUptime, from the answer to GET
  * <HOST>/status-page-api/custom-domain-readiness/<proof>, a proof only this
@@ -587,6 +692,111 @@ const addressFindings = (publicUrl, response) => {
       "If people can open it from elsewhere, nothing is wrong: some networks do not let a server reach its own public address. If they cannot, point HOST's DNS record at this server and open ports 80 and 443 in its firewall.",
     ),
   ];
+};
+
+/*
+ * The host names OneUptime's ingress serves the whole application on
+ * besides HOST (server_name in Nginx/default.conf.template): a request that
+ * names one of them still reaches the dashboard, and any other name is
+ * served as a status page's custom domain.
+ */
+const INGRESS_OWN_NAMES = ["localhost", "ingress"];
+
+// A host name as two can be compared: lower case, no brackets, no trailing dot.
+const comparableHostname = (hostname) => {
+  let text = String(hostname || "")
+    .trim()
+    .toLowerCase();
+
+  if (text.startsWith("[") && text.endsWith("]")) {
+    text = text.slice(1, -1);
+  }
+
+  return text.endsWith(".") ? text.slice(0, -1) : text;
+};
+
+const PROXY_GUIDE = `${DOCS_URL}#use-your-own-reverse-proxy`;
+
+/*
+ * Pure: whether whatever stands in front of OneUptime - a reverse proxy, a
+ * load balancer, a CDN - passes on what the browser asked for (#7050), from
+ * the answer to the proof request addressFindings reads: the app says the
+ * host name the request reached it with and whether it took it for HTTPS
+ * (`request`, CustomDomainServerReadiness.answerTo). Nothing to say when the
+ * request did not reach this OneUptime (addressFindings says so), or when
+ * the server is older and does not say.
+ *
+ *   - The host name. OneUptime's ingress routes by it: HOST, localhost and
+ *     ingress reach the application, and any other name is served as a
+ *     status page's custom domain. A proxy that sends its upstream's name
+ *     instead of the browser's (Nginx's default) sends HOST's visitors
+ *     there: "OneUptime is not set up for this address", sign-in "Page not
+ *     found". The app reads the Host header alone, never X-Forwarded-Host.
+ *   - The scheme. A proxy that ends TLS and sends no X-Forwarded-Proto makes
+ *     the app take HTTPS visitors for plain HTTP: links it writes for status
+ *     pages start with http://, the sign-in cookies of status pages and
+ *     dashboards on custom domains are not kept on HTTPS, and Twilio's calls
+ *     to incoming call policies fail their signature check.
+ *
+ * Who a visitor is (X-Forwarded-For) is the Health page's "Visitors share an
+ * address" card, which reads it from real sign-ins: one request from this
+ * server cannot tell a proxy that drops it from no proxy at all.
+ */
+const proxyFindings = (publicUrl, host, response) => {
+  const seen =
+    response && response.status === 200 && response.json
+      ? response.json.request
+      : null;
+
+  if (!seen || typeof seen !== "object") {
+    return [];
+  }
+
+  const findings = [];
+  const expected = comparableHostname(splitHost(host).hostname);
+  const reached =
+    typeof seen.host === "string" ? comparableHostname(seen.host) : "";
+  const hostFix =
+    "Have the proxy pass on the Host header the browser sent: Caddy and Traefik do unless told otherwise, Nginx with proxy_set_header Host $host; and Apache with ProxyPreserveHost On. A cloud load balancer passes it on.";
+
+  if (reached !== expected) {
+    const as = reached ? `as ${reached}` : "with no host name it could read";
+
+    findings.push(
+      INGRESS_OWN_NAMES.indexOf(reached) !== -1
+        ? finding(
+            "warn",
+            `A proxy in front of OneUptime changes the host name: a request to ${publicUrl} reached OneUptime ${as}. The dashboard still opens, but status pages and dashboards on their own domains cannot be served through this proxy.`,
+            `${hostFix} See ${PROXY_GUIDE}`,
+          )
+        : finding(
+            "fix",
+            `A proxy in front of OneUptime changes the host name: a request to ${publicUrl} reached OneUptime ${as}, so people who open ${publicUrl} get "OneUptime is not set up for this address", and signing in fails.`,
+            `${hostFix} See ${PROXY_GUIDE}`,
+          ),
+    );
+  }
+
+  if (publicUrl.indexOf("https:") === 0 && seen.isHttps === false) {
+    findings.push(
+      finding(
+        "warn",
+        `A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to ${publicUrl} for plain HTTP. Links it writes for status pages start with http://, the sign-in cookies of status pages and dashboards on custom domains are not kept on HTTPS, and Twilio's calls to incoming call policies are refused.`,
+        `Have the proxy send X-Forwarded-Proto: https. Caddy, Traefik and cloud load balancers send it; in Nginx add proxy_set_header X-Forwarded-Proto $scheme; See ${PROXY_GUIDE}`,
+      ),
+    );
+  }
+
+  if (findings.length === 0) {
+    findings.push(
+      finding(
+        "ok",
+        `Requests to ${publicUrl} reach OneUptime with their host name${publicUrl.indexOf("https:") === 0 ? " and as HTTPS" : ""}.`,
+      ),
+    );
+  }
+
+  return findings;
 };
 
 /*
@@ -705,6 +915,9 @@ const summaryOf = (findings) => {
   return "Everything looks right.";
 };
 
+// The mark of a note: neither a fault nor a pass.
+const NOTE_MARK = "•";
+
 // A finding's lines: the mark and what is wrong, then its details and its fix, indented.
 const linesOf = (entry) => {
   const mark =
@@ -712,7 +925,9 @@ const linesOf = (entry) => {
       ? MARKS.stop
       : entry.level === "ok"
         ? MARKS.ok
-        : MARKS.warn;
+        : entry.level === "note"
+          ? NOTE_MARK
+          : MARKS.warn;
   const lines = [`  ${mark} ${entry.message}`];
 
   for (const detail of entry.details) {
@@ -1024,6 +1239,8 @@ const run = async (options) => {
 
     if (answer && answer.status === 200 && answer.json) {
       addressProof = answer.json.addressProof || null;
+      // Which products the server switches off (#7481).
+      add(productsFindings(answer.json.products, publicUrl));
     }
   }
 
@@ -1031,15 +1248,14 @@ const run = async (options) => {
   const host = String(settings.get("HOST") || "").trim();
 
   if (addressProof && publicUrl && !isLoopbackOrEmpty(host)) {
-    add(
-      addressFindings(
-        publicUrl,
-        await request(
-          `${publicUrl}/status-page-api/custom-domain-readiness/${addressProof}`,
-          {},
-        ),
-      ),
+    const reached = await request(
+      `${publicUrl}/status-page-api/custom-domain-readiness/${addressProof}`,
+      {},
     );
+
+    add(addressFindings(publicUrl, reached));
+    // And whether a proxy in front passed on the host name and the scheme.
+    add(proxyFindings(publicUrl, host, reached));
   }
 
   const hostname = splitHost(host).hostname;
@@ -1083,23 +1299,20 @@ const run = async (options) => {
     add(certificateFindings(hostname, presented, now, sslLog));
   }
 
-  // What to print: what needs attention, worst first, and what passed when asked.
-  const problems = findings
-    .filter((entry) => {
-      return entry.level === "fix";
-    })
-    .concat(
-      findings.filter((entry) => {
-        return entry.level === "warn";
-      }),
-    );
-  const shown = showAll
-    ? problems.concat(
-        findings.filter((entry) => {
-          return entry.level === "ok";
-        }),
-      )
-    : problems;
+  /*
+   * What to print: what needs attention, worst first, then what is worth
+   * knowing (not after `npm start`, which says only what needs attention),
+   * and what passed when asked.
+   */
+  const ofLevel = (level) => {
+    return findings.filter((entry) => {
+      return entry.level === level;
+    });
+  };
+  const problems = ofLevel("fix").concat(ofLevel("warn"));
+  const shown = problems
+    .concat(afterStart ? [] : ofLevel("note"))
+    .concat(showAll ? ofLevel("ok") : []);
   const summary = summaryOf(findings);
 
   if (afterStart) {
@@ -1200,7 +1413,9 @@ module.exports = {
   ingressFindings,
   serverFixOf,
   serverFindings,
+  productsFindings,
   addressFindings,
+  proxyFindings,
   certificateFindings,
   diskFindings,
   summaryOf,

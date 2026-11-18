@@ -2480,6 +2480,7 @@
   "Checked just now, worst first. On the server, npm run doctor also checks the containers, the address and the certificate.": "剛剛檢查過，最嚴重的排在最前。在伺服器上，npm run doctor 還會檢查容器、位址和憑證。",
   "Everything looks right.": "一切正常。",
   "What needs attention could not be read. Reload the page to try again.": "無法讀取需要處理的問題。請重新載入頁面後再試一次。",
+  "What needs attention could not be read.": "無法讀取需要處理的問題。",
   "Valkey": "Valkey",
   "Database migrations": "資料庫遷移",
   "Background jobs": "背景工作",

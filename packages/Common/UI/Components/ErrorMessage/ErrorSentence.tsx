@@ -2,7 +2,7 @@ import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import Link from "../Link/Link";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
-import { ADMIN_DASHBOARD_URL } from "../../Config";
+import WhereToLookWords from "./WhereToLookWords";
 import {
   ErrorInSentenceWords,
   getErrorInSentenceWords,
@@ -10,9 +10,12 @@ import {
 } from "../../Utils/ErrorInSentence";
 import { registerPageErrorReader } from "../../Utils/ErrorReader";
 import { getTranslatedLineDirection } from "../../Utils/LineDirection";
+import {
+  getOneUptimeHealthUrl,
+  isOnOneUptimeHealth,
+} from "../../Utils/OneUptimeHealthLink";
 import { useSentenceLanguage } from "../../Utils/SentenceLanguage";
 import useTranslator from "../../Utils/UseTranslator";
-import URL from "../../../Types/API/URL";
 import {
   UnexplainedErrorReader,
   UnexplainedErrorWords,
@@ -93,22 +96,24 @@ export const ErrorWhereToLook: FunctionComponent<ErrorWhereToLookProps> = (
 
   /*
    * OneUptime Health beside the logs of a server failure. What was too
-   * large is a proxy's limit (#8278), which Health does not show.
+   * large is a proxy's limit (#8278), which Health does not show; and on
+   * OneUptime Health itself, a link to it would only reload the page.
    */
-  if (!isServerFailureKind(words.kind)) {
+  if (!isServerFailureKind(words.kind) || isOnOneUptimeHealth()) {
     return (
       <span className="mt-1 block" data-testid="error-where-to-look">
-        {words.whereToLook}
+        <WhereToLookWords text={words.whereToLook} />
       </span>
     );
   }
 
   return (
     <span className="mt-1 block" data-testid="error-where-to-look">
-      {words.whereToLook}{" "}
+      {/* The command in it drawn as a command, with a copy button (#7539). */}
+      <WhereToLookWords text={words.whereToLook} />{" "}
       <Link
         className="underline"
-        to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute("/health")}
+        to={getOneUptimeHealthUrl()}
         dataTestId="error-open-health"
       >
         {translator.translateText(UnexplainedErrorWords.openHealth) ||
