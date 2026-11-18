@@ -136,6 +136,8 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
 
+A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
+
 A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too.
 
 ## One issue per cause
@@ -154,7 +156,6 @@ Someone who may not see the alert that caused it gets neither the **Data** card 
 ## Power BI lineage
 
 **Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, datasets that read from dataflows, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
-
 
 OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Power Query behind each of its tables:
 

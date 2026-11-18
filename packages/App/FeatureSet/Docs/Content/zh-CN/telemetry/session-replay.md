@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | 否 | 默认遵守 Do Not Track 和 Global Privacy Control。设为 `"false"` 则无视该信号进行录制；参见 [Do Not Track](#do-not-track) 。 |
 | `data-oneuptime-debug` | 否 | `"true"` 会把录制器的决定输出到控制台。参见 [会话回放故障排除](/docs/rum/session-replay-troubleshooting) 。 |
 | `data-oneuptime-offline-storage` | 否 | 设为 `"false"` 时，访客离线期间录制的分块只保存在内存中，而不会同时保存到浏览器的 IndexedDB。参见 [离线模式](#离线模式) 。 |
+| `data-oneuptime-app-version` | 否 | 应用的版本，例如 `2.3.1` ，最多 64 个字符。产品分析按它细分用户和会话。 |
 
 同样的选项也可以通过一个全局对象而不是标签提供，标签管理器和打包安装就是这样做的：
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ flowchart TB
 
 关于 `ByIdentifiedUserKey` ，坦白说有两个限制。这个键在仪表板中的任何地方都不显示：它会作为 `identifiedUserKey` 出现在会话列表 API（ `POST /telemetry/rum/session-replay/list` ）的每一行中，因此目前按用户擦除要从在那里搜索 `user:` 并复制该字段开始。另外，在 **捕获最终用户身份** 关闭期间录制的会话根本没有键 — 没有存储关于这个人的任何内容 — 因此只能通过会话 ID、日期范围或应用程序来定位它。
 
-每个请求都会记录它的 `status` （ `Pending` 、 `InProgress` 、 `Completed` 、 `Failed` ）、 `sessionsDeleted` 和 `chunksDeleted` 计数，以及任何 `failureReason` ； `ReadRumSessionErasureRequest` 允许查看它们。擦除会删除录制以及与这些会话关联的遥测数据，在请求完成时仍在传输中的任何录制会被丢弃而不是写入。指向已擦除会话的链接会返回“erased”而不是“not found”。关联的遥测数据包括：
+每个请求都会记录它的 `status` （ `Pending` 、 `InProgress` 、 `Completed` 、 `Failed` ）、 `sessionsDeleted` 、 `chunksDeleted` 和 `productAnalyticsRowsDeleted` 计数，以及任何 `failureReason` ； `ReadRumSessionErasureRequest` 允许查看它们。擦除会删除录制以及与这些会话关联的遥测数据，在请求完成时仍在传输中的任何录制会被丢弃而不是写入。指向已擦除会话的链接会返回“erased”而不是“not found”。关联的遥测数据包括：
 
 - 每个带有该会话 ID 标记的 span 和异常，包括在每个转发了追踪上下文的服务中被 [自动](#与其他遥测数据关联) 打上标记的后端 span，以及本身携带该 ID 的任何日志；
 - 仅属于被擦除会话的每条追踪中的日志、异常和 span：追踪中每个带标记的 span 都携带这些会话的某个 ID，并且追踪中没有任何内容在这些 span 中的第一个之前十分钟以上开始，或在最后一个之后十分钟以上开始。这涵盖了你的页面发往其自身来源的请求所产生的后端日志，它们与带标记的 span 共享追踪 ID。

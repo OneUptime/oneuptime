@@ -49,16 +49,14 @@ describe("auto-import rule run summary", () => {
       result({ monitorsSkippedAlreadyExisting: 1 }),
     );
 
-    expect(summary).toContain(
-      "1 requested active Network Device monitor was skipped",
-    );
+    expect(summary).toContain("1 requested active monitor was skipped");
     expect(summary).not.toContain("monitor were");
   });
 
   it("describes multiple skipped requests without claiming that many monitors exist", () => {
     expect(
       describeAutoImportRun(result({ monitorsSkippedAlreadyExisting: 3 })),
-    ).toContain("3 requested active Network Device monitors were skipped");
+    ).toContain("3 requested active monitors were skipped");
   });
 
   it("explains that a dry-run cap can come from device or monitor work", () => {
@@ -86,16 +84,14 @@ describe("auto-import rule run summary", () => {
         monitorsFailed: 501,
         monitorProvisioningHalted: true,
         monitorFailureReasons: [
-          "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+          "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
         ],
       }),
     );
 
+    expect(summary).toContain("501 active monitors could not be created");
     expect(summary).toContain(
-      "501 active Network Device monitors could not be created",
-    );
-    expect(summary).toContain(
-      "Edit the rule and select a Network Device Monitor Template.",
+      "Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
     );
     expect(summary).toContain("Monitor provisioning stopped");
     // The advice that sent this operator in a circle.

@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * backfilled: adding them rewrites no row, a server of the release before
  * ignores them, and the next hourly read of each tool fills them in.
  */
-export class AddBiLineageSummaryAndDashboardUpstream1809183870000
+export class AddBiLineageSummaryAndDashboardUpstream1809184620000
   implements MigrationInterface
 {
-  public name: string = "AddBiLineageSummaryAndDashboardUpstream1809183870000";
+  public name: string = "AddBiLineageSummaryAndDashboardUpstream1809184620000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

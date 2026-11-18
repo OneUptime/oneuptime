@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddBiLineageSummaryAndDashboardUpstream1809183870000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183870000-AddBiLineageSummaryAndDashboardUpstream";
+import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184620000-AddBiLineageSummaryAndDashboardUpstream";
 import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "../../../../Models/DatabaseModels/DataDashboard";
 import Permission from "../../../../Types/Permission";
@@ -24,11 +24,11 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * statements to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809183870000";
+const MIGRATION_TIMESTAMP: string = "1809184620000";
 const MIGRATION_BASE_NAME: string = "AddBiLineageSummaryAndDashboardUpstream";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddEmailLogTemplateType1809183830000";
+const PREVIOUS_MIGRATION: string = "AddTableHealthAttemptedAt1809184570000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddBiLineageSummaryAndDashboardUpstream1809183870000();
+    new AddBiLineageSummaryAndDashboardUpstream1809184620000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddBiLineageSummaryAndDashboardUpstream1809183870000", () => {
+describe("AddBiLineageSummaryAndDashboardUpstream1809184620000", () => {
   test("adds lineageSummary to DataBiConnection and upstream to DataDashboard, nullable JSON columns", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataBiConnection" ADD "lineageSummary" jsonb`,
@@ -120,7 +120,7 @@ describe("AddBiLineageSummaryAndDashboardUpstream1809183870000", () => {
       }),
     ).toHaveLength(1);
     expect(
-      new AddBiLineageSummaryAndDashboardUpstream1809183870000().name,
+      new AddBiLineageSummaryAndDashboardUpstream1809184620000().name,
     ).toBe(MIGRATION_CLASS_NAME);
 
     const timestamps: Array<number> = fs
@@ -135,7 +135,7 @@ describe("AddBiLineageSummaryAndDashboardUpstream1809183870000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809183830000;
+          return value <= 1809184570000;
         }),
       ),
     );

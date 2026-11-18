@@ -354,8 +354,12 @@ export enum DiscoveryImportDeviceOutcome {
  *  - NotRequested: the import creates no monitors.
  *  - Pending: not reached yet.
  *  - Created: this import created it from the template.
- *  - AlreadyThere: the device already had a monitor from this template - an
- *    alert policy's, or an earlier import's. Nothing was created twice.
+ *  - AlreadyThere: the device already had a monitor this one would
+ *    duplicate (issue #9509): one from this template - an alert policy's, or
+ *    an earlier import's - or, for a Ping, IP, Port or NTP template, one of
+ *    the same kind checking the same thing, from another template or bound
+ *    to the device (DeviceMonitorDuplicates). `monitorId` is that monitor.
+ *    Nothing was created twice.
  *  - Failed: the create was refused; `monitorError` says why. The device is
  *    imported all the same.
  *  - Skipped: there was nothing to create it for - the device was not
@@ -567,7 +571,8 @@ export function countSettledMonitors(
  * monitor was skipped because its device takes its status from a bound
  * monitor is not: trying again would skip it again. Trying again never
  * creates anything twice - a device already at the address is found, not
- * re-created, and a monitor already made from the template is found too.
+ * re-created, and so is a monitor the device already has that the
+ * template's would duplicate.
  */
 export function isHostResultRetryable(
   result: DiscoveryImportHostResult,

@@ -226,7 +226,7 @@ beforeEach(() => {
   server = new FakeAxiosServer(mockedAxios);
 
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
-  jest.spyOn(User, "logout").mockImplementation((): void => {});
+  jest.spyOn(User, "logout").mockResolvedValue(undefined);
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
   jest
     .spyOn(Navigation, "getCurrentRoute")

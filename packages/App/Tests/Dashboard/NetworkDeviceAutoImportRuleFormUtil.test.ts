@@ -29,10 +29,31 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 
 import {
+  AUTO_IMPORT_MONITOR_TEMPLATE_SELECT,
+  NO_DEVICE_MONITOR_TEMPLATE_YET,
   canSelectAutoImportMonitorTemplate,
+  getAutoImportMonitorTemplateOptions,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/AutoImportRuleFormUtil";
+import {
+  ADDRESS_TEMPLATES_GROUP_TITLE,
+  POLL_TEMPLATES_GROUP_TITLE,
+  UNNAMED_TEMPLATE_NAME,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportTemplateCopy";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import Port from "Common/Types/Port";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  Translator,
+  getGlobalTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { DEVICE_MONITOR_TEMPLATE_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { describe, expect, it } from "@jest/globals";
 
 const PAGE_SOURCE: string = path.join(
@@ -383,5 +404,229 @@ describe("Network Device auto-import rule monitor form state", () => {
         false,
       ),
     ).toEqual({ monitorTemplate: "template-id", isExclusion: false });
+  });
+});
+
+/*
+ * ISSUE #9510. The rule's Monitor Template listed Network Device templates
+ * only: a customer's Ping template - labels, interval and criteria set up -
+ * could not be picked, and the list said "No options available". It lists
+ * every kind a device's monitor can be made from now, as Review Results
+ * does, and nothing that cannot check a device.
+ */
+describe("the Monitor Template a rule gives its devices (issue #9510)", () => {
+  const translator: Translator = getGlobalTranslator();
+
+  function templateOf(data: {
+    name: string;
+    monitorType: MonitorType;
+    ports?: Array<number | undefined>;
+  }): MonitorTemplate {
+    const statusId: ObjectID = ObjectID.generate();
+    const steps: MonitorSteps = new MonitorSteps();
+    steps.data = {
+      monitorStepsInstanceArray: (data.ports || [undefined]).map(
+        (port: number | undefined): MonitorStep => {
+          const step: MonitorStep = new MonitorStep();
+          step.data!.id = ObjectID.generate().toString();
+
+          if (port) {
+            step.setPort(new Port(port));
+          }
+
+          return step;
+        },
+      ),
+      defaultMonitorStatusId: statusId,
+    };
+
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.id = ObjectID.generate();
+    template.templateName = data.name;
+    template.monitorType = data.monitorType;
+    template.monitorSteps = steps;
+    return template;
+  }
+
+  function flatten(
+    options: Array<DropdownOption | DropdownOptionGroup>,
+  ): Array<DropdownOption> {
+    return options.flatMap(
+      (option: DropdownOption | DropdownOptionGroup): Array<DropdownOption> => {
+        return "options" in option ? option.options : [option];
+      },
+    );
+  }
+
+  it("lists a Ping template on its own - the customer's case - with what it checks", () => {
+    const options: Array<DropdownOption | DropdownOptionGroup> =
+      getAutoImportMonitorTemplateOptions({
+        templates: [
+          templateOf({
+            name: "WB KDS Ping Monitor Template",
+            monitorType: MonitorType.Ping,
+          }),
+        ],
+        translator: translator,
+      });
+
+    // One kind alone needs no heading.
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({
+      label: "WB KDS Ping Monitor Template",
+      isUserContent: true,
+      description: "Pings each device",
+      isDescriptionUserContent: true,
+    });
+  });
+
+  it("lists every kind a device's monitor can be made from, Network Device first, under a heading each", () => {
+    const options: Array<DropdownOption | DropdownOptionGroup> =
+      getAutoImportMonitorTemplateOptions({
+        templates: [
+          templateOf({ name: "Kiosk Ping", monitorType: MonitorType.Ping }),
+          templateOf({
+            name: "Alert pack",
+            monitorType: MonitorType.NetworkDevice,
+          }),
+          templateOf({ name: "Kiosk IP", monitorType: MonitorType.IP }),
+          templateOf({
+            name: "SSH",
+            monitorType: MonitorType.Port,
+            ports: [22],
+          }),
+          templateOf({
+            name: "Web",
+            monitorType: MonitorType.Port,
+            ports: [80, 443],
+          }),
+          templateOf({ name: "Clock", monitorType: MonitorType.NTP }),
+        ],
+        translator: translator,
+      });
+
+    expect(
+      options.map((option: DropdownOption | DropdownOptionGroup): string => {
+        return String(option.label);
+      }),
+    ).toEqual([POLL_TEMPLATES_GROUP_TITLE, ADDRESS_TEMPLATES_GROUP_TITLE]);
+
+    const [poll, address] = options as Array<DropdownOptionGroup>;
+
+    expect(
+      poll!.options.map((option: DropdownOption): string => {
+        return String(option.label);
+      }),
+    ).toEqual(["Alert pack"]);
+    // A Network Device template's monitor reads polls: no address line.
+    expect(poll!.options[0]!.description).toBeUndefined();
+
+    expect(
+      address!.options.map(
+        (option: DropdownOption): [string, string | undefined] => {
+          return [String(option.label), option.description];
+        },
+      ),
+    ).toEqual([
+      ["Kiosk Ping", "Pings each device"],
+      ["Kiosk IP", "Pings each device's IP address"],
+      ["SSH", "Checks port 22 on each device"],
+      ["Web", "Checks ports 80, 443 on each device"],
+      ["Clock", "Asks each device for the time"],
+    ]);
+  });
+
+  it("offers no template of a kind that cannot check a device", () => {
+    const options: Array<DropdownOption> = flatten(
+      getAutoImportMonitorTemplateOptions({
+        templates: [
+          templateOf({ name: "Manual", monitorType: MonitorType.Manual }),
+          templateOf({
+            name: "Heartbeat",
+            monitorType: MonitorType.IncomingRequest,
+          }),
+          templateOf({ name: "Website", monitorType: MonitorType.Website }),
+          templateOf({ name: "Cert", monitorType: MonitorType.SSLCertificate }),
+          templateOf({ name: "Logs", monitorType: MonitorType.Logs }),
+          templateOf({ name: "Kiosk Ping", monitorType: MonitorType.Ping }),
+        ],
+        translator: translator,
+      }),
+    );
+
+    expect(
+      options.map((option: DropdownOption): string => {
+        return String(option.label);
+      }),
+    ).toEqual(["Kiosk Ping"]);
+  });
+
+  it("names a template with no name in the reader's words, and lists none for a project without templates", () => {
+    const unnamed: MonitorTemplate = templateOf({
+      name: "",
+      monitorType: MonitorType.NetworkDevice,
+    });
+
+    expect(
+      getAutoImportMonitorTemplateOptions({
+        templates: [unnamed],
+        translator: translator,
+      })[0],
+    ).toMatchObject({
+      value: unnamed.id!.toString(),
+      label: UNNAMED_TEMPLATE_NAME,
+      isUserContent: false,
+    });
+
+    expect(
+      getAutoImportMonitorTemplateOptions({
+        templates: [],
+        translator: translator,
+      }),
+    ).toEqual([]);
+  });
+
+  it("the empty list says which templates work and how to make one", () => {
+    expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toContain(
+      "Network Device, Ping, IP, Port or NTP",
+    );
+    expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toContain("Manage templates");
+    expect(NO_DEVICE_MONITOR_TEMPLATE_YET).toMatch(/^[A-Z].*\.$/);
+  });
+
+  it("the page asks for every kind, names the field Monitor Template, says which templates work and links to them", () => {
+    const page: string = fs
+      .readFileSync(PAGE_SOURCE, "utf8")
+      .replace(/\s+/g, " ");
+
+    expect(page).toContain(
+      "monitorType: new Includes([...DEVICE_MONITOR_TEMPLATE_TYPES])",
+    );
+    expect(page).toContain("select: AUTO_IMPORT_MONITOR_TEMPLATE_SELECT");
+    expect(page).toContain('title: "Monitor Template", stepId: "monitor"');
+    expect(page).not.toContain("Network Device Monitor Template");
+    expect(page).not.toContain("monitorType: MonitorType.NetworkDevice");
+    expect(page).toContain("description: LISTED_TEMPLATE_KINDS_RULE");
+    expect(page).toContain("noOptionsText: NO_DEVICE_MONITOR_TEMPLATE_YET");
+    expect(page).toContain(
+      'sideLink: { text: "Manage templates", url: RouteUtil.populateRouteParams( RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route, ), openLinkInNewTab: true, }',
+    );
+    expect(page).toContain("fetchDropdownOptions: fetchDeviceMonitorTemplates");
+  });
+
+  it("reads what names a template and what it checks, and nothing else", () => {
+    expect(AUTO_IMPORT_MONITOR_TEMPLATE_SELECT).toEqual({
+      _id: true,
+      templateName: true,
+      monitorType: true,
+      monitorSteps: true,
+    });
+    expect([...DEVICE_MONITOR_TEMPLATE_TYPES]).toEqual([
+      MonitorType.NetworkDevice,
+      MonitorType.Ping,
+      MonitorType.IP,
+      MonitorType.Port,
+      MonitorType.NTP,
+    ]);
   });
 });

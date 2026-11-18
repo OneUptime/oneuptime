@@ -7,6 +7,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getBigIntDatabaseTransformer } from "../../Types/Database/BigIntColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -482,6 +483,44 @@ export default class RumSessionErasureRequest extends BaseModel {
     default: 0,
   })
   public chunksDeleted?: number = undefined;
+
+  /*
+   * What the request removed from product analytics (issue #6628), so an
+   * admin answering a data subject request can show that analytics data
+   * went too. A ClickHouse delete returns no count, so the worker counts
+   * each delete's rows under the same filter just before it queues the
+   * delete, and adds them up across the request's runs like the other
+   * counters. A bigint: an application's erasure can remove more events
+   * than an integer holds, and a counter that overflowed would fail the
+   * request it is reporting on.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    computed: true,
+    type: TableColumnType.BigPositiveNumber,
+    title: "Product Analytics Rows Deleted",
+    description:
+      "How many product analytics rows the erasure removed: session summaries, monthly user rows and events. Each is counted once, just before it is deleted.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.BigPositiveNumber,
+    nullable: false,
+    unique: false,
+    default: 0,
+    /*
+     * Keeps `undefined` as it is, so this NOT NULL column's DEFAULT 0 is
+     * what a create gets (Types/Database/BigIntColumnTransformer).
+     */
+    transformer: getBigIntDatabaseTransformer(),
+  })
+  public productAnalyticsRowsDeleted?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

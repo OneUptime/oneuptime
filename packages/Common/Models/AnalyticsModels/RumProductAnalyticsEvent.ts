@@ -9,7 +9,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Permission from "../../Types/Permission";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import RumApplication from "../DatabaseModels/RumApplication";
-import { PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../Types/Rum/ProductAnalytics";
+import { MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS } from "../../Types/Rum/ProductAnalytics";
 import { PRODUCT_ANALYTICS_READ_PERMISSIONS } from "./RumProductAnalyticsSession";
 
 /*
@@ -33,7 +33,8 @@ import { PRODUCT_ANALYTICS_READ_PERMISSIONS } from "./RumProductAnalyticsSession
  *
  * userProperties are the identify() traits the application listed for
  * analytics, and nothing else; they are kept like the rest of the row, for
- * PRODUCT_ANALYTICS_RETENTION_MONTHS calendar months by monthly partition,
+ * the application's product analytics retention (13 calendar months by
+ * default, issue #6626) by monthly partition,
  * and an erasure request removes a subject's rows here as well
  * (RumProductAnalyticsErasure).
  *
@@ -53,8 +54,12 @@ const accessControl: {
   update: [],
 };
 
-/* TTL: the first day of the PRODUCT_ANALYTICS_RETENTION_MONTHS-th month after. */
-export const PRODUCT_ANALYTICS_EVENT_TTL: string = `toStartOfMonth(time) + INTERVAL ${PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
+/*
+ * TTL: the first day of the MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS-th month
+ * after, the longest retention an application can choose; a shorter one is
+ * kept by Rum:EnforceProductAnalyticsRetention (issue #6626).
+ */
+export const PRODUCT_ANALYTICS_EVENT_TTL: string = `toStartOfMonth(time) + INTERVAL ${MAX_PRODUCT_ANALYTICS_RETENTION_MONTHS} MONTH DELETE`;
 
 type TextColumnDefinition = {
   key: string;
@@ -118,7 +123,8 @@ const TEXT_COLUMNS: Array<TextColumnDefinition> = [
   {
     key: "appVersion",
     title: "App Version",
-    description: "The mobile app's version; '' for a web page",
+    description:
+      "The app's version: a mobile app's own, or the web page's appVersion recorder option; '' when not reported",
     isLowCardinality: true,
   },
 ];
@@ -278,9 +284,14 @@ export default class RumProductAnalyticsEvent extends AnalyticsBaseModel {
       shardingKey: "cityHash64(projectId, sessionId)",
       /*
        * Every row of a monthly partition expires on the same day, so whole
-       * parts are dropped rather than rewritten row by row.
+       * parts are dropped rather than rewritten row by row. A MATERIALIZE
+       * TTL (as a TTL change queues) recalculates each part's expiry without
+       * rewriting the part (materialize_ttl_recalculate_only), so raising
+       * the TTL reaches the parts already on disk at the cost of reading
+       * the one column it names.
        */
-      tableSettings: "ttl_only_drop_parts = 1",
+      tableSettings:
+        "ttl_only_drop_parts = 1, materialize_ttl_recalculate_only = 1",
       ttlExpression: PRODUCT_ANALYTICS_EVENT_TTL,
       includeBaseColumns: false,
       defaultSortColumn: "time",

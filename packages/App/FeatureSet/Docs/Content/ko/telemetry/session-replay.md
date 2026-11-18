@@ -90,6 +90,7 @@ flowchart TB
 | `data-oneuptime-respect-do-not-track` | 아니요 | 기본적으로 Do Not Track과 Global Privacy Control을 존중합니다. 신호와 관계없이 녹화하려면 `"false"`로 설정하세요. [Do Not Track](#do-not-track)을 참고하세요. |
 | `data-oneuptime-debug` | 아니요 | `"true"`이면 레코더의 결정을 콘솔에 출력합니다. [세션 리플레이 문제 해결](/docs/rum/session-replay-troubleshooting)을 참고하세요. |
 | `data-oneuptime-offline-storage` | 아니요 | `"false"`로 설정하면 방문자가 오프라인인 동안 녹화한 청크를 브라우저의 IndexedDB에도 저장하지 않고 메모리에만 둡니다. [오프라인 모드](#오프라인-모드)를 참고하세요. |
+| `data-oneuptime-app-version` | 아니요 | 앱의 버전(예: `2.3.1`)으로, 최대 64자입니다. 제품 분석은 이 값으로 사용자와 세션을 나눕니다. |
 
 같은 옵션을 태그 대신 전역 객체로 줄 수도 있으며, 태그 관리자와 번들 설치에서는 이 방법을 사용합니다.
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ SVG 스프라이트 파일(`<use href="/icons.svg#close">`)에서 그려지는 �
 
 `ByIdentifiedUserKey`에는 솔직히 말해 두 가지 제한이 있습니다. 키는 대시보드 어디에도 표시되지 않습니다. 세션 목록 API(`POST /telemetry/rum/session-replay/list`)의 모든 행에 `identifiedUserKey`로 돌아오므로, 지금은 사용자별 삭제가 그곳에서의 `user:` 검색과 그 필드의 복사로 시작합니다. 그리고 **최종 사용자 신원 캡처**가 꺼져 있는 동안 녹화된 세션에는 키가 전혀 없습니다. 그 사람에 대해 아무것도 저장되지 않았으므로, 세션 ID, 날짜 범위, 애플리케이션으로만 대상을 정할 수 있습니다.
 
-각 요청은 `status`(`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted`와 `chunksDeleted` 숫자, 그리고 있다면 `failureReason`을 기록하며, `ReadRumSessionErasureRequest`로 이를 검토할 수 있습니다. 삭제는 녹화와 그 세션들에 연결된 텔레메트리를 제거하며, 요청이 완료될 때 아직 전송 중인 녹화는 기록되지 않고 버려집니다. 삭제된 세션으로의 링크는 "not found" 대신 "erased"로 응답합니다. 연결된 텔레메트리는 다음과 같습니다.
+각 요청은 `status`(`Pending`, `InProgress`, `Completed`, `Failed`), `sessionsDeleted`, `chunksDeleted`, `productAnalyticsRowsDeleted` 숫자, 그리고 있다면 `failureReason`을 기록하며, `ReadRumSessionErasureRequest`로 이를 검토할 수 있습니다. 삭제는 녹화와 그 세션들에 연결된 텔레메트리를 제거하며, 요청이 완료될 때 아직 전송 중인 녹화는 기록되지 않고 버려집니다. 삭제된 세션으로의 링크는 "not found" 대신 "erased"로 응답합니다. 연결된 텔레메트리는 다음과 같습니다.
 
 - 세션 ID가 찍힌 모든 스팬과 모든 예외. 트레이스 컨텍스트를 전달한 모든 서비스에서 [자동으로](#나머지-텔레메트리와-연결하기) 찍힌 백엔드 스팬과, ID를 스스로 담은 모든 로그를 포함합니다.
 - 삭제되는 세션에만 속한 모든 트레이스의 로그, 예외, 스팬. 즉 트레이스의 표시된 모든 스팬이 그 세션들의 ID 중 하나를 담고, 트레이스의 어떤 것도 그 스팬들의 첫 번째보다 십 분 넘게 먼저, 또는 마지막 것보다 십 분 넘게 나중에 시작되지 않은 트레이스입니다. 여기에는 페이지가 자체 출처로 보낸 요청의 백엔드 로그가 포함되며, 이 로그는 표시된 스팬과 트레이스 ID를 공유합니다.

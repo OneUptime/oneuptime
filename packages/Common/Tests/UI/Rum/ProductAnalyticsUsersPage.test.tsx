@@ -81,7 +81,11 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   };
 });
 
-import RumApplicationProductAnalyticsUsers from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsUsers";
+import RumApplicationProductAnalyticsUsers, {
+  buildProductAnalyticsUserTiles,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/ProductAnalyticsUsers";
+import { ResourceOverviewTile } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import { PRODUCT_ANALYTICS_PEOPLE_PAGE_SIZE } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsPeopleCard";
 import {
   chooseDropdownOption,
@@ -408,6 +412,42 @@ describe("ProductAnalyticsUsers tiles", () => {
     expect(tiles[5]).toContain("Dormant users");
     expect(tiles[5]).toContain("2,100");
     expect(tiles[5]).toContain("Not seen for 30 days");
+  });
+
+  /*
+   * The total is everyone the months the application keeps hold (issue
+   * #6626): the tile says the application's months, as the summary read
+   * says them, and the default when an older server leaves them out.
+   */
+  it("the total says the months the application keeps", async () => {
+    mockReads({ summary: { ...summary(), retentionMonths: 25 } });
+
+    renderPage();
+
+    const tiles: Array<string> = await waitForTiles();
+
+    expect(tiles[4]).toContain("Total users");
+    expect(tiles[4]).toMatch(/In the last 25\s+months/);
+    expect(tiles[4]).not.toMatch(/13\s+months/);
+
+    const tile: ResourceOverviewTile = buildProductAnalyticsUserTiles({
+      summary: { ...summary(), retentionMonths: 3 },
+      isLoading: false,
+      translator: createTranslator(undefined, DEFAULT_LANGUAGE),
+    })[4]!;
+
+    expect(tile.sublabel).toBe("In the last 3 months");
+    expect(tile.description).toBe(
+      "Everyone this application has seen in the last 3 months, the time these numbers are kept.",
+    );
+
+    expect(
+      buildProductAnalyticsUserTiles({
+        summary: summary(),
+        isLoading: false,
+        translator: createTranslator(undefined, DEFAULT_LANGUAGE),
+      })[4]!.sublabel,
+    ).toBe("In the last 13 months");
   });
 
   it("each tile says what it counts in its (i)", async () => {

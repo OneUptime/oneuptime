@@ -22,7 +22,6 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import logger from "../Logger";
 import {
   DATA_OBSERVABILITY_KINDS,
   getCollectorEngineOfKind,
@@ -237,9 +236,7 @@ export default class DataObservabilityRunner {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
-      logger.debug(
-        `Data Observability: collecting store ${store.id.toString()} failed: ${message}`,
-      );
+      // recordFailure logs it, as it does a probe's.
       await TableHealthIngest.recordFailure({
         storeId: store.id,
         error: message,

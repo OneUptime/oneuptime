@@ -13,7 +13,7 @@ Productanalyse telt de mensen die een RUM-applicatie gebruiken, hoe hun sessies 
 
 ## Hoe mensen worden geteld
 
-Het zijmenu van een applicatie heeft een sectie **Productanalyse**: **Gebruikers**, **Sessies**, **Gebeurtenissen**, **Trechters**, **Gebruikersretentie**, **Gebruikersstromen** en **Analyse-instellingen**. **Gebruikers** en **Sessies** tellen de sessies die Sessieherhaling opneemt: ze beginnen dus wanneer de recorder van de applicatie begint, en een sessie die het herhalingsbeleid niet opneemt, wordt niet geteld. Elke sessie telt voor één persoon, of voor niemand:
+Het zijmenu van een applicatie heeft een sectie **Productanalyse**: **Gebruikers**, **Sessies**, **Gebeurtenissen**, **Trechters**, **Gebruikersretentie**, **Gebruikersstromen** en **Analyse-instellingen**. **Gebruikers** en **Sessies** tellen de sessies die Sessieherhaling opneemt: ze beginnen dus wanneer de recorder van de applicatie begint, en een sessie die het herhalingsbeleid niet opneemt, wordt niet geteld. Op een installatie die is bijgewerkt vanaf een versie zonder Productanalyse, kopieert de upgrade de sessies die Sessieherhaling nog bewaarde, zodat ze beginnen bij de oudste opname die nog wordt bewaard. Elke sessie telt voor één persoon, of voor niemand:
 
 ```mermaid title="Voor wie een sessie telt"
 flowchart TB
@@ -42,12 +42,12 @@ Dagen worden geteld in je eigen tijdzone.
 | **Nieuwe gebruikers** | Actieve gebruikers van wie het eerste bezoek in de periode viel. |
 | **Terugkerende gebruikers** | Actieve gebruikers die al vóór het begin van de periode waren gekomen. |
 | **Aangemelde gebruikers** | Actieve gebruikers die je app met `identify()` aanmeldde, en hun aandeel in alle actieve gebruikers. |
-| **Totaal aantal gebruikers** | Iedereen die de applicatie in de laatste 13 maanden heeft gezien. |
+| **Totaal aantal gebruikers** | Iedereen die de applicatie heeft gezien in de maanden dat haar cijfers worden bewaard (standaard 13). |
 | **Inactieve gebruikers** | Mensen die eerder kwamen maar niet in de laatste 30 dagen, of in de 7, 14, 60 of 90 dagen die je kiest. |
 
 De eerste drie zeggen ook hoe ze veranderden ten opzichte van de periode ervoor. Onder de tegels tekent **Actieve gebruikers** voor elke dag de mensen die die dag kwamen, die in de 7 dagen tot die dag en die in de 30 dagen tot die dag, en **Nieuwe en terugkerende gebruikers** splitst de mensen van elke dag in tweeën.
 
-**Personen** toont iedereen die de tegels tellen, één rij per persoon, de laatst geziene eerst, en het filter toont de mensen van één tegel, de anonieme bezoekers of iedereen. Open een persoon voor het eerste en laatste bezoek en elke sessie van die persoon uit de laatste 13 maanden, met **Bekijken** bij elke sessie waarvan de opname nog wordt bewaard.
+**Personen** toont iedereen die de tegels tellen, één rij per persoon, de laatst geziene eerst, en het filter toont de mensen van één tegel, de anonieme bezoekers of iedereen. Open een persoon voor het eerste en laatste bezoek en elke sessie van die persoon uit de maanden dat de cijfers worden bewaard, met **Bekijken** bij elke sessie waarvan de opname nog wordt bewaard.
 
 ## Sessies
 
@@ -55,7 +55,7 @@ De eerste drie zeggen ook hoe ze veranderden ten opzichte van de periode ervoor.
 
 - **Sessies per apparaat** tekent de sessies van elke dag vanaf desktops, telefoons en tablets. De sessie van een mobiele app op een scherm waarvan de korte zijde 600 punten of meer is, telt als die van een tablet.
 - **Sessieduur** deelt de afgeronde sessies in naar hoe lang ze duurden, van minder dan 10 seconden tot meer dan 30 minuten. Een sessie die nog wordt opgenomen, heeft nog geen duur.
-- **Uitsplitsing** rangschikt gebruikers en sessies op apparaattype, browser, besturingssysteem, land, appversie, startpagina of pagina, die met de meeste gebruikers eerst.
+- **Uitsplitsing** rangschikt gebruikers en sessies op apparaattype, browser, besturingssysteem, land, appversie, startpagina of pagina, die met de meeste gebruikers eerst. De versie van een web-app is de versie die haar pagina aan de optie `appVersion` van de recorder geeft; een mobiele app meldt zijn eigen versie.
 
 ## Gebeurtenissen en metrieken verzenden
 
@@ -138,9 +138,9 @@ Een opgeslagen trechter of retentietabel kan ook op een dashboard: de widgets **
 
 ## Privacy en bewaring
 
-- **13 maanden.** De cijfers van een maand worden verwijderd op de eerste dag van de 13e maand erna, zodat de laatste 12 volle maanden er altijd zijn, wat de eigen bewaartermijn van de opnamen ook is (standaard 7 dagen). Gebeurtenissen worden op dezelfde manier bewaard.
+- **13 maanden.** De cijfers van een maand worden verwijderd op de eerste dag van de 13e maand erna, zodat de laatste 12 volle maanden er altijd zijn, wat de eigen bewaartermijn van de opnamen ook is (standaard 7 dagen). Gebeurtenissen worden op dezelfde manier bewaard. 13 maanden is de standaard: een applicatie kan in plaats daarvan 3, 6 of 25 bewaren, gekozen in **Bewaartermijn productanalyse** onder **Meer instellingen** op haar pagina **Analyse-instellingen**, en een kortere keuze verwijdert de oudere maanden binnen een dag.
 - **Geen namen opgeslagen.** De cijfers bewaren de eenrichtingssleutel van een aangemelde gebruiker en de bezoekers-ID van een browser, nooit de referentie of een IP-adres, en van de kenmerken alleen de gebruikerseigenschappen die je opgeeft. Een rij noemt een aangemelde gebruiker alleen zolang een van diens opnamen nog wordt bewaard, en alleen voor een rol die identiteit mag lezen; anders staat er **Aangemelde gebruiker** of **Anonieme bezoeker** en het begin van de ID.
-- **Op verzoek gewist.** Een wisverzoek verwijdert ook hier de bijbehorende cijfers en gebeurtenissen (zie [Sessies wissen](/docs/telemetry/session-replay#sessies-wissen)).
+- **Op verzoek gewist.** Een wisverzoek verwijdert ook hier de bijbehorende cijfers en gebeurtenissen (zie [Sessies wissen](/docs/telemetry/session-replay#sessies-wissen)). Het aantal `productAnalyticsRowsDeleted` zegt hoeveel rijen het hier heeft verwijderd.
 
 ## Wie het kan zien
 
@@ -148,7 +148,7 @@ Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionRepla
 
 Opgeslagen trechters en retentietabellen opslaan, hernoemen en verwijderen vraagt dezelfde rechten als deze pagina's lezen, en een dashboardwidget toont er een alleen aan een lezer die ze heeft.
 
-De gebeurtenissen aan- of uitzetten vraagt `EditRumApplication` (_Edit RUM Application_) of de rol Projecteigenaar, Projectbeheerder of Projectlid. Gebruikerseigenschappen opgeven vraagt `EditRumApplication` of de rol van eigenaar of beheerder, omdat het bepaalt wat er over aangemelde mensen wordt bewaard.
+De gebeurtenissen aan- of uitzetten vraagt `EditRumApplication` (_Edit RUM Application_) of de rol Projecteigenaar, Projectbeheerder of Projectlid. Gebruikerseigenschappen opgeven vraagt `EditRumApplication` of de rol van eigenaar of beheerder, omdat het bepaalt wat er over aangemelde mensen wordt bewaard. Kiezen hoe lang de cijfers worden bewaard, vraagt hetzelfde als de gebeurtenissen aan- of uitzetten.
 
 ## Volgende stappen
 

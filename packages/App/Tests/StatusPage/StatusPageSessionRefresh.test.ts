@@ -442,9 +442,10 @@ describe("Status page: logging out", () => {
   });
 
   /*
-   * The logout runs from inside the error handler, so it goes through the
-   * bare client on purpose: a logout that could itself refresh-and-replay or
-   * log out again would recurse.
+   * The logout runs from inside the error handler, so it goes through no API
+   * client on purpose - the page's fetch, keepalive (Common/UI/Utils/
+   * SignOutRequest): a logout that could itself refresh-and-replay or log
+   * out again would recurse.
    */
   test("a logout refused 401 is not refreshed", async () => {
     server.on(HTTPMethod.POST, LOGOUT_URL, [{ status: 401 }]);

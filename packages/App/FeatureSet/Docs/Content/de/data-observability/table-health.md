@@ -17,6 +17,8 @@ Nur der Katalog wird gelesen, und bei MongoDB die Feldnamen der neuesten Dokumen
 
 Der **Rhythmus** einer Tabelle gibt an, wie oft sie sich üblicherweise ändert, gelernt aus der Zeit zwischen ihren Änderungen. Eine Tabelle, die ihren Rhythmus deutlich überschreitet, erscheint als **Verspätet**, auf ihrer Seite und unter **Tabellen**, und schreibt, wie weit sie darüber liegt. Ihre Aktualität ist bekannt, sobald sie sich zweimal geändert hat: Eine stündlich geladene Tabelle ist innerhalb von Stunden gelernt, eine nächtlich geladene innerhalb von Tagen.
 
+In **Tabellen** und auf dem Tab **Tabellen** einer Datenbank zeigt der Filter **Aktualität** nur die verspäteten oder nur die aktuellen Tabellen, und das Sortieren nach **Aktualität** stellt die am längsten überfälligen nach vorn. **Verspätete Tabellen** in der **Übersicht** und auf der eigenen Seite einer Datenbank öffnet diese Liste mit **Aktualität** auf **Verspätet**.
+
 Eine View enthält keine eigenen Zeilen, also ist ihre Aktualität die ihrer Quellen: siehe [Lineage und Pipelines](/docs/data-observability/lineage-and-pipelines).
 
 Ein Katalog kann sagen, dass sich eine Tabelle geändert hat, obwohl sich nur ihre Verwaltungsdaten geändert haben, oder gar nichts sagen. Nennen Sie in den **Einstellungen** einer Tabelle eine **Freshness-Spalte** wie `updated_at`, und ihre letzte Änderung wird zum neuesten Wert dieser Spalte. Das Login muss die Spalte lesen können, und sie wird bei jeder Erfassung gelesen, sollte also indiziert sein; bei BigQuery und Athena, die nach dem abrechnen, was eine Abfrage liest, wird sie einmal pro Stunde gelesen. Zeiten ohne Zeitzone werden als UTC angenommen.
@@ -85,7 +87,7 @@ Der Tab **Eigentümer** einer Tabelle nennt die Personen und Teams, denen sie ge
 
 Das sollten Sie nicht hunderte Male tun müssen. **Eigentümerregeln** und **Beschriftungsregeln** gelten für jede Tabelle, sobald sie zum ersten Mal erscheint, zugeordnet nach ihren Beschriftungen oder nach einem regulären Ausdruck auf ihren Namen, ihr Schema oder ihre Datenbank: Alles in `finance` geht an das Finanzteam, und alles mit dem Namen `*_pii` bekommt eine Beschriftung.
 
-Eine auf `Owned` beschränkte Berechtigung erreicht nur die Tabellen, die ihrem Inhaber oder dessen Teams gehören, sowie deren Prüfungen, Aktivität und gemeldete Probleme. Wer eine Datenbank besitzt, besitzt damit nicht ihre Tabellen: Mit einer Eigentümerregel geben Sie einem Team eine ganze Datenbank.
+Eine auf `Owned` beschränkte Berechtigung erreicht nur die Tabellen, die ihrem Inhaber oder dessen Teams gehören, sowie deren Prüfungen, Aktivität und gemeldete Probleme. Wer eine Datenbank besitzt, besitzt damit nicht ihre Tabellen: Mit einer Eigentümerregel geben Sie einem Team eine ganze Datenbank. Die **Übersicht**, **Probleme** und die Zahl neben **Übersicht** zählen und listen nur die Tabellen, die eine solche Berechtigung erreicht, so wie **Tabellen** und **Prüfungen**.
 
 ## Wenn eine Warnung sich öffnet
 

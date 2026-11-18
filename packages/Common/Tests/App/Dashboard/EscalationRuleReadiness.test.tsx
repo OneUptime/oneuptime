@@ -1732,7 +1732,7 @@ describe("Sending the reminder after the session lapsed", () => {
       return realBaseAPI.post(args[0]);
     });
 
-    logoutSpy = jest.spyOn(User, "logout").mockImplementation((): void => {});
+    logoutSpy = jest.spyOn(User, "logout").mockResolvedValue(undefined);
 
     navigateSpy = jest
       .spyOn(Navigation, "navigate")

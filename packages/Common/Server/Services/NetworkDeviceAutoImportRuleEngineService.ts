@@ -62,6 +62,16 @@ import {
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { isDiscoveryImportPollingInterval } from "../../Types/NetworkDevice/DiscoveryImport";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import DeviceMonitorTemplateUtil, {
+  DEVICE_MONITOR_TEMPLATE_TYPES,
+  isDeviceAddressMonitorType,
+} from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  DeviceMonitorFacts,
+  findDuplicateDeviceMonitor,
+  toDeviceMonitorCandidate,
+} from "../../Utils/Monitor/DeviceMonitorDuplicates";
+import DeviceMonitorDuplicateCheck from "../Utils/NetworkDevice/DeviceMonitorDuplicateCheck";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Query from "../Types/Database/Query";
@@ -337,6 +347,13 @@ export interface ExistingMonitorProvisioningState {
   hasProvisionedAnyMonitor: boolean;
   // Set once this run gives up on provisioning monitors at all.
   isProvisioningHalted: boolean;
+  /*
+   * The Ping, IP, Port and NTP monitors this run made - or, in a dry run,
+   * would have made - per device id. A second address template a host's
+   * rules pick is asked against these as well as the database, so a dry
+   * run predicts the duplicate its real run would skip (issue #9510).
+   */
+  runAddressMonitorsByDeviceId: Map<string, Array<DeviceMonitorFacts>>;
 }
 
 export type ExistingMonitorsByProjectId = Map<
@@ -1129,6 +1146,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       lastCreateFailureReason: "",
       hasProvisionedAnyMonitor: false,
       isProvisioningHalted: false,
+      runAddressMonitorsByDeviceId: new Map(),
     };
   }
 
@@ -1853,6 +1871,14 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         name: true,
         hostname: true,
         monitoringMethod: true,
+        /*
+         * What a Ping, IP, Port or NTP template's monitor needs of a device
+         * that already exists (issue #9510): the probe that polls it, which
+         * the monitor runs on, and the monitor bound to it, which a second
+         * Ping or IP monitor would duplicate (DeviceMonitorDuplicateCheck).
+         */
+        probeId: true,
+        monitorId: true,
       },
       props: {
         isRoot: true,
@@ -2034,12 +2060,19 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      /*
+       * Every kind a device's monitor can be made from (issue #9510): a
+       * Network Device template's monitor reads the device's polls, and a
+       * Ping, IP, Port or NTP template's checks its address - the same
+       * kinds Review Results offers (DEVICE_MONITOR_TEMPLATE_TYPES). A rule
+       * left pointing at any other kind loads nothing, and its run says why.
+       */
       const templates: Array<MonitorTemplate> =
         await MonitorTemplateService.findBy({
           query: {
             _id: QueryHelper.any(ids),
             projectId: data.projectId,
-            monitorType: MonitorType.NetworkDevice,
+            monitorType: QueryHelper.any([...DEVICE_MONITOR_TEMPLATE_TYPES]),
           },
           select: {
             _id: true,
@@ -2376,6 +2409,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       const monitorsLeftPending: Array<string> =
         await this.ensureMonitorsForDevice({
           projectId: scan.projectId,
+          scan: scan,
           host: host,
           networkDevice: networkDevice,
           templateIds: templateIds,
@@ -2423,8 +2457,355 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * run report itself truncated; the ids (rather than a bare count) are what
    * let the caller count one device's leftover work once, however many
    * duplicate rows the scan lists that host under.
+   *
+   * Two kinds of template, settled two ways (issue #9510). A Network Device
+   * template's monitor reads the device's polls, and is reconciled as it
+   * always was (ensureNetworkDeviceMonitorsForDevice). A Ping, IP, Port or
+   * NTP template's monitor checks the device's address, and is made unless
+   * the device already has one it would duplicate - from another template,
+   * bound to the device, or made by an import - under the device's lock
+   * (ensureAddressMonitorsForDevice). A template this run could not load is
+   * the first kind's to report, as before.
    */
   private async ensureMonitorsForDevice(data: {
+    projectId: ObjectID;
+    scan: NetworkDeviceDiscoveryScan;
+    host: DiscoveredNetworkDevice;
+    networkDevice: NetworkDevice;
+    templateIds: Array<string>;
+    monitorTemplates: Map<string, MonitorTemplate>;
+    existingMonitors: ExistingMonitorProvisioningState;
+    result: AutoImportRuleRunResult;
+    attempts: ImportAttemptBudget;
+    isDryRun: boolean;
+    // Who ran the rule (Run Now); none for the automatic path.
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<Array<string>> {
+    const addressTemplateIds: Array<string> = data.templateIds.filter(
+      (templateId: string): boolean => {
+        return isDeviceAddressMonitorType(
+          data.monitorTemplates.get(templateId)?.monitorType,
+        );
+      },
+    );
+    const pollTemplateIds: Array<string> = data.templateIds.filter(
+      (templateId: string): boolean => {
+        return !addressTemplateIds.includes(templateId);
+      },
+    );
+
+    const pending: Array<string> = [];
+
+    if (pollTemplateIds.length > 0) {
+      pending.push(
+        ...(await this.ensureNetworkDeviceMonitorsForDevice({
+          ...data,
+          templateIds: pollTemplateIds,
+          props: data.props,
+        })),
+      );
+    }
+
+    if (addressTemplateIds.length > 0) {
+      pending.push(
+        ...(await this.ensureAddressMonitorsForDevice({
+          ...data,
+          templateIds: addressTemplateIds,
+          props: data.props,
+        })),
+      );
+    }
+
+    return pending;
+  }
+
+  /*
+   * A Ping, IP, Port or NTP template's monitor for one device (issue
+   * #9510): the template's criteria, interval, probe agreement, labels and
+   * custom field defaults, every step checking the device's own address
+   * (DeviceMonitorTemplateUtil), run by the probe that polls the device or
+   * else the scan's - the one that just found it.
+   *
+   * Never a second of its kind (issue #9509): a device that already has a
+   * monitor this one would duplicate - from the same template, or of the
+   * same kind checking the same thing, whether another template, an import
+   * or a person made it, or it is the monitor bound to the device - is
+   * counted as already monitored. The check and the create run under the
+   * device's lock, which every path that gives a device a monitor holds
+   * (DeviceMonitorDuplicateCheck), so an import of the same host in the same
+   * second cannot add a twin. A dry run asks the same question of the
+   * database and of what it would have made, and writes nothing.
+   *
+   * Same budget, halting and per-run bookkeeping as the Network Device
+   * monitors: one attempt per (device, template) per run.
+   */
+  private async ensureAddressMonitorsForDevice(data: {
+    projectId: ObjectID;
+    scan: NetworkDeviceDiscoveryScan;
+    host: DiscoveredNetworkDevice;
+    networkDevice: NetworkDevice;
+    templateIds: Array<string>;
+    monitorTemplates: Map<string, MonitorTemplate>;
+    existingMonitors: ExistingMonitorProvisioningState;
+    result: AutoImportRuleRunResult;
+    attempts: ImportAttemptBudget;
+    isDryRun: boolean;
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<Array<string>> {
+    if (!data.networkDevice.id) {
+      data.result.monitorsFailed += data.templateIds.length;
+      logger.error(
+        `Auto-import: cannot provision monitor(s) for ${data.host.ipAddress} because the Network Device has no id.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return [];
+    }
+
+    const networkDeviceId: ObjectID = data.networkDevice.id;
+
+    for (let index: number = 0; index < data.templateIds.length; index++) {
+      const templateId: string = data.templateIds[index]!;
+      const key: string =
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          networkDeviceId,
+          templateId,
+        );
+
+      if (data.existingMonitors.autoProvisionedKeys.has(key)) {
+        data.result.monitorsSkippedAlreadyExisting++;
+        continue;
+      }
+
+      if (data.existingMonitors.attemptedProvisioningKeys.has(key)) {
+        continue;
+      }
+
+      if (data.existingMonitors.isProvisioningHalted) {
+        data.existingMonitors.attemptedProvisioningKeys.add(key);
+        data.result.monitorsFailed++;
+        data.result.monitorProvisioningHalted = true;
+        continue;
+      }
+
+      if (data.attempts.monitorCount >= MAX_MONITORS_PER_AUTO_IMPORT_RUN) {
+        return data.templateIds.slice(index);
+      }
+
+      const template: MonitorTemplate = data.monitorTemplates.get(templateId)!;
+
+      if (
+        await this.hasAddressMonitorDuplicate({
+          projectId: data.projectId,
+          networkDevice: data.networkDevice,
+          template: template,
+          state: data.existingMonitors,
+        })
+      ) {
+        /*
+         * Settled for this run: the device is monitored already, and no
+         * other host row or scan of the same device needs to ask again.
+         */
+        data.existingMonitors.attemptedProvisioningKeys.add(key);
+        data.result.monitorsSkippedAlreadyExisting++;
+        continue;
+      }
+
+      data.attempts.monitorCount++;
+      data.existingMonitors.attemptedProvisioningKeys.add(key);
+
+      if (data.isDryRun) {
+        data.result.monitorsWouldCreate++;
+        data.existingMonitors.autoProvisionedKeys.add(key);
+        this.recordRunAddressMonitor({
+          state: data.existingMonitors,
+          networkDeviceId: networkDeviceId,
+          template: template,
+        });
+        continue;
+      }
+
+      try {
+        const monitor: Monitor = DeviceMonitorTemplateUtil.buildMonitor({
+          template: template,
+          networkDevice: data.networkDevice,
+        });
+
+        const settled: { isCreated: boolean } =
+          await DeviceMonitorDuplicateCheck.underDeviceLock(
+            {
+              deviceId: networkDeviceId,
+              monitorType: template.monitorType,
+            },
+            async (): Promise<{ isCreated: boolean }> => {
+              const meanwhile: DeviceMonitorFacts | null =
+                await DeviceMonitorDuplicateCheck.findDuplicate({
+                  projectId: data.projectId,
+                  device: data.networkDevice,
+                  template: template,
+                });
+
+              if (meanwhile) {
+                return { isCreated: false };
+              }
+
+              await this.createAddressMonitor({
+                projectId: data.projectId,
+                scan: data.scan,
+                networkDevice: data.networkDevice,
+                monitor: monitor,
+                props: data.props,
+              });
+
+              return { isCreated: true };
+            },
+          );
+
+        if (!settled.isCreated) {
+          data.result.monitorsSkippedAlreadyExisting++;
+          continue;
+        }
+
+        data.existingMonitors.autoProvisionedKeys.add(key);
+        this.recordRunAddressMonitor({
+          state: data.existingMonitors,
+          networkDeviceId: networkDeviceId,
+          template: template,
+        });
+        data.result.monitorsCreated++;
+        this.recordMonitorCreateSuccess(data.existingMonitors);
+      } catch (error) {
+        /*
+         * Lost a race - the unique (device, template) pair, or another path
+         * held the device until it had made its own monitor - reads as
+         * already monitored, and proves the create pipeline works.
+         */
+        let createdMeanwhile: DeviceMonitorFacts | null = null;
+
+        try {
+          createdMeanwhile = await DeviceMonitorDuplicateCheck.findDuplicate({
+            projectId: data.projectId,
+            device: data.networkDevice,
+            template: template,
+          });
+        } catch {
+          // The failure below is the one to report.
+        }
+
+        if (createdMeanwhile) {
+          data.result.monitorsSkippedAlreadyExisting++;
+          this.recordMonitorCreateSuccess(data.existingMonitors);
+          continue;
+        }
+
+        data.result.monitorsFailed++;
+        this.recordFailureReason(data.result.monitorFailureReasons, error);
+        logger.error(
+          `Auto-import: could not create monitor from template ${templateId} for Network Device ${networkDeviceId.toString()} (${data.host.ipAddress}): ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        this.recordMonitorCreateFailure({
+          state: data.existingMonitors,
+          result: data.result,
+          projectId: data.projectId,
+          error: error,
+        });
+      }
+    }
+
+    return [];
+  }
+
+  /*
+   * One Ping, IP, Port or NTP monitor, written in the device's project on
+   * the behalf of whoever ran the rule - as a Network Device template's
+   * monitor is - and run by the probe that polls the device, else the
+   * scan's (DeviceMonitorDuplicateCheck.getAddressMonitorProbes).
+   */
+  private async createAddressMonitor(data: {
+    projectId: ObjectID;
+    scan: NetworkDeviceDiscoveryScan;
+    networkDevice: NetworkDevice;
+    monitor: Monitor;
+    // Who ran the rule (Run Now); none for the automatic path.
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<void> {
+    await MonitorService.create({
+      data: data.monitor,
+      miscDataProps: DeviceMonitorDuplicateCheck.getAddressMonitorProbes({
+        device: data.networkDevice,
+        scan: data.scan,
+      }),
+      props: RuleRunWriteProps.getInProject(data.props, data.projectId),
+    });
+  }
+
+  /*
+   * Whether the device already has a monitor the template's would duplicate
+   * (DeviceMonitorDuplicates): one in the database - made for the device,
+   * or bound to it - or one this run made or, dry, would have made.
+   */
+  private async hasAddressMonitorDuplicate(data: {
+    projectId: ObjectID;
+    networkDevice: NetworkDevice;
+    template: MonitorTemplate;
+    state: ExistingMonitorProvisioningState;
+  }): Promise<boolean> {
+    const fromThisRun: Array<DeviceMonitorFacts> =
+      data.state.runAddressMonitorsByDeviceId.get(
+        data.networkDevice.id!.toString(),
+      ) || [];
+
+    const inDatabase: Array<DeviceMonitorFacts> =
+      await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+        projectId: data.projectId,
+        device: data.networkDevice,
+      });
+
+    return Boolean(
+      findDuplicateDeviceMonitor({
+        candidate: toDeviceMonitorCandidate({
+          monitorType: data.template.monitorType,
+          monitorTemplateId: data.template.id,
+          monitorSteps: data.template.monitorSteps,
+        }),
+        monitors: [...inDatabase, ...fromThisRun],
+      }),
+    );
+  }
+
+  // A Ping, IP, Port or NTP monitor this run made, or would have made, for a device.
+  private recordRunAddressMonitor(data: {
+    state: ExistingMonitorProvisioningState;
+    networkDeviceId: ObjectID;
+    template: MonitorTemplate;
+  }): void {
+    const deviceKey: string = data.networkDeviceId.toString();
+    const candidate: ReturnType<typeof toDeviceMonitorCandidate> =
+      toDeviceMonitorCandidate({
+        monitorType: data.template.monitorType,
+        monitorTemplateId: data.template.id,
+        monitorSteps: data.template.monitorSteps,
+      });
+
+    const monitors: Array<DeviceMonitorFacts> =
+      data.state.runAddressMonitorsByDeviceId.get(deviceKey) || [];
+
+    monitors.push({
+      id: "",
+      name: "",
+      monitorType: candidate.monitorType,
+      monitorTemplateId: candidate.monitorTemplateId,
+      checkKeys: candidate.checkKeys,
+    });
+
+    data.state.runAddressMonitorsByDeviceId.set(deviceKey, monitors);
+  }
+
+  /*
+   * The Network Device templates' half of ensureMonitorsForDevice: what it
+   * always did, for monitors that read the device's polls.
+   */
+  private async ensureNetworkDeviceMonitorsForDevice(data: {
     projectId: ObjectID;
     host: DiscoveredNetworkDevice;
     networkDevice: NetworkDevice;
@@ -2643,11 +3024,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         this.recordFailureReason(
           data.result.monitorFailureReasons,
           new Error(
-            "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+            "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a kind of monitor that cannot check a device. Edit the rule and pick a Network Device, Ping, IP, Port or NTP template.",
           ),
         );
         logger.error(
-          `Auto-import: Network Device monitor template ${templateId} is missing, deleted, or not valid for project ${data.projectId.toString()}. No monitors will be provisioned from it for the rest of this run.`,
+          `Auto-import: monitor template ${templateId} is missing, deleted, or not a Network Device, Ping, IP, Port or NTP template of project ${data.projectId.toString()}. No monitors will be provisioned from it for the rest of this run.`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         continue;

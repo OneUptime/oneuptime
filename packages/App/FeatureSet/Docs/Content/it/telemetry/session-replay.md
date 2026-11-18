@@ -90,6 +90,7 @@ Lo script in `/v1/recorder.js` è un piccolo loader. Controlla Do Not Track, rec
 | `data-oneuptime-respect-do-not-track` | No | Per impostazione predefinita rispetta Do Not Track e Global Privacy Control. Impostalo su `"false"` per registrare indipendentemente dal segnale; vedi [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | No | `"true"` stampa le decisioni del registratore nella console. Vedi [Risoluzione dei problemi della riproduzione delle sessioni](/docs/rum/session-replay-troubleshooting). |
 | `data-oneuptime-offline-storage` | No | Impostalo su `"false"` per tenere solo in memoria i frammenti registrati mentre il visitatore è offline, invece di salvarli anche nell'IndexedDB del browser. Vedi [Modalità offline](#modalità-offline). |
+| `data-oneuptime-app-version` | No | La versione della tua app, come `2.3.1`, fino a 64 caratteri. L'Analisi del prodotto suddivide utenti e sessioni in base a essa. |
 
 Le stesse opzioni si possono fornire in un global invece che sul tag, ed è ciò che usano i tag manager e le installazioni in bundle:
 
@@ -99,6 +100,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   token: "YOUR_TELEMETRY_INGESTION_KEY",
   appIdentifier: "storefront-web",
   userRef: "user-123", // optional
+  appVersion: "2.3.1", // optional; Product Analytics breaks users and sessions down by it
   respectDoNotTrack: true, // optional
   debug: false, // optional
   offlineStorage: true, // optional; false keeps offline chunks in memory only
@@ -1075,7 +1077,7 @@ Per soddisfare una richiesta di eliminazione, presenta una richiesta di cancella
 
 Due limiti onesti di `ByIdentifiedUserKey`. La chiave non viene mostrata da nessuna parte nella dashboard: torna come `identifiedUserKey` su ogni riga dell'API dell'elenco delle sessioni (`POST /telemetry/rum/session-replay/list`), quindi oggi una cancellazione per utente inizia con una ricerca `user:` lì e una copia di quel campo. E una sessione registrata mentre **Acquisisci l'identità dell'utente finale** era disattivato non ha alcuna chiave — non è stato archiviato nulla sulla persona —, quindi può essere raggiunta solo per id di sessione, intervallo di date o applicazione.
 
-Ogni richiesta registra il suo `status` (`Pending`, `InProgress`, `Completed`, `Failed`), i conteggi `sessionsDeleted` e `chunksDeleted` e un eventuale `failureReason`; `ReadRumSessionErasureRequest` permette a qualcuno di esaminarle. La cancellazione rimuove la registrazione e la telemetria collegata a quelle sessioni, e qualsiasi registrazione ancora in transito quando la richiesta si completa viene scartata invece che scritta. Un link a una sessione cancellata risponde «erased» invece di «not found». La telemetria collegata è:
+Ogni richiesta registra il suo `status` (`Pending`, `InProgress`, `Completed`, `Failed`), i conteggi `sessionsDeleted`, `chunksDeleted` e `productAnalyticsRowsDeleted` e un eventuale `failureReason`; `ReadRumSessionErasureRequest` permette a qualcuno di esaminarle. La cancellazione rimuove la registrazione e la telemetria collegata a quelle sessioni, e qualsiasi registrazione ancora in transito quando la richiesta si completa viene scartata invece che scritta. Un link a una sessione cancellata risponde «erased» invece di «not found». La telemetria collegata è:
 
 - ogni span ed eccezione marcati con l'id della sessione, compresi gli span del backend marcati [automaticamente](#correlare-con-il-resto-della-tua-telemetria) in ogni servizio che ha inoltrato il contesto di traccia, e qualsiasi log che porta esso stesso l'id;
 - i log, le eccezioni e gli span di ogni traccia che appartiene solo alle sessioni cancellate: ogni span marcato della traccia porta uno dei loro id, e nulla nella traccia è iniziato più di dieci minuti prima del primo o dopo l'ultimo di quegli span. Questo copre i log del backend delle richieste che le tue pagine hanno fatto verso la propria origine, che condividono un id di traccia con quegli span marcati.

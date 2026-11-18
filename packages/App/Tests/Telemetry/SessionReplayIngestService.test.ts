@@ -2650,6 +2650,51 @@ describe("SessionReplayIngestService.processFromQueue", () => {
    * "null/<route>": the app's id lost, and every page "/null/..." on User
    * Flows.
    */
+  /*
+   * A web page's own app version (issue #6625): the browser recorder sends
+   * it with the session's metadata, and the header keeps it in its own
+   * column, which Product Analytics' session summaries read for the
+   * Sessions page's breakdown by version.
+   */
+  describe("a web session's app version", () => {
+    const WEB_META: SessionReplayChunkEnvelope["meta"] = {
+      entryUrl: "https://shop.example.com/",
+      browserName: "Chrome",
+      browserVersion: "141",
+      osName: "macOS",
+      deviceType: "desktop",
+      viewportWidth: 1440,
+      viewportHeight: 900,
+    };
+
+    test("is kept on the header", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              meta: { ...WEB_META, appVersion: "2.3.1" },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["appVersion"]).toBe("2.3.1");
+      // The browser's own version stays the browser's.
+      expect(header["browserVersion"]).toBe("141");
+    });
+
+    test("is empty on the header of a page that set none", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0, meta: WEB_META }])),
+      );
+
+      expect(getSubmittedRows("RumSessionV1")[0]!["appVersion"]).toBe("");
+    });
+  });
+
   describe("a React Native recording's addresses", () => {
     const MOBILE_META: SessionReplayChunkEnvelope["meta"] = {
       entryUrl: "app://com.example.shop/Home",

@@ -410,7 +410,38 @@ describe("a person", () => {
       people: [],
       hasMore: false,
       includesLabels: false,
+      // An older server says nothing of the months kept: the default.
+      retentionMonths: 13,
     });
+  });
+
+  /*
+   * How many months the application keeps its numbers (issue #6626): read
+   * from each of the three answers that say it, one of the choices or the
+   * default.
+   */
+  test("the summary, a list and a person's page say the months the application keeps", () => {
+    expect(
+      parseProductAnalyticsSummary({ retentionMonths: 25 }).retentionMonths,
+    ).toBe(25);
+    expect(
+      parseProductAnalyticsPeople({ retentionMonths: 6 }).retentionMonths,
+    ).toBe(6);
+    expect(
+      parseProductAnalyticsPersonDetail({ retentionMonths: 3 }).retentionMonths,
+    ).toBe(3);
+
+    // A number written as text reads as one, as every count of these reads does.
+    expect(
+      parseProductAnalyticsSummary({ retentionMonths: "6" }).retentionMonths,
+    ).toBe(6);
+
+    for (const value of [undefined, null, 12, "twelve", -1]) {
+      expect(
+        parseProductAnalyticsSummary({ retentionMonths: value })
+          .retentionMonths,
+      ).toBe(13);
+    }
   });
 
   test("a person's page: the person, or null for nobody, and their sessions", () => {

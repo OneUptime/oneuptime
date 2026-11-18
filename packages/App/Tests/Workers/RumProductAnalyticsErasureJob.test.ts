@@ -147,6 +147,18 @@ interface Delete {
   options: ClickhouseExecuteOptions | undefined;
 }
 
+type AnalyticsLabel =
+  | "analyticsSessions"
+  | "analyticsUsers"
+  | "analyticsEvents";
+
+interface Count {
+  label: AnalyticsLabel;
+  /* The bound values of the statement, ids lists flattened. */
+  values: Array<unknown>;
+  statement: Statement;
+}
+
 interface Harness {
   deletes: Array<Delete>;
   /*
@@ -154,6 +166,13 @@ interface Harness {
    * its session table, then its events table.
    */
   analyticsLookups: Array<Statement>;
+  /*
+   * The counts taken before each product analytics delete (issue #6628),
+   * in the order they were asked.
+   */
+  analyticsCounts: Array<Count>;
+  /* Every ClickHouse call in order: "count:<label>" or "delete:<label>". */
+  order: Array<string>;
 }
 
 function resultSetOf(rows: Array<JSONObject>): unknown {
@@ -168,6 +187,26 @@ function boundValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params).flatMap((value: unknown) => {
     return Array.isArray(value) ? value : [value];
   });
+}
+
+function isCount(statement: Statement): boolean {
+  return statement.query.includes(" AS paRows FROM ");
+}
+
+const SESSION_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
+
+/* The session ids a statement binds: every 32-hex value. */
+function boundSessionIds(statement: Statement): Array<string> {
+  return boundValues(statement).filter((value: unknown): value is string => {
+    return typeof value === "string" && SESSION_ID_PATTERN.test(value);
+  });
+}
+
+/* One row per session id a count binds; 4 for a count by key or range. */
+function defaultCountRows(statement: Statement): number {
+  const ids: Array<string> = boundSessionIds(statement);
+
+  return ids.length > 0 ? ids.length : 4;
 }
 
 function hexIds(count: number, seed: string): Array<string> {
@@ -188,8 +227,45 @@ function installHarness(data: {
   analyticsSessions: Array<string>;
   eventSessions?: Array<string> | undefined;
   failAnalyticsDelete?: boolean | undefined;
+  /*
+   * What each count answers, per table, from the statement it was asked
+   * (by default: one row per session id it binds, else 4).
+   */
+  countRows?:
+    | ((label: AnalyticsLabel, statement: Statement) => number)
+    | undefined;
 }): Harness {
-  const harness: Harness = { deletes: [], analyticsLookups: [] };
+  const harness: Harness = {
+    deletes: [],
+    analyticsLookups: [],
+    analyticsCounts: [],
+    order: [],
+  };
+
+  /*
+   * A count (SELECT ... AS paRows) is answered and recorded apart from the
+   * lookups, which return session ids.
+   */
+  const answerCount: (
+    label: AnalyticsLabel,
+    statement: Statement,
+  ) => Promise<unknown> = (
+    label: AnalyticsLabel,
+    statement: Statement,
+  ): Promise<unknown> => {
+    harness.analyticsCounts.push({
+      label: label,
+      values: boundValues(statement),
+      statement: statement,
+    });
+    harness.order.push(`count:${label}`);
+
+    const rows: number = data.countRows
+      ? data.countRows(label, statement)
+      : defaultCountRows(statement);
+
+    return Promise.resolve(resultSetOf([{ paRows: rows }]));
+  };
 
   jest
     .spyOn(RumSessionService, "executeQuery")
@@ -215,6 +291,10 @@ function installHarness(data: {
   jest
     .spyOn(RumProductAnalyticsSessionService, "executeQuery")
     .mockImplementation(((statement: Statement): Promise<unknown> => {
+      if (isCount(statement)) {
+        return answerCount("analyticsSessions", statement);
+      }
+
       harness.analyticsLookups.push(statement);
 
       return Promise.resolve(
@@ -227,8 +307,18 @@ function installHarness(data: {
     }) as never);
 
   jest
+    .spyOn(RumProductAnalyticsUserService, "executeQuery")
+    .mockImplementation(((statement: Statement): Promise<unknown> => {
+      return answerCount("analyticsUsers", statement);
+    }) as never);
+
+  jest
     .spyOn(RumProductAnalyticsEventService, "executeQuery")
     .mockImplementation(((statement: Statement): Promise<unknown> => {
+      if (isCount(statement)) {
+        return answerCount("analyticsEvents", statement);
+      }
+
       harness.analyticsLookups.push(statement);
 
       return Promise.resolve(
@@ -281,6 +371,10 @@ function installHarness(data: {
           options: options,
         });
 
+        if (entry.label.startsWith("analytics")) {
+          harness.order.push(`delete:${entry.label}`);
+        }
+
         return Promise.resolve({});
       }) as never);
   }
@@ -331,11 +425,16 @@ function requestOf(data: {
   endDate?: Date | undefined;
   attempts?: number | undefined;
   withoutProject?: boolean | undefined;
+  productAnalyticsRowsDeleted?: number | undefined;
 }): RumSessionErasureRequest {
   const request: RumSessionErasureRequest = new RumSessionErasureRequest();
 
   request.id = requestId;
   request.attempts = data.attempts || 0;
+
+  if (data.productAnalyticsRowsDeleted !== undefined) {
+    request.productAnalyticsRowsDeleted = data.productAnalyticsRowsDeleted;
+  }
 
   if (!data.withoutProject) {
     request.projectId = projectId;
@@ -630,9 +729,17 @@ describe("a user's erasure reaches what only product analytics still holds", () 
 
     /*
      * Ten mutations of a thousand ids on the summaries and ten on the
-     * events, the monthly rows and the user's events by key.
+     * events, and nothing by key: the monthly rows and the user's events
+     * by key wait for the pass that finds the last of their sessions, so
+     * the sessions the next pass looks up still have the rows it finds
+     * them by.
      */
-    expect(analyticsDeletes(harness.deletes)).toHaveLength(22);
+    expect(analyticsDeletes(harness.deletes)).toHaveLength(20);
+
+    for (const entry of analyticsDeletes(harness.deletes)) {
+      expect(entry.label).not.toBe("analyticsUsers");
+      expect(entry.statement.query).toContain("sessionId IN");
+    }
 
     expect(requests.markCompleted).not.toHaveBeenCalled();
     expect(requests.updateOneById).toHaveBeenCalledTimes(1);
@@ -642,6 +749,10 @@ describe("a user's erasure reaches what only product analytics still holds", () 
 
     expect(update.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
     expect(update.data["attempts"]).toBeUndefined();
+    /* Counted by id: a summary and an event row per session (the harness's answer). */
+    expect(update.data["productAnalyticsRowsDeleted"]).toBe(
+      2 * MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+    );
   });
 
   test("a full page of the user's sessions in the events alone brings the request back too", async () => {
@@ -661,7 +772,7 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       }),
     });
 
-    expect(analyticsDeletes(harness.deletes)).toHaveLength(22);
+    expect(analyticsDeletes(harness.deletes)).toHaveLength(20);
 
     expect(requests.markCompleted).not.toHaveBeenCalled();
     expect(requests.updateOneById).toHaveBeenCalledTimes(1);
@@ -747,19 +858,21 @@ describe("an application's and a date range's erasure", () => {
 
     expect(harness.analyticsLookups).toEqual([]);
 
-    /* The batch's summaries and events by id, then the application's rows. */
-    expect(labels(analyticsDeletes(harness.deletes).slice(0, 2))).toEqual([
-      "analyticsSessions",
-      "analyticsEvents",
-    ]);
-
-    const subject: Array<Delete> = analyticsDeletes(harness.deletes).slice(2);
+    /*
+     * The batch takes nothing from product analytics: the application's
+     * rows go with its application-wide deletes, last, which the batch's
+     * by id would only match again - and count twice (issue #6628).
+     */
+    const subject: Array<Delete> = analyticsDeletes(harness.deletes);
 
     expect(labels(subject)).toEqual([
       "analyticsSessions",
       "analyticsUsers",
       "analyticsEvents",
     ]);
+    expect(labels(harness.deletes).indexOf("headers")).toBeLessThan(
+      harness.deletes.indexOf(subject[0]!),
+    );
 
     for (const entry of subject) {
       expect(entry.statement.query).toContain("AND rumApplicationId = ");
@@ -821,12 +934,15 @@ describe("eraseProductAnalyticsSubject", () => {
 
     /*
      * Summaries and events by id, months and events by key; the sessions
-     * either lookup found, each counted once.
+     * either lookup found, each counted once: a summary and an event row
+     * for each of the three (the harness's answer), and the four monthly
+     * rows. The events by key are not counted again.
      */
     expect(result).toEqual({
       deletesSubmitted: 4,
       userSessionsFound: 3,
       moreMayRemain: false,
+      rowsDeleted: 3 + 3 + 4,
     });
   });
 
@@ -875,5 +991,403 @@ describe("eraseProductAnalyticsSubject", () => {
 
     expect(harness.analyticsLookups).toEqual([]);
     expect(harness.deletes).toEqual([]);
+  });
+});
+
+/*
+ * How many product analytics rows a request removed (issue #6628). A
+ * ClickHouse delete returns no count, so each delete's rows are counted
+ * under its own filter just before it is queued, and a row must count once
+ * however many of the request's deletes reach it before the first lands.
+ */
+describe("a request counts the product analytics rows it removes", () => {
+  function completedWith(requests: RequestHarness): Record<string, unknown> {
+    expect(requests.markCompleted).toHaveBeenCalledTimes(1);
+
+    return requests.markCompleted.mock.calls[0]![0] as Record<string, unknown>;
+  }
+
+  function countsOf(harness: Harness, label: AnalyticsLabel): Array<Count> {
+    return harness.analyticsCounts.filter((count: Count): boolean => {
+      return count.label === label;
+    });
+  }
+
+  test("an id list counts its sessions' summaries and events, before it deletes them", async () => {
+    const harness: Harness = installHarness({
+      headerSessions: [],
+      analyticsSessions: [],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.BySessionId,
+        targetValue: `${sessionA},${sessionB}`,
+      }),
+    });
+
+    /* Every count of the batch first, then its deletes. */
+    expect(harness.order).toEqual([
+      "count:analyticsSessions",
+      "count:analyticsEvents",
+      "delete:analyticsSessions",
+      "delete:analyticsEvents",
+    ]);
+
+    for (const count of harness.analyticsCounts) {
+      expect(count.statement.query).toMatch(/^SELECT toFloat64\(/);
+      expect(count.statement.query).toContain(" AS paRows FROM ");
+      expect(count.statement.query).toContain("sessionId IN");
+      expect(count.values).toEqual(
+        expect.arrayContaining([projectId.toString(), sessionA, sessionB]),
+      );
+    }
+
+    /* A summary once, however many writes of it are unmerged; every event. */
+    expect(
+      countsOf(harness, "analyticsSessions")[0]!.statement.query,
+    ).toContain("uniqExact(sessionId)");
+    expect(countsOf(harness, "analyticsEvents")[0]!.statement.query).toContain(
+      "count()",
+    );
+
+    /* Read across the cluster: the Distributed table, not a shard's own. */
+    expect(countsOf(harness, "analyticsSessions")[0]!.values).toContain(
+      AnalyticsTableName.RumProductAnalyticsSession,
+    );
+
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(4);
+  });
+
+  test("a user's session a batch erased is deleted again by the subject, but counted once", async () => {
+    const harness: Harness = installHarness({
+      headerSessions: [sessionA],
+      analyticsSessions: [sessionA, expiredSession],
+      eventSessions: [sessionA, unrecordedSession],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    /* The batch's counts name sessionA alone. */
+    const batchSessions: Count = harness.analyticsCounts[0]!;
+    const batchEvents: Count = harness.analyticsCounts[1]!;
+    const subject: Array<Count> = harness.analyticsCounts.slice(2);
+
+    expect(boundSessionIds(batchSessions.statement)).toEqual([sessionA]);
+    expect(boundSessionIds(batchEvents.statement)).toEqual([sessionA]);
+
+    /*
+     * The subject counts the sessions no batch erased, then the user's
+     * monthly rows; never the events by key.
+     */
+    expect(
+      subject.map((count: Count): AnalyticsLabel => {
+        return count.label;
+      }),
+    ).toEqual(["analyticsSessions", "analyticsEvents", "analyticsUsers"]);
+
+    for (const count of subject.slice(0, 2)) {
+      expect(boundSessionIds(count.statement).sort()).toEqual(
+        [expiredSession, unrecordedSession].sort(),
+      );
+    }
+
+    expect(subject[2]!.statement.query).toContain(
+      "uniqExact(personKey, month)",
+    );
+    expect(subject[2]!.values).toContain(`u:${userKey}`);
+
+    /* ...while its deletes still name every session it found. */
+    const subjectDeletes: Array<Delete> = analyticsDeletes(
+      harness.deletes,
+    ).slice(2);
+
+    expect(subjectDeletes[0]!.values).toEqual(
+      expect.arrayContaining([sessionA, expiredSession, unrecordedSession]),
+    );
+
+    /* 1 + 1 for the batch; 2 + 2 by id and 4 months for the subject. */
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(10);
+  });
+
+  test("a session another request or an earlier pass tombstoned is not counted again", async () => {
+    sets.set(
+      getErasedSessionsKey(projectId.toString()),
+      new Set([expiredSession]),
+    );
+
+    const harness: Harness = installHarness({
+      headerSessions: [],
+      analyticsSessions: [expiredSession, sessionB],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    for (const label of ["analyticsSessions", "analyticsEvents"] as const) {
+      expect(boundSessionIds(countsOf(harness, label)[0]!.statement)).toEqual([
+        sessionB,
+      ]);
+    }
+
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(
+      1 + 1 + 4,
+    );
+  });
+
+  test("a retry does not trust the tombstones, and leaves out only the sessions its own batches counted", async () => {
+    /* Tombstoned by the attempt that failed, whose counts were never kept. */
+    sets.set(
+      getErasedSessionsKey(projectId.toString()),
+      new Set([expiredSession]),
+    );
+
+    const harness: Harness = installHarness({
+      headerSessions: [sessionA],
+      analyticsSessions: [sessionA, expiredSession],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+        attempts: 1,
+      }),
+    });
+
+    const subject: Array<Count> = harness.analyticsCounts.slice(2);
+
+    for (const count of subject.slice(0, 2)) {
+      expect(boundSessionIds(count.statement)).toEqual([expiredSession]);
+    }
+
+    /* 1 + 1 for the batch's sessionA, 1 + 1 and 4 months for the subject. */
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(8);
+  });
+
+  test("the user's sessions are tombstoned before product analytics deletes them", async () => {
+    let tombstonedAtFirstDelete: Array<string> | null = null;
+
+    installHarness({
+      headerSessions: [],
+      analyticsSessions: [expiredSession],
+      eventSessions: [unrecordedSession],
+      countRows: (): number => {
+        if (tombstonedAtFirstDelete === null) {
+          tombstonedAtFirstDelete = Array.from(
+            sets.get(getErasedSessionsKey(projectId.toString())) || [],
+          );
+        }
+
+        return 0;
+      },
+    });
+    installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    /*
+     * Read at the first count, which comes before every delete: by then
+     * both sessions carry their tombstone.
+     */
+    expect(tombstonedAtFirstDelete).not.toBeNull();
+    expect([...tombstonedAtFirstDelete!].sort()).toEqual(
+      [expiredSession, unrecordedSession].sort(),
+    );
+  });
+
+  test("a requeued request keeps what it counted so far, added to what earlier runs kept", async () => {
+    const ids: Array<string> = hexIds(MAX_SESSION_IDS_PER_REQUEST_PER_RUN, "a");
+
+    installHarness({
+      headerSessions: [],
+      analyticsSessions: ids,
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+        productAnalyticsRowsDeleted: 7,
+      }),
+    });
+
+    const update: { data: Record<string, unknown> } = requests.updateOneById
+      .mock.calls[0]![0] as never;
+
+    expect(update.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(update.data["productAnalyticsRowsDeleted"]).toBe(
+      7 + 2 * MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+    );
+  });
+
+  test("the pass that finds the last of the user's sessions counts the monthly rows; one that leaves more does not", async () => {
+    const final: Harness = installHarness({
+      headerSessions: [],
+      analyticsSessions: [expiredSession],
+    });
+    installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    expect(countsOf(final, "analyticsUsers")).toHaveLength(1);
+
+    jest.restoreAllMocks();
+    sets.clear();
+
+    const capped: Harness = installHarness({
+      headerSessions: [],
+      analyticsSessions: hexIds(MAX_SESSION_IDS_PER_REQUEST_PER_RUN, "b"),
+    });
+    installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    expect(countsOf(capped, "analyticsUsers")).toEqual([]);
+  });
+
+  test("an application's rows are counted in every table, once, before its deletes", async () => {
+    const harness: Harness = installHarness({
+      headerSessions: [sessionA],
+      analyticsSessions: [],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByRumApplication,
+        targetValue: applicationId.toString(),
+      }),
+    });
+
+    expect(harness.order).toEqual([
+      "count:analyticsSessions",
+      "count:analyticsUsers",
+      "count:analyticsEvents",
+      "delete:analyticsSessions",
+      "delete:analyticsUsers",
+      "delete:analyticsEvents",
+    ]);
+
+    for (const count of harness.analyticsCounts) {
+      expect(count.statement.query).toContain("AND rumApplicationId = ");
+      expect(count.statement.query).not.toContain("sessionId IN");
+      expect(count.values).toContain(applicationId.toString());
+    }
+
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(12);
+  });
+
+  test("a date range's batch takes, and counts, its sessions' events outside the range; the range deletes count the rest", async () => {
+    const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
+    const endDate: Date = new Date("2026-02-01T00:00:00.000Z");
+    const harness: Harness = installHarness({
+      headerSessions: [sessionA],
+      analyticsSessions: [],
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByDateRange,
+        startDate: startDate,
+        endDate: endDate,
+      }),
+    });
+
+    const deletes: Array<Delete> = analyticsDeletes(harness.deletes);
+
+    /*
+     * The batch: sessionA's events outside the range alone. Its summary
+     * and its events inside the range are the range deletes'.
+     */
+    expect(labels(deletes)).toEqual([
+      "analyticsEvents",
+      "analyticsSessions",
+      "analyticsEvents",
+    ]);
+    expect(deletes[0]!.statement.query).toContain("sessionId IN");
+    expect(deletes[0]!.statement.query).toContain("AND (time < ");
+    expect(deletes[0]!.statement.query).toContain(" OR time > ");
+    expect(deletes[0]!.values).toContain(sessionA);
+
+    /* The range's own, not by id. */
+    for (const entry of deletes.slice(1)) {
+      expect(entry.statement.query).not.toContain("sessionId IN");
+    }
+
+    /* 1 event row of sessionA outside the range; 4 + 4 inside it. */
+    expect(completedWith(requests)["productAnalyticsRowsDeleted"]).toBe(9);
+  });
+
+  test("a count that fails fails the run, which is retried rather than completed with a number that is not true", async () => {
+    installHarness({
+      headerSessions: [],
+      analyticsSessions: [],
+      countRows: (label: AnalyticsLabel): number => {
+        if (label === "analyticsSessions") {
+          throw new Error("Memory limit exceeded");
+        }
+
+        return 1;
+      },
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.BySessionId,
+        targetValue: sessionA,
+      }),
+    });
+
+    expect(requests.markCompleted).not.toHaveBeenCalled();
+
+    const update: { data: Record<string, unknown> } = requests.updateOneById
+      .mock.calls[0]![0] as never;
+
+    expect(update.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(update.data["attempts"]).toBe(1);
+    expect(update.data["productAnalyticsRowsDeleted"]).toBeUndefined();
   });
 });

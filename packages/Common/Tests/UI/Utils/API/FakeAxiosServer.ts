@@ -10,7 +10,9 @@ import {
 } from "axios";
 
 /*
- * A scripted stand-in for the server, sitting where axios's transport would.
+ * A scripted stand-in for the server, sitting where axios's transport would -
+ * and where the page's fetch would, for the one request the clients send
+ * with it: the sign-out, keepalive (UI/Utils/SignOutRequest, issue #9508).
  *
  * Common/Utils/API.ts calls `axios(config)` and relies on axios for the one
  * behaviour everything in these tests hangs on: a 4xx/5xx REJECTS with an
@@ -74,6 +76,16 @@ export interface SentRequest {
   url: string;
   data: unknown;
   headers: Dictionary<string>;
+  // Sent with fetch: whether with keepalive, and which cookies it carried.
+  keepalive?: boolean | undefined;
+  credentials?: string | undefined;
+  /*
+   * Whether the server answered it: it read the request and acted on it.
+   * Not for one a page change cancelled first (changePage).
+   */
+  answered?: boolean | undefined;
+  // Cancelled by a page change before the server answered (changePage).
+  cancelled?: boolean | undefined;
 }
 
 export interface Gate {
@@ -112,6 +124,9 @@ export default class FakeAxiosServer {
 
   private readonly transport: FakeTransport;
 
+  // Every request the server has not answered yet.
+  private readonly onTheirWay: Set<SentRequest> = new Set();
+
   public constructor(transport: FakeTransport) {
     this.transport = transport;
 
@@ -120,6 +135,23 @@ export default class FakeAxiosServer {
         return await this.handle(config);
       },
     );
+
+    this.installFetch();
+  }
+
+  /*
+   * The page changes - the sign-in page, loaded in full - as Firefox changes
+   * it: every request still on its way is cancelled at once, and the server
+   * never acts on it, but one sent with keepalive, which the browser lets
+   * outlive its page (issue #9508). Chrome cancelled later, which is why
+   * only Firefox users were left signed in.
+   */
+  public changePage(): void {
+    for (const request of this.onTheirWay) {
+      if (!request.keepalive) {
+        request.cancelled = true;
+      }
+    }
   }
 
   public on(method: HTTPMethod, url: string, replies: Array<FakeReply>): this {
@@ -151,27 +183,7 @@ export default class FakeAxiosServer {
       headers: { ...((config.headers || {}) as Dictionary<string>) },
     };
 
-    this.sent.push(request);
-
-    if (this.onRequest) {
-      this.onRequest(request);
-    }
-
-    const queue: Array<FakeReply> | undefined = this.routes.get(
-      FakeAxiosServer.key(request.method, request.url),
-    );
-
-    const reply: FakeReply | undefined = queue ? queue.shift() : undefined;
-
-    if (!reply) {
-      throw new Error(
-        `Unexpected request: ${request.method.toUpperCase()} ${request.url}`,
-      );
-    }
-
-    if (reply.gate) {
-      await reply.gate;
-    }
+    const reply: FakeReply = await this.receive(request);
 
     const internalConfig: InternalAxiosRequestConfig = {
       ...config,
@@ -208,5 +220,111 @@ export default class FakeAxiosServer {
       {},
       response,
     );
+  }
+
+  /*
+   * A request arriving, by either transport: kept, and answered with the
+   * next reply scripted for its route once its gate opens - unless a page
+   * change cancelled it first, which the client sees as an abort.
+   */
+  private async receive(request: SentRequest): Promise<FakeReply> {
+    this.sent.push(request);
+    this.onTheirWay.add(request);
+
+    if (this.onRequest) {
+      this.onRequest(request);
+    }
+
+    const queue: Array<FakeReply> | undefined = this.routes.get(
+      FakeAxiosServer.key(request.method, request.url),
+    );
+
+    const reply: FakeReply | undefined = queue ? queue.shift() : undefined;
+
+    if (!reply) {
+      this.onTheirWay.delete(request);
+
+      throw new Error(
+        `Unexpected request: ${request.method.toUpperCase()} ${request.url}`,
+      );
+    }
+
+    if (reply.gate) {
+      await reply.gate;
+    }
+
+    this.onTheirWay.delete(request);
+
+    if (request.cancelled) {
+      throw new Error(
+        `Cancelled by a page change: ${request.method.toUpperCase()} ${request.url}`,
+      );
+    }
+
+    request.answered = !reply.networkErrorCode;
+
+    return reply;
+  }
+
+  /*
+   * The page's fetch (window.fetch, where the clients look for it), routed
+   * to the same script. Defined rather than assigned: in App's tests the
+   * window is Node's own global, whose fetch would reach the network.
+   */
+  private installFetch(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    Object.defineProperty(window, "fetch", {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: async (
+        input: string | { toString: () => string },
+        init?: RequestInit,
+      ): Promise<Response> => {
+        return await this.handleFetch(String(input), init || {});
+      },
+    });
+  }
+
+  // As fetch answers: a Response for any status, a TypeError for no answer at all.
+  private async handleFetch(url: string, init: RequestInit): Promise<Response> {
+    const request: SentRequest = {
+      method: String(init.method || "GET"),
+      url: url,
+      data: init.body,
+      headers: { ...((init.headers || {}) as Dictionary<string>) },
+      keepalive: init.keepalive === true,
+      credentials: init.credentials,
+    };
+
+    let reply: FakeReply;
+
+    try {
+      reply = await this.receive(request);
+    } catch (err) {
+      throw new TypeError((err as Error).message || "Failed to fetch");
+    }
+
+    if (reply.networkErrorCode) {
+      throw new TypeError("Failed to fetch");
+    }
+
+    const status: number = reply.status ?? 200;
+    const data: JSONObject | JSONArray = reply.data ?? {};
+
+    return {
+      ok: status >= 200 && status < 300,
+      status: status,
+      headers: reply.headers ?? {},
+      json: async (): Promise<JSONObject | JSONArray> => {
+        return data;
+      },
+      text: async (): Promise<string> => {
+        return JSON.stringify(data);
+      },
+    } as unknown as Response;
   }
 }
