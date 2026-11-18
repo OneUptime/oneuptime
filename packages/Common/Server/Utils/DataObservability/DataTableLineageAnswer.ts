@@ -17,12 +17,14 @@ import {
   isRunningLineageRunState,
 } from "../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../Types/ObjectID";
-import DataAssetService from "../../Services/DataAssetService";
 import DataObservabilityReadScope, {
   DataObservabilityScope,
 } from "./DataObservabilityReadScope";
 import DataTableAnswerer, { describeDuration } from "./DataTableAnswer";
-import DataTableLineageReader from "./DataTableLineage";
+import DataTableLineageReader, {
+  DataLineageNamed,
+  DataLineageReadable,
+} from "./DataTableLineage";
 
 /*
  * "WHAT IS THIS TABLE BUILT FROM, AND WHAT IS BUILT FROM IT?" - ONE ANSWER,
@@ -1289,6 +1291,11 @@ export default class DataTableLineageAnswerer {
    * a table's name alone - each told, for its reader: the props of the
    * person (or API key) who asked, or null when nobody in particular reads
    * it. None when no watched table is called that.
+   *
+   * The tables and pipelines it tells are those its reader's scope reads -
+   * `scope` when the caller has worked it out, as a run of OneUptime's own
+   * does for nobody in particular (#9562), else the reader's own - with
+   * what the alert it is read for names itself (`named`).
    */
   public static async answer(data: {
     projectId: ObjectID;
@@ -1296,11 +1303,14 @@ export default class DataTableLineageAnswerer {
     depth: number;
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
+    scope?: DataObservabilityScope | undefined;
+    named?: DataLineageNamed | undefined;
   }): Promise<Array<DataTableLineageAnswer>> {
-    const scope: DataObservabilityScope = await DataObservabilityReadScope.get(
-      data.projectId,
-      data.reader,
-    );
+    const scope: DataObservabilityScope =
+      data.scope ||
+      (await DataObservabilityReadScope.get(data.projectId, data.reader));
+    const readable: DataLineageReadable | null =
+      DataTableLineageReader.getNamedReadable(scope, data.named);
     const found: Array<DataAsset> = await DataTableAnswerer.findTables(
       data.projectId,
       data.reference,
@@ -1310,17 +1320,15 @@ export default class DataTableLineageAnswerer {
      * may not read is not answered, nor counted - not even in how short
      * each answer is kept when a name has several.
      */
-    const readableIds: Set<string> | null = scope.isWholeProject
-      ? null
-      : await DataObservabilityReadScope.getReadableIds({
-          service: DataAssetService,
-          query: scope.assetQuery,
-          ids: found
+    const readableIds: Set<string> | null = readable
+      ? await readable.readableTableIds(
+          found
             .map((table: DataAsset): string => {
               return table.id?.toString() || "";
             })
             .filter(Boolean),
-        });
+        )
+      : null;
     const tables: Array<DataAsset> = found.filter(
       (table: DataAsset): boolean => {
         return !readableIds || readableIds.has(table.id?.toString() || "");
@@ -1346,6 +1354,7 @@ export default class DataTableLineageAnswerer {
           now: data.now,
           reader: data.reader,
           scope,
+          named: data.named,
         });
 
       if (lineage) {
