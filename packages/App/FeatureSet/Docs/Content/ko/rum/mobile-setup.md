@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 에이전트는 그 위에 자동 계측을 더하고, 자체 리소스에 기기 속성을 설정합니다. 이 에이전트를 쓴다면 내보내기 도구를 같은 엔드포인트와 헤더로 향하게 하고, 사용하는 버전에서 `device.model.identifier`가 리소스에 들어가는지 확인하세요.
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 에이전트는 그 위에 크래시, ANR, 느린 프레임과 정지된 프레임, 앱 시작을 더하고, 자체 리소스에 `device.model.identifier`와 `device.manufacturer`를 설정합니다. [Android 설정](/docs/rum/android-setup)에서는 위 코드 대신 이 에이전트를 설정합니다.
 @tab iOS
 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift)를 쓰고, 기기 속성은 직접 설정하세요. 각 버전이 자동으로 추가하는 리소스는 릴리스마다 달라져 왔습니다.
 

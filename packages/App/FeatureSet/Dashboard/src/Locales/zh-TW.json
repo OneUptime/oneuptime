@@ -57085,6 +57085,8 @@
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
   "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android 端設定",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "事件、錯誤率與 p95 時長、當機與 ANR、裝置型號以及遙測分頁。",
   "Can't run": "無法執行",
   "Couldn't read these nodes.": "Couldn't read these nodes.",
   "Couldn't read these pods.": "Couldn't read these pods.",

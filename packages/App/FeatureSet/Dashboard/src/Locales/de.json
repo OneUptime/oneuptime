@@ -57085,6 +57085,8 @@
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
   "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android-Einrichtung",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Ereignisse, Fehlerrate und p95-Dauer, Abstürze und ANRs, Gerätemodelle und die Telemetrie-Tabs.",
   "Can't run": "Kann nicht laufen",
   "Couldn't read these nodes.": "Couldn't read these nodes.",
   "Couldn't read these pods.": "Couldn't read these pods.",

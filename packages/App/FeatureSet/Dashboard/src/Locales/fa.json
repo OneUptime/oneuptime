@@ -57085,6 +57085,8 @@
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
   "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "راه‌اندازی اندروید",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "رویدادها، نرخ خطا و مدت p95، خرابی‌ها و ANRها، مدل‌های دستگاه و زبانه‌های تله‌متری.",
   "Can't run": "اجرا ممکن نیست",
   "Couldn't read these nodes.": "این گره‌ها خوانده نشدند.",
   "Couldn't read these pods.": "این پادها خوانده نشدند.",
