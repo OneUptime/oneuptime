@@ -11,12 +11,14 @@ import {
   getSloStatusSummaryTileQuery,
   getSloStatusSummaryTileSelections,
   isSloStatusSummaryTileApplied,
+  SLO_DEPLOYMENTS_FACET_KEY,
   SLO_ENABLED_FACET_KEY,
   SLO_FACET_QUERY_FIELDS,
   SLO_LIST_FACETS,
   SLO_STATUS_FACET_KEY,
   SLO_STATUS_SUMMARY_TILES,
   SLOS_TABLE_ID,
+  SloDeploymentsFacetValue,
   SloEnabledFacetValue,
   SloListStatusKind,
   SloStatusSummaryTile,
@@ -33,7 +35,8 @@ import {
 import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { Gray500 } from "Common/Types/BrandColors";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
 
@@ -422,6 +425,99 @@ describe("the facet bar the tiles move", () => {
     expect(enabled.toQueryValue!([SloEnabledFacetValue.Disabled], "is")).toBe(
       false,
     );
+  });
+
+  /*
+   * Which SLOs are freezing deployments right now (#6377): a chip over the
+   * deploy gate the SLO answers CI/CD with, next to Status.
+   */
+  test("offers a Deployments chip over deploymentsAllowed, next to Status, worded and coloured as the deploy gate is", () => {
+    const deployments: ResourceFacet = facetByKey(SLO_DEPLOYMENTS_FACET_KEY);
+
+    expect(deployments.label).toBe("Deployments");
+    expect(deployments.queryField).toBe(SLO_FACET_QUERY_FIELDS.deployments);
+    expect(SLO_FACET_QUERY_FIELDS.deployments).toBe("deploymentsAllowed");
+    expect(deployments.isMultiSelect).toBe(false);
+    // The column is NOT NULL: nothing for "is empty" to find.
+    expect(deployments.supportedOperators).toEqual(["is", "is_not"]);
+    expect(deployments.options).toEqual([
+      {
+        value: SloDeploymentsFacetValue.Frozen,
+        label: "Frozen",
+        color: Red.toString(),
+      },
+      {
+        value: SloDeploymentsFacetValue.Allowed,
+        label: "Allowed",
+        color: Green.toString(),
+      },
+    ]);
+
+    const keys: Array<string> = SLO_LIST_FACETS.map(
+      (facet: ResourceFacet): string => {
+        return facet.key;
+      },
+    );
+    expect(keys.indexOf(SLO_DEPLOYMENTS_FACET_KEY)).toBe(
+      keys.indexOf(SLO_STATUS_FACET_KEY) + 1,
+    );
+  });
+
+  test("the Deployments chip set to Frozen asks for the frozen SLOs alone, and cleared asks for every SLO", () => {
+    const bar: FakeFacetBar = makeFacetBar();
+
+    bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, [
+      SloDeploymentsFacetValue.Frozen,
+    ]);
+    expect(queryFromChips(bar)).toEqual({
+      isArchived: false,
+      deploymentsAllowed: false,
+    });
+
+    bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, [
+      SloDeploymentsFacetValue.Allowed,
+    ]);
+    expect(queryFromChips(bar)).toEqual({
+      isArchived: false,
+      deploymentsAllowed: true,
+    });
+
+    // "is not Frozen" is the SLOs that allow deployments.
+    bar.setFacetSelection(
+      SLO_DEPLOYMENTS_FACET_KEY,
+      [SloDeploymentsFacetValue.Frozen],
+      "is_not",
+    );
+    const notFrozen: Record<string, unknown> = queryFromChips(bar);
+    expect(notFrozen["deploymentsAllowed"]).toBeInstanceOf(NotEqual);
+    expect((notFrozen["deploymentsAllowed"] as NotEqual).toString()).toBe(
+      "false",
+    );
+
+    bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, []);
+    expect(queryFromChips(bar)).toEqual({ isArchived: false });
+  });
+
+  test("the Deployments chip layers on a tile's chips, and a tile's click leaves it alone", () => {
+    const bar: FakeFacetBar = makeFacetBar();
+
+    bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, [
+      SloDeploymentsFacetValue.Frozen,
+    ]);
+    clickTile(bar, SloStatusSummaryTileKey.BudgetExhausted);
+
+    const query: Record<string, unknown> = queryFromChips(bar);
+    expect(query["deploymentsAllowed"]).toBe(false);
+    expect(query["isEnabled"]).toBe(true);
+    expect((query["sloStatus"] as Includes).values).toEqual([
+      SloStatus.BudgetExhausted,
+    ]);
+
+    // Backing out of the tile clears its chips, never the Deployments chip.
+    clickTile(bar, SloStatusSummaryTileKey.BudgetExhausted);
+    expect(bar.selections[SLO_DEPLOYMENTS_FACET_KEY]).toEqual([
+      SloDeploymentsFacetValue.Frozen,
+    ]);
   });
 
   test("never lets a chip write isArchived, so no chip can pull archived SLOs back into the list", () => {

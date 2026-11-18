@@ -20,7 +20,10 @@ import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
-import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import {
+  getSloDeploymentGateColor,
+  getSloStatusColor,
+} from "Common/Utils/Slo/SloStatusColor";
 import RememberedChoice from "Common/UI/Utils/RememberedChoice";
 
 /*
@@ -45,6 +48,7 @@ import RememberedChoice from "Common/UI/Utils/RememberedChoice";
 export const SLOS_TABLE_ID: string = "slos-table";
 
 export const SLO_STATUS_FACET_KEY: string = "sloStatus";
+export const SLO_DEPLOYMENTS_FACET_KEY: string = "sloDeployments";
 export const SLO_ENABLED_FACET_KEY: string = "sloEnabled";
 
 /*
@@ -54,8 +58,13 @@ export const SLO_ENABLED_FACET_KEY: string = "sloEnabled";
  * column replaces the chip's constraint outright - silently, while the chip
  * carries on claiming it applies.
  */
-export const SLO_FACET_QUERY_FIELDS: { status: string; enabled: string } = {
+export const SLO_FACET_QUERY_FIELDS: {
+  status: string;
+  deployments: string;
+  enabled: string;
+} = {
   status: "sloStatus",
+  deployments: "deploymentsAllowed",
   enabled: "isEnabled",
 };
 
@@ -63,6 +72,16 @@ export const SLO_FACET_QUERY_FIELDS: { status: string; enabled: string } = {
 export enum SloEnabledFacetValue {
   Enabled = "true",
   Disabled = "false",
+}
+
+/*
+ * The deploy gate's answer, as the Deployments chip offers it (#6377): Frozen
+ * while the SLO's error budget policy tier freezes deployments
+ * (deploymentsAllowed false), Allowed otherwise.
+ */
+export enum SloDeploymentsFacetValue {
+  Frozen = "false",
+  Allowed = "true",
 }
 
 /*
@@ -108,6 +127,39 @@ export const SLO_LIST_FACETS: Array<ResourceFacet> = [
      * evaluated, and "what has not been measured yet?" is a real question.
      */
     options: Object.values(SloStatus).map(toStatusOption),
+  },
+  /*
+   * Which SLOs are freezing deployments right now (#6377): what a release
+   * team that gates many services on their SLOs asks, without opening each.
+   * Next to Status, worded as the tiers table's Deployments column words a
+   * tier, and coloured as the deploy gate is everywhere.
+   */
+  {
+    key: SLO_DEPLOYMENTS_FACET_KEY,
+    label: "Deployments",
+    icon: IconProp.RocketLaunch,
+    isMultiSelect: false,
+    queryField: SLO_FACET_QUERY_FIELDS.deployments,
+    options: [
+      {
+        value: SloDeploymentsFacetValue.Frozen,
+        label: "Frozen",
+        color: getSloDeploymentGateColor(false).toString(),
+      },
+      {
+        value: SloDeploymentsFacetValue.Allowed,
+        label: "Allowed",
+        color: getSloDeploymentGateColor(true).toString(),
+      },
+    ],
+    // The column is NOT NULL, so there is nothing for "is empty" to find.
+    supportedOperators: ["is", "is_not"],
+    toQueryValue: (
+      values: Array<string>,
+      operator: FilterOperator,
+    ): unknown => {
+      return buildBooleanFacetQuery(values, operator);
+    },
   },
   {
     key: SLO_ENABLED_FACET_KEY,
