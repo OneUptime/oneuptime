@@ -10,6 +10,7 @@ import {
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  AzureKeyMetric,
   AzureTypeKeyMetrics,
   DAILY_PERIOD_SECONDS,
   HOURLY_PERIOD_SECONDS,
@@ -19,17 +20,29 @@ import {
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
   getAwsStoredMetricName,
+  getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
   getAzureKeyMetrics,
   getAzureStoredMetricName,
+  getCloudKeyMetricOfStoredName,
   getGcpKeyMetricTypes,
+  getGcpResourceTypesOfMetric,
   getKeyMetricCount,
+  compareCloudKeyMetrics,
+  parseAwsStoredMetricName,
+  CloudKeyMetricReference,
   isAzureKeyMetricExportedByDiagnosticSettings,
   isAzureKeyMetricStoredName,
   isAzureStreamedKeyMetric,
   isAzureStreamedKeyMetricStoredName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
+import {
+  CLOUD_KEY_METRIC_GROUP_LABELS,
+  CLOUD_KEY_METRIC_GROUP_ORDER,
+  CloudKeyMetricGroup,
+  getCloudKeyMetricGroupOrder,
+} from "../../../Types/Cloud/CloudKeyMetricGroup";
 import {
   AWS_CLOUDWATCH_DISCOVERY_NAMESPACES,
   getCloudResourceTypeDescriptor,
@@ -49,6 +62,13 @@ import { describe, expect, test } from "@jest/globals";
  * it lists. And each stored name is the one the cloud's collector receiver
  * writes, so a resource's metrics read the same whichever way they came.
  */
+
+// A type's key metrics by Azure Monitor's name, in order.
+function namesOf(entry: AzureTypeKeyMetrics): Array<string> {
+  return entry.metrics.map((metric: AzureKeyMetric): string => {
+    return metric.name;
+  });
+}
 
 describe("AWS", () => {
   test("every namespace read is one a Cloud Resource can be found from", () => {
@@ -124,6 +144,7 @@ describe("AWS", () => {
           metricName: "DaysToExpiry",
           statistic: "Minimum",
           unit: "None",
+          group: CloudKeyMetricGroup.Availability,
           periodSeconds: HOURLY_PERIOD_SECONDS,
         },
       ],
@@ -285,7 +306,7 @@ describe("Azure Service Bus and Event Hubs, split per queue", () => {
       ["Microsoft.ServiceBus/namespaces", "servicebus"],
       ["Microsoft.EventHub/namespaces", "eventhubs"],
     ] as Array<[string, string]>) {
-      for (const metric of getAzureKeyMetrics(type)!.metrics) {
+      for (const metric of namesOf(getAzureKeyMetrics(type)!)) {
         const stored: string = getAzureStoredMetricName(metric, usual[metric]!);
 
         expect(
@@ -333,69 +354,12 @@ describe("Azure Service Bus and Event Hubs, split per queue", () => {
   });
 });
 
-/*
- * The key metrics a diagnostic setting cannot export: "DS Export: No" in
- * Microsoft's supported metrics of each type
- * (learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/
- * microsoft-<provider>-<type>-metrics), read for every type the read
- * reads, November 2026. A stream never delivers them, so the read keeps
- * writing them while it streams.
- */
-const NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS: Record<string, Array<string>> = {
-  "Microsoft.Compute/virtualMachines": [
-    "Network In Total",
-    "Network Out Total",
-  ],
-  "Microsoft.Compute/virtualMachineScaleSets": [
-    "Network In Total",
-    "Network Out Total",
-  ],
-  "Microsoft.Compute/disks": [
-    "Composite Disk Read Bytes/sec",
-    "Composite Disk Write Bytes/sec",
-    "Composite Disk Read Operations/sec",
-    "Composite Disk Write Operations/sec",
-  ],
-  "Microsoft.DocumentDB/databaseAccounts": [
-    "TotalRequests",
-    "TotalRequestUnits",
-    "NormalizedRUConsumption",
-    "ServerSideLatency",
-  ],
-  "Microsoft.Storage/storageAccounts": ["UsedCapacity"],
-  "Microsoft.ServiceBus/namespaces": [
-    "ActiveMessages",
-    "DeadletteredMessages",
-    "ServerErrors",
-    "ThrottledRequests",
-  ],
-  "Microsoft.EventHub/namespaces": ["ThrottledRequests", "ServerErrors"],
-  "Microsoft.ContainerService/managedClusters": ["kube_pod_status_ready"],
-  "Microsoft.Network/applicationGateways": [
-    "ApplicationGatewayTotalTime",
-    "Throughput",
-  ],
-  "Microsoft.Network/azureFirewalls": ["Throughput"],
-  "Microsoft.Network/natGateways": [
-    "ByteCount",
-    "SNATConnectionCount",
-    "DatapathAvailability",
-  ],
-};
-
 describe("Azure key metrics a diagnostic setting cannot export", () => {
-  test("are marked on every type Microsoft's tables mark them on, and on no other", () => {
-    const marked: Record<string, Array<string>> = {};
-
-    for (const entry of AZURE_KEY_METRICS) {
-      if (entry.notExportedByDiagnosticSettings !== undefined) {
-        marked[entry.type] = entry.notExportedByDiagnosticSettings;
-      }
-    }
-
-    expect(marked).toEqual(NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS);
-  });
-
+  /*
+   * Which metrics are marked - every one Microsoft's supported-metrics
+   * tables mark No under DS Export - is held to those tables in
+   * CloudKeyMetricsProviderReference.test.
+   */
   test("each marked metric is a key metric of its own type, spelled as read, and marked once", () => {
     for (const entry of AZURE_KEY_METRICS) {
       const marks: Array<string> = entry.notExportedByDiagnosticSettings || [];
@@ -411,7 +375,7 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
         expect({ type: entry.type, metric, read: true }).toEqual({
           type: entry.type,
           metric,
-          read: entry.metrics.includes(metric),
+          read: namesOf(entry).includes(metric),
         });
       }
     }
@@ -462,9 +426,9 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
 
   test("a stream writes an exported key metric of a type the read does not split, and nothing else", () => {
     for (const entry of AZURE_KEY_METRICS) {
-      for (const metric of entry.metrics) {
+      for (const metric of namesOf(entry)) {
         const marked: boolean = (
-          NOT_EXPORTED_BY_DIAGNOSTIC_SETTINGS[entry.type] || []
+          entry.notExportedByDiagnosticSettings || []
         ).includes(metric);
 
         expect({
@@ -581,7 +545,7 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
     ];
 
     for (const entry of AZURE_KEY_METRICS) {
-      for (const metric of entry.metrics) {
+      for (const metric of namesOf(entry)) {
         for (const aggregation of aggregations) {
           const stored: string = getAzureStoredMetricName(metric, aggregation);
 
@@ -597,12 +561,20 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
             ),
           ).toBe(metric);
 
-          // Another type that reads no metric of that name does not know it.
+          /*
+           * Another type none of whose key metrics is stored under that
+           * name does not know it. Two types' metrics of different names
+           * can be stored alike - a virtual machine's "CPU Credits
+           * Remaining" and a PostgreSQL server's cpu_credits_remaining -
+           * and each type then knows the name as its own metric.
+           */
           for (const other of AZURE_KEY_METRICS) {
             if (
               other.type !== entry.type &&
-              !other.metrics.some((candidate: string): boolean => {
-                return candidate.toLowerCase() === metric.toLowerCase();
+              !namesOf(other).some((candidate: string): boolean => {
+                return aggregations.some((read: string): boolean => {
+                  return getAzureStoredMetricName(candidate, read) === stored;
+                });
               })
             ) {
               expect({
@@ -692,8 +664,368 @@ describe("key metric counts", () => {
         CloudProvider.Azure,
         "Microsoft.Compute/virtualMachines",
       ),
-    ).toBe(7);
-    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(3);
+    ).toBe(17);
+    expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(9);
     expect(getKeyMetricCount(CloudProvider.GCP, "nope")).toBe(0);
+  });
+});
+
+/*
+ * An App Service read five metrics (#9505): CPU time, 4xx, 5xx, memory
+ * and requests, out of the seven its type read at most eight of. Each type
+ * now reads a curated set, as many as Azure Monitor answers in one call.
+ */
+describe("what each resource type reads", () => {
+  test("an App Service app reads its requests, errors, response time, CPU, memory, connections, network and storage", () => {
+    const names: Array<string> = getAzureKeyMetricNames("Microsoft.Web/sites");
+
+    expect(names.length).toBeGreaterThanOrEqual(15);
+    expect(names.length).toBeLessThanOrEqual(AZURE_MAX_METRICS_PER_RESOURCE);
+    for (const metric of [
+      "Requests",
+      "Http2xx",
+      "Http4xx",
+      "Http5xx",
+      "HttpResponseTime",
+      "RequestsInApplicationQueue",
+      "CpuTime",
+      "MemoryWorkingSet",
+      "PrivateBytes",
+      "AppConnections",
+      "BytesReceived",
+      "BytesSent",
+      "FileSystemUsage",
+    ]) {
+      expect(names).toContain(metric);
+    }
+  });
+
+  test("the types the issue names each read what an operator asks of them", () => {
+    const expected: Record<string, Array<string>> = {
+      // CPU, memory, disk, network and availability.
+      "Microsoft.Compute/virtualMachines": [
+        "Percentage CPU",
+        "Available Memory Percentage",
+        "Disk Read Operations/Sec",
+        "OS Disk Queue Depth",
+        "Network In Total",
+        "VmAvailabilityMetric",
+      ],
+      // CPU, DTU and vCore use, storage, connections and performance.
+      "Microsoft.Sql/servers/databases": [
+        "cpu_percent",
+        "dtu_consumption_percent",
+        "workers_percent",
+        "storage_percent",
+        "connection_successful",
+        "connection_failed",
+        "log_write_percent",
+        "availability",
+      ],
+      // Memory, operations, connections, hits and misses, server load.
+      "Microsoft.Cache/redisEnterprise": [
+        "usedmemorypercentage",
+        "operationsPerSecond",
+        "connectedclients",
+        "cachehits",
+        "cachemisses",
+        "serverLoad",
+      ],
+      // Data processed, health probes, traffic and availability.
+      "Microsoft.Network/loadBalancers": [
+        "ByteCount",
+        "PacketCount",
+        "DipAvailability",
+        "VipAvailability",
+        "UsedSnatPorts",
+      ],
+      // Capacity, transactions, availability and latency.
+      "Microsoft.Storage/storageAccounts": [
+        "UsedCapacity",
+        "Transactions",
+        "Availability",
+        "SuccessE2ELatency",
+        "SuccessServerLatency",
+      ],
+      // Traffic and packets.
+      "Microsoft.Network/networkInterfaces": [
+        "BytesReceivedRate",
+        "BytesSentRate",
+        "PacketsReceivedRate",
+        "PacketsSentRate",
+      ],
+    };
+
+    for (const [type, metrics] of Object.entries(expected)) {
+      const names: Array<string> = getAzureKeyMetricNames(type);
+
+      for (const metric of metrics) {
+        expect({ type, metric, read: names.includes(metric) }).toEqual({
+          type,
+          metric,
+          read: true,
+        });
+      }
+    }
+  });
+
+  test("no type reads a metric twice, whatever its case", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      const lower: Array<string> = namesOf(entry).map(
+        (name: string): string => {
+          return name.toLowerCase();
+        },
+      );
+
+      expect({ type: entry.type, unique: new Set(lower).size }).toEqual({
+        type: entry.type,
+        unique: lower.length,
+      });
+    }
+  });
+});
+
+describe("what each key metric is about", () => {
+  const groups: Array<string> = Object.values(CloudKeyMetricGroup);
+
+  test("every key metric of every cloud is in a group", () => {
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        expect(groups).toContain(metric.group);
+      }
+    }
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        expect(groups).toContain(metric.group);
+      }
+    }
+
+    for (const entry of GCP_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        expect(groups).toContain(metric.group);
+      }
+    }
+  });
+
+  test("every group has its place and its heading, a word the Dashboard already says", () => {
+    expect([...CLOUD_KEY_METRIC_GROUP_ORDER].sort()).toEqual(
+      [...groups].sort(),
+    );
+    expect(new Set(CLOUD_KEY_METRIC_GROUP_ORDER).size).toBe(groups.length);
+    expect(CLOUD_KEY_METRIC_GROUP_ORDER.slice(0, 4)).toEqual([
+      CloudKeyMetricGroup.Availability,
+      CloudKeyMetricGroup.Traffic,
+      CloudKeyMetricGroup.Errors,
+      CloudKeyMetricGroup.Latency,
+    ]);
+
+    for (const group of groups) {
+      expect(
+        CLOUD_KEY_METRIC_GROUP_LABELS[group as CloudKeyMetricGroup],
+      ).toBeTruthy();
+    }
+
+    expect(CLOUD_KEY_METRIC_GROUP_LABELS[CloudKeyMetricGroup.Errors]).toBe(
+      "Errors",
+    );
+    expect(getCloudKeyMetricGroupOrder(CloudKeyMetricGroup.Replication)).toBe(
+      CLOUD_KEY_METRIC_GROUP_ORDER.length - 1,
+    );
+  });
+});
+
+describe("a key metric by its stored name", () => {
+  test("a CloudWatch name splits at its last slash: the namespace keeps its own", () => {
+    expect(
+      parseAwsStoredMetricName("amazonaws.com/AWS/EC2/CPUUtilization"),
+    ).toEqual({ namespace: "AWS/EC2", metricName: "CPUUtilization" });
+    expect(
+      parseAwsStoredMetricName(
+        "amazonaws.com/aws/kinesis/getrecords.iteratoragemilliseconds",
+      ),
+    ).toEqual({
+      namespace: "aws/kinesis",
+      metricName: "getrecords.iteratoragemilliseconds",
+    });
+    expect(parseAwsStoredMetricName("azure_requests_total")).toBeNull();
+    expect(parseAwsStoredMetricName("amazonaws.com/AWS/EC2/")).toBeNull();
+    expect(parseAwsStoredMetricName("amazonaws.com/CPUUtilization")).toBeNull();
+    expect(parseAwsStoredMetricName("")).toBeNull();
+  });
+
+  test("AWS: by namespace and metric, whatever the case ingest stored it in", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.AWS,
+        type: "AWS::EC2::Instance",
+        metricName: "amazonaws.com/aws/ec2/cpuutilization",
+      }),
+    ).toEqual({
+      name: "CPUUtilization",
+      group: CloudKeyMetricGroup.Compute,
+      rank: 0,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.AWS,
+        type: "AWS::EC2::Instance",
+        metricName: "amazonaws.com/AWS/EC2/StatusCheckFailed",
+      })?.group,
+    ).toBe(CloudKeyMetricGroup.Availability);
+    // A metric of the namespace no connection reads, and a namespace none reads.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.AWS,
+        type: "AWS::EC2::Instance",
+        metricName: "amazonaws.com/AWS/EC2/MetadataNoToken",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.AWS,
+        type: "AWS::Logs::LogGroup",
+        metricName: "amazonaws.com/AWS/Logs/IncomingBytes",
+      }),
+    ).toBeNull();
+  });
+
+  test("Azure: by the type's key metric, whatever aggregation it was read with", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "microsoft.web/SITES",
+        metricName: "azure_http5xx_total",
+      }),
+    ).toEqual({
+      name: "Http5xx",
+      group: CloudKeyMetricGroup.Errors,
+      rank: getAzureKeyMetricNames("Microsoft.Web/sites").indexOf("Http5xx"),
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Compute/virtualMachines",
+        metricName: "AZURE_PERCENTAGE_CPU_MAXIMUM",
+      })?.name,
+    ).toBe("Percentage CPU");
+    // Another type's key metric, or none at all.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Compute/virtualMachines",
+        metricName: "azure_http5xx_total",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Web/sites",
+        metricName: "http.server.request.duration",
+      }),
+    ).toBeNull();
+  });
+
+  test("Google Cloud: by metric type, its own resource type's place first", () => {
+    const shared: string = "run.googleapis.com/container/cpu/utilizations";
+
+    expect(getGcpResourceTypesOfMetric(shared)).toEqual([
+      "cloud_run_revision",
+      "cloud_run_job",
+    ]);
+    // Read once, under the first type it is listed under.
+    expect(
+      getGcpKeyMetricTypes().filter(
+        (metric: GcpKeyMetric & { resourceType: string }): boolean => {
+          return metric.metricType === shared;
+        },
+      ),
+    ).toHaveLength(1);
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "cloud_run_job",
+        metricName: shared,
+      })?.rank,
+    ).toBe(2);
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "cloud_run_revision",
+        metricName: shared,
+      })?.rank,
+    ).toBe(3);
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "gce_instance",
+        metricName: "compute.googleapis.com/instance/cpu/utilization",
+      }),
+    ).toEqual({
+      name: "compute.googleapis.com/instance/cpu/utilization",
+      group: CloudKeyMetricGroup.Compute,
+      rank: 0,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "gce_instance",
+        metricName: "agent.googleapis.com/memory/percent_used",
+      }),
+    ).toBeNull();
+  });
+
+  test("nothing for an unknown provider, or no name", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: "openstack",
+        type: "nova",
+        metricName: "cpu",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.AWS,
+        type: "AWS::EC2::Instance",
+        metricName: "",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: undefined,
+        type: undefined,
+        metricName: "amazonaws.com/AWS/EC2/CPUUtilization",
+      }),
+    ).toBeNull();
+  });
+
+  test("two key metrics are ordered by their groups, then their place in the type", () => {
+    const availability: CloudKeyMetricReference = {
+      name: "VmAvailabilityMetric",
+      group: CloudKeyMetricGroup.Availability,
+      rank: 6,
+    };
+    const cpu: CloudKeyMetricReference = {
+      name: "Percentage CPU",
+      group: CloudKeyMetricGroup.Compute,
+      rank: 0,
+    };
+    const credits: CloudKeyMetricReference = {
+      name: "CPU Credits Remaining",
+      group: CloudKeyMetricGroup.Compute,
+      rank: 7,
+    };
+
+    expect(
+      [credits, cpu, availability]
+        .sort(compareCloudKeyMetrics)
+        .map((metric: CloudKeyMetricReference): string => {
+          return metric.name;
+        }),
+    ).toEqual([
+      "VmAvailabilityMetric",
+      "Percentage CPU",
+      "CPU Credits Remaining",
+    ]);
   });
 });
