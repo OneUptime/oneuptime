@@ -57,7 +57,10 @@ jest.mock("../../../Server/Utils/Logger");
  *   - nothing else of the trigger - a service's own onTriggerWorkflow, a
  *     post that fails - fails the write either;
  *   - the trigger step, at the other end, does not run on a record whose
- *     check fails.
+ *     check fails;
+ *   - nor does the other read an update made after its write: the read back
+ *     of a row written through save(), for the images it shows. A row that
+ *     cannot be read back keeps its images as they were.
  *
  * It drives DatabaseService's real create, updateBy and deleteBy, with the
  * database left out (a repository that keeps nothing) and the private-record
