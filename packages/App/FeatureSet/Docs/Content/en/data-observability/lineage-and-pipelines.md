@@ -30,7 +30,7 @@ On the **Lineage** tab, pick one of the table's columns in **Follow a column** t
 - **Services** writing and reading tables, from the database spans in your traces: a span that names its table (`db.collection.name`, or the older `db.sql.table`) and its statement (`db.operation.name`), such as an `INSERT` or a `SELECT`.
 - **Tables** built from other tables, from every source above.
 - **Pipelines** that load a table from data OneUptime does not watch, such as a Fivetran sync. A pipeline that moves data between two watched tables is named on the arrow between them.
-- **Dashboards** and reverse ETL syncs in your BI tools, reading the tables they are built on.
+- **Dashboards** and reverse ETL syncs in your BI tools, reading the tables they are built on, even when nothing else touches those tables. A Power BI report built on no table OneUptime watches is drawn with the datasets it charts and the data sources they load from; when none of a BI tool's dashboards is on a watched table, the map says why ([Power BI lineage](#power-bi-lineage)).
 
 Every arrow is something OneUptime recorded, never a guess. Cards sit left to right as data flows, and say how they are as on a table's diagram: red for a late table, an open alert or a failed run. An arrow is teal where a service's traces saw it.
 
@@ -97,7 +97,7 @@ The real impact of bad data is the dashboard someone opens. Under **BI Dashboard
 | **Superset** | `{ "username": "...", "password": "..." }` |
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
-| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, a service principal allowed to use Power BI's read-only admin APIs. Reports and dashboards are both read, with their views and refreshes (below) |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, a service principal allowed to use Power BI's read-only admin APIs, with the two metadata tenant settings of [Power BI lineage](#power-bi-lineage) turned on for the tables behind each report. Reports and dashboards are both read, with their views and refreshes (below) |
 | **Hightouch** | `{ "apiKey": "..." }` |
 | **Census** | `{ "apiKey": "...", "region": "us" }` (or `eu`) |
 
@@ -150,6 +150,31 @@ The cause's **Data** card lists its **Downstream Impact**: every alert it caused
 Under the **Data** card, an alert's page draws its **Lineage**: around its table, as the table's **Lineage** tab draws it, or around its pipeline. The way up to the alert that caused it and down to each alert it caused is highlighted - the cause's table or pipeline marked **Cause**, each caused alert's marked **Consequence** - and the rest fades, so whoever opens it sees where in the chain the problem started. When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name. When the cause is about a whole database, or further up than the diagram reaches, the card says so in words. An alert from a check on one column, such as a Null Percent check on `customer_id`, opens with that column followed beside these ways, as on the table's **Lineage** tab: where it comes from and where it goes, named on each table. Pick another of the table's columns there, or clear it to see the ways alone. **Explore Lineage** opens the table's **Lineage** tab, or the pipeline's page.
 
 Someone who may not see the alert that caused it gets neither the **Data** card nor the lineage, and an alert it caused that they may not see is neither highlighted nor counted.
+
+## Power BI lineage
+
+**Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, datasets that read from dataflows, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
+
+
+OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Power Query behind each of its tables:
+
+- **The database a connector names**: SQL Server and Azure SQL (`Sql.Database`), PostgreSQL, MySQL, Oracle, Amazon Redshift, Snowflake, Google BigQuery, Databricks, Amazon Athena and Microsoft Dataverse, and the schema and table its navigation picks.
+- **SQL a query runs**: a connector's **SQL statement** option, `Value.NativeQuery` and `Odbc.Query`, and the tables after each `FROM` and `JOIN`.
+- **Parameters and shared queries**: a parameter stands wherever it is named, and a table that reads a staging query reads what that query reads.
+- **Composite models** chart the tables of the datasets they are built on.
+
+A report charts its dataset's tables, and a dashboard its tiles' datasets'. Where the data comes from - a database's server and name, a file's path, a web address - comes from the scan's data sources, which need nothing more than the admin API access above.
+
+Power BI returns a dataset's tables only once a Fabric administrator turns on two tenant settings in the admin portal, under **Tenant settings > Admin API settings**, for the security group that holds the service principal:
+
+- **Enhance admin APIs responses with detailed metadata**: each dataset's tables.
+- **Enhance admin APIs responses with DAX and mashup expressions**: the queries that load them, which say which database tables they read.
+
+Power BI then describes a dataset once it has been refreshed or republished; one that only uses DirectQuery, once someone has opened a report on it. It never describes real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity. A dataset that reads from a dataflow is read up to the dataflow: OneUptime does not read which tables a dataflow loads yet.
+
+Each table is matched to a watched table by its name, schema and database, and a server by its short name or its full one. A table of another engine is never matched, and neither is one in another database: a report on `Sales.dbo.Orders` is not tied to `Archive.dbo.Orders` because only `Archive` is watched.
+
+[Refreshes](#views-and-refreshes-in-power-bi) are read apart from the tables: a warning that some datasets' refreshes could not be read says nothing about their tables.
 
 ## Before a change merges
 
