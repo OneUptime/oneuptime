@@ -7,6 +7,13 @@ import {
   test,
 } from "@jest/globals";
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import AlertMeasurementService from "../../../../Server/Services/AlertMeasurementService";
+import AlertService from "../../../../Server/Services/AlertService";
+import MutableMetricService from "../../../../Server/Services/MutableMetricService";
+import DataCheckHealthSync from "../../../../Server/Utils/DataObservability/DataCheckHealthSync";
+import MeasurementMetricWriter from "../../../../Server/Utils/Measurement/MeasurementMetricWriter";
+import { OnDelete } from "../../../../Server/Types/Database/Hooks";
 import AlertOwnerTeam from "../../../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../../../Models/DatabaseModels/AlertOwnerUser";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
@@ -629,5 +636,91 @@ describe("who a data alert goes to", () => {
       }),
     ).resolves.toBeUndefined();
     expect(userOwners).toEqual([]);
+  });
+});
+
+/*
+ * A DELETED ALERT IS OPEN NO MORE (#6554): the checks its monitor alerts
+ * for are worked out again, by the monitor read before the delete - the
+ * alert may not be there to join through afterwards.
+ */
+describe("an alert deleted", () => {
+  const MONITOR_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-000000000001",
+  );
+
+  interface DeleteHooks {
+    onDeleteSuccess(
+      onDelete: OnDelete<Alert>,
+      deletedIds: Array<ObjectID>,
+    ): Promise<OnDelete<Alert>>;
+  }
+
+  function deletedAlert(monitorId?: ObjectID): Alert {
+    const alert: Alert = new Alert(ALERT_ID);
+    alert.projectId = PROJECT_ID;
+
+    if (monitorId) {
+      alert.monitor = new Monitor(monitorId);
+    }
+
+    return alert;
+  }
+
+  async function deleteAlerts(alerts: Array<Alert>): Promise<void> {
+    jest
+      .spyOn(AlertService as never, "getMetricRetentionDays" as never)
+      .mockResolvedValue(30 as never);
+    jest
+      .spyOn(MutableMetricService, "tombstoneEntityMetrics")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AlertMeasurementService, "getMetricNamesForProject")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(MeasurementMetricWriter, "tombstoneAll")
+      .mockResolvedValue(undefined as never);
+
+    await (AlertService as unknown as DeleteHooks).onDeleteSuccess(
+      {
+        deleteBy: { query: {}, props: { isRoot: true } },
+        carryForward: { alerts },
+      } as unknown as OnDelete<Alert>,
+      [ALERT_ID],
+    );
+  }
+
+  test("the checks of the monitor that raised it are worked out again, in its project", async () => {
+    const refresh: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataCheckHealthSync, "refreshForMonitors")
+      .mockResolvedValue(1 as never);
+
+    await deleteAlerts([deletedAlert(MONITOR_ID)]);
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      monitorIds: [MONITOR_ID],
+    });
+  });
+
+  test("an alert raised by no monitor asks nothing", async () => {
+    const refresh: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataCheckHealthSync, "refreshForMonitors")
+      .mockResolvedValue(0 as never);
+
+    await deleteAlerts([deletedAlert()]);
+
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  test("a refresh that fails never fails the delete", async () => {
+    jest
+      .spyOn(DataCheckHealthSync, "refreshForMonitors")
+      .mockRejectedValue(new Error("Connection reset.") as never);
+
+    await expect(
+      deleteAlerts([deletedAlert(MONITOR_ID)]),
+    ).resolves.toBeUndefined();
   });
 });

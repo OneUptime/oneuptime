@@ -175,6 +175,65 @@ export default class DataCheckHealthSync {
     }
   }
 
+  /*
+   * For alerts that were just deleted: the health of the checks of the
+   * monitors that raised them. A deleted alert is open no more, so a check
+   * it kept failing passes again. Its monitors were read before the delete
+   * (AlertService.onBeforeDelete): the alert may no longer be there to
+   * join through. Never throws.
+   */
+  public static async refreshForMonitors(data: {
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID | string>;
+  }): Promise<number> {
+    const monitorIds: Array<string> = Array.from(
+      new Set(
+        data.monitorIds
+          .map((id: ObjectID | string): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (monitorIds.length === 0) {
+      return 0;
+    }
+
+    try {
+      const checks: Array<DataCheck> = await DataCheckService.findBy({
+        query: {
+          projectId: data.projectId,
+          monitorId: QueryHelper.any(monitorIds),
+        },
+        select: { _id: true },
+        skip: 0,
+        limit: MAX_CHECKS_PER_REFRESH,
+        props: { isRoot: true },
+      });
+
+      if (checks.length === 0) {
+        return 0;
+      }
+
+      return await this.refreshChecks({
+        projectId: data.projectId,
+        checkIds: checks
+          .map((check: DataCheck): string => {
+            return check.id?.toString() || "";
+          })
+          .filter(Boolean),
+      });
+    } catch (error) {
+      logger.error(
+        `Data Observability: could not keep the health of the checks of ${monitorIds.length} monitors: ${error}`,
+      );
+      return 0;
+    }
+  }
+
   // The checks whose monitor raised one of these alerts.
   public static async findChecksOfAlerts(
     alertIds: Array<string>,

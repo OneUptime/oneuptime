@@ -446,6 +446,70 @@ describe("an alert finds its check (refreshForAlerts)", () => {
   });
 });
 
+/*
+ * A deleted alert is open no more: its monitor's checks are read again by
+ * the monitor - the alert may not be there to join through - in its
+ * project only (AlertService.onDeleteSuccess).
+ */
+describe("a deleted alert's checks (refreshForMonitors)", () => {
+  test("the checks of the monitors that raised it, in its project, are worked out again", async () => {
+    const count: number = await DataCheckHealthSync.refreshForMonitors({
+      projectId: PROJECT,
+      monitorIds: [new ObjectID(MONITOR_OPEN), MONITOR_OPEN],
+    });
+
+    // Read by the monitor in the project, then each check by its id.
+    expect(checkReads[0]!["projectId"]).toEqual(PROJECT);
+    expect(checkReads[0]!["monitorId"]).toBeInstanceOf(FindOperator);
+    expect(
+      Object.values(
+        (checkReads[0]!["monitorId"] as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      ).flat(),
+    ).toEqual([MONITOR_OPEN]);
+    // The checks of that monitor whose kept health moved.
+    expect(count).toBeGreaterThan(0);
+    expect(
+      written.map((write: { id: string }): string => {
+        return write.id;
+      }),
+    ).toContain(CHECK_FAILING);
+  });
+
+  test("a monitor that is no check's reads no check by id, and writes nothing", async () => {
+    expect(
+      await DataCheckHealthSync.refreshForMonitors({
+        projectId: PROJECT,
+        monitorIds: [id("399")],
+      }),
+    ).toBe(0);
+    expect(checkReads).toHaveLength(1);
+    expect(written).toEqual([]);
+  });
+
+  test("no monitor, ids that are no ids, or a read that fails: nothing, and never a throw", async () => {
+    expect(
+      await DataCheckHealthSync.refreshForMonitors({
+        projectId: PROJECT,
+        monitorIds: ["not-an-id"],
+      }),
+    ).toBe(0);
+    expect(checkReads).toEqual([]);
+
+    jest
+      .spyOn(DataCheckService, "findBy")
+      .mockRejectedValue(new Error("Connection reset.") as never);
+
+    expect(
+      await DataCheckHealthSync.refreshForMonitors({
+        projectId: PROJECT,
+        monitorIds: [MONITOR_OPEN],
+      }),
+    ).toBe(0);
+    expect(written).toEqual([]);
+  });
+});
+
 describe("what is stored", () => {
   test("a health and its rank", () => {
     expect(DataCheckHealthSync.toStored(DataCheckHealth.CouldNotRun)).toEqual({

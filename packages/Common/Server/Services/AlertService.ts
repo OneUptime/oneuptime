@@ -3138,6 +3138,20 @@ ${alertSeverity.name}
             primaryEntityType: ServiceType.Alert,
             allMeasurementMetricNames: measurementMetricNames,
           });
+
+          /*
+           * A deleted alert is open no more: a data check its monitor
+           * alerts for stands as it does without it (DataCheckHealthSync,
+           * #6554). Never awaited, and never a reason the delete fails.
+           */
+          if (alert.monitor?.id) {
+            DataCheckHealthSync.refreshForMonitors({
+              projectId: alert.projectId,
+              monitorIds: [alert.monitor.id],
+            }).catch((error: unknown) => {
+              logger.error(error);
+            });
+          }
         }
       }
     }
