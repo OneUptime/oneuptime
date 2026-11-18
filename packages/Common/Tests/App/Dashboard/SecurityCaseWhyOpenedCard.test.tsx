@@ -520,6 +520,57 @@ describe("the rest of the case", () => {
     ).toHaveTextContent("Opened by hand");
     expect(screen.getByText("Open Evidence")).toBeInTheDocument();
   });
+
+  /*
+   * Regression: detections the reader's role cannot read, or that failed to
+   * read, came back as none, and the card said nobody's detection opened a
+   * case that three detections had.
+   */
+  test("detections it could not read are never said to be no detection: the role's refusal, or a failure with Try again", async () => {
+    draw({
+      matches: matches({
+        detections: [],
+        detectionCount: 3,
+        unreadableSources: [SecurityCaseMatchesSource.Detections],
+      }),
+    });
+
+    expect(
+      screen.getByTestId(SECURITY_CASE_MATCHES_TEST_IDS.detectionsUnread),
+    ).toHaveTextContent(
+      "Your role cannot read this case's detections, so why it was opened is not shown.",
+    );
+    expect(
+      screen.queryByTestId(SECURITY_CASE_MATCHES_TEST_IDS.openedByHand),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Try again")).not.toBeInTheDocument();
+    cleanup();
+
+    draw({
+      matches: matches({
+        detections: [],
+        detectionCount: 3,
+        failedSources: [SecurityCaseMatchesSource.Detections],
+      }),
+    });
+
+    const failed: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_MATCHES_TEST_IDS.detectionsUnread,
+    );
+
+    expect(failed).toHaveTextContent(
+      "The case's detections could not be read just now.",
+    );
+    expect(
+      screen.queryByTestId(SECURITY_CASE_MATCHES_TEST_IDS.openedByHand),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(within(failed).getByText("Try again"));
+    });
+
+    expect(reread).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("while it reads, and when it cannot", () => {

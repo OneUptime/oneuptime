@@ -29,7 +29,11 @@ export const JOINED_THE_CASE: string = translationKey("Joined the case");
 
 // The facts of a detection, each a row of its own.
 export const FACT_FIRES_WHEN: string = translationKey("Fires when");
-export const FACT_MATCHED: string = translationKey("Matched");
+/*
+ * The events it matched, as a noun ("Matches", as Data Security counts
+ * them) - not "Matched", which monitor criteria word as "fulfilled".
+ */
+export const FACT_MATCHED: string = translationKey("Matches");
 export const FACT_LOOKS_FOR: string = translationKey("Looks for");
 export const FACT_REQUESTS: string = translationKey("Requests");
 export const FACT_READ_MORE: string = translationKey("Read more");
@@ -153,6 +157,16 @@ export const EVENTS_UNREADABLE: string = translationKey(
 export const EVENTS_FAILED: string = translationKey(
   "The events could not be read just now.",
 );
+/*
+ * When the case's detections could not be read: never "Opened by hand",
+ * which would say no detection opened it.
+ */
+export const DETECTIONS_UNREADABLE: string = translationKey(
+  "Your role cannot read this case's detections, so why it was opened is not shown.",
+);
+export const DETECTIONS_FAILED: string = translationKey(
+  "The case's detections could not be read just now.",
+);
 export const RULES_UNREADABLE: string = translationKey(
   "Your role cannot read detection rules, so how the rule counts is not shown.",
 );
@@ -227,6 +241,7 @@ export const SECURITY_CASE_MATCHES_TEST_IDS: {
   moreDetections: string;
   lookNext: string;
   openedByHand: string;
+  detectionsUnread: string;
   error: string;
 } = {
   card: "security-case-why-opened",
@@ -250,5 +265,6 @@ export const SECURITY_CASE_MATCHES_TEST_IDS: {
   moreDetections: "security-case-why-opened-more-detections",
   lookNext: "security-case-why-opened-look-next",
   openedByHand: "security-case-why-opened-by-hand",
+  detectionsUnread: "security-case-why-opened-detections-unread",
   error: "security-case-why-opened-error",
 };

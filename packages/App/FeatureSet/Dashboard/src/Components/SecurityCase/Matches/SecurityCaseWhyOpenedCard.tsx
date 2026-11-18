@@ -9,6 +9,8 @@ import SecurityEventSeverityPill from "../../SecurityEvents/SecurityEventSeverit
 import { toSecurityEvent } from "../Evidence/EventEvidence";
 import { getSecurityDetectionSourceIcon } from "../SecurityCasePills";
 import {
+  DETECTIONS_FAILED,
+  DETECTIONS_UNREADABLE,
   EVENTS_FAILED,
   EVENTS_UNREADABLE,
   EVENT_LINKS_ARIA_LABEL,
@@ -336,6 +338,14 @@ function getNoEventsSentence(data: {
   }
 
   return EVENTS_FAILED;
+}
+
+// Whether the case's detections could not be read, for its role or a failure.
+function isDetectionsUnread(matches: SecurityCaseMatchesJson): boolean {
+  return (
+    matches.unreadableSources.includes(SecurityCaseMatchesSource.Detections) ||
+    matches.failedSources.includes(SecurityCaseMatchesSource.Detections)
+  );
 }
 
 // One detection: why it fired, and what it matched.
@@ -862,6 +872,38 @@ const SecurityCaseWhyOpenedCard: FunctionComponent<ComponentProps> = (
     );
   } else if (!matches) {
     body = <DetailListSkeleton fields={4} />;
+  } else if (!opening && isDetectionsUnread(matches)) {
+    /*
+     * The detections could not be read (the reader's role, or the read
+     * failed): say so, never "Opened by hand".
+     */
+    const isUnreadable: boolean = matches.unreadableSources.includes(
+      SecurityCaseMatchesSource.Detections,
+    );
+
+    body = (
+      <p
+        className="flex flex-wrap items-center gap-x-2 text-sm text-gray-600"
+        data-testid={SECURITY_CASE_MATCHES_TEST_IDS.detectionsUnread}
+      >
+        <span>
+          {translator.translateText(
+            isUnreadable ? DETECTIONS_UNREADABLE : DETECTIONS_FAILED,
+          )}
+        </span>
+        {isUnreadable ? (
+          <></>
+        ) : (
+          <button
+            type="button"
+            className={TEXT_BUTTON_CLASS_NAME}
+            onClick={reread}
+          >
+            {translator.translateText(TRY_AGAIN)}
+          </button>
+        )}
+      </p>
+    );
   } else if (!opening) {
     const evidenceRoute: Route | null = getCaseEvidenceRoute(props.caseId);
 
