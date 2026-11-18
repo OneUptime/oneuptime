@@ -346,7 +346,10 @@ jobs:
           # 138 s locally, times 1.26): no group had that left on a lane.
           # The journeys' two guided journeys (#7141) took Journeys from 4.4
           # to 4.9 minutes, so Product Onboarding moved from group 2 to group
-          # 13: group 2 21.4 minutes, group 13 2.9.
+          # 13: group 2 21.4 minutes, group 13 2.9. The questions OneUptime
+          # asks and Admin > Feedback's suite (#7362, 0.4 minutes: 19 s
+          # locally, times 1.26) joined group 13 the same day: group 13 4.5
+          # minutes, its status page and telemetry setups' suite the longest.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -518,6 +521,7 @@ jobs:
               test-status-page-telemetry-guided-setups-ui
               test-product-onboarding-ui
               test-server-products-ui
+              test-feedback-questions-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -814,4 +818,6 @@ jobs:
             output/playwright/security-page-ui/test-results
             output/playwright/give-feedback-ui/*.png
             output/playwright/give-feedback-ui/test-results
+            output/playwright/feedback-questions-ui/*.png
+            output/playwright/feedback-questions-ui/test-results
           retention-days: 7

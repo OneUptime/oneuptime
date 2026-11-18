@@ -243,6 +243,8 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import OnCallRuleKind from "../../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { ProjectCanSendLoader } from "../../../UI/Utils/ServerSending";
+import { PROJECT_CAN_SEND_EVERYTHING } from "../../../Types/ServerSending/ProjectCanSend";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
 
@@ -254,6 +256,18 @@ beforeEach((): void => {
 // The server's global config, answered here rather than over the network.
 beforeEach((): void => {
   standInForGlobalConfig();
+});
+
+/*
+ * Whether this server can send email, SMS and calls (GET /project-can-send),
+ * which How to Reach Me reads to mark the steps it can't send (#9446),
+ * answered here rather than over the network: it can, as on OneUptime
+ * Cloud. What the ladder says when it cannot is HowToReachMe's to test.
+ */
+beforeEach((): void => {
+  jest
+    .spyOn(ProjectCanSendLoader, "load")
+    .mockResolvedValue({ ...PROJECT_CAN_SEND_EVERYTHING });
 });
 
 /*

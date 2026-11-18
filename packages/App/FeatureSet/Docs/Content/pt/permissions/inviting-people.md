@@ -84,7 +84,7 @@ Ao aceitar, a pessoa entra no projeto na hora, com as permissões da equipe dela
 | --- | --- |
 | **Usuário** | O nome e o endereço de e-mail dela. |
 | **Equipes** | Cada equipe do projeto de que ela participa, ou para a qual foi convidada. |
-| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
+| **Status** | **Membro** depois que ela entrou, com o número de convites para outras equipes que ainda não aceitou. **Convite enviado** até lá, ou **E-mail não enviado** quando o serviço de e-mail recusou o último e-mail de convite dela. Em um servidor auto-hospedado que ainda não consegue enviar e-mails, **Convidado** no lugar: o convite é criado, mas nenhum e-mail é enviado. |
 
 Filtre a lista por **Usuário**, **Status** ou **Equipe**. Clique em uma linha para abrir a página da pessoa:
 
@@ -152,6 +152,10 @@ O convite não depende do e-mail. Peça à pessoa que se cadastre com o endereç
 Para ver se ele saiu, abra a guia **E-mail** dos **Logs de notificação** do projeto: a linha de cada convite diz se ele foi enviado, e por que não. Em um servidor auto-hospedado, um administrador mestre também encontra cada e-mail que o servidor não conseguiu enviar no [log de e-mails](/docs/emails/email-providers#ver-o-que-o-servidor-enviou) dele.
 
 Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro também não consegue enviar um novo link por e-mail: em vez disso, pede à pessoa que solicite o seu link de convite. Depois que o administrador do servidor [configurar o e-mail](/docs/emails/smtp#abrir-o-formulário), o cadastro funciona como acima. Até lá, um administrador mestre pode enviar a ela um novo link, que funciona uma vez, só para esse endereço, por 7 dias: em **Usuários**, abra o menu da linha da pessoa, **⋯**, e clique em **Obter link de convite**.
+:::
+
+:::details Uma pessoa mostra E-mail não enviado
+O serviço de e-mail recusou o último e-mail de convite dela, então nada chegou até ela. Aponte para **E-mail não enviado**, ou toque nele, para ver o motivo, como a guia **E-mail** dos **Logs de notificação** do projeto o mostra. Confira o endereço convidado e, quando o e-mail funcionar, remova a pessoa e convide-a de novo. Em um servidor auto-hospedado, o administrador do servidor pode enviar a ela o link de convite em vez disso: um administrador mestre abre o menu da linha da pessoa em **Usuários**, **⋯**, e clica em **Obter link de convite**.
 :::
 
 :::details Convidar Usuário diz que os usuários são gerenciados pelo SCIM Push Groups

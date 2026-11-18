@@ -158,10 +158,14 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
    * In a row as narrow as the sidebar beside the list (a tablet), the bar
    * gives it its place, so the name keeps at least the width it has under
    * a mouse; a phone's full-width sidebar has room for both.
+   *
+   * The bar is 36px: the count's column grew by 4px for a shortened count
+   * at 12px (FACET_COUNT_COLUMN_CLASS), and the bar gives them back, so the
+   * name keeps the width it had - 132 of a 224px sidebar's 214px row.
    */
   const barClassName: string = hasExcludeButton
-    ? "w-10 [@media(hover:none)]:[@container(max-width:18rem)]:hidden"
-    : "w-10";
+    ? "w-9 [@media(hover:none)]:[@container(max-width:18rem)]:hidden"
+    : "w-9";
 
   const title: string = isRadio
     ? isIncluded

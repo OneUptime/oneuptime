@@ -89,6 +89,8 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { ProjectCanSendLoader } from "../../../UI/Utils/ServerSending";
+import { PROJECT_CAN_SEND_EVERYTHING } from "../../../Types/ServerSending/ProjectCanSend";
 import User from "../../../UI/Utils/User";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
@@ -255,6 +257,15 @@ beforeEach(() => {
   jest
     .spyOn(GlobalConfigUtil, "fetchVars")
     .mockResolvedValue(GlobalConfigUtil.readVars({}));
+  /*
+   * Whether this server can send SMS and calls (GET /project-can-send,
+   * #6880), which Notification Settings' channel switches ask: it can, as
+   * on OneUptime Cloud. What they say when it cannot is
+   * ServerCannotSendMethodLists' to test.
+   */
+  jest
+    .spyOn(ProjectCanSendLoader, "load")
+    .mockResolvedValue({ ...PROJECT_CAN_SEND_EVERYTHING });
 });
 
 afterEach(() => {

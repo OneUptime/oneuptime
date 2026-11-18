@@ -84,7 +84,7 @@ L'acceptation la place aussitôt dans le projet, avec les autorisations de son �
 | --- | --- |
 | **Utilisateur** | Son nom et son adresse e-mail. |
 | **Équipes** | Chaque équipe du projet dont elle fait partie, ou à laquelle elle est invitée. |
-| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
+| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là, ou **E-mail non envoyé** lorsque le service de messagerie a refusé son dernier e-mail d'invitation. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
 
 Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une ligne pour ouvrir la page de la personne :
 
@@ -152,6 +152,10 @@ L'invitation ne dépend pas de l'e-mail. Demandez à la personne de s'inscrire a
 Pour savoir s'il est parti, ouvrez l'onglet **E-mail** des **Journaux de notification** du projet : la ligne de chaque invitation dit si elle a été envoyée, et sinon pourquoi. Sur un serveur auto-hébergé, un administrateur principal trouve aussi chaque e-mail que le serveur n'a pas pu envoyer dans son [journal des e-mails](/docs/emails/email-providers#voir-ce-que-le-serveur-a-envoyé).
 
 Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, l'inscription ne peut pas non plus envoyer de nouveau lien par e-mail : elle invite plutôt la personne à demander son lien d'invitation. Une fois que l'admin du serveur a [configuré l'e-mail](/docs/emails/smtp#ouvrir-le-formulaire), l'inscription fonctionne comme ci-dessus. D'ici là, un administrateur principal peut lui envoyer un nouveau lien, qui fonctionne une fois, uniquement pour cette adresse, pendant 7 jours : dans **Utilisateurs**, ouvrez le menu de la ligne de la personne, **⋯**, et cliquez sur **Obtenir le lien d'invitation**.
+:::
+
+:::details Une personne affiche E-mail non envoyé
+Le service de messagerie a refusé son dernier e-mail d'invitation : rien ne lui est parvenu. Pointez **E-mail non envoyé**, ou touchez-le, pour en voir la raison, telle que l'onglet **E-mail** des **Journaux de notification** du projet la donne. Vérifiez l'adresse invitée, puis, une fois l'e-mail fonctionnel, retirez cette personne et invitez-la de nouveau. Sur un serveur auto-hébergé, l'admin du serveur peut plutôt lui envoyer son lien d'invitation : un administrateur principal ouvre le menu de la ligne de la personne dans **Utilisateurs**, **⋯**, et clique sur **Obtenir le lien d'invitation**.
 :::
 
 :::details Inviter un utilisateur indique que les utilisateurs sont gérés par SCIM Push Groups

@@ -1,4 +1,8 @@
-import FeedbackWhereItGoes from "./FeedbackWhereItGoes";
+import FeedbackGitHubLink from "./FeedbackGitHubLink";
+import FeedbackWhereItGoes, {
+  FeedbackSentLine,
+  getFeedbackThanks,
+} from "./FeedbackWhereItGoes";
 import { getFeedbackGitHubIssueUrl } from "./FeedbackPage";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -30,8 +34,12 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
  * away, and so does "Don't ask me again", which switches every question
  * off for this person (User Profile shows the same switch).
  *
- * On a self-hosted server, words sent can also go to OneUptime on GitHub:
- * a pre-filled issue the person reads there before sending, or not.
+ * Once answered, it says where the answer went, and only then, on a
+ * self-hosted server where words were sent, that they may also tell
+ * OneUptime in a public GitHub issue, pre-filled, which nothing posts but
+ * the person (FeedbackGitHubLink). The line that says where an answer goes
+ * is said before it is given and not after (#7462): under the link it read
+ * as if "nothing leaves this server" were about the link.
  */
 
 export const EASE_QUESTION_TEST_ID: string = "ease-question";
@@ -162,7 +170,7 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
                     "Thanks. Anything we could make easier?",
                   )
                 : translator.translateText("Thanks. What got in the way?")
-              : translator.translateText("Thanks for telling us.")}
+              : getFeedbackThanks(translator)}
         </p>
         <button
           type="button"
@@ -236,24 +244,20 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
 
       {stage === "sent" ? (
         <div
-          className="mt-2 space-y-2"
+          className="mt-1 space-y-3"
           data-testid={EASE_QUESTION_THANKS_TEST_ID}
         >
+          {/* Where it went first; the link to a public issue after it. */}
+          <FeedbackSentLine />
           {!BILLING_ENABLED && sentDetails ? (
-            <a
+            <FeedbackGitHubLink
               href={getFeedbackGitHubIssueUrl({
                 details: sentDetails,
                 page: ProductFeedback.getPage(),
                 version: ProductFeedback.getVersion(),
               })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-              data-testid={EASE_QUESTION_GITHUB_TEST_ID}
-            >
-              {translator.translateText("Also tell OneUptime on GitHub")}
-              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            </a>
+              dataTestId={EASE_QUESTION_GITHUB_TEST_ID}
+            />
           ) : (
             <></>
           )}
@@ -276,24 +280,29 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <FeedbackWhereItGoes />
-        {props.isAsked && stage === "score" ? (
-          <button
-            type="button"
-            className="text-xs font-medium text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            data-testid={EASE_QUESTION_STOP_ASKING_TEST_ID}
-            onClick={() => {
-              void ProductFeedback.stopAsking();
-              props.onClose();
-            }}
-          >
-            {translator.translateText("Don't ask me again")}
-          </button>
-        ) : (
-          <></>
-        )}
-      </div>
+      {/* Where it goes, before it is given: once sent, the card says where it went. */}
+      {stage !== "sent" ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <FeedbackWhereItGoes />
+          {props.isAsked && stage === "score" ? (
+            <button
+              type="button"
+              className="text-xs font-medium text-gray-500 underline-offset-2 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              data-testid={EASE_QUESTION_STOP_ASKING_TEST_ID}
+              onClick={() => {
+                void ProductFeedback.stopAsking();
+                props.onClose();
+              }}
+            >
+              {translator.translateText("Don't ask me again")}
+            </button>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
     </section>
   );
 };

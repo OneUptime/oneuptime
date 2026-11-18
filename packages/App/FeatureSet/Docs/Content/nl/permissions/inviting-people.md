@@ -84,7 +84,7 @@ Na het accepteren zit de persoon meteen in het project, met de machtigingen van 
 | --- | --- |
 | **Gebruiker** | Naam en e-mailadres. |
 | **Teams** | Elk team van het project waarin die persoon zit of waarvoor die is uitgenodigd. |
-| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
+| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan, of **E-mail niet verzonden** als de maildienst de laatste uitnodigingsmail heeft geweigerd. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
 
 Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de pagina van die persoon te openen:
 
@@ -152,6 +152,10 @@ De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren
 Of hij verstuurd is, ziet u op het tabblad **E-mail** van de **Meldingslogboeken** van het project: de rij van elke uitnodiging zegt of die verstuurd is, en zo niet, waarom. Op een zelfgehoste server vindt een hoofdbeheerder bovendien elke e-mail die de server niet kon versturen in het [e-maillogboek](/docs/emails/email-providers#zien-wat-de-server-heeft-verstuurd) van de server.
 
 Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon een nieuwe link sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang: open bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Uitnodigingslink ophalen**.
+:::
+
+:::details Iemand toont E-mail niet verzonden
+De maildienst heeft de laatste uitnodigingsmail geweigerd, dus er is niets bij die persoon aangekomen. Wijs **E-mail niet verzonden** aan, of tik erop, om de reden te zien, zoals het tabblad **E-mail** van de **Meldingslogboeken** van het project die geeft. Controleer het uitgenodigde adres, en verwijder die persoon zodra e-mail werkt en nodig hem of haar opnieuw uit. Op een zelfgehoste server kan de beheerder van de server die persoon in plaats daarvan de uitnodigingslink sturen: een hoofdbeheerder opent bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klikt op **Uitnodigingslink ophalen**.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

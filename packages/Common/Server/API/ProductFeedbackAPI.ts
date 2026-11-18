@@ -16,11 +16,13 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
   FeedbackQuestionDecision,
   GiveFeedbackReceipt,
+  PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_SUMMARY_ROUTE,
   PRODUCT_FEEDBACK_ASK_ROUTE,
@@ -76,10 +78,14 @@ import {
  *
  * For master admins only (Admin Dashboard > Feedback):
  *
- *   GET  /product-feedback/admin/summary  the last 90 days by question, and
- *                                         Ask AI's thumbs
- *   GET  /product-feedback/admin/list     ?kind=&skip=&limit=: the answers,
- *                                         newest first
+ *   GET    /product-feedback/admin/summary  the last 90 days by question,
+ *                                           the docs pages, and Ask AI's
+ *                                           thumbs
+ *   GET    /product-feedback/admin/list     ?kind=&skip=&limit=: the
+ *                                           answers, newest first
+ *   DELETE /product-feedback/admin/answer/:answerId
+ *                                           one answer, for good, at once
+ *                                           (#7366); { deleted }
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -391,7 +397,7 @@ router.get(
 
       if (kind && !isProductFeedbackKind(kind)) {
         throw new BadDataException(
-          "Set kind to setup_flow, general, explanation or check_in, or leave it out for every kind, then load the list again.",
+          "Set kind to setup_flow, general, explanation, check_in or docs_page, or leave it out for every kind, then load the list again.",
         );
       }
 
@@ -412,6 +418,48 @@ router.get(
           limit: limit,
         })) as unknown as JSONObject,
       );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * A master admin deletes one answer, for good and at once (#7366): what a
+ * person wrote may hold more than they meant to say. Every answer is kept
+ * PRODUCT_FEEDBACK_RETENTION_IN_DAYS anyway, and deleted by the daily
+ * purge after. An answer that is not there (deleted already, or never
+ * one) is a 404, so a second press says so rather than pretending.
+ */
+export const PRODUCT_FEEDBACK_ANSWER_NOT_FOUND_MESSAGE: string =
+  "This answer is not on this server any more: it was deleted already, or it was kept longer than answers are. Load the list again.";
+
+router.delete(
+  `${PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE}/:answerId`,
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const answerId: unknown = req.params?.["answerId"];
+
+      if (typeof answerId !== "string" || !ObjectID.isValidUUID(answerId)) {
+        throw new BadDataException(
+          "Name the answer by the id it is listed with, then delete it again.",
+        );
+      }
+
+      const isDeleted: boolean = await ProductFeedbackService.deleteAnswer(
+        new ObjectID(answerId),
+      );
+
+      if (!isDeleted) {
+        throw new NotFoundException(PRODUCT_FEEDBACK_ANSWER_NOT_FOUND_MESSAGE);
+      }
+
+      return Response.sendJsonObjectResponse(req, res, { deleted: true });
     } catch (err) {
       next(err);
     }

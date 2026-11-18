@@ -1,3 +1,4 @@
+import { AskAiSourceCount } from "../AI/AskAiRatings";
 import { JSONObject, JSONValue } from "../JSON";
 
 /*
@@ -18,6 +19,23 @@ import { JSONObject, JSONValue } from "../JSON";
  *                  topic (`how_oneuptime_works`, `term.criteria`).
  *   - check_in     "Is OneUptime set up the way you wanted?", once, on Home,
  *                  for the project's creator in its first weeks.
+ *
+ * And one the docs give, not the Dashboard:
+ *
+ *   - docs_page    "Was this page helpful?" at the foot of a docs page, kept
+ *                  only where a master admin switched keeping them on
+ *                  (GlobalConfig.keepDocsFeedback, #7209): yes or no, and
+ *                  for a no what went wrong (DocsFeedbackReason). The docs
+ *                  page (`monitor/website-monitor`) is the topic. Posted by
+ *                  the docs server (App/FeatureSet/Docs), never by the
+ *                  Dashboard: readProductFeedbackSubmission refuses it.
+ *
+ * HOW LONG ANSWERS ARE KEPT (#7366)
+ *
+ *   PRODUCT_FEEDBACK_RETENTION_IN_DAYS after they were given, then the
+ *   daily purge deletes them (ProductFeedbackService's window, read by
+ *   Workers' HardDelete:HardDeleteOlderItemsInDatabase). A master admin
+ *   may delete one sooner, from Admin Dashboard > Feedback.
  *
  * WHERE ANSWERS GO
  *
@@ -64,10 +82,22 @@ export enum ProductFeedbackKind {
   General = "general",
   Explanation = "explanation",
   CheckIn = "check_in",
+  // "Was this page helpful?" on a docs page, where kept (#7209).
+  DocsPage = "docs_page",
 }
 
+// Every kind an answer is kept as: what Admin Dashboard > Feedback lists.
 export const PRODUCT_FEEDBACK_KINDS: ReadonlyArray<ProductFeedbackKind> =
   Object.values(ProductFeedbackKind);
+
+/*
+ * The kinds the Dashboard posts (POST /product-feedback): every kind but a
+ * docs page's, which only the docs server keeps, from the docs' own route.
+ */
+export const DASHBOARD_FEEDBACK_KINDS: ReadonlyArray<ProductFeedbackKind> =
+  PRODUCT_FEEDBACK_KINDS.filter((kind: ProductFeedbackKind): boolean => {
+    return kind !== ProductFeedbackKind.DocsPage;
+  });
 
 export const isProductFeedbackKind: (
   value: unknown,
@@ -77,6 +107,17 @@ export const isProductFeedbackKind: (
   return (
     typeof value === "string" &&
     (PRODUCT_FEEDBACK_KINDS as ReadonlyArray<string>).includes(value)
+  );
+};
+
+export const isDashboardFeedbackKind: (
+  value: unknown,
+) => value is ProductFeedbackKind = (
+  value: unknown,
+): value is ProductFeedbackKind => {
+  return (
+    typeof value === "string" &&
+    (DASHBOARD_FEEDBACK_KINDS as ReadonlyArray<string>).includes(value)
   );
 };
 
@@ -91,6 +132,26 @@ export const PRODUCT_FEEDBACK_ADMIN_SUMMARY_ROUTE: string =
   "/product-feedback/admin/summary";
 export const PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE: string =
   "/product-feedback/admin/list";
+/*
+ * One answer, for a master admin to delete (#7366):
+ * DELETE /product-feedback/admin/answer/:answerId.
+ */
+export const PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE: string =
+  "/product-feedback/admin/answer";
+
+export const getProductFeedbackAdminAnswerRoute: (
+  answerId: string,
+) => string = (answerId: string): string => {
+  return `${PRODUCT_FEEDBACK_ADMIN_ANSWER_ROUTE}/${encodeURIComponent(answerId)}`;
+};
+
+/*
+ * How long an answer is kept, from when it was given (#7366): a year, then
+ * the daily purge deletes it. Long enough to compare one release's answers
+ * with the year before's; no longer, as what a person wrote may hold more
+ * than they meant to say. The same on every server.
+ */
+export const PRODUCT_FEEDBACK_RETENTION_IN_DAYS: number = 365;
 
 // What a person may write: a few sentences, not an essay.
 export const PRODUCT_FEEDBACK_DETAILS_MAX_LENGTH: number = 2000;
@@ -415,6 +476,11 @@ export interface ProductFeedbackSubmission {
   details: string | null;
   page: string;
   version: string;
+  /*
+   * What went wrong, for a no to "Was this page helpful?" (docs_page only,
+   * written by the docs server): never read from what the Dashboard posts.
+   */
+  reason?: DocsFeedbackReason | null | undefined;
 }
 
 // The names readProductFeedbackSubmission reads; anything else posted is dropped.
@@ -462,8 +528,9 @@ export const readProductFeedbackSubmission: (
   const data: JSONObject = body as JSONObject;
   const kind: JSONValue | undefined = data["kind"];
 
-  if (!isProductFeedbackKind(kind)) {
-    return `Set kind to one of ${PRODUCT_FEEDBACK_KINDS.join(", ")}, then send the answer again.`;
+  // A docs page's answer is the docs server's to keep (#7209), never posted here.
+  if (!isDashboardFeedbackKind(kind)) {
+    return `Set kind to one of ${DASHBOARD_FEEDBACK_KINDS.join(", ")}, then send the answer again.`;
   }
 
   const topic: string =
@@ -530,6 +597,211 @@ export const readProductFeedbackSubmission: (
     score: null,
     isPositive: data["isPositive"],
   };
+};
+
+/*
+ * "WAS THIS PAGE HELPFUL?", KEPT ON THIS SERVER (#7209).
+ *
+ * What went wrong, as a no can say it in one click on the docs page
+ * (App/FeatureSet/Docs, Views/Partials/PageFeedback.ejs: the docs' own
+ * words, ui.feedbackReason*). Each title is the docs' English, marked as a
+ * key: Admin Dashboard > Feedback looks it up in its locales.
+ */
+export enum DocsFeedbackReason {
+  Unclear = "unclear",
+  Missing = "missing",
+  Wrong = "wrong",
+  NotFound = "not_found",
+}
+
+// In the order the page offers them.
+export const DOCS_FEEDBACK_REASONS: ReadonlyArray<DocsFeedbackReason> = [
+  DocsFeedbackReason.Unclear,
+  DocsFeedbackReason.Missing,
+  DocsFeedbackReason.Wrong,
+  DocsFeedbackReason.NotFound,
+];
+
+export const DOCS_FEEDBACK_REASON_TITLES: Readonly<
+  Record<DocsFeedbackReason, string>
+> = {
+  [DocsFeedbackReason.Unclear]: translationKey("Hard to follow"),
+  [DocsFeedbackReason.Missing]: translationKey("Something is missing"),
+  [DocsFeedbackReason.Wrong]: translationKey("Wrong or out of date"),
+  [DocsFeedbackReason.NotFound]: translationKey("Not what I was looking for"),
+};
+
+export const isDocsFeedbackReason: (
+  value: unknown,
+) => value is DocsFeedbackReason = (
+  value: unknown,
+): value is DocsFeedbackReason => {
+  return (
+    typeof value === "string" &&
+    (DOCS_FEEDBACK_REASONS as ReadonlyArray<string>).includes(value)
+  );
+};
+
+// A docs language's code: "de", "zh-CN".
+const DOCS_LANGUAGE_PATTERN: RegExp = /^[a-z]{2}(-[a-z]{2})?$/i;
+
+// A docs page's address under /docs/<lang>/, as the nav writes it.
+const DOCS_PAGE_PATTERN: RegExp =
+  /^[a-z0-9][a-z0-9_-]*(\/[a-z0-9][a-z0-9_-]*)*$/;
+
+/*
+ * A docs answer as the docs server keeps it (ProductFeedbackService.
+ * keepDocsAnswer): the page as the topic, the page it was read on - its
+ * language with it - as the page, and the version. Null for a page that is
+ * not one: the docs server reads only pages its nav lists, and this holds
+ * the shape again, so no address or value is ever kept.
+ */
+export const toDocsFeedbackSubmission: (data: {
+  page: string;
+  language: string;
+  isHelpful: boolean;
+  reason?: DocsFeedbackReason | undefined;
+  version: string;
+}) => ProductFeedbackSubmission | null = (data: {
+  page: string;
+  language: string;
+  isHelpful: boolean;
+  reason?: DocsFeedbackReason | undefined;
+  version: string;
+}): ProductFeedbackSubmission | null => {
+  if (
+    data.page.length > PRODUCT_FEEDBACK_TOPIC_MAX_LENGTH ||
+    !DOCS_PAGE_PATTERN.test(data.page) ||
+    !DOCS_LANGUAGE_PATTERN.test(data.language)
+  ) {
+    return null;
+  }
+
+  return {
+    kind: ProductFeedbackKind.DocsPage,
+    topic: data.page,
+    score: null,
+    isPositive: data.isHelpful,
+    // A reason only says what went wrong: never with a yes.
+    reason:
+      !data.isHelpful && data.reason && isDocsFeedbackReason(data.reason)
+        ? data.reason
+        : null,
+    details: null,
+    page: `/docs/${data.language}/${data.page}`,
+    version: toFeedbackVersion(data.version),
+  };
+};
+
+// One docs page's answers, as Admin Dashboard > Feedback lists them.
+export interface DocsPageFeedbackSummary {
+  // The page under /docs/: "monitor/website-monitor".
+  page: string;
+  answers: number;
+  helpful: number;
+  notHelpful: number;
+  // What went wrong, by how many noes said it, most first.
+  reasons: Array<{ reason: DocsFeedbackReason; answers: number }>;
+}
+
+// The fields summarizeDocsPageFeedback reads from each docs answer.
+export interface DocsPageFeedbackRow {
+  page: string;
+  isHelpful: boolean | null;
+  reason: string | null;
+}
+
+/*
+ * The docs pages people answered for, the ones that fail them first: most
+ * noes first, then the larger share of noes, then the most answers.
+ */
+export const summarizeDocsPageFeedback: (
+  rows: ReadonlyArray<DocsPageFeedbackRow>,
+) => Array<DocsPageFeedbackSummary> = (
+  rows: ReadonlyArray<DocsPageFeedbackRow>,
+): Array<DocsPageFeedbackSummary> => {
+  const byPage: Map<
+    string,
+    DocsPageFeedbackSummary & { reasonCounts: Map<DocsFeedbackReason, number> }
+  > = new Map();
+
+  for (const row of rows) {
+    if (!row.page) {
+      continue;
+    }
+
+    let summary:
+      | (DocsPageFeedbackSummary & {
+          reasonCounts: Map<DocsFeedbackReason, number>;
+        })
+      | undefined = byPage.get(row.page);
+
+    if (!summary) {
+      summary = {
+        page: row.page,
+        answers: 0,
+        helpful: 0,
+        notHelpful: 0,
+        reasons: [],
+        reasonCounts: new Map(),
+      };
+      byPage.set(row.page, summary);
+    }
+
+    summary.answers++;
+
+    if (row.isHelpful === true) {
+      summary.helpful++;
+    } else if (row.isHelpful === false) {
+      summary.notHelpful++;
+
+      if (isDocsFeedbackReason(row.reason)) {
+        summary.reasonCounts.set(
+          row.reason,
+          (summary.reasonCounts.get(row.reason) || 0) + 1,
+        );
+      }
+    }
+  }
+
+  return Array.from(byPage.values())
+    .map(
+      (
+        summary: DocsPageFeedbackSummary & {
+          reasonCounts: Map<DocsFeedbackReason, number>;
+        },
+      ): DocsPageFeedbackSummary => {
+        const { reasonCounts, ...rest } = summary;
+
+        return {
+          ...rest,
+          reasons: DOCS_FEEDBACK_REASONS.filter(
+            (reason: DocsFeedbackReason): boolean => {
+              return reasonCounts.has(reason);
+            },
+          )
+            .map((reason: DocsFeedbackReason) => {
+              return { reason: reason, answers: reasonCounts.get(reason) || 0 };
+            })
+            .sort(
+              (
+                a: { reason: DocsFeedbackReason; answers: number },
+                b: { reason: DocsFeedbackReason; answers: number },
+              ): number => {
+                return b.answers - a.answers;
+              },
+            ),
+        };
+      },
+    )
+    .sort((a: DocsPageFeedbackSummary, b: DocsPageFeedbackSummary): number => {
+      return (
+        b.notHelpful - a.notHelpful ||
+        b.notHelpful / b.answers - a.notHelpful / a.answers ||
+        b.answers - a.answers ||
+        a.page.localeCompare(b.page)
+      );
+    });
 };
 
 /*
@@ -782,6 +1054,8 @@ export interface ProductFeedbackListItem {
   score: number | null;
   isPositive: boolean | null;
   details: string | null;
+  // What went wrong, for a no to "Was this page helpful?"; null otherwise.
+  reason?: DocsFeedbackReason | null | undefined;
   page: string;
   version: string;
   // ISO date.
@@ -824,17 +1098,26 @@ export const ASK_AI_RATED_DOWN_LIST_SIZE: number = 25;
  * Ask AI's thumbs (#6828 stored them; nothing read them). The questions
  * rated down are listed only on a self-hosted server, whose admins already
  * hold that data; on OneUptime Cloud they are customers' questions about
- * their own projects, so the team sees only the counts (null).
+ * their own projects, so the team sees only the counts (null) - and, on
+ * every server, what the answers rated down drew on (Types/AI/AskAiRatings,
+ * #7365): the products whose data they read, the docs, or nothing, never
+ * a word of them.
  */
 export interface AskAiRatingsSummary {
   helpful: number;
   notHelpful: number;
   ratedDown: Array<AskAiRatedDownAnswer> | null;
+  ratedDownDrewOn?: Array<AskAiSourceCount> | undefined;
 }
 
 export interface ProductFeedbackAdminSummary {
   sinceDays: number;
+  // How long an answer is kept (PRODUCT_FEEDBACK_RETENTION_IN_DAYS, #7366).
+  retentionInDays?: number | undefined;
+  // Every kind but a docs page's: those are docsPages.
   topics: Array<ProductFeedbackTopicSummary>;
+  // "Was this page helpful?", by page, where the server keeps it (#7209).
+  docsPages?: Array<DocsPageFeedbackSummary> | undefined;
   askAi: AskAiRatingsSummary;
 }
 
@@ -850,7 +1133,8 @@ export interface ProductFeedbackSummaryRow {
 /*
  * The answers, by question: setups first (hardest first, by average
  * score), then the check-in, then explanations (least clear first), then
- * Give feedback.
+ * Give feedback. A docs page's answers are summed up by page instead
+ * (summarizeDocsPageFeedback), so they are left out here.
  */
 export const summarizeProductFeedback: (
   rows: ReadonlyArray<ProductFeedbackSummaryRow>,
@@ -863,6 +1147,10 @@ export const summarizeProductFeedback: (
   > = new Map();
 
   for (const row of rows) {
+    if (row.kind === ProductFeedbackKind.DocsPage) {
+      continue;
+    }
+
     const key: string = `${row.kind}:${row.topic}`;
     let summary:
       | (ProductFeedbackTopicSummary & {
@@ -984,6 +1272,7 @@ export const PRODUCT_FEEDBACK_KIND_TITLES: Readonly<
   [ProductFeedbackKind.General]: translationKey("Give feedback"),
   [ProductFeedbackKind.Explanation]: translationKey("Was this clear?"),
   [ProductFeedbackKind.CheckIn]: translationKey("First-week check-in"),
+  [ProductFeedbackKind.DocsPage]: translationKey("Was this page helpful?"),
 };
 
 export const getProductFeedbackTopicTitle: (data: {
@@ -992,6 +1281,11 @@ export const getProductFeedbackTopicTitle: (data: {
 }) => string = (data: { kind: ProductFeedbackKind; topic: string }): string => {
   if (data.kind === ProductFeedbackKind.SetupFlow) {
     return GUIDED_SETUP_TITLES[data.topic] || data.topic;
+  }
+
+  // A docs page by its address under /docs/: what the page links to.
+  if (data.kind === ProductFeedbackKind.DocsPage) {
+    return data.topic;
   }
 
   if (data.kind === ProductFeedbackKind.Explanation) {

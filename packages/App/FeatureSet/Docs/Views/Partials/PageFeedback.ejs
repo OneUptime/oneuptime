@@ -1,16 +1,27 @@
 <%
 /*
- * "Was this page helpful?" (issue #6822), at the foot of every page.
+ * "Was this page helpful?" (issues #6822, #7209), at the foot of every page.
  *
- * Yes or no; after a no, what went wrong. Where analytics is set up
- * (OneUptime Cloud: feedback.isSent, Utils/DocsFeedback.ts), the page's
- * script posts the answer to /docs/feedback, with the reader's consent, and
- * a no offers four reasons in one click. Anywhere else nothing is posted:
- * a no offers "Tell us on GitHub", with the page's name filled in, and the
- * reader decides whether to send it. The script shows the question only
- * once it runs, so a page without it shows nothing to click.
+ * Yes or no; after a no, what went wrong. What happens to the answer is the
+ * server's to say (feedback.mode, Utils/DocsFeedback.ts):
+ *
+ *   - send: product analytics is set up (OneUptime Cloud). The page's script
+ *     posts the answer to /docs/feedback, with the reader's consent, and a
+ *     no offers four reasons in one click.
+ *   - keep: a master admin keeps the answers on this server (Admin
+ *     Dashboard > Feedback). The script posts the answer to /docs/feedback,
+ *     a no offers the four reasons, and the line under the question says,
+ *     before anyone answers, that it goes to this server's admins and
+ *     nowhere else. The line goes with the question once it is answered,
+ *     so it is never read as being about the GitHub link a no offers.
+ *   - local: anywhere else nothing is posted: a no offers "Tell us on
+ *     GitHub", with the page's name filled in, and the reader decides
+ *     whether to send it.
+ *
+ * The script shows the question only once it runs, so a page without it
+ * shows nothing to click.
  */
-var feedbackMode = feedback && feedback.isSent ? 'send' : 'local';
+var feedbackMode = feedback && (feedback.mode === 'send' || feedback.mode === 'keep') ? feedback.mode : 'local';
 var feedbackReasons = [
     { key: 'unclear', label: t('ui.feedbackReasonUnclear') },
     { key: 'missing', label: t('ui.feedbackReasonMissing') },
@@ -38,10 +49,15 @@ var feedbackReasons = [
         </div>
     </div>
 
+    <% if (feedbackMode === 'keep') { %>
+    <%# Said with the question, before anyone answers: never under the GitHub link a no offers. %>
+    <p class="docs-feedback__where" data-feedback-step="ask" data-feedback-where><%- t('ui.feedbackKeptForAdmins') %></p>
+    <% } %>
+
     <p class="docs-feedback__thanks" data-feedback-step="thanks" role="status" hidden><%- t('ui.feedbackThanks') %></p>
 
     <div class="docs-feedback__no" data-feedback-step="no" hidden>
-        <% if (feedbackMode === 'send') { %>
+        <% if (feedbackMode === 'send' || feedbackMode === 'keep') { %>
         <p class="docs-feedback__question" role="status"><%- t('ui.feedbackWhatWentWrong') %></p>
         <div class="docs-feedback__reasons">
             <% feedbackReasons.forEach(function (reason) { %>

@@ -48,6 +48,8 @@ const ADMIN_LOCALES: string = path.resolve(
 
 const ADMIN_EMAIL: string = "ada@acme-commerce.example";
 const MAIL_SERVER: string = "smtp.acme-commerce.example";
+// What the mail server answers a test email it refuses (?answer=refused).
+const REFUSED_EMAIL: string = "535 5.7.8 Username and Password not accepted";
 
 // The admin's own choices on a fresh server, and the fix beside each.
 const CHOICES: Array<{ row: string; choice: string; fix: string }> = [
@@ -857,6 +859,75 @@ test.describe("the test sends' answers", () => {
       // A test push asks for no address: it goes to whoever pressed it.
       expect(await postsTo(page, "/server-test/push")).toEqual([{}]);
       await screenshot(page, `test-push-${expected.answer}`);
+      await expectEverythingModelled(page);
+    });
+  }
+});
+
+/*
+ * SETTINGS > EMAILS' EMAIL LOG (#6878): what the server keeps of the emails
+ * it sends that belong to no project, and of each it failed to send. A
+ * server that has sent none lists none; the test email the admin sends from
+ * the page is kept, sent - or failed, with the mail server's own words.
+ */
+test.describe("Settings > Emails' email log", () => {
+  for (const answer of ["accepted", "refused"]) {
+    const isAccepted: boolean = answer === "accepted";
+
+    test(`${answer}: nothing is listed until the test email, which is then listed as ${isAccepted ? "sent" : "failed, with why"}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `/admin/settings/smtp?scene=untested&answer=${answer}`);
+
+      const log: Locator = page.getByTestId("server-email-log");
+      const entries: Locator = log.getByTestId("server-email-log-entry");
+
+      await expect(log).toContainText("No emails yet.");
+      await expect(entries).toHaveCount(0);
+
+      // Send test email, to the admin's own address.
+      await page.getByTestId("server-test-email").click();
+      await submitDialog(page);
+
+      if (isAccepted) {
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+      } else {
+        await expect
+          .poll(async (): Promise<string> => {
+            return await dialogText(page);
+          })
+          .toContain(REFUSED_EMAIL);
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+      }
+
+      // The log is read again for its failed emails only.
+      await log.getByTestId("server-email-log-failed-only").click();
+
+      if (isAccepted) {
+        await expect(log).toContainText("No failed emails.");
+        await expect(entries).toHaveCount(0);
+        // And again for every one: the test email that went.
+        await log.getByTestId("server-email-log-failed-only").click();
+      }
+
+      await expect(entries).toHaveCount(1);
+      await expect(entries.getByTestId("pill-text")).toHaveText(
+        isAccepted ? "Sent" : "Failed",
+      );
+      await expect(entries).toContainText(ADMIN_EMAIL);
+      await expect(entries).toContainText(
+        "Test Email from OneUptime · No project",
+      );
+
+      if (isAccepted) {
+        await expect(entries).not.toContainText(REFUSED_EMAIL);
+      } else {
+        await expect(entries).toContainText(REFUSED_EMAIL);
+      }
+
       await expectEverythingModelled(page);
     });
   }

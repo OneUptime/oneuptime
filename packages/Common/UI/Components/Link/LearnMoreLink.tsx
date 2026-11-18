@@ -1,4 +1,8 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import {
+  DocsLinkSource,
+  recordDocsLinkOpened,
+} from "../../Utils/DocsLinkEvents";
 import { getDocsPageUrl } from "../../Utils/Glossary";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -14,6 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The page is written as the docs address it, "/docs/on-call/escalation-rules"
  * (an anchor may follow), so the docs suite DocsLinksResolve reads it in the
  * source and fails when the page or the heading goes away.
+ *
+ * Opening it sends docs/link_opened (Utils/DocsLinkEvents, #7207): which
+ * docs page a form sends people to, where product analytics is set up.
  */
 
 export interface ComponentProps {
@@ -42,12 +49,16 @@ const LearnMoreLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const href: string = getLearnMoreUrl(props.docsPath, translator.language);
 
   return (
     <a
-      href={getLearnMoreUrl(props.docsPath, translator.language)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => {
+        recordDocsLinkOpened({ href: href, source: DocsLinkSource.LearnMore });
+      }}
       data-testid={props.dataTestId || LEARN_MORE_LINK_TEST_ID}
       className={`${LEARN_MORE_LINK_CLASS_NAME} ${props.className || ""}`}
     >

@@ -84,7 +84,7 @@ Al aceptar entra en el proyecto al instante, con los permisos de su equipo y la 
 | --- | --- |
 | **Usuario** | Su nombre y su dirección de correo. |
 | **Equipos** | Cada equipo del proyecto del que forma parte, o al que está invitada. |
-| **Estado** | **Miembro** una vez que se unió, con el número de invitaciones a otros equipos que aún no aceptó. **Invitación enviada** hasta entonces. En un servidor autoalojado que aún no puede enviar correos electrónicos, **Invitado** en su lugar: la invitación se crea, pero no se envía ningún correo. |
+| **Estado** | **Miembro** una vez que se unió, con el número de invitaciones a otros equipos que aún no aceptó. **Invitación enviada** hasta entonces, o **Correo no enviado** cuando el servicio de correo rechazó su último correo de invitación. En un servidor autoalojado que aún no puede enviar correos electrónicos, **Invitado** en su lugar: la invitación se crea, pero no se envía ningún correo. |
 
 Filtre la lista por **Usuario**, **Estado** o **Equipo**. Haga clic en una fila para abrir la página de la persona:
 
@@ -152,6 +152,10 @@ La invitación no depende del correo. Pídale que se registre con la dirección 
 Para ver si salió, abra la pestaña **Correo electrónico** de los **Registros de notificación** del proyecto: la fila de cada invitación dice si se envió, y por qué no. En un servidor autoalojado, un administrador maestro también encuentra cada correo que el servidor no pudo enviar en su [registro de correos](/docs/emails/email-providers#ver-lo-que-envió-el-servidor).
 
 En un servidor autoalojado que aún no puede enviar correos electrónicos, registrarse tampoco puede enviarle un enlace nuevo por correo: en su lugar, le indica que pida su enlace de invitación. Cuando el administrador del servidor haya [configurado el correo](/docs/emails/smtp#abrir-el-formulario), registrarse funciona como se describe arriba. Hasta entonces, un administrador maestro puede enviarle un enlace nuevo, que funciona una vez, solo para esa dirección, durante 7 días: en **Usuarios**, abra el menú de la fila de la persona, **⋯**, y haga clic en **Obtener enlace de invitación**.
+:::
+
+:::details Una persona muestra Correo no enviado
+El servicio de correo rechazó su último correo de invitación, así que no le llegó nada. Señale **Correo no enviado**, o tóquelo, para ver el motivo, tal como lo dice la pestaña **Correo electrónico** de los **Registros de notificación** del proyecto. Compruebe la dirección a la que invitó y, cuando el correo funcione, quite a esa persona y vuelva a invitarla. En un servidor autoalojado, el administrador del servidor puede enviarle su enlace de invitación en su lugar: un administrador maestro abre el menú de la fila de la persona en **Usuarios**, **⋯**, y hace clic en **Obtener enlace de invitación**.
 :::
 
 :::details Invitar usuario dice que los usuarios se gestionan con SCIM Push Groups

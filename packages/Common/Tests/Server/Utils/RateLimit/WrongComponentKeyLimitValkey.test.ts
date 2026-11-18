@@ -104,11 +104,15 @@ function componentOf(index: number): string {
   return `${ID_RUN}-0000-4000-8000-${index.toString(16).padStart(12, "0")}`;
 }
 
-// The clock stands at the start of a window: the whole test counts in one.
+/*
+ * The clock stands a second into a window: the whole test counts in one,
+ * and a refusal says the window has 899 seconds left. The real clock is
+ * read once - read twice, a millisecond between the reads put the clock a
+ * millisecond earlier and the refusal said 900 (#9482, on a busy runner).
+ */
+const REAL_NOW: number = Date.now();
 const NOW: number =
-  Date.now() -
-  (Date.now() % (WRONG_COMPONENT_KEY_WINDOW_SECONDS * 1000)) +
-  1000;
+  REAL_NOW - (REAL_NOW % (WRONG_COMPONENT_KEY_WINDOW_SECONDS * 1000)) + 1000;
 
 function requestFrom(address: string): ExpressRequest {
   return {

@@ -84,7 +84,7 @@ Mit der Annahme ist die Person sofort im Projekt, mit den Berechtigungen ihres T
 | --- | --- |
 | **Benutzer** | Name und E-Mail-Adresse. |
 | **Teams** | Jedes Team des Projekts, in dem die Person ist oder zu dem sie eingeladen ist. |
-| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
+| **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin, oder **E-Mail nicht gesendet**, wenn der Mail-Dienst die letzte Einladungs-E-Mail abgelehnt hat. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
 
 Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie auf eine Zeile, um die Seite der Person zu öffnen:
 
@@ -152,6 +152,10 @@ Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der ei
 Ob sie hinausging, sehen Sie auf dem Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts: Die Zeile jeder Einladung sagt, ob sie gesendet wurde, und warum nicht. Auf einem selbst gehosteten Server findet ein Master-Admin außerdem jede E-Mail, die der Server nicht senden konnte, in dessen [E-Mail-Protokoll](/docs/emails/email-providers#sehen-was-der-server-gesendet-hat).
 
 Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin der Person einen neuen Link senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang: Öffnen Sie unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Einladungslink abrufen**.
+:::
+
+:::details Bei einer Person steht E-Mail nicht gesendet
+Der Mail-Dienst hat die letzte Einladungs-E-Mail abgelehnt, also hat die Person nichts erhalten. Zeigen Sie auf **E-Mail nicht gesendet** oder tippen Sie darauf, um den Grund zu sehen, so wie ihn der Tab **E-Mail** der **Benachrichtigungsprotokolle** des Projekts nennt. Prüfen Sie die eingeladene Adresse, entfernen Sie die Person dann, sobald E-Mail funktioniert, und laden Sie sie erneut ein. Auf einem selbst gehosteten Server kann der Admin des Servers ihr stattdessen ihren Einladungslink senden: Ein Master-Admin öffnet unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klickt auf **Einladungslink abrufen**.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

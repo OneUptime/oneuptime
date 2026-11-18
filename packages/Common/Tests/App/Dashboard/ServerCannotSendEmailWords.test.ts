@@ -91,6 +91,15 @@ const DASHBOARD_SENTENCES: Array<string> = [
   SERVER_EMAIL_COPY.notSignedUpPill,
   SERVER_EMAIL_COPY.invitationLinkMemberDescription,
   SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+  /*
+   * A pending person whose latest invitation email was not sent, on a
+   * server that sends email (#9511): the pill, why, and what to do.
+   */
+  SERVER_EMAIL_COPY.emailNotSentPill,
+  SERVER_EMAIL_COPY.emailNotSent,
+  SERVER_EMAIL_COPY.emailNotSentForAdmin,
+  SERVER_EMAIL_COPY.emailNotSentAskAdmin,
+  SERVER_EMAIL_COPY.emailNotSentCheckAddress,
 ];
 
 const BANNER_SENTENCES: Array<string> = Object.values(
@@ -274,18 +283,32 @@ describe("where the pages say them", () => {
     [["Pages", "Users", "View", "Teams.tsx"]],
     [["Pages", "Teams", "View", "Members.tsx"]],
   ])(
-    "%j says Invited, not Invitation Sent, when nothing was sent",
+    "%j draws a pending person's pill as one, with the server's answer",
     (file: Array<string>) => {
       const source: string = read(...file);
-      const pill: string = source.slice(
-        source.indexOf("SERVER_EMAIL_COPY.invitedPill") - 200,
-        source.indexOf("SERVER_EMAIL_COPY.invitedPill") + 200,
-      );
 
-      expect(pill).toContain("cannotSendEmail(serverEmail)");
-      expect(pill).toContain('"Invitation Sent"');
+      expect(source).toMatch(
+        /<PendingInvitationPill\s+serverEmail=\{serverEmail\}\s+notSent=\{invitationEmailsNotSent\.getNotSent\(item\)\}\s+\/>/,
+      );
+      // Not drawn by the page itself any more.
+      expect(source).not.toContain("SERVER_EMAIL_COPY.invitedPill");
     },
   );
+
+  test("the pending person's pill says Invited, not Invitation Sent, when nothing was sent", () => {
+    const source: string = read(
+      "Components",
+      "User",
+      "PendingInvitationPill.tsx",
+    );
+    const pill: string = source.slice(
+      source.indexOf("SERVER_EMAIL_COPY.invitedPill") - 200,
+      source.indexOf("SERVER_EMAIL_COPY.invitedPill") + 200,
+    );
+
+    expect(pill).toContain("cannotSendEmail(props.serverEmail)");
+    expect(source).toContain('text="Invitation Sent"');
+  });
 
   test("the invite dialogs hand a master admin the link once the invitation is made", () => {
     for (const file of [
@@ -310,14 +333,17 @@ describe("where the pages say them", () => {
   });
 
   test("the project's Email Logs read a server with no email in its owners' words", () => {
-    const source: string = read(
+    const table: string = read(
       "Components",
       "NotificationLogs",
       "EmailLogsTable.tsx",
     );
+    // Worded once, for the Email Logs and the Users list's Email Not Sent (#9511).
+    const reason: string = read("Utils", "EmailLogReason.ts");
 
-    expect(source).toContain("ServerSendingWords.isServerEmailNotSetUpMessage");
-    expect(source).toContain(
+    expect(table).toContain("getEmailLogReason(");
+    expect(reason).toContain("ServerSendingWords.isServerEmailNotSetUpMessage");
+    expect(reason).toContain(
       "translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE)",
     );
   });

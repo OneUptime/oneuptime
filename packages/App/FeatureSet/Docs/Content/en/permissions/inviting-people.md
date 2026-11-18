@@ -84,7 +84,7 @@ Accepting puts them in the project straight away, with their team's permissions 
 | --- | --- |
 | **User** | Their name and email address. |
 | **Teams** | Every team of the project they are in, or invited to. |
-| **Status** | **Member** once they have joined, with a count of any invitations to other teams they have not accepted yet. **Invitation Sent** until then. On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out. |
+| **Status** | **Member** once they have joined, with a count of any invitations to other teams they have not accepted yet. **Invitation Sent** until then, or **Email Not Sent** when the mail service refused their latest invitation email. On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out. |
 
 Filter the list by **User**, **Status** or **Team**. Click a row to open the person's page:
 
@@ -152,6 +152,10 @@ The invitation does not depend on the email. Ask them to sign up with the addres
 To see whether it went out, open the **Email** tab of the project's **Notification Logs**: each invitation's row says whether it was sent, and why not. On a self-hosted server, a master admin also finds every email the server failed to send in its [email log](/docs/emails/email-providers#see-what-the-server-sent).
 
 On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.
+:::
+
+:::details A person shows Email Not Sent
+The mail service refused their latest invitation email, so nothing reached them. Point at **Email Not Sent**, or tap it, to see why, as the **Email** tab of the project's **Notification Logs** says it. Check the address you invited, then, once email works, remove them and invite them again. On a self-hosted server, the server's admin can send them their invitation link instead: a master admin opens the person's row menu on **Users**, **⋯**, and clicks **Get Invitation Link**.
 :::
 
 :::details Invite User says users are managed by SCIM Push Groups

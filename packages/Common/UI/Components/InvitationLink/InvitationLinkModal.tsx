@@ -130,30 +130,41 @@ export type InvitationLinkTarget = ObjectID | InvitationLinkInvitee;
  * was accepted for them before they had an account (`isNotSignedUp`, from
  * useMembersNotSignedUp), and they still have to sign up with the link
  * (#8191).
+ *
+ * On a server that sends email, a pending row whose latest invitation email
+ * was not sent offers it too (`isEmailNotSent`, from
+ * useInvitationEmailsNotSent, #9511): the mail service refused it, and the
+ * person never heard. A page hands it over only for a master admin.
  */
 export const getInvitationLinkRowAction: <T extends TeamMember>(data: {
   isAvailable: boolean;
-  onOpen: (teamMemberId: ObjectID) => void;
+  onOpen: (teamMemberId: ObjectID, item: T) => void;
   isNotSignedUp?: ((item: T) => boolean) | undefined;
+  isEmailNotSent?: ((item: T) => boolean) | undefined;
 }) => ActionButtonSchema<T> = <T extends TeamMember>(data: {
   isAvailable: boolean;
-  onOpen: (teamMemberId: ObjectID) => void;
+  onOpen: (teamMemberId: ObjectID, item: T) => void;
   isNotSignedUp?: ((item: T) => boolean) | undefined;
+  isEmailNotSent?: ((item: T) => boolean) | undefined;
 }): ActionButtonSchema<T> => {
   return {
     title: INVITATION_LINK_COPY.getLink,
     buttonStyleType: ButtonStyleType.OUTLINE,
     icon: IconProp.Link,
     isVisible: (item: T): boolean => {
-      if (!data.isAvailable || !item.id) {
+      if (!item.id) {
         return false;
       }
 
-      return !item.hasAcceptedInvitation || Boolean(data.isNotSignedUp?.(item));
+      if (item.hasAcceptedInvitation) {
+        return data.isAvailable && Boolean(data.isNotSignedUp?.(item));
+      }
+
+      return data.isAvailable || Boolean(data.isEmailNotSent?.(item));
     },
     onClick: (item: T, onCompleteAction: VoidFunction): void => {
       if (item.id) {
-        data.onOpen(item.id);
+        data.onOpen(item.id, item);
       }
 
       onCompleteAction();
@@ -260,6 +271,12 @@ export interface ComponentProps {
    * that email was not sent.
    */
   invitee?: InvitationLinkInvitee | undefined;
+  /*
+   * The person's latest invitation email was not sent, on a server that
+   * sends email (#9511): the dialog says that one was not sent, not that
+   * the server cannot send email. Said for an invitee whatever this is.
+   */
+  isEmailNotSent?: boolean | undefined;
   onClose: () => void;
 }
 
@@ -269,7 +286,9 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [invitation, setInvitation] = useState<InvitationLink | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const isEmailNotSent: boolean = Boolean(props.invitee);
+  const isEmailNotSent: boolean = Boolean(
+    props.invitee || props.isEmailNotSent,
+  );
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -343,8 +362,12 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
           className="text-sm text-gray-600 text-pretty"
           data-testid="invitation-link-failed"
         >
+          {/*
+           * Read by a membership, the invitation is there; by the
+           * server's email log, the person may be invited no more.
+           */}
           {translator.translateText(
-            isEmailNotSent
+            props.invitee
               ? INVITATION_LINK_COPY.notSentFailed
               : INVITATION_LINK_COPY.failed,
           )}

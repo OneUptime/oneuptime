@@ -90,7 +90,7 @@
     </div>
 
     <% if (hasNav) { %>
-    <%- include('./Partials/SearchModal.ejs', { t: t }) %>
+    <%- include('./Partials/SearchModal.ejs', { t: t, searchReport: typeof searchReport !== 'undefined' && searchReport }) %>
     <% } %>
     <%- include('./Partials/Scripts.ejs', { nav: hasNav ? nav : [], t: t, lang: lang }) %>
 </body>

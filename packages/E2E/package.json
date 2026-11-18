@@ -45,6 +45,7 @@
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
     "test-give-feedback-ui": "playwright test --config playwright.give-feedback-ui.config.ts",
+    "test-feedback-questions-ui": "playwright test --config playwright.feedback-questions-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-network-traffic-names-ui": "playwright test --config playwright.network-traffic-names-ui.config.ts",

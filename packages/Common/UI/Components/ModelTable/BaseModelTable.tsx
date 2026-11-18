@@ -27,6 +27,7 @@ import Sort from "../../../Types/BaseDatabase/Sort";
 import Select from "../../../Types/BaseDatabase/Select";
 import { Logger } from "../../Utils/Logger";
 import Navigation from "../../Utils/Navigation";
+import { openDocumentationLink } from "../../Utils/DocsLinkEvents";
 import TableFilterUrlState from "../../Utils/TableFilterUrlState";
 import CreateFormAddress from "../../Utils/CreateFormAddress";
 import TableViewUrlState, {
@@ -3585,9 +3586,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonSize: ButtonSize.Small,
         className: "max-md:hidden md:flex",
         onClick: () => {
-          Navigation.navigate(props.documentationLink!, {
-            openInNewTab: true,
-          });
+          openDocumentationLink(props.documentationLink!);
         },
       });
     }
@@ -4690,9 +4689,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         : undefined,
       onDocumentationClick: props.documentationLink
         ? (): void => {
-            Navigation.navigate(props.documentationLink!, {
-              openInNewTab: true,
-            });
+            openDocumentationLink(props.documentationLink!);
           }
         : undefined,
       translate: tx,

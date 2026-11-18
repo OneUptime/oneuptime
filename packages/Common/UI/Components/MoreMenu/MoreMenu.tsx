@@ -6,6 +6,7 @@ import React, {
   useId,
   useImperativeHandle,
   useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -80,6 +81,17 @@ export interface ComponentProps {
    * 14rem every other menu has. Still kept inside the viewport on a phone.
    */
   isMenuWide?: boolean | undefined;
+  /*
+   * Open as it is first drawn, at its trigger: a menu that was open when
+   * what holds it was drawn again - a table's row, as the table changes how
+   * it fits (RowActionsStore) - opens again where its trigger is now.
+   */
+  isInitiallyOpen?: boolean | undefined;
+  /*
+   * Told when the menu opens or closes: not as it is first drawn, nor as it
+   * is taken away, which close nothing for what holds it (RowActions).
+   */
+  onOpenChange?: ((isOpen: boolean) => void) | undefined;
 }
 
 /*
@@ -192,7 +204,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
     const isButtonTrigger: boolean =
       isNativeButtonTrigger || isSharedButtonTrigger;
     const { ref, isComponentVisible, setIsComponentVisible } =
-      useComponentOutsideClick(false);
+      useComponentOutsideClick(Boolean(props.isInitiallyOpen));
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
     const isMenuPortaled: boolean = Boolean(props.isMenuPortaled);
     const [portaledMenuPosition, setPortaledMenuPosition] =
@@ -259,14 +271,20 @@ const MoreMenu: React.ForwardRefExoticComponent<
       };
     });
 
-    const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
+    const [isDropdownVisible, setDropdownVisible] = useState<boolean>(
+      Boolean(props.isInitiallyOpen),
+    );
 
     /*
      * The menu is mounted in its closed state (faded, slightly shrunk towards
      * origin-top-right) and flipped open one frame later so the browser has
-     * something to transition from — the same pattern Modal uses.
+     * something to transition from — the same pattern Modal uses. A menu
+     * open as it is first drawn was open already: it is where it was, with
+     * nothing to grow from.
      */
-    const [hasMenuEntered, setHasMenuEntered] = useState<boolean>(false);
+    const [hasMenuEntered, setHasMenuEntered] = useState<boolean>(
+      Boolean(props.isInitiallyOpen),
+    );
 
     useEffect(() => {
       setDropdownVisible(isComponentVisible);
@@ -275,6 +293,26 @@ const MoreMenu: React.ForwardRefExoticComponent<
       } else {
         setFocusedIndex(-1);
       }
+    }, [isComponentVisible]);
+
+    /*
+     * Whether the menu is open, as its holder was last told
+     * (onOpenChange): a change, never how it was first drawn.
+     */
+    const onOpenChangeRef: React.MutableRefObject<
+      ((isOpen: boolean) => void) | undefined
+    > = useRef<((isOpen: boolean) => void) | undefined>(props.onOpenChange);
+    onOpenChangeRef.current = props.onOpenChange;
+    const toldIsOpenRef: React.MutableRefObject<boolean> =
+      useRef<boolean>(isComponentVisible);
+
+    useEffect(() => {
+      if (toldIsOpenRef.current === isComponentVisible) {
+        return;
+      }
+
+      toldIsOpenRef.current = isComponentVisible;
+      onOpenChangeRef.current?.(isComponentVisible);
     }, [isComponentVisible]);
 
     useEffect(() => {

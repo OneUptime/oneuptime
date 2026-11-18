@@ -10,9 +10,8 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
-import RowActions, {
-  getRowDialogTarget,
-} from "../../../UI/Components/ActionButton/RowActions";
+import RowActions from "../../../UI/Components/ActionButton/RowActions";
+import { getRowDialogTarget } from "../../../UI/Components/ActionButton/RowActionDialogs";
 import ActionButtonSchema, {
   ActionButtonPlacement,
   RowActionConfirmation,
