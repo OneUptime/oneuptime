@@ -290,7 +290,13 @@ describe("the link is written where every path passes", () => {
   test("AIRunService carries what each turn's request names, and adds a reply's to its task, before the turn is written", () => {
     expect(
       missingFrom("packages/Common/Server/Services/AIRunService.ts", [
-        "protected override async onBeforeCreate( createBy: CreateBy<Model>, ): Promise<OnCreate<Model>> { const projectId: ObjectID | undefined = createBy.data.projectId || createBy.props.tenantId || undefined; await this.carryWhatTheTurnCarries(createBy.data);",
+        "protected override async onBeforeCreate( createBy: CreateBy<Model>, ): Promise<OnCreate<Model>> { const projectId: ObjectID | undefined = createBy.data.projectId || createBy.props.tenantId || undefined;",
+        /*
+         * In that same method, before the turn is written: a turn about a
+         * product switched off on the server is refused first, then what it
+         * carries is written on it.
+         */
+        "await this.assertProductsAreOn(createBy.data); await this.carryWhatTheTurnCarries(createBy.data); if ( createBy.data.runType === AIRunType.CodeFix &&",
         "CarriedRecords.ofTaskContext(run.taskContext),",
         "CarriedRecords.writeTo(run, carried);",
         "await this.addCarriedRecords({ runId: run.codeTaskId, records: CarriedRecords.without(carried, CarriedRecords.ofRow(task)), });",
