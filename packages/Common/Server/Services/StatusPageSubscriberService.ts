@@ -2286,18 +2286,21 @@ export class Service extends ProjectReferencesService<Model> {
       : null;
 
     if (projectId) {
+      // Never failing the cancellation, which is committed. See the helper.
       if (this.getModel().enableWorkflowOn?.update) {
-        await this.onTriggerWorkflow(
-          data.subscriberId,
-          projectId,
-          "on-update",
-          {
-            updatedFields: {
-              isUnsubscribed: true,
-              unsubscribedAt: unsubscribedAt.toISOString(),
-            },
+        await this.triggerWorkflowAfterWrite({
+          id: data.subscriberId,
+          projectId: projectId,
+          triggerType: "on-update",
+          getMiscData: (): JSONObject => {
+            return {
+              updatedFields: {
+                isUnsubscribed: true,
+                unsubscribedAt: unsubscribedAt.toISOString(),
+              },
+            };
           },
-        );
+        });
       }
 
       await this.onTriggerRealtime(
