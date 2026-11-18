@@ -63,8 +63,13 @@ function probe(data: {
     );
   }
 
-  model.checksLateSince = data.lateSince || undefined;
-  model.checksLastLateAt = data.lastLateAt || undefined;
+  if (data.lateSince) {
+    model.checksLateSince = data.lateSince;
+  }
+
+  if (data.lastLateAt) {
+    model.checksLastLateAt = data.lastLateAt;
+  }
 
   return model;
 }
