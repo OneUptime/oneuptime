@@ -4226,5 +4226,10 @@
   "Text This Number": "Отправлять SMS на этот номер",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "SMS отправляется на этот номер через собственные настройки SMS этого сервера. Оставьте поле пустым, чтобы не отправлять SMS.",
   "Push to Master Admins' Devices": "Push на устройства главных администраторов",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Push-уведомление приходит на каждое устройство, на котором главный администратор вошёл в приложение OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Push-уведомление приходит на каждое устройство, на котором главный администратор вошёл в приложение OneUptime.",
+  "They can still join: send them their invitation link yourself.": "Этот человек всё ещё может присоединиться: отправьте ему ссылку-приглашение сами.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Письмо с приглашением на {{email}} не отправлено. Скопируйте эту ссылку и отправьте её сами. Она работает один раз, только для этого адреса, в течение 7 дней.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "Письмо с приглашением на {{email}} не отправлено. У этого человека уже есть учётная запись: отправьте ему эту ссылку для входа, и там он примет приглашение.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "Письмо с приглашением на {{email}} не отправлено. У этого человека уже есть учётная запись, и теперь он участник: отправьте ему эту ссылку для входа.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Не удалось прочитать ссылку-приглашение. Возможно, этот человек больше не приглашён в этот проект: пригласите его снова на странице «Пользователи» проекта."
 }

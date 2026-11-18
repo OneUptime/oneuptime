@@ -21,12 +21,19 @@ import path from "path";
 import React from "react";
 import { getJestSpyOn } from "../../Spy";
 import ServerEmailLogCard, {
+  INVITATION_TEMPLATE_NAME,
   SERVER_EMAIL_LOG_CARD_TEST_ID,
   SERVER_EMAIL_LOG_COPY,
   SERVER_EMAIL_LOG_ENTRY_TEST_ID,
   SERVER_EMAIL_LOG_FAILED_ONLY_TEST_ID,
+  SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID,
   SERVER_EMAIL_LOG_SHOW_MORE_TEST_ID,
+  getUnsentInvitation,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Email/ServerEmailLogCard";
+import {
+  INVITATION_LINK_COPY,
+  INVITATION_LINK_ROUTE,
+} from "../../../UI/Components/InvitationLink/InvitationLinkModal";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -398,6 +405,7 @@ describe("in the reader's language", () => {
     SERVER_EMAIL_LOG_COPY.noFailedEmails,
     SERVER_EMAIL_LOG_COPY.showMore,
     SERVER_EMAIL_LOG_COPY.couldNotLoad,
+    SERVER_EMAIL_LOG_COPY.invitationStillJoins,
   ];
 
   test("English holds every word, and its one-day form", () => {
@@ -450,5 +458,171 @@ describe("in the reader's language", () => {
     expect(card).toHaveTextContent(german[SERVER_EMAIL_LOG_COPY.failed]!);
     expect(card).toHaveTextContent(german[SERVER_EMAIL_LOG_COPY.noProject]!);
     expect(card).toHaveTextContent(german[SERVER_EMAIL_LOG_COPY.notSetUp]!);
+  });
+});
+
+/*
+ * AN INVITATION EMAIL THE SERVER FAILED TO SEND (#7169).
+ *
+ * The person invited never heard of it, so its row says they can still
+ * join, and offers Get Invitation Link: the dialog reads the link by the
+ * project and the address the email went to (POST /team-member/
+ * invitation-link), and says that this email was not sent - it may have
+ * failed on a server that sends others.
+ */
+describe("an invitation email that was not sent", () => {
+  const PROJECT_ID: string = "76100000-0000-4000-8000-000000000001";
+  const LINK: string =
+    "https://oneuptime.example.test/accounts/register?email=grace%40walk.example&token=76100000-0000-4000-8000-0000000000ff";
+
+  function failedInvitation(
+    overrides: Partial<ServerEmailLogEntry> = {},
+  ): ServerEmailLogEntry {
+    return entry("grace", {
+      toEmail: "grace@walk.example",
+      subject: null,
+      templateName: INVITATION_TEMPLATE_NAME,
+      status: ServerEmailLogStatus.Failed,
+      statusMessage: "535 Authentication failed",
+      projectId: PROJECT_ID,
+      projectName: "Walk Co",
+      ...overrides,
+    });
+  }
+
+  let linkAsks: Array<JSONObject> = [];
+
+  beforeEach(() => {
+    linkAsks = [];
+
+    // The log's pages as before, and the invitation link's own answer.
+    getJestSpyOn(API, "fetch").mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        const request: { method: HTTPMethod; url: URL; data?: JSONObject } =
+          options as { method: HTTPMethod; url: URL; data?: JSONObject };
+
+        if (String(request.url).endsWith(INVITATION_LINK_ROUTE)) {
+          linkAsks.push(request.data || {});
+
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              link: LINK,
+              isRegistered: false,
+              isAccepted: false,
+              email: "grace@walk.example",
+            },
+            {},
+          );
+        }
+
+        asked.push({ method: request.method, url: String(request.url) });
+
+        const next: ServerEmailLogAnswer | Error | undefined = pages.shift();
+
+        if (next instanceof Error || next === undefined) {
+          return new HTTPErrorResponse(500, { message: "Not now." }, {});
+        }
+
+        return new HTTPResponse<JSONObject>(
+          200,
+          next as unknown as JSONObject,
+          {},
+        );
+      },
+    );
+  });
+
+  test("names the invitation's template as the log does", () => {
+    expect(INVITATION_TEMPLATE_NAME).toBe("InviteMember");
+    expect(getUnsentInvitation(failedInvitation())).toEqual({
+      projectId: PROJECT_ID,
+      email: "grace@walk.example",
+    });
+  });
+
+  test("says they can still join, and offers their invitation link", async () => {
+    pages = [page([failedInvitation()])];
+
+    await renderIn();
+
+    expect(rows()[0]).toHaveTextContent(
+      "They can still join: send them their invitation link yourself.",
+    );
+    expect(
+      screen.getByTestId(SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID),
+    ).toHaveTextContent("Get Invitation Link");
+  });
+
+  test("reads the link by the project and the address, and says this email was not sent", async () => {
+    pages = [page([failedInvitation()])];
+
+    await renderIn();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID),
+      );
+    });
+    await flush();
+
+    expect(linkAsks).toEqual([
+      { projectId: PROJECT_ID, email: "grace@walk.example" },
+    ]);
+    expect(
+      await screen.findByTestId("invitation-link-value"),
+    ).toHaveTextContent(LINK);
+    expect(
+      screen.getByText(
+        "The invitation email to grace@walk.example was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test.each([
+    ["an invitation that was sent", { status: ServerEmailLogStatus.Sent }],
+    [
+      "a failed email of another kind",
+      { templateName: "ForgotPassword", projectId: null, projectName: null },
+    ],
+    [
+      "a failed invitation that names no project",
+      { projectId: null, projectName: null },
+    ],
+  ] as Array<[string, Partial<ServerEmailLogEntry>]>)(
+    "%s offers no link",
+    async (_case: string, overrides: Partial<ServerEmailLogEntry>) => {
+      pages = [page([failedInvitation(overrides)])];
+
+      await renderIn();
+
+      expect(
+        screen.queryByTestId(SERVER_EMAIL_LOG_INVITATION_LINK_TEST_ID),
+      ).toBeNull();
+      expect(getUnsentInvitation(failedInvitation(overrides))).toBeNull();
+    },
+  );
+
+  test.each(
+    ADMIN_DASHBOARD_LANGUAGES.map((code: string) => {
+      return [code];
+    }),
+  )("%s words the line and the dialog's words for it", (code: string) => {
+    const locale: Locale = readLocale(code);
+
+    for (const word of [
+      SERVER_EMAIL_LOG_COPY.invitationStillJoins,
+      INVITATION_LINK_COPY.notSentDescription,
+      INVITATION_LINK_COPY.notSentRegisteredDescription,
+      INVITATION_LINK_COPY.notSentMemberDescription,
+      INVITATION_LINK_COPY.notSentFailed,
+    ]) {
+      expect(locale[word]).toBeTruthy();
+      expect(locale[word]).not.toBe(word);
+
+      if (word.includes("{{email}}")) {
+        expect(locale[word]).toContain("{{email}}");
+      }
+    }
   });
 });

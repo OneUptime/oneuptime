@@ -4226,5 +4226,10 @@
   "Text This Number": "Text This Number",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.",
   "Push to Master Admins' Devices": "Push to Master Admins' Devices",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "A push notification goes to every device a master admin signed in to the OneUptime app on.",
+  "They can still join: send them their invitation link yourself.": "They can still join: send them their invitation link yourself.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page."
 }

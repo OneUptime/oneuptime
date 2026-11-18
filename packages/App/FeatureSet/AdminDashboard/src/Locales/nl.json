@@ -4226,5 +4226,10 @@
   "Text This Number": "Sms naar dit nummer",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Er gaat een sms naar dit nummer via de sms-instellingen van deze server. Laat het leeg om er geen te sturen.",
   "Push to Master Admins' Devices": "Push naar de apparaten van hoofdbeheerders",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Er gaat een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld.",
+  "They can still join: send them their invitation link yourself.": "Ze kunnen nog steeds lid worden: stuur ze zelf hun uitnodigingslink.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "De uitnodigingsmail aan {{email}} is niet verstuurd. Kopieer deze link en stuur hem zelf door. Hij werkt één keer, alleen voor dit adres, 7 dagen lang.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "De uitnodigingsmail aan {{email}} is niet verstuurd. Ze hebben al een account: stuur ze deze link om zich aan te melden, daar accepteren ze de uitnodiging.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "De uitnodigingsmail aan {{email}} is niet verstuurd. Ze hebben al een account en zijn nu lid: stuur ze deze link om zich aan te melden.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "De uitnodigingslink kon niet worden gelezen. Misschien zijn ze niet meer uitgenodigd voor dit project: nodig ze opnieuw uit via de pagina Gebruikers ervan."
 }

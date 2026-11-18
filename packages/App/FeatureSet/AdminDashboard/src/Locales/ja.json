@@ -4226,5 +4226,10 @@
   "Text This Number": "この番号に SMS を送る",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "このサーバー自身の SMS 設定を使って、この番号に SMS を送ります。送らない場合は空のままにしてください。",
   "Push to Master Admins' Devices": "マスター管理者のデバイスにプッシュ",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "マスター管理者が OneUptime アプリにサインインしているすべてのデバイスにプッシュ通知を送ります。"
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "マスター管理者が OneUptime アプリにサインインしているすべてのデバイスにプッシュ通知を送ります。",
+  "They can still join: send them their invitation link yourself.": "招待リンクをご自身で送れば、まだ参加できます。",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "{{email}} への招待メールは送信されませんでした。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちで、メンバーになっています。このリンクを送ってサインインしてもらってください。",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "招待リンクを読み取れませんでした。このプロジェクトへの招待はもうないのかもしれません。プロジェクトの「ユーザー」ページから再度招待してください。"
 }

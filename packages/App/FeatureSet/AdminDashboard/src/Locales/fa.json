@@ -4226,5 +4226,10 @@
   "Text This Number": "پیامک به این شماره",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "پیامکی از راه تنظیمات پیامک خود این سرور به این شماره فرستاده می‌شود. برای نفرستادن، خالی بگذارید.",
   "Push to Master Admins' Devices": "پوش به دستگاه‌های مدیران ارشد",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "یک اعلان پوش به هر دستگاهی فرستاده می‌شود که مدیر ارشدی در آن وارد اپ OneUptime شده است."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "یک اعلان پوش به هر دستگاهی فرستاده می‌شود که مدیر ارشدی در آن وارد اپ OneUptime شده است.",
+  "They can still join: send them their invitation link yourself.": "او همچنان می‌تواند بپیوندد: پیوند دعوتش را خودتان برایش بفرستید.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "ایمیل دعوت به {{email}} فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "ایمیل دعوت به {{email}} فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "ایمیل دعوت به {{email}} فرستاده نشد. آن‌ها از قبل حساب دارند و اکنون عضو هستند: این پیوند را برای ورود برایشان بفرستید.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "پیوند دعوت او خوانده نشد. شاید دیگر به این پروژه دعوت نشده باشد: از صفحهٔ کاربران پروژه دوباره دعوتش کنید."
 }

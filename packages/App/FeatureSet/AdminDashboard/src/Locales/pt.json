@@ -4226,5 +4226,10 @@
   "Text This Number": "Enviar SMS para este número",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Um SMS é enviado para este número pelas configurações de SMS deste servidor. Deixe em branco para não enviar nenhum.",
   "Push to Master Admins' Devices": "Push para os dispositivos dos administradores principais",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Uma notificação push vai para cada dispositivo em que um administrador principal entrou no app do OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Uma notificação push vai para cada dispositivo em que um administrador principal entrou no app do OneUptime.",
+  "They can still join: send them their invitation link yourself.": "A pessoa ainda pode entrar: envie você mesmo o link de convite dela.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "O e-mail de convite para {{email}} não foi enviado. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "O e-mail de convite para {{email}} não foi enviado. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "O e-mail de convite para {{email}} não foi enviado. A pessoa já tem uma conta e agora é membro: envie este link para ela entrar.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Não foi possível ler o link de convite. Talvez a pessoa não esteja mais convidada para este projeto: convide-a de novo pela página Usuários dele."
 }

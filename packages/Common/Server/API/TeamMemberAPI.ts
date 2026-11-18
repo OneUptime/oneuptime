@@ -170,7 +170,9 @@ export default class TeamMemberAPI extends BaseAPI<
      * carries, for a master admin to send the person themselves: on a
      * server that cannot send email, the invite dialogs offer it once the
      * invitation is created (InvitationLink). Master admins only: the link
-     * claims the account at that address.
+     * claims the account at that address. Named by the membership
+     * (teamMemberId), or - from a failed invitation in the server's email
+     * log (#7169) - by the project and the address it went to.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/invitation-link`,
@@ -180,6 +182,41 @@ export default class TeamMemberAPI extends BaseAPI<
           const requested: unknown = req.body?.["teamMemberId"];
           const teamMemberId: string =
             typeof requested === "string" ? requested.trim() : "";
+
+          /*
+           * Or the project and the address it went to: what the server's
+           * email log knows of an invitation email it failed to send
+           * (#7169), whose row offers the link.
+           */
+          const requestedProjectId: unknown = req.body?.["projectId"];
+          const requestedEmail: unknown = req.body?.["email"];
+          const projectId: string =
+            typeof requestedProjectId === "string"
+              ? requestedProjectId.trim()
+              : "";
+          const email: string =
+            typeof requestedEmail === "string" ? requestedEmail.trim() : "";
+
+          if (
+            !teamMemberId &&
+            projectId &&
+            ObjectID.isValidUUID(projectId) &&
+            email &&
+            Email.isValid(email)
+          ) {
+            const answer: InvitationLinkAnswer =
+              await InvitationLink.getForProjectInvitee({
+                projectId: new ObjectID(projectId),
+                email: new Email(email),
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              link: answer.link,
+              isRegistered: answer.isRegistered,
+              isAccepted: answer.isAccepted,
+              email: answer.email,
+            });
+          }
 
           if (!teamMemberId || !ObjectID.isValidUUID(teamMemberId)) {
             return Response.sendErrorResponse(

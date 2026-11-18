@@ -4226,5 +4226,10 @@
   "Text This Number": "Enviar SMS a este número",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Se envía un SMS a este número mediante la configuración de SMS de este servidor. Déjalo vacío para no enviar ninguno.",
   "Push to Master Admins' Devices": "Push a los dispositivos de los administradores maestros",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Se envía una notificación push a cada dispositivo en el que un administrador maestro inició sesión en la app de OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Se envía una notificación push a cada dispositivo en el que un administrador maestro inició sesión en la app de OneUptime.",
+  "They can still join: send them their invitation link yourself.": "Aún puede unirse: envíale tú su enlace de invitación.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "El correo de invitación a {{email}} no se envió. Copia este enlace y envíaselo tú. Funciona una sola vez, solo para esta dirección, durante 7 días.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta: envíale este enlace para iniciar sesión y desde ahí aceptará la invitación.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta y ahora es miembro: envíale este enlace para iniciar sesión.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "No se pudo leer el enlace de invitación. Quizá ya no esté invitado a este proyecto: vuelve a invitarlo desde su página Usuarios."
 }
