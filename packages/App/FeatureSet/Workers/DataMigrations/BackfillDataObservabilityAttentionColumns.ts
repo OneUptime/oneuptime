@@ -30,10 +30,13 @@ export const PAGE_SIZE: number = 500;
 // Tries one page gets, so a lock timeout against a collection is not the end.
 export const PAGE_ATTEMPTS: number = 3;
 
-type PageReader = (data: {
+// Where a page starts, and how many rows it reads.
+interface PageArgs {
   afterId?: string | undefined;
   limit: number;
-}) => Promise<AttentionBackfillPage>;
+}
+
+type PageReader = (data: PageArgs) => Promise<AttentionBackfillPage>;
 
 export default class BackfillDataObservabilityAttentionColumns extends DataMigrationBase {
   public constructor() {
@@ -41,16 +44,13 @@ export default class BackfillDataObservabilityAttentionColumns extends DataMigra
   }
 
   public override async migrate(): Promise<void> {
-    await this.walk("tables", (data: { afterId?: string; limit: number }) => {
+    await this.walk("tables", (data: PageArgs) => {
       return DataObservabilityAttentionBackfill.backfillAssetPage(data);
     });
-    await this.walk(
-      "pipelines",
-      (data: { afterId?: string; limit: number }) => {
-        return DataObservabilityAttentionBackfill.backfillPipelinePage(data);
-      },
-    );
-    await this.walk("checks", (data: { afterId?: string; limit: number }) => {
+    await this.walk("pipelines", (data: PageArgs) => {
+      return DataObservabilityAttentionBackfill.backfillPipelinePage(data);
+    });
+    await this.walk("checks", (data: PageArgs) => {
       return DataObservabilityAttentionBackfill.backfillCheckPage(data);
     });
   }
