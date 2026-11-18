@@ -1233,6 +1233,25 @@ describe("Was this clear? under How OneUptime works", () => {
     });
   });
 
+  test("its thanks names nobody as us on a self-hosted server, and the OneUptime team on Cloud (#7462)", async () => {
+    openMap();
+    fireEvent.click(screen.getByTestId(WAS_THIS_CLEAR_YES_TEST_ID));
+
+    expect(screen.getByTestId(WAS_THIS_CLEAR_THANKS_TEST_ID)).toHaveTextContent(
+      "Thanks for your answer.",
+    );
+    cleanup();
+    forgetAnsweredExplanations();
+
+    billingEnabled = true;
+    openMap();
+    fireEvent.click(screen.getByTestId(WAS_THIS_CLEAR_YES_TEST_ID));
+
+    expect(screen.getByTestId(WAS_THIS_CLEAR_THANKS_TEST_ID)).toHaveTextContent(
+      "Thanks for telling us.",
+    );
+  });
+
   test("answered once, it says thanks the next time the map opens, rather than asking again", async () => {
     openMap();
     fireEvent.click(screen.getByTestId(WAS_THIS_CLEAR_YES_TEST_ID));
