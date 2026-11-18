@@ -71,6 +71,7 @@ import NotificationDeliveryMetrics, {
   NotificationProviderConfig,
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
+import ServerEmailLogRecorder from "Common/Server/Utils/ServerSending/ServerEmailLogRecorder";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import EmailSendFailure from "Common/Types/Email/EmailSendFailure";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
@@ -1634,6 +1635,34 @@ export default class MailService {
      */
     let sentFrom: string | undefined = undefined;
 
+    /*
+     * The server's own email log (#6878): every email through the server's
+     * own settings that belongs to no project, and every one of a project's
+     * those settings failed to send - who to, its subject or template, and
+     * how it went. Never the message (ServerEmailLogRecorder). The subject
+     * is the one sent, once it is rendered.
+     */
+    const projectIdForServerEmailLog: ObjectID | undefined = options?.projectId;
+    let subjectForServerEmailLog: string = mail.subject;
+
+    const recordInServerEmailLog: (
+      isSent: boolean,
+      statusMessage: string,
+    ) => Promise<void> = async (
+      isSent: boolean,
+      statusMessage: string,
+    ): Promise<void> => {
+      await ServerEmailLogRecorder.record({
+        isServerSettings: providerConfig === NotificationProviderConfig.Global,
+        toEmail: mail.toEmail,
+        subject: subjectForServerEmailLog,
+        templateType: mail.templateType,
+        projectId: projectIdForServerEmailLog,
+        isSent: isSent,
+        statusMessage: statusMessage,
+      });
+    };
+
     if (options && options.projectId) {
       emailLog = new EmailLog();
       emailLog.projectId = options.projectId;
@@ -1769,6 +1798,7 @@ export default class MailService {
           )
         : attached.html;
       mail.subject = rendered.subject;
+      subjectForServerEmailLog = rendered.subject;
 
       if (
         (!options || !options.emailServer) &&
@@ -1834,6 +1864,11 @@ export default class MailService {
         await ServerSendingOutcomes.recordSucceeded(
           ServerSendingChannel.Email,
           mail.toEmail.toString(),
+        );
+
+        await recordInServerEmailLog(
+          true,
+          this.getSentStatusMessage(imagesRefused),
         );
 
         await this.recordSent({
@@ -1944,6 +1979,11 @@ export default class MailService {
         );
       }
 
+      await recordInServerEmailLog(
+        true,
+        this.getSentStatusMessage(imagesRefused),
+      );
+
       await this.recordSent({
         emailLog: emailLog,
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
@@ -2013,6 +2053,8 @@ export default class MailService {
         });
       }
 
+      await recordInServerEmailLog(false, statusMessage);
+
       if (emailLog) {
         emailLog.status = MailStatus.Error;
         emailLog.statusMessage = statusMessage;
@@ -2029,6 +2071,13 @@ export default class MailService {
     }
   }
 
+  // What an email that went says of itself, with or without its images.
+  private static getSentStatusMessage(imagesRefused: Error | null): string {
+    return imagesRefused
+      ? getSentWithoutImagesStatusMessage(imagesRefused.message)
+      : EMAIL_SENT_STATUS_MESSAGE;
+  }
+
   /*
    * An email that went: its Email Log row and its on-call timeline entry say
    * so - and, when it went without its images, that it did and why.
@@ -2038,9 +2087,7 @@ export default class MailService {
     userOnCallLogTimelineId: ObjectID | undefined;
     imagesRefused: Error | null;
   }): Promise<void> {
-    const statusMessage: string = data.imagesRefused
-      ? getSentWithoutImagesStatusMessage(data.imagesRefused.message)
-      : EMAIL_SENT_STATUS_MESSAGE;
+    const statusMessage: string = this.getSentStatusMessage(data.imagesRefused);
 
     if (data.emailLog) {
       data.emailLog.status = MailStatus.Success;

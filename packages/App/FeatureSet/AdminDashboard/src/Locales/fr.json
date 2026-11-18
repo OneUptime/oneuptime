@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Cette configuration Twilio n'a aucun numéro depuis lequel passer des appels.",
   "Region (an AWS Region code, such as us-east-1)": "Région (un code de région AWS, comme us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domaine (le domaine d'envoi, comme mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "En échec : aucune notification push n'est partie depuis {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "En échec : aucune notification push n'est partie depuis {{time}}.",
+  "Email Log": "Journal des e-mails",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "Les e-mails envoyés par ce serveur qui n'appartiennent à aucun projet, comme les réinitialisations de mot de passe et les invitations, et chaque e-mail qu'il n'a pas pu envoyer. Chacun est conservé {{count}} jours, sans le message lui-même.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "Les e-mails envoyés par ce serveur qui n'appartiennent à aucun projet, comme les réinitialisations de mot de passe et les invitations, et chaque e-mail qu'il n'a pas pu envoyer. Chacun est conservé {{count}} jour, sans le message lui-même.",
+  "Failed emails only": "Uniquement les e-mails en échec",
+  "Sent": "Envoyé",
+  "No project": "Aucun projet",
+  "A deleted project": "Un projet supprimé",
+  "Template: {{name}}": "Modèle : {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Non envoyé, car l'e-mail n'est pas configuré dans Paramètres > E-mails.",
+  "No emails yet.": "Aucun e-mail pour l'instant.",
+  "No failed emails.": "Aucun e-mail en échec.",
+  "The email log could not be loaded.": "Le journal des e-mails n'a pas pu être chargé.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Aucun e-mail n'est configuré sur ce serveur : cet e-mail n'a donc pas été envoyé. Demandez à l'administrateur de votre serveur de configurer l'e-mail."
 }

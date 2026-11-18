@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "이 Twilio 구성에는 전화를 걸 번호가 없습니다.",
   "Region (an AWS Region code, such as us-east-1)": "리전 (us-east-1 같은 AWS 리전 코드)",
   "Domain (the sending domain, such as mg.example.com)": "도메인 (mg.example.com 같은 발신 도메인)",
-  "Failing: push notifications have not gone out since {{time}}.": "실패: {{time}} 이후로 푸시 알림이 나가지 않았습니다."
+  "Failing: push notifications have not gone out since {{time}}.": "실패: {{time}} 이후로 푸시 알림이 나가지 않았습니다.",
+  "Email Log": "이메일 로그",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "이 서버가 보낸 메일 중 어떤 프로젝트에도 속하지 않는 메일(비밀번호 재설정, 초대 등)과 보내지 못한 모든 메일입니다. 각 메일은 메시지 본문 없이 {{count}}일 동안 보관됩니다.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "이 서버가 보낸 메일 중 어떤 프로젝트에도 속하지 않는 메일(비밀번호 재설정, 초대 등)과 보내지 못한 모든 메일입니다. 각 메일은 메시지 본문 없이 {{count}}일 동안 보관됩니다.",
+  "Failed emails only": "실패한 메일만",
+  "Sent": "전송됨",
+  "No project": "프로젝트 없음",
+  "A deleted project": "삭제된 프로젝트",
+  "Template: {{name}}": "템플릿: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "설정 > 이메일에서 이메일이 설정되지 않아 보내지 않았습니다.",
+  "No emails yet.": "아직 메일이 없습니다.",
+  "No failed emails.": "실패한 메일이 없습니다.",
+  "The email log could not be loaded.": "이메일 로그를 불러올 수 없습니다.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "이 서버에는 이메일이 설정되지 않아 이 이메일을 보내지 못했습니다. 서버 관리자에게 이메일 설정을 요청하세요."
 }

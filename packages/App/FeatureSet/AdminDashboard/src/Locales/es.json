@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Esta configuración de Twilio no tiene ningún número desde el que hacer llamadas.",
   "Region (an AWS Region code, such as us-east-1)": "Región (un código de región de AWS, como us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Dominio (el dominio de envío, como mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Con fallos: no ha salido ninguna notificación push desde {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Con fallos: no ha salido ninguna notificación push desde {{time}}.",
+  "Email Log": "Registro de correos",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "Correos que este servidor envió y que no pertenecen a ningún proyecto, como restablecimientos de contraseña e invitaciones, y todos los correos que no pudo enviar. Cada uno se guarda {{count}} días, sin el mensaje en sí.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "Correos que este servidor envió y que no pertenecen a ningún proyecto, como restablecimientos de contraseña e invitaciones, y todos los correos que no pudo enviar. Cada uno se guarda {{count}} día, sin el mensaje en sí.",
+  "Failed emails only": "Solo correos fallidos",
+  "Sent": "Enviado",
+  "No project": "Sin proyecto",
+  "A deleted project": "Un proyecto eliminado",
+  "Template: {{name}}": "Plantilla: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "No se envió porque el correo no está configurado en Ajustes > Correos.",
+  "No emails yet.": "Todavía no hay correos.",
+  "No failed emails.": "No hay correos fallidos.",
+  "The email log could not be loaded.": "No se pudo cargar el registro de correos.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor no tiene correo electrónico configurado, así que este correo no se envió. Pide al administrador del servidor que configure el correo."
 }

@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Diese Twilio-Konfiguration hat keine Nummer, von der angerufen wird.",
   "Region (an AWS Region code, such as us-east-1)": "Region (ein AWS-Regionscode, etwa us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domäne (die Absenderdomäne, etwa mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Fehler: Seit {{time}} wurden keine Push-Benachrichtigungen versendet."
+  "Failing: push notifications have not gone out since {{time}}.": "Fehler: Seit {{time}} wurden keine Push-Benachrichtigungen versendet.",
+  "Email Log": "E-Mail-Protokoll",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "E-Mails, die dieser Server ohne Projekt gesendet hat, etwa zum Zurücksetzen von Passwörtern und Einladungen, sowie jede E-Mail, die er nicht senden konnte. Jede wird {{count}} Tage aufbewahrt, ohne die Nachricht selbst.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "E-Mails, die dieser Server ohne Projekt gesendet hat, etwa zum Zurücksetzen von Passwörtern und Einladungen, sowie jede E-Mail, die er nicht senden konnte. Jede wird {{count}} Tag aufbewahrt, ohne die Nachricht selbst.",
+  "Failed emails only": "Nur fehlgeschlagene E-Mails",
+  "Sent": "Gesendet",
+  "No project": "Kein Projekt",
+  "A deleted project": "Ein gelöschtes Projekt",
+  "Template: {{name}}": "Vorlage: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Nicht gesendet, weil unter Einstellungen > E-Mails keine E-Mail eingerichtet ist.",
+  "No emails yet.": "Noch keine E-Mails.",
+  "No failed emails.": "Keine fehlgeschlagenen E-Mails.",
+  "The email log could not be loaded.": "Das E-Mail-Protokoll konnte nicht geladen werden.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Auf diesem Server ist keine E-Mail eingerichtet, daher wurde diese E-Mail nicht gesendet. Bitten Sie Ihren Server-Administrator, E-Mail einzurichten."
 }

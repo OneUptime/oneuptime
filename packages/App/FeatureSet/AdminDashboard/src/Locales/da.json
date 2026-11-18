@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Denne Twilio-konfiguration har intet nummer at ringe fra.",
   "Region (an AWS Region code, such as us-east-1)": "Region (en AWS-regionskode, f.eks. us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domæne (afsenderdomænet, f.eks. mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Fejler: Der er ikke sendt push-notifikationer siden {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Fejler: Der er ikke sendt push-notifikationer siden {{time}}.",
+  "Email Log": "E-maillog",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "E-mails, som denne server har sendt, og som ikke hører til et projekt, f.eks. nulstilling af adgangskoder og invitationer, samt alle e-mails, den ikke kunne sende. Hver gemmes i {{count}} dage, uden selve beskeden.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "E-mails, som denne server har sendt, og som ikke hører til et projekt, f.eks. nulstilling af adgangskoder og invitationer, samt alle e-mails, den ikke kunne sende. Hver gemmes i {{count}} dag, uden selve beskeden.",
+  "Failed emails only": "Kun mislykkede e-mails",
+  "Sent": "Sendt",
+  "No project": "Intet projekt",
+  "A deleted project": "Et slettet projekt",
+  "Template: {{name}}": "Skabelon: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Ikke sendt, fordi e-mail ikke er sat op under Indstillinger > E-mails.",
+  "No emails yet.": "Ingen e-mails endnu.",
+  "No failed emails.": "Ingen mislykkede e-mails.",
+  "The email log could not be loaded.": "E-mailloggen kunne ikke indlæses.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Der er ikke sat e-mail op på denne server, så denne e-mail blev ikke sendt. Bed din serveradministrator om at sætte e-mail op."
 }

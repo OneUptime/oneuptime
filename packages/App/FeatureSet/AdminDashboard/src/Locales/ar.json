@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "لا يملك إعداد Twilio هذا رقمًا لإجراء المكالمات منه.",
   "Region (an AWS Region code, such as us-east-1)": "المنطقة (رمز منطقة AWS، مثل us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "النطاق (نطاق الإرسال، مثل mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "متعطل: لم يُرسل أي إشعار فوري منذ {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "متعطل: لم يُرسل أي إشعار فوري منذ {{time}}.",
+  "Email Log": "سجل البريد الإلكتروني",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "رسائل البريد الإلكتروني التي أرسلها هذا الخادم ولا تتبع أي مشروع، مثل إعادة تعيين كلمة المرور والدعوات، وكل رسالة تعذّر عليه إرسالها. مدة حفظ كل رسالة بالأيام: {{count}}، ولا يُحفظ نص الرسالة نفسه.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "رسائل البريد الإلكتروني التي أرسلها هذا الخادم ولا تتبع أي مشروع، مثل إعادة تعيين كلمة المرور والدعوات، وكل رسالة تعذّر عليه إرسالها. مدة حفظ كل رسالة بالأيام: {{count}}، ولا يُحفظ نص الرسالة نفسه.",
+  "Failed emails only": "الرسائل التي فشل إرسالها فقط",
+  "Sent": "أُرسلت",
+  "No project": "بلا مشروع",
+  "A deleted project": "مشروع محذوف",
+  "Template: {{name}}": "القالب: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "لم تُرسل لأن البريد الإلكتروني غير مُعَدّ في الإعدادات > رسائل البريد الإلكتروني.",
+  "No emails yet.": "لا توجد رسائل بريد إلكتروني بعد.",
+  "No failed emails.": "لا توجد رسائل فشل إرسالها.",
+  "The email log could not be loaded.": "تعذّر تحميل سجل البريد الإلكتروني.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "لم يُعَدّ بريد إلكتروني على هذا الخادم، لذا لم تُرسَل هذه الرسالة. اطلب من مسؤول الخادم إعداد البريد الإلكتروني."
 }

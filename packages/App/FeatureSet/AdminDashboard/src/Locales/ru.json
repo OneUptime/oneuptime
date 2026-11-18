@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "У этой конфигурации Twilio нет номера, с которого звонить.",
   "Region (an AWS Region code, such as us-east-1)": "Регион (код региона AWS, например us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Домен (домен отправителя, например mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Сбой: push-уведомления не уходят с {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Сбой: push-уведомления не уходят с {{time}}.",
+  "Email Log": "Журнал писем",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "Письма, которые этот сервер отправил вне проектов, например для сброса пароля и приглашения, и все письма, которые он не смог отправить. Срок хранения каждого письма в днях: {{count}}. Сам текст письма не сохраняется.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "Письма, которые этот сервер отправил вне проектов, например для сброса пароля и приглашения, и все письма, которые он не смог отправить. Каждое письмо хранится {{count}} день. Сам текст письма не сохраняется.",
+  "Failed emails only": "Только неотправленные письма",
+  "Sent": "Отправлено",
+  "No project": "Без проекта",
+  "A deleted project": "Удалённый проект",
+  "Template: {{name}}": "Шаблон: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Не отправлено: электронная почта не настроена в разделе «Настройки > Электронные письма».",
+  "No emails yet.": "Писем пока нет.",
+  "No failed emails.": "Неотправленных писем нет.",
+  "The email log could not be loaded.": "Не удалось загрузить журнал писем.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "На этом сервере не настроена почта, поэтому это письмо не отправлено. Попросите администратора сервера настроить почту."
 }

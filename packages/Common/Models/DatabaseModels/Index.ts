@@ -144,6 +144,7 @@ import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
+import ServerEmailLog from "./ServerEmailLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
@@ -1068,6 +1069,7 @@ const AllModelTypes: Array<{
 
   GlobalConfig,
   InstanceHealthLog,
+  ServerEmailLog,
   ProductFeedback,
   InstanceReceivingPeriod,
   InstanceTokenSigningKey,

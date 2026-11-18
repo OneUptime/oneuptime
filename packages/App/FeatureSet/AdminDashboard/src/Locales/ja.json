@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "この Twilio 設定には発信元番号がありません。",
   "Region (an AWS Region code, such as us-east-1)": "リージョン (us-east-1 などの AWS リージョンコード)",
   "Domain (the sending domain, such as mg.example.com)": "ドメイン (mg.example.com などの送信ドメイン)",
-  "Failing: push notifications have not gone out since {{time}}.": "失敗しています：{{time}} 以降、プッシュ通知が送信されていません。"
+  "Failing: push notifications have not gone out since {{time}}.": "失敗しています：{{time}} 以降、プッシュ通知が送信されていません。",
+  "Email Log": "メールのログ",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "このサーバーが送信した、どのプロジェクトにも属さないメール (パスワードのリセットや招待など) と、送信に失敗したすべてのメールです。それぞれ {{count}} 日間保管され、メッセージ本文は保存されません。",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "このサーバーが送信した、どのプロジェクトにも属さないメール (パスワードのリセットや招待など) と、送信に失敗したすべてのメールです。それぞれ {{count}} 日間保管され、メッセージ本文は保存されません。",
+  "Failed emails only": "失敗したメールのみ",
+  "Sent": "送信済み",
+  "No project": "プロジェクトなし",
+  "A deleted project": "削除されたプロジェクト",
+  "Template: {{name}}": "テンプレート: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "[設定] > [メール] でメールが設定されていないため、送信されませんでした。",
+  "No emails yet.": "まだメールはありません。",
+  "No failed emails.": "失敗したメールはありません。",
+  "The email log could not be loaded.": "メールのログを読み込めませんでした。",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "このサーバーではメールが設定されていないため、このメールは送信されませんでした。サーバー管理者にメールの設定を依頼してください。"
 }

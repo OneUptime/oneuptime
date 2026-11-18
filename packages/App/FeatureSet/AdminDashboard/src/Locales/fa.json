@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "این پیکربندی Twilio شماره‌ای برای برقراری تماس ندارد.",
   "Region (an AWS Region code, such as us-east-1)": "منطقه (کد یک منطقهٔ AWS، مانند us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "دامنه (دامنهٔ فرستنده، مانند mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "ناموفق: از {{time}} هیچ اعلان پوشی فرستاده نشده است."
+  "Failing: push notifications have not gone out since {{time}}.": "ناموفق: از {{time}} هیچ اعلان پوشی فرستاده نشده است.",
+  "Email Log": "گزارش ایمیل‌ها",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "ایمیل‌هایی که این سرور فرستاده و به هیچ پروژه‌ای تعلق ندارند، مانند بازنشانی گذرواژه و دعوت‌نامه‌ها، و هر ایمیلی که نتوانسته بفرستد. هر کدام {{count}} روز نگه داشته می‌شود، بدون خود پیام.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "ایمیل‌هایی که این سرور فرستاده و به هیچ پروژه‌ای تعلق ندارند، مانند بازنشانی گذرواژه و دعوت‌نامه‌ها، و هر ایمیلی که نتوانسته بفرستد. هر کدام {{count}} روز نگه داشته می‌شود، بدون خود پیام.",
+  "Failed emails only": "فقط ایمیل‌های ناموفق",
+  "Sent": "ارسال‌شده",
+  "No project": "بدون پروژه",
+  "A deleted project": "یک پروژهٔ حذف‌شده",
+  "Template: {{name}}": "قالب: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "ارسال نشد، چون ایمیل در تنظیمات > ایمیل‌ها راه‌اندازی نشده است.",
+  "No emails yet.": "هنوز ایمیلی نیست.",
+  "No failed emails.": "هیچ ایمیل ناموفقی نیست.",
+  "The email log could not be loaded.": "گزارش ایمیل‌ها بارگذاری نشد.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "روی این سرور ایمیلی راه‌اندازی نشده است، پس این ایمیل فرستاده نشد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند."
 }

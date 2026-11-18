@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Den här Twilio-konfigurationen har inget nummer att ringa från.",
   "Region (an AWS Region code, such as us-east-1)": "Region (en AWS-regionkod, till exempel us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domän (avsändardomänen, till exempel mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Fungerar inte: inga push-aviseringar har skickats sedan {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Fungerar inte: inga push-aviseringar har skickats sedan {{time}}.",
+  "Email Log": "E-postlogg",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "E-postmeddelanden som den här servern har skickat och som inte hör till något projekt, till exempel lösenordsåterställningar och inbjudningar, och varje e-postmeddelande den inte kunde skicka. Vart och ett sparas i {{count}} dagar, utan själva meddelandet.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "E-postmeddelanden som den här servern har skickat och som inte hör till något projekt, till exempel lösenordsåterställningar och inbjudningar, och varje e-postmeddelande den inte kunde skicka. Vart och ett sparas i {{count}} dag, utan själva meddelandet.",
+  "Failed emails only": "Endast misslyckade e-postmeddelanden",
+  "Sent": "Skickat",
+  "No project": "Inget projekt",
+  "A deleted project": "Ett borttaget projekt",
+  "Template: {{name}}": "Mall: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Inte skickat, eftersom e-post inte är konfigurerad under Inställningar > E-postmeddelanden.",
+  "No emails yet.": "Inga e-postmeddelanden ännu.",
+  "No failed emails.": "Inga misslyckade e-postmeddelanden.",
+  "The email log could not be loaded.": "E-postloggen kunde inte läsas in.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Ingen e-post är inställd på den här servern, så det här mejlet skickades inte. Be serveradministratören att ställa in e-post."
 }

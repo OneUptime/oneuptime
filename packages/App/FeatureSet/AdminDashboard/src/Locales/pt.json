@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Esta configuração do Twilio não tem nenhum número para fazer chamadas.",
   "Region (an AWS Region code, such as us-east-1)": "Região (um código de região da AWS, como us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domínio (o domínio de envio, como mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Com falha: nenhuma notificação push saiu desde {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Com falha: nenhuma notificação push saiu desde {{time}}.",
+  "Email Log": "Registro de e-mails",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "E-mails que este servidor enviou e que não pertencem a nenhum projeto, como redefinições de senha e convites, e todos os e-mails que ele não conseguiu enviar. Cada um é mantido por {{count}} dias, sem a mensagem em si.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "E-mails que este servidor enviou e que não pertencem a nenhum projeto, como redefinições de senha e convites, e todos os e-mails que ele não conseguiu enviar. Cada um é mantido por {{count}} dia, sem a mensagem em si.",
+  "Failed emails only": "Somente e-mails com falha",
+  "Sent": "Enviado",
+  "No project": "Nenhum projeto",
+  "A deleted project": "Um projeto excluído",
+  "Template: {{name}}": "Modelo: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Não enviado, porque o e-mail não está configurado em Configurações > E-mails.",
+  "No emails yet.": "Ainda não há e-mails.",
+  "No failed emails.": "Nenhum e-mail com falha.",
+  "The email log could not be loaded.": "Não foi possível carregar o registro de e-mails.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor não tem e-mail configurado, então este e-mail não foi enviado. Peça ao administrador do servidor para configurar o e-mail."
 }

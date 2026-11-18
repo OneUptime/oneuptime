@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "इस Twilio कॉन्फ़िगरेशन में कॉल करने के लिए कोई नंबर नहीं है।",
   "Region (an AWS Region code, such as us-east-1)": "क्षेत्र (एक AWS क्षेत्र कोड, जैसे us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "डोमेन (भेजने वाला डोमेन, जैसे mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "विफल: {{time}} से कोई पुश सूचना नहीं गई है।"
+  "Failing: push notifications have not gone out since {{time}}.": "विफल: {{time}} से कोई पुश सूचना नहीं गई है।",
+  "Email Log": "ईमेल लॉग",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "इस सर्वर द्वारा भेजे गए वे ईमेल जो किसी प्रोजेक्ट से जुड़े नहीं हैं, जैसे पासवर्ड रीसेट और आमंत्रण, और हर वह ईमेल जिसे यह नहीं भेज सका। हर एक {{count}} दिन तक रखा जाता है, संदेश के बिना।",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "इस सर्वर द्वारा भेजे गए वे ईमेल जो किसी प्रोजेक्ट से जुड़े नहीं हैं, जैसे पासवर्ड रीसेट और आमंत्रण, और हर वह ईमेल जिसे यह नहीं भेज सका। हर एक {{count}} दिन तक रखा जाता है, संदेश के बिना।",
+  "Failed emails only": "केवल विफल ईमेल",
+  "Sent": "भेजा गया",
+  "No project": "कोई प्रोजेक्ट नहीं",
+  "A deleted project": "एक हटाया गया प्रोजेक्ट",
+  "Template: {{name}}": "टेम्पलेट: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "नहीं भेजा गया, क्योंकि सेटिंग्स > ईमेल में ईमेल सेट अप नहीं है।",
+  "No emails yet.": "अभी कोई ईमेल नहीं।",
+  "No failed emails.": "कोई विफल ईमेल नहीं।",
+  "The email log could not be loaded.": "ईमेल लॉग लोड नहीं हो सका।",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "इस सर्वर पर कोई ईमेल सेट अप नहीं है, इसलिए यह ईमेल नहीं भेजा गया। अपने सर्वर एडमिन से ईमेल सेट अप करने के लिए कहें।"
 }

@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "此 Twilio 配置没有用于拨打电话的号码。",
   "Region (an AWS Region code, such as us-east-1)": "区域（AWS 区域代码，例如 us-east-1）",
   "Domain (the sending domain, such as mg.example.com)": "域名（发件域名，例如 mg.example.com）",
-  "Failing: push notifications have not gone out since {{time}}.": "发送失败：自 {{time}} 起没有发出任何推送通知。"
+  "Failing: push notifications have not gone out since {{time}}.": "发送失败：自 {{time}} 起没有发出任何推送通知。",
+  "Email Log": "邮件日志",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "此服务器发送的、不属于任何项目的邮件（例如密码重置和邀请），以及所有发送失败的邮件。每封邮件保留 {{count}} 天，不保存邮件内容本身。",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "此服务器发送的、不属于任何项目的邮件（例如密码重置和邀请），以及所有发送失败的邮件。每封邮件保留 {{count}} 天，不保存邮件内容本身。",
+  "Failed emails only": "仅显示发送失败的邮件",
+  "Sent": "已发送",
+  "No project": "无项目",
+  "A deleted project": "已删除的项目",
+  "Template: {{name}}": "模板：{{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "未发送，因为“设置 > 邮件”中尚未设置邮件。",
+  "No emails yet.": "暂无邮件。",
+  "No failed emails.": "没有发送失败的邮件。",
+  "The email log could not be loaded.": "无法加载邮件日志。",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此服务器未设置电子邮件，因此此邮件未发送。请联系服务器管理员设置电子邮件。"
 }

@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "Deze Twilio-configuratie heeft geen nummer om vanaf te bellen.",
   "Region (an AWS Region code, such as us-east-1)": "Regio (een AWS-regiocode, zoals us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domein (het verzenddomein, zoals mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Mislukt: sinds {{time}} zijn er geen pushmeldingen verstuurd."
+  "Failing: push notifications have not gone out since {{time}}.": "Mislukt: sinds {{time}} zijn er geen pushmeldingen verstuurd.",
+  "Email Log": "E-maillogboek",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "E-mails die deze server heeft verstuurd en die bij geen project horen, zoals wachtwoordherstel en uitnodigingen, en elke e-mail die hij niet kon versturen. Elke e-mail wordt {{count}} dagen bewaard, zonder het bericht zelf.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "E-mails die deze server heeft verstuurd en die bij geen project horen, zoals wachtwoordherstel en uitnodigingen, en elke e-mail die hij niet kon versturen. Elke e-mail wordt {{count}} dag bewaard, zonder het bericht zelf.",
+  "Failed emails only": "Alleen mislukte e-mails",
+  "Sent": "Verzonden",
+  "No project": "Geen project",
+  "A deleted project": "Een verwijderd project",
+  "Template: {{name}}": "Sjabloon: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Niet verzonden, omdat e-mail niet is ingesteld onder Instellingen > E-mails.",
+  "No emails yet.": "Nog geen e-mails.",
+  "No failed emails.": "Geen mislukte e-mails.",
+  "The email log could not be loaded.": "Het e-maillogboek kon niet worden geladen.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Op deze server is geen e-mail ingesteld, dus deze e-mail is niet verzonden. Vraag uw serverbeheerder om e-mail in te stellen."
 }

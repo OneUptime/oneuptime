@@ -1055,6 +1055,7 @@ import { AddNetworkDeviceManufacturer1809182980000 } from "./1809182980000-AddNe
 import { AddOnCallFireDrillResults1809183100000 } from "./1809183100000-AddOnCallFireDrillResults";
 import { AddOnCallFireDrillResultsIndexAndKey1809183110000 } from "./1809183110000-AddOnCallFireDrillResultsIndexAndKey";
 import { AddBackupScriptLastRun1809183200000 } from "./1809183200000-AddBackupScriptLastRun";
+import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
 
 export default [
   InitialMigration,
@@ -2114,4 +2115,5 @@ export default [
   AddOnCallFireDrillResults1809183100000,
   AddOnCallFireDrillResultsIndexAndKey1809183110000,
   AddBackupScriptLastRun1809183200000,
+  AddServerEmailLog1809183300000,
 ];

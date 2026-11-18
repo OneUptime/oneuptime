@@ -4203,5 +4203,18 @@
   "This Twilio config has no number to make calls from.": "This Twilio config has no number to make calls from.",
   "Region (an AWS Region code, such as us-east-1)": "Region (an AWS Region code, such as us-east-1)",
   "Domain (the sending domain, such as mg.example.com)": "Domain (the sending domain, such as mg.example.com)",
-  "Failing: push notifications have not gone out since {{time}}.": "Failing: push notifications have not gone out since {{time}}."
+  "Failing: push notifications have not gone out since {{time}}.": "Failing: push notifications have not gone out since {{time}}.",
+  "Email Log": "Email Log",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.": "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself.",
+  "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} days, without the message itself._one": "Emails this server sent that belong to no project, such as password resets and invitations, and every email it failed to send. Each is kept for {{count}} day, without the message itself.",
+  "Failed emails only": "Failed emails only",
+  "Sent": "Sent",
+  "No project": "No project",
+  "A deleted project": "A deleted project",
+  "Template: {{name}}": "Template: {{name}}",
+  "Not sent, because email isn't set up under Settings > Emails.": "Not sent, because email isn't set up under Settings > Emails.",
+  "No emails yet.": "No emails yet.",
+  "No failed emails.": "No failed emails.",
+  "The email log could not be loaded.": "The email log could not be loaded.",
+  "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "This server has no email set up, so this email was not sent. Ask your server's admin to set up email."
 }

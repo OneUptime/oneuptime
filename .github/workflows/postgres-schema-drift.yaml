@@ -4560,6 +4560,25 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddBackupScriptLastRunPostgres.test.ts
           --forceExit
 
+      # #6878: the server's own email log. AddServerEmailLog in a schema of
+      # its own: the table and its two indexes with no key to a project, a
+      # password reset's row written by MailService's writer with no link
+      # or token in it, the master admins' list newest first and failed
+      # only, each sort served by its index, rows older than 30 days
+      # deleted by the daily purge, and down() and up() again.
+      - name: Test the server's email log on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_EMAIL_LOG_TESTS: "true"
+          SERVER_EMAIL_LOG_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerEmailLogPostgres.test.ts
+          --forceExit
+
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and
       # an AI rule's runbooks, repositories and MCP servers) through the
