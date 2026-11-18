@@ -575,6 +575,90 @@ describe("Video Calls docs - connecting in one click", () => {
     }
   });
 
+  /*
+   * A self-hoster sets the one-click apps up from config.example.env or the
+   * chart's values.yaml as often as from this page. Both described the Zoom
+   * app with two of its four scopes, so a server set up from them could not
+   * read transcripts, and found out only when Get from Zoom said a scope
+   * was missing (#9265). Each comment names every scope the code uses, and
+   * the Microsoft app's every permission, as this page does.
+   */
+  test("config.example.env and values.yaml describe each one-click app with every scope the code uses", () => {
+    const repositoryRoot: string = path.resolve(__dirname, "../../../../..");
+    const read: (relative: string) => string = (relative: string): string => {
+      return fs.readFileSync(path.join(repositoryRoot, relative), "utf8");
+    };
+    // The comment lines just above a setting, joined into one sentence.
+    const commentAbove: (file: string, setting: string) => string = (
+      file: string,
+      setting: string,
+    ): string => {
+      const lines: Array<string> = file.split("\n");
+      const at: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith(setting);
+      });
+
+      expect(at).toBeGreaterThan(0);
+
+      const comment: Array<string> = [];
+
+      for (let index: number = at - 1; index >= 0; index--) {
+        const line: string = lines[index]!;
+
+        if (!line.startsWith("#")) {
+          break;
+        }
+
+        comment.unshift(line.replace(/^#\s?/, ""));
+      }
+
+      return comment.join(" ");
+    };
+
+    const zoomScopes: Array<string> = [
+      ZOOM_OAUTH_MEETING_SCOPE,
+      ZOOM_OAUTH_USER_SCOPE,
+      ZOOM_OAUTH_RECORDING_FILES_SCOPE,
+      ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE,
+    ];
+    const teamsPermissions: Array<string> = [
+      MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+      ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS,
+    ];
+
+    const environment: string = read("config.example.env");
+    const values: string = read("HelmChart/Public/oneuptime/values.yaml");
+
+    for (const [comment, permissions] of [
+      [commentAbove(environment, "ZOOM_APP_CLIENT_ID="), zoomScopes],
+      [commentAbove(values, "zoomApp:"), zoomScopes],
+      [
+        commentAbove(environment, "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID="),
+        teamsPermissions,
+      ],
+      [commentAbove(values, "microsoftTeamsMeetingsApp:"), teamsPermissions],
+    ] as Array<[string, Array<string>]>) {
+      for (const permission of permissions) {
+        expect(comment).toContain(permission);
+      }
+    }
+
+    // The transcript scopes are for call transcripts: a server can do without them.
+    expect(commentAbove(environment, "ZOOM_APP_CLIENT_ID=")).toContain(
+      "for call transcripts",
+    );
+    expect(commentAbove(values, "zoomApp:")).toContain("for call transcripts");
+
+    // And the code that signs in with the app says the same of it.
+    const zoomApp: string = read(
+      "packages/Common/Server/Utils/VideoCall/OAuth/ZoomOAuthApp.ts",
+    ).replace(/\n \* ?/g, " ");
+
+    for (const scope of zoomScopes) {
+      expect(zoomApp).toContain(scope);
+    }
+  });
+
   test("a single-tenant Teams meetings app: its tenant setting, as the server, the chart and Compose read it", () => {
     const section: string = sectionOf(
       readPage(),

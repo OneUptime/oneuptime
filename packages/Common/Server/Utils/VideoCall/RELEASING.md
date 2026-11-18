@@ -497,9 +497,6 @@ Add a row for every submission.
 
 Found while writing this guide on 17 November 2026:
 
-- The comments on the Zoom app in `config.example.env` and `values.yaml`
-  list only `meeting:write:meeting` and `user:read:user`, as does the header
-  comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).
 - Whether a signed-out visitor to the Direct landing URL comes back to
   **Video Calls** after signing in was not checked.
 - This guide does not record which Zoom account owns the app. Add it the
