@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 服务不会启动。只有运行手册和 OneUptime AI 的代码修复会用到它。 |
 | `MQTT_INGEST_ENABLED=false` | 关闭 IoT 设备发送数据所用的 MQTT 监听器。 |
 
-仍有六个服务在运行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 会保留，因为监视器把结果和日志保存在其中。在 Kubernetes 上，请在 Helm values 中设置 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。请按照[要求](#要求)确定服务器规格。
+仍有六个服务在运行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 会保留，因为监视器把结果和日志保存在其中。在 Kubernetes 上，请在 Helm values 中设置 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。
+
+**所需资源。** 在 15.0.0 版本上用 Docker Compose 测量，每个服务都限制在相同的 4 个 CPU 核心上，与 4 核服务器相同。内存为 `docker stats` 报告的值，取间隔 30 秒的五次读数的平均值：
+
+| 服务 | 空闲时 | 100 个监视器 |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| 合计 | 2,274 MiB | 2,486 MiB |
+
+空闲时是指 OneUptime 就绪 10 分钟后、没有任何监视器时。100 个监视器是指添加 100 个每分钟检查一次的 Website 监视器和一个显示它们的公开状态页面 30 分钟后。OneUptime 启动期间，各服务会在一两分钟内用得更多：合计最多 3,584 MiB。空闲时，没有哪个服务使用超过十分之一个 CPU 核心。
+
+这 30 分钟后，PostgreSQL 的数据占用 163 MiB，ClickHouse 的数据占用 452 MiB，几乎全是 ClickHouse 自己的日志：监视器的检查结果占用不到 2 MiB。
+
+因此，这个配置方案可以运行在 4 个 CPU 核心、6 GB 内存的服务器上，还为系统、Docker 和更新留有余量。`ingress` 中的 nginx 为每个核心启动一个 worker，因此在核心更多的服务器上会用得更多：32 核时约 510 MiB。
+
+在默认设置下，一个探测器每分钟最多检查 50 个监视器：5 个 worker（`GLOBAL_PROBE_1_MONITORING_WORKERS`），每个检查 10 个监视器（`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`）。为了让 100 个监视器每分钟都被检查，测量时在 `config.env` 中设置了 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`。监视器更多时，同样调高这个值或 worker 的数量。
 
 ## 更新 OneUptime
 

@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | The `global-runner` service does not start. Only runbooks and OneUptime AI's code fixes use it. |
 | `MQTT_INGEST_ENABLED=false` | The MQTT listeners that IoT devices send to are turned off. |
 
-Six services still run: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` and `valkey`. ClickHouse stays, because monitors keep their results and logs in it. On Kubernetes, set `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` and `globalRunner.enabled: false` in the Helm values. Size the server by the [requirements](#requirements).
+Six services still run: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` and `valkey`. ClickHouse stays, because monitors keep their results and logs in it. On Kubernetes, set `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` and `globalRunner.enabled: false` in the Helm values.
+
+**What it needs.** Measured on release 15.0.0 with Docker Compose, each service held to the same 4 CPU cores, as on a 4-core server. Memory is what `docker stats` reports, the mean of five readings 30 seconds apart:
+
+| Service | At rest | With 100 monitors |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Total | 2,274 MiB | 2,486 MiB |
+
+At rest is 10 minutes after OneUptime is up, with no monitors. With 100 monitors is 30 minutes after adding 100 Website monitors that check every minute and a public status page that shows them. While OneUptime starts, the services use more for a minute or two: up to 3,584 MiB together. At rest, none of them used more than a tenth of a CPU core.
+
+After those 30 minutes, PostgreSQL's data took 163 MiB and ClickHouse's 452 MiB, nearly all of it ClickHouse's own logs: the monitors' checks took under 2 MiB.
+
+So this profile runs on a server with 4 CPU cores and 6 GB of memory, with room for the system, Docker and an update. nginx in `ingress` starts one worker per core, so on a server with more cores it uses more: about 510 MiB on 32 cores.
+
+One probe checks at most 50 monitors a minute with its default settings: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). For the 100 monitors to be checked every minute, the measurement set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Raise it, or the number of workers, the same way for more monitors.
 
 ## Update OneUptime
 

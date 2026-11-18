@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` सेवा शुरू नहीं होती। इसे सिर्फ़ रनबुक और OneUptime AI के कोड सुधार इस्तेमाल करते हैं। |
 | `MQTT_INGEST_ENABLED=false` | वे MQTT लिसनर बंद हो जाते हैं जिन पर IoT डिवाइस डेटा भेजते हैं। |
 
-छह सेवाएँ अब भी चलती हैं: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` और `valkey`। ClickHouse बना रहता है, क्योंकि मॉनिटर अपने नतीजे और लॉग उसी में रखते हैं। Kubernetes पर, अपनी Helm values में `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` और `globalRunner.enabled: false` सेट करें। सर्वर का आकार [ज़रूरतों](#ज़रूरतें) के हिसाब से चुनें।
+छह सेवाएँ अब भी चलती हैं: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` और `valkey`। ClickHouse बना रहता है, क्योंकि मॉनिटर अपने नतीजे और लॉग उसी में रखते हैं। Kubernetes पर, अपनी Helm values में `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` और `globalRunner.enabled: false` सेट करें।
+
+**इसे क्या चाहिए।** रिलीज़ 15.0.0 पर Docker Compose के साथ मापा गया, हर सेवा को उन्हीं 4 CPU कोर तक सीमित रखकर, जैसे 4 कोर वाले सर्वर पर। मेमोरी वह है जो `docker stats` बताता है, 30 सेकंड के अंतर पर ली गई पाँच रीडिंग का औसत:
+
+| सेवा | खाली समय में | 100 मॉनिटर के साथ |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| कुल | 2,274 MiB | 2,486 MiB |
+
+खाली समय का मतलब है OneUptime के तैयार होने के 10 मिनट बाद, बिना किसी मॉनिटर के। 100 मॉनिटर के साथ का मतलब है हर मिनट जाँच करने वाले 100 Website मॉनिटर और उन्हें दिखाने वाला एक सार्वजनिक स्थिति पृष्ठ जोड़ने के 30 मिनट बाद। OneUptime शुरू होते समय सेवाएँ एक-दो मिनट तक ज़्यादा इस्तेमाल करती हैं: मिलाकर अधिकतम 3,584 MiB। खाली समय में किसी भी सेवा ने एक CPU कोर के दसवें हिस्से से ज़्यादा इस्तेमाल नहीं किया।
+
+उन 30 मिनटों के बाद PostgreSQL के डेटा ने 163 MiB और ClickHouse के डेटा ने 452 MiB लिए, जिसमें लगभग सब ClickHouse के अपने लॉग थे: मॉनिटरों की जाँचों ने 2 MiB से कम लिया।
+
+तो यह प्रोफ़ाइल 4 CPU कोर और 6 GB मेमोरी वाले सर्वर पर चलती है, और सिस्टम, Docker और एक अपडेट के लिए जगह भी बचती है। `ingress` में nginx हर कोर के लिए एक worker शुरू करता है, इसलिए ज़्यादा कोर वाले सर्वर पर वह ज़्यादा इस्तेमाल करता है: 32 कोर पर लगभग 510 MiB।
+
+अपनी डिफ़ॉल्ट सेटिंग्स के साथ एक प्रोब एक मिनट में अधिकतम 50 मॉनिटर जाँचता है: 5 worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`), हर एक में 10 मॉनिटर (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`)। 100 मॉनिटर हर मिनट जाँचे जाएँ, इसके लिए माप में `config.env` में `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` सेट किया गया। ज़्यादा मॉनिटर के लिए इसे, या worker की संख्या, इसी तरह बढ़ाएँ।
 
 ## OneUptime अपडेट करें
 

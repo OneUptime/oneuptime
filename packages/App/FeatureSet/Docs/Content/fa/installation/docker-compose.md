@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | سرویس `global-runner` اجرا نمی‌شود. فقط رانبوک‌ها و اصلاح‌های کد OneUptime AI از آن استفاده می‌کنند. |
 | `MQTT_INGEST_ENABLED=false` | شنونده‌های MQTT که دستگاه‌های IoT به آن‌ها داده می‌فرستند خاموش می‌شوند. |
 
-شش سرویس همچنان اجرا می‌شوند: `ingress`، `app`، `probe-1`، `postgres`، `clickhouse` و `valkey`. ClickHouse می‌ماند، چون مانیتورها نتیجه‌ها و لاگ‌هایشان را در آن نگه می‌دارند. روی Kubernetes، `products.onThisServer: monitoring-and-status-pages`، `telemetry.disableIngestion: true` و `globalRunner.enabled: false` را در values Helm خود تنظیم کنید. اندازهٔ سرور را بر اساس [نیازمندی‌ها](#نیازمندیها) انتخاب کنید.
+شش سرویس همچنان اجرا می‌شوند: `ingress`، `app`، `probe-1`، `postgres`، `clickhouse` و `valkey`. ClickHouse می‌ماند، چون مانیتورها نتیجه‌ها و لاگ‌هایشان را در آن نگه می‌دارند. روی Kubernetes، `products.onThisServer: monitoring-and-status-pages`، `telemetry.disableIngestion: true` و `globalRunner.enabled: false` را در values Helm خود تنظیم کنید.
+
+**چه چیزی لازم دارد.** روی نسخهٔ 15.0.0 با Docker Compose اندازه‌گیری شد، هر سرویس محدود به همان ۴ هستهٔ CPU، مانند سروری با ۴ هسته. حافظه همان است که `docker stats` گزارش می‌کند، میانگین پنج خوانش با فاصلهٔ ۳۰ ثانیه:
+
+| سرویس | در حالت آرام | با ۱۰۰ مانیتور |
+| --- | --- | --- |
+| `ingress` | ۳۰۴ MiB | ۳۰۲ MiB |
+| `app` | ۷۸۲ MiB | ۸۴۹ MiB |
+| `probe-1` | ۲۸۶ MiB | ۲۳۱ MiB |
+| `postgres` | ۲۲۸ MiB | ۲۶۹ MiB |
+| `clickhouse` | ۶۶۱ MiB | ۸۱۸ MiB |
+| `valkey` | ۱۳ MiB | ۱۷ MiB |
+| مجموع | ۲٬۲۷۴ MiB | ۲٬۴۸۶ MiB |
+
+حالت آرام یعنی ۱۰ دقیقه پس از آماده شدن OneUptime، بدون هیچ مانیتوری. با ۱۰۰ مانیتور یعنی ۳۰ دقیقه پس از افزودن ۱۰۰ مانیتور Website که هر دقیقه بررسی می‌کنند و یک صفحهٔ وضعیت عمومی که آن‌ها را نشان می‌دهد. هنگام راه‌اندازی OneUptime، سرویس‌ها یکی دو دقیقه بیشتر مصرف می‌کنند: روی هم تا ۳٬۵۸۴ MiB. در حالت آرام هیچ‌کدام بیش از یک‌دهم یک هستهٔ CPU مصرف نکرد.
+
+پس از این ۳۰ دقیقه، داده‌های PostgreSQL ۱۶۳ MiB و داده‌های ClickHouse ۴۵۲ MiB جا گرفته بودند که تقریباً همه‌اش لاگ‌های خود ClickHouse بود: بررسی‌های مانیتورها کمتر از ۲ MiB جا گرفتند.
+
+پس این پروفایل روی سروری با ۴ هستهٔ CPU و ۶ GB حافظه اجرا می‌شود و برای سیستم، Docker و یک به‌روزرسانی هم جا می‌ماند. nginx در `ingress` برای هر هسته یک worker راه می‌اندازد، پس روی سروری با هسته‌های بیشتر، بیشتر مصرف می‌کند: حدود ۵۱۰ MiB روی ۳۲ هسته.
+
+یک پراب با تنظیمات پیش‌فرضش در هر دقیقه حداکثر ۵۰ مانیتور را بررسی می‌کند: ۵ worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`) که هر کدام ۱۰ مانیتور را بررسی می‌کند (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). برای اینکه ۱۰۰ مانیتور هر دقیقه بررسی شوند، در این اندازه‌گیری `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` در `config.env` تنظیم شد. برای مانیتورهای بیشتر، همین مقدار یا تعداد workerها را به همین شکل بالا ببرید.
 
 ## به‌روزرسانی OneUptime
 

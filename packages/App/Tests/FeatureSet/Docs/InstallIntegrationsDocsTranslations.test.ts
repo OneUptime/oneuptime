@@ -464,6 +464,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "High availability",
     // Run only what you need (#6815): the Admin Dashboard's one-click presets.
     "Presets",
+    // The Monitoring and status pages profile, as measured (#7477).
+    "What it needs.",
   ],
   [SIZING]: [
     "no CPU or memory requests or limits",

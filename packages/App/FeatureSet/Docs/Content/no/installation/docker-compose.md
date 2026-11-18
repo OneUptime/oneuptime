@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Tjenesten `global-runner` starter ikke. Bare runbooks og koderettingene til OneUptime AI bruker den. |
 | `MQTT_INGEST_ENABLED=false` | MQTT-lytterne som IoT-enheter sender til, er slått av. |
 
-Seks tjenester kjører fortsatt: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` og `valkey`. ClickHouse blir, fordi monitorer lagrer resultatene og loggene sine i den. På Kubernetes setter du `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` og `globalRunner.enabled: false` i Helm-values. Dimensjoner serveren etter [kravene](#krav).
+Seks tjenester kjører fortsatt: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` og `valkey`. ClickHouse blir, fordi monitorer lagrer resultatene og loggene sine i den. På Kubernetes setter du `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` og `globalRunner.enabled: false` i Helm-values.
+
+**Hva den trenger.** Målt på versjon 15.0.0 med Docker Compose, hver tjeneste begrenset til de samme 4 CPU-kjernene, som på en server med 4 kjerner. Minne er det `docker stats` rapporterer, gjennomsnittet av fem målinger med 30 sekunders mellomrom:
+
+| Tjeneste | I ro | Med 100 monitorer |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Totalt | 2 274 MiB | 2 486 MiB |
+
+I ro er 10 minutter etter at OneUptime er klar, uten monitorer. Med 100 monitorer er 30 minutter etter at 100 Website-monitorer som sjekker hvert minutt, og en offentlig statusside som viser dem, er lagt til. Mens OneUptime starter, bruker tjenestene mer i et minutt eller to: opptil 3 584 MiB til sammen. I ro brukte ingen av dem mer enn en tidel av en CPU-kjerne.
+
+Etter de 30 minuttene tok PostgreSQLs data 163 MiB og ClickHouses 452 MiB, nesten alt ClickHouses egne logger: monitorenes sjekker tok under 2 MiB.
+
+Denne profilen kjører altså på en server med 4 CPU-kjerner og 6 GB minne, med plass til systemet, Docker og en oppdatering. nginx i `ingress` starter én worker per kjerne, så på en server med flere kjerner bruker den mer: omtrent 510 MiB med 32 kjerner.
+
+Én sonde sjekker høyst 50 monitorer i minuttet med standardinnstillingene: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) med 10 monitorer hver (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). For at de 100 monitorene skulle sjekkes hvert minutt, satte målingen `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` i `config.env`. Øk den, eller antallet workers, på samme måte for flere monitorer.
 
 ## Oppdater OneUptime
 

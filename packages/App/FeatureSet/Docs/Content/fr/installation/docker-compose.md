@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Le service `global-runner` ne démarre pas. Seuls les runbooks et les corrections de code de OneUptime AI l'utilisent. |
 | `MQTT_INGEST_ENABLED=false` | Les écouteurs MQTT auxquels les appareils IoT envoient leurs données sont désactivés. |
 
-Six services tournent toujours : `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` et `valkey`. ClickHouse reste, car les moniteurs y conservent leurs résultats et leurs logs. Sur Kubernetes, définissez `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` et `globalRunner.enabled: false` dans vos valeurs Helm. Dimensionnez le serveur selon les [prérequis](#prérequis).
+Six services tournent toujours : `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` et `valkey`. ClickHouse reste, car les moniteurs y conservent leurs résultats et leurs logs. Sur Kubernetes, définissez `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` et `globalRunner.enabled: false` dans vos valeurs Helm.
+
+**Ce qu'il lui faut.** Mesuré sur la version 15.0.0 avec Docker Compose, chaque service limité aux mêmes 4 cœurs de processeur, comme sur un serveur à 4 cœurs. La mémoire est celle que rapporte `docker stats`, la moyenne de cinq relevés à 30 secondes d'intervalle :
+
+| Service | Au repos | Avec 100 moniteurs |
+| --- | --- | --- |
+| `ingress` | 304 Mio | 302 Mio |
+| `app` | 782 Mio | 849 Mio |
+| `probe-1` | 286 Mio | 231 Mio |
+| `postgres` | 228 Mio | 269 Mio |
+| `clickhouse` | 661 Mio | 818 Mio |
+| `valkey` | 13 Mio | 17 Mio |
+| Total | 2 274 Mio | 2 486 Mio |
+
+Au repos : 10 minutes après que OneUptime est prêt, sans moniteur. Avec 100 moniteurs : 30 minutes après l'ajout de 100 moniteurs Website qui vérifient chaque minute et d'une page de statut publique qui les affiche. Au démarrage de OneUptime, les services utilisent davantage pendant une minute ou deux : jusqu'à 3 584 Mio à eux tous. Au repos, aucun n'a utilisé plus d'un dixième d'un cœur de processeur.
+
+Au bout de ces 30 minutes, les données de PostgreSQL occupaient 163 Mio et celles de ClickHouse 452 Mio, presque entièrement ses propres journaux : les vérifications des moniteurs occupaient moins de 2 Mio.
+
+Ce profil tourne donc sur un serveur avec 4 cœurs de processeur et 6 Go de mémoire, avec de la marge pour le système, Docker et une mise à jour. nginx dans `ingress` démarre un worker par cœur : sur un serveur avec plus de cœurs, il utilise donc davantage, environ 510 Mio sur 32 cœurs.
+
+Une sonde vérifie au plus 50 moniteurs par minute avec ses réglages par défaut : 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 moniteurs chacun (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Pour que les 100 moniteurs soient vérifiés chaque minute, la mesure a défini `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` dans `config.env`. Augmentez-le, ou le nombre de workers, de la même façon pour plus de moniteurs.
 
 ## Mettre à jour OneUptime
 

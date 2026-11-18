@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | O serviço `global-runner` não inicia. Só os runbooks e as correções de código da OneUptime AI o usam. |
 | `MQTT_INGEST_ENABLED=false` | Os listeners MQTT para os quais os dispositivos IoT enviam dados ficam desativados. |
 
-Seis serviços continuam rodando: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` e `valkey`. O ClickHouse fica, porque os monitores guardam nele seus resultados e logs. No Kubernetes, defina `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` e `globalRunner.enabled: false` nos seus values do Helm. Dimensione o servidor pelos [requisitos](#requisitos).
+Seis serviços continuam rodando: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` e `valkey`. O ClickHouse fica, porque os monitores guardam nele seus resultados e logs. No Kubernetes, defina `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` e `globalRunner.enabled: false` nos seus values do Helm.
+
+**Do que ele precisa.** Medido na versão 15.0.0 com Docker Compose, cada serviço limitado aos mesmos 4 núcleos de CPU, como em um servidor de 4 núcleos. A memória é a que o `docker stats` informa, a média de cinco leituras com 30 segundos de intervalo:
+
+| Serviço | Em repouso | Com 100 monitores |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Total | 2.274 MiB | 2.486 MiB |
+
+Em repouso é 10 minutos depois que o OneUptime fica pronto, sem monitores. Com 100 monitores é 30 minutos depois de adicionar 100 monitores Website que verificam a cada minuto e uma página de status pública que os mostra. Enquanto o OneUptime inicia, os serviços usam mais por um ou dois minutos: até 3.584 MiB juntos. Em repouso, nenhum usou mais de um décimo de um núcleo de CPU.
+
+Depois desses 30 minutos, os dados do PostgreSQL ocupavam 163 MiB e os do ClickHouse 452 MiB, quase tudo logs do próprio ClickHouse: as verificações dos monitores ocupavam menos de 2 MiB.
+
+Então este perfil roda em um servidor com 4 núcleos de CPU e 6 GB de memória, com folga para o sistema, o Docker e uma atualização. O nginx em `ingress` inicia um worker por núcleo, então em um servidor com mais núcleos ele usa mais: cerca de 510 MiB com 32 núcleos.
+
+Uma sonda verifica no máximo 50 monitores por minuto com as configurações padrão: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 monitores cada (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Para que os 100 monitores fossem verificados a cada minuto, a medição definiu `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` no `config.env`. Aumente-o, ou o número de workers, da mesma forma para mais monitores.
 
 ## Atualizar o OneUptime
 

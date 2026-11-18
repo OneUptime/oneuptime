@@ -475,7 +475,27 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | Der Dienst `global-runner` startet nicht. Nur Runbooks und die Codekorrekturen von OneUptime AI nutzen ihn. |
 | `MQTT_INGEST_ENABLED=false` | Die MQTT-Listener, an die IoT-Geräte senden, sind ausgeschaltet. |
 
-Sechs Dienste laufen weiterhin: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` und `valkey`. ClickHouse bleibt, weil Monitore ihre Ergebnisse und Logs darin speichern. Auf Kubernetes setzen Sie `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` und `globalRunner.enabled: false` in Ihren Helm-Values. Dimensionieren Sie den Server nach den [Anforderungen](#anforderungen).
+Sechs Dienste laufen weiterhin: `ingress`, `app`, `probe-1`, `postgres`, `clickhouse` und `valkey`. ClickHouse bleibt, weil Monitore ihre Ergebnisse und Logs darin speichern. Auf Kubernetes setzen Sie `products.onThisServer: monitoring-and-status-pages`, `telemetry.disableIngestion: true` und `globalRunner.enabled: false` in Ihren Helm-Values.
+
+**Was es braucht.** Gemessen mit Release 15.0.0 unter Docker Compose, jeder Dienst auf dieselben 4 CPU-Kerne beschränkt, wie auf einem Server mit 4 Kernen. Speicher ist, was `docker stats` meldet, der Mittelwert aus fünf Messungen im Abstand von 30 Sekunden:
+
+| Dienst | Im Ruhezustand | Mit 100 Monitoren |
+| --- | --- | --- |
+| `ingress` | 304 MiB | 302 MiB |
+| `app` | 782 MiB | 849 MiB |
+| `probe-1` | 286 MiB | 231 MiB |
+| `postgres` | 228 MiB | 269 MiB |
+| `clickhouse` | 661 MiB | 818 MiB |
+| `valkey` | 13 MiB | 17 MiB |
+| Gesamt | 2.274 MiB | 2.486 MiB |
+
+Im Ruhezustand heißt: 10 Minuten, nachdem OneUptime bereit ist, ohne Monitore. Mit 100 Monitoren heißt: 30 Minuten, nachdem 100 Website-Monitore, die jede Minute prüfen, und eine öffentliche Statusseite, die sie zeigt, angelegt wurden. Während OneUptime startet, brauchen die Dienste ein bis zwei Minuten lang mehr: zusammen bis zu 3.584 MiB. Im Ruhezustand nutzte keiner mehr als ein Zehntel eines CPU-Kerns.
+
+Nach diesen 30 Minuten belegten die Daten von PostgreSQL 163 MiB und die von ClickHouse 452 MiB, fast alles davon ClickHouses eigene Protokolle: Die Prüfungen der Monitore belegten weniger als 2 MiB.
+
+Dieses Profil läuft also auf einem Server mit 4 CPU-Kernen und 6 GB Arbeitsspeicher, mit Platz für das System, Docker und ein Update. nginx in `ingress` startet einen Worker pro Kern, auf einem Server mit mehr Kernen braucht es also mehr: etwa 510 MiB bei 32 Kernen.
+
+Eine Sonde prüft mit ihren Standardeinstellungen höchstens 50 Monitore pro Minute: 5 Worker (`GLOBAL_PROBE_1_MONITORING_WORKERS`) mit je 10 Monitoren (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Damit die 100 Monitore jede Minute geprüft werden, setzte die Messung `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Erhöhen Sie den Wert oder die Zahl der Worker ebenso für mehr Monitore.
 
 ## OneUptime aktualisieren
 

@@ -17,8 +17,9 @@ import path from "path";
  * "Monitoring and status pages" profile, in every docs language, held to
  * the code: the presets and what each keeps on, the setting's name and its
  * values, the settings of the profile, the services that still run, and
- * where config.env, Docker Compose and the Helm chart set it. No memory or
- * CPU figure is given that was not measured.
+ * where config.env, Docker Compose and the Helm chart set it - and what
+ * the profile needs, as it was measured (#7477), in every language. No
+ * memory or CPU figure is given that was not measured.
  */
 
 const REPOSITORY: string = path.join(__dirname, "..", "..", "..", "..", "..");
@@ -50,6 +51,70 @@ const page: (language: string, name: string) => string = (
 };
 
 const ENGLISH_COMPOSE: string = page("en", "installation/docker-compose");
+
+/*
+ * What the profile needs, as it was measured for #7477: release 15.0.0 under
+ * Docker Compose, each service held to the same 4 CPU cores, from empty
+ * volumes; memory as docker stats reports it, in MiB, the mean of five
+ * readings 30 seconds apart - at rest (10 minutes after OneUptime was up,
+ * no monitors) and 30 minutes after 100 Website monitors that check every
+ * minute and a public status page were added. The readings and the scripts
+ * that took them are on #7477. Pinned, so a figure changes only by
+ * measuring again.
+ */
+interface MeasuredRow {
+  service: string;
+  rest: number;
+  monitors: number;
+}
+
+const MEASURED: Array<MeasuredRow> = [
+  { service: "ingress", rest: 304, monitors: 302 },
+  { service: "app", rest: 782, monitors: 849 },
+  { service: "probe-1", rest: 286, monitors: 231 },
+  { service: "postgres", rest: 228, monitors: 269 },
+  { service: "clickhouse", rest: 661, monitors: 818 },
+  { service: "valkey", rest: 13, monitors: 17 },
+];
+
+const MEASURED_REST_TOTAL: number = 2274;
+const MEASURED_MONITORS_TOTAL: number = 2486;
+// The most the services used together while OneUptime started.
+const MEASURED_STARTUP_PEAK: number = 3584;
+
+const SERVICES_THAT_RUN: ReadonlyArray<string> = [
+  "ingress",
+  "app",
+  "probe-1",
+  "postgres",
+  "clickhouse",
+  "valkey",
+];
+
+// A figure as the English page writes it: 2,274.
+const english: (value: number) => string = (value: number): string => {
+  return value.toLocaleString("en-US");
+};
+
+const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+
+/*
+ * Every number a page states, in Latin digits and without the thousands
+ * separators its language writes (2,274 / 2.274 / 2 274 / ۲٬۲۷۴).
+ */
+const statedNumbers: (markdown: string) => Set<string> = (
+  markdown: string,
+): Set<string> => {
+  const latin: string = markdown.replace(/[۰-۹]/g, (digit: string): string => {
+    return String(PERSIAN_DIGITS.indexOf(digit));
+  });
+  const joined: string = latin.replace(
+    /(\d)[,.\u066c\u00a0\u202f ](?=\d{3}\b)/g,
+    "$1",
+  );
+
+  return new Set(joined.match(/\d+/g) || []);
+};
 
 // The English section, from its heading to the next one at its level.
 const section: (markdown: string, heading: string) => string = (
@@ -158,13 +223,85 @@ describe("the English section", () => {
     }
   });
 
-  test("gives no memory or CPU figure for the profile: none was measured", () => {
-    expect(ENGLISH_SECTION).not.toMatch(/\d+\s?(GB|MB|GiB|MiB|cores?|vCPU)/i);
+  test("gives the profile's measured memory, service by service, at rest and with 100 monitors", () => {
+    for (const row of MEASURED) {
+      expect(ENGLISH_SECTION).toContain(
+        `| \`${row.service}\` | ${english(row.rest)} MiB | ${english(row.monitors)} MiB |`,
+      );
+    }
+
+    // The totals are the rows' sums, and every service that runs has a row.
+    expect(ENGLISH_SECTION).toContain(
+      `| Total | ${english(MEASURED_REST_TOTAL)} MiB | ${english(MEASURED_MONITORS_TOTAL)} MiB |`,
+    );
+    expect(
+      MEASURED.map((row: MeasuredRow): string => {
+        return row.service;
+      }),
+    ).toEqual([...SERVICES_THAT_RUN]);
+  });
+
+  test("says what it was measured on, and gives the server it needs in place of the requirements", () => {
+    expect(ENGLISH_SECTION).toContain(
+      "Measured on release 15.0.0 with Docker Compose, each service held to the same 4 CPU cores, as on a 4-core server.",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      `up to ${english(MEASURED_STARTUP_PEAK)} MiB together`,
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "So this profile runs on a server with 4 CPU cores and 6 GB of memory",
+    );
+    // The memory it needs is more than it used at its peak, starting.
+    expect(6 * 1000 * 1000 * 1000).toBeGreaterThan(
+      MEASURED_STARTUP_PEAK * 1024 * 1024,
+    );
+    expect(ENGLISH_SECTION).not.toContain("Size the server by the");
+  });
+
+  test("says how many monitors one probe checks a minute, and what the measurement set", () => {
+    const compose: string = read("docker-compose.base.yml");
+    const example: string = read("config.example.env");
+
+    expect(example).toMatch(/^GLOBAL_PROBE_1_MONITORING_WORKERS=5$/m);
+    expect(example).toMatch(/^GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=10$/m);
+    expect(compose).toContain(
+      "PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}",
+    );
+    expect(compose).toContain(
+      "PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "One probe checks at most 50 monitors a minute with its default settings: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`).",
+    );
+    expect(ENGLISH_SECTION).toContain(
+      "`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`",
+    );
   });
 });
 
 describe.each(LANGUAGES)("the %s docs", (language: string) => {
   const compose: string = page(language, "installation/docker-compose");
+
+  test("give the measured figures: every service's, the totals and the peak while starting", () => {
+    const stated: Set<string> = statedNumbers(compose);
+
+    for (const value of [
+      ...MEASURED.flatMap((row: MeasuredRow): Array<number> => {
+        return [row.rest, row.monitors];
+      }),
+      MEASURED_REST_TOTAL,
+      MEASURED_MONITORS_TOTAL,
+      MEASURED_STARTUP_PEAK,
+    ]) {
+      expect({ value, stated: true }).toEqual({
+        value,
+        stated: stated.has(String(value)),
+      });
+    }
+
+    expect(compose).toContain("`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`");
+    expect(compose).toContain("`docker stats`");
+  });
 
   test("carry the profile's settings word for word", () => {
     expect(compose).toContain(PROFILE_BLOCK);
