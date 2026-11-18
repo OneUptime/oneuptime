@@ -86,6 +86,16 @@ export interface ResponseStep {
   doneAt?: Date | undefined;
 }
 
+/*
+ * Where the case's latest run of a playbook stands, when no run of it has
+ * succeeded: held for an approval, still going, or failed.
+ */
+export enum ResponsePlaybookRunState {
+  Waiting = "Waiting",
+  Running = "Running",
+  Failed = "Failed",
+}
+
 // One of the project's playbooks that are on, as the plan reads it.
 export interface ResponsePlaybook {
   id: string;

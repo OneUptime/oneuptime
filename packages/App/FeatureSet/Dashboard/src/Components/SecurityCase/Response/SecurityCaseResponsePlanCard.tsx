@@ -34,6 +34,7 @@ import {
   buildResponsePlan,
   getResponseStepKey,
   isAiStep,
+  readPlaybookRuns,
 } from "./SecurityCaseResponsePlan";
 import {
   RESPONSE_PHASES,
@@ -41,6 +42,7 @@ import {
   ResponseActionKind,
   ResponsePhase,
   ResponsePlan,
+  ResponsePlaybookRunState,
   ResponseStep,
   ResponseStepCompletion,
   ResponseText,
@@ -141,7 +143,9 @@ export interface ComponentProps {
 interface PlanData {
   tasks: Array<SecurityCaseTask>;
   playbooks: Array<SecurityPlaybook>;
+  // The playbooks a run of which succeeded on the case, and where the others' latest runs stand.
   ranPlaybookIds: Array<string>;
+  playbookRunStates: Record<string, ResponsePlaybookRunState>;
 }
 
 const PHASE_HEADING_CLASS_NAME: string =
@@ -225,7 +229,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ModelAPI.getList<SecurityPlaybookRun>({
           modelType: SecurityPlaybookRun,
           query: { securityCaseId: new ObjectID(caseIdText) },
-          select: { _id: true, securityPlaybookId: true },
+          select: { _id: true, securityPlaybookId: true, status: true },
           sort: { createdAt: SortOrder.Descending },
           skip: 0,
           limit: 100,
@@ -236,11 +240,18 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
-          ranPlaybookIds: runs.data
-            .map((run: SecurityPlaybookRun): string => {
-              return run.securityPlaybookId?.toString() || "";
-            })
-            .filter(Boolean),
+          ...readPlaybookRuns(
+            runs.data.map(
+              (
+                run: SecurityPlaybookRun,
+              ): { playbookId: string; status: string } => {
+                return {
+                  playbookId: run.securityPlaybookId?.toString() || "",
+                  status: run.status || "",
+                };
+              },
+            ),
+          ),
         });
         setLoadError("");
       }
@@ -337,6 +348,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     matches: props.matches,
     playbooks: readResponsePlaybooks(data.playbooks),
     ranPlaybookIds: data.ranPlaybookIds,
+    playbookRunStates: data.playbookRunStates,
     tasks: readResponseTasks(data.tasks),
     ai: {
       suggestedPlaybookId: securityCase.aiSuggestedPlaybookId?.toString(),

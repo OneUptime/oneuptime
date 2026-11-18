@@ -548,6 +548,101 @@ describe("containing what the case is about", () => {
     expect(after.completion).toBe(types.ResponseStepCompletion.ByCase);
   });
 
+  /*
+   * Regression: any run of the playbook ticked the step off - one held for
+   * an approval nobody gave, or one that failed - so the plan said the
+   * account was suspended, and offered to mark the case Contained.
+   */
+  test("a playbook's step is done only once a run of it succeeded: one held or still going says so with no second Run Playbook, a failed one can be run again", () => {
+    const playbooks: PlanInput["playbooks"] = [
+      {
+        id: OKTA_PLAYBOOK_ID,
+        name: "Suspend in Okta",
+        actions: [SecurityPlaybookActionType.SuspendOktaUser],
+      },
+    ];
+    const entities: Array<SecurityEntity> = [
+      { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+    ];
+    const containing: (
+      runs: Array<{ playbookId: string; status: string }>,
+    ) => ReturnType<typeof step> = (
+      runs: Array<{ playbookId: string; status: string }>,
+    ): ReturnType<typeof step> => {
+      return step(
+        plan.buildResponsePlan(
+          input({ entities, playbooks, ...plan.readPlaybookRuns(runs) }),
+        ),
+        "contain:user:k.morgan@acme.example",
+      );
+    };
+
+    const held: ReturnType<typeof step> = containing([
+      { playbookId: OKTA_PLAYBOOK_ID, status: "Waiting for Approval" },
+    ]);
+
+    expect(held.isDone).toBe(false);
+    expect(held.action).toBeUndefined();
+    expect(held.detail).toEqual({
+      template: copy.STEP_RUN_WAITING,
+      values: {},
+    });
+
+    const going: ReturnType<typeof step> = containing([
+      { playbookId: OKTA_PLAYBOOK_ID, status: "Running" },
+    ]);
+
+    expect(going.isDone).toBe(false);
+    expect(going.action).toBeUndefined();
+    expect(going.detail).toEqual({
+      template: copy.STEP_RUN_RUNNING,
+      values: {},
+    });
+
+    const failed: ReturnType<typeof step> = containing([
+      { playbookId: OKTA_PLAYBOOK_ID, status: "Failed" },
+    ]);
+
+    expect(failed.isDone).toBe(false);
+    expect(failed.action?.kind).toBe(types.ResponseActionKind.RunPlaybook);
+    expect(failed.detail).toEqual({
+      template: copy.STEP_RUN_FAILED,
+      values: {},
+    });
+    expect(failed.isDetailWarning).toBe(true);
+
+    // Run again after it failed, and succeeded: done, whatever came before.
+    const succeeded: ReturnType<typeof step> = containing([
+      { playbookId: OKTA_PLAYBOOK_ID, status: "Succeeded" },
+      { playbookId: OKTA_PLAYBOOK_ID, status: "Failed" },
+    ]);
+
+    expect(succeeded.isDone).toBe(true);
+    expect(succeeded.detail).toBeUndefined();
+  });
+
+  test("the case's runs, newest first: a playbook ran once a run of it succeeded; the latest of the others says where it stands, a cancelled one nothing", () => {
+    expect(
+      plan.readPlaybookRuns([
+        { playbookId: "a", status: "Failed" },
+        { playbookId: "a", status: "Succeeded" },
+        { playbookId: "b", status: "Waiting for Approval" },
+        { playbookId: "b", status: "Failed" },
+        { playbookId: "c", status: "Queued" },
+        { playbookId: "d", status: "Failed" },
+        { playbookId: "e", status: "Cancelled" },
+        { playbookId: "", status: "Succeeded" },
+      ]),
+    ).toEqual({
+      ranPlaybookIds: ["a"],
+      playbookRunStates: {
+        b: types.ResponsePlaybookRunState.Waiting,
+        c: types.ResponsePlaybookRunState.Running,
+        d: types.ResponsePlaybookRunState.Failed,
+      },
+    });
+  });
+
   test("an account or a host with no playbook for it, by hand", () => {
     const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
       input({

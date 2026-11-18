@@ -593,6 +593,47 @@ describe("a step's button", () => {
       (handlers.onRunPlaybook.mock.calls[0]![0] as ObjectID).toString(),
     ).toBe("77777777-7777-4777-8777-777777777777");
   });
+
+  // Regression: a run held for an approval ticked the account off as suspended.
+  test("a run of the playbook held for an approval is not done: the step says so, with no second Run Playbook", async () => {
+    const okta: SecurityPlaybook = new SecurityPlaybook();
+    okta._id = "77777777-7777-4777-8777-777777777777";
+    okta.name = "Suspend in Okta";
+    okta.steps = [{ action: "Suspend Okta User" }] as never;
+    playbooks = [okta];
+
+    const held: SecurityPlaybookRun = new SecurityPlaybookRun();
+    held._id = "12121212-1212-4121-8121-121212121212";
+    held.securityPlaybookId = new ObjectID(okta._id);
+    held.status = "Waiting for Approval" as never;
+    runs = [held];
+
+    await drawn(
+      buildCase({
+        entities: [
+          { type: SecurityEntityType.User, value: "k.morgan@acme.example" },
+        ] as never,
+      }),
+    );
+
+    const step: HTMLElement = stepOf("contain:user:k.morgan@acme.example");
+
+    expect(step).toHaveTextContent(
+      "Its run is waiting for approval on the case's Playbooks page.",
+    );
+    expect(
+      within(step).queryByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.action),
+    ).not.toBeInTheDocument();
+    expect(
+      within(step).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkbox),
+    ).not.toBeChecked();
+    expect(getListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: SecurityPlaybookRun,
+        select: { _id: true, securityPlaybookId: true, status: true },
+      }),
+    );
+  });
 });
 
 describe("who may do what", () => {

@@ -55,6 +55,9 @@ import {
   STEP_REQUESTS_THROUGH,
   STEP_REQUESTS_TURNED_AWAY,
   STEP_REQUESTS_UNKNOWN,
+  STEP_RUN_FAILED,
+  STEP_RUN_RUNNING,
+  STEP_RUN_WAITING,
   STEP_TAKE,
 } from "./SecurityCaseResponseCopy";
 import {
@@ -64,12 +67,14 @@ import {
   ResponsePhase,
   ResponsePlan,
   ResponsePlaybook,
+  ResponsePlaybookRunState,
   ResponseStep,
   ResponseStepCompletion,
   ResponseTask,
   ResponseText,
 } from "./SecurityCaseResponseTypes";
 import Route from "Common/Types/API/Route";
+import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SecurityCaseMatchedDetectionJson,
   SecurityCaseMatchedEventJson,
@@ -169,8 +174,13 @@ export interface ResponsePlanInput {
   matches: SecurityCaseMatchesJson | null;
   // The project's playbooks that are on.
   playbooks: Array<ResponsePlaybook>;
-  // The playbooks that ran on the case, by id.
+  // The playbooks a run of which succeeded on the case, by id.
   ranPlaybookIds: Array<string>;
+  /*
+   * Where the case's latest run of each other playbook stands, by id:
+   * waiting for approval, still running, or failed (readPlaybookRuns).
+   */
+  playbookRunStates?: Record<string, ResponsePlaybookRunState> | undefined;
   tasks: Array<ResponseTask>;
   ai: {
     suggestedPlaybookId?: string | undefined;
@@ -643,6 +653,48 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     ? getOpeningMatchedDetection(input.matches)
     : null;
   const ran: Set<string> = new Set(input.ranPlaybookIds);
+  const runStates: Record<string, ResponsePlaybookRunState> =
+    input.playbookRunStates || {};
+
+  /*
+   * A playbook's step is done once a run of it succeeded on the case. A run
+   * still going says so, with no second Run Playbook beside it; a failed
+   * one says so, and the step can be run again.
+   */
+  const playbookRun: (playbookId: string) => {
+    isDone: boolean;
+    canRun: boolean;
+    detail?: ResponseText | undefined;
+    isDetailWarning?: boolean | undefined;
+  } = (playbookId: string) => {
+    if (ran.has(playbookId)) {
+      return { isDone: true, canRun: false };
+    }
+
+    switch (runStates[playbookId]) {
+      case ResponsePlaybookRunState.Waiting:
+        return {
+          isDone: false,
+          canRun: false,
+          detail: { template: STEP_RUN_WAITING, values: {} },
+        };
+      case ResponsePlaybookRunState.Running:
+        return {
+          isDone: false,
+          canRun: false,
+          detail: { template: STEP_RUN_RUNNING, values: {} },
+        };
+      case ResponsePlaybookRunState.Failed:
+        return {
+          isDone: false,
+          canRun: true,
+          detail: { template: STEP_RUN_FAILED, values: {} },
+          isDetailWarning: true,
+        };
+      default:
+        return { isDone: false, canRun: true };
+    }
+  };
   const playbooksById: Map<string, ResponsePlaybook> = new Map(
     input.playbooks.map(
       (playbook: ResponsePlaybook): [string, ResponsePlaybook] => {
@@ -859,6 +911,8 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
 
         if (playbook) {
           usedPlaybookIds.add(playbook.id);
+          const run: ReturnType<typeof playbookRun> = playbookRun(playbook.id);
+
           add({
             key,
             phase: ResponsePhase.Contain,
@@ -868,12 +922,16 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
                 : STEP_CONTAIN_HOST_PLAYBOOK,
               values: { value: entity.value, playbook: playbook.name },
             },
-            action: {
-              kind: ResponseActionKind.RunPlaybook,
-              title: ACTION_RUN_PLAYBOOK,
-              playbookId: playbook.id,
-            },
-            isDoneByCase: ran.has(playbook.id),
+            detail: run.detail,
+            isDetailWarning: run.isDetailWarning,
+            action: run.canRun
+              ? {
+                  kind: ResponseActionKind.RunPlaybook,
+                  title: ACTION_RUN_PLAYBOOK,
+                  playbookId: playbook.id,
+                }
+              : undefined,
+            isDoneByCase: run.isDone,
           });
         } else {
           add({
@@ -935,6 +993,8 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       },
     );
 
+    const run: ReturnType<typeof playbookRun> = playbookRun(aiPlaybook.id);
+
     add({
       key: getResponseStepKey("playbook", aiPlaybook.id),
       phase: contains ? ResponsePhase.Contain : ResponsePhase.Confirm,
@@ -942,12 +1002,16 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
         template: STEP_AI_PLAYBOOK,
         values: { playbook: aiPlaybook.name },
       },
-      action: {
-        kind: ResponseActionKind.RunPlaybook,
-        title: ACTION_RUN_PLAYBOOK,
-        playbookId: aiPlaybook.id,
-      },
-      isDoneByCase: ran.has(aiPlaybook.id),
+      detail: run.detail,
+      isDetailWarning: run.isDetailWarning,
+      action: run.canRun
+        ? {
+            kind: ResponseActionKind.RunPlaybook,
+            title: ACTION_RUN_PLAYBOOK,
+            playbookId: aiPlaybook.id,
+          }
+        : undefined,
+      isDoneByCase: run.isDone,
     });
   }
 
@@ -1091,6 +1155,60 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
 }
 
 // The steps OneUptime AI suggests, and the rest: drawn apart.
+/*
+ * The case's playbook runs, newest first, as the plan reads them: the
+ * playbooks a run of which succeeded, and where the latest run of each
+ * other one stands. A cancelled run leaves its playbook as if it never ran.
+ */
+export function readPlaybookRuns(
+  runs: Array<{ playbookId: string; status: string }>,
+): {
+  ranPlaybookIds: Array<string>;
+  playbookRunStates: Record<string, ResponsePlaybookRunState>;
+} {
+  const ran: Set<string> = new Set<string>();
+  const latest: Map<string, string> = new Map<string, string>();
+
+  for (const run of runs) {
+    if (!run.playbookId) {
+      continue;
+    }
+
+    if (run.status === SecurityPlaybookRunStatus.Succeeded) {
+      ran.add(run.playbookId);
+    }
+
+    if (!latest.has(run.playbookId)) {
+      latest.set(run.playbookId, run.status);
+    }
+  }
+
+  const playbookRunStates: Record<string, ResponsePlaybookRunState> = {};
+
+  for (const [playbookId, status] of latest) {
+    if (ran.has(playbookId)) {
+      continue;
+    }
+
+    switch (status) {
+      case SecurityPlaybookRunStatus.WaitingForApproval:
+        playbookRunStates[playbookId] = ResponsePlaybookRunState.Waiting;
+        break;
+      case SecurityPlaybookRunStatus.Queued:
+      case SecurityPlaybookRunStatus.Running:
+        playbookRunStates[playbookId] = ResponsePlaybookRunState.Running;
+        break;
+      case SecurityPlaybookRunStatus.Failed:
+        playbookRunStates[playbookId] = ResponsePlaybookRunState.Failed;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return { ranPlaybookIds: Array.from(ran), playbookRunStates };
+}
+
 export function isAiStep(step: Pick<ResponseStep, "aiText">): boolean {
   return Boolean(step.aiText);
 }

@@ -51,6 +51,17 @@ export const RESPONSE_DONE_BY_CASE: string = translationKey(
   "The case says when this step is done, so it is not ticked by hand.",
 );
 
+// Under a playbook's step, while no run of it has succeeded on the case.
+export const STEP_RUN_WAITING: string = translationKey(
+  "Its run is waiting for approval on the case's Playbooks page.",
+);
+export const STEP_RUN_RUNNING: string = translationKey(
+  "Its run has not finished yet.",
+);
+export const STEP_RUN_FAILED: string = translationKey(
+  "Its last run failed. See why on the case's Playbooks page.",
+);
+
 export const RESPONSE_READY_TO_CONTAIN: string = translationKey(
   "Every containment step is done. Mark the case Contained, so its time to contain is recorded.",
 );
