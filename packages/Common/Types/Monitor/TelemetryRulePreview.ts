@@ -17,8 +17,16 @@ import TelemetryAlertRuleUtil from "./TelemetryAlertRule";
  * Bounded on purpose: at most PREVIEW_WINDOW_COUNT windows, so a one-minute
  * rule reads 2.4 hours back, a five-minute rule 12 hours and a fifteen-minute
  * rule 36 hours, and nothing reads more than MAX_PREVIEW_RANGE_IN_SECONDS.
- * Windows are whole: they end on a multiple of their length before now, so
- * the newest one is not a half-filled window that reads as a drop.
+ *
+ * The windows end at now, each a whole window long: the newest is the very
+ * count the monitor's next check makes - what matched in the last N seconds
+ * - and each before it the N seconds before that. They used to end on the
+ * last multiple of their length before now, so that the newest would not be
+ * half filled; but that left the window in progress unread, and a service's
+ * first logs, younger than one window, were in none of them: the preview
+ * said "Nothing matched in this time." beside a Matching logs list that
+ * showed them, and the monitor alerted once saved (#7470). Counted back from
+ * now, no window is half filled either.
  */
 
 export const PREVIEW_WINDOW_COUNT: number = 144;
@@ -72,14 +80,16 @@ export interface TelemetryRulePreviewSummary {
   lowest: number;
   // The median window: what is normal.
   typical: number;
-  // The newest whole window.
+  // The newest window, up to now: what the monitor's next check counts.
   latest: number | undefined;
 }
 
 export default class TelemetryRulePreviewUtil {
   /*
    * The windows to read for a rule whose window is `windowInSeconds`, back
-   * from `now`. The window is clamped to what the monitor forms offer.
+   * from `now`: the newest ends at now, on its whole second, as the windows
+   * the server counts start on whole seconds. The window is clamped to what
+   * the monitor forms offer.
    */
   public static getRange(data: {
     windowInSeconds: number;
@@ -98,8 +108,7 @@ export default class TelemetryRulePreviewUtil {
       ),
     );
 
-    const endMs: number =
-      Math.floor(data.now.getTime() / windowInMs) * windowInMs;
+    const endMs: number = Math.floor(data.now.getTime() / 1000) * 1000;
     const startMs: number = endMs - windowCount * windowInMs;
 
     return {
@@ -122,7 +131,9 @@ export default class TelemetryRulePreviewUtil {
 
   /*
    * Every window of the range, in order, with its count: a window the
-   * server did not answer for had nothing in it, so it is 0.
+   * server did not answer for had nothing in it, so it is 0. A count is
+   * the window's it falls in, counted from the range's start - the windows
+   * end at now, not on a multiple of their length.
    */
   public static toPoints(
     answer: TelemetryRulePreviewAnswer,
@@ -143,7 +154,8 @@ export default class TelemetryRulePreviewUtil {
         continue;
       }
 
-      const alignedMs: number = Math.floor(timeMs / windowInMs) * windowInMs;
+      const alignedMs: number =
+        startMs + Math.floor((timeMs - startMs) / windowInMs) * windowInMs;
       counts.set(alignedMs, (counts.get(alignedMs) || 0) + (bucket.value || 0));
     }
 

@@ -35,7 +35,9 @@ import ObjectID from "../../Types/ObjectID";
  * check runs (MonitorTelemetryMonitor) - with the preview's range in place
  * of the check's window, narrowed to the services the reader may read, and
  * counted per window in ClickHouse (AnalyticsDatabaseService.countPerWindow,
- * which stops at the interactive time limit).
+ * which stops at the interactive time limit). The windows are counted from
+ * the range's start, so the newest ends at now: the count the monitor's
+ * next check makes, a service's first minutes included (#7470).
  */
 export default class TelemetryRulePreviewService {
   @CaptureSpan()
@@ -65,6 +67,8 @@ export default class TelemetryRulePreviewService {
         query,
         timeColumnName: "time",
         windowInSeconds: range.windowInSeconds,
+        // The newest window ends at now, as the monitor's check counts.
+        windowsStartAt: range.startTime,
         props: { isRoot: true },
       }),
     });
@@ -97,6 +101,8 @@ export default class TelemetryRulePreviewService {
         query,
         timeColumnName: "startTime",
         windowInSeconds: range.windowInSeconds,
+        // The newest window ends at now, as the monitor's check counts.
+        windowsStartAt: range.startTime,
         props: { isRoot: true },
       }),
     });
@@ -150,6 +156,8 @@ export default class TelemetryRulePreviewService {
         query,
         timeColumnName: "time",
         windowInSeconds: range.windowInSeconds,
+        // The newest window ends at now, as the monitor's check counts.
+        windowsStartAt: range.startTime,
         props: { isRoot: true },
       }),
     });
