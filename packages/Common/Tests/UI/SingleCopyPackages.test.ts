@@ -441,6 +441,8 @@ describe("the plugin, between two installs", () => {
     ok: boolean;
     error: string;
     markers: Array<string>;
+    // What each import a browser field turns off read: "nothing", if it stayed off.
+    turnedOff: Array<string>;
     output: string;
     inputs: Array<string>;
   }
@@ -466,6 +468,7 @@ describe("the plugin, between two installs", () => {
     ok: false,
     error: "not built",
     markers: [],
+    turnedOff: [],
     output: "",
     inputs: [],
   };
@@ -562,6 +565,34 @@ describe("the plugin, between two installs", () => {
       },
     });
 
+    /*
+     * Imports a browser field turns off: one by the app's own package.json,
+     * one by a package of its install. Both installs have each, at one
+     * version, so only the browser field keeps Common's copy out.
+     */
+    for (const installRoot of [common, app]) {
+      for (const name of ["first-party-off", "third-party-off"]) {
+        writePackage(installRoot, { name, version: "1.0.0" });
+      }
+    }
+    fs.writeFileSync(
+      path.join(app, "package.json"),
+      JSON.stringify({
+        name: "app",
+        version: "1.0.0",
+        browser: { "first-party-off": false },
+      }),
+    );
+    writePackage(app, {
+      name: "browser-off-pkg",
+      version: "1.0.0",
+      fields: { browser: { "third-party-off": false } },
+      files: {
+        "index.js":
+          'import * as off from "third-party-off";\nexport const got = off;\n',
+      },
+    });
+
     // Common's own code imports Common's copies.
     fs.mkdirSync(path.join(common, "src"), { recursive: true });
     fs.writeFileSync(
@@ -587,6 +618,9 @@ describe("the plugin, between two installs", () => {
         'import { markers as fromAppPackage } from "app-only-pkg";',
         'import { unused } from "side-effect-free";',
         'import { marker as common } from "../../Common/src/Uses.js";',
+        'import * as firstPartyOff from "first-party-off";',
+        'import { got as thirdPartyOff } from "browser-off-pkg";',
+        "globalThis.turnedOff = [firstPartyOff.marker, thirdPartyOff.marker];",
         'const cjs = require("cjs-lib").marker;',
         `globalThis.markers = [${BOTH.filter(
           ([name]: [string, string, string]) => {
@@ -632,11 +666,12 @@ describe("the plugin, between two installs", () => {
           ok: true,
           error: "",
           markers: context.markers,
+          turnedOff: context.turnedOff.map((marker) => marker === undefined ? "nothing" : marker),
           output,
           inputs: Object.keys(result.metafile.inputs),
         }));
       }).catch((error) => {
-        console.log(JSON.stringify({ ok: false, error: String(error), markers: [], output: "", inputs: [] }));
+        console.log(JSON.stringify({ ok: false, error: String(error), markers: [], turnedOff: [], output: "", inputs: [] }));
       });
     `;
 
@@ -689,6 +724,22 @@ describe("the plugin, between two installs", () => {
 
   test("an aliased specifier is left to its alias", () => {
     expect(built.markers).toContain("App:aliased-lib@1.0.0");
+  });
+
+  test("an import a browser field turns off stays off, the app's own and a package's, though Common installs the same version", () => {
+    expect(built.turnedOff).toEqual(["nothing", "nothing"]);
+    expect(built.output).not.toContain("first-party-off@1.0.0");
+    expect(built.output).not.toContain("third-party-off@1.0.0");
+    expect(
+      built.inputs
+        .filter((input: string) => {
+          return input.includes("-party-off");
+        })
+        .sort(),
+    ).toEqual([
+      "(disabled):node_modules/first-party-off/index.js",
+      "(disabled):node_modules/third-party-off/index.js",
+    ]);
   });
 
   test("a package of the app's install takes Common's copy of the same version, and keeps its own of any other", () => {

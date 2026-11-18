@@ -30,7 +30,9 @@
  *
  * The React family and i18next keep their aliases in esbuild-config.js, which
  * name one copy for every import, so a specifier the build aliases is left to
- * its alias.
+ * its alias. So is an import a package.json's "browser" field maps (to false,
+ * say, which turns it off): esbuild honours that for the importing package,
+ * and Common's copy must not bring back what it turned off.
  *
  * packagesFromSeveralInstalls() reads a build's metafile for a package still
  * bundled from two installs - two versions no copy stands in for - which
@@ -191,11 +193,60 @@ function createSingleCopyPlugin(options = {}) {
       // Read once a build: in watch mode an install between rebuilds shows.
       const commonFolders = new Map();
       const versions = new Map();
+      const browserFields = new Map();
 
       build.onStart(() => {
         commonFolders.clear();
         versions.clear();
+        browserFields.clear();
       });
+
+      /*
+       * The "browser" maps of every package.json from a folder up: esbuild
+       * reads the nearest that has one for the files below it.
+       */
+      const browserMapsOf = (folder) => {
+        if (!browserFields.has(folder)) {
+          let browser = null;
+
+          try {
+            const packageJson = JSON.parse(
+              fs.readFileSync(path.join(folder, "package.json"), "utf8"),
+            );
+
+            browser =
+              packageJson.browser && typeof packageJson.browser === "object"
+                ? packageJson.browser
+                : null;
+          } catch (error) {
+            browser = null;
+          }
+
+          const parent = path.dirname(folder);
+
+          browserFields.set(folder, [
+            ...(browser ? [browser] : []),
+            ...(parent === folder ? [] : browserMapsOf(parent)),
+          ]);
+        }
+
+        return browserFields.get(folder);
+      };
+
+      /*
+       * Whether a package.json above the importer maps this import in its
+       * browser field: to another module, or to false, which turns it off.
+       * esbuild honours that, but build.resolve() does not say an import was
+       * turned off, so such an import is left as it is.
+       */
+      const isMappedForTheBrowser = (args, name) => {
+        return browserMapsOf(path.dirname(args.importer)).some((browser) => {
+          return (
+            Object.prototype.hasOwnProperty.call(browser, args.path) ||
+            Object.prototype.hasOwnProperty.call(browser, name)
+          );
+        });
+      };
 
       // Common's copy of a package, or null when Common does not install it.
       const commonFolderOf = (name) => {
@@ -243,6 +294,12 @@ function createSingleCopyPlugin(options = {}) {
         });
       };
 
+      /*
+       * Every bare import. This plugin adds about 0.7 s to the Dashboard's
+       * production build of some 6 s, measured on 2026-11-18; narrower
+       * filters - the names Common installs, or their first letters, which
+       * leave out the 35,000 "Common/..." imports - measured the same.
+       */
       build.onResolve({ filter: /^[^./\\]/ }, async (args) => {
         if (
           (args.pluginData && args.pluginData[LOOKUP]) ||
@@ -260,7 +317,7 @@ function createSingleCopyPlugin(options = {}) {
         const name = packageNameOf(args.path);
         const commonFolder = name ? commonFolderOf(name) : null;
 
-        if (!commonFolder) {
+        if (!commonFolder || isMappedForTheBrowser(args, name)) {
           return undefined;
         }
 
