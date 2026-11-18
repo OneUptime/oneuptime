@@ -171,6 +171,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import PrivateRecordWriteCheck from "../Permission/PrivateRecordWriteCheck";
+import RemediationFixProducts from "./RemediationFixProducts";
 
 // What an approval, a dry run or a dismissal answers, as the routes send it.
 export type RemediationApprovalResult = JSONObject;
@@ -1710,6 +1711,16 @@ export default class RemediationApproval {
     });
 
     /*
+     * Nothing runs for a record of a product switched off on the server,
+     * nor a runbook while Runbooks is (RemediationFixProducts): asked after
+     * the person may see and run the fix, so a fix they may not is answered
+     * as before.
+     */
+    await RemediationFixProducts.assertMayActOn(
+      RemediationFixProducts.ofApproval(suggestion),
+    );
+
+    /*
      * What the fix runs, checked as it is now - its kind's own checks -
      * and the project as read, for its two-approvals rule:
      *
@@ -2075,6 +2086,11 @@ export default class RemediationApproval {
       action: DRY_RUN_FIX_ACTION,
     });
 
+    // Not for a record, or by a Cloud AI agent, switched off on the server.
+    await RemediationFixProducts.assertMayActOn(
+      RemediationFixProducts.ofDryRun(suggestion),
+    );
+
     const plan: AiRemediationCommandPlan | null =
       AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
 
@@ -2160,6 +2176,11 @@ export default class RemediationApproval {
       suggestion,
       action: DISMISS_FIX_ACTION,
     });
+
+    // Dismissing writes to the record: not while its product is switched off.
+    await RemediationFixProducts.assertMayActOn(
+      RemediationFixProducts.ofSubject(suggestion),
+    );
 
     /*
      * From a message, only the fix it showed, while it waits: a fix that

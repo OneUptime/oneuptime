@@ -22,6 +22,9 @@ import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import DatabaseService from "../Services/DatabaseService";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * PAGE NOW: a person does not want to wait for OneUptime AI.
@@ -39,6 +42,9 @@ import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/Dat
  *
  *   POST /ai-first-responder/page-now  { incidentId } or { alertId }
  *   -> { startedRuns: 1 }
+ *
+ * Paging starts On-Call's policies for the record: refused while the server
+ * has On-Call, or the record's own product, switched off (#9489).
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -51,6 +57,8 @@ export const PAGE_NOW_ACTION: string = "page now";
 router.post(
   "/ai-first-responder/page-now",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.OnCall),
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

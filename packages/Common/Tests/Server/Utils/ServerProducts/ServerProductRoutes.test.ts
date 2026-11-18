@@ -279,6 +279,36 @@ describe("ServerProductRoutes.refuseWhileRecordTableIsOff", () => {
   });
 });
 
+describe("ServerProductRoutes.isRefusal", () => {
+  test("tells each refusal from any other middleware", () => {
+    expect(
+      ServerProductRoutes.isRefusal(
+        ServerProductRoutes.refuseWhileOff(ProductKey.Monitors),
+      ),
+    ).toBe(true);
+    expect(
+      ServerProductRoutes.isRefusal(
+        ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.aiResource),
+      ),
+    ).toBe(true);
+    expect(
+      ServerProductRoutes.isRefusal(
+        ServerProductRoutes.refuseWhileRecordTableIsOff(
+          ProductsOfRequest.ruleTable,
+        ),
+      ),
+    ).toBe(true);
+
+    expect(
+      ServerProductRoutes.isRefusal((): void => {
+        return undefined;
+      }),
+    ).toBe(false);
+    expect(ServerProductRoutes.isRefusal(undefined)).toBe(false);
+    expect(ServerProductRoutes.isRefusal("refuseWhileOff")).toBe(false);
+  });
+});
+
 describe("ProductsOfRequest", () => {
   test("incidentOrAlert: by the subject type, or by the id the body names", () => {
     expect(

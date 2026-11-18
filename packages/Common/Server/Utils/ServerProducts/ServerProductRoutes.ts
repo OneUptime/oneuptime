@@ -44,6 +44,9 @@ import ProductKey from "../../../Types/Product/ProductKey";
  * registers a route that is not a GET to this, route by route, or to a
  * reason written down beside it.
  */
+// Every refusal made here, so a suite can tell one in a route's chain.
+const REFUSALS: WeakSet<RequestHandler> = new WeakSet<RequestHandler>();
+
 export default class ServerProductRoutes {
   // Refused while any of the products named is off.
   public static refuseWhileOff(...products: Array<ProductKey>): RequestHandler {
@@ -51,6 +54,17 @@ export default class ServerProductRoutes {
       (): ReadonlyArray<ProductKey> => {
         return products;
       },
+    );
+  }
+
+  /*
+   * Whether a middleware is one of these refusals: a route's suite that
+   * pins what stands in front of its handler reads it, since each refusal
+   * is a middleware of its own.
+   */
+  public static isRefusal(handler: unknown): boolean {
+    return (
+      typeof handler === "function" && REFUSALS.has(handler as RequestHandler)
     );
   }
 
@@ -63,24 +77,26 @@ export default class ServerProductRoutes {
   public static refuseWhileOffFor(
     getProducts: (req: ExpressRequest) => ReadonlyArray<ProductKey>,
   ): RequestHandler {
-    return async (
-      req: ExpressRequest,
-      _res: ExpressResponse,
-      next: NextFunction,
-    ): Promise<void> => {
-      try {
-        for (const product of ServerProductRoutes.readProducts(
-          getProducts,
-          req,
-        )) {
-          await ServerProducts.assertProductIsOn(product);
-        }
+    return ServerProductRoutes.remember(
+      async (
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          for (const product of ServerProductRoutes.readProducts(
+            getProducts,
+            req,
+          )) {
+            await ServerProducts.assertProductIsOn(product);
+          }
 
-        next();
-      } catch (err) {
-        next(err);
-      }
-    };
+          next();
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
   }
 
   /*
@@ -92,28 +108,36 @@ export default class ServerProductRoutes {
   public static refuseWhileRecordTableIsOff(
     getTableName: (req: ExpressRequest) => string | null | undefined,
   ): RequestHandler {
-    return async (
-      req: ExpressRequest,
-      _res: ExpressResponse,
-      next: NextFunction,
-    ): Promise<void> => {
-      try {
-        let tableName: string | null | undefined = null;
-
+    return ServerProductRoutes.remember(
+      async (
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
         try {
-          tableName = getTableName(req);
-        } catch {
-          // Its handler says what is wrong with the request.
-          tableName = null;
+          let tableName: string | null | undefined = null;
+
+          try {
+            tableName = getTableName(req);
+          } catch {
+            // Its handler says what is wrong with the request.
+            tableName = null;
+          }
+
+          await ServerProducts.assertRecordTableIsOn(tableName);
+
+          next();
+        } catch (err) {
+          next(err);
         }
+      },
+    );
+  }
 
-        await ServerProducts.assertRecordTableIsOn(tableName);
+  private static remember(handler: RequestHandler): RequestHandler {
+    REFUSALS.add(handler);
 
-        next();
-      } catch (err) {
-        next(err);
-      }
-    };
+    return handler;
   }
 
   // The products a request names: none when they cannot be read from it.
