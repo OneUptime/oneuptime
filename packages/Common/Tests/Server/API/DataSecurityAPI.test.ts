@@ -3179,6 +3179,49 @@ describe("a resource's compliance", () => {
     });
   });
 
+  test("a database on the cluster is scored with the cluster's settings, which only the cluster's page changes", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.PCIDSS);
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await call(
+        DATA_SECURITY_API_ROUTES.resourceCompliance,
+        {},
+        {
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_SERVER_ID.toString(),
+        },
+      )
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.name).toBe("orders");
+    expect(answer.storeCount).toBe(1);
+    expect(answer.complianceOwner).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    });
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS)).toMatchObject({
+      isTurnedOff: true,
+      storesInScope: 0,
+      storesTurnedOff: 1,
+    });
+  });
+
+  test("a cluster sets its own compliance", async () => {
+    clusterStore({ dataTypeIds: [] });
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.complianceOwner).toBeNull();
+  });
+
   test("a cluster with no stores scores nothing and reads no issues", async () => {
     databaseServers.length = 0;
 

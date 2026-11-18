@@ -148,8 +148,9 @@ export interface DataSecurityResourceScope {
 export const MAX_RESOURCE_SCOPE_STORES: number = 500;
 
 /*
- * One framework on a resource's Compliance page: scored over the stores
- * whose compliance the resource owns, with what the resource turned off.
+ * One framework on a resource's Compliance page: scored over the resource's
+ * stores, with what is turned off of it where the resource's compliance is
+ * set (the resource, or the cluster or container host a database runs on).
  */
 export interface DataSecurityResourceComplianceFramework
   extends DataSecurityComplianceFramework {
@@ -161,8 +162,14 @@ export interface DataSecurityResourceComplianceResponse {
   kind: DataStoreResourceKind;
   id: string;
   name: string;
-  // The stores whose compliance is set on this resource.
+  // The stores the resource's pages show, which its frameworks are scored over.
   storeCount: number;
+  /*
+   * Where its frameworks are turned on and off, when that is another
+   * resource: the cluster or container host a database runs on. Null when
+   * the resource sets them itself.
+   */
+  complianceOwner: DataSecurityResourceRef | null;
   frameworks: Array<DataSecurityResourceComplianceFramework>;
 }
 

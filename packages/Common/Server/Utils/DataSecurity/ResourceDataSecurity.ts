@@ -610,8 +610,11 @@ export default class ResourceDataSecurity {
   }
 
   /*
-   * A resource's Compliance page: every framework scored over the stores
-   * whose compliance it owns, with what it turned off of each. Null when
+   * A resource's Compliance page: every framework scored over the resource's
+   * stores, each with what its owner turned off, and what is turned off of
+   * each framework where the resource's compliance is set - on the resource
+   * itself, or, for a database running on a cluster or a container host, on
+   * that cluster or host (complianceOwner), whose page changes it. Null when
    * the caller may not read the resource.
    */
   @CaptureSpan()
@@ -636,16 +639,23 @@ export default class ResourceDataSecurity {
       resource,
       limit: MAX_STORES,
     });
-    const owned: Array<ScopedStore> = (
-      await this.toScopedStores(stores)
-    ).filter((store: ScopedStore): boolean => {
-      return isSameDataStoreResource(store.owner, resource);
-    });
+    const scoped: Array<ScopedStore> = await this.toScopedStores(stores);
+    const complianceOwner: DataSecurityResourceRef | null =
+      await this.readComplianceOwner({
+        projectId: data.projectId,
+        props: data.props,
+        resource,
+        scoped,
+      });
+    // Where what is turned off is set: here, or on the cluster or host the database runs on.
+    const settingsResource: DataStoreResourceRef = complianceOwner
+      ? { kind: complianceOwner.kind, id: complianceOwner.id }
+      : resource;
     const settings: Array<ComplianceScopeSetting> =
       await this.readProjectSettings(data.projectId);
     const issues: Array<ComplianceIssueInput> = await this.readOpenIssues({
       projectId: data.projectId,
-      storeIds: owned.map((store: ScopedStore): string => {
+      storeIds: scoped.map((store: ScopedStore): string => {
         return store.id;
       }),
     });
@@ -654,9 +664,10 @@ export default class ResourceDataSecurity {
       kind: data.kind,
       id: data.id.toString(),
       name,
-      storeCount: owned.length,
+      storeCount: scoped.length,
+      complianceOwner,
       frameworks: this.scoreFrameworks({
-        stores: owned,
+        stores: scoped,
         issues,
         settings,
       }).map(
@@ -664,7 +675,7 @@ export default class ResourceDataSecurity {
           framework: DataSecurityComplianceFramework,
         ): DataSecurityResourceComplianceFramework => {
           const scope: ResourceFrameworkScope = getResourceFrameworkScope(
-            resource,
+            settingsResource,
             framework.framework,
             settings,
           );
