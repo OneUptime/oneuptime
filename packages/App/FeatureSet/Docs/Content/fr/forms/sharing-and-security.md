@@ -191,6 +191,8 @@ Quand votre instance OneUptime a activé hCaptcha, le formulaire affiche un capt
 
 Une installation auto-hébergée peut faire analyser par ClamAV chaque fichier envoyé avant de le stocker : les fichiers d'un formulaire, et ceux que les personnes téléversent une fois connectées ou avec une clé d'API. Indiquez dans `CLAMAV_HOST` (et `CLAMAV_PORT`, `3310` par défaut) l'adresse d'un démon ClamAV. Avec Docker Compose, `COMPOSE_PROFILES=clamav` et `CLAMAV_HOST=clamav` dans `config.env` démarrent le ClamAV fourni avec OneUptime ; avec Helm, activez `clamav.enabled`. Un fichier signalé par ClamAV est refusé, avec son nom, et rien de l'envoi n'est stocké. Tant que ClamAV ne répond pas, chaque fichier est refusé avec "Les fichiers ne peuvent pas être analysés contre les virus pour le moment, ils n'ont donc pas été acceptés. Veuillez réessayer dans quelques minutes." (503), si bien qu'aucun fichier n'est stocké sans avoir été vérifié. Sans `CLAMAV_HOST`, les fichiers ne sont pas analysés, comme avant.
 
+Le ClamAV fourni avec OneUptime télécharge ses signatures depuis `database.clamav.net` au démarrage et les tient à jour : une connexion vers l'extérieur de votre réseau. Sur un réseau sans accès à Internet, indiquez dans `CLAMAV_HOST` (`clamav.host` dans le chart Helm) un démon ClamAV à vous, tenu à jour depuis un miroir à l'intérieur de ce réseau : voir [Installation isolée (air-gapped)](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Dépannage
 
 :::details Le lien dit que le formulaire n'est pas disponible

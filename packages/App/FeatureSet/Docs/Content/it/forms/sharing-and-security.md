@@ -191,6 +191,8 @@ Quando la tua istanza OneUptime ha hCaptcha attivo, il modulo mostra un captcha,
 
 Un'installazione self-hosted può far analizzare con ClamAV ogni file inviato prima di salvarlo: i file di un modulo e quelli che le persone caricano dopo l'accesso o con una chiave API. Imposta `CLAMAV_HOST` (e `CLAMAV_PORT`, `3310` per impostazione predefinita) sull'indirizzo di un demone ClamAV. Con Docker Compose, `COMPOSE_PROFILES=clamav` e `CLAMAV_HOST=clamav` in `config.env` avviano il ClamAV incluso in OneUptime; con Helm, attiva `clamav.enabled`. Un file segnalato da ClamAV viene rifiutato, indicandone il nome, e nulla dell'invio viene salvato. Finché ClamAV non risponde, ogni file viene rifiutato con "Al momento non è possibile controllare i file per i virus, quindi non sono stati accettati. Riprova tra qualche minuto." (503), così nessun file viene salvato senza controllo. Senza `CLAMAV_HOST` i file non vengono analizzati, come prima.
 
+Il ClamAV incluso in OneUptime scarica le sue firme da `database.clamav.net` all'avvio e le tiene aggiornate: una connessione verso l'esterno della tua rete. In una rete senza accesso a Internet, imposta `CLAMAV_HOST` (`clamav.host` nel chart Helm) sull'indirizzo di un tuo demone ClamAV, tenuto aggiornato da un mirror all'interno di quella rete: vedi [Installazione air-gapped](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Risoluzione dei problemi
 
 :::details Il link dice che il modulo non è disponibile

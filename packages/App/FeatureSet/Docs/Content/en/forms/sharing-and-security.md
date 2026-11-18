@@ -191,6 +191,8 @@ When your OneUptime instance has hCaptcha turned on, the form shows a captcha, a
 
 A self-hosted installation can have every file people send scanned for malware with ClamAV before it is stored: a form's files, and the files people upload while signed in or with an API key. Set `CLAMAV_HOST` (and `CLAMAV_PORT`, `3310` by default) to a ClamAV daemon. With Docker Compose, `COMPOSE_PROFILES=clamav` and `CLAMAV_HOST=clamav` in `config.env` start the ClamAV bundled with OneUptime; with Helm, set `clamav.enabled`. A file ClamAV flags is refused, saying which, and nothing of the submission is stored. While ClamAV does not answer, every file is refused with "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes." (503), so no file is stored unchecked. Without `CLAMAV_HOST`, files are not scanned, as before.
 
+The ClamAV bundled with OneUptime downloads its signatures from `database.clamav.net` when it starts, and keeps them up to date: a connection out of your network. On a network without internet access, point `CLAMAV_HOST` (`clamav.host` in the Helm chart) at a ClamAV daemon of your own, kept up to date from a mirror inside that network: see [Air-Gapped Installation](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Troubleshooting
 
 :::details The link says the form is not available

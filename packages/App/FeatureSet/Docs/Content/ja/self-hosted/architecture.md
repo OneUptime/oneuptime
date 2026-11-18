@@ -81,6 +81,8 @@ flowchart TB
 | Slack と Microsoft Teams | ワークスペースへの通知と操作 | [Slack 連携](/docs/self-hosted/slack-integration) |
 | OpenAI、Anthropic、Microsoft Foundry、自分で動かすモデルなどの LLM プロバイダー | OneUptime AI | [LLM プロバイダー](/docs/ai/llm-provider) |
 | `oneuptime.com` | Enterprise ライセンスのオンラインでの有効化 | [エンタープライズ版](/docs/self-hosted/enterprise) |
+| Let's Encrypt | OneUptime が自ら発行を依頼する証明書: `PROVISION_SSL=true` (Helm チャートでは `ssl.provision`) のときのインストールのアドレス用と、ステータスページ独自のドメイン用 | [ステータスページの証明書](/docs/status-pages/branding-and-domains#ssl-証明書) |
+| ClamAV のシグネチャ更新 (`database.clamav.net` から) | 送られてくるファイルのマルウェアスキャン。OneUptime に同梱の ClamAV を有効にしたとき | [マルウェアスキャン](/docs/forms/sharing-and-security#マルウェアスキャン) |
 
 逆向きの接続、つまり SendGrid による受信メールの配信や、Slack と Microsoft Teams からのコールバックには、ingress にインターネットから到達できる必要があります。アプリとプローブがどのプライベートアドレスに到達してよいかは、あなたが決めます。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
 

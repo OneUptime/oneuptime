@@ -191,6 +191,8 @@ OneUptime 인스턴스에서 hCaptcha 가 켜져 있으면 양식에 캡차가 �
 
 자체 호스팅 설치에서는 사람들이 보내는 모든 파일을 저장하기 전에 ClamAV로 악성 코드를 검사할 수 있습니다. 양식의 파일과, 로그인한 사람이나 API 키로 업로드하는 파일이 대상입니다. `CLAMAV_HOST`(와 `CLAMAV_PORT`, 기본값 `3310`)를 ClamAV 데몬으로 설정하세요. Docker Compose에서는 `config.env`의 `COMPOSE_PROFILES=clamav`와 `CLAMAV_HOST=clamav`로 OneUptime에 포함된 ClamAV가 시작되고, Helm에서는 `clamav.enabled`를 켭니다. ClamAV가 탐지한 파일은 어떤 파일인지 알려 주며 거부되고, 제출된 내용은 아무것도 저장되지 않습니다. ClamAV가 응답하지 않는 동안에는 모든 파일이 "지금은 파일의 바이러스 검사를 할 수 없어 파일이 접수되지 않았습니다. 몇 분 후에 다시 시도해 주세요." (503)으로 거부되므로, 검사하지 않은 파일은 저장되지 않습니다. `CLAMAV_HOST`가 없으면 이전처럼 파일을 검사하지 않습니다.
 
+OneUptime에 포함된 ClamAV는 시작할 때 `database.clamav.net`에서 시그니처를 내려받고 최신 상태로 유지합니다. 이는 네트워크 밖으로 나가는 연결입니다. 인터넷에 연결되지 않은 네트워크에서는 `CLAMAV_HOST`(Helm 차트에서는 `clamav.host`)를 그 네트워크 안의 미러로 최신 상태를 유지하는 자체 ClamAV 데몬으로 설정하세요. 자세한 내용은 [에어갭 설치](/docs/installation/air-gapped#what-still-reaches-out)를 참고하세요.
+
 ## 문제 해결
 
 :::details 링크에 양식을 사용할 수 없다고 표시됨

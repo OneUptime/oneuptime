@@ -81,6 +81,8 @@ Alt andet forbinder sig kun udad, når du slår det til, og hver har en side, de
 | Slack og Microsoft Teams | Notifikationer og handlinger i arbejdsområdet | [Slack-integration](/docs/self-hosted/slack-integration) |
 | En LLM-udbyder som OpenAI, Anthropic, Microsoft Foundry eller en model, du selv kører | OneUptime AI | [LLM-udbydere](/docs/ai/llm-provider) |
 | `oneuptime.com` | Aktivering af en Enterprise-licens online | [Enterprise Edition](/docs/self-hosted/enterprise) |
+| Let's Encrypt | Certifikater, som OneUptime selv bestiller: til din installations adresse med `PROVISION_SSL=true` (`ssl.provision` i Helm-chartet) og til statussiders egne domæner | [Statussidecertifikater](/docs/status-pages/branding-and-domains#ssl-certifikater) |
+| ClamAV's signaturopdateringer, fra `database.clamav.net` | Malwarescanning af de filer, folk sender, når du slår den ClamAV til, der følger med OneUptime | [Malwarescanning](/docs/forms/sharing-and-security#malwarescanning) |
 
 Forbindelser den anden vej – SendGrid, der leverer indgående e-mail, og Slack og Microsoft Teams, der kalder tilbage – kræver, at ingress kan nås fra internettet. Hvilke private adresser appen og sonder må nå, bestemmer du: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 

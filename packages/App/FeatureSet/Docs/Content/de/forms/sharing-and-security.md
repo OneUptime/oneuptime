@@ -191,6 +191,8 @@ Hat Ihre OneUptime-Instanz hCaptcha eingeschaltet, zeigt das Formular ein Captch
 
 Eine selbst gehostete Installation kann jede Datei, die Personen senden, vor dem Speichern mit ClamAV auf Malware prüfen lassen: die Dateien eines Formulars und die Dateien, die Personen angemeldet oder mit einem API-Schlüssel hochladen. Setzen Sie `CLAMAV_HOST` (und `CLAMAV_PORT`, standardmäßig `3310`) auf einen ClamAV-Daemon. Mit Docker Compose starten `COMPOSE_PROFILES=clamav` und `CLAMAV_HOST=clamav` in `config.env` das mit OneUptime gelieferte ClamAV; mit Helm setzen Sie `clamav.enabled`. Eine Datei, die ClamAV beanstandet, wird mit ihrem Namen abgelehnt, und von der Einsendung wird nichts gespeichert. Solange ClamAV nicht antwortet, wird jede Datei mit "Dateien können gerade nicht auf Viren geprüft werden, deshalb wurden sie nicht angenommen. Bitte versuchen Sie es in ein paar Minuten erneut." (503) abgelehnt, sodass keine Datei ungeprüft gespeichert wird. Ohne `CLAMAV_HOST` werden Dateien wie bisher nicht geprüft.
 
+Das mit OneUptime gelieferte ClamAV lädt seine Signaturen beim Start von `database.clamav.net` herunter und hält sie aktuell: eine Verbindung aus Ihrem Netzwerk heraus. In einem Netzwerk ohne Internetzugang richten Sie `CLAMAV_HOST` (`clamav.host` im Helm-Chart) auf einen eigenen ClamAV-Daemon, den Sie über einen Spiegel innerhalb dieses Netzwerks aktuell halten: siehe [Air-Gapped-Installation](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Fehlerbehebung
 
 :::details Der Link sagt, das Formular sei nicht verfügbar

@@ -191,6 +191,8 @@ Cuando tu instancia de OneUptime tiene hCaptcha activado, el formulario muestra 
 
 Una instalación autoalojada puede hacer que ClamAV analice en busca de malware cada archivo que envían las personas antes de guardarlo: los archivos de un formulario y los que las personas suben con la sesión iniciada o con una clave de API. Configura `CLAMAV_HOST` (y `CLAMAV_PORT`, `3310` de forma predeterminada) con un daemon de ClamAV. Con Docker Compose, `COMPOSE_PROFILES=clamav` y `CLAMAV_HOST=clamav` en `config.env` inician el ClamAV incluido con OneUptime; con Helm, activa `clamav.enabled`. Un archivo que ClamAV marca se rechaza, indicando cuál, y no se guarda nada del envío. Mientras ClamAV no responde, todos los archivos se rechazan con "Ahora mismo no se pueden analizar los archivos en busca de virus, así que no se aceptaron. Vuelve a intentarlo en unos minutos." (503), así que ningún archivo se guarda sin revisar. Sin `CLAMAV_HOST`, los archivos no se analizan, como hasta ahora.
 
+El ClamAV incluido con OneUptime descarga sus firmas de `database.clamav.net` al arrancar y las mantiene al día: una conexión hacia fuera de tu red. En una red sin acceso a internet, apunta `CLAMAV_HOST` (`clamav.host` en el chart de Helm) a un daemon de ClamAV propio, que mantengas al día desde un espejo dentro de esa red: consulta [Instalación aislada (air-gapped)](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Solución de problemas
 
 :::details El enlace dice que el formulario no está disponible

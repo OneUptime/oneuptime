@@ -81,6 +81,8 @@ Alles andere baut nur dann Verbindungen nach außen auf, wenn Sie es einschalten
 | Slack und Microsoft Teams | Benachrichtigungen und Aktionen im Workspace | [Slack-Integration](/docs/self-hosted/slack-integration) |
 | Ein LLM-Anbieter, etwa OpenAI, Anthropic, Microsoft Foundry oder ein Modell, das Sie selbst betreiben | OneUptime AI | [LLM-Anbieter](/docs/ai/llm-provider) |
 | `oneuptime.com` | Eine Enterprise-Lizenz online aktivieren | [Enterprise Edition](/docs/self-hosted/enterprise) |
+| Let's Encrypt | Zertifikate, die OneUptime selbst bestellt: für die Adresse Ihrer Installation mit `PROVISION_SSL=true` (`ssl.provision` im Helm-Chart) und für eigene Domains von Statusseiten | [Zertifikate für Statusseiten](/docs/status-pages/branding-and-domains#ssl-zertifikate) |
+| Signatur-Updates von ClamAV, von `database.clamav.net` | Malware-Prüfung der Dateien, die Personen senden, sobald Sie das mit OneUptime gelieferte ClamAV einschalten | [Malware-Prüfung](/docs/forms/sharing-and-security#malware-prüfung) |
 
 Verbindungen in die andere Richtung – SendGrid, das eingehende E-Mails zustellt, oder Slack und Microsoft Teams, die zurückrufen – setzen voraus, dass der Ingress aus dem Internet erreichbar ist. Welche privaten Adressen die App und die Sonden erreichen dürfen, entscheiden Sie: siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
