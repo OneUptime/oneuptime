@@ -3870,6 +3870,8 @@
   "No exceptions yet": "尚無例外",
   "First profiles received": "已收到第一批效能剖析",
   "No profiles yet": "尚無效能剖析",
+  "First AI calls received": "已收到第一批 AI 呼叫",
+  "No AI calls yet": "還沒有 AI 呼叫",
   "Set up": "已設定",
   "The provider": "提供者",
   "The mail server": "郵件伺服器",

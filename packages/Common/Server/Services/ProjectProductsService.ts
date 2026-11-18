@@ -43,6 +43,16 @@ import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../Models/DatabaseModels/Workflow";
+import CloudResource from "../../Models/DatabaseModels/CloudResource";
+import DataStore from "../../Models/DatabaseModels/DataStore";
+import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
+import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
+import SecurityLogSource from "../../Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "../../Models/DatabaseModels/SecurityTelemetrySource";
+import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
+import { DataStoreKind } from "../../Types/DataSecurity/DataStoreKind";
+import { OBJECT_STORE_KINDS } from "../../Types/DataObservability/StoragePaths";
+import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan, {
@@ -109,8 +119,9 @@ import {
  *     (ProjectUserPreferenceService), and nobody else's;
  *   - what is in use (getProjectUsage): one statement that asks, for each
  *     product of PRODUCT_RECORD_MODELS, whether the project has any of its
- *     records, and the project's activation milestones for the telemetry
- *     products. Kept per project for USAGE_TTL_IN_MS, so a page load costs
+ *     records - and for each of PRODUCT_USAGE_RECORDS, whether it has one
+ *     its first page counts - and the project's activation milestones for
+ *     the telemetry products and AI / LLM. Kept per project for USAGE_TTL_IN_MS, so a page load costs
  *     no more than reading the project, and read again on every server
  *     once a product's first record is created, its records are deleted or
  *     its first data arrives (Utils/ProjectProducts/ProjectUsageCache,
@@ -177,6 +188,71 @@ export const PRODUCT_RECORD_MODELS: Readonly<
 };
 
 /*
+ * The products whose first page counts only some records of a table, or
+ * the records of a few tables (#7325), each with that rule: in use while
+ * one record of one of them matches. Every condition is written here from
+ * fixed values - a kind, a switch - never from a request.
+ *
+ *   - Inventory: an item of the inventory, not archived (its Overview's
+ *     count of the estate);
+ *   - App Platforms: an environment, a cloud resource of the environment
+ *     kind, not archived (its Overview's first-run check);
+ *   - Data Observability: a database it can watch, or a bucket with paths
+ *     watched, not archived (its Overview's store count);
+ *   - Data Security: a data store, not archived (its Overview's store
+ *     count);
+ *   - Security Events: a source it reads that is on - a connection, your
+ *     logs, your other OneUptime data (its Get started's first step).
+ */
+export interface ProductUsageRecord {
+  modelType: { new (): BaseModel };
+  // A condition on the table's own columns, beside its project.
+  where: string;
+}
+
+const sqlTextList: (values: ReadonlyArray<string>) => string = (
+  values: ReadonlyArray<string>,
+): string => {
+  return values
+    .map((value: string): string => {
+      return `'${value.replace(/'/g, "''")}'`;
+    })
+    .join(", ");
+};
+
+export const PRODUCT_USAGE_RECORDS: Readonly<
+  Partial<Record<ProductKey, ReadonlyArray<ProductUsageRecord>>>
+> = {
+  [ProductKey.Inventory]: [
+    { modelType: InventoryItem, where: `"isArchived" = false` },
+  ],
+  [ProductKey.AppPlatforms]: [
+    {
+      modelType: CloudResource,
+      where: `"isArchived" = false AND "cloudResourceKind" = '${CloudResourceKind.Environment}'`,
+    },
+  ],
+  [ProductKey.DataObservability]: [
+    {
+      modelType: DataStore,
+      where: `"isArchived" = false AND ("kind" IN (${sqlTextList(
+        DATA_OBSERVABILITY_KINDS as ReadonlyArray<DataStoreKind>,
+      )}) OR ("kind" IN (${sqlTextList(
+        OBJECT_STORE_KINDS as ReadonlyArray<DataStoreKind>,
+      )}) AND "watchedPaths" IS NOT NULL))`,
+    },
+  ],
+  [ProductKey.DataSecurity]: [
+    { modelType: DataStore, where: `"isArchived" = false` },
+  ],
+  [ProductKey.SecurityEvents]: [
+    { modelType: SecurityEventConnection, where: `"isEnabled" = true` },
+    { modelType: SecurityLogSource, where: `"isEnabled" = true` },
+    { modelType: SecurityTelemetrySource, where: `"isEnabled" = true` },
+  ],
+};
+
+/*
  * How long a project's usage is kept at most before it is asked again. A
  * change to it is seen at once (ProjectUsageCache).
  */
@@ -222,6 +298,24 @@ export const getUsageStatement: () => string = (): string => {
     columns.push(
       `EXISTS (SELECT 1 FROM "${tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL) AS "${product}"`,
     );
+  }
+
+  // The products counted by some of their records: one EXISTS per table.
+  for (const product of PRODUCT_KEYS) {
+    const records: ReadonlyArray<ProductUsageRecord> | undefined =
+      PRODUCT_USAGE_RECORDS[product];
+
+    if (!records || records.length === 0) {
+      continue;
+    }
+
+    const exists: Array<string> = records.map(
+      (record: ProductUsageRecord): string => {
+        return `EXISTS (SELECT 1 FROM "${new record.modelType().tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND (${record.where}))`;
+      },
+    );
+
+    columns.push(`(${exists.join(" OR ")}) AS "${product}"`);
   }
 
   return `SELECT ${columns.join(", ")}`;
@@ -450,15 +544,21 @@ export class ProjectProductsServiceClass {
         continue;
       }
 
-      const modelType: { new (): BaseModel } | undefined =
-        PRODUCT_RECORD_MODELS[product];
+      const modelTypes: Array<{ new (): BaseModel }> =
+        this.getUsageModelTypes(product);
 
+      /*
+       * Only for whoever may read one of the records the product is counted
+       * by: membership is not read authorisation.
+       */
       if (
-        modelType &&
+        modelTypes.length > 0 &&
         !data.props.isMasterAdmin &&
-        !CallerPermission.holdsModelPermission(data.props, {
-          model: new modelType(),
-          operation: "read",
+        !modelTypes.some((modelType: { new (): BaseModel }): boolean => {
+          return CallerPermission.holdsModelPermission(data.props, {
+            model: new modelType(),
+            operation: "read",
+          });
         })
       ) {
         continue;
@@ -471,6 +571,26 @@ export class ProjectProductsServiceClass {
     }
 
     return readable;
+  }
+
+  /*
+   * The models a product's usage is counted by: its main record
+   * (PRODUCT_RECORD_MODELS), or the records of PRODUCT_USAGE_RECORDS.
+   * None for a product counted by its first data.
+   */
+  public getUsageModelTypes(product: ProductKey): Array<{ new (): BaseModel }> {
+    const main: { new (): BaseModel } | undefined =
+      PRODUCT_RECORD_MODELS[product];
+
+    if (main) {
+      return [main];
+    }
+
+    return (PRODUCT_USAGE_RECORDS[product] || []).map(
+      (record: ProductUsageRecord): { new (): BaseModel } => {
+        return record.modelType;
+      },
+    );
   }
 
   /*

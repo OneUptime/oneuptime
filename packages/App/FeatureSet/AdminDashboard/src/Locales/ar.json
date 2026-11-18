@@ -3870,6 +3870,8 @@
   "No exceptions yet": "لا توجد استثناءات بعد",
   "First profiles received": "وصلت أولى ملفات التعريف",
   "No profiles yet": "لا توجد ملفات تعريف بعد",
+  "First AI calls received": "وصلت أولى استدعاءات الذكاء الاصطناعي",
+  "No AI calls yet": "لا توجد استدعاءات ذكاء اصطناعي بعد",
   "Set up": "مُعدّ",
   "The provider": "المزوّد",
   "The mail server": "خادم البريد",

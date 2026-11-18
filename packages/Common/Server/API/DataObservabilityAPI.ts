@@ -56,6 +56,7 @@ import DataAssetService, {
 } from "../Services/DataAssetService";
 import DataStoreService from "../Services/DataStoreService";
 import AuditLogService from "../Services/AuditLogService";
+import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
@@ -1272,6 +1273,13 @@ export default class DataObservabilityAPI extends BaseAPI<
           itemId: store.id,
           props,
         });
+
+        /*
+         * A bucket counts for Data Observability only once paths of it are
+         * watched (#7325): the products menu stops, or starts, saying "Not
+         * set up" at once, as it does when a store is added or deleted.
+         */
+        await ProjectUsageCache.forgetProjects([projectId]);
 
         /*
          * With no paths left, nothing collects this bucket again: its tables are
