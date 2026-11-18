@@ -1295,6 +1295,57 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    /*
+     * A probe that is connected but behind (#9501): its monitors checked,
+     * or its network devices polled, later than their interval. It still
+     * reports, so it is a heads-up, not an outage: an alert, never an
+     * incident, that leaves the monitor's status alone and resolves itself
+     * once no probe is behind. Only a monitor created now starts with it:
+     * one created before goes on judging only whether its probes are
+     * connected until its criteria say otherwise.
+     */
+    if (arg.monitorType === MonitorType.ProbeStatus) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: undefined,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.ProbesBehind,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_BEHIND_TITLE,
+            ),
+            description: translator.translateTemplate(
+              MonitorCriteriaInstance.PROBE_BEHIND_DESCRIPTION,
+            ),
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: false,
+        createIncidents: false,
+        createAlerts: true,
+        name: translator.translateTemplate("Check if a probe is behind"),
+        description: translator.translateTemplate(
+          "This criteria checks if any probe this monitor watches is behind on its monitors or network devices",
+        ),
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     return null;
   }
 
@@ -2829,6 +2880,23 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     translationKey(
       "{{probeStatusSummary}}\n\nA probe is disconnected when nothing has been heard from it for three minutes. Monitors that run only on a disconnected probe are not checked until it is back. This resolves itself once every probe this monitor watches is connected again.",
     );
+
+  /*
+   * The title of the alert a Probe Status monitor raises by default when a
+   * probe it watches is behind (#9501). {{behindProbeNames}} is a template
+   * variable the alert is created with (MonitorTemplateUtil).
+   */
+  public static readonly PROBE_BEHIND_TITLE: string = translationKey(
+    "Probe behind: {{behindProbeNames}}",
+  );
+
+  /*
+   * What that alert says: which probe, and on what ({{probeStatusSummary}}),
+   * then what behind means, what to do and that it resolves itself.
+   */
+  public static readonly PROBE_BEHIND_DESCRIPTION: string = translationKey(
+    "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.",
+  );
 
   public static getNewMonitorCriteriaInstanceAsJSON(): JSONObject {
     return {

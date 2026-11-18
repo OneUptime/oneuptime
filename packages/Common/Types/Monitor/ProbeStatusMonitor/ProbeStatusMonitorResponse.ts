@@ -1,5 +1,6 @@
 import MonitorEvaluationSummary from "../MonitorEvaluationSummary";
 import ObjectID from "../../ObjectID";
+import { ProbeBehindWork } from "../../Probe/ProbeBehind";
 
 // One probe a Probe Status monitor watches, as one evaluation found it.
 export interface ProbeStatusMonitorProbe {
@@ -17,12 +18,23 @@ export interface ProbeStatusMonitorProbe {
   isConnected: boolean;
   // When OneUptime last heard from the probe. Unset if it never has.
   lastAliveAt?: Date | undefined;
+  /*
+   * Connected, but behind: its monitors checked, or its network devices
+   * polled, later than their interval (Types/Probe/ProbeBehind, OneUptime
+   * issue #9501). Never set for a probe that is not connected. Left out by
+   * an evaluation from before #9501, which read it as not behind.
+   */
+  isBehind?: boolean | undefined;
+  // Since when it is behind, the earlier of its monitors and its devices.
+  behindSince?: Date | undefined;
+  // What it is behind on, monitors first.
+  behindOn?: Array<ProbeBehindWork> | undefined;
 }
 
 /*
  * What a Probe Status monitor's criteria judge: the probes one of its steps
- * watches, as the project may see them, and the two counts its checks
- * (Connected Probes, Disconnected Probes) compare.
+ * watches, as the project may see them, and the counts its checks
+ * (Connected Probes, Disconnected Probes, Probes Behind) compare.
  *
  * Deliberately not a ProbeMonitorResponse: that is what a probe sends back
  * about a check it ran, and the sinks that read one (the response time,
@@ -37,6 +49,11 @@ export default interface ProbeStatusMonitorResponse {
   probes: Array<ProbeStatusMonitorProbe>;
   connectedProbeCount: number;
   disconnectedProbeCount: number;
+  /*
+   * How many of the connected ones are behind (#9501). Left out by an
+   * evaluation from before it; read from the probes then.
+   */
+  behindProbeCount?: number | undefined;
   /*
    * Probes the step names that are not counted: deleted since, or not a
    * probe this project may watch. A probe that is gone is not reported as

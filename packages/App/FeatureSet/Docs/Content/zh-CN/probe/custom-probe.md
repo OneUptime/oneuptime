@@ -386,13 +386,19 @@ Syslog 接收器每分钟最多转发 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 条�
 
 ### 探测器滞后
 
-当探测器的监视器在检查时间过后等待超过 1 分钟、因而检查频率低于设置时，探测器为 **滞后**。此时 **自定义探测器** 表格中探测器的 **状态** 显示 **滞后**，探测器页面的 **监视器检查** 会显示从何时开始。对于自托管 OneUptime 自己运行的探测器，管理员仪表板中的 OneUptime 健康状况会提示这一点。
+当探测器的监视器在检查时间过后等待超过 1 分钟、因而检查频率低于设置时，探测器为 **滞后**。此时 **自定义探测器** 表格中探测器的 **状态** 显示 **滞后**，探测器页面的 **监视器检查** 会显示从何时开始。对于自托管 OneUptime 自己运行的探测器，管理员仪表板中的 OneUptime 健康状况会提示这一点。 它轮询的网络设备也是如此：当设备在轮询时间过后等待超过 1 分钟时，探测器的 **状态** 也会显示 **滞后**，探测器页面会显示 **网络设备轮询** 以及从何时开始。全局探测器滞后时会通知主管理员，[探测器状态监控](/docs/monitor/probe-status-monitor) 可以在你自己的探测器滞后时发出警报。
 
 探测器一次最多检查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 个监视器（默认 10 个），一有空位就会请求更多。当到期的监视器多于它能检查的数量时，例如很多检查一直运行到超时，它就会滞后。要让它赶上来：
 
 - 更新探测器。较旧的探测器每分钟只请求一次监视器，因此每分钟最多检查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 个监视器。
 - 让它一次检查更多监视器：调高 `PROBE_MONITORING_WORKERS`，然后重启探测器。对于自托管 OneUptime 运行的探测器，在 Docker Compose 中是 `config.env` 里的 `GLOBAL_PROBE_1_MONITORING_WORKERS`，在 Helm chart 中是值里该探测器的 `monitoringWorkers`。
 - 给它更多 CPU 和内存，或用相同的 `PROBE_ID` 和 `PROBE_KEY` 再运行一个副本：副本会分担它的监视器。
+
+探测器一次最多轮询 `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` 台网络设备（默认 25 台），一有空位就会请求更多。当到期的设备多于它能轮询的数量时，例如很多设备没有响应、轮询一直运行到超时，它就会滞后。要让它赶上来：
+
+- 更新探测器。旧版探测器每分钟只请求一次设备，因此每分钟最多轮询 `NETWORK_DEVICE_POLL_FETCH_LIMIT` 台设备（默认 250 台）。
+- 让它一次轮询更多设备：调高 `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY`，然后重启探测器。对于自托管 OneUptime 运行的探测器，使用 Docker Compose 时是 `config.env` 中的 `GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY`，使用 Helm chart 时是 values 中该探测器的 `networkDevicePollConcurrency`。
+- 把它的一部分设备移到另一个探测器。
 
 ### 其他问题
 

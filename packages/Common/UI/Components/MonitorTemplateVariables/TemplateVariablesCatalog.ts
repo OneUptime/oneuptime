@@ -958,15 +958,26 @@ export default class TemplateVariablesCatalog {
               example: "2",
             },
             {
+              key: "behindProbeNames",
+              description:
+                "The names of the connected probes that are behind, separated by commas.",
+              example: "US Probe",
+            },
+            {
+              key: "behindProbeCount",
+              description: "How many of the probes are behind.",
+              example: "1",
+            },
+            {
               key: "probeStatusSummary",
               description:
-                "One sentence naming the disconnected probes, or saying that every probe is connected.",
+                "One sentence naming the disconnected probes, or the ones behind, or saying that every probe is connected.",
               example: "1 of 3 probes is disconnected: EU Probe.",
             },
             {
               key: "probes",
               description:
-                "Array of {probeName, isConnected, isGlobalProbe, lastAliveAt}.",
+                "Array of {probeName, isConnected, isBehind, isGlobalProbe, lastAliveAt}.",
             },
           ],
         };

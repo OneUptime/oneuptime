@@ -16,6 +16,8 @@ import {
   ServerSendingState,
   ServerSendingStatusAnswer,
 } from "../../../Types/ServerSending/ServerSendingStatus";
+import { InstallationHealthProbeBehind } from "../../../Types/InstallationHealth/InstallationHealth";
+import { ProbeBehindWork } from "../../../Types/Probe/ProbeBehind";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -529,5 +531,345 @@ describe("what is kept, and what is said", () => {
         probes: { total: 3, reporting: 2 },
       }).body,
     ).toContain("2 of 3");
+  });
+});
+
+/*
+ * A GLOBAL PROBE BEHIND (#9500): its monitors checked, or its network
+ * devices polled, later than their interval. Told as the rest is - only a
+ * change, at most once an hour, the first look only noted, to master
+ * admins only, by push, SMS and the Admin Notification Email - and said of
+ * the probes that report: while none does, "no global probe is reporting"
+ * says more.
+ */
+describe("a global probe behind", () => {
+  const PROBE_ONE: string = "11111111-1111-4111-8111-111111111111";
+  const PROBE_TWO: string = "22222222-2222-4222-8222-222222222222";
+
+  const BEHIND_ON_MONITORS: Array<InstallationHealthProbeBehind> = [
+    {
+      id: PROBE_ONE,
+      name: "Probe-1",
+      since: minutesAgo(10),
+      work: ProbeBehindWork.MonitorChecks,
+    },
+  ];
+
+  const KEEPING_UP_STATE: ServerAlertState = {
+    ...WORKING_STATE,
+    [ServerAlertSubject.GlobalProbesBehind]: told(ServerAlertCondition.Working),
+  };
+
+  function behindPlan(data: {
+    behind: Array<InstallationHealthProbeBehind> | null | undefined;
+    state?: ServerAlertState;
+    probes?: { total: number; reporting: number } | null;
+    settings?: ServerAlertSettings;
+  }): ServerAlertPlan {
+    return ServerAlertsUtil.plan({
+      answer: answer(
+        {},
+        data.probes === undefined ? { total: 2, reporting: 2 } : data.probes,
+      ),
+      state: data.state || KEEPING_UP_STATE,
+      settings: data.settings || EVERYWHERE,
+      now: NOW,
+      globalProbesBehind: data.behind,
+    });
+  }
+
+  function behindMessages(plan: ServerAlertPlan): Array<ServerAlertMessage> {
+    return plan.messages.filter((message: ServerAlertMessage): boolean => {
+      return message.subject === ServerAlertSubject.GlobalProbesBehind;
+    });
+  }
+
+  test("one falling behind is told by push, SMS and the Admin Notification Email", () => {
+    expect(behindMessages(behindPlan({ behind: BEHIND_ON_MONITORS }))).toEqual([
+      {
+        subject: ServerAlertSubject.GlobalProbesBehind,
+        condition: ServerAlertCondition.Failing,
+        channels: [
+          ServerAlertChannel.Push,
+          ServerAlertChannel.SMS,
+          ServerAlertChannel.Email,
+        ],
+      },
+    ]);
+  });
+
+  test("keeping up again is told once more", () => {
+    expect(
+      behindMessages(
+        behindPlan({
+          behind: [],
+          state: {
+            ...WORKING_STATE,
+            [ServerAlertSubject.GlobalProbesBehind]: told(
+              ServerAlertCondition.Failing,
+              90,
+              90,
+            ),
+          },
+        }),
+      ),
+    ).toEqual([
+      {
+        subject: ServerAlertSubject.GlobalProbesBehind,
+        condition: ServerAlertCondition.Working,
+        channels: [
+          ServerAlertChannel.Push,
+          ServerAlertChannel.SMS,
+          ServerAlertChannel.Email,
+        ],
+      },
+    ]);
+  });
+
+  test("the first look only notes where they stand, behind or not", () => {
+    const plan: ServerAlertPlan = behindPlan({
+      behind: BEHIND_ON_MONITORS,
+      state: WORKING_STATE,
+    });
+
+    expect(behindMessages(plan)).toEqual([]);
+    expect(plan.hasStateChanged).toBe(true);
+    expect(plan.state[ServerAlertSubject.GlobalProbesBehind]?.told).toBe(
+      ServerAlertCondition.Failing,
+    );
+  });
+
+  test("still behind, or still keeping up, says nothing and writes nothing", () => {
+    const stillBehind: ServerAlertPlan = behindPlan({
+      behind: BEHIND_ON_MONITORS,
+      state: {
+        ...WORKING_STATE,
+        [ServerAlertSubject.GlobalProbesBehind]: told(
+          ServerAlertCondition.Failing,
+          120,
+          120,
+        ),
+      },
+    });
+    expect(stillBehind.messages).toEqual([]);
+    expect(stillBehind.hasStateChanged).toBe(false);
+
+    const stillKeepingUp: ServerAlertPlan = behindPlan({ behind: [] });
+    expect(stillKeepingUp.messages).toEqual([]);
+    expect(stillKeepingUp.hasStateChanged).toBe(false);
+  });
+
+  test("another probe falling behind while one already is says nothing more: it is the same thing", () => {
+    const plan: ServerAlertPlan = behindPlan({
+      behind: [
+        ...BEHIND_ON_MONITORS,
+        {
+          id: PROBE_TWO,
+          name: "Probe-2",
+          since: minutesAgo(1),
+          work: ProbeBehindWork.DevicePolls,
+        },
+      ],
+      state: {
+        ...WORKING_STATE,
+        [ServerAlertSubject.GlobalProbesBehind]: told(
+          ServerAlertCondition.Failing,
+          120,
+          120,
+        ),
+      },
+    });
+
+    expect(plan.messages).toEqual([]);
+  });
+
+  test("at most once an hour: catching up within the hour of the last message waits", () => {
+    expect(
+      behindMessages(
+        behindPlan({
+          behind: [],
+          state: {
+            ...WORKING_STATE,
+            [ServerAlertSubject.GlobalProbesBehind]: told(
+              ServerAlertCondition.Failing,
+              20,
+              20,
+            ),
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(SERVER_ALERT_MIN_INTERVAL_MS).toBe(60 * 60 * 1000);
+  });
+
+  test("while no global probe reports, or there is none, nothing is said of probes behind", () => {
+    for (const probes of [{ total: 2, reporting: 0 }, null]) {
+      const plan: ServerAlertPlan = behindPlan({
+        behind: [],
+        probes: probes,
+        state: {
+          ...WORKING_STATE,
+          [ServerAlertSubject.GlobalProbesBehind]: told(
+            ServerAlertCondition.Failing,
+            120,
+            120,
+          ),
+        },
+      });
+
+      expect(behindMessages(plan)).toEqual([]);
+      expect(plan.state[ServerAlertSubject.GlobalProbesBehind]?.told).toBe(
+        ServerAlertCondition.Failing,
+      );
+    }
+  });
+
+  test("probes behind that could not be read say nothing, and change nothing", () => {
+    for (const behind of [null, undefined]) {
+      const plan: ServerAlertPlan = behindPlan({
+        behind: behind,
+        state: WORKING_STATE,
+      });
+
+      expect(behindMessages(plan)).toEqual([]);
+      expect(plan.state[ServerAlertSubject.GlobalProbesBehind]).toBeUndefined();
+    }
+  });
+
+  test("OneUptime Cloud says nothing of it until its operator chooses", () => {
+    const plan: ServerAlertPlan = behindPlan({
+      behind: BEHIND_ON_MONITORS,
+      settings: getServerAlertSettings({
+        smsNumber: null,
+        isPushOn: null,
+        adminNotificationEmail: "ops@example.test",
+        isBillingEnabled: true,
+      }),
+    });
+
+    expect(plan.messages).toEqual([]);
+  });
+
+  test("the state reads back with it, and is kept apart from the probes reporting", () => {
+    const state: ServerAlertState = {
+      [ServerAlertSubject.GlobalProbes]: told(ServerAlertCondition.Working),
+      [ServerAlertSubject.GlobalProbesBehind]: told(
+        ServerAlertCondition.Failing,
+        3,
+        3,
+      ),
+    };
+
+    expect(ServerAlertsUtil.readState(ServerAlertsUtil.toJSON(state))).toEqual(
+      state,
+    );
+  });
+
+  describe("its words", () => {
+    function textOf(
+      condition: ServerAlertCondition,
+      behind: Array<InstallationHealthProbeBehind>,
+      probes: { total: number; reporting: number } = {
+        total: 2,
+        reporting: 2,
+      },
+    ): { title: string; body: string } {
+      return ServerAlertsUtil.getText({
+        message: {
+          subject: ServerAlertSubject.GlobalProbesBehind,
+          condition: condition,
+          channels: [ServerAlertChannel.SMS],
+        },
+        serverName: "oneuptime.acme.io",
+        probes: probes,
+        globalProbesBehind: behind,
+      });
+    }
+
+    test("name the probe, the server and what it is behind on, where to look, and fit in an SMS", () => {
+      const monitors: { title: string; body: string } = textOf(
+        ServerAlertCondition.Failing,
+        BEHIND_ON_MONITORS,
+      );
+
+      expect(monitors.title).toBe(
+        "Global probe Probe-1 of oneuptime.acme.io is behind",
+      );
+      expect(monitors.body).toBe(
+        "Global probe Probe-1 of oneuptime.acme.io is behind: its monitors are checked less often than set. See OneUptime Health in the Admin Dashboard.",
+      );
+
+      const devices: { title: string; body: string } = textOf(
+        ServerAlertCondition.Failing,
+        [{ ...BEHIND_ON_MONITORS[0]!, work: ProbeBehindWork.DevicePolls }],
+      );
+      expect(devices.body).toContain(
+        "its network devices are polled less often than set",
+      );
+
+      const both: { title: string; body: string } = textOf(
+        ServerAlertCondition.Failing,
+        [
+          ...BEHIND_ON_MONITORS,
+          { ...BEHIND_ON_MONITORS[0]!, work: ProbeBehindWork.DevicePolls },
+        ],
+      );
+      expect(both.title).toBe(
+        "Global probe Probe-1 of oneuptime.acme.io is behind",
+      );
+      expect(both.body).toContain(
+        "its monitors and devices are checked less often than set",
+      );
+
+      for (const text of [monitors, devices, both]) {
+        expect(text.body.length).toBeLessThanOrEqual(160);
+      }
+    });
+
+    test("an entry from a reader that names no work is its monitors'", () => {
+      expect(
+        textOf(ServerAlertCondition.Failing, [
+          { id: PROBE_ONE, name: "Probe-1", since: minutesAgo(5) },
+        ]).body,
+      ).toContain("its monitors are checked less often than set");
+    });
+
+    test("several probes behind are named, each once", () => {
+      const text: { title: string; body: string } = textOf(
+        ServerAlertCondition.Failing,
+        [
+          ...BEHIND_ON_MONITORS,
+          { ...BEHIND_ON_MONITORS[0]!, work: ProbeBehindWork.DevicePolls },
+          {
+            id: PROBE_TWO,
+            name: "Probe-2",
+            since: minutesAgo(2),
+            work: ProbeBehindWork.DevicePolls,
+          },
+        ],
+      );
+
+      expect(text.title).toBe(
+        "2 global probes of oneuptime.acme.io are behind",
+      );
+      expect(text.body).toContain("are behind: Probe-1, Probe-2.");
+      expect(text.body).toContain("OneUptime Health");
+    });
+
+    test("keeping up again says so, and how many do not report, since a probe that stopped is not one that caught up", () => {
+      expect(textOf(ServerAlertCondition.Working, []).body).toBe(
+        "Global probes of oneuptime.acme.io keep up again: none is behind.",
+      );
+      expect(
+        textOf(ServerAlertCondition.Working, [], { total: 3, reporting: 2 })
+          .body,
+      ).toBe(
+        "Global probes of oneuptime.acme.io keep up again: none that reports is behind. 1 of 3 does not report.",
+      );
+      expect(
+        textOf(ServerAlertCondition.Working, [], { total: 3, reporting: 1 })
+          .body,
+      ).toContain("2 of 3 do not report.");
+    });
   });
 });

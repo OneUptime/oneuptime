@@ -182,7 +182,7 @@ På en egenvärdad server slutar **Inställningar > Notifieringar > E-post** i A
 
 ## Få veta när e-post eller sonderna slutar fungera
 
-När serverns e-post slutar fungera, eller ingen global sond rapporterar längre, meddelar OneUptime huvudadministratörerna, och en gång till när det fungerar igen. Välj vart i kortet **Aviseringar om avbrott** på samma sida:
+När serverns e-post slutar fungera, ingen global sond rapporterar längre, eller en global sond hamnar efter (dess monitorer kontrolleras, eller dess nätverksenheter avfrågas, mer sällan än inställt), meddelar OneUptime huvudadministratörerna, och en gång till när allt är i ordning. Välj vart i kortet **Aviseringar om avbrott** på samma sida:
 
 - **Push till huvudadministratörernas enheter** skickar en push-avisering till varje enhet där en huvudadministratör har loggat in i OneUptime-appen. Den är på tills du stänger av den.
 - **Skicka sms till det här numret** skickar ett sms via serverns egna sms-inställningar.

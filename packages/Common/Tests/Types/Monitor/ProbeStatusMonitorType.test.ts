@@ -96,7 +96,7 @@ describe("MonitorType.ProbeStatus", () => {
 
     expect(props.title).toBe("Probe Status");
     expect(props.description).toBe(
-      "Alert when a probe disconnects - one incident per outage, resolved when it reconnects.",
+      "Alert when a probe disconnects or falls behind - resolved by itself once it is back.",
     );
     expect(props.description.length).toBeLessThanOrEqual(100);
     expect(props.icon).toBe(IconProp.SignalSlash);
@@ -290,12 +290,14 @@ describe("the Probe Status checks", () => {
   test("their stored values never change", () => {
     expect(CheckOn.ConnectedProbes).toBe("Connected Probes");
     expect(CheckOn.DisconnectedProbes).toBe("Disconnected Probes");
+    expect(CheckOn.ProbesBehind).toBe("Probes Behind");
   });
 
   test("take a number to compare with", () => {
     for (const checkOn of [
       CheckOn.ConnectedProbes,
       CheckOn.DisconnectedProbes,
+      CheckOn.ProbesBehind,
     ]) {
       expect(
         CriteriaFilterUtil.hasValueField({
@@ -310,6 +312,7 @@ describe("the Probe Status checks", () => {
     for (const checkOn of [
       CheckOn.ConnectedProbes,
       CheckOn.DisconnectedProbes,
+      CheckOn.ProbesBehind,
     ]) {
       expect(
         CriteriaFilterUtil.isEvaluateOverTimeFilter(
@@ -348,12 +351,51 @@ describe("the criteria a new Probe Status monitor starts with", () => {
     );
   }
 
-  test("offline first, then online: the evaluator stops at the first match", () => {
-    const [offline, online]: Array<MonitorCriteriaInstance> = defaults();
+  /*
+   * Offline, then the probe-behind alert (#9501), then online: only the
+   * first that matches acts, and a probe that is behind is connected, so
+   * the alert has to come before "every probe is connected" to be met.
+   */
+  test("offline first, then behind, then online: the evaluator stops at the first match", () => {
+    const [offline, behind, online]: Array<MonitorCriteriaInstance> =
+      defaults();
 
-    expect(defaults()).toHaveLength(2);
+    expect(defaults()).toHaveLength(3);
     expect(offline?.data?.name).toBe("Check if a probe is disconnected");
+    expect(behind?.data?.name).toBe("Check if a probe is behind");
     expect(online?.data?.name).toBe("Check if every probe is connected");
+  });
+
+  test("behind: an alert that resolves itself, never an incident, and the status left alone", () => {
+    const behind: MonitorCriteriaInstance = defaults()[1]!;
+
+    expect(behind.data?.filters).toEqual([
+      {
+        checkOn: CheckOn.ProbesBehind,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      },
+    ]);
+    expect(behind.data?.changeMonitorStatus).toBe(false);
+    expect(behind.data?.createIncidents).toBe(false);
+    expect(behind.data?.createAlerts).toBe(true);
+    expect(behind.data?.alerts).toHaveLength(1);
+    expect(behind.data?.alerts[0]?.title).toBe(
+      "Probe behind: {{behindProbeNames}}",
+    );
+    expect(behind.data?.alerts[0]?.autoResolveAlert).toBe(true);
+    /*
+     * The project's warning severity when it is handed one, as the
+     * certificate's "expires soon" is; its default alert severity here.
+     */
+    expect(behind.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
+      alertSeverityId.toString(),
+    );
+    expect(behind.data?.alerts[0]?.description).toBe(
+      "{{probeStatusSummary}}\n\nA probe is behind when the monitors it checks, or the network devices it polls, wait more than a minute past their time, so they are checked less often than set. Its page says what lets it catch up. This resolves itself once no probe this monitor watches is behind.",
+    );
+    expect(behind.data?.alerts[0]?.description).not.toContain("Probe health");
+    expect(behind.data?.alerts[0]?.description).not.toContain("OneUptime");
   });
 
   test("offline: any probe disconnected changes the status and opens one incident that resolves itself", () => {
@@ -407,10 +449,14 @@ describe("the criteria a new Probe Status monitor starts with", () => {
   });
 
   test("the criteria describe themselves by this monitor, not by its name", () => {
-    const [offline, online]: Array<MonitorCriteriaInstance> = defaults();
+    const [offline, behind, online]: Array<MonitorCriteriaInstance> =
+      defaults();
 
     expect(offline?.data?.description).toBe(
       "This criteria checks if any probe this monitor watches is disconnected",
+    );
+    expect(behind?.data?.description).toBe(
+      "This criteria checks if any probe this monitor watches is behind on its monitors or network devices",
     );
     expect(online?.data?.description).toBe(
       "This criteria checks if every probe this monitor watches is connected",
@@ -434,7 +480,7 @@ describe("the criteria a new Probe Status monitor starts with", () => {
   });
 
   test("online: every probe connected, the exact complement", () => {
-    const online: MonitorCriteriaInstance = defaults()[1]!;
+    const online: MonitorCriteriaInstance = defaults()[2]!;
 
     expect(online.data?.filterCondition).toBe(FilterCondition.All);
     expect(online.data?.filters).toEqual([
@@ -451,7 +497,7 @@ describe("the criteria a new Probe Status monitor starts with", () => {
     expect(online.data?.createIncidents).toBe(false);
   });
 
-  test("both are valid as they are, so a new monitor saves on its defaults", () => {
+  test("each is valid as it is, so a new monitor saves on its defaults", () => {
     for (const criteria of defaults()) {
       expect(
         MonitorCriteriaInstance.getValidationError(

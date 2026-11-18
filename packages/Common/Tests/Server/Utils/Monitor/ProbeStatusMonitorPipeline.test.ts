@@ -21,6 +21,7 @@ import ProbeStatusMonitorResponse, {
 } from "../../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import { ProbeBehindWork } from "../../../../Types/Probe/ProbeBehind";
 import TemplateVariablesCatalog, {
   TemplateVariable,
   TemplateVariableGroup,
@@ -130,16 +131,56 @@ describe("template variables of a Probe Status monitor", () => {
       {
         probeName: "Frankfurt",
         isConnected: true,
+        isBehind: false,
         isGlobalProbe: false,
         lastAliveAt: "2026-09-21T11:59:40.000Z",
       },
       {
         probeName: "Singapore",
         isConnected: false,
+        isBehind: false,
         isGlobalProbe: false,
         lastAliveAt: "2026-09-21T11:45:00.000Z",
       },
     ]);
+  });
+
+  /*
+   * #9501: a probe that is connected but behind is named for the alert a
+   * new monitor raises ("Probe behind: Frankfurt"), and said in the
+   * summary.
+   */
+  test("name the probes behind, and say so in the summary", () => {
+    const map: JSONObject = storageMap(
+      evaluation([
+        {
+          ...probe("Frankfurt", true),
+          isBehind: true,
+          behindSince: new Date("2026-09-21T11:40:00.000Z"),
+          behindOn: [ProbeBehindWork.DevicePolls],
+        },
+        probe("Singapore", true),
+      ]),
+    );
+
+    expect(map["behindProbeNames"]).toBe("Frankfurt");
+    expect(map["behindProbeCount"]).toBe(1);
+    expect(map["probeStatusSummary"]).toBe(
+      "All 2 probes are connected; 1 is behind: Frankfurt.",
+    );
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value: MonitorCriteriaInstance.PROBE_BEHIND_TITLE,
+        storageMap: map,
+      }),
+    ).toBe("Probe behind: Frankfurt");
+  });
+
+  test("no probe behind leaves its names empty, never the placeholder", () => {
+    const map: JSONObject = storageMap(singaporeDown);
+
+    expect(map["behindProbeNames"]).toBe("");
+    expect(map["behindProbeCount"]).toBe(0);
   });
 
   test("are always set: every probe up leaves the disconnected names empty, never the placeholder", () => {
@@ -358,7 +399,7 @@ describe("the series a Probe Status monitor records", () => {
     jest.restoreAllMocks();
   });
 
-  test("one connected and one disconnected count per evaluation, on the monitor", async () => {
+  test("one connected, one disconnected and one behind count per evaluation, on the monitor", async () => {
     await MonitorMetricUtil.saveMonitorMetrics({
       monitorId: MONITOR_ID,
       projectId: PROJECT_ID,
@@ -374,6 +415,8 @@ describe("the series a Probe Status monitor records", () => {
     ).toEqual([
       MonitorMetricType.ConnectedProbes,
       MonitorMetricType.DisconnectedProbes,
+      // And how many are behind (#9501), so it can be judged over a window.
+      MonitorMetricType.ProbesBehind,
     ]);
 
     for (const row of insertedRows) {
@@ -388,17 +431,23 @@ describe("the series a Probe Status monitor records", () => {
 
     expect(insertedRows[0]!["value"]).toBe(1);
     expect(insertedRows[1]!["value"]).toBe(1);
+    // Nobody is behind in this evaluation: 0, recorded all the same.
+    expect(insertedRows[2]!["value"]).toBe(0);
     expect(MonitorMetricType.ConnectedProbes).toBe(
       "oneuptime.monitor.probes.connected",
     );
     expect(MonitorMetricType.DisconnectedProbes).toBe(
       "oneuptime.monitor.probes.disconnected",
     );
+    expect(MonitorMetricType.ProbesBehind).toBe(
+      "oneuptime.monitor.probes.behind",
+    );
 
     expect(Object.keys(indexedMaps[0] || {}).sort()).toEqual(
       [
         MonitorMetricType.ConnectedProbes,
         MonitorMetricType.DisconnectedProbes,
+        MonitorMetricType.ProbesBehind,
       ].sort(),
     );
     expect(indexedMaps[0]![MonitorMetricType.ConnectedProbes]!.unit).toBe(

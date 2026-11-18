@@ -4,6 +4,7 @@ import {
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import ServerBusy from "../../Utils/ServerBusy";
+import MonitorCheckSlots from "../../Utils/Monitors/MonitorCheckSlots";
 import PingMonitor, {
   DeviceReachabilityCheck,
 } from "../../Utils/Monitors/MonitorTypes/PingMonitor";
@@ -25,11 +26,11 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import logger from "Common/Server/Utils/Logger";
 
 /*
- * The probe's half of device-owned polling: every minute, fetch the
- * NetworkDevices assigned to this probe that are due for a poll (the
- * server claims them atomically and hydrates whatever SNMP credentials the
- * device or its site carry into a concrete config), poll each one, and
- * report the results back.
+ * The probe's half of device-owned polling: fetch the NetworkDevices
+ * assigned to this probe that are due for a poll (the server claims them
+ * atomically and hydrates whatever SNMP credentials the device or its site
+ * carry into a concrete config), poll each one, and report the results
+ * back.
  *
  * A poll is ping-first. Every device is pinged; a device with usable SNMP
  * credentials is ALSO walked, in parallel, and the two verdicts are
@@ -43,15 +44,90 @@ import logger from "Common/Server/Utils/Logger";
  */
 
 /*
- * Polls run concurrently in batches: one slow device must not starve the
- * rest of the batch, but an unbounded parallel burst of SNMP table walks
- * from one probe process would compete for sockets and CPU.
+ * HOW THIS PROBE KEEPS ITS NETWORK DEVICES POLLED (OneUptime issue #9499).
  *
- * Tunable (PROBE_NETWORK_DEVICE_POLL_CONCURRENCY) because it is one half of
- * how fast a fleet can be polled — see the constant's definition in Config
- * for how it pairs with the server's claim batch size.
+ * Every minute the probe asks the server for the devices that are due, as
+ * many as it has room to poll. While the server says it handed out a full
+ * batch, more may be due, so the probe asks again as soon as it has room;
+ * once a batch is not full, everything that was due has been handed out,
+ * and it waits for the next minute.
+ *
+ * It used to ask once a minute for NETWORK_DEVICE_POLL_FETCH_LIMIT devices
+ * (250 by default) and poll them PROBE_NETWORK_DEVICE_POLL_CONCURRENCY at a
+ * time, so one probe polled at most 250 devices a minute, however many
+ * were due: the rest waited, polled less often than their interval, and
+ * nothing in the Dashboard said so. It is the design the monitors moved to
+ * in #9488 (Jobs/Monitor/FetchList).
+ *
+ * What keeps it bounded:
+ *
+ *   - Polls at once: never more than DEVICE_POLLS_AT_ONCE,
+ *     PROBE_NETWORK_DEVICE_POLL_CONCURRENCY - what it always ran at once.
+ *     Each poll holds a slot of its own (MonitorCheckSlots) and gives it
+ *     back when it settles, or at DEVICE_POLL_DEADLINE_MS, so one slow
+ *     device holds one slot, never a batch.
+ *   - What it asks for: never more devices than it has room to poll now,
+ *     and only once it has room for at least DEVICE_ROOM_TO_ASK, so the
+ *     server's work per request stays what it was or less, and a device is
+ *     claimed only when the probe can poll it at once.
+ *   - Memory: the devices it holds are the ones it is polling, and - only
+ *     from a server older than #9499, which hands out its whole batch
+ *     whatever the probe asks for - the rest of that one batch, each
+ *     waiting for a slot before the probe asks for more.
+ *   - When the server is busy (429) it asks again only once the answer's
+ *     Retry-After has passed (ServerBusy); after any other failed fetch, at
+ *     the next minute. Nothing is lost either way: the server claimed
+ *     nothing, and the devices stay due.
+ *
+ * The server claims what it hands out in one statement and moves each
+ * claimed device to its next poll in the same breath
+ * (NetworkDeviceService.claimDevicesForPolling), so asking again never
+ * hands a device out twice for one interval: not to this probe, not to
+ * another copy of it, not to it after a restart.
+ *
+ * Old and new, either way round: a probe from before #9499 sends no limit
+ * and is handed up to NETWORK_DEVICE_POLL_FETCH_LIMIT once a minute, as it
+ * always was - and shows as Behind on its page when that is not enough. A
+ * server from before #9499 ignores the limit and says nothing of a full
+ * batch: this probe then reads a batch as full when it holds as many
+ * devices as it asked for, and polls a bigger one through its slots.
  */
-const DEVICE_POLL_CONCURRENCY: number = PROBE_NETWORK_DEVICE_POLL_CONCURRENCY;
+
+// The most device polls this probe runs at once.
+export const DEVICE_POLLS_AT_ONCE: number = Math.max(
+  1,
+  Math.floor(PROBE_NETWORK_DEVICE_POLL_CONCURRENCY) || 1,
+);
+
+/*
+ * The probe asks for devices once it has room for this many polls, rather
+ * than wait for room for all of them: half of them, at least one.
+ */
+export const DEVICE_ROOM_TO_ASK: number = Math.max(
+  1,
+  Math.ceil(DEVICE_POLLS_AT_ONCE / 2),
+);
+
+/*
+ * The fetch that waits this long for room while devices are due says so
+ * (at warn, at most every DEVICE_WAIT_WARNING_EVERY_MS): the probe is
+ * polling every device it may at once, and the devices waiting are polled
+ * late.
+ */
+export const DEVICE_WAIT_WARNING_AFTER_MS: number = 60 * 1000;
+export const DEVICE_WAIT_WARNING_EVERY_MS: number = 10 * 60 * 1000;
+
+/*
+ * The longest one device's poll holds its slot. A poll's ping, walk and
+ * report each have budgets of their own and settle well inside it; this is
+ * for a poll that never settles, which would otherwise hold its slot for
+ * the life of the process. The poll is not cancelled - nothing can unwind
+ * an SNMP library mid-walk - but the probe stops waiting for it.
+ */
+export const DEVICE_POLL_DEADLINE_MS: number = 10 * 60 * 1000;
+
+// What ServerBusy calls this work, in what it logs.
+const DEVICE_WORK: string = "network devices";
 
 /*
  * Per-reply wait for the ping when the device carries no SNMP timeout to
@@ -94,22 +170,66 @@ export interface DevicePollConfig {
   snmpMonitor?: MonitorStepSnmpMonitor | undefined;
 }
 
+// One answer of the list endpoint.
+export interface DevicePollBatch {
+  devices: Array<DevicePollConfig>;
+  /*
+   * The server's claim filled the batch, so more devices may be due: the
+   * probe asks again once it has room. A server from before #9499 does not
+   * say; then a batch is full when it holds as many devices as were asked
+   * for.
+   */
+  isFullBatch: boolean;
+}
+
+const devicePollSlots: MonitorCheckSlots = new MonitorCheckSlots(
+  DEVICE_POLLS_AT_ONCE,
+);
+
+// The polls running or waiting for a slot now: what a test waits for.
+const pollsInProgress: Set<Promise<void>> = new Set<Promise<void>>();
+
+let lastWaitWarningAt: number | null = null;
+
 /*
- * Single-flight guard for the LIST FETCH only. node-cron fires every tick
+ * Single-flight guard for the FETCHING only. node-cron fires every tick
  * regardless of whether the previous one finished, so a fetch stuck on an
- * unresponsive server would otherwise stack a new hung request per minute.
+ * unresponsive server - or waiting for room while every slot is polling
+ * and devices are still due - would otherwise stack a new one per minute.
  *
- * The guard deliberately does NOT cover the polling that follows: the
- * server claims due devices atomically when handing out the list, so
- * overlapping ticks poll disjoint device sets — that pipelining is what
- * keeps a fleet whose poll cycle exceeds a minute (slow or unreachable
- * devices) polling at its configured cadence.
+ * The guard deliberately does NOT cover the polls the fetching started:
+ * they run on in their slots, and the next tick fetches while they do.
+ * The server claims due devices atomically when handing out the list, so
+ * overlapping fetches poll disjoint device sets.
  */
 let isDeviceFetchInProgress: boolean = false;
 
-// Exported for tests: lets a wedged-state test reset between cases.
+/*
+ * Exported for tests: lets each case start with an idle probe - no fetch
+ * in flight, no slot held, nothing waiting.
+ */
 export function resetDevicePollRunInProgress(): void {
   isDeviceFetchInProgress = false;
+  devicePollSlots.reset();
+  pollsInProgress.clear();
+  lastWaitWarningAt = null;
+}
+
+// Exported for tests: the probe's device poll slots.
+export function getDevicePollSlots(): MonitorCheckSlots {
+  return devicePollSlots;
+}
+
+// Exported for tests: whether a tick is fetching now.
+export function isFetchingDevices(): boolean {
+  return isDeviceFetchInProgress;
+}
+
+// Exported for tests: resolves once every poll started so far has settled.
+export async function whenDevicePollsSettle(): Promise<void> {
+  while (pollsInProgress.size > 0) {
+    await Promise.allSettled(Array.from(pollsInProgress));
+  }
 }
 
 const InitJob: VoidFunction = (): void => {
@@ -122,75 +242,309 @@ const InitJob: VoidFunction = (): void => {
     runFunction: async () => {
       if (isDeviceFetchInProgress) {
         logger.debug(
-          "Previous network device list fetch is still in flight. Skipping this tick.",
+          "This probe is still fetching network devices from a previous tick. Skipping this tick.",
         );
         return;
       }
 
       isDeviceFetchInProgress = true;
 
-      let devices: Array<DevicePollConfig> = [];
-
       try {
-        devices = await fetchDeviceList();
+        await fetchAndPollWhileDue();
       } catch (err) {
         logger.error("Network device poll fetch failed");
         logger.error(err);
       } finally {
-        // Release as soon as the fetch settles — see the guard comment.
+        // Released once the fetching is done - see the guard comment.
         isDeviceFetchInProgress = false;
-      }
-
-      try {
-        await pollDevices(devices);
-      } catch (err) {
-        logger.error("Network device poll failed");
-        logger.error(err);
       }
     },
   });
 };
 
-// Exported for tests: fetches this probe's due devices from the server.
-export async function fetchDeviceList(): Promise<Array<DevicePollConfig>> {
-  // The server asked this probe to wait (ServerBusy): it asks later.
-  if (ServerBusy.isBackingOff("network devices")) {
-    return [];
-  }
+/*
+ * Exported for tests: one tick's fetching. Fetches and starts polling the
+ * due devices until the server has none more for this probe now, then
+ * resolves; the polls it started run on in their slots.
+ */
+export async function fetchAndPollWhileDue(): Promise<void> {
+  let isMoreDue: boolean = false;
 
-  const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
-    "/probe/network-device/list",
+  for (;;) {
+    // The server asked this probe to wait (ServerBusy): it asks later.
+    if (ServerBusy.isBackingOff(DEVICE_WORK)) {
+      return;
+    }
+
+    const room: number = await reserveRoom({ isMoreDue });
+
+    if (room <= 0) {
+      return;
+    }
+
+    let batch: DevicePollBatch | null = null;
+
+    try {
+      batch = await fetchDueDevices(room);
+    } finally {
+      if (!batch) {
+        devicePollSlots.release(room);
+      }
+    }
+
+    if (!batch) {
+      return;
+    }
+
+    startPolls(batch.devices, room);
+
+    /*
+     * Not a full batch: the server handed out every device that was due
+     * for this probe, so nothing waits for it until the next minute.
+     */
+    if (!batch.isFullBatch) {
+      return;
+    }
+
+    isMoreDue = true;
+
+    logger.debug(
+      `This probe was handed a full batch of ${batch.devices.length} network device(s); more may be due, so it asks again once it has room.`,
+    );
+  }
+}
+
+/*
+ * Room for the next fetch. When the last batch was full, devices are
+ * waiting for it: a wait of DEVICE_WAIT_WARNING_AFTER_MS or more means the
+ * probe is polling all it may at once and they are polled late.
+ */
+async function reserveRoom(data: { isMoreDue: boolean }): Promise<number> {
+  const startedAt: number = Date.now();
+
+  const room: number = await devicePollSlots.reserve(
+    DEVICE_POLLS_AT_ONCE,
+    DEVICE_ROOM_TO_ASK,
   );
 
-  const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.fetch<JSONObject>({
-      method: HTTPMethod.POST,
-      url: listUrl,
-      data: {
-        /*
-         * Carries probeCapabilities ("networkDevicePing"): without it the
-         * server keeps ping-only devices back from this probe.
-         */
-        ...ProbeAPIRequest.getDefaultRequestBody(),
-      },
-      headers: {},
-      options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
-    });
+  const waitedInMs: number = Date.now() - startedAt;
 
-  // Too busy to hand out devices now: they stay due for the next tick.
-  if (ServerBusy.isBusyAnswer(result)) {
-    ServerBusy.note("network devices", result);
-    return [];
+  if (data.isMoreDue && waitedInMs >= DEVICE_WAIT_WARNING_AFTER_MS) {
+    warnAboutWaiting(waitedInMs);
   }
 
-  return (((result.data as JSONObject)?.["devices"] as JSONArray) || []).map(
-    (device: JSONObject) => {
-      return device as unknown as DevicePollConfig;
-    },
+  return room;
+}
+
+function warnAboutWaiting(waitedInMs: number): void {
+  const now: number = Date.now();
+
+  if (
+    lastWaitWarningAt !== null &&
+    now - lastWaitWarningAt < DEVICE_WAIT_WARNING_EVERY_MS
+  ) {
+    return;
+  }
+
+  lastWaitWarningAt = now;
+
+  logger.warn(
+    `This probe is polling all ${DEVICE_POLLS_AT_ONCE} network devices it may poll at once, and more devices are due: they waited ${Math.round(waitedInMs / 1000)} s for room, so they are polled later than their interval. Raise PROBE_NETWORK_DEVICE_POLL_CONCURRENCY (now ${DEVICE_POLLS_AT_ONCE}) to poll more at once, give the probe more CPU, or move some devices to another probe.`,
   );
 }
 
-// Exported for tests: polls the handed-out devices in bounded batches.
+/*
+ * Starts polling every device the server handed out. `room` slots were
+ * reserved for them: the ones not needed go back. A device past them - a
+ * server from before #9499 handed out more than was asked for - is
+ * claimed all the same, so it is polled too, once a slot is free: never
+ * more polls at once than DEVICE_POLLS_AT_ONCE.
+ */
+function startPolls(devices: Array<DevicePollConfig>, room: number): void {
+  const inRoom: number = Math.min(devices.length, room);
+
+  devicePollSlots.release(room - inRoom);
+
+  devices.forEach((device: DevicePollConfig, index: number) => {
+    const poll: Promise<void> =
+      index < inRoom ? runPollInSlot(device) : pollWhenASlotIsFree(device);
+
+    track(poll);
+  });
+}
+
+function track(poll: Promise<void>): void {
+  pollsInProgress.add(poll);
+
+  const forget: () => void = (): void => {
+    pollsInProgress.delete(poll);
+  };
+
+  poll.then(forget, forget);
+}
+
+// Waits for a slot of its own, then polls the device in it.
+async function pollWhenASlotIsFree(device: DevicePollConfig): Promise<void> {
+  const taken: number = await devicePollSlots.reserve(1, 1);
+
+  // Only the test seam (reset) answers no room: nothing is polled then.
+  if (taken <= 0) {
+    return;
+  }
+
+  await runPollInSlot(device);
+}
+
+/*
+ * Polls one device in the slot reserved for it, and gives the slot back
+ * when the poll settles or its deadline passes. Never rejects.
+ */
+async function runPollInSlot(device: DevicePollConfig): Promise<void> {
+  try {
+    await pollDeviceWithDeadline(device);
+  } catch (err) {
+    logger.error(err);
+  } finally {
+    devicePollSlots.release(1);
+  }
+}
+
+/*
+ * Exported for tests: bounds ONE device's poll in time (see
+ * DEVICE_POLL_DEADLINE_MS). Promise.race subscribes to both promises, so a
+ * poll that settles late is still observed and can never surface as an
+ * unhandled rejection.
+ */
+export async function pollDeviceWithDeadline(
+  device: DevicePollConfig,
+  deadlineInMs: number = DEVICE_POLL_DEADLINE_MS,
+): Promise<void> {
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+  const deadline: Promise<never> = new Promise<never>(
+    (_resolve: (value: never) => void, reject: (err: Error) => void) => {
+      deadlineTimer = setTimeout(() => {
+        logger.error(
+          `Network device ${device.networkDeviceId} did not finish its poll within ${Math.round(deadlineInMs / 1000)} s. This probe stops waiting for it and polls it again at its next interval.`,
+        );
+
+        reject(
+          new Error(
+            `Polling network device ${device.networkDeviceId} exceeded the ${deadlineInMs}ms deadline`,
+          ),
+        );
+      }, deadlineInMs);
+
+      /*
+       * The deadline alone never keeps the process up: the probe's own
+       * jobs do, and a probe shutting down need not wait for it.
+       */
+      (deadlineTimer as { unref?: () => void }).unref?.();
+    },
+  );
+
+  try {
+    return await Promise.race([pollDevice(device), deadline]);
+  } finally {
+    // An un-cleared timer holds the event loop open after a healthy poll.
+    if (deadlineTimer) {
+      clearTimeout(deadlineTimer);
+    }
+  }
+}
+
+/*
+ * Up to `limit` of this probe's due devices, claimed for it by the server,
+ * and whether the batch was full; null when there are none to be had now -
+ * the server was busy, or the fetch failed - and the fetching stops until
+ * its next tick. Never throws.
+ */
+export async function fetchDueDevices(
+  limit: number,
+): Promise<DevicePollBatch | null> {
+  try {
+    const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+      "/probe/network-device/list",
+    );
+
+    const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: listUrl,
+        data: {
+          /*
+           * Carries probeCapabilities ("networkDevicePing"): without it the
+           * server keeps ping-only devices back from this probe.
+           */
+          ...ProbeAPIRequest.getDefaultRequestBody(),
+          // The room this probe has: a server from before #9499 ignores it.
+          limit: limit,
+        },
+        headers: {},
+        options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
+      });
+
+    /*
+     * Too busy to hand out devices now: nothing was claimed, they stay
+     * due, and this probe asks again once the wait it was given has passed.
+     */
+    if (ServerBusy.isBusyAnswer(result)) {
+      ServerBusy.note(DEVICE_WORK, result);
+      return null;
+    }
+
+    if (result instanceof HTTPErrorResponse) {
+      logger.error(
+        `Fetching the network device list failed: the server answered ${result.statusCode}. This probe asks again at its next tick.`,
+      );
+      logger.error(result.data);
+      return null;
+    }
+
+    const body: JSONObject | undefined =
+      result.data && typeof result.data === "object"
+        ? (result.data as JSONObject)
+        : undefined;
+
+    const devices: Array<DevicePollConfig> = (
+      Array.isArray(body?.["devices"]) ? (body!["devices"] as JSONArray) : []
+    ).map((device: JSONObject) => {
+      return device as unknown as DevicePollConfig;
+    });
+
+    return {
+      devices: devices,
+      isFullBatch:
+        typeof body?.["isFullBatch"] === "boolean"
+          ? (body["isFullBatch"] as boolean)
+          : devices.length >= limit,
+    };
+  } catch (err) {
+    logger.error("Error in fetching the network device list");
+    logger.error(err);
+    return null;
+  }
+}
+
+/*
+ * Exported for tests: one fetch of this probe's due devices, as many as it
+ * may poll at once; [] when there are none to be had now.
+ */
+export async function fetchDeviceList(
+  limit: number = DEVICE_POLLS_AT_ONCE,
+): Promise<Array<DevicePollConfig>> {
+  // The server asked this probe to wait (ServerBusy): it asks later.
+  if (ServerBusy.isBackingOff(DEVICE_WORK)) {
+    return [];
+  }
+
+  return (await fetchDueDevices(limit))?.devices || [];
+}
+
+/*
+ * Exported for tests: polls the devices given, each in a slot of its own,
+ * and resolves once every one of them has settled.
+ */
 export async function pollDevices(
   devices: Array<DevicePollConfig>,
 ): Promise<void> {
@@ -200,25 +554,18 @@ export async function pollDevices(
 
   logger.debug(`Polling ${devices.length} network device(s).`);
 
-  for (
-    let batchStart: number = 0;
-    batchStart < devices.length;
-    batchStart += DEVICE_POLL_CONCURRENCY
-  ) {
-    const batch: Array<DevicePollConfig> = devices.slice(
-      batchStart,
-      batchStart + DEVICE_POLL_CONCURRENCY,
-    );
+  const polls: Array<Promise<void>> = devices.map(
+    (device: DevicePollConfig) => {
+      const poll: Promise<void> = pollWhenASlotIsFree(device);
+      track(poll);
+      return poll;
+    },
+  );
 
-    await Promise.allSettled(
-      batch.map((device: DevicePollConfig) => {
-        return pollDevice(device);
-      }),
-    );
-  }
+  await Promise.allSettled(polls);
 }
 
-// Exported for tests: fetches this probe's due devices and polls them.
+// Exported for tests: one fetch of this probe's due devices, polled.
 export async function fetchAndPollDevices(): Promise<void> {
   await pollDevices(await fetchDeviceList());
 }

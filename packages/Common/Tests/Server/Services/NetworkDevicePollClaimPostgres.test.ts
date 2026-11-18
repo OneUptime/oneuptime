@@ -46,7 +46,16 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - never hands one device to two claims made at the same moment;
  *   - and, while its row locks are held, lets the device's interfaces be
  *     written - a foreign key check does not wait for it - where a write of
- *     the device row itself does.
+ *     the device row itself does;
+ *   - hands every due device out once, interval after interval, to copies
+ *     of a probe asking again while their batches are full, several at once
+ *     (#9499), to another probe's beside them, and to a probe that
+ *     restarted after a claim - never what it lost, in that interval;
+ *   - counts a device's next poll from the whole minute nearest the claim,
+ *     so the probe's ask that many minutes on finds it due (#9499);
+ *   - reads, for many probes in a few statements, when each one's
+ *     longest-waiting poll was due, by the same rule (what says a probe is
+ *     behind on its devices, #9499).
  *
  * Opt in with RUN_POSTGRES_NETWORK_DEVICE_POLL_CLAIM_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
@@ -661,5 +670,288 @@ describePostgres("claiming network devices to poll, on Postgres", () => {
 
     expect(await claim()).toEqual([]);
     expectSetAside(await nextPollAtOf(held));
+  });
+
+  /*
+   * ASKING AGAIN WHILE DEVICES ARE DUE (OneUptime issue #9499).
+   *
+   * A probe now asks for as many devices as it has room to poll, and again
+   * while the batch it is handed is full; several copies of one probe do
+   * so at once. These hold the claim to what that needs of it: every due
+   * device handed out once an interval however many ask at once, a next
+   * poll counted from the nearest whole minute, and the read that says a
+   * probe is behind on its devices judged by the claim's own rule.
+   */
+  function setNow(now: Date): void {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(now);
+  }
+
+  function secondsFromNow(seconds: number): Date {
+    return new Date(NOW.getTime() + seconds * 1000);
+  }
+
+  // One copy of the probe: asks for `limit` until a batch is not full.
+  async function askWhileFull(
+    limit: number,
+    probeId: ObjectID = PROBE_ID,
+  ): Promise<Array<string>> {
+    const handedOut: Array<string> = [];
+
+    for (;;) {
+      const batch: Array<string> = await claim(limit, probeId);
+      handedOut.push(...batch);
+
+      if (batch.length < limit) {
+        return handedOut;
+      }
+    }
+  }
+
+  test("eight copies of a probe asking again while their batches are full hand out every due device once, interval after interval", async () => {
+    const ids: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 300; index++) {
+      ids.push(
+        await insertDevice({
+          nextPollAt: minutesFromNow(-1 - (index % 20)),
+          pollingIntervalInMinutes: 1,
+        }),
+      );
+    }
+
+    for (const minute of [0, 1, 2]) {
+      setNow(minutesFromNow(minute));
+
+      const copies: Array<Array<string>> = await Promise.all(
+        Array.from({ length: 8 }, () => {
+          return askWhileFull(25);
+        }),
+      );
+      // A copy that lost a race stops early; what it left is still due.
+      const handedOut: Array<string> = [
+        ...copies.flat(),
+        ...(await claim(1000)),
+      ];
+
+      expect(new Set<string>(handedOut).size).toBe(handedOut.length);
+      expect([...handedOut].sort()).toEqual(sorted(ids));
+
+      // Nothing more in this interval, however often a copy asks.
+      expect(await claim(25)).toEqual([]);
+    }
+  });
+
+  test("another probe's copies asking at the same moment take none of this probe's devices", async () => {
+    const ours: Array<ObjectID> = [];
+    const theirs: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 60; index++) {
+      ours.push(await insertDevice({ nextPollAt: minutesFromNow(-2) }));
+      theirs.push(
+        await insertDevice({
+          nextPollAt: minutesFromNow(-2),
+          probeId: OTHER_PROBE_ID,
+        }),
+      );
+    }
+
+    const [first, second, third, fourth] = await Promise.all([
+      askWhileFull(10),
+      askWhileFull(10),
+      askWhileFull(10, OTHER_PROBE_ID),
+      askWhileFull(10, OTHER_PROBE_ID),
+    ]);
+
+    const oursHandedOut: Array<string> = [
+      ...first!,
+      ...second!,
+      ...(await claim(1000)),
+    ];
+    const theirsHandedOut: Array<string> = [
+      ...third!,
+      ...fourth!,
+      ...(await claim(1000, OTHER_PROBE_ID)),
+    ];
+
+    expect([...oursHandedOut].sort()).toEqual(sorted(ours));
+    expect([...theirsHandedOut].sort()).toEqual(sorted(theirs));
+  });
+
+  test("a probe that restarts after a claim is handed none of what it lost again in that interval", async () => {
+    const ids: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 40; index++) {
+      ids.push(await insertDevice({ nextPollAt: minutesFromNow(-3) }));
+    }
+
+    // The first process is handed 25 and stops before it polls them.
+    const lost: Array<string> = await claim(25);
+    expect(lost).toHaveLength(25);
+
+    // Started again, it asks for everything it may poll.
+    const afterRestart: Array<string> = await askWhileFull(25);
+
+    expect(afterRestart).toHaveLength(15);
+    for (const id of afterRestart) {
+      expect(lost).not.toContain(id);
+    }
+    expect([...lost, ...afterRestart].sort()).toEqual(sorted(ids));
+  });
+
+  test("a device that comes due in the middle of a run is handed out once, at the ask after its time", async () => {
+    const soon: ObjectID = await insertDevice({
+      nextPollAt: secondsFromNow(30),
+    });
+
+    expect(await claim()).toEqual([]);
+
+    setNow(secondsFromNow(31));
+    expect(await claim()).toEqual([soon.toString()]);
+    expect(await claim()).toEqual([]);
+  });
+
+  /*
+   * The probe asks at the top of each minute, its request taking a few
+   * hundred milliseconds. A next poll counted from the claim's millisecond
+   * came due a moment after the probe's next ask about as often as before
+   * it, and that poll waited a whole minute more: a 5-minute device was
+   * polled after 6 minutes about every other time.
+   */
+  test("a device's next poll is counted from the whole minute nearest the claim, so the probe's ask that many minutes on finds it due", async () => {
+    const device: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-1),
+      pollingIntervalInMinutes: 5,
+    });
+
+    // This ask reached the database 400 ms into the minute...
+    setNow(new Date(NOW.getTime() + 400));
+    expect(await claim()).toEqual([device.toString()]);
+    expect((await nextPollAtOf(device)).toISOString()).toBe(
+      minutesFromNow(5).toISOString(),
+    );
+
+    // ...and the one five minutes on only 150 ms in: the device is due.
+    setNow(new Date(minutesFromNow(5).getTime() + 150));
+    expect(await claim()).toEqual([device.toString()]);
+    expect((await nextPollAtOf(device)).toISOString()).toBe(
+      minutesFromNow(10).toISOString(),
+    );
+  });
+
+  test("a claim in the second half of a minute counts from the next one, never polling a device sooner than half a minute short of its interval", async () => {
+    const lateInTheMinute: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-1),
+      pollingIntervalInMinutes: 1,
+    });
+
+    setNow(secondsFromNow(40));
+    expect(await claim()).toEqual([lateInTheMinute.toString()]);
+    // 10:00:40 counts from 10:01:00: next at 10:02:00, 80 s on.
+    expect((await nextPollAtOf(lateInTheMinute)).toISOString()).toBe(
+      minutesFromNow(2).toISOString(),
+    );
+
+    const earlyInTheMinute: ObjectID = await insertDevice({
+      nextPollAt: minutesFromNow(-1),
+      pollingIntervalInMinutes: 1,
+    });
+
+    setNow(secondsFromNow(20));
+    expect(await claim()).toEqual([earlyInTheMinute.toString()]);
+    // 10:00:20 counts from 10:00:00: next at 10:01:00, 40 s on.
+    expect((await nextPollAtOf(earlyInTheMinute)).toISOString()).toBe(
+      minutesFromNow(1).toISOString(),
+    );
+  });
+
+  /*
+   * What Probe:UpdateBehind reads once a minute to say a probe is behind on
+   * its network devices: by the claim's own rule, so a device nothing may
+   * poll never makes a probe look behind, and one the claim would hand out
+   * always counts.
+   */
+  test("reads when each probe's longest-waiting poll was due, by the claim's own rule", async () => {
+    await insertDevice({ nextPollAt: minutesFromNow(-3) });
+    await insertDevice({ nextPollAt: minutesFromNow(-7) });
+    // Older, but nothing may poll them: they never count.
+    await insertDevice({
+      nextPollAt: minutesFromNow(-30),
+      isPollingEnabled: false,
+    });
+    await insertDevice({
+      nextPollAt: minutesFromNow(-20),
+      monitoringMethod: "Monitor",
+    });
+    await insertDevice({
+      nextPollAt: minutesFromNow(-25),
+      projectId: OTHER_PROJECT_ID,
+    });
+    // Another probe's: due only later.
+    await insertDevice({
+      nextPollAt: minutesFromNow(4),
+      probeId: OTHER_PROBE_ID,
+    });
+
+    const noDevices: ObjectID = ObjectID.generate();
+
+    const oldest: Map<string, Date | null> =
+      await NetworkDeviceService.getOldestWaitingPollDueAt({
+        probeIds: [PROBE_ID, OTHER_PROBE_ID, noDevices],
+        dueAt: NOW,
+      });
+
+    expect(oldest.get(PROBE_ID.toString())?.toISOString()).toBe(
+      minutesFromNow(-7).toISOString(),
+    );
+    expect(oldest.get(OTHER_PROBE_ID.toString())).toBeNull();
+    expect(oldest.get(noDevices.toString())).toBeNull();
+
+    // Once the claim has handed them out, nothing waits.
+    expect(await claim()).toHaveLength(2);
+    expect(
+      (
+        await NetworkDeviceService.getOldestWaitingPollDueAt({
+          probeIds: [PROBE_ID],
+          dueAt: NOW,
+        })
+      ).get(PROBE_ID.toString()),
+    ).toBeNull();
+  });
+
+  test("reads 1,100 probes in three statements, and every probe it was asked about is answered", async () => {
+    await insertDevice({ nextPollAt: minutesFromNow(-2) });
+
+    const probeIds: Array<ObjectID> = [PROBE_ID];
+
+    for (let index: number = 0; index < 1099; index++) {
+      probeIds.push(ObjectID.generate());
+    }
+
+    const statements: Array<string> = [];
+    const manager: { query: (sql: string, parameters?: unknown) => unknown } =
+      database.manager as unknown as {
+        query: (sql: string, parameters?: unknown) => unknown;
+      };
+    const query: (sql: string, parameters?: unknown) => unknown =
+      manager.query.bind(manager);
+
+    jest
+      .spyOn(manager, "query")
+      .mockImplementation((sql: string, parameters?: unknown) => {
+        statements.push(sql);
+        return query(sql, parameters);
+      });
+
+    const oldest: Map<string, Date | null> =
+      await NetworkDeviceService.getOldestWaitingPollDueAt({
+        probeIds: probeIds,
+        dueAt: NOW,
+      });
+
+    expect(statements).toHaveLength(3);
+    expect(oldest.size).toBe(1100);
+    expect(oldest.get(PROBE_ID.toString())?.toISOString()).toBe(
+      minutesFromNow(-2).toISOString(),
+    );
   });
 });

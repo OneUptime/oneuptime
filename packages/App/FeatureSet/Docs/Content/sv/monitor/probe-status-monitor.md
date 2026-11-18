@@ -1,16 +1,16 @@
 # Sondstatusmonitor
 
-En sondstatusmonitor talar om för dig när en sond slutar höra av sig: en incident när den tappar anslutningen, som löser sig själv när den är tillbaka. Rikta den mot dina anpassade sonder eller, på en egen OneUptime-installation, mot den globala sond som varje monitor körs på, så att en sond som tystnar aldrig lämnar sina monitorer okontrollerade utan att någon vet om det.
+En sondstatusmonitor talar om för dig när en sond slutar höra av sig: en incident när den tappar anslutningen, som löser sig själv när den är tillbaka. Rikta den mot dina anpassade sonder eller, på en egen OneUptime-installation, mot den globala sond som varje monitor körs på, så att en sond som tystnar aldrig lämnar sina monitorer okontrollerade utan att någon vet om det. En ny monitor larmar också när en av dess sonder hamnar efter, så att dess monitorer kontrolleras, eller dess nätverksenheter avfrågas, mer sällan än inställt.
 
 :::cards
 - [Skapa en](#skapa-en-sondstatusmonitor): Välj sonderna och behåll standardkriterierna.
-- [Kriterier](#kriterier): Räkna de anslutna eller frånkopplade sonderna, nu eller över ett tidsfönster.
+- [Kriterier](#kriterier): Räkna de anslutna, frånkopplade eller efterliggande sonderna, nu eller över ett tidsfönster.
 - [Mätvärden](#mätvärden): Hur många sonder som var anslutna, minut för minut.
 :::
 
 ## Så fungerar det
 
-OneUptime utvärderar varje sondstatusmonitor en gång i minuten, och igen i samma stund som en av dess sonder ansluter eller kopplas från. Den läser varje sonds anslutningsstatus, samma som sondens sida visar: en sond är frånkopplad när inget har hörts från den på tre minuter. När OneUptime självt har legat nere eller inte tagit emot data väntar den tre hela minuter innan den kallar någon sond frånkopplad, så en uppgradering av OneUptime öppnar aldrig en incident.
+OneUptime utvärderar varje sondstatusmonitor en gång i minuten, och igen i samma stund som en av dess sonder ansluter eller kopplas från. Den läser varje sonds anslutningsstatus, samma som sondens sida visar: en sond är frånkopplad när inget har hörts från den på tre minuter. När OneUptime självt har legat nere eller inte tagit emot data väntar den tre hela minuter innan den kallar någon sond frånkopplad, så en uppgradering av OneUptime öppnar aldrig en incident. Den läser också om varje ansluten sond ligger efter, så som sondens sida säger det ([En sond ligger efter](/docs/probe/custom-probe#en-sond-ligger-efter)), och utvärderar monitorn igen i samma stund som en hamnar efter eller kommer ikapp.
 
 ```mermaid title="Från en tyst sond till en enda incident"
 flowchart TB
@@ -55,13 +55,17 @@ En sondstatusmonitors filter räknar sonder:
 | --- | --- |
 | **Frånkopplade sonder** | De bevakade sonderna som är frånkopplade. |
 | **Anslutna sonder** | De bevakade sonderna som är anslutna. |
+| **Sonder som ligger efter** | De bevakade sonderna som är anslutna men ligger efter: deras monitorer kontrolleras, eller deras nätverksenheter avfrågas, mer sällan än inställt. |
 
-Båda är heltal som jämförs med **Större än**, **Mindre än**, **Lika med** och de övriga jämförelserna. En ny monitor börjar med två kriterier:
+Alla tre är heltal som jämförs med **Större än**, **Mindre än**, **Lika med** och de övriga jämförelserna. En ny monitor börjar med tre kriterier:
 
 | Kriterium | Filter | Vad det gör |
 | --- | --- | --- |
 | Kontrollera om en sond är frånkopplad | **Frånkopplade sonder** större än `0` | Sätter monitorn offline och deklarerar en incident med titeln "Sond frånkopplad: {{disconnectedProbeNames}}", som löser sig själv. |
+| Kontrollera om en sond ligger efter | **Sonder som ligger efter** större än `0` | Larmar med titeln "Sond ligger efter: {{behindProbeNames}}", som löser sig själv. Det ändrar inte monitorns status och deklarerar ingen incident: sonden hör fortfarande av sig. |
 | Kontrollera om alla sonder är anslutna | **Frånkopplade sonder** lika med `0` | Sätter monitorn till i drift. |
+
+En monitor som skapades innan **Sonder som ligger efter** fanns behåller sina kriterier, och får därför inte veta när en sond hamnar efter förrän du lägger till kontrollen i dess kriterier.
 
 Filtret **Anslutna sonder** passar en monitor som bevakar flera sonder och klarar att förlora en: **Anslutna sonder** mindre än `2` deklarerar en incident först när färre än två finns kvar.
 
@@ -71,7 +75,7 @@ En sond är frånkopplad först efter tre minuters tystnad, så en snabb omstart
 
 ## Mätvärden
 
-Varje utvärdering registrerar två serier på monitorn: `oneuptime.monitor.probes.connected` och `oneuptime.monitor.probes.disconnected`, antalet bevakade sonder som var anslutna och frånkopplade. De visas i diagram på monitorns sida **Mätvärden**, och en instrumentpanel eller en mätvärdesmonitor läser dem som vilken annan serie som helst.
+Varje utvärdering registrerar tre serier på monitorn: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` och `oneuptime.monitor.probes.behind`, antalet bevakade sonder som var anslutna, frånkopplade och låg efter. De visas i diagram på monitorns sida **Mätvärden**, och en instrumentpanel eller en mätvärdesmonitor läser dem som vilken annan serie som helst.
 
 ## Mallvariabler
 
@@ -83,8 +87,10 @@ En sondstatusmonitors incident- och larmmallar kan använda de här variablerna,
 | `{{disconnectedProbeCount}}` | Hur många av sonderna som är frånkopplade. |
 | `{{connectedProbeNames}}` | Namnen på de anslutna sonderna, åtskilda med kommatecken. |
 | `{{connectedProbeCount}}` | Hur många av sonderna som är anslutna. |
-| `{{probeStatusSummary}}` | En mening som namnger de frånkopplade sonderna, som `1 of 3 probes is disconnected: EU Probe.`, eller säger att alla sonder är anslutna. |
-| `{{probes}}` | Varje sond, med `probeName`, `isConnected`, `isGlobalProbe` och `lastAliveAt`. |
+| `{{behindProbeNames}}` | Namnen på de anslutna sonderna som ligger efter, åtskilda med kommatecken. |
+| `{{behindProbeCount}}` | Hur många av sonderna som ligger efter. |
+| `{{probeStatusSummary}}` | En mening som namnger de frånkopplade sonderna, som `1 of 3 probes is disconnected: EU Probe.`, annars de som ligger efter, eller säger att alla sonder är anslutna. |
+| `{{probes}}` | Varje sond, med `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` och `lastAliveAt`. |
 
 ## Felsökning
 

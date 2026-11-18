@@ -277,9 +277,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields={{
             key: true,
             iconFileId: true,
-            // Whether it is behind, for its Status (#9488).
+            // Whether it is behind, for its Status (#9488, #9499).
             checksLateSince: true,
             checksLastLateAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
           }}
           noItemsMessage={"No custom probes yet."}
           viewPageRoute={Navigation.getCurrentRoute()}

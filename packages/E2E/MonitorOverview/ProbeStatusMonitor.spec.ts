@@ -487,7 +487,7 @@ test.describe("Create Monitor: Probe Status", () => {
     await expect(
       moreOptions.getByTestId("card-select-option-Probe Status"),
     ).toContainText(
-      "Alert when a probe disconnects - one incident per outage, resolved when it reconnects.",
+      "Alert when a probe disconnects or falls behind - resolved by itself once it is back.",
     );
   });
 

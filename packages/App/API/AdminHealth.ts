@@ -56,13 +56,7 @@ import InstallationHealthUtil, {
   InstallationHealthFacts,
   InstallationHealthProbeBehind,
 } from "Common/Types/InstallationHealth/InstallationHealth";
-import ProbeService from "Common/Server/Services/ProbeService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import ProbeBehindUtil from "Common/Types/Probe/ProbeBehind";
-import Probe, {
-  ProbeConnectionStatus,
-} from "Common/Models/DatabaseModels/Probe";
+import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
 import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
   ClickhouseJsonResult,
@@ -1033,50 +1027,23 @@ export interface InstallationHealthReaders {
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
   // Which products the server switches off (#7481): what Settings > Products reads.
   serverProducts: () => Promise<ServerProductsAnswer>;
-  // The global probes that are behind (#9488): what Health > Global Probes reads.
+  /*
+   * The global probes that are behind (#9488, #9499): what Health > Global
+   * Probes reads.
+   */
   globalProbesBehind: () => Promise<Array<InstallationHealthProbeBehind>>;
 }
 
 /*
- * The connected global probes that are behind - their monitors checked
- * later than their interval (#9488) - by what Probe:UpdateBehind keeps on
- * each (Types/Probe/ProbeBehind).
+ * The connected global probes that are behind - their monitors checked, or
+ * their network devices polled, later than their interval (#9488, #9499) -
+ * by what Probe:UpdateBehind keeps on each (Types/Probe/ProbeBehind). The
+ * master admins' notifications read the same (Common's GlobalProbesBehind).
  */
 export async function readGlobalProbesBehind(): Promise<
   Array<InstallationHealthProbeBehind>
 > {
-  const probes: Array<Probe> = await ProbeService.findBy({
-    query: {
-      isGlobalProbe: true,
-      connectionStatus: ProbeConnectionStatus.Connected,
-      checksLateSince: QueryHelper.notNull(),
-    },
-    select: {
-      _id: true,
-      name: true,
-      checksLateSince: true,
-      checksLastLateAt: true,
-    },
-    skip: 0,
-    limit: LIMIT_MAX,
-    props: { isRoot: true },
-  });
-
-  const behind: Array<InstallationHealthProbeBehind> = [];
-
-  for (const probe of probes) {
-    const since: Date | null = ProbeBehindUtil.getBehindSince(probe);
-
-    if (since && probe.id) {
-      behind.push({
-        id: probe.id.toString(),
-        name: probe.name || "",
-        since: since.toISOString(),
-      });
-    }
-  }
-
-  return behind;
+  return await GlobalProbesBehind.read();
 }
 
 /*

@@ -287,6 +287,8 @@ El sondeo se configura en la página **Ajustes** del dispositivo, en la tarjeta 
 
 Todo lo que va de **Recorrer interfaces** hacia abajo necesita credenciales SNMP: en un dispositivo solo con ping, esos ajustes se guardan y no tienen ningún recorrido al que aplicarse.
 
+Una sonda sondea hasta `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivos a la vez, 25 de forma predeterminada, y pide más en cuanto tiene sitio, así que cada dispositivo se sondea en su intervalo por grande que sea la flota. El siguiente sondeo de un dispositivo se cuenta desde el minuto exacto más cercano al anterior. Cuando hay más dispositivos pendientes de los que la sonda puede sondear, su **Estado** muestra **Con retraso** y su página muestra **Sondeos de dispositivos de red**: [Una sonda va con retraso](/docs/probe/custom-probe#una-sonda-va-con-retraso) explica cómo ponerla al día.
+
 ### Recorrido de interfaces
 
 Con **Recorrer interfaces** activado y credenciales encontradas, cada sondeo sigue en cada interfaz su estado operativo y administrativo, los bits de entrada y salida, el uso y los errores. El mismo recorrido recopila los vecinos LLDP y CDP para el mapa.

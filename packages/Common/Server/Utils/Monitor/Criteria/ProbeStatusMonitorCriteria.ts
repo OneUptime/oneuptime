@@ -12,9 +12,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
  * The criteria of a Probe Status monitor: how many of the probes it watches
- * are connected, and how many are not, compared with the filter's number.
- * Both are counts, so "Disconnected Probes is greater than 0" is "a probe is
- * down" and "Connected Probes is less than 2" is "fewer than two are left".
+ * are connected, how many are not, and how many are connected but behind -
+ * their monitors checked, or network devices polled, later than their
+ * interval (#9501) - compared with the filter's number. All are counts, so
+ * "Disconnected Probes is greater than 0" is "a probe is down", "Connected
+ * Probes is less than 2" is "fewer than two are left" and "Probes Behind is
+ * greater than 0" is "a probe does not keep up".
  *
  * Both counts are recorded every evaluation (MonitorMetricUtil), so a filter
  * can also be judged over a window - "Disconnected Probes is greater than 0
@@ -51,6 +54,10 @@ export default class ProbeStatusMonitorCriteria {
 
     if (input.checkOn === CheckOn.DisconnectedProbes) {
       return input.response.disconnectedProbeCount;
+    }
+
+    if (input.checkOn === CheckOn.ProbesBehind) {
+      return ProbeStatusMonitorUtil.getBehindProbeCount(input.response);
     }
 
     return null;

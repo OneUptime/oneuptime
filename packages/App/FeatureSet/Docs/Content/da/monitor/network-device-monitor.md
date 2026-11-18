@@ -287,6 +287,8 @@ Polling ligger på enhedens side **Indstillinger**, på kortet **Polling & Data 
 
 Alt fra **Walk Interfaces** og ned kræver SNMP-loginoplysninger: på en enhed kun med ping bevares de indstillinger og har intet walk at gælde for.
 
+En sonde poller op til `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` enheder ad gangen, 25 som standard, og beder om flere, så snart den har plads, så hver enhed polles med sit interval, uanset hvor stor flåden er. En enheds næste polling regnes fra det hele minut, der ligger nærmest den forrige. Når flere enheder står for tur, end sonden kan polle, viser dens **Status** **Bagud**, og dens side viser **Polling af netværksenheder**: [En sonde er bagud](/docs/probe/custom-probe#en-sonde-er-bagud) fortæller, hvad der får den til at indhente det.
+
 ### Walk af interfaces
 
 Med **Walk Interfaces** slået til og loginoplysninger fundet følger hver polling hvert interfaces driftsmæssige og administrative status, bits ind og ud, udnyttelse og fejl. Det samme walk indsamler LLDP- og CDP-naboerne til kortet.

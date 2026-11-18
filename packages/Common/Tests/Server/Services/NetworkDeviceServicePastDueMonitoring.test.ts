@@ -229,16 +229,23 @@ describe("NetworkDeviceService.claimDevicesForPolling keeps past_due projects po
   });
 
   describe("the statement itself", () => {
-    test("binds probeId, now, limit and the active statuses, in that order", async () => {
+    test("binds probeId, now, limit, the active statuses and the minute the next polls count from, in that order", async () => {
       const { select } = await captureClaim([], 7);
 
-      expect(select.parameters).toHaveLength(4);
+      expect(select.parameters).toHaveLength(5);
       expect(select.parameters[0]).toBe(PROBE_ID.toString());
       expect(select.parameters[1]).toBeInstanceOf(Date);
       expect(select.parameters[2]).toBe(7);
       expect(select.parameters[3]).toEqual(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       );
+      // The whole minute nearest the claim (OneUptime issue #9499).
+      expect(select.parameters[4]).toEqual(
+        NetworkDeviceServiceType.getPollScheduleStart(
+          select.parameters[1] as Date,
+        ),
+      );
+      expect((select.parameters[4] as Date).getTime() % 60000).toBe(0);
     });
 
     test("uses every bound parameter and no unbound placeholder", async () => {

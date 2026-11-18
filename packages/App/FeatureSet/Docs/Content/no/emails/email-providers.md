@@ -182,7 +182,7 @@ På en selvhostet server slutter **Innstillinger > Varslinger > E-poster** i Adm
 
 ## Få beskjed når e-post eller sondene stopper
 
-Når e-posten fra serveren slutter å virke, eller ingen globale sonder rapporterer lenger, gir OneUptime hovedadministratorene beskjed, og én gang til når det virker igjen. Velg hvor i kortet **Varslinger om brudd** på samme side:
+Når e-posten fra serveren slutter å virke, ingen globale sonder rapporterer lenger, eller en global sonde kommer på etterskudd (monitorene sjekkes, eller nettverksenhetene polles, sjeldnere enn innstilt), gir OneUptime hovedadministratorene beskjed, og én gang til når alt er i orden. Velg hvor i kortet **Varslinger om brudd** på samme side:
 
 - **Push til hovedadministratorenes enheter** sender en push-varsling til hver enhet der en hovedadministrator er logget inn i OneUptime-appen. Den er på til du slår den av.
 - **Send SMS til dette nummeret** sender en SMS gjennom serverens egne SMS-innstillinger.

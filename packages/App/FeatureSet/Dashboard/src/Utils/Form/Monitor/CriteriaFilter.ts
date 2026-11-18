@@ -1343,10 +1343,15 @@ export default class CriteriaFilterUtil {
      * A Probe Status monitor counts the probes it watches. Disconnected
      * Probes leads - "a probe is down" is the rule nearly everyone writes,
      * and a new filter starts on it - then Connected Probes, for "fewer
-     * than two are left" on a monitor that watches several.
+     * than two are left" on a monitor that watches several, then Probes
+     * Behind, for "a probe does not keep up" (#9501).
      */
     if (monitorType === MonitorType.ProbeStatus) {
-      options = [CheckOn.DisconnectedProbes, CheckOn.ConnectedProbes]
+      options = [
+        CheckOn.DisconnectedProbes,
+        CheckOn.ConnectedProbes,
+        CheckOn.ProbesBehind,
+      ]
         .map((checkOn: CheckOn): DropdownOption | undefined => {
           return options.find((i: DropdownOption) => {
             return i.value === checkOn;
@@ -2155,7 +2160,8 @@ export default class CriteriaFilterUtil {
      */
     if (
       checkOn === CheckOn.ConnectedProbes ||
-      checkOn === CheckOn.DisconnectedProbes
+      checkOn === CheckOn.DisconnectedProbes ||
+      checkOn === CheckOn.ProbesBehind
     ) {
       options = [
         FilterType.GreaterThan,
@@ -2532,7 +2538,10 @@ export default class CriteriaFilterUtil {
       return "30";
     }
 
-    if (checkOn === CheckOn.DisconnectedProbes) {
+    if (
+      checkOn === CheckOn.DisconnectedProbes ||
+      checkOn === CheckOn.ProbesBehind
+    ) {
       return "0";
     }
 
