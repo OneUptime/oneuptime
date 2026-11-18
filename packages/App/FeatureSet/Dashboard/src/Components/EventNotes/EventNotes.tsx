@@ -347,9 +347,13 @@ function EventNotes<TNote extends BaseModel>(
   >(null);
 
   /*
-   * Load more had the focus when a read from the top locked it: the feed's
-   * body holds the focus until the read is over, then gives it back
-   * (holdFocusOffLockedLoadMore).
+   * The feed's body holds the focus on Load more's behalf: taken from Load
+   * more as it reads (loadMoreNotes) or as a read from the top locks it
+   * (holdFocusOffLockedLoadMore), or from a Load more banner taken away
+   * while Load more cannot be pressed (moveFocusOffBanner). Once it can be,
+   * or its last page is drawn, the focus goes on (the layout effect after
+   * loadMoreNotes); a focus that moves on from the body meanwhile is the
+   * reader's again (letGoOfFocus).
    */
   const isFocusWaitingForLoadMore: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -461,11 +465,13 @@ function EventNotes<TNote extends BaseModel>(
    * the new ones. Focusable from script alone, only while it holds the
    * focus (as the feed's body is), and focused where it is: the reader is
    * at the foot of the feed, where the new notes begin, and the page stays
-   * still.
+   * still. Only a note drawn wholly out of the window - Load more pressed
+   * while it was out of sight, as it is once the page before has kept the
+   * page still - is brought just into it, so the focus is never somewhere
+   * the reader cannot see. A note no longer drawn leaves the focus on the
+   * feed's body.
    */
-  const holdFocusOnNote: (noteId: string) => boolean = (
-    noteId: string,
-  ): boolean => {
+  const holdFocusOnNote: (noteId: string) => void = (noteId: string): void => {
     const card: Element | undefined = Array.from(
       feedBodyRef.current?.querySelectorAll("[data-note-id]") || [],
     ).find((element: Element): boolean => {
@@ -475,7 +481,7 @@ function EventNotes<TNote extends BaseModel>(
       card?.querySelector<HTMLElement>("article") || null;
 
     if (!note) {
-      return false;
+      return;
     }
 
     const letGo: () => void = (): void => {
@@ -491,7 +497,13 @@ function EventNotes<TNote extends BaseModel>(
     note.addEventListener("blur", letGo);
     holdFocus(note, { preventScroll: true });
 
-    return true;
+    const box: DOMRect = note.getBoundingClientRect();
+    const isOutOfSight: boolean =
+      box.height > 0 && (box.top >= window.innerHeight || box.bottom <= 0);
+
+    if (isOutOfSight) {
+      note.scrollIntoView?.({ block: "nearest" });
+    }
   };
 
   /*

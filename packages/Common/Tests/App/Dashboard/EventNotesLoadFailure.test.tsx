@@ -2228,6 +2228,86 @@ describe("the notes feed's last page, read from the keyboard", () => {
     expect(note).not.toHaveAttribute("tabindex");
   });
 
+  /*
+   * jsdom lays nothing out: the note is put where a browser would draw it -
+   * in the window, or wholly below it - and the window's scrolling is
+   * watched (jsdom has none of its own).
+   */
+  const drawNoteAt: (top: number) => ReturnType<typeof jest.fn> = (
+    top: number,
+  ): ReturnType<typeof jest.fn> => {
+    jest
+      .spyOn(Element.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: Element): DOMRect {
+        const height: number = this.tagName === "ARTICLE" ? 120 : 0;
+
+        return {
+          top: this.tagName === "ARTICLE" ? top : 0,
+          bottom: this.tagName === "ARTICLE" ? top + height : 0,
+          height: height,
+          width: height ? 600 : 0,
+          left: 0,
+          right: height ? 600 : 0,
+          x: 0,
+          y: this.tagName === "ARTICLE" ? top : 0,
+          toJSON: (): unknown => {
+            return {};
+          },
+        } as DOMRect;
+      });
+
+    const scrollIntoView: ReturnType<typeof jest.fn> = jest.fn();
+
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView,
+    });
+
+    return scrollIntoView;
+  };
+
+  afterEach(() => {
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  });
+
+  test("a first new note drawn in the window is focused where it is: nothing scrolls", async () => {
+    const { pending } = await pressLoadMore();
+    const scrollIntoView: ReturnType<typeof jest.fn> = drawNoteAt(
+      window.innerHeight - 80,
+    );
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    expect(focusedNoteId()).toBe(OLDER_NOTES[0]!["_id"]);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Load more pressed again while it was out of sight - once a page before
+   * kept the page still on the notes it brought - draws the last page below
+   * the window: the focus is never somewhere the reader cannot see.
+   */
+  test("a first new note drawn wholly below the window is brought just into it", async () => {
+    const { pending } = await pressLoadMore();
+    const scrollIntoView: ReturnType<typeof jest.fn> = drawNoteAt(
+      window.innerHeight + 400,
+    );
+
+    await act(async () => {
+      pending[0]!.resolve(answerOf(OLDER_NOTES, ALL_NOTES_COUNT));
+    });
+
+    const note: Element = document.activeElement as Element;
+
+    expect(focusedNoteId()).toBe(OLDER_NOTES[0]!["_id"]);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    expect(scrollIntoView.mock.instances[0]).toBe(note);
+  });
+
   test("ringed when the keyboard brought the focus there, as the feed's controls are", async () => {
     const { pending } = await pressLoadMore();
 
