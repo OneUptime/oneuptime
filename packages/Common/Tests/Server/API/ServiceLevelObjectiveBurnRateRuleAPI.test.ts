@@ -39,6 +39,7 @@ import {
   SloRecommendedBurnRateRule,
   getSloRecommendedBurnRateRules,
 } from "../../../Utils/Slo/SloRecommendedBurnRateRules";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * "Add recommended rules", as the API serves it:
@@ -333,7 +334,8 @@ afterEach(() => {
 describe("the routes", () => {
   test("sit beside the rule table's CRUD path, behind the user middleware only - as the CRUD create is, so an API key may call them", () => {
     for (const uri of [PREVIEW, ADD, BULK, BULK_ADD]) {
-      expect(routeOf(uri).handlers).toHaveLength(2);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(routeOf(uri).handlers)).toHaveLength(2);
       expect(routeOf(uri).handlers[0]).toBe(UserMiddleware.getUserMiddleware);
     }
 

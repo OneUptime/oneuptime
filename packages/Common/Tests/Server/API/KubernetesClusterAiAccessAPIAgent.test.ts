@@ -111,17 +111,16 @@ const mockRoutes: Array<MockRoute> = [];
 const mockRouter: Record<string, jest.Mock> = {};
 
 for (const method of ["get", "post", "put", "delete"]) {
-  mockRouter[method] = jest
-    .fn()
-    .mockImplementation(
-      (uri: string, _middleware: RouterFunction, handler: RouterFunction) => {
-        mockRoutes.push({
-          method: method.toUpperCase(),
-          uri,
-          handlerFunction: handler,
-        });
-      },
-    );
+  mockRouter[method] = jest.fn().mockImplementation(
+    // The handler last: a switched-off product's refusal may stand before it (#7479).
+    (uri: string, ...functions: Array<RouterFunction>) => {
+      mockRoutes.push({
+        method: method.toUpperCase(),
+        uri,
+        handlerFunction: functions[functions.length - 1]!,
+      });
+    },
+  );
 }
 
 jest.mock("../../../Server/Utils/Express", () => {

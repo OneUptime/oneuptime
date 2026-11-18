@@ -23,6 +23,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * The routes behind streaming: a new stream key for an AWS or a Google
@@ -228,7 +229,9 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route(method, uri).handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(method, uri).handlers)).toHaveLength(3);
+      expect(countRefusals(route(method, uri).handlers)).toBe(1);
     },
   );
 });

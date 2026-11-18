@@ -33,6 +33,7 @@ import { NetworkControllerTestResult } from "../../../Types/NetworkController/Ne
 import NetworkControllerProvider from "../../../Types/NetworkController/NetworkControllerProvider";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * The three routes beside the Meraki connections' CRUD: "Test" (settings
@@ -234,7 +235,9 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route(uri).handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(uri).handlers)).toHaveLength(3);
+      expect(countRefusals(route(uri).handlers)).toBe(1);
     },
   );
 });
