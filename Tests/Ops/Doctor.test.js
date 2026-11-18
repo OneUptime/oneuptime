@@ -33,6 +33,7 @@ const {
   ingressFindings,
   serverFixOf,
   serverFindings,
+  productsFindings,
   addressFindings,
   proxyFindings,
   certificateFindings,
@@ -860,6 +861,280 @@ describe("what the server says of itself", () => {
 
   test("no answer at all says nothing: the ingress check already does", () => {
     expect(serverFindings({ error: "ECONNREFUSED" }, null)).toEqual([]);
+  });
+});
+
+/*
+ * #7481: which products the server switches off, from its own answer, so
+ * that "where did Logs go?" is answered from the command line. A product an
+ * admin switched off is no fault: a note, shown whenever there is one and
+ * never counted. What SERVER_PRODUCTS got wrong, while it applies, is worth
+ * a look.
+ */
+const TELEMETRY_OFF = [
+  { product: "logs", title: "Logs" },
+  { product: "metrics", title: "Metrics" },
+  { product: "traces", title: "Traces" },
+  { product: "profiles", title: "Profiles" },
+  { product: "exceptions", title: "Exceptions" },
+];
+
+const products = (overrides) => {
+  return Object.assign(
+    {
+      switchableCount: 44,
+      onCount: 44,
+      preset: "everything",
+      presetTitle: "Everything",
+      source: "starting-value",
+      switchedOff: [],
+      unknownNames: [],
+      isTelemetryIngestionStopped: false,
+      offByIngestion: [],
+      shouldSuggestStoppingIngestion: false,
+    },
+    overrides || {},
+  );
+};
+
+const MONITORING_ONLY = products({
+  onCount: 5,
+  preset: "monitoring-and-status-pages",
+  presetTitle: "Monitoring and status pages",
+  source: "saved",
+  switchedOff: TELEMETRY_OFF.concat([{ product: "alerts", title: "Alerts" }]),
+});
+
+describe("the products switched off on the server", () => {
+  const PUBLIC_URL = "https://oneuptime.example.com";
+
+  test("every product on is one passing line", () => {
+    expect(productsFindings(products(), PUBLIC_URL)).toEqual([
+      finding("ok", "Products: every product is switched on."),
+    ]);
+  });
+
+  test("a preset an admin saved: its name, how many are on, and where to change it", () => {
+    expect(productsFindings(MONITORING_ONLY, PUBLIC_URL)).toEqual([
+      finding(
+        "note",
+        "Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products.",
+      ),
+    ]);
+  });
+
+  test("without an address to name, it says only where", () => {
+    expect(productsFindings(MONITORING_ONLY, null)[0].message).toBe(
+      "Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard.",
+    );
+  });
+
+  test("set by SERVER_PRODUCTS, it says so", () => {
+    expect(
+      productsFindings(
+        Object.assign({}, MONITORING_ONLY, { source: "starting-value" }),
+        PUBLIC_URL,
+      )[0].message,
+    ).toBe(
+      "Products: Monitoring and status pages (5 of 44 on), set by SERVER_PRODUCTS in config.env.",
+    );
+  });
+
+  test.each([
+    [[{ product: "logs", title: "Logs" }], "Switched off: Logs."],
+    [TELEMETRY_OFF.slice(0, 2), "Switched off: Logs and Metrics."],
+    [
+      TELEMETRY_OFF.concat([
+        { product: "alerts", title: "Alerts" },
+        { product: "slos", title: "SLOs" },
+        { product: "workflows", title: "Workflows" },
+      ]),
+      "Switched off: Logs, Metrics, Traces, Profiles, Exceptions, Alerts and 2 more.",
+    ],
+  ])(
+    "a choice of one's own names what is switched off: %j",
+    (switchedOff, named) => {
+      const found = productsFindings(
+        products({
+          onCount: 44 - switchedOff.length,
+          preset: null,
+          presetTitle: null,
+          source: "saved",
+          switchedOff: switchedOff,
+        }),
+        PUBLIC_URL,
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("note");
+      expect(found[0].message).toBe(
+        `Products: ${44 - switchedOff.length} of 44 on, set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products. ${named}`,
+      );
+    },
+  );
+
+  test("names SERVER_PRODUCTS held that OneUptime did not know are worth a look, with the names and the fix", () => {
+    const found = productsFindings(
+      products({ unknownNames: ["monitor", "statuspages"] }),
+      PUBLIC_URL,
+    );
+
+    expect(found).toEqual([
+      finding("ok", "Products: every product is switched on."),
+      finding(
+        "warn",
+        "SERVER_PRODUCTS in config.env names what OneUptime does not know, so it left them out: monitor, statuspages.",
+        "Use everything, monitoring-and-status-pages, incident-response, or product keys such as monitors,incidents,status-pages, then run npm start. See https://oneuptime.com/docs/installation/docker-compose#run-only-what-you-need",
+      ),
+    ]);
+  });
+
+  test("one unknown name is said as one", () => {
+    expect(
+      productsFindings(products({ unknownNames: ["monitor"] }), PUBLIC_URL)[1]
+        .message,
+    ).toContain("so it left it out: monitor.");
+  });
+
+  test("once an admin saved the page, SERVER_PRODUCTS no longer applies, and what it got wrong is not said", () => {
+    expect(
+      productsFindings(
+        Object.assign({}, MONITORING_ONLY, { unknownNames: ["monitor"] }),
+        PUBLIC_URL,
+      ).map((entry) => {
+        return entry.level;
+      }),
+    ).toEqual(["note"]);
+  });
+
+  test("telemetry ingestion stopped is a note naming the products it turns off", () => {
+    expect(
+      productsFindings(
+        products({
+          isTelemetryIngestionStopped: true,
+          offByIngestion: TELEMETRY_OFF,
+        }),
+        PUBLIC_URL,
+      ),
+    ).toEqual([
+      finding("ok", "Products: every product is switched on."),
+      finding(
+        "note",
+        "Telemetry ingestion is stopped (DISABLE_TELEMETRY_INGESTION=true), so Logs, Metrics, Traces, Profiles and Exceptions are off for every project.",
+      ),
+    ]);
+  });
+
+  test("every telemetry product switched off while ingestion runs is a note with how to save memory", () => {
+    const found = productsFindings(
+      Object.assign({}, MONITORING_ONLY, {
+        shouldSuggestStoppingIngestion: true,
+      }),
+      PUBLIC_URL,
+    );
+
+    expect(found[1]).toEqual(
+      finding(
+        "note",
+        "Every telemetry product is switched off, but telemetry ingestion still runs. You can also stop it to save memory: set DISABLE_TELEMETRY_INGESTION=true in config.env, then run npm start.",
+      ),
+    );
+  });
+
+  test.each([
+    ["an older server, which does not say", undefined],
+    ["a server that could not read them", null],
+    ["an answer that is no object", "everything"],
+  ])("nothing is said for %s", (_label, value) => {
+    expect(productsFindings(value, PUBLIC_URL)).toEqual([]);
+  });
+
+  test("npm run doctor prints the note on a healthy server, counts it as nothing, and exits 0", async () => {
+    const answer = serverAnswer([], { products: MONITORING_ONLY });
+    const result = await runDoctor({
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).toBe(
+      [
+        "Checking this OneUptime:",
+        "  • Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products.",
+        "",
+        "Everything looks right.",
+      ].join("\n"),
+    );
+    expect(result.code).toBe(0);
+  });
+
+  test("the note comes after what needs attention", async () => {
+    const answer = serverAnswer([EMAIL_NOT_SET_UP], {
+      products: products({ unknownNames: ["monitor"] }),
+    });
+    const result = await runDoctor({
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+    const marks = result.output
+      .split("\n")
+      .filter((line) => {
+        return /^ {2}[✗!•✓] /.test(line);
+      })
+      .map((line) => {
+        return line.slice(2, 3);
+      });
+
+    expect(marks).toEqual(["✗", "!"]);
+    expect(result.output).toContain("1 thing to fix, and 1 worth a look.");
+  });
+
+  test("after npm start, a note is not said: only what needs attention is", async () => {
+    const answer = serverAnswer([], { products: MONITORING_ONLY });
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).not.toContain("Products:");
+    expect(result.output).toBe("✓ Everything looks right.");
+    expect(result.code).toBe(0);
+
+    // Nor beside something that does need attention.
+    const withProblem = serverAnswer([EMAIL_NOT_SET_UP], {
+      products: MONITORING_ONLY,
+    });
+    const problem = await runDoctor({
+      argv: ["--after-start"],
+      network: {
+        doctor: {
+          status: 200,
+          body: JSON.stringify(withProblem),
+          json: withProblem,
+        },
+      },
+    });
+
+    expect(problem.output).toContain("What needs attention on this server:");
+    expect(problem.output).toContain("✗ Email: Not set up yet");
+    expect(problem.output).not.toContain("Products:");
+  });
+
+  test("--all says every product is on", async () => {
+    const answer = serverAnswer([], { products: products() });
+    const result = await runDoctor({
+      argv: ["--all"],
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).toContain(
+      "  ✓ Products: every product is switched on.",
+    );
   });
 });
 

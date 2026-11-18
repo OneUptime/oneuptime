@@ -12,8 +12,22 @@ import InstallationHealthUtil, {
   InstallationHealthFinding,
   InstallationHealthFindingId,
   InstallationHealthLevel,
+  InstallationHealthProduct,
+  InstallationHealthProducts,
   QUEUE_BACKLOG_LIMIT,
 } from "../../../Types/InstallationHealth/InstallationHealth";
+import ProductKey, { PRODUCT_KEYS } from "../../../Types/Product/ProductKey";
+import {
+  SWITCHABLE_PRODUCTS,
+  ServerProductOffReason,
+  ServerProductsPreset,
+  TELEMETRY_INGESTION_PRODUCTS,
+  getOffByPreset,
+} from "../../../Types/Product/ServerProducts";
+import {
+  ServerProductsAnswer,
+  ServerProductsSource,
+} from "../../../Types/Product/ServerProductsAnswer";
 import {
   ServerChannelStatus,
   ServerSendingChannel,
@@ -27,6 +41,7 @@ import ServerSetupChecklistUtil, {
   ServerSetupFacts,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
 import { getTemplatePlaceholders } from "../../../Types/Translator";
+import path from "path";
 
 /*
  * WHAT IS WRONG WITH THIS INSTALLATION, AS PURE RULES (#6826).
@@ -49,6 +64,15 @@ import { getTemplatePlaceholders } from "../../../Types/Translator";
 
 const EARLIER: string = "2026-11-10T09:30:00.000Z";
 const GB: number = 1000 * 1000 * 1000;
+
+// <repo>/packages/Common/Tests/Types/InstallationHealth -> <repo>
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
+
+// One of the installation's own scripts, as `npm run doctor` runs it.
+function requireScript<T>(relativePath: string): T {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require(path.join(REPOSITORY_ROOT, relativePath)) as T;
+}
 
 function channel(
   name: ServerSendingChannel,
@@ -162,8 +186,319 @@ describe("a healthy server", () => {
       findings: [],
       checked: Object.values(InstallationHealthCheck),
       version: healthyFacts().version,
+      // A reader that did not ask for the products says nothing of them.
+      products: null,
       addressProof: "nonce.signature",
       checkedAt: EARLIER,
+    });
+  });
+});
+
+/*
+ * #7481: which products the server switches off, for `npm run doctor` -
+ * facts, not findings - from what Admin Dashboard > Settings > Products
+ * reads.
+ */
+describe("the products switched off on the server", () => {
+  function productsAnswer(
+    overrides: Partial<ServerProductsAnswer> = {},
+  ): ServerProductsAnswer {
+    return {
+      off: {},
+      switchedOff: [],
+      preset: ServerProductsPreset.Everything,
+      source: ServerProductsSource.StartingValue,
+      startingValue: "",
+      startingValueUnknownNames: [],
+      isTelemetryIngestionStopped: false,
+      shouldSuggestStoppingIngestion: false,
+      changedAt: null,
+      ...overrides,
+    };
+  }
+
+  function productsOf(
+    answer: ServerProductsAnswer,
+  ): InstallationHealthProducts {
+    const products: InstallationHealthProducts | null =
+      InstallationHealthUtil.getAnswer({
+        facts: healthyFacts({ serverProducts: answer }),
+        addressProof: null,
+        checkedAt: EARLIER,
+      }).products;
+
+    expect(products).not.toBe(null);
+
+    return products!;
+  }
+
+  function titles(products: Array<InstallationHealthProduct>): Array<string> {
+    return products.map((product: InstallationHealthProduct): string => {
+      return product.title;
+    });
+  }
+
+  test("every product on: all of them counted, the Everything preset, nothing off", () => {
+    expect(productsOf(productsAnswer())).toEqual({
+      switchableCount: SWITCHABLE_PRODUCTS.length,
+      onCount: SWITCHABLE_PRODUCTS.length,
+      preset: ServerProductsPreset.Everything,
+      presetTitle: "Everything",
+      source: ServerProductsSource.StartingValue,
+      switchedOff: [],
+      unknownNames: [],
+      isTelemetryIngestionStopped: false,
+      offByIngestion: [],
+      shouldSuggestStoppingIngestion: false,
+    });
+  });
+
+  test("a preset an admin saved: its English name, how many are on, and the rest by name in the menu's order", () => {
+    const off: Array<ProductKey> = getOffByPreset(
+      ServerProductsPreset.MonitoringAndStatusPages,
+    );
+    const products: InstallationHealthProducts = productsOf(
+      productsAnswer({
+        switchedOff: [...off].reverse(),
+        preset: ServerProductsPreset.MonitoringAndStatusPages,
+        source: ServerProductsSource.Saved,
+      }),
+    );
+
+    expect(products.onCount).toBe(5);
+    expect(products.switchableCount).toBe(SWITCHABLE_PRODUCTS.length);
+    expect(products.presetTitle).toBe("Monitoring and status pages");
+    expect(products.source).toBe(ServerProductsSource.Saved);
+    expect(
+      products.switchedOff.map((entry: InstallationHealthProduct) => {
+        return entry.product;
+      }),
+    ).toEqual(off);
+    expect(titles(products.switchedOff)).toContain("Logs");
+  });
+
+  test("a choice of one's own has no preset", () => {
+    const products: InstallationHealthProducts = productsOf(
+      productsAnswer({
+        switchedOff: [ProductKey.Logs, ProductKey.Traces],
+        preset: null,
+      }),
+    );
+
+    expect(products.preset).toBe(null);
+    expect(products.presetTitle).toBe(null);
+    expect(products.onCount).toBe(SWITCHABLE_PRODUCTS.length - 2);
+    expect(titles(products.switchedOff)).toEqual(["Logs", "Traces"]);
+  });
+
+  test("telemetry ingestion stopped: the products it turns off, by name, apart from what the switches say", () => {
+    const off: ServerProductsAnswer["off"] = {};
+
+    for (const product of TELEMETRY_INGESTION_PRODUCTS) {
+      off[product] = ServerProductOffReason.TelemetryIngestionStopped;
+    }
+
+    const products: InstallationHealthProducts = productsOf(
+      productsAnswer({ off: off, isTelemetryIngestionStopped: true }),
+    );
+
+    expect(products.isTelemetryIngestionStopped).toBe(true);
+    expect(products.onCount).toBe(SWITCHABLE_PRODUCTS.length);
+    expect(
+      products.offByIngestion.map((entry: InstallationHealthProduct) => {
+        return entry.product;
+      }),
+    ).toEqual(
+      PRODUCT_KEYS.filter((product: ProductKey): boolean => {
+        return TELEMETRY_INGESTION_PRODUCTS.includes(product);
+      }),
+    );
+  });
+
+  test("the names SERVER_PRODUCTS held that the server did not know, as many and as long as a line takes, with no control character", () => {
+    const products: InstallationHealthProducts = productsOf(
+      productsAnswer({
+        startingValueUnknownNames: [
+          "monitor",
+          "status\u001b[31mpages",
+          "x".repeat(200),
+          ...Array.from({ length: 20 }, (_value: unknown, index: number) => {
+            return `name-${index}`;
+          }),
+        ],
+      }),
+    );
+
+    expect(products.unknownNames.length).toBe(10);
+    expect(products.unknownNames[0]).toBe("monitor");
+    expect(products.unknownNames[1]).toBe("status[31mpages");
+    expect(products.unknownNames[2]).toBe("x".repeat(60));
+  });
+
+  test("SERVER_PRODUCTS itself, and who saved the page when, are not in the answer: it carries no setting's value", () => {
+    const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer({
+      facts: healthyFacts({
+        serverProducts: productsAnswer({
+          startingValue: "monitors, incidents, typo-product",
+          startingValueUnknownNames: ["typo-product"],
+          changedAt: EARLIER,
+        }),
+      }),
+      addressProof: null,
+      checkedAt: "2026-11-18T10:00:00.000Z",
+    });
+    const json: string = JSON.stringify(answer.products);
+
+    expect(json).not.toContain("monitors, incidents");
+    expect(json).not.toContain(EARLIER);
+    expect(answer.products!.unknownNames).toEqual(["typo-product"]);
+  });
+
+  test("the suggestion to stop ingestion is passed on", () => {
+    expect(
+      productsOf(productsAnswer({ shouldSuggestStoppingIngestion: true }))
+        .shouldSuggestStoppingIngestion,
+    ).toBe(true);
+  });
+
+  test("they are no finding: a choice is not a fault", () => {
+    expect(
+      InstallationHealthUtil.evaluate(
+        healthyFacts({
+          serverProducts: productsAnswer({
+            switchedOff: getOffByPreset(
+              ServerProductsPreset.MonitoringAndStatusPages,
+            ),
+            preset: ServerProductsPreset.MonitoringAndStatusPages,
+          }),
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("read back: round-trips, and an older server's answer has none", () => {
+    const answer: InstallationHealthAnswer = InstallationHealthUtil.getAnswer({
+      facts: healthyFacts({
+        serverProducts: productsAnswer({
+          switchedOff: getOffByPreset(ServerProductsPreset.IncidentResponse),
+          preset: ServerProductsPreset.IncidentResponse,
+          startingValueUnknownNames: ["monitor"],
+        }),
+      }),
+      addressProof: null,
+      checkedAt: EARLIER,
+    });
+
+    expect(
+      InstallationHealthUtil.parseAnswer(JSON.parse(JSON.stringify(answer))),
+    ).toEqual(answer);
+    expect(InstallationHealthUtil.parseAnswer({ findings: [] })!.products).toBe(
+      null,
+    );
+  });
+
+  /*
+   * `npm run doctor` (Scripts/Install/Doctor.js) reads this answer as the
+   * server sends it: the real one, through JSON, prints the lines its own
+   * tests stand in for.
+   */
+  test("npm run doctor reads them as the server sends them", () => {
+    const doctor: {
+      productsFindings: (
+        products: unknown,
+        publicUrl: string | null,
+      ) => Array<{ level: string; message: string }>;
+    } = requireScript("Scripts/Install/Doctor.js");
+    const sent: (answer: ServerProductsAnswer) => unknown = (
+      answer: ServerProductsAnswer,
+    ): unknown => {
+      return JSON.parse(
+        JSON.stringify(
+          InstallationHealthUtil.getAnswer({
+            facts: healthyFacts({ serverProducts: answer }),
+            addressProof: null,
+            checkedAt: EARLIER,
+          }),
+        ),
+      )["products"];
+    };
+
+    expect(
+      doctor.productsFindings(
+        sent(
+          productsAnswer({
+            switchedOff: getOffByPreset(
+              ServerProductsPreset.MonitoringAndStatusPages,
+            ),
+            preset: ServerProductsPreset.MonitoringAndStatusPages,
+            source: ServerProductsSource.Saved,
+          }),
+        ),
+        "https://oneuptime.example.com",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        level: "note",
+        message: `Products: Monitoring and status pages (5 of ${SWITCHABLE_PRODUCTS.length} on), set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products.`,
+      }),
+    ]);
+
+    const off: ServerProductsAnswer["off"] = {};
+
+    for (const product of TELEMETRY_INGESTION_PRODUCTS) {
+      off[product] = ServerProductOffReason.TelemetryIngestionStopped;
+    }
+
+    expect(
+      doctor
+        .productsFindings(
+          sent(
+            productsAnswer({
+              off: off,
+              isTelemetryIngestionStopped: true,
+              startingValueUnknownNames: ["monitor"],
+            }),
+          ),
+          null,
+        )
+        .map((entry: { level: string; message: string }): string => {
+          return `${entry.level}: ${entry.message}`;
+        }),
+    ).toEqual([
+      "ok: Products: every product is switched on.",
+      "warn: SERVER_PRODUCTS in config.env names what OneUptime does not know, so it left it out: monitor.",
+      "note: Telemetry ingestion is stopped (DISABLE_TELEMETRY_INGESTION=true), so Logs, Metrics, Traces, Profiles and Exceptions are off for every project.",
+    ]);
+  });
+
+  test("read back: what is not a product, a preset or a source is left out, and the counts are the reader's own", () => {
+    expect(
+      InstallationHealthUtil.parseProducts({
+        switchableCount: 9999,
+        onCount: -4,
+        preset: "nonsense",
+        source: "nonsense",
+        switchedOff: [
+          { product: "logs", title: "<b>Logs</b>" },
+          { product: "nonsense", title: "Nonsense" },
+          { product: "logs" },
+          "traces",
+        ],
+        unknownNames: "monitor",
+        isTelemetryIngestionStopped: "yes",
+        offByIngestion: null,
+      }),
+    ).toEqual({
+      switchableCount: SWITCHABLE_PRODUCTS.length,
+      onCount: SWITCHABLE_PRODUCTS.length - 1,
+      preset: null,
+      presetTitle: null,
+      source: ServerProductsSource.StartingValue,
+      switchedOff: [{ product: ProductKey.Logs, title: "Logs" }],
+      unknownNames: [],
+      isTelemetryIngestionStopped: false,
+      offByIngestion: [],
+      shouldSuggestStoppingIngestion: false,
     });
   });
 });

@@ -24,7 +24,7 @@ const {
   resourceFindings,
   splitHost,
 } = require("./Preflight");
-const { MARKS } = require("./StartOutput");
+const { MARKS, listed } = require("./StartOutput");
 
 /*
  * WHY
@@ -67,10 +67,14 @@ const { MARKS } = require("./StartOutput");
  * The Admin Dashboard's OneUptime Health page shows the same answer in
  * every edition, and on Kubernetes HelmChart/Public/diagnose.sh prints it.
  *
+ * The server's answer also says which products it switches off for every
+ * project, and what SERVER_PRODUCTS held that it did not know (#7481).
+ *
  * HOW IT ANSWERS
  *
  *   ✗  something required fails: OneUptime, or part of it, does not work
  *   !  worth a look; OneUptime works without it
+ *   •  worth knowing, and no fault: products an admin switched off
  *
  * Exit codes, so scripts can use it: 0 when nothing is marked ✗, 1 when
  * something is, 2 when the doctor itself failed.
@@ -142,9 +146,11 @@ const TROUBLESHOOTING_COVERAGE = {
 };
 
 /*
- * A finding: { level: "fix" | "warn" | "ok", message, fix, details }.
- * `fix` is the exact fix, on the line under it; `details` are lines shown
- * under that (a service's log).
+ * A finding: { level: "fix" | "warn" | "note" | "ok", message, fix,
+ * details }. `fix` is the exact fix, on the line under it; `details` are
+ * lines shown under that (a service's log). A note is a fact worth knowing
+ * that is no fault - a product an admin switched off: always shown, after
+ * what needs attention, and never counted.
  */
 const finding = (level, message, fix, details) => {
   return {
@@ -562,6 +568,103 @@ const serverFindings = (response, publicUrl) => {
   return findings;
 };
 
+// Where the products to run are chosen, and what SERVER_PRODUCTS takes.
+const PRODUCTS_GUIDE = `${DOCS_URL}#run-only-what-you-need`;
+const PRODUCTS_ADMIN_PATH = "/admin/settings/products";
+
+// How many products a line names before "and N more".
+const PRODUCTS_NAMED = 6;
+
+// "Logs", "Logs and Traces", "Logs, Metrics and Traces", "A, B, C, D, E, F and 3 more".
+const productList = (products) => {
+  const titles = products.map((entry) => {
+    return String(entry.title || entry.product || "");
+  });
+
+  if (titles.length > PRODUCTS_NAMED) {
+    return `${titles.slice(0, PRODUCTS_NAMED).join(", ")} and ${titles.length - PRODUCTS_NAMED} more`;
+  }
+
+  return listed(titles);
+};
+
+/*
+ * Pure: which products the server switches off (#7481), from the server's
+ * answer (`products`, Common's InstallationHealthUtil.getProducts), so that
+ * "where did Logs go?" is answered on the command line too. A product an
+ * admin switched off is a choice, not a fault: notes, shown whenever there
+ * are any and never counted. Only what SERVER_PRODUCTS got wrong, while it
+ * is what applies, is worth a look. An older server says nothing of them.
+ */
+const productsFindings = (products, publicUrl) => {
+  if (!products || typeof products !== "object") {
+    return [];
+  }
+
+  const findings = [];
+  const switchedOff = Array.isArray(products.switchedOff)
+    ? products.switchedOff
+    : [];
+  const offByIngestion = Array.isArray(products.offByIngestion)
+    ? products.offByIngestion
+    : [];
+  const unknownNames = Array.isArray(products.unknownNames)
+    ? products.unknownNames.filter((name) => {
+        return typeof name === "string" && name;
+      })
+    : [];
+  const isSaved = products.source === "saved";
+
+  if (switchedOff.length === 0) {
+    findings.push(finding("ok", "Products: every product is switched on."));
+  } else {
+    const count = `${products.onCount} of ${products.switchableCount} on`;
+    const where = isSaved
+      ? `set in the Admin Dashboard${publicUrl ? ` at ${publicUrl}${PRODUCTS_ADMIN_PATH}` : ""}`
+      : `set by SERVER_PRODUCTS in ${CONFIG_FILE}`;
+
+    findings.push(
+      finding(
+        "note",
+        products.presetTitle
+          ? `Products: ${products.presetTitle} (${count}), ${where}.`
+          : `Products: ${count}, ${where}. Switched off: ${productList(switchedOff)}.`,
+      ),
+    );
+  }
+
+  // Once an admin saved the page, SERVER_PRODUCTS no longer applies.
+  if (!isSaved && unknownNames.length > 0) {
+    findings.push(
+      finding(
+        "warn",
+        `SERVER_PRODUCTS in ${CONFIG_FILE} names what OneUptime does not know, so it left ${unknownNames.length === 1 ? "it" : "them"} out: ${unknownNames.join(", ")}.`,
+        `Use everything, monitoring-and-status-pages, incident-response, or product keys such as monitors,incidents,status-pages, then run npm start. See ${PRODUCTS_GUIDE}`,
+      ),
+    );
+  }
+
+  if (products.isTelemetryIngestionStopped && offByIngestion.length > 0) {
+    findings.push(
+      finding(
+        "note",
+        `Telemetry ingestion is stopped (DISABLE_TELEMETRY_INGESTION=true), so ${productList(offByIngestion)} ${offByIngestion.length === 1 ? "is" : "are"} off for every project.`,
+      ),
+    );
+  }
+
+  if (products.shouldSuggestStoppingIngestion) {
+    findings.push(
+      finding(
+        "note",
+        `Every telemetry product is switched off, but telemetry ingestion still runs. You can also stop it to save memory: set DISABLE_TELEMETRY_INGESTION=true in ${CONFIG_FILE}, then run npm start.`,
+      ),
+    );
+  }
+
+  return findings;
+};
+
 /*
  * Pure: whether HOST reaches this OneUptime, from the answer to GET
  * <HOST>/status-page-api/custom-domain-readiness/<proof>, a proof only this
@@ -812,6 +915,9 @@ const summaryOf = (findings) => {
   return "Everything looks right.";
 };
 
+// The mark of a note: neither a fault nor a pass.
+const NOTE_MARK = "•";
+
 // A finding's lines: the mark and what is wrong, then its details and its fix, indented.
 const linesOf = (entry) => {
   const mark =
@@ -819,7 +925,9 @@ const linesOf = (entry) => {
       ? MARKS.stop
       : entry.level === "ok"
         ? MARKS.ok
-        : MARKS.warn;
+        : entry.level === "note"
+          ? NOTE_MARK
+          : MARKS.warn;
   const lines = [`  ${mark} ${entry.message}`];
 
   for (const detail of entry.details) {
@@ -1131,6 +1239,8 @@ const run = async (options) => {
 
     if (answer && answer.status === 200 && answer.json) {
       addressProof = answer.json.addressProof || null;
+      // Which products the server switches off (#7481).
+      add(productsFindings(answer.json.products, publicUrl));
     }
   }
 
@@ -1189,23 +1299,20 @@ const run = async (options) => {
     add(certificateFindings(hostname, presented, now, sslLog));
   }
 
-  // What to print: what needs attention, worst first, and what passed when asked.
-  const problems = findings
-    .filter((entry) => {
-      return entry.level === "fix";
-    })
-    .concat(
-      findings.filter((entry) => {
-        return entry.level === "warn";
-      }),
-    );
-  const shown = showAll
-    ? problems.concat(
-        findings.filter((entry) => {
-          return entry.level === "ok";
-        }),
-      )
-    : problems;
+  /*
+   * What to print: what needs attention, worst first, then what is worth
+   * knowing (not after `npm start`, which says only what needs attention),
+   * and what passed when asked.
+   */
+  const ofLevel = (level) => {
+    return findings.filter((entry) => {
+      return entry.level === level;
+    });
+  };
+  const problems = ofLevel("fix").concat(ofLevel("warn"));
+  const shown = problems
+    .concat(afterStart ? [] : ofLevel("note"))
+    .concat(showAll ? ofLevel("ok") : []);
   const summary = summaryOf(findings);
 
   if (afterStart) {
@@ -1306,6 +1413,7 @@ module.exports = {
   ingressFindings,
   serverFixOf,
   serverFindings,
+  productsFindings,
   addressFindings,
   proxyFindings,
   certificateFindings,
