@@ -147,7 +147,7 @@ describe("the English section", () => {
     expect(ENGLISH_SECTION).toContain("monitors keep checking");
     expect(ENGLISH_SECTION).toContain("published status pages stay up");
     expect(ENGLISH_SECTION).toContain(
-      "The API refuses to create, change or delete the product's records",
+      "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete the product's records",
     );
     expect(ENGLISH_SECTION).toContain("Reading still works");
   });

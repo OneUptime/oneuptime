@@ -2509,7 +2509,7 @@
   "What switching off does": "關閉後會怎樣",
   "Nothing is deleted. A product switched on again comes back as it was.": "不會刪除任何內容。重新開啟的產品會恢復原狀。",
   "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.": "已在執行的內容會繼續執行：監測會繼續檢查，已發布的狀態頁面保持上線，遙測資料也會繼續送達，除非您同時停止擷取。",
-  "The API refuses to create, change or delete its records, and Ask AI leaves it out.": "API 會拒絕建立、變更或刪除其記錄，「詢問 AI」也會將其排除在外。",
+  "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.": "API、工作流程以及 Slack、Microsoft Teams 和 Mattermost 應用程式會拒絕建立、變更或刪除其記錄，「詢問 AI」也會將其排除在外。",
   "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.": "由此伺服器設定中的 SERVER_PRODUCTS={{value}} 設定，直到您在此處變更為止。",
   "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.": "SERVER_PRODUCTS 中指定的 {{names}} 既不是預設方案也不是產品，因此已被略過。",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.": "此伺服器上的遙測擷取已停止（DISABLE_TELEMETRY_INGESTION），因此日誌、指標、追蹤、效能設定檔和例外均已關閉。若要開啟，請將該值設為 false 並重新啟動 OneUptime。",

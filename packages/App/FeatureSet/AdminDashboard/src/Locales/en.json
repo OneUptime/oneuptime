@@ -2509,7 +2509,7 @@
   "What switching off does": "What switching off does",
   "Nothing is deleted. A product switched on again comes back as it was.": "Nothing is deleted. A product switched on again comes back as it was.",
   "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.": "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.",
-  "The API refuses to create, change or delete its records, and Ask AI leaves it out.": "The API refuses to create, change or delete its records, and Ask AI leaves it out.",
+  "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.": "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.",
   "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.": "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.",
   "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.": "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.": "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.",

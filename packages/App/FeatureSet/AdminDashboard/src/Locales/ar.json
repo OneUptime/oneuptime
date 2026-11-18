@@ -2509,7 +2509,7 @@
   "What switching off does": "ماذا يفعل الإيقاف",
   "Nothing is deleted. A product switched on again comes back as it was.": "لا يُحذف شيء. المنتج الذي يُعاد تشغيله يعود كما كان.",
   "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.": "ما يعمل بالفعل يستمر في العمل: تواصل المراقبات فحوصها، وتبقى صفحات الحالة المنشورة متاحة، وتستمر بيانات القياس عن بُعد في الوصول ما لم توقف الاستيعاب أيضًا.",
-  "The API refuses to create, change or delete its records, and Ask AI leaves it out.": "ترفض واجهة API إنشاء سجلاته أو تغييرها أو حذفها، ويستبعده «اسأل الذكاء الاصطناعي».",
+  "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.": "ترفض واجهة API ومهام سير العمل وتطبيقات Slack وMicrosoft Teams وMattermost إنشاء سجلاته أو تغييرها أو حذفها، ويستبعده «اسأل الذكاء الاصطناعي».",
   "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.": "مضبوط بواسطة SERVER_PRODUCTS={{value}} في تهيئة هذا الخادم، إلى أن تغيّره هنا.",
   "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.": "يذكر SERVER_PRODUCTS القيمة {{names}}، وهي ليست إعدادًا مسبقًا ولا منتجًا، لذا تم تجاهلها.",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.": "تم إيقاف استيعاب بيانات القياس عن بُعد على هذا الخادم (DISABLE_TELEMETRY_INGESTION)، لذا فإن السجلات والمقاييس والتتبعات وملفات تعريف الأداء والاستثناءات متوقفة. لتشغيلها، اضبط هذا المتغير على false وأعد تشغيل OneUptime.",

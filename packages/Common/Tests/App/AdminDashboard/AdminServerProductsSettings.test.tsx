@@ -362,7 +362,7 @@ describe("the presets", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "The API refuses to create, change or delete its records, and Ask AI leaves it out.",
+        "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.",
       ),
     ).toBeInTheDocument();
   });
