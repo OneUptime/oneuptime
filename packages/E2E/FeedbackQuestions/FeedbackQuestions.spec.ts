@@ -24,8 +24,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *   - "Was this clear?" under How OneUptime works;
  *   - Give feedback from the phone's menu;
  *   - Admin Dashboard > Feedback: how long answers are kept and a row's
- *     Delete (#7366), Ask AI's answers rated down by what they read (#7365)
- *     and, on a self-hosted server, the docs pages (#7209).
+ *     Delete (#7366), whose question stays open as the window turns from
+ *     rows to cards and back (#9513), Ask AI's answers rated down by what
+ *     they read (#7365) and, on a self-hosted server, the docs pages (#7209).
  *
  * Each at 1280 pixels and on a phone (390), light and dark, German and
  * Persian, and nothing may scroll sideways or leave the fixture server. The
@@ -138,9 +139,9 @@ async function adminState(page: Page): Promise<AdminFixture> {
 }
 
 /*
- * The whole page, or only the window: a dialog is drawn over the window, and
- * a whole page's screenshot taken as a row's question opens lays the table
- * out again, which closes the question.
+ * The whole page, or only the window: a dialog is drawn over the window. A
+ * whole page's screenshot lays the table out again, which closed a row's
+ * question until the table kept it (#9513).
  */
 async function screenshot(
   page: Page,
@@ -584,6 +585,61 @@ test.describe("Admin Dashboard > Feedback", () => {
     await expect(listRows(page)).toHaveCount(3);
     expect((await adminState(page)).deletes).toEqual([
       "73620000-0000-4000-8000-000000000001",
+    ]);
+  });
+
+  /*
+   * A table draws its rows again as it changes how it fits - rows on a
+   * wide screen, cards on a phone - and a row's question went with them,
+   * unanswered (#9513): turn a phone sideways, or resize a window across
+   * 768 pixels, and it was gone. A whole page's screenshot did the same.
+   */
+  test("a row's question stays open as the window turns to a phone and back, and through a whole page's screenshot, then deletes the answer it named", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAdmin(page);
+    await expect(listRows(page)).toHaveCount(4);
+
+    await listRows(page)
+      .nth(1)
+      .getByTestId("row-actions")
+      .getByRole("button", { name: "Delete" })
+      .click();
+
+    const dialog: Locator = page.getByTestId("row-actions-dialog");
+    const listBody: Locator = page.locator("#admin-feedback-list-body");
+
+    // Still the one question, quoting the second answer's words.
+    async function expectTheQuestion(): Promise<void> {
+      await expect(dialog.getByTestId("modal")).toHaveCount(1);
+      await expect(dialog.getByTestId("modal")).toBeVisible();
+      await expect(page.getByTestId("admin-feedback-delete-words")).toHaveText(
+        "The test email went to spam.",
+      );
+    }
+
+    await expectTheQuestion();
+    await expect(listBody).toHaveJSProperty("tagName", "TBODY");
+
+    // A phone: the rows are cards now.
+    await page.setViewportSize(PHONE);
+    await expect(listBody).toHaveJSProperty("tagName", "DIV");
+    await expectTheQuestion();
+
+    // And back to rows.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(listBody).toHaveJSProperty("tagName", "TBODY");
+    await expectTheQuestion();
+
+    await screenshot(page, "admin-feedback-delete-turned");
+    await expectTheQuestion();
+
+    await dialog.getByRole("button", { name: "Delete" }).click();
+    await expect(listRows(page)).toHaveCount(3);
+    expect((await adminState(page)).deletes).toEqual([
+      "73620000-0000-4000-8000-000000000002",
     ]);
   });
 
