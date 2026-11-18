@@ -148,8 +148,10 @@ import {
  *      connection names none) or the Regions in use (every hour), asking
  *      each namespace OneUptime reads (CloudKeyMetrics) whether its first
  *      key metric reported in the last three hours - one ListMetrics call
- *      per Region and namespace. A Region the account has not opted in to
- *      is skipped.
+ *      per Region and namespace, and one more for each other metric a
+ *      namespace probes with (getAwsProbeMetricNames: Amazon MQ's RabbitMQ
+ *      brokers publish no CpuUtilization) until one is listed. A Region the
+ *      account has not opted in to is skipped.
  *   2. For every Region and namespace in use: lists each key metric's
  *      series (ListMetrics), finds the resource each series is about with
  *      the ingest's own resolver, and keeps per resource the series with
