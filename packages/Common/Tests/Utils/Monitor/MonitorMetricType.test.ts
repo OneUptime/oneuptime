@@ -773,7 +773,22 @@ describe("Probe Status monitor metrics (issue #2733)", () => {
     );
   });
 
-  test("a Probe Status monitor charts both, on one Probes card", () => {
+  test("the probes behind keep their name too (#9501)", () => {
+    expect(MonitorMetricType.ProbesBehind).toBe(
+      "oneuptime.monitor.probes.behind",
+    );
+    expect(
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(CheckOn.ProbesBehind),
+    ).toBe(MonitorMetricType.ProbesBehind);
+    // A probe behind for part of a bucket counts as behind.
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.ProbesBehind,
+      ),
+    ).toBe(AggregationType.Max);
+  });
+
+  test("a Probe Status monitor charts all three, on one Probes card", () => {
     expect(
       MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
         MonitorType.ProbeStatus,
@@ -781,6 +796,7 @@ describe("Probe Status monitor metrics (issue #2733)", () => {
     ).toEqual([
       MonitorMetricType.ConnectedProbes,
       MonitorMetricType.DisconnectedProbes,
+      MonitorMetricType.ProbesBehind,
     ]);
 
     const categories: Array<MonitorMetricCategory> =
@@ -793,6 +809,7 @@ describe("Probe Status monitor metrics (issue #2733)", () => {
     expect(categories[0]!.metrics).toEqual([
       MonitorMetricType.ConnectedProbes,
       MonitorMetricType.DisconnectedProbes,
+      MonitorMetricType.ProbesBehind,
     ]);
   });
 
@@ -810,7 +827,8 @@ describe("Probe Status monitor metrics (issue #2733)", () => {
         charted: metrics.filter((metric: MonitorMetricType): boolean => {
           return (
             metric === MonitorMetricType.ConnectedProbes ||
-            metric === MonitorMetricType.DisconnectedProbes
+            metric === MonitorMetricType.DisconnectedProbes ||
+            metric === MonitorMetricType.ProbesBehind
           );
         }),
       }).toEqual({ monitorType: monitorType, charted: [] });

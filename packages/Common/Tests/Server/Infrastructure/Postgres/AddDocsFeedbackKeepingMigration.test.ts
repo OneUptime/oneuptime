@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDocsFeedbackKeeping1809183700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183700000-AddDocsFeedbackKeeping";
+import { AddDocsFeedbackKeeping1809183800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183800000-AddDocsFeedbackKeeping";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import ProductFeedback from "../../../../Models/DatabaseModels/ProductFeedback";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -24,11 +24,11 @@ import { DOCS_FEEDBACK_REASONS } from "../../../../Types/ProductFeedback/Product
  * its statements to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809183700000";
+const MIGRATION_TIMESTAMP: string = "1809183800000";
 const MIGRATION_BASE_NAME: string = "AddDocsFeedbackKeeping";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string = "AddProbeChecksLate1809183650000";
+const PREVIOUS_MIGRATION: string = "AddProbeDevicePollsLate1809183760000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -43,7 +43,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddDocsFeedbackKeeping1809183700000();
+    new AddDocsFeedbackKeeping1809183800000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddDocsFeedbackKeeping1809183700000", () => {
+describe("AddDocsFeedbackKeeping1809183800000", () => {
   test("adds the switch, off by default, and a docs answer's reason, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "GlobalConfig" ADD "keepDocsFeedback" boolean DEFAULT false`,
@@ -116,7 +116,7 @@ describe("AddDocsFeedbackKeeping1809183700000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddDocsFeedbackKeeping1809183700000().name).toBe(
+    expect(new AddDocsFeedbackKeeping1809183800000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
@@ -132,7 +132,7 @@ describe("AddDocsFeedbackKeeping1809183700000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809183650000;
+          return value <= 1809183760000;
         }),
       ),
     );

@@ -11,13 +11,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * SHOW IT.
  *
  *   - Connected: it reported in the last GLOBAL_PROBE_REPORTING_MINUTES.
- *   - Behind: it reports, but its monitors are checked later than their
- *     interval (OneUptime issue #9488, Types/Probe/ProbeBehind). Overview's
- *     What needs attention says since when, and what to do.
+ *   - Behind: it reports, but its monitors are checked, or its network
+ *     devices polled, later than their interval (OneUptime issues #9488
+ *     and #9499, Types/Probe/ProbeBehind). Overview's What needs attention
+ *     says which, since when, and what to do.
  *   - Disconnected: otherwise.
  *
  * The two pages each worked out Connected on their own; a table that shows
- * this selects lastAlive, checksLateSince and checksLastLateAt.
+ * this selects lastAlive, checksLateSince, checksLastLateAt,
+ * devicePollsLateSince and devicePollsLastLateAt.
  */
 
 export const GLOBAL_PROBE_REPORTING_MINUTES: number = 5;
@@ -55,7 +57,7 @@ export const getGlobalProbeStatus: (
     return GlobalProbeStatus.Disconnected;
   }
 
-  return ProbeBehindUtil.isBehind(probe)
+  return ProbeBehindUtil.isProbeBehind(probe)
     ? GlobalProbeStatus.Behind
     : GlobalProbeStatus.Connected;
 };

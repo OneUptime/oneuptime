@@ -1,16 +1,16 @@
 # Sondestatusmonitor
 
-Een sondestatusmonitor laat u weten wanneer een sonde niets meer van zich laat horen: één incident wanneer de verbinding wegvalt, dat zichzelf oplost zodra de sonde terug is. Richt hem op uw aangepaste sondes of, bij een zelf gehoste OneUptime, op de globale sonde waarop elke monitor draait, zodat een stille sonde zijn monitors nooit ongemerkt ongecontroleerd laat.
+Een sondestatusmonitor laat u weten wanneer een sonde niets meer van zich laat horen: één incident wanneer de verbinding wegvalt, dat zichzelf oplost zodra de sonde terug is. Richt hem op uw aangepaste sondes of, bij een zelf gehoste OneUptime, op de globale sonde waarop elke monitor draait, zodat een stille sonde zijn monitors nooit ongemerkt ongecontroleerd laat. Een nieuwe monitor geeft ook een waarschuwing als een van zijn sondes achterloopt en haar monitoren minder vaak worden gecontroleerd, of haar netwerkapparaten minder vaak worden bevraagd, dan ingesteld.
 
 :::cards
 - [Er een maken](#een-sondestatusmonitor-maken): Kies de sondes en houd de standaardcriteria aan.
-- [Criteria](#criteria): Tel de verbonden of losgekoppelde sondes, nu of over een tijdvenster.
+- [Criteria](#criteria): Tel de verbonden, losgekoppelde of achterlopende sondes, nu of over een tijdvenster.
 - [Metrieken](#metrieken): Hoeveel sondes verbonden waren, minuut voor minuut.
 :::
 
 ## Hoe het werkt
 
-OneUptime evalueert elke sondestatusmonitor eens per minuut, en opnieuw op het moment dat een van zijn sondes verbinding maakt of verliest. Het leest de verbindingsstatus van elke sonde, die ook de pagina van de sonde toont: een sonde is losgekoppeld als er drie minuten niets van gehoord is. Nadat OneUptime zelf plat lag of niets ontving, wacht het drie volle minuten voordat het een sonde losgekoppeld noemt, zodat een upgrade van OneUptime nooit een incident opent.
+OneUptime evalueert elke sondestatusmonitor eens per minuut, en opnieuw op het moment dat een van zijn sondes verbinding maakt of verliest. Het leest de verbindingsstatus van elke sonde, die ook de pagina van de sonde toont: een sonde is losgekoppeld als er drie minuten niets van gehoord is. Nadat OneUptime zelf plat lag of niets ontving, wacht het drie volle minuten voordat het een sonde losgekoppeld noemt, zodat een upgrade van OneUptime nooit een incident opent. Het leest ook of elke verbonden sonde achterloopt, zoals de pagina van de sonde het zegt ([Een sonde loopt achter](/docs/probe/custom-probe#een-sonde-loopt-achter)), en evalueert de monitor opnieuw zodra er een achter raakt of bijkomt.
 
 ```mermaid title="Van een stille sonde naar één incident"
 flowchart TB
@@ -55,13 +55,17 @@ De filters van een sondestatusmonitor tellen sondes:
 | --- | --- |
 | **Losgekoppelde sondes** | De bewaakte sondes die losgekoppeld zijn. |
 | **Verbonden sondes** | De bewaakte sondes die verbonden zijn. |
+| **Achterlopende sondes** | De bewaakte sondes die verbonden zijn maar achterlopen: hun monitoren worden minder vaak gecontroleerd, of hun netwerkapparaten minder vaak bevraagd, dan ingesteld. |
 
-Beide zijn gehele getallen, vergeleken met **Groter dan**, **Kleiner dan**, **Gelijk aan** en de andere vergelijkingen. Een nieuwe monitor begint met twee criteria:
+Alle drie zijn gehele getallen, vergeleken met **Groter dan**, **Kleiner dan**, **Gelijk aan** en de andere vergelijkingen. Een nieuwe monitor begint met drie criteria:
 
 | Criterium | Filter | Wat het doet |
 | --- | --- | --- |
 | Controleer of een sonde losgekoppeld is | **Losgekoppelde sondes** groter dan `0` | Zet de monitor offline en meldt een incident met de titel "Sonde losgekoppeld: {{disconnectedProbeNames}}", dat zichzelf oplost. |
+| Controleer of een sonde achterloopt | **Achterlopende sondes** groter dan `0` | Geeft een waarschuwing met de titel "Sonde loopt achter: {{behindProbeNames}}", die zichzelf oplost. Ze laat de status van de monitor ongemoeid en meldt geen incident: de sonde laat nog van zich horen. |
 | Controleer of alle sondes verbonden zijn | **Losgekoppelde sondes** gelijk aan `0` | Zet de monitor op operationeel. |
+
+Een monitor die is aangemaakt voordat **Achterlopende sondes** bestond, houdt zijn criteria, en hoort dus niet dat een sonde achterloopt tot u de controle aan zijn criteria toevoegt.
 
 De filter **Verbonden sondes** past bij een monitor die meerdere sondes bewaakt en er een kan missen: **Verbonden sondes** kleiner dan `2` meldt pas een incident als er minder dan twee over zijn.
 
@@ -71,7 +75,7 @@ Een sonde is pas losgekoppeld na drie minuten stilte, dus een snelle herstart op
 
 ## Metrieken
 
-Elke evaluatie legt twee reeksen vast op de monitor: `oneuptime.monitor.probes.connected` en `oneuptime.monitor.probes.disconnected`, het aantal bewaakte sondes dat verbonden en losgekoppeld was. Ze staan in grafieken op de pagina **Metrieken** van de monitor, en een dashboard of een metriekenmonitor leest ze zoals elke andere reeks.
+Elke evaluatie legt drie reeksen vast op de monitor: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` en `oneuptime.monitor.probes.behind`, het aantal bewaakte sondes dat verbonden, losgekoppeld en achter was. Ze staan in grafieken op de pagina **Metrieken** van de monitor, en een dashboard of een metriekenmonitor leest ze zoals elke andere reeks.
 
 ## Sjabloonvariabelen
 
@@ -83,8 +87,10 @@ De incident- en waarschuwingssjablonen van een sondestatusmonitor kunnen deze va
 | `{{disconnectedProbeCount}}` | Hoeveel van de sondes losgekoppeld zijn. |
 | `{{connectedProbeNames}}` | De namen van de verbonden sondes, gescheiden door komma's. |
 | `{{connectedProbeCount}}` | Hoeveel van de sondes verbonden zijn. |
-| `{{probeStatusSummary}}` | Eén zin die de losgekoppelde sondes noemt, zoals `1 of 3 probes is disconnected: EU Probe.`, of zegt dat alle sondes verbonden zijn. |
-| `{{probes}}` | Elke sonde, met `probeName`, `isConnected`, `isGlobalProbe` en `lastAliveAt`. |
+| `{{behindProbeNames}}` | De namen van de verbonden sondes die achterlopen, gescheiden door komma's. |
+| `{{behindProbeCount}}` | Hoeveel van de sondes achterlopen. |
+| `{{probeStatusSummary}}` | Eén zin die de losgekoppelde sondes noemt, zoals `1 of 3 probes is disconnected: EU Probe.`, anders de achterlopende, of zegt dat alle sondes verbonden zijn. |
+| `{{probes}}` | Elke sonde, met `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` en `lastAliveAt`. |
 
 ## Problemen oplossen
 

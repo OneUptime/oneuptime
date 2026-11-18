@@ -12,6 +12,7 @@ import {
   ServerProductsAnswer,
   ServerProductsSource,
 } from "../Product/ServerProductsAnswer";
+import { ProbeBehindWork } from "../Probe/ProbeBehind";
 import ServerSetupChecklistUtil, {
   ServerSetupCheckDefinition,
   ServerSetupCheckResult,
@@ -32,8 +33,9 @@ import ServerSetupChecklistUtil, {
  *   - the database migrations have all run, and none failed;
  *   - ClickHouse's disks have room;
  *   - the background queues are moving;
- *   - the global probes keep up: none is behind, its monitors checked
- *     later than their interval (#9488, Types/Probe/ProbeBehind);
+ *   - the global probes keep up: none is behind, its monitors checked or
+ *     its network devices polled later than their interval (#9488, #9499,
+ *     Types/Probe/ProbeBehind);
  *   - the version, against the latest release;
  *   - the server setup checklist (#6824): email, HTTPS, sign-ups, SMS and
  *     calls, probes, backups, update checks. Its words are reused here, so
@@ -83,6 +85,11 @@ export enum InstallationHealthFindingId {
    * probe's id ("global-probe-behind-<id>"), one finding a probe.
    */
   GlobalProbeBehind = "global-probe-behind",
+  /*
+   * A global probe that is behind on the network devices it polls (#9499):
+   * "global-probe-devices-behind-<id>", beside its monitors' finding.
+   */
+  GlobalProbeDevicesBehind = "global-probe-devices-behind",
   UpdateAvailable = "update-available",
 }
 
@@ -214,6 +221,15 @@ export const INSTALLATION_HEALTH_WORDS: Readonly<
       "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.",
     ),
   },
+  [InstallationHealthFindingId.GlobalProbeDevicesBehind]: {
+    title: translationKey("Global probes"),
+    words: translationKey(
+      "{{probe}} is behind on its network devices: since {{time}}, they have waited more than a minute past their poll time, so they are polled less often than set.",
+    ),
+    fix: translationKey(
+      "Let the probe poll more devices at once: raise GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY in config.env, or the probe's networkDevicePollConcurrency in the Helm values, and give it the CPU to match.",
+    ),
+  },
   [InstallationHealthFindingId.UpdateAvailable]: {
     title: translationKey("Version"),
     words: translationKey(
@@ -260,6 +276,12 @@ export interface InstallationHealthProbeBehind {
   id: string;
   name: string;
   since: string;
+  /*
+   * What it is behind on (#9499): its monitor checks or its network device
+   * polls. A probe behind on both is two entries. Left out by a reader from
+   * before #9499, which read monitor checks only.
+   */
+  work?: ProbeBehindWork | undefined;
 }
 
 // The facts the server reads to answer.
@@ -284,10 +306,10 @@ export interface InstallationHealthFacts {
   }>;
   queues: Array<{ name: string; waiting: number }>;
   /*
-   * The global probes that are behind - their monitors checked later than
-   * their interval (#9488) - each with since when (ProbeBehind). Empty when
-   * none is; null when it could not be read; left out by a reader that
-   * does not ask.
+   * The global probes that are behind - their monitors checked, or their
+   * network devices polled, later than their interval (#9488, #9499) - each
+   * with since when and on what (ProbeBehind). Empty when none is; null
+   * when it could not be read; left out by a reader that does not ask.
    */
   globalProbesBehind?: Array<InstallationHealthProbeBehind> | null | undefined;
   version: {
@@ -620,8 +642,9 @@ export default class InstallationHealthUtil {
 
   /*
    * Each global probe that is behind, the one behind longest first: worth
-   * a look, since its monitors are checked, if less often than set (#9488).
-   * A probe that does not report at all is the server setup checklist's.
+   * a look, since its monitors are checked, if less often than set (#9488),
+   * and the same of its network devices (#9499), each with its own fix. A
+   * probe that does not report at all is the server setup checklist's.
    */
   public static probeFindings(
     facts: InstallationHealthFacts,
@@ -637,13 +660,17 @@ export default class InstallationHealthUtil {
       },
     );
 
-    const words: { title: string; words: string; fix: string } =
-      INSTALLATION_HEALTH_WORDS[InstallationHealthFindingId.GlobalProbeBehind];
-
     return behind.map(
       (probe: InstallationHealthProbeBehind): InstallationHealthFinding => {
+        const findingId: InstallationHealthFindingId =
+          probe.work === ProbeBehindWork.DevicePolls
+            ? InstallationHealthFindingId.GlobalProbeDevicesBehind
+            : InstallationHealthFindingId.GlobalProbeBehind;
+        const words: { title: string; words: string; fix: string } =
+          INSTALLATION_HEALTH_WORDS[findingId];
+
         return InstallationHealthUtil.finding({
-          id: `${InstallationHealthFindingId.GlobalProbeBehind}-${probe.id}`,
+          id: `${findingId}-${probe.id}`,
           level: InstallationHealthLevel.Warn,
           title: words.title,
           words: words.words,

@@ -35,6 +35,7 @@ import {
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { translationKey } from "../../../Types/Translator";
@@ -1577,6 +1578,27 @@ export default class MonitorMetricUtil {
         value: probeStatusResponse.disconnectedProbeCount,
         description: translationKey(
           "How many of the probes this monitor watches are disconnected",
+        ),
+        unit: "probes",
+        metricPointType: MetricPointType.Gauge,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
+
+      /*
+       * And how many of them are connected but behind (#9501), so "Probes
+       * Behind is greater than 0 for 10 minutes" can be judged over a
+       * window as the other two are.
+       */
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: undefined,
+        metricName: MonitorMetricType.ProbesBehind,
+        value: ProbeStatusMonitorUtil.getBehindProbeCount(probeStatusResponse),
+        description: translationKey(
+          "How many of the probes this monitor watches are behind",
         ),
         unit: "probes",
         metricPointType: MetricPointType.Gauge,

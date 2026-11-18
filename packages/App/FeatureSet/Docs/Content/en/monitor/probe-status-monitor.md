@@ -1,16 +1,16 @@
 # Probe Status Monitor
 
-A Probe Status monitor tells you when a probe stops reporting: one incident when it disconnects, resolved by itself when it is back. Point it at your custom probes, or, on a self-hosted OneUptime, at the global probe every monitor runs on, so a probe that goes quiet never leaves its monitors unchecked without anyone knowing.
+A Probe Status monitor tells you when a probe stops reporting: one incident when it disconnects, resolved by itself when it is back. Point it at your custom probes, or, on a self-hosted OneUptime, at the global probe every monitor runs on, so a probe that goes quiet never leaves its monitors unchecked without anyone knowing. A new monitor also raises an alert when one of its probes falls behind, its monitors checked or its network devices polled less often than set.
 
 :::cards
 - [Create one](#create-a-probe-status-monitor): Pick the probes and keep the default criteria.
-- [Criteria](#criteria): Count the connected or disconnected probes, now or over a window.
+- [Criteria](#criteria): Count the connected, disconnected or behind probes, now or over a window.
 - [Metrics](#metrics): How many probes were connected, minute by minute.
 :::
 
 ## How it works
 
-OneUptime evaluates every Probe Status monitor once a minute, and again the moment one of its probes connects or disconnects. It reads each probe's connection status, the one the probe's page shows: a probe is disconnected when nothing has been heard from it for three minutes. After OneUptime itself was down or not receiving, it waits three full minutes before it calls any probe disconnected, so upgrading OneUptime never opens an incident.
+OneUptime evaluates every Probe Status monitor once a minute, and again the moment one of its probes connects or disconnects. It reads each probe's connection status, the one the probe's page shows: a probe is disconnected when nothing has been heard from it for three minutes. After OneUptime itself was down or not receiving, it waits three full minutes before it calls any probe disconnected, so upgrading OneUptime never opens an incident. It also reads whether each connected probe is behind, as the probe's page says it ([A probe is behind](/docs/probe/custom-probe#a-probe-is-behind)), and evaluates the monitor again the moment one falls behind or catches up.
 
 ```mermaid title="From a silent probe to one incident"
 flowchart TB
@@ -55,13 +55,17 @@ A Probe Status monitor's filters count probes:
 | --- | --- |
 | **Disconnected Probes** | The probes the monitor watches that are disconnected. |
 | **Connected Probes** | The probes the monitor watches that are connected. |
+| **Probes Behind** | The probes the monitor watches that are connected but behind: their monitors checked, or their network devices polled, less often than set. |
 
-Both are whole numbers, compared with **Greater Than**, **Less Than**, **Equal To** and the rest. A new monitor starts with two criteria:
+All three are whole numbers, compared with **Greater Than**, **Less Than**, **Equal To** and the rest. A new monitor starts with three criteria:
 
 | Criteria | Filter | What it does |
 | --- | --- | --- |
 | Check if a probe is disconnected | **Disconnected Probes** greater than `0` | Marks the monitor offline and declares an incident titled "Probe disconnected: {{disconnectedProbeNames}}", which resolves by itself. |
+| Check if a probe is behind | **Probes Behind** greater than `0` | Raises an alert titled "Probe behind: {{behindProbeNames}}", which resolves by itself. It leaves the monitor's status alone and declares no incident: the probe still reports. |
 | Check if every probe is connected | **Disconnected Probes** equal to `0` | Marks the monitor operational. |
+
+A monitor created before **Probes Behind** existed keeps the criteria it has, so it is not told when a probe falls behind until you add the check to its criteria.
 
 **Connected Probes** suits a monitor that watches several probes and can lose one: **Connected Probes** less than `2` declares an incident only when fewer than two are left.
 
@@ -71,7 +75,7 @@ A probe is disconnected only after three minutes of silence, so a quick restart 
 
 ## Metrics
 
-Each evaluation records two series on the monitor: `oneuptime.monitor.probes.connected` and `oneuptime.monitor.probes.disconnected`, the number of the probes it watches that were connected and disconnected. They are charted on the monitor's **Metrics** page, and a dashboard or a Metrics monitor reads them like any other series.
+Each evaluation records three series on the monitor: `oneuptime.monitor.probes.connected`, `oneuptime.monitor.probes.disconnected` and `oneuptime.monitor.probes.behind`, the number of the probes it watches that were connected, disconnected and behind. They are charted on the monitor's **Metrics** page, and a dashboard or a Metrics monitor reads them like any other series.
 
 ## Template variables
 
@@ -83,8 +87,10 @@ A Probe Status monitor's incident and alert templates can use these variables, b
 | `{{disconnectedProbeCount}}` | How many of the probes are disconnected. |
 | `{{connectedProbeNames}}` | The names of the connected probes, separated by commas. |
 | `{{connectedProbeCount}}` | How many of the probes are connected. |
-| `{{probeStatusSummary}}` | One sentence naming the disconnected probes, such as `1 of 3 probes is disconnected: EU Probe.`, or saying that every probe is connected. |
-| `{{probes}}` | Every probe, each with `probeName`, `isConnected`, `isGlobalProbe` and `lastAliveAt`. |
+| `{{behindProbeNames}}` | The names of the connected probes that are behind, separated by commas. |
+| `{{behindProbeCount}}` | How many of the probes are behind. |
+| `{{probeStatusSummary}}` | One sentence naming the disconnected probes, such as `1 of 3 probes is disconnected: EU Probe.`, or else the ones behind, or saying that every probe is connected. |
+| `{{probes}}` | Every probe, each with `probeName`, `isConnected`, `isBehind`, `isGlobalProbe` and `lastAliveAt`. |
 
 ## Troubleshooting
 

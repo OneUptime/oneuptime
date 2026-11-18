@@ -287,6 +287,8 @@ Polling lives on the device's **Settings** page, on the **Polling & Data Collect
 
 Everything from **Walk Interfaces** down needs SNMP credentials: on a ping-only device those settings are kept and have no walk to apply to.
 
+A probe polls up to `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` devices at once, 25 by default, and asks for more as soon as it has room, so each device is polled on its interval however big the fleet. A device's next poll is counted from the whole minute nearest its last one. When more devices are due than the probe can poll, its **Status** reads **Behind** and its page shows **Network Device Polls**: [A probe is behind](/docs/probe/custom-probe#a-probe-is-behind) says what lets it catch up.
+
 ### Interface Walking
 
 With **Walk Interfaces** on and credentials found, every poll tracks each interface's operational and administrative status, bits in and out, utilization and errors. The same walk collects the LLDP and CDP neighbours for the map.

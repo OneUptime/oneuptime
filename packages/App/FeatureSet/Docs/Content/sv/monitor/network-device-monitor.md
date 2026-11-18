@@ -287,6 +287,8 @@ Avsökningen finns på enhetens sida **Inställningar**, på kortet **Polling & 
 
 Allt från **Walk Interfaces** och nedåt kräver SNMP-autentiseringsuppgifter: på en enhet med bara ping behålls de inställningarna och har ingen walk att tillämpas på.
 
+En sond avfrågar upp till `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` enheter samtidigt, 25 som standard, och ber om fler så snart den har plats, så varje enhet avfrågas med sitt intervall, hur stor flottan än är. En enhets nästa avfrågning räknas från den hela minut som ligger närmast den förra. När fler enheter står på tur än sonden hinner avfråga visar dess **Status** **Ligger efter**, och dess sida visar **Avfrågningar av nätverksenheter**: [En sond ligger efter](/docs/probe/custom-probe#en-sond-ligger-efter) säger vad som får den att komma ikapp.
+
 ### Walk av gränssnitt
 
 Med **Walk Interfaces** påslaget och autentiseringsuppgifter hittade följer varje avsökning varje gränssnitts drifts- och administrativa status, bitar in och ut, utnyttjande och fel. Samma walk samlar in LLDP- och CDP-grannarna för kartan.

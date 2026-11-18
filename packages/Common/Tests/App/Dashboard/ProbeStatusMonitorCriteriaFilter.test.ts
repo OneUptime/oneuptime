@@ -17,15 +17,16 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * The criteria form of a Probe Status monitor: it counts the probes the
- * monitor watches, connected and disconnected, so it offers those two
- * checks and the whole-number comparisons - and nothing that would never
- * match. "A probe is down" is the rule nearly everyone writes, so it is
- * what a new filter starts on.
+ * monitor watches - connected, disconnected, and connected but behind
+ * (#9501) - so it offers those three checks and the whole-number
+ * comparisons, and nothing that would never match. "A probe is down" is
+ * the rule nearly everyone writes, so it is what a new filter starts on.
  */
 
 const PROBE_STATUS_CHECK_ONS: Array<CheckOn> = [
   CheckOn.DisconnectedProbes,
   CheckOn.ConnectedProbes,
+  CheckOn.ProbesBehind,
 ];
 
 function values(options: Array<DropdownOption>): Array<string> {
@@ -35,7 +36,7 @@ function values(options: Array<DropdownOption>): Array<string> {
 }
 
 describe("a Probe Status monitor's criteria form", () => {
-  test("offers the two probe counts, Disconnected Probes first, and nothing else", () => {
+  test("offers the three probe counts, Disconnected Probes first and Probes Behind last, and nothing else", () => {
     expect(
       values(
         CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
@@ -102,6 +103,25 @@ describe("a Probe Status monitor's criteria form", () => {
         checkOn: CheckOn.ConnectedProbes,
       }),
     ).toBe("1");
+    // "A probe is behind" is "more than 0 behind".
+    expect(
+      CriteriaFilterUtil.getFilterTypePlaceholderValueByCheckOn({
+        monitorType: MonitorType.ProbeStatus,
+        checkOn: CheckOn.ProbesBehind,
+      }),
+    ).toBe("0");
+  });
+
+  test("Probes Behind reads as the count it compares, in the form's words", () => {
+    const text: string = CriteriaFilterUtil.translateFilterToText({
+      checkOn: CheckOn.ProbesBehind,
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
+
+    expect(text).toContain("Probes Behind");
+    expect(text).toContain("0");
+    expect(text).not.toContain("0ms");
   });
 
   test("a rule reads as the count it compares, with no unit", () => {

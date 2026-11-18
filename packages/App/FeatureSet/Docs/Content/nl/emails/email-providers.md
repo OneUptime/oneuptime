@@ -182,7 +182,7 @@ Op een zelf gehoste server eindigt **Instellingen > Meldingen > E-mails** in het
 
 ## Bericht krijgen als e-mail of de sondes stoppen
 
-Als de e-mail van de server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht van OneUptime, en nog een keer zodra het weer werkt. Kies waarheen in de kaart **Storingsmeldingen** op dezelfde pagina:
+Als de e-mail van de server niet meer werkt, geen enkele globale sonde meer rapporteert, of een globale sonde achterloopt (haar monitoren worden minder vaak gecontroleerd, of haar netwerkapparaten minder vaak bevraagd, dan ingesteld), krijgen de hoofdbeheerders bericht van OneUptime, en nog een keer zodra alles weer goed is. Kies waarheen in de kaart **Storingsmeldingen** op dezelfde pagina:
 
 - **Push naar de apparaten van hoofdbeheerders** stuurt een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld. Die staat aan tot u hem uitzet.
 - **Sms naar dit nummer** stuurt een sms via de eigen sms-instellingen van de server.

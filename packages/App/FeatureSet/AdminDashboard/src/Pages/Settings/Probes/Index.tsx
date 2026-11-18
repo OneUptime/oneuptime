@@ -129,6 +129,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           // Whether it is behind (GlobalProbeStatus).
           checksLateSince: true,
           checksLastLateAt: true,
+          devicePollsLateSince: true,
+          devicePollsLastLateAt: true,
         }}
         actionButtons={[
           {

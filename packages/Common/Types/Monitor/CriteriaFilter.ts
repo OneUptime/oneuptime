@@ -259,6 +259,13 @@ export enum CheckOn {
    */
   ConnectedProbes = "Connected Probes",
   DisconnectedProbes = "Disconnected Probes",
+  /*
+   * How many of them are connected but behind: their monitors checked, or
+   * their network devices polled, later than their interval
+   * (Types/Probe/ProbeBehind, kept once a minute by Probe:UpdateBehind,
+   * OneUptime issue #9501). A disconnected probe is never behind.
+   */
+  ProbesBehind = "Probes Behind",
 }
 
 export interface ServerMonitorOptions {
@@ -1023,7 +1030,8 @@ export class CriteriaFilterUtil {
        * three-minute connection cutoff alone would call an outage.
        */
       checkOn === CheckOn.ConnectedProbes ||
-      checkOn === CheckOn.DisconnectedProbes
+      checkOn === CheckOn.DisconnectedProbes ||
+      checkOn === CheckOn.ProbesBehind
     );
   }
 }

@@ -28,7 +28,11 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeChecksElement, {
   PROBE_CHECKS_COPY,
+  PROBE_DEVICE_POLLS_COPY,
 } from "../../../Components/Probe/ProbeChecks";
+import ProbeBehindUtil, {
+  ProbeBehindWork,
+} from "Common/Types/Probe/ProbeBehind";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -227,9 +231,13 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         modelDetailProps={{
           modelType: Probe,
           id: "model-detail-team",
-          // When its checks first and last ran late: whether it is behind.
+          /*
+           * When its checks, and its device polls, first and last ran
+           * late: whether it is behind on either.
+           */
           selectMoreFields: {
             checksLastLateAt: true,
+            devicePollsLastLateAt: true,
           },
           fields: [
             {
@@ -269,6 +277,34 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               },
               getElement: (item: Probe): ReactElement => {
                 return <ProbeChecksElement probe={item} />;
+              },
+            },
+            {
+              /*
+               * Whether it keeps up with the network devices it polls
+               * (#9499): only while it is connected and behind on them -
+               * most probes poll no device, and On Time for none says
+               * nothing.
+               */
+              field: {
+                devicePollsLateSince: true,
+              },
+              title: PROBE_DEVICE_POLLS_COPY.title,
+              description: PROBE_DEVICE_POLLS_COPY.description,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  item.connectionStatus === ProbeConnectionStatus.Connected &&
+                  ProbeBehindUtil.isDevicePollsBehind(item)
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return (
+                  <ProbeChecksElement
+                    probe={item}
+                    work={ProbeBehindWork.DevicePolls}
+                  />
+                );
               },
             },
           ],

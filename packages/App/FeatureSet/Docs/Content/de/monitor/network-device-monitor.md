@@ -287,6 +287,8 @@ Die Abfrage befindet sich auf der **Einstellungen**-Seite des Geräts, in der Ka
 
 Alles ab **Schnittstellen abfragen** abwärts braucht SNMP-Anmeldedaten: Auf einem nur angepingten Gerät bleiben diese Einstellungen gespeichert und haben keinen Walk, auf den sie wirken.
 
+Eine Sonde fragt bis zu `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` Geräte gleichzeitig ab, standardmäßig 25, und fragt nach weiteren, sobald sie Platz hat, sodass jedes Gerät in seinem Intervall abgefragt wird, wie groß der Bestand auch ist. Die nächste Abfrage eines Geräts zählt ab der vollen Minute, die der letzten am nächsten liegt. Wenn mehr Geräte fällig sind, als die Sonde abfragen kann, zeigt ihr **Status** **Im Rückstand**, und ihre Seite zeigt **Netzwerkgeräte-Abfragen**: [Eine Sonde ist im Rückstand](/docs/probe/custom-probe#eine-sonde-ist-im-rückstand) sagt, wie sie aufholt.
+
 ### Schnittstellen abfragen
 
 Mit **Schnittstellen abfragen** an und gefundenen Anmeldedaten erfasst jede Abfrage für jede Schnittstelle den Betriebs- und den administrativen Status, die Bits ein- und ausgehend, die Auslastung und die Fehler. Derselbe Walk sammelt die LLDP- und CDP-Nachbarn für die Karte.

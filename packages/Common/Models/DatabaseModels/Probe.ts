@@ -683,6 +683,53 @@ export default class Probe extends BaseModel {
   public checksLastLateAt?: Date = undefined;
 
   /*
+   * The same for the network devices the probe polls (OneUptime issue
+   * #9499): the first and the latest of the once-a-minute readings that
+   * found one of its devices waiting more than a minute past its poll
+   * time. Kept apart from the monitors' so its page can say which falls
+   * behind, and what lets it catch up. Read and kept as the two above are.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Device Polls Late Since",
+    description:
+      "When the network devices this probe polls started waiting more than a minute past their poll time. Set by OneUptime; empty while they are polled on time.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public devicePollsLateSince?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Device Polls Last Late At",
+    description:
+      "When OneUptime last found one of the network devices this probe polls waiting more than a minute past its poll time. Set by OneUptime.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public devicePollsLastLateAt?: Date = undefined;
+
+  /*
    * What the probe last said about packet capture: whether whoever runs it
    * turned captures on (PROBE_PACKET_CAPTURE_ENABLED), whether tcpdump is
    * installed, the interfaces it can capture on and the limits its operator

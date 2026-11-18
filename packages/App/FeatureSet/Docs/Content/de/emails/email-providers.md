@@ -182,7 +182,7 @@ Auf einem selbst gehosteten Server endet **Einstellungen > Benachrichtigungen > 
 
 ## Erfahren, wenn E-Mail oder die Sonden ausfallen
 
-Wenn die E-Mail des Servers nicht mehr funktioniert oder keine globale Sonde mehr meldet, benachrichtigt OneUptime die Master-Admins, und noch einmal, sobald es wieder funktioniert. Wählen Sie in der Karte **Ausfallbenachrichtigungen** auf derselben Seite, wohin:
+Wenn die E-Mail des Servers nicht mehr funktioniert, keine globale Sonde mehr meldet oder eine globale Sonde in Rückstand gerät (ihre Monitore werden seltener geprüft oder ihre Netzwerkgeräte seltener abgefragt als eingestellt), benachrichtigt OneUptime die Master-Admins, und noch einmal, sobald alles wieder stimmt. Wählen Sie in der Karte **Ausfallbenachrichtigungen** auf derselben Seite, wohin:
 
 - **Push an die Geräte der Master-Administratoren** sendet eine Push-Benachrichtigung an jedes Gerät, auf dem ein Master-Admin in der OneUptime-App angemeldet ist. Sie ist eingeschaltet, bis Sie sie ausschalten.
 - **SMS an diese Nummer** sendet eine SMS über die SMS-Einstellungen des Servers.

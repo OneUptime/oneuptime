@@ -55,6 +55,7 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { ProbeBehindWork } from "Common/Types/Probe/ProbeBehind";
 import {
   ServerProductsPreset,
   getOffByPreset,
@@ -327,6 +328,7 @@ describe("the facts", () => {
         id: "22222222-2222-4222-8222-222222222222",
         name: "Probe-1",
         since: "2026-11-18T09:00:00.000Z",
+        work: ProbeBehindWork.MonitorChecks,
       },
     ]);
 
@@ -337,8 +339,80 @@ describe("the facts", () => {
     expect(query["isGlobalProbe"]).toBe(true);
     expect(query["connectionStatus"]).toBe(ProbeConnectionStatus.Connected);
     expect(Object.keys(query).sort()).toEqual(
-      ["checksLateSince", "connectionStatus", "isGlobalProbe"].sort(),
+      ["connectionStatus", "isGlobalProbe"].sort(),
     );
+
+    // Both kinds of work are read, so a probe behind on either is found.
+    const select: Record<string, unknown> = (
+      findBy.mock.calls[0]![0] as unknown as {
+        select: Record<string, unknown>;
+      }
+    ).select;
+    for (const column of [
+      "checksLateSince",
+      "checksLastLateAt",
+      "devicePollsLateSince",
+      "devicePollsLastLateAt",
+    ]) {
+      expect(select[column]).toBe(true);
+    }
+  });
+
+  test("a global probe behind on its network devices is found too, and one behind on both is found for each (#9499)", async () => {
+    const devices: Probe = new Probe();
+    devices.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+    devices.name = "Probe-3";
+    devices.devicePollsLateSince = new Date("2026-11-18T09:01:00.000Z");
+    devices.devicePollsLastLateAt = new Date("2026-11-18T09:04:00.000Z");
+
+    const both: Probe = new Probe();
+    both.id = new ObjectID("44444444-4444-4444-8444-444444444444");
+    both.name = "Probe-4";
+    both.checksLateSince = new Date("2026-11-18T09:02:00.000Z");
+    both.checksLastLateAt = new Date("2026-11-18T09:05:00.000Z");
+    both.devicePollsLateSince = new Date("2026-11-18T08:59:00.000Z");
+    both.devicePollsLastLateAt = new Date("2026-11-18T09:05:00.000Z");
+
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValue([devices, both] as never);
+
+    const behind: Array<InstallationHealthProbeBehind> =
+      await readGlobalProbesBehind();
+
+    expect(behind).toEqual([
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        name: "Probe-3",
+        since: "2026-11-18T09:01:00.000Z",
+        work: ProbeBehindWork.DevicePolls,
+      },
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Probe-4",
+        since: "2026-11-18T09:02:00.000Z",
+        work: ProbeBehindWork.MonitorChecks,
+      },
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "Probe-4",
+        since: "2026-11-18T08:59:00.000Z",
+        work: ProbeBehindWork.DevicePolls,
+      },
+    ]);
+
+    // Each is a finding of its own, with its own fix, the longest first.
+    const findings: Array<string> = InstallationHealthUtil.probeFindings({
+      globalProbesBehind: behind,
+    } as InstallationHealthFacts).map((finding: { id: string }): string => {
+      return finding.id;
+    });
+
+    expect(findings).toEqual([
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-44444444-4444-4444-8444-444444444444`,
+      `${InstallationHealthFindingId.GlobalProbeDevicesBehind}-33333333-3333-4333-8333-333333333333`,
+      `${InstallationHealthFindingId.GlobalProbeBehind}-44444444-4444-4444-8444-444444444444`,
+    ]);
   });
 
   test("PostgreSQL down: what needs it is not asked, and the rest still is", async () => {
