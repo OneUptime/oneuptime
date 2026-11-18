@@ -3,7 +3,7 @@
 Un flux de renseignement apporte dans OneUptime des adresses IP, des domaines, des URL, des adresses e-mail et des hachages de fichiers malveillants connus, et vous prévient quand vos [événements de sécurité](/docs/telemetry/security-events) en mentionnent un. Un flux lit une source : une liste d'indicateurs à une adresse https, comme les listes gratuites que OneUptime ajoute en un clic, une collection TAXII 2.1 d'indicateurs STIX 2.1 issue de votre propre serveur MISP, OpenCTI ou OpenTAXII ou d'un fournisseur, ou les indicateurs que Google SecOps a trouvés dans vos événements.
 
 :::cards
-- [Ajouter une liste gratuite](#ajouter-une-liste-gratuite): Feodo Tracker, Emerging Threats et les nœuds de sortie Tor, en un clic.
+- [Ajouter une liste gratuite](#ajouter-une-liste-gratuite): Feodo Tracker, Emerging Threats, NetAPI et les nœuds de sortie Tor, en un clic.
 - [S'abonner à un flux](#sabonner-à-un-flux): L'adresse d'une liste, une collection TAXII ou une connexion Google SecOps.
 - [Ce qui est ingéré](#ce-qui-est-ingéré): Les motifs d'indicateurs que conserve OneUptime, et pour combien de temps.
 - [Comment les correspondances sont trouvées](#comment-les-correspondances-sont-trouvées): Marquées à l'arrivée des événements et confrontées chaque minute.
@@ -37,9 +37,10 @@ La carte **Listes gratuites** de **Renseignement sur les menaces** ajoute une li
 | --- | --- | --- | --- | --- |
 | Serveurs C2 de botnets de Feodo Tracker | abuse.ch | Toutes les heures | 90, Critical | Un dossier et une alerte |
 | Hôtes compromis d'Emerging Threats | Proofpoint Emerging Threats | Tous les jours | 70, High | Un dossier et une alerte |
+| Attaquants des honeypots de NetAPI | NetAPI | Toutes les heures | 70, High | Un dossier et une alerte |
 | Nœuds de sortie Tor | The Tor Project | Toutes les heures | 30, Low | Un dossier |
 
-La tuile d'une liste renvoie à ses conditions : Feodo Tracker est libre pour tout usage (CC0), et la liste Emerging Threats est sous licence BSD. Un flux ajouté depuis une liste se modifie et se supprime comme les autres.
+La tuile d'une liste renvoie à ses conditions : Feodo Tracker est libre pour tout usage (CC0), et la liste Emerging Threats est sous licence BSD. La liste NetAPI est libre avec attribution (CC BY 4.0). Un flux ajouté depuis une liste se modifie et se supprime comme les autres.
 
 ## S'abonner à un flux
 

@@ -8109,33 +8109,45 @@ test.describe("detection rules and threat intel", () => {
       page.getByTestId("threat-intel-list-add-feodo-tracker"),
     ).toHaveCount(0);
 
-    // Three tiles a row beside the side menu, none wider than the card.
+    // Two tiles a row beside the side menu, none wider than the card.
     const tiles: Array<Box> = [];
     for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
       tiles.push(await boxOf(page.getByTestId(`threat-intel-list-${list.id}`)));
     }
-    expect(
-      new Set(
-        tiles.map((tile: Box): number => {
-          return Math.round(tile.y);
-        }),
-      ).size,
-    ).toBe(1);
+    const tileRows: Array<number> = tiles.map((tile: Box): number => {
+      return Math.round(tile.y);
+    });
+    expect(new Set(tileRows).size).toBe(
+      Math.ceil(RECOMMENDED_THREAT_INTEL_LISTS.length / 2),
+    );
+    for (const row of new Set(tileRows)) {
+      expect(
+        tileRows.filter((y: number): boolean => {
+          return y === row;
+        }).length,
+      ).toBeLessThanOrEqual(2);
+    }
 
     /*
-     * Every tile ends alike: Added and Add List on one line across the row,
+     * Every tile ends alike: Added and Add List on one line across its row,
      * whichever a tile says (Added once sat beside the terms while Add List
      * dropped a line below them).
      */
-    const ends: Array<number> = [];
-    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+    const endsByRow: Map<number, Array<number>> = new Map();
+    for (const [index, list] of RECOMMENDED_THREAT_INTEL_LISTS.entries()) {
       const action: Locator = page
         .getByTestId(`threat-intel-list-added-${list.id}`)
         .or(page.getByTestId(`threat-intel-list-add-${list.id}`));
       const box: Box = await boxOf(action);
-      ends.push(box.y + box.height / 2);
+      const row: number = tileRows[index] as number;
+      endsByRow.set(row, [
+        ...(endsByRow.get(row) || []),
+        box.y + box.height / 2,
+      ]);
     }
-    expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(2);
+    for (const ends of endsByRow.values()) {
+      expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(2);
+    }
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "threat-intel-desktop", { fullPage: false });
   });

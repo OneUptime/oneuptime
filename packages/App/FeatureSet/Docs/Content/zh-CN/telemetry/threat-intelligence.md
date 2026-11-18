@@ -3,7 +3,7 @@
 威胁情报源会把已知恶意的 IP 地址、域名、URL、电子邮件地址和文件哈希带进 OneUptime，并在你的 [安全事件](/docs/telemetry/security-events) 提到其中之一时告诉你。一个情报源读取一个来源：https 地址上的指标列表（例如 OneUptime 一键添加的免费列表）、来自你自己的 MISP、OpenCTI 或 OpenTAXII 服务器或某个提供商、包含 STIX 2.1 指标的 TAXII 2.1 集合，或者 Google SecOps 在你的事件中发现的指标。
 
 :::cards
-- [添加免费列表](#添加免费列表): Feodo Tracker、Emerging Threats 和 Tor 出口节点，一键添加。
+- [添加免费列表](#添加免费列表): Feodo Tracker、Emerging Threats、NetAPI 和 Tor 出口节点，一键添加。
 - [订阅情报源](#订阅情报源): 列表的地址、TAXII 集合或 Google SecOps 连接。
 - [会摄取什么](#会摄取什么): OneUptime 保留的指标模式，以及保留多久。
 - [如何找到匹配](#如何找到匹配): 事件到达时打标签，并每分钟比对一次。
@@ -37,9 +37,10 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Feodo Tracker 僵尸网络 C2 服务器 | abuse.ch | 每小时 | 90，Critical | 一个案例和一个警报 |
 | Emerging Threats 失陷主机 | Proofpoint Emerging Threats | 每天 | 70，High | 一个案例和一个警报 |
+| NetAPI 蜜罐攻击者 | NetAPI | 每小时 | 70，High | 一个案例和一个警报 |
 | Tor 出口节点 | The Tor Project | 每小时 | 30，Low | 一个案例 |
 
-每个列表的卡片都链接到它的条款：Feodo Tracker 可免费用于任何用途（CC0），Emerging Threats 列表采用 BSD 许可证。从列表添加的情报源和其他情报源一样编辑和删除。
+每个列表的卡片都链接到它的条款：Feodo Tracker 可免费用于任何用途（CC0），Emerging Threats 列表采用 BSD 许可证。NetAPI 列表注明出处即可免费使用（CC BY 4.0）。从列表添加的情报源和其他情报源一样编辑和删除。
 
 ## 订阅情报源
 

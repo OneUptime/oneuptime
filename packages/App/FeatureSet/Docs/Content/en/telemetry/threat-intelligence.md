@@ -3,7 +3,7 @@
 A threat intel feed brings known-bad IP addresses, domains, URLs, email addresses and file hashes into OneUptime, and tells you when your [security events](/docs/telemetry/security-events) mention one. A feed reads one source: a list of indicators at an https address, such as the free lists OneUptime adds in one click, a TAXII 2.1 collection of STIX 2.1 indicators from your own MISP, OpenCTI or OpenTAXII server or a provider, or the indicators Google SecOps found in your events.
 
 :::cards
-- [Add a free list](#add-a-free-list): Feodo Tracker, Emerging Threats and the Tor exit nodes, in one click.
+- [Add a free list](#add-a-free-list): Feodo Tracker, Emerging Threats, NetAPI and the Tor exit nodes, in one click.
 - [Subscribe a feed](#subscribe-a-feed): A list's address, a TAXII collection or a Google SecOps connection.
 - [What gets ingested](#what-gets-ingested): The indicator patterns OneUptime keeps, and for how long.
 - [How matches are found](#how-matches-are-found): Tagged as events arrive, and matched every minute.
@@ -37,9 +37,10 @@ The **Free Lists** card on **Threat Intel** adds a free blocklist in one click: 
 | --- | --- | --- | --- | --- |
 | Feodo Tracker botnet C2 servers | abuse.ch | Every hour | 90, Critical | A case and an alert |
 | Emerging Threats compromised hosts | Proofpoint Emerging Threats | Every day | 70, High | A case and an alert |
+| NetAPI honeypot attackers | NetAPI | Every hour | 70, High | A case and an alert |
 | Tor exit nodes | The Tor Project | Every hour | 30, Low | A case |
 
-A list's tile links its terms: Feodo Tracker is free for any use (CC0), and the Emerging Threats list is BSD licensed. A feed added from a list is edited and deleted like any other.
+A list's tile links its terms: Feodo Tracker is free for any use (CC0), and the Emerging Threats list is BSD licensed. The NetAPI list is free to use with attribution (CC BY 4.0). A feed added from a list is edited and deleted like any other.
 
 ## Subscribe a feed
 

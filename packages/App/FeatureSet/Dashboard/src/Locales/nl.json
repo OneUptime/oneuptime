@@ -32172,6 +32172,8 @@
   "Google SecOps Connection": "Google SecOps-verbinding",
   "Google SecOps Connection ID": "ID van de Google SecOps-verbinding",
   "Hosts known to be compromised and attacking others, from Proofpoint's free ET OPEN blocklists. Updated daily.": "Hosts waarvan bekend is dat ze gecompromitteerd zijn en anderen aanvallen, uit de gratis ET OPEN-blokkeerlijsten van Proofpoint. Dagelijks bijgewerkt.",
+  "NetAPI honeypot attackers": "Aanvallers van de honeypots van NetAPI",
+  "Addresses that attacked NetAPI's honeypot sensors in the last 48 hours: password guessing, exploit attempts, malware delivery. Updated hourly. Free with attribution (CC BY 4.0).": "Adressen die de afgelopen 48 uur de honeypot-sensoren van NetAPI aanvielen: wachtwoorden raden, exploitpogingen, verspreiding van malware. Elk uur bijgewerkt. Vrij te gebruiken met naamsvermelding (CC BY 4.0).",
   "How often the source is read for new indicators. Default 60; a list is read every 15 minutes at most.": "Hoe vaak de bron wordt gelezen op nieuwe indicatoren. Standaard 60; een lijst wordt hoogstens elke 15 minuten gelezen.",
   "How sure the list is, 1 to 100. A match is Critical at 90, High at 70, Medium at 40, Low below. Empty is Medium.": "Hoe zeker de lijst is, 1 tot 100. Een treffer is Kritiek vanaf 90, Hoog vanaf 70, Gemiddeld vanaf 40, daaronder Laag. Leeg is Gemiddeld.",
   "List URL": "Lijst-URL",

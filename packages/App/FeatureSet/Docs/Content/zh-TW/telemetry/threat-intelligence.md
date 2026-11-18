@@ -3,7 +3,7 @@
 威脅情資來源會把已知惡意的 IP 位址、網域、URL、電子郵件地址和檔案雜湊帶進 OneUptime，並在你的 [安全性事件](/docs/telemetry/security-events) 提到其中之一時通知你。一個情資來源讀取一個來源：https 位址上的指標清單（例如 OneUptime 一鍵新增的免費清單）、來自你自己的 MISP、OpenCTI 或 OpenTAXII 伺服器或某個供應商、包含 STIX 2.1 指標的 TAXII 2.1 集合，或是 Google SecOps 在你的事件中找到的指標。
 
 :::cards
-- [新增免費清單](#新增免費清單): Feodo Tracker、Emerging Threats 和 Tor 出口節點，一鍵新增。
+- [新增免費清單](#新增免費清單): Feodo Tracker、Emerging Threats、NetAPI 和 Tor 出口節點，一鍵新增。
 - [訂閱情資來源](#訂閱情資來源): 清單的位址、TAXII 集合或 Google SecOps 連線。
 - [會擷取什麼](#會擷取什麼): OneUptime 保留的指標模式，以及保留多久。
 - [如何找到符合項目](#如何找到符合項目): 事件抵達時加上標籤，並每分鐘比對一次。
@@ -37,9 +37,10 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Feodo Tracker 殭屍網路 C2 伺服器 | abuse.ch | 每小時 | 90，Critical | 一個案件和一個警示 |
 | Emerging Threats 遭入侵的主機 | Proofpoint Emerging Threats | 每天 | 70，High | 一個案件和一個警示 |
+| NetAPI 蜜罐攻擊者 | NetAPI | 每小時 | 70，High | 一個案件和一個警示 |
 | Tor 出口節點 | The Tor Project | 每小時 | 30，Low | 一個案件 |
 
-每個清單的圖塊都連結到其條款：Feodo Tracker 可免費用於任何用途（CC0），Emerging Threats 清單採用 BSD 授權。從清單新增的情資來源和其他情資來源一樣編輯和刪除。
+每個清單的圖塊都連結到其條款：Feodo Tracker 可免費用於任何用途（CC0），Emerging Threats 清單採用 BSD 授權。NetAPI 清單標示出處即可免費使用（CC BY 4.0）。從清單新增的情資來源和其他情資來源一樣編輯和刪除。
 
 ## 訂閱情資來源
 

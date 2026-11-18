@@ -176,6 +176,18 @@ export const RECOMMENDED_THREAT_INTEL_LISTS: ReadonlyArray<RecommendedThreatInte
       raisesAlerts: true,
     },
     {
+      id: "netapi-honeypot-attackers",
+      title: "NetAPI honeypot attackers",
+      provider: "NetAPI",
+      description:
+        "Addresses that attacked NetAPI's honeypot sensors in the last 48 hours: password guessing, exploit attempts, malware delivery. Updated hourly. Free with attribution (CC BY 4.0).",
+      url: "https://netapi.com/api2/?method=compromised&dataset_type=ip",
+      indicatorConfidence: 70,
+      pollIntervalInMinutes: 60,
+      termsUrl: "https://netapi.com/compromised-ips/",
+      raisesAlerts: true,
+    },
+    {
       id: "tor-exit-nodes",
       title: "Tor exit nodes",
       provider: "The Tor Project",

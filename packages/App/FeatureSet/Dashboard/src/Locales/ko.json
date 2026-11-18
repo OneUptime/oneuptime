@@ -32172,6 +32172,8 @@
   "Google SecOps Connection": "Google SecOps 연결",
   "Google SecOps Connection ID": "Google SecOps 연결 ID",
   "Hosts known to be compromised and attacking others, from Proofpoint's free ET OPEN blocklists. Updated daily.": "침해되어 다른 대상을 공격하는 것으로 알려진 호스트로, Proofpoint의 무료 ET OPEN 차단 목록에서 가져옵니다. 매일 업데이트됩니다.",
+  "NetAPI honeypot attackers": "NetAPI 허니팟 공격자",
+  "Addresses that attacked NetAPI's honeypot sensors in the last 48 hours: password guessing, exploit attempts, malware delivery. Updated hourly. Free with attribution (CC BY 4.0).": "지난 48시간 동안 NetAPI의 허니팟 센서를 공격한 주소: 비밀번호 추측, 익스플로잇 시도, 악성코드 유포. 매시간 업데이트. 출처 표시 시 자유롭게 사용 가능(CC BY 4.0).",
   "How often the source is read for new indicators. Default 60; a list is read every 15 minutes at most.": "소스에서 새 지표를 읽는 빈도입니다. 기본값 60이며, 목록은 최대 15분마다 한 번 읽습니다.",
   "How sure the list is, 1 to 100. A match is Critical at 90, High at 70, Medium at 40, Low below. Empty is Medium.": "목록의 확실도(1~100)입니다. 일치는 90 이상이면 심각, 70 이상이면 높음, 40 이상이면 중간, 그 미만이면 낮음입니다. 비워 두면 중간입니다.",
   "List URL": "목록 URL",

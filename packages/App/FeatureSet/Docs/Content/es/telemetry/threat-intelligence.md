@@ -3,7 +3,7 @@
 Un feed de inteligencia de amenazas trae a OneUptime direcciones IP, dominios, URLs, direcciones de email y hashes de archivos maliciosos conocidos, y te avisa cuando tus [eventos de seguridad](/docs/telemetry/security-events) mencionan uno. Un feed lee un origen: una lista de indicadores en una dirección https, como las listas gratuitas que OneUptime añade con un clic, una colección TAXII 2.1 de indicadores STIX 2.1 de tu propio servidor MISP, OpenCTI u OpenTAXII o de un proveedor, o los indicadores que Google SecOps encontró en tus eventos.
 
 :::cards
-- [Añadir una lista gratuita](#añadir-una-lista-gratuita): Feodo Tracker, Emerging Threats y los nodos de salida de Tor, con un clic.
+- [Añadir una lista gratuita](#añadir-una-lista-gratuita): Feodo Tracker, Emerging Threats, NetAPI y los nodos de salida de Tor, con un clic.
 - [Suscribirse a un feed](#suscribirse-a-un-feed): La dirección de una lista, una colección TAXII o una conexión de Google SecOps.
 - [Qué se ingiere](#qué-se-ingiere): Los patrones de indicador que conserva OneUptime, y durante cuánto tiempo.
 - [Cómo se encuentran las coincidencias](#cómo-se-encuentran-las-coincidencias): Marcadas al llegar los eventos y cotejadas cada minuto.
@@ -37,9 +37,10 @@ La tarjeta **Listas gratuitas** de **Inteligencia de amenazas** añade una lista
 | --- | --- | --- | --- | --- |
 | Servidores C2 de botnets de Feodo Tracker | abuse.ch | Cada hora | 90, Critical | Un caso y una alerta |
 | Hosts comprometidos de Emerging Threats | Proofpoint Emerging Threats | Cada día | 70, High | Un caso y una alerta |
+| Atacantes de los honeypots de NetAPI | NetAPI | Cada hora | 70, High | Un caso y una alerta |
 | Nodos de salida de Tor | The Tor Project | Cada hora | 30, Low | Un caso |
 
-La tarjeta de cada lista enlaza sus condiciones: Feodo Tracker es libre para cualquier uso (CC0), y la lista de Emerging Threats tiene licencia BSD. Un feed añadido desde una lista se edita y se elimina como cualquier otro.
+La tarjeta de cada lista enlaza sus condiciones: Feodo Tracker es libre para cualquier uso (CC0), y la lista de Emerging Threats tiene licencia BSD. La lista de NetAPI es libre con atribución (CC BY 4.0). Un feed añadido desde una lista se edita y se elimina como cualquier otro.
 
 ## Suscribirse a un feed
 

@@ -3,7 +3,7 @@
 Een threat-intelfeed brengt bekende kwaadaardige IP-adressen, domeinen, URL's, e-mailadressen en bestandshashes naar OneUptime, en vertelt je wanneer je [beveiligingsgebeurtenissen](/docs/telemetry/security-events) er een noemen. Een feed leest één bron: een lijst met indicatoren op een https-adres, zoals de gratis lijsten die OneUptime met één klik toevoegt, een TAXII 2.1-collectie met STIX 2.1-indicatoren van je eigen MISP-, OpenCTI- of OpenTAXII-server of van een aanbieder, of de indicatoren die Google SecOps in je gebeurtenissen vond.
 
 :::cards
-- [Een gratis lijst toevoegen](#een-gratis-lijst-toevoegen): Feodo Tracker, Emerging Threats en de Tor-exitnodes, met één klik.
+- [Een gratis lijst toevoegen](#een-gratis-lijst-toevoegen): Feodo Tracker, Emerging Threats, NetAPI en de Tor-exitnodes, met één klik.
 - [Een feed abonneren](#een-feed-abonneren): Het adres van een lijst, een TAXII-collectie of een Google SecOps-verbinding.
 - [Wat wordt ingenomen](#wat-wordt-ingenomen): De indicatorpatronen die OneUptime bewaart, en hoe lang.
 - [Hoe matches worden gevonden](#hoe-matches-worden-gevonden): Gemarkeerd bij binnenkomst, en elke minuut vergeleken.
@@ -37,9 +37,10 @@ De kaart **Gratis lijsten** op **Dreigingsinformatie** voegt met één klik een 
 | --- | --- | --- | --- | --- |
 | Botnet-C2-servers van Feodo Tracker | abuse.ch | Elk uur | 90, Critical | Een zaak en een waarschuwing |
 | Gecompromitteerde hosts van Emerging Threats | Proofpoint Emerging Threats | Elke dag | 70, High | Een zaak en een waarschuwing |
+| Aanvallers van de honeypots van NetAPI | NetAPI | Elk uur | 70, High | Een zaak en een waarschuwing |
 | Tor-exitnodes | The Tor Project | Elk uur | 30, Low | Een zaak |
 
-De tegel van een lijst linkt naar haar voorwaarden: Feodo Tracker is vrij voor elk gebruik (CC0), en de lijst van Emerging Threats heeft een BSD-licentie. Een feed die uit een lijst is toegevoegd, bewerk en verwijder je zoals elke andere.
+De tegel van een lijst linkt naar haar voorwaarden: Feodo Tracker is vrij voor elk gebruik (CC0), en de lijst van Emerging Threats heeft een BSD-licentie. De lijst van NetAPI is vrij te gebruiken met naamsvermelding (CC BY 4.0). Een feed die uit een lijst is toegevoegd, bewerk en verwijder je zoals elke andere.
 
 ## Een feed abonneren
 

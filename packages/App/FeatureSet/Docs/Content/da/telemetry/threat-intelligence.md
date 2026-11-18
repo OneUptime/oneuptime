@@ -3,7 +3,7 @@
 Et threat intel-feed bringer kendte ondsindede IP-adresser, domæner, URL'er, e-mailadresser og filhashes ind i OneUptime og fortæller dig, når dine [sikkerhedsbegivenheder](/docs/telemetry/security-events) nævner en af dem. Et feed læser én kilde: en liste med indikatorer på en https-adresse, såsom de gratis lister, OneUptime tilføjer med ét klik, en TAXII 2.1-samling af STIX 2.1-indikatorer fra din egen MISP-, OpenCTI- eller OpenTAXII-server eller en udbyder, eller de indikatorer, Google SecOps har fundet i dine begivenheder.
 
 :::cards
-- [Tilføj en gratis liste](#tilføj-en-gratis-liste): Feodo Tracker, Emerging Threats og Tor-exitnoderne, med ét klik.
+- [Tilføj en gratis liste](#tilføj-en-gratis-liste): Feodo Tracker, Emerging Threats, NetAPI og Tor-exitnoderne, med ét klik.
 - [Abonnér på et feed](#abonnér-på-et-feed): En listes adresse, en TAXII-samling eller en Google SecOps-forbindelse.
 - [Hvad der indtages](#hvad-der-indtages): De indikatormønstre, OneUptime beholder, og hvor længe.
 - [Sådan findes match](#sådan-findes-match): Mærket, når begivenheder ankommer, og matchet hvert minut.
@@ -37,9 +37,10 @@ Kortet **Gratis lister** på **Trusselsinformation** tilføjer en gratis blokeri
 | --- | --- | --- | --- | --- |
 | Feodo Trackers botnet-C2-servere | abuse.ch | Hver time | 90, Critical | En sag og en advarsel |
 | Emerging Threats' kompromitterede værter | Proofpoint Emerging Threats | Hver dag | 70, High | En sag og en advarsel |
+| NetAPI's honeypot-angribere | NetAPI | Hver time | 70, High | En sag og en advarsel |
 | Tor-exitnoder | The Tor Project | Hver time | 30, Low | En sag |
 
-En listes felt linker til dens vilkår: Feodo Tracker er fri til al brug (CC0), og Emerging Threats-listen er BSD-licenseret. Et feed, der er tilføjet fra en liste, redigeres og slettes som alle andre.
+En listes felt linker til dens vilkår: Feodo Tracker er fri til al brug (CC0), og Emerging Threats-listen er BSD-licenseret. NetAPI-listen er fri til brug med kildeangivelse (CC BY 4.0). Et feed, der er tilføjet fra en liste, redigeres og slettes som alle andre.
 
 ## Abonnér på et feed
 

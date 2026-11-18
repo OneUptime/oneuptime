@@ -3,7 +3,7 @@
 Ett threat intel-flöde hämtar in kända skadliga IP-adresser, domäner, URL:er, e-postadresser och filhashar i OneUptime och talar om för dig när dina [säkerhetshändelser](/docs/telemetry/security-events) nämner någon av dem. Ett flöde läser en källa: en lista med indikatorer på en https-adress, som gratislistorna OneUptime lägger till med ett klick, en TAXII 2.1-samling med STIX 2.1-indikatorer från din egen MISP-, OpenCTI- eller OpenTAXII-server eller från en leverantör, eller indikatorerna som Google SecOps hittade i dina händelser.
 
 :::cards
-- [Lägg till en gratislista](#lägg-till-en-gratislista): Feodo Tracker, Emerging Threats och Tors utgångsnoder, med ett klick.
+- [Lägg till en gratislista](#lägg-till-en-gratislista): Feodo Tracker, Emerging Threats, NetAPI och Tors utgångsnoder, med ett klick.
 - [Prenumerera på ett flöde](#prenumerera-på-ett-flöde): En listas adress, en TAXII-samling eller en Google SecOps-anslutning.
 - [Vad som tas in](#vad-som-tas-in): Indikatormönstren som OneUptime behåller, och hur länge.
 - [Så hittas träffar](#så-hittas-träffar): Märkta när händelser kommer in, och matchade varje minut.
@@ -37,9 +37,10 @@ Kortet **Gratislistor** på **Hotinformation** lägger till en gratis blockering
 | --- | --- | --- | --- | --- |
 | Feodo Trackers C2-servrar för botnät | abuse.ch | Varje timme | 90, Critical | Ett ärende och ett larm |
 | Emerging Threats komprometterade värdar | Proofpoint Emerging Threats | Varje dag | 70, High | Ett ärende och ett larm |
+| NetAPI:s honeypot-angripare | NetAPI | Varje timme | 70, High | Ett ärende och ett larm |
 | Tors utgångsnoder | The Tor Project | Varje timme | 30, Low | Ett ärende |
 
-En listas ruta länkar till dess villkor: Feodo Tracker är fri för all användning (CC0), och Emerging Threats-listan är BSD-licensierad. Ett flöde som lagts till från en lista redigeras och tas bort som alla andra.
+En listas ruta länkar till dess villkor: Feodo Tracker är fri för all användning (CC0), och Emerging Threats-listan är BSD-licensierad. NetAPI-listan är fri att använda med erkännande (CC BY 4.0). Ett flöde som lagts till från en lista redigeras och tas bort som alla andra.
 
 ## Prenumerera på ett flöde
 

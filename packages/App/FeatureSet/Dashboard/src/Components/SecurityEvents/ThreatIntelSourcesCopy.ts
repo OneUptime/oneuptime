@@ -64,6 +64,12 @@ export const RECOMMENDED_THREAT_INTEL_LIST_TEXTS: Record<
       "Hosts known to be compromised and attacking others, from Proofpoint's free ET OPEN blocklists. Updated daily.",
     ),
   },
+  "netapi-honeypot-attackers": {
+    title: translationKey("NetAPI honeypot attackers"),
+    description: translationKey(
+      "Addresses that attacked NetAPI's honeypot sensors in the last 48 hours: password guessing, exploit attempts, malware delivery. Updated hourly. Free with attribution (CC BY 4.0).",
+    ),
+  },
   "tor-exit-nodes": {
     title: translationKey("Tor exit nodes"),
     description: translationKey(

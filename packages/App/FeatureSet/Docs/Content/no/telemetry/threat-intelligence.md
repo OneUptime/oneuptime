@@ -3,7 +3,7 @@
 En threat intel-feed henter kjente ondsinnede IP-adresser, domener, URL-er, e-postadresser og filhasher inn i OneUptime, og forteller deg når [sikkerhetshendelsene](/docs/telemetry/security-events) dine nevner en av dem. En feed leser én kilde: en liste med indikatorer på en https-adresse, som de gratis listene OneUptime legger til med ett klikk, en TAXII 2.1-samling med STIX 2.1-indikatorer fra din egen MISP-, OpenCTI- eller OpenTAXII-server eller fra en leverandør, eller indikatorene Google SecOps fant i hendelsene dine.
 
 :::cards
-- [Legg til en gratis liste](#legg-til-en-gratis-liste): Feodo Tracker, Emerging Threats og Tor-utgangsnodene, med ett klikk.
+- [Legg til en gratis liste](#legg-til-en-gratis-liste): Feodo Tracker, Emerging Threats, NetAPI og Tor-utgangsnodene, med ett klikk.
 - [Abonner på en feed](#abonner-på-en-feed): Adressen til en liste, en TAXII-samling eller en Google SecOps-tilkobling.
 - [Hva som tas inn](#hva-som-tas-inn): Indikatormønstrene OneUptime beholder, og hvor lenge.
 - [Slik finnes treff](#slik-finnes-treff): Merket når hendelser kommer inn, og sammenlignet hvert minutt.
@@ -37,9 +37,10 @@ Kortet **Gratis lister** på **Trusselsinformasjon** legger til en gratis blokke
 | --- | --- | --- | --- | --- |
 | Feodo Trackers botnett-C2-servere | abuse.ch | Hver time | 90, Critical | En sak og et varsel |
 | Kompromitterte verter fra Emerging Threats | Proofpoint Emerging Threats | Hver dag | 70, High | En sak og et varsel |
+| NetAPIs honeypot-angripere | NetAPI | Hver time | 70, High | En sak og et varsel |
 | Tor-utgangsnoder | The Tor Project | Hver time | 30, Low | En sak |
 
-Flisen til en liste lenker til vilkårene: Feodo Tracker er fri for all bruk (CC0), og Emerging Threats-listen er BSD-lisensiert. En feed som er lagt til fra en liste, redigeres og slettes som alle andre.
+Flisen til en liste lenker til vilkårene: Feodo Tracker er fri for all bruk (CC0), og Emerging Threats-listen er BSD-lisensiert. NetAPI-listen er fri til bruk med kildehenvisning (CC BY 4.0). En feed som er lagt til fra en liste, redigeres og slettes som alle andre.
 
 ## Abonner på en feed
 

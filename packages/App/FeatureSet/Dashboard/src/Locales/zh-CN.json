@@ -32172,6 +32172,8 @@
   "Google SecOps Connection": "Google SecOps 连接",
   "Google SecOps Connection ID": "Google SecOps 连接 ID",
   "Hosts known to be compromised and attacking others, from Proofpoint's free ET OPEN blocklists. Updated daily.": "已知已失陷并攻击他人的主机，来自 Proofpoint 免费的 ET OPEN 封锁列表。每日更新。",
+  "NetAPI honeypot attackers": "NetAPI 蜜罐攻击者",
+  "Addresses that attacked NetAPI's honeypot sensors in the last 48 hours: password guessing, exploit attempts, malware delivery. Updated hourly. Free with attribution (CC BY 4.0).": "过去 48 小时内攻击过 NetAPI 蜜罐传感器的地址：密码猜测、漏洞利用尝试、恶意软件投放。每小时更新。注明出处即可免费使用（CC BY 4.0）。",
   "How often the source is read for new indicators. Default 60; a list is read every 15 minutes at most.": "读取来源以获取新指标的频率。默认 60；列表最多每 15 分钟读取一次。",
   "How sure the list is, 1 to 100. A match is Critical at 90, High at 70, Medium at 40, Low below. Empty is Medium.": "列表的可信程度，1 到 100。匹配在 90 及以上为严重，70 及以上为高，40 及以上为中，更低为低。留空为中。",
   "List URL": "列表 URL",

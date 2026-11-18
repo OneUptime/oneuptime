@@ -3,7 +3,7 @@
 Un feed di threat intelligence porta in OneUptime indirizzi IP, domini, URL, indirizzi email e hash di file malevoli noti, e ti avvisa quando i tuoi [eventi di sicurezza](/docs/telemetry/security-events) ne menzionano uno. Un feed legge una sola origine: un elenco di indicatori a un indirizzo https, come gli elenchi gratuiti che OneUptime aggiunge con un clic, una raccolta TAXII 2.1 di indicatori STIX 2.1 dal tuo server MISP, OpenCTI o OpenTAXII o da un fornitore, oppure gli indicatori che Google SecOps ha trovato nei tuoi eventi.
 
 :::cards
-- [Aggiungere un elenco gratuito](#aggiungere-un-elenco-gratuito): Feodo Tracker, Emerging Threats e i nodi di uscita Tor, con un clic.
+- [Aggiungere un elenco gratuito](#aggiungere-un-elenco-gratuito): Feodo Tracker, Emerging Threats, NetAPI e i nodi di uscita Tor, con un clic.
 - [Abbonarsi a un feed](#abbonarsi-a-un-feed): L'indirizzo di un elenco, una raccolta TAXII o una connessione Google SecOps.
 - [Cosa viene acquisito](#cosa-viene-acquisito): I pattern di indicatori che OneUptime conserva, e per quanto tempo.
 - [Come si trovano le corrispondenze](#come-si-trovano-le-corrispondenze): Marcate all'arrivo degli eventi e confrontate ogni minuto.
@@ -37,9 +37,10 @@ La scheda **Elenchi gratuiti** in **Threat Intel** aggiunge un elenco di blocco 
 | --- | --- | --- | --- | --- |
 | Server C2 di botnet di Feodo Tracker | abuse.ch | Ogni ora | 90, Critical | Un caso e un avviso |
 | Host compromessi di Emerging Threats | Proofpoint Emerging Threats | Ogni giorno | 70, High | Un caso e un avviso |
+| Attaccanti degli honeypot di NetAPI | NetAPI | Ogni ora | 70, High | Un caso e un avviso |
 | Nodi di uscita Tor | The Tor Project | Ogni ora | 30, Low | Un caso |
 
-Il riquadro di un elenco rimanda ai suoi termini: Feodo Tracker è libero per qualsiasi uso (CC0), e l'elenco di Emerging Threats ha licenza BSD. Un feed aggiunto da un elenco si modifica e si elimina come qualsiasi altro.
+Il riquadro di un elenco rimanda ai suoi termini: Feodo Tracker è libero per qualsiasi uso (CC0), e l'elenco di Emerging Threats ha licenza BSD. L'elenco di NetAPI è libero con attribuzione (CC BY 4.0). Un feed aggiunto da un elenco si modifica e si elimina come qualsiasi altro.
 
 ## Abbonarsi a un feed
 

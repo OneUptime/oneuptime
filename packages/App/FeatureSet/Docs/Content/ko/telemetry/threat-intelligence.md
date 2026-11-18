@@ -3,7 +3,7 @@
 위협 인텔리전스 피드는 알려진 악성 IP 주소, 도메인, URL, 이메일 주소, 파일 해시를 OneUptime으로 가져와, 여러분의 [보안 이벤트](/docs/telemetry/security-events) 가 그중 하나를 언급하면 알려 줍니다. 피드는 소스 하나를 읽습니다. OneUptime이 클릭 한 번으로 추가하는 무료 목록처럼 https 주소에 있는 지표 목록, 직접 운영하는 MISP, OpenCTI, OpenTAXII 서버나 공급자의 STIX 2.1 지표를 담은 TAXII 2.1 컬렉션, 또는 Google SecOps가 여러분의 이벤트에서 찾은 지표입니다.
 
 :::cards
-- [무료 목록 추가하기](#무료-목록-추가하기): Feodo Tracker, Emerging Threats, Tor 출구 노드를 클릭 한 번으로.
+- [무료 목록 추가하기](#무료-목록-추가하기): Feodo Tracker, Emerging Threats, NetAPI, Tor 출구 노드를 클릭 한 번으로.
 - [피드 구독하기](#피드-구독하기): 목록의 주소, TAXII 컬렉션, 또는 Google SecOps 연결.
 - [수집되는 것](#수집되는-것): OneUptime이 보관하는 지표 패턴과 보관 기간.
 - [일치를 찾는 방법](#일치를-찾는-방법): 이벤트가 도착할 때 태그하고, 매분 대조합니다.
@@ -37,9 +37,10 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Feodo Tracker 봇넷 C2 서버 | abuse.ch | 매시간 | 90, Critical | 케이스와 경고 |
 | Emerging Threats 침해된 호스트 | Proofpoint Emerging Threats | 매일 | 70, High | 케이스와 경고 |
+| NetAPI 허니팟 공격자 | NetAPI | 매시간 | 70, High | 케이스와 경고 |
 | Tor 출구 노드 | The Tor Project | 매시간 | 30, Low | 케이스 |
 
-목록의 타일에는 이용 약관 링크가 있습니다. Feodo Tracker는 어떤 용도로든 무료이며(CC0), Emerging Threats 목록은 BSD 라이선스입니다. 목록에서 추가한 피드도 다른 피드처럼 편집하고 삭제합니다.
+목록의 타일에는 이용 약관 링크가 있습니다. Feodo Tracker는 어떤 용도로든 무료이며(CC0), Emerging Threats 목록은 BSD 라이선스입니다. NetAPI 목록은 출처를 표시하면 자유롭게 사용할 수 있습니다(CC BY 4.0). 목록에서 추가한 피드도 다른 피드처럼 편집하고 삭제합니다.
 
 ## 피드 구독하기
 

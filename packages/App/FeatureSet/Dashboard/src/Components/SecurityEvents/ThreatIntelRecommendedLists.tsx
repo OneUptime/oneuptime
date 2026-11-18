@@ -106,7 +106,8 @@ export function shouldShowRecommendedLists(data: {
 
 /*
  * The free lists a project starts with, one click each: abuse.ch's Feodo
- * Tracker, the Emerging Threats compromised hosts and the Tor exit nodes.
+ * Tracker, the Emerging Threats compromised hosts, the NetAPI honeypot
+ * attackers and the Tor exit nodes.
  * Each tile says who publishes the list, how often it is read and where its
  * terms are; a list the project reads already says Added. Adding one creates
  * a list feed the feeds table below shows and edits like any other. The
@@ -234,7 +235,7 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
       >
         {error ? <ErrorMessage message={error} /> : <></>}
 
-        <ul className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {RECOMMENDED_THREAT_INTEL_LISTS.map(
             (list: RecommendedThreatIntelList): ReactElement => {
               const text: ThreatIntelSourceText =

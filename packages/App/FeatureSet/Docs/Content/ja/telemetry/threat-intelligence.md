@@ -3,7 +3,7 @@
 脅威インテリジェンスのフィードは、既知の悪性 IP アドレス、ドメイン、URL、メールアドレス、ファイルハッシュを OneUptime に取り込み、 [セキュリティイベント](/docs/telemetry/security-events) がそのどれかに触れたときに知らせます。フィードはひとつのソースを読みます。OneUptime がワンクリックで追加する無料のリストのような https アドレス上のインジケーターのリスト、自前の MISP、OpenCTI、OpenTAXII サーバーやプロバイダーの STIX 2.1 インジケーターを持つ TAXII 2.1 コレクション、または Google SecOps がイベントの中で見つけたインジケーターです。
 
 :::cards
-- [無料のリストを追加する](#無料のリストを追加する): Feodo Tracker、Emerging Threats、Tor の出口ノードをワンクリックで。
+- [無料のリストを追加する](#無料のリストを追加する): Feodo Tracker、Emerging Threats、NetAPI、Tor の出口ノードをワンクリックで。
 - [フィードを購読する](#フィードを購読する): リストのアドレス、TAXII コレクション、または Google SecOps 接続。
 - [取り込まれるもの](#取り込まれるもの): OneUptime が保持するインジケーターのパターンと、その期間。
 - [一致の見つけ方](#一致の見つけ方): イベントの到着時にタグ付けし、毎分照合します。
@@ -37,9 +37,10 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Feodo Tracker のボットネット C2 サーバー | abuse.ch | 毎時 | 90、Critical | ケースとアラート |
 | Emerging Threats の侵害されたホスト | Proofpoint Emerging Threats | 毎日 | 70、High | ケースとアラート |
+| NetAPI のハニーポットへの攻撃元 | NetAPI | 毎時 | 70、High | ケースとアラート |
 | Tor の出口ノード | The Tor Project | 毎時 | 30、Low | ケース |
 
-リストのタイルには利用条件へのリンクがあります。Feodo Tracker はどんな用途にも無料で使え (CC0)、Emerging Threats のリストは BSD ライセンスです。リストから追加したフィードも、ほかのフィードと同じように編集・削除できます。
+リストのタイルには利用条件へのリンクがあります。Feodo Tracker はどんな用途にも無料で使え (CC0)、Emerging Threats のリストは BSD ライセンスです。NetAPI のリストは帰属表示をすれば自由に使えます (CC BY 4.0)。リストから追加したフィードも、ほかのフィードと同じように編集・削除できます。
 
 ## フィードを購読する
 
