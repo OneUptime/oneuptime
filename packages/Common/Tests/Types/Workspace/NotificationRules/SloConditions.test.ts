@@ -6,6 +6,9 @@ import SloErrorBudgetPolicyChange, {
   SLO_ERROR_BUDGET_POLICY_CHANGES,
   isSloErrorBudgetPolicyChange,
 } from "../../../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import SloStatusChange, {
+  SLO_STATUS_CHANGES,
+} from "../../../../Types/ServiceLevelObjective/SloStatusChange";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
   ConditionType,
@@ -50,6 +53,7 @@ function sloValues(data: {
   sloId?: string;
   labelIds?: Array<string>;
   changes?: Array<SloErrorBudgetPolicyChange>;
+  statusChange?: SloStatusChange | null;
 }): CheckOnValues {
   const values: Partial<CheckOnValues> = {};
 
@@ -66,6 +70,12 @@ function sloValues(data: {
   ];
   values[NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange] =
     data.changes ?? [SloErrorBudgetPolicyChange.EnteredMoreSevereTier];
+  // A status change's post says how the status changed (#6596).
+  values[NotificationRuleConditionCheckOn.SloStatusChange] = data.statusChange
+    ? [data.statusChange]
+    : data.statusChange === null
+      ? []
+      : [SloStatusChange.BecameAtRisk];
   // Read from its owner tables when a rule asks who owns it (#7583).
   values[NotificationRuleConditionCheckOn.SloOwners] = [SRE_TEAM_ID];
 
@@ -115,6 +125,8 @@ const SLO_CHECK_ONS: Array<NotificationRuleConditionCheckOn> = [
   NotificationRuleConditionCheckOn.SloLabels,
   NotificationRuleConditionCheckOn.SloName,
   NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+  // How its status changed (#6596), for a rule that posts status changes.
+  NotificationRuleConditionCheckOn.SloStatusChange,
   // Who owns the SLO (#7583): read from its owner tables when a rule asks.
   NotificationRuleConditionCheckOn.SloOwners,
 ];
@@ -143,6 +155,7 @@ describe("SLO notification rule conditions", () => {
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      "SLO Status Change",
       "SLO Owner",
     ]);
   });
@@ -720,6 +733,122 @@ describe("SLO notification rule conditions", () => {
         }),
       }),
     ).toContain("checkout");
+  });
+});
+
+/*
+ * The SLO Status Change condition (#6596): a fixed list, like the policy's
+ * changes - picked from a dropdown, matched any of or none of, and no value
+ * a part of another.
+ */
+describe("the SLO Status Change condition", () => {
+  it("is picked from a dropdown of a fixed list, never of the project's records", () => {
+    expect(
+      NotificationRuleConditionUtil.isDropdownValueField({
+        checkOn: NotificationRuleConditionCheckOn.SloStatusChange,
+        conditionType: ConditionType.ContainsAny,
+      }),
+    ).toBe(true);
+    expect(
+      NotificationRuleConditionUtil.isRecordValueField(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+      ),
+    ).toBe(false);
+    expect(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+      ),
+    ).toEqual([ConditionType.ContainsAny, ConditionType.NotContains]);
+  });
+
+  it("offers every status change, in the order the status moves", () => {
+    const options: Array<DropdownOption> =
+      NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
+        alertSeverities: [],
+        alertStates: [],
+        incidentSeverities: [],
+        monitorStatus: [],
+        incidentStates: [],
+        scheduledMaintenanceStates: [],
+        labels: [],
+        monitors: [],
+        checkOn: NotificationRuleConditionCheckOn.SloStatusChange,
+      });
+
+    expect(options).toEqual([
+      { label: "Became At Risk", value: "Became At Risk" },
+      { label: "Budget exhausted", value: "Budget exhausted" },
+      { label: "Healthy again", value: "Healthy again" },
+    ]);
+  });
+
+  it("matches the status change a post says: any of the rule's, or none of them", () => {
+    const anyOf: IncidentNotificationRule = ruleWith(
+      condition(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+        ConditionType.ContainsAny,
+        [SloStatusChange.BudgetExhausted, SloStatusChange.HealthyAgain],
+      ),
+    );
+
+    expect(
+      matches(
+        anyOf,
+        sloValues({ statusChange: SloStatusChange.BudgetExhausted }),
+      ),
+    ).toBe(true);
+    expect(
+      matches(anyOf, sloValues({ statusChange: SloStatusChange.BecameAtRisk })),
+    ).toBe(false);
+
+    const noneOf: IncidentNotificationRule = ruleWith(
+      condition(
+        NotificationRuleConditionCheckOn.SloStatusChange,
+        ConditionType.NotContains,
+        [SloStatusChange.HealthyAgain],
+      ),
+    );
+
+    expect(
+      matches(
+        noneOf,
+        sloValues({ statusChange: SloStatusChange.HealthyAgain }),
+      ),
+    ).toBe(false);
+    expect(
+      matches(
+        noneOf,
+        sloValues({ statusChange: SloStatusChange.BecameAtRisk }),
+      ),
+    ).toBe(true);
+  });
+
+  it("tells each change apart from every other: none is a part of another", () => {
+    for (const change of SLO_STATUS_CHANGES) {
+      for (const other of SLO_STATUS_CHANGES) {
+        if (change === other) {
+          continue;
+        }
+
+        expect({
+          change,
+          other,
+          contains: change.toLowerCase().includes(other.toLowerCase()),
+        }).toEqual({ change, other, contains: false });
+      }
+    }
+  });
+
+  it("no other kind of rule offers it", () => {
+    for (const eventType of Object.values(NotificationRuleEventType)) {
+      if (eventType === NotificationRuleEventType.ServiceLevelObjective) {
+        continue;
+      }
+
+      expect(
+        NotificationRuleConditionUtil.getCheckOnByEventType(eventType),
+      ).not.toContain(NotificationRuleConditionCheckOn.SloStatusChange);
+    }
   });
 });
 

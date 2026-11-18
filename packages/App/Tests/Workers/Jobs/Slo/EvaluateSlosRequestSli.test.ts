@@ -177,7 +177,11 @@ jest.mock("Common/Server/Utils/Slo/SloMetricUtil", () => {
 jest.mock("Common/Server/Utils/Slo/SloWorkspaceNotifications", () => {
   return {
     __esModule: true,
-    default: { postPolicyChange: jest.fn() },
+    default: {
+      postPolicyChange: jest.fn(),
+      // A request SLO's status reaches the channels as a monitor SLO's does (#6596).
+      postStatusChange: jest.fn(),
+    },
   };
 });
 

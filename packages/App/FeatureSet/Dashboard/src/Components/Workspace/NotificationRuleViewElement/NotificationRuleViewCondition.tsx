@@ -614,12 +614,14 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * What raised the case, and what moved in an SLO's error budget policy:
-     * words of a fixed list, in the reader's language.
+     * What raised the case, what moved in an SLO's error budget policy, and
+     * how its status changed: words of a fixed list, in the reader's
+     * language.
      */
     if (
       checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource ||
-      checkOn === NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange
+      checkOn === NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange ||
+      checkOn === NotificationRuleConditionCheckOn.SloStatusChange
     ) {
       valueElement = (
         <span className="font-medium text-gray-900">

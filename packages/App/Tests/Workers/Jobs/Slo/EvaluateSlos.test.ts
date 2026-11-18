@@ -243,7 +243,7 @@ jest.mock("Common/Server/Utils/Slo/SloMetricUtil", () => {
 jest.mock("Common/Server/Utils/Slo/SloWorkspaceNotifications", () => {
   return {
     __esModule: true,
-    default: { postPolicyChange: jest.fn() },
+    default: { postPolicyChange: jest.fn(), postStatusChange: jest.fn() },
   };
 });
 
@@ -523,8 +523,13 @@ const feedService: { createServiceLevelObjectiveFeedItem: jest.Mock } =
   ServiceLevelObjectiveFeedService as unknown as {
     createServiceLevelObjectiveFeedItem: jest.Mock;
   };
-const workspaceNotifications: { postPolicyChange: jest.Mock } =
-  SloWorkspaceNotifications as unknown as { postPolicyChange: jest.Mock };
+const workspaceNotifications: {
+  postPolicyChange: jest.Mock;
+  postStatusChange: jest.Mock;
+} = SloWorkspaceNotifications as unknown as {
+  postPolicyChange: jest.Mock;
+  postStatusChange: jest.Mock;
+};
 const alertService: { findOneBy: jest.Mock; create: jest.Mock } =
   AlertService as unknown as { findOneBy: jest.Mock; create: jest.Mock };
 const severityService: { findOneBy: jest.Mock } =
@@ -1109,6 +1114,7 @@ describe("Slo:EvaluateSlos worker", () => {
       undefined,
     );
     workspaceNotifications.postPolicyChange.mockResolvedValue(true);
+    workspaceNotifications.postStatusChange.mockResolvedValue(null);
     alertService.findOneBy.mockResolvedValue(null);
     alertService.create.mockResolvedValue(new Alert());
     severityService.findOneBy.mockResolvedValue(null);
@@ -6703,6 +6709,125 @@ describe("Slo:EvaluateSlos worker", () => {
         ).toBe(true);
       },
     );
+
+    /*
+     * The status, to the Slack, Microsoft Teams and Mattermost rules that
+     * pick status changes (#6596): asked after the state write on every
+     * measured evaluation - its own transition, or one an earlier
+     * evaluation held back (SloStatusPosts) - in the StatusChanged item's
+     * words, said against what the channels last heard. A guard posts
+     * nothing, and a send that fails costs the evaluation nothing.
+     */
+    describe("posted to Slack, Microsoft Teams and Mattermost", () => {
+      interface StatusPost {
+        projectId: ObjectID;
+        sloId: ObjectID;
+        previousStatus: SloStatus | undefined;
+        newStatus: SloStatus;
+        now: Date;
+        buildMarkdown: (from: SloStatus | null) => Promise<{
+          toString: () => string;
+        }>;
+      }
+
+      function statusPosts(): Array<StatusPost> {
+        return workspaceNotifications.postStatusChange.mock.calls.map(
+          (args: Array<unknown>): StatusPost => {
+            return args[0] as StatusPost;
+          },
+        );
+      }
+
+      test("a measured evaluation asks once, after the state write and its feed item, with the status it started from and the one it committed", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        const posts: Array<StatusPost> = statusPosts();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]!.projectId).toEqual(PROJECT_ID);
+        expect(posts[0]!.sloId).toEqual(SLO_ID);
+        expect(posts[0]!.previousStatus).toBe(SloStatus.Healthy);
+        expect(posts[0]!.newStatus).toBe(SloStatus.AtRisk);
+        expect(posts[0]!.now.getTime()).toBe(NOW.getTime());
+
+        const askedAt: number =
+          workspaceNotifications.postStatusChange.mock.invocationCallOrder[0]!;
+
+        expect(askedAt).toBeGreaterThan(
+          sloService.updateOneById.mock.invocationCallOrder[0]!,
+        );
+        expect(askedAt).toBeGreaterThan(
+          Math.max(
+            ...feedService.createServiceLevelObjectiveFeedItem.mock
+              .invocationCallOrder,
+          ),
+        );
+      });
+
+      test("its words are the StatusChanged item's, said against the status the channels last heard", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        const item: FeedItemArgs = onlyStatusChangedItem();
+        const post: StatusPost = statusPosts()[0]!;
+
+        // Against the status it started from, the message is the feed item, as one message.
+        expect((await post.buildMarkdown(SloStatus.Healthy)).toString()).toBe(
+          `${item.feedInfoInMarkdown}\n\n${item.moreInformationInMarkdown}`,
+        );
+
+        // Against what the channels last heard, when that is another status.
+        const heldBack: string = (
+          await post.buildMarkdown(SloStatus.BudgetExhausted)
+        ).toString();
+
+        expect(heldBack).toContain(
+          `🟡 ${SLO_MARKDOWN_LINK} is now **At Risk** (was Budget Exhausted).`,
+        );
+        expect(heldBack).toContain("**SLI**: 99.0741% against a 99% target");
+      });
+
+      test("an evaluation that holds its status still asks, so a change held back for the interval is said", async () => {
+        sloService.getDueSlos.mockResolvedValue([
+          makeSlo({ sloStatus: SloStatus.Healthy }),
+        ]);
+        stubHealthy();
+
+        await runWorkerTick();
+
+        expect(statusPosts()).toHaveLength(1);
+        expect(statusPosts()[0]!.previousStatus).toBe(SloStatus.Healthy);
+        expect(statusPosts()[0]!.newStatus).toBe(SloStatus.Healthy);
+      });
+
+      test("a guard - Waiting, Misconfigured, Paused - posts no status change", async () => {
+        sloService.getDueSlos.mockResolvedValue([makeSlo({ monitors: [] })]);
+
+        await runWorkerTick();
+
+        expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
+        expect(workspaceNotifications.postStatusChange).not.toHaveBeenCalled();
+      });
+
+      test("a send that fails costs the evaluation nothing: history, metrics and owners go on", async () => {
+        workspaceNotifications.postStatusChange.mockRejectedValue(
+          new Error("Slack is down"),
+        );
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        stubAtRisk();
+
+        await runWorkerTick();
+
+        expect(historyService.insertHistoryRows).toHaveBeenCalledTimes(1);
+        expect(sloMetricUtil.saveSloMetrics).toHaveBeenCalledTimes(1);
+        expect(persistedSloStatus()).toBe(SloStatus.AtRisk);
+      });
+    });
 
     describe("guard transitions", () => {
       test("a transition into Paused posts once, gray, with the reason - and a second tick posts nothing", async () => {

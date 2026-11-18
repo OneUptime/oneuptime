@@ -158,6 +158,7 @@ import {
   getSloFeedChatMarkdown,
   getSloPolicyTierChangedFeedParts,
   getSloStatusChangedFeedMarkdown,
+  getSloStatusChangedFeedParts,
   toSloFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import SloWorkspaceNotifications from "Common/Server/Utils/Slo/SloWorkspaceNotifications";
@@ -1558,23 +1559,26 @@ async function commitSloEvaluation(
    * evaluated as Healthy, so a first evaluation into Healthy stays silent;
    * the item itself names the stored status, which is what the reader saw.
    */
+  // The numbers behind the status, for its feed item and its channel post.
+  const statusMeasurement: SloFeedStatusMeasurement = {
+    sliPercentage: evaluation.sliPercentage,
+    targetPercentage: targetPercentage,
+    errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
+    errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
+    requestBudget: evaluation.requestBudget,
+    currentBurnRate: currentBurnRate,
+    currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
+    atRiskThresholdPercentage:
+      slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+  };
+
   if (newStatus !== previousStatus) {
     await postSloStatusChangedFeedItem({
       slo: slo,
       previousStatus: slo.sloStatus,
       newStatus: newStatus,
       now: now,
-      measurement: {
-        sliPercentage: evaluation.sliPercentage,
-        targetPercentage: targetPercentage,
-        errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
-        errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
-        requestBudget: evaluation.requestBudget,
-        currentBurnRate: currentBurnRate,
-        currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
-        atRiskThresholdPercentage:
-          slo.atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-      },
+      measurement: statusMeasurement,
     });
   }
 
@@ -1594,6 +1598,23 @@ async function commitSloEvaluation(
     budget: budget,
     requestBudget: evaluation.requestBudget,
     now: now,
+  });
+
+  /*
+   * And the status, to the Slack, Microsoft Teams and Mattermost rules
+   * that pick status changes (#6596): this evaluation's transition, or one
+   * an earlier evaluation held back so a flapping SLO cannot flood a
+   * channel - asked on every measured evaluation for that reason
+   * (SloStatusPosts). After the write, like the feed item: a failed write
+   * posts nothing. Owners' notifications below keep their own rate limit:
+   * a channel also hears "Healthy again", which owners are never sent.
+   */
+  await postStatusChangeToWorkspaces({
+    slo: slo,
+    previousStatus: slo.sloStatus,
+    newStatus: newStatus,
+    now: now,
+    measurement: statusMeasurement,
   });
 
   // History rows (unrounded values, minute-floored bucket). Non-fatal.
@@ -2206,6 +2227,66 @@ async function postPolicyChangeToWorkspaces(data: {
       {
         projectId: data.slo.projectId.toString(),
         sloId: data.slo.id.toString(),
+      } as LogAttributes,
+    );
+  }
+}
+
+/*
+ * The SLO's status, posted to the Slack, Microsoft Teams and Mattermost
+ * channels and chats of the project's Service Level Objective rules that
+ * pick status changes (SloWorkspaceNotifications.postStatusChange), in the
+ * StatusChanged feed item's own words, said against the status the channels
+ * last heard. The link is only built when there is something to post.
+ *
+ * Never throws: a workspace that is down or slow to refuse is logged, and
+ * the evaluation goes on to its history, metrics, owners and outputs.
+ */
+async function postStatusChangeToWorkspaces(data: {
+  slo: ServiceLevelObjective;
+  previousStatus: SloStatus | undefined;
+  newStatus: SloStatus;
+  now: Date;
+  measurement: SloFeedStatusMeasurement;
+}): Promise<void> {
+  const sloId: ObjectID | undefined = data.slo.id;
+  const projectId: ObjectID | undefined = data.slo.projectId;
+
+  if (!sloId || !projectId) {
+    return;
+  }
+
+  try {
+    await SloWorkspaceNotifications.postStatusChange({
+      projectId: projectId,
+      sloId: sloId,
+      previousStatus: data.previousStatus,
+      newStatus: data.newStatus,
+      now: data.now,
+      buildMarkdown: async (from: SloStatus | null): Promise<MarkdownText> => {
+        const sloMarkdownLink: MarkdownText =
+          await ServiceLevelObjectiveService.getSloMarkdownLink({
+            projectId: projectId,
+            sloId: sloId,
+            sloName: data.slo.name || "",
+          });
+
+        return getSloFeedChatMarkdown(
+          getSloStatusChangedFeedParts({
+            sloMarkdownLink: sloMarkdownLink,
+            previousStatus: from,
+            newStatus: data.newStatus,
+            measurement: data.measurement,
+          }),
+        );
+      },
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error posting the status change of SLO ${sloId.toString()} to Slack, Microsoft Teams or Mattermost: ${err}`,
+      {
+        projectId: projectId.toString(),
+        sloId: sloId.toString(),
       } as LogAttributes,
     );
   }
