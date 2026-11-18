@@ -8,7 +8,6 @@ import {
   BulkActionRunResult,
   BulkItemOutcome,
   bulkItemUnchanged,
-  runBulkAction,
 } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import {
   BulkActionButtonSchema,
@@ -32,9 +31,8 @@ import {
 } from "Common/Utils/Slo/SloBulkRecommendedBurnRateRules";
 import React, { MutableRefObject, ReactElement, useRef } from "react";
 import RecommendedBurnRateRulesApi from "../../Pages/Slo/Utils/RecommendedBurnRateRulesApi";
-import SloBulkRecommendedRulesDetails, {
-  getSloItemId,
-} from "./SloBulkRecommendedRulesDetails";
+import SloBulkRecommendedRulesDetails from "./SloBulkRecommendedRulesDetails";
+import { runSloBulkAdd } from "./SloBulkAddRun";
 import {
   SLO_ADD_RECOMMENDED_RULES_ACTION_TITLE,
   SLO_BULK_RECOMMENDED_RULES_ADDED_RULE,
@@ -45,7 +43,6 @@ import {
   SLO_BULK_RECOMMENDED_RULES_TITLE,
   SLO_RECOMMENDED_RULES_MENU_GROUP,
 } from "./SloBulkRecommendedRulesCopy";
-import SloRecommendedRulesBatches from "./SloRecommendedRulesBatches";
 
 /*
  * "ADD RECOMMENDED RULES" ON THE SLO LIST: THE RECOMMENDED BURN RATE RULES
@@ -140,104 +137,26 @@ export interface RunSloRecommendedRulesBulkAddOptions {
 }
 
 /*
- * The run behind the action: every selected SLO through the shared runner
- * (runBulkAction), the ones the confirmation said are missing a rule sent
- * to the bulk add route a batch at a time.
+ * The run behind the action (runSloBulkAdd): every selected SLO through the
+ * shared runner, the ones the confirmation said are missing a rule sent to
+ * the bulk add route a batch at a time.
  */
 export async function runSloRecommendedRulesBulkAdd(
   options: RunSloRecommendedRulesBulkAddOptions,
 ): Promise<BulkActionRunResult<ServiceLevelObjective>> {
-  const batchSize: number = Math.max(
-    1,
-    Math.floor(options.batchSize ?? SLO_BULK_RECOMMENDED_RULES_BATCH_SIZE) || 1,
-  );
-
-  // What the confirmation said of an SLO, unless it said it is missing a rule.
-  const settledByPreview: (
-    key: string,
-  ) => SloBulkRecommendedRulesResult | undefined = (
-    key: string,
-  ): SloBulkRecommendedRulesResult | undefined => {
-    const previewed: SloBulkRecommendedRulesResult | undefined =
-      options.preview?.get(key);
-
-    return previewed &&
-      previewed.status !== SloBulkRecommendedRulesStatus.Missing
-      ? previewed
-      : undefined;
-  };
-
-  const keysToSend: Array<string> = [];
-
-  for (const item of options.actionProps.items) {
-    const id: string = getSloItemId(item);
-
-    if (id && !settledByPreview(getSloBulkResultKey(id))) {
-      keysToSend.push(getSloBulkResultKey(id));
-    }
-  }
-
-  const batches: SloRecommendedRulesBatches<SloBulkRecommendedRulesResult> =
-    new SloRecommendedRulesBatches<SloBulkRecommendedRulesResult>({
-      ids: keysToSend,
-      batchSize: batchSize,
-      send: async (
-        keys: Array<string>,
-      ): Promise<Map<string, SloBulkRecommendedRulesResult>> => {
-        const results: Array<SloBulkRecommendedRulesResult> =
-          await options.addMissingToMany(
-            keys.map((key: string): ObjectID => {
-              return new ObjectID(key);
-            }),
-          );
-
-        options.onResults?.(results);
-
-        const byKey: Map<string, SloBulkRecommendedRulesResult> = new Map();
-
-        for (const result of results) {
-          byKey.set(
-            getSloBulkResultKey(result.serviceLevelObjectiveId),
-            result,
-          );
-        }
-
-        return byKey;
-      },
-    });
-
-  const onStop: () => void = (): void => {
-    batches.onStop();
-  };
-
-  options.actionProps.stopSignal?.addEventListener("abort", onStop);
-
-  try {
-    return await runBulkAction<ServiceLevelObjective>({
-      actionProps: options.actionProps,
-      // A batch's SLOs run together, each waiting for the batch's answer.
-      concurrency: batchSize,
-      step: async (item: ServiceLevelObjective): Promise<BulkItemOutcome> => {
-        const id: string = getSloItemId(item);
-
-        if (!id) {
-          throw new BadDataException(SLO_BULK_RECOMMENDED_RULES_NO_ANSWER);
-        }
-
-        const key: string = getSloBulkResultKey(id);
-        const settled: SloBulkRecommendedRulesResult | undefined =
-          settledByPreview(key);
-
-        if (settled) {
-          return getSloRecommendedRulesOutcome(settled);
-        }
-
-        return getSloRecommendedRulesOutcome(await batches.run(key));
-      },
-    });
-  } finally {
-    options.actionProps.stopSignal?.removeEventListener("abort", onStop);
-  }
+  return await runSloBulkAdd<SloBulkRecommendedRulesResult>({
+    actionProps: options.actionProps,
+    preview: options.preview,
+    // What the confirmation said of an SLO, unless it said it is missing a rule.
+    isSettledByPreview: (previewed: SloBulkRecommendedRulesResult): boolean => {
+      return previewed.status !== SloBulkRecommendedRulesStatus.Missing;
+    },
+    getOutcome: getSloRecommendedRulesOutcome,
+    addMissingToMany: options.addMissingToMany,
+    batchSize: options.batchSize ?? SLO_BULK_RECOMMENDED_RULES_BATCH_SIZE,
+    noAnswerMessage: SLO_BULK_RECOMMENDED_RULES_NO_ANSWER,
+    onResults: options.onResults,
+  });
 }
 
 type GateActionFunction = (

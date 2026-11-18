@@ -112,6 +112,8 @@ An SLO's **Burn Rate Rules** page decides what happens when its budget burns too
 
 To give older SLOs the rules a new one starts with, select them in this list and choose **Add recommended rules** in **Bulk Actions**. Before anything is added, it says which SLOs get which rules.
 
+To give SLOs the recommended error budget policy, select them and choose **Use the recommended policy** in **Bulk Actions**. An SLO with no policy gets it, an SLO with part of it gets the rest, and an SLO with a policy of its own is left as it is.
+
 ## Statuses
 
 | Status | What it means |
@@ -519,6 +521,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
     bulkActions,
     archiveBulkActions,
     recommendedRulesBulkActions,
+    recommendedPolicyBulkActions,
     rowActions,
     archiveRowActions,
     modals,
@@ -644,13 +647,15 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         documentationLink={new Route("/docs/slo/introduction")}
         showViewIdButton={true}
         /*
-         * Add recommended rules is offered here alone: an archived SLO's
-         * rules never fire, and the Archived page offers Unarchive alone.
+         * Add recommended rules and Use the recommended policy are offered
+         * here alone: an archived SLO's rules never fire and its policy
+         * never applies, and the Archived page offers Unarchive alone.
          */
         bulkActions={{
           buttons: [
             ...bulkActions,
             ...recommendedRulesBulkActions,
+            ...recommendedPolicyBulkActions,
             ...archiveBulkActions,
           ],
           deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
