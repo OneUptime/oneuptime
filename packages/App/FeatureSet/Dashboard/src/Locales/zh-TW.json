@@ -56928,5 +56928,10 @@
   "Resend Invitation": "重新傳送邀請",
   "Send their invitation email again?": "要重新傳送邀請郵件嗎？",
   "Send their invitation email to {{email}} again?": "要重新傳送邀請郵件給 {{email}} 嗎？",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。"
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "過去一小時內寄送到此地址的邀請過多。您可以在 {{time}} 之後重新傳送。",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went."
 }

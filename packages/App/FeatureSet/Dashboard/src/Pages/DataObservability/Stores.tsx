@@ -3,10 +3,14 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
+import StoreCollectionMessage from "../../Components/DataObservability/StoreCollectionMessage";
 import StoreStatusPill from "../../Components/DataObservability/StoreStatusPill";
 import StoreAlertStatus, {
   isStoreWithoutAlerts,
 } from "../../Components/DataObservability/StoreAlertStatus";
+import useCollectNow, {
+  CollectNow,
+} from "../../Components/DataObservability/UseCollectNow";
 import { getStoreAlertsRoute } from "../../Components/DataObservability/OverviewAttention";
 import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import PageMap from "../../Utils/PageMap";
@@ -31,6 +35,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -41,7 +46,8 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  * The databases whose tables are watched, with who collects each - OneUptime,
  * or a probe in the customer's network - how the last collection went and
  * why one failed. Connect a Database adds one; Collect Now reads one again
- * without waiting for its next turn; Recommended Alerts opens the monitors
+ * without waiting for its next turn, and the row says how that went when
+ * it ends (useCollectNow); Recommended Alerts opens the monitors
  * recommended for its tables. Each says whether any of its alerts is on: a
  * database with none tells nobody when its tables break, so its button is
  * Set Up Alerts instead - and a database just connected opens there.
@@ -62,8 +68,6 @@ const DataObservabilityStoresPage: FunctionComponent<
   const [suggestion, setSuggestion] = useState<
     DataObservabilitySourceSuggestion | undefined
   >(undefined);
-  const [collecting, setCollecting] = useState<Set<string>>(new Set());
-  const [actionError, setActionError] = useState<string>("");
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -91,34 +95,14 @@ const DataObservabilityStoresPage: FunctionComponent<
     };
   }, [readCount]);
 
-  const readAgain: () => void = (): void => {
+  // Kept the same between renders: Collect Now's wait reads the stores again with it.
+  const readAgain: () => void = useCallback((): void => {
     setReadCount((count: number): number => {
       return count + 1;
     });
-  };
+  }, []);
 
-  const collectNow: (
-    store: DataObservabilityStoreSummary,
-  ) => Promise<void> = async (
-    store: DataObservabilityStoreSummary,
-  ): Promise<void> => {
-    setActionError("");
-    setCollecting((previous: Set<string>): Set<string> => {
-      return new Set([...previous, store.dataStoreId]);
-    });
-
-    try {
-      await DataObservabilityApi.collectNow(new ObjectID(store.dataStoreId));
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setCollecting((previous: Set<string>): Set<string> => {
-      const next: Set<string> = new Set(previous);
-      next.delete(store.dataStoreId);
-      return next;
-    });
-  };
+  const collection: CollectNow = useCollectNow({ stores, refresh: readAgain });
 
   if (error) {
     return <ErrorMessage message={error} onRefreshClick={readAgain} />;
@@ -161,9 +145,12 @@ const DataObservabilityStoresPage: FunctionComponent<
         ]}
       >
         <div>
-          {actionError ? (
+          {collection.error ? (
             <p className="mb-3 text-sm text-red-600">
-              <ErrorInSentence message={actionError} showWhereToLook={true} />
+              <ErrorInSentence
+                message={collection.error}
+                showWhereToLook={true}
+              />
             </p>
           ) : (
             <></>
@@ -194,7 +181,12 @@ const DataObservabilityStoresPage: FunctionComponent<
                           >
                             <span>{store.name}</span>
                           </AppLink>
-                          <StoreStatusPill store={store} />
+                          <StoreStatusPill
+                            store={store}
+                            isCollecting={collection.isCollecting(
+                              store.dataStoreId,
+                            )}
+                          />
                         </div>
                         <div className="text-xs text-gray-500">
                           {store.kind}
@@ -245,19 +237,16 @@ const DataObservabilityStoresPage: FunctionComponent<
                           )}
                         </div>
                         <StoreAlertStatus store={store} />
-                        {store.message ? (
-                          <p
-                            className={`whitespace-pre-line text-xs ${
-                              store.status === "Failed"
-                                ? "text-red-600"
-                                : "text-amber-700"
-                            }`}
-                          >
-                            {store.message}
-                          </p>
-                        ) : (
-                          <></>
-                        )}
+                        <StoreCollectionMessage
+                          store={store}
+                          isCollecting={collection.isCollecting(
+                            store.dataStoreId,
+                          )}
+                          hasWaitedLong={collection.hasWaitedLong(
+                            store.dataStoreId,
+                          )}
+                          size="small"
+                        />
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
                         {/* A row's action is never filled: several databases can have no alert on at once. */}
@@ -282,10 +271,10 @@ const DataObservabilityStoresPage: FunctionComponent<
                           title="Collect Now"
                           buttonStyle={ButtonStyleType.NORMAL}
                           icon={IconProp.Refresh}
-                          isLoading={collecting.has(store.dataStoreId)}
+                          isLoading={collection.isCollecting(store.dataStoreId)}
                           disabled={!store.isTableHealthEnabled}
                           onClick={() => {
-                            void collectNow(store);
+                            void collection.collectNow(store);
                           }}
                         />
                       </div>

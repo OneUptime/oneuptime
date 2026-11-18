@@ -56928,5 +56928,10 @@
   "Resend Invitation": "Отправить приглашение повторно",
   "Send their invitation email again?": "Отправить письмо с приглашением ещё раз?",
   "Send their invitation email to {{email}} again?": "Отправить письмо с приглашением на {{email}} ещё раз?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "За последний час на этот адрес отправлено слишком много приглашений. Отправить его снова можно будет после {{time}}.",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went."
 }

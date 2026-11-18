@@ -56928,5 +56928,10 @@
   "Resend Invitation": "초대 다시 보내기",
   "Send their invitation email again?": "초대 이메일을 다시 보낼까요?",
   "Send their invitation email to {{email}} again?": "{{email}}(으)로 초대 이메일을 다시 보낼까요?",
-  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다."
+  "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "지난 1시간 동안 이 주소로 너무 많은 초대가 전송되었습니다. {{time}} 이후에 다시 보낼 수 있습니다.",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went."
 }

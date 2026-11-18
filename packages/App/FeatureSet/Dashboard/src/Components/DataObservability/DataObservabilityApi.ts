@@ -17,6 +17,7 @@ import {
   DataObservabilityCheckHealthRequest,
   DataObservabilityCheckHealthResponse,
   DataObservabilityCheckSuggestion,
+  DataObservabilityCollectNowResponse,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
   DataObservabilityDataProductBadgeResetResponse,
@@ -123,10 +124,22 @@ export default class DataObservabilityApi {
     );
   }
 
-  public static async collectNow(dataStoreId: ObjectID): Promise<void> {
-    await post(
+  /*
+   * Asks for a collection now; answers when the server asked for it, by its
+   * own clock (null from a server that does not say), which the store's
+   * attemptedAt passes once that collection has ended.
+   */
+  public static async collectNow(
+    dataStoreId: ObjectID,
+  ): Promise<string | null> {
+    const body: JSONObject = await post(
       DATA_OBSERVABILITY_API_ROUTES.collectNow(dataStoreId.toString()),
     );
+    const requestedAt: unknown = (
+      body as unknown as Partial<DataObservabilityCollectNowResponse>
+    ).requestedAt;
+
+    return typeof requestedAt === "string" && requestedAt ? requestedAt : null;
   }
 
   // Makes a check's monitor match its alert condition: made, changed or removed.
