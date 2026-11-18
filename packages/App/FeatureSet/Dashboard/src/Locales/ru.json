@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Каждый вид данных, найденный проверкой, место, где он находится, и записи, в которых он найден.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Ни в одной сохранённой записи того времени, когда эти данные видели в последний раз ({{time}}), их нет.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Ни в одной из прочитанных записей того времени, когда эти данные видели в последний раз ({{time}}), их нет (прочитано: {{count}}).",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Записи того времени, когда эти данные видели в последний раз, которые их содержат. Значения замаскированы: откройте запись, чтобы увидеть её полностью.",
+  "Sample Records": "Записи из выборки",
+  "Show fewer records": "Показать меньше записей",
+  "Show {{count}} more records": "Показать ещё записи: {{count}}",
+  "Show {{count}} more records_one": "Показать ещё {{count}} запись",
+  "The records it was found in {{time}} are no longer kept.": "Записи, в которых эти данные нашли {{time}}, больше не хранятся.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Записи, в которых последнее сканирование нашло эти данные. Значения замаскированы: откройте запись, чтобы увидеть её полностью."
 }

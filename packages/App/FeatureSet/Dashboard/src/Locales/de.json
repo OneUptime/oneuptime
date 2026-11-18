@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Jede Art von Daten, die die Prüfung gefunden hat, wo sie steckt, und die Einträge, in denen sie gefunden wurde.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Kein aufbewahrter Eintrag aus der Zeit, als die Daten zuletzt gesehen wurden ({{time}}), enthält sie.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Keiner der {{count}} gelesenen Einträge aus der Zeit, als die Daten zuletzt gesehen wurden ({{time}}), enthält sie.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Einträge aus der Zeit, als die Daten zuletzt gesehen wurden, die sie enthalten. Die Werte sind maskiert: Öffnen Sie einen Eintrag, um ihn vollständig zu sehen.",
+  "Sample Records": "Stichprobeneinträge",
+  "Show fewer records": "Weniger Einträge anzeigen",
+  "Show {{count}} more records": "{{count}} weitere Einträge anzeigen",
+  "Show {{count}} more records_one": "{{count}} weiteren Eintrag anzeigen",
+  "The records it was found in {{time}} are no longer kept.": "Die Einträge, in denen die Daten {{time}} gefunden wurden, werden nicht mehr aufbewahrt.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Die Einträge, in denen der letzte Scan die Daten gefunden hat. Die Werte sind maskiert: Öffnen Sie einen Eintrag, um ihn vollständig zu sehen."
 }

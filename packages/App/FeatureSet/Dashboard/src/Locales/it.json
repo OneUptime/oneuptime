@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Ogni tipo di dato trovato dal controllo, dove si trova e i record in cui è stato trovato.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Nessun record conservato di quando sono stati visti l'ultima volta, {{time}}, li contiene.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Nessuno dei {{count}} record letti di quando sono stati visti l'ultima volta, {{time}}, li contiene.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "I record di quando sono stati visti l'ultima volta che li contengono. I valori sono mascherati: apri un record per vederlo per intero.",
+  "Sample Records": "Record campione",
+  "Show fewer records": "Mostra meno record",
+  "Show {{count}} more records": "Mostra altri {{count}} record",
+  "Show {{count}} more records_one": "Mostra {{count}} altro record",
+  "The records it was found in {{time}} are no longer kept.": "I record in cui sono stati trovati {{time}} non sono più conservati.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "I record in cui l'ultima scansione li ha trovati. I valori sono mascherati: apri un record per vederlo per intero."
 }

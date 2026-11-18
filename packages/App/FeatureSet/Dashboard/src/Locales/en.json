@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Each kind of data the check found, where it sits, and the records it was found in.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "No record kept from when it was last seen, {{time}}, carries it.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "None of the {{count}} records read from when it was last seen, {{time}}, carries it.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.",
+  "Sample Records": "Sample Records",
+  "Show fewer records": "Show fewer records",
+  "Show {{count}} more records": "Show {{count}} more records",
+  "Show {{count}} more records_one": "Show {{count}} more record",
+  "The records it was found in {{time}} are no longer kept.": "The records it was found in {{time}} are no longer kept.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "The records the last scan found it in. Values are masked: open a record to see it in full."
 }

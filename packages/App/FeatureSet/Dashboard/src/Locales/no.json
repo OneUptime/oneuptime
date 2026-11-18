@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Hver type data kontrollen fant, hvor den ligger, og postene den ble funnet i.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Ingen lagret post fra da de sist ble sett, {{time}}, inneholder dem.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Ingen av de {{count}} leste postene fra da de sist ble sett, {{time}}, inneholder dem.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Poster fra da de sist ble sett som inneholder dem. Verdiene er maskert: åpne en post for å se den i sin helhet.",
+  "Sample Records": "Utvalgsposter",
+  "Show fewer records": "Vis færre poster",
+  "Show {{count}} more records": "Vis {{count}} poster til",
+  "Show {{count}} more records_one": "Vis {{count}} post til",
+  "The records it was found in {{time}} are no longer kept.": "Postene de ble funnet i {{time}}, lagres ikke lenger.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Postene den siste skanningen fant dem i. Verdiene er maskert: åpne en post for å se den i sin helhet."
 }

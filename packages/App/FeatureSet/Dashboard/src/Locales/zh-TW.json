@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "檢查發現的每類資料、它的位置，以及發現它的記錄。",
+  "No record kept from when it was last seen, {{time}}, carries it.": "上次出現時（{{time}}）保留的記錄中，沒有包含它的記錄。",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "上次出現時（{{time}}）讀取的 {{count}} 筆記錄都不包含它。",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "上次出現時包含它的記錄。值已遮罩：開啟記錄即可查看完整內容。",
+  "Sample Records": "樣本記錄",
+  "Show fewer records": "顯示較少記錄",
+  "Show {{count}} more records": "再顯示 {{count}} 筆記錄",
+  "Show {{count}} more records_one": "再顯示 {{count}} 筆記錄",
+  "The records it was found in {{time}} are no longer kept.": "{{time}} 發現它的記錄已不再保留。",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "上次掃描發現它的記錄。值已遮罩：開啟記錄即可查看完整內容。"
 }

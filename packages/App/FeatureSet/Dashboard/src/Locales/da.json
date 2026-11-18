@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Hver type data, kontrollen fandt, hvor den ligger, og de poster, den blev fundet i.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Ingen gemt post fra da de sidst blev set, {{time}}, indeholder dem.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Ingen af de {{count}} læste poster fra da de sidst blev set, {{time}}, indeholder dem.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Poster fra da de sidst blev set, der indeholder dem. Værdierne er maskeret: åbn en post for at se den helt.",
+  "Sample Records": "Stikprøveposter",
+  "Show fewer records": "Vis færre poster",
+  "Show {{count}} more records": "Vis {{count}} poster mere",
+  "Show {{count}} more records_one": "Vis {{count}} post mere",
+  "The records it was found in {{time}} are no longer kept.": "De poster, de blev fundet i {{time}}, gemmes ikke længere.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "De poster, den seneste scanning fandt dem i. Værdierne er maskeret: åbn en post for at se den helt."
 }

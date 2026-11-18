@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "هر نوع داده‌ای که بررسی پیدا کرد، جای آن و رکوردهایی که در آن‌ها پیدا شد.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "هیچ رکورد نگه‌داشته‌شده‌ای از زمانی که این داده آخرین بار دیده شد ({{time}})، آن را ندارد.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "هیچ‌یک از {{count}} رکورد خوانده‌شده از زمانی که این داده آخرین بار دیده شد ({{time}})، آن را ندارد.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "رکوردهایی از زمانی که این داده آخرین بار دیده شد که آن را دارند. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید.",
+  "Sample Records": "رکوردهای نمونه",
+  "Show fewer records": "نمایش رکوردهای کمتر",
+  "Show {{count}} more records": "نمایش {{count}} رکورد دیگر",
+  "Show {{count}} more records_one": "نمایش {{count}} رکورد دیگر",
+  "The records it was found in {{time}} are no longer kept.": "رکوردهایی که این داده {{time}} در آن‌ها پیدا شد، دیگر نگه داشته نمی‌شوند.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "رکوردهایی که آخرین اسکن این داده را در آن‌ها پیدا کرد. مقدارها پوشانده شده‌اند: برای دیدن کامل، یک رکورد را باز کنید."
 }

@@ -57084,5 +57084,15 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Each kind of data the check found, where it sits, and the records it was found in.": "Varje typ av data som kontrollen hittade, var den finns och posterna den hittades i.",
+  "No record kept from when it was last seen, {{time}}, carries it.": "Ingen sparad post från när de senast sågs, {{time}}, innehåller dem.",
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.": "Ingen av de {{count}} lästa posterna från när de senast sågs, {{time}}, innehåller dem.",
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.": "Poster från när de senast sågs som innehåller dem. Värdena är maskerade: öppna en post för att se den i sin helhet.",
+  "Sample Records": "Urvalsposter",
+  "Show fewer records": "Visa färre poster",
+  "Show {{count}} more records": "Visa {{count}} poster till",
+  "Show {{count}} more records_one": "Visa {{count}} post till",
+  "The records it was found in {{time}} are no longer kept.": "Posterna de hittades i {{time}} sparas inte längre.",
+  "The records the last scan found it in. Values are masked: open a record to see it in full.": "Posterna som den senaste skanningen hittade dem i. Värdena är maskerade: öppna en post för att se den i sin helhet."
 }

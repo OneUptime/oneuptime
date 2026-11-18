@@ -8,7 +8,11 @@ import {
 import {
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
+  DataSecurityOccurrenceExcerpt,
+  DataSecurityOccurrenceExcerptPart,
+  DataSecurityOccurrenceExcerptPartKind,
   DataSecurityOccurrenceRecordKind,
+  DataSecurityOccurrencesSource,
   DataSecurityOccurrencesUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import OneUptimeDate from "Common/Types/Date";
@@ -16,9 +20,17 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -30,19 +42,23 @@ import React, {
 /*
  * WHERE A TELEMETRY FINDING'S DATA WAS SEEN, RECORD BY RECORD.
  *
- * The newest records that carry the finding's data at its location, read
- * when the list opens (DataSecurityApi.getFindingOccurrences, issue #5594):
- * when each was written, what it is - a span and its name, a log line and
- * its severity, an exception and its type, an AI call, a session - the
- * value as it reads masked, and where it opens in the rest of OneUptime
- * (FindingOccurrenceLinks). Nobody sees a raw value here: the record shows
- * it, to whoever may read that telemetry.
+ * The records a finding was found in, read when the list opens
+ * (DataSecurityApi.getFindingOccurrences, issues #5594 and #9549): the very
+ * ones the last scan found it in, or those written when it was last seen.
+ * Each one says what it is - a log line and its severity, a span and its
+ * name, an exception and its type, an AI call, a session - when it was
+ * written and which service sent it, and shows the line itself: the value
+ * at the finding's place, cut around the data, which is marked, with every
+ * sensitive value in it masked. Each opens where the rest of OneUptime
+ * shows it (FindingOccurrenceLinks), whole, to whoever may read that
+ * telemetry. The first few show; the rest are a click away.
  */
 
 export const FINDING_OCCURRENCES_TEST_ID: string =
   "data-security-finding-occurrences";
 
-const READING: string = translationKey("Reading the newest records…");
+// How many records show before "Show more".
+export const RECORDS_SHOWN_FIRST: number = 3;
 
 export const RECORD_KIND_TITLES: Readonly<
   Record<DataSecurityOccurrenceRecordKind, string>
@@ -92,6 +108,7 @@ export const UNAVAILABLE_SENTENCES: Readonly<
   ),
 };
 
+// The newest records of the last days: a finding no scan has seen.
 export const NONE_IN_WINDOW: string = translationKey(
   "No record written in the last 7 days carries it.",
 );
@@ -110,91 +127,295 @@ export const RECORDS_FOOTNOTE: string = translationKey(
   "The newest records from the last 7 days that carry it, up to 10. Values are masked: open a record to see it in full.",
 );
 
+// The records the last scan kept: gone once telemetry retention ends.
+export const NO_LONGER_KEPT: string = translationKey(
+  "The records it was found in {{time}} are no longer kept.",
+);
+
+// The hour the last scan read, searched: none of its records carry it.
+export const NONE_FROM_LAST_SEEN: string = translationKey(
+  "No record kept from when it was last seen, {{time}}, carries it.",
+);
+
+// The same, when the read stopped at its limit: never fewer than a few.
+export const NONE_OF_READ_FROM_LAST_SEEN: string = translationKey(
+  "None of the {{count}} records read from when it was last seen, {{time}}, carries it.",
+);
+
+export const SAMPLED_RECORDS_FOOTNOTE: string = translationKey(
+  "The records the last scan found it in. Values are masked: open a record to see it in full.",
+);
+
+export const SAMPLE_WINDOW_FOOTNOTE: string = translationKey(
+  "Records from when it was last seen that carry it. Values are masked: open a record to see it in full.",
+);
+
+export const SHOW_MORE_RECORDS: PluralTemplate = {
+  one: "Show {{count}} more record",
+  other: "Show {{count}} more records",
+};
+
+export const SHOW_FEWER_RECORDS: string = translationKey("Show fewer records");
+
+const FOOTNOTES: Readonly<Record<DataSecurityOccurrencesSource, string>> = {
+  [DataSecurityOccurrencesSource.SampledRecords]: SAMPLED_RECORDS_FOOTNOTE,
+  [DataSecurityOccurrencesSource.SampleWindow]: SAMPLE_WINDOW_FOOTNOTE,
+  [DataSecurityOccurrencesSource.Recent]: RECORDS_FOOTNOTE,
+};
+
+/*
+ * A monospace block's own children keep its font: every frontend gives
+ * every element Inter (index.ejs), which a <mark> inside would otherwise
+ * take.
+ */
+const EXCERPT_CLASS_NAME: string =
+  "mt-1.5 whitespace-pre-wrap rounded-md bg-gray-50 px-3 py-2 font-mono text-xs leading-5 text-gray-800 [&_*]:[font-family:inherit] [overflow-wrap:anywhere]";
+
+// The finding's data, marked: what the line is shown for.
+export const MATCH_CLASS_NAME: string =
+  "rounded-sm bg-yellow-100 px-0.5 font-semibold text-gray-900";
+
+// Other sensitive data beside it: masked, set apart, not marked.
+export const MASKED_CLASS_NAME: string =
+  "rounded-sm bg-gray-200 px-0.5 text-gray-700";
+
 export interface ComponentProps {
   findingId: ObjectID;
+  // The service or RUM application the records were sent under.
+  ownerName?: string | undefined;
+  /*
+   * What shows under the sentence when there is no record to show: the
+   * finding's masked samples, so what was found is still in view.
+   */
+  fallback?: ReactElement | undefined;
 }
+
+// A log line's severity, in the tone of what it says.
+function getSeverityTone(severity: string): PillTone {
+  const word: string = severity.trim().toLowerCase();
+
+  if (word.startsWith("fatal") || word.startsWith("err") || word === "crit") {
+    return PillTone.Danger;
+  }
+
+  return word.startsWith("warn") ? PillTone.Warning : PillTone.Neutral;
+}
+
+export const OccurrenceExcerptBlock: FunctionComponent<{
+  excerpt: DataSecurityOccurrenceExcerpt;
+}> = (props: { excerpt: DataSecurityOccurrenceExcerpt }): ReactElement => {
+  const excerpt: DataSecurityOccurrenceExcerpt = props.excerpt;
+
+  return (
+    <pre
+      dir="ltr"
+      className={EXCERPT_CLASS_NAME}
+      data-testid="data-security-finding-occurrence-excerpt"
+    >
+      {excerpt.field ? (
+        <span className="text-gray-500">{`${excerpt.field}: `}</span>
+      ) : (
+        <></>
+      )}
+      {excerpt.isCutAtStart ? (
+        <span className="text-gray-400" aria-hidden="true">
+          …
+        </span>
+      ) : (
+        <></>
+      )}
+      {excerpt.parts.map(
+        (
+          part: DataSecurityOccurrenceExcerptPart,
+          index: number,
+        ): ReactElement => {
+          if (part.kind === DataSecurityOccurrenceExcerptPartKind.Match) {
+            return (
+              <mark
+                key={index}
+                className={MATCH_CLASS_NAME}
+                data-testid="data-security-finding-occurrence-value"
+              >
+                {part.text}
+              </mark>
+            );
+          }
+
+          if (part.kind === DataSecurityOccurrenceExcerptPartKind.Masked) {
+            return (
+              <span
+                key={index}
+                className={MASKED_CLASS_NAME}
+                data-testid="data-security-finding-occurrence-masked"
+              >
+                {part.text}
+              </span>
+            );
+          }
+
+          return <React.Fragment key={index}>{part.text}</React.Fragment>;
+        },
+      )}
+      {excerpt.isCutAtEnd ? (
+        <span className="text-gray-400" aria-hidden="true">
+          …
+        </span>
+      ) : (
+        <></>
+      )}
+    </pre>
+  );
+};
 
 const OccurrenceRow: FunctionComponent<{
   occurrence: DataSecurityFindingOccurrence;
-}> = (props: { occurrence: DataSecurityFindingOccurrence }): ReactElement => {
+  ownerName?: string | undefined;
+}> = (props: {
+  occurrence: DataSecurityFindingOccurrence;
+  ownerName?: string | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const occurrence: DataSecurityFindingOccurrence = props.occurrence;
   const links: Array<OccurrenceLink> = getOccurrenceLinks(occurrence);
   const time: Date = OneUptimeDate.fromString(occurrence.time);
   const name: string = occurrence.name || "";
+  const ownerName: string = (props.ownerName || "").trim();
 
   return (
-    <li
-      className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-      data-testid="data-security-finding-occurrence"
-    >
-      <div className="flex min-w-0 items-start gap-2">
-        <Icon
-          icon={RECORD_KIND_ICONS[occurrence.recordKind] || IconProp.Logs}
-          className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
-        />
-        <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-gray-900">
-            <span className="font-medium">
-              {translator.translateText(
-                RECORD_KIND_TITLES[occurrence.recordKind] ||
-                  occurrence.recordKind,
-              )}
+    <li className="px-3 py-2.5" data-testid="data-security-finding-occurrence">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-900">
+          <Icon
+            icon={RECORD_KIND_ICONS[occurrence.recordKind] || IconProp.Logs}
+            className="h-4 w-4 shrink-0 text-gray-400"
+          />
+          <span className="font-medium">
+            {translator.translateText(
+              RECORD_KIND_TITLES[occurrence.recordKind] ||
+                occurrence.recordKind,
+            )}
+          </span>
+          {name ? (
+            <span className="min-w-0 text-gray-700 [overflow-wrap:anywhere]">
+              <IsolatedText text={name} />
             </span>
-            {name ? (
-              <span className="min-w-0 text-gray-700 [overflow-wrap:anywhere]">
-                <IsolatedText text={name} />
-              </span>
-            ) : (
-              <></>
+          ) : (
+            <></>
+          )}
+          {occurrence.severity ? (
+            <Pill
+              text={occurrence.severity}
+              isUserContent={true}
+              tone={getSeverityTone(occurrence.severity)}
+              isDotHidden={true}
+              dataTestId="data-security-finding-occurrence-severity"
+            />
+          ) : (
+            <></>
+          )}
+          <span
+            className="whitespace-nowrap text-xs text-gray-500"
+            title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              time,
             )}
-            {occurrence.severity ? (
-              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                <IsolatedText text={occurrence.severity} />
-              </span>
-            ) : (
-              <></>
-            )}
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+            data-testid="data-security-finding-occurrence-time"
+          >
+            {OneUptimeDate.fromNow(time)}
+          </span>
+          {ownerName ? (
             <span
-              className="whitespace-nowrap"
-              title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                time,
-              )}
+              className="inline-flex min-w-0 items-center gap-1 text-xs text-gray-500"
+              data-testid="data-security-finding-occurrence-service"
             >
-              {OneUptimeDate.fromNow(time)}
+              <InlineSeparator markOnly={true} />
+              <Icon
+                icon={IconProp.SquareStack}
+                className="h-3.5 w-3.5 shrink-0 text-gray-400"
+              />
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                <IsolatedText text={ownerName} />
+              </span>
             </span>
-            <code
-              className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]"
-              data-testid="data-security-finding-occurrence-value"
-            >
-              {occurrence.maskedValue}
-            </code>
+          ) : (
+            <></>
+          )}
+        </div>
+        {links.length > 0 ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1">
+            {links.map((link: OccurrenceLink): ReactElement => {
+              return (
+                <AppLink
+                  key={link.kind}
+                  className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-indigo-600 hover:underline"
+                  to={link.route}
+                >
+                  <Icon icon={LINK_ICONS[link.kind]} className="h-4 w-4" />
+                  <span>
+                    {translator.translateText(LINK_TITLES[link.kind])}
+                  </span>
+                </AppLink>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          <></>
+        )}
       </div>
-      {links.length > 0 ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 pl-6 sm:pl-0">
-          {links.map((link: OccurrenceLink): ReactElement => {
-            return (
-              <AppLink
-                key={link.kind}
-                className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-indigo-600 hover:underline"
-                to={link.route}
-              >
-                <Icon icon={LINK_ICONS[link.kind]} className="h-4 w-4" />
-                <span>{translator.translateText(LINK_TITLES[link.kind])}</span>
-              </AppLink>
-            );
-          })}
-        </div>
+      {occurrence.excerpt ? (
+        <OccurrenceExcerptBlock excerpt={occurrence.excerpt} />
       ) : (
-        <></>
+        <code
+          className="mt-1.5 inline-block rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere]"
+          data-testid="data-security-finding-occurrence-value"
+        >
+          {occurrence.maskedValue}
+        </code>
       )}
     </li>
   );
 };
+
+/*
+ * Why there is no record to show, in a sentence: where the records were
+ * read says what "none" means. Exported so a test reads each one.
+ */
+export function getNoRecordSentence(
+  translator: Translator,
+  result: DataSecurityFindingOccurrences,
+): string {
+  if (result.unavailableReason) {
+    const sentence: string =
+      UNAVAILABLE_SENTENCES[result.unavailableReason] ||
+      UNAVAILABLE_SENTENCES[
+        DataSecurityOccurrencesUnavailableReason.UnreadableLocation
+      ];
+
+    return translator.translateText(sentence) || sentence;
+  }
+
+  const lastSeen: string = OneUptimeDate.fromNow(
+    OneUptimeDate.fromString(result.lastSeenAt || result.until),
+  );
+
+  if (result.source === DataSecurityOccurrencesSource.SampledRecords) {
+    return translator.translateTemplate(NO_LONGER_KEPT, { time: lastSeen });
+  }
+
+  if (result.source === DataSecurityOccurrencesSource.SampleWindow) {
+    return result.isComplete
+      ? translator.translateTemplate(NONE_FROM_LAST_SEEN, { time: lastSeen })
+      : translator.translateTemplate(NONE_OF_READ_FROM_LAST_SEEN, {
+          count: translator.formatNumber(result.recordsRead),
+          time: lastSeen,
+        });
+  }
+
+  return result.isComplete
+    ? translator.translateText(NONE_IN_WINDOW) || NONE_IN_WINDOW
+    : translator.translateTemplate(NONE_IN_NEWEST, {
+        count: translator.formatNumber(result.recordsRead),
+      });
+}
 
 const FindingOccurrences: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -206,12 +427,14 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
   );
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
+  const [isShowingAll, setIsShowingAll] = useState<boolean>(false);
 
   useEffect(() => {
     let isCurrent: boolean = true;
 
     setResult(null);
     setError("");
+    setIsShowingAll(false);
 
     DataSecurityApi.getFindingOccurrences(new ObjectID(findingId))
       .then((answer: DataSecurityFindingOccurrences) => {
@@ -247,51 +470,38 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
 
   if (!result) {
     return (
-      <p
-        className="text-sm text-gray-500"
-        data-testid={FINDING_OCCURRENCES_TEST_ID}
-        aria-busy="true"
-      >
-        {translator.translateText(READING)}
-      </p>
+      <div data-testid={FINDING_OCCURRENCES_TEST_ID} aria-busy="true">
+        <CardListSkeleton count={2} lines={1} />
+      </div>
     );
   }
 
-  if (result.unavailableReason) {
+  if (result.unavailableReason || result.occurrences.length === 0) {
     return (
-      <p
-        className="text-sm text-gray-500"
-        data-testid={FINDING_OCCURRENCES_TEST_ID}
-      >
-        {translator.translateText(
-          UNAVAILABLE_SENTENCES[result.unavailableReason] ||
-            UNAVAILABLE_SENTENCES[
-              DataSecurityOccurrencesUnavailableReason.UnreadableLocation
-            ],
-        )}
-      </p>
+      <div className="space-y-3" data-testid={FINDING_OCCURRENCES_TEST_ID}>
+        <p
+          className="text-sm text-gray-500"
+          data-testid="data-security-finding-occurrences-none"
+        >
+          {getNoRecordSentence(translator, result)}
+        </p>
+        {props.fallback || <></>}
+      </div>
     );
   }
 
-  if (result.occurrences.length === 0) {
-    return (
-      <p
-        className="text-sm text-gray-500"
-        data-testid={FINDING_OCCURRENCES_TEST_ID}
-      >
-        {result.isComplete
-          ? translator.translateText(NONE_IN_WINDOW)
-          : translator.translateTemplate(NONE_IN_NEWEST, {
-              count: translator.formatNumber(result.recordsRead),
-            })}
-      </p>
-    );
-  }
+  const hidden: number = Math.max(
+    0,
+    result.occurrences.length - RECORDS_SHOWN_FIRST,
+  );
+  const shown: Array<DataSecurityFindingOccurrence> = isShowingAll
+    ? result.occurrences
+    : result.occurrences.slice(0, RECORDS_SHOWN_FIRST);
 
   return (
     <div data-testid={FINDING_OCCURRENCES_TEST_ID}>
       <ul className="divide-y divide-gray-100 rounded-md border border-gray-200 bg-white">
-        {result.occurrences.map(
+        {shown.map(
           (
             occurrence: DataSecurityFindingOccurrence,
             index: number,
@@ -300,13 +510,33 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
               <OccurrenceRow
                 key={`${occurrence.time}-${occurrence.traceId || ""}-${occurrence.spanId || ""}-${index}`}
                 occurrence={occurrence}
+                ownerName={props.ownerName}
               />
             );
           },
         )}
       </ul>
+      {hidden > 0 ? (
+        <button
+          type="button"
+          className="mt-2 text-sm font-medium text-indigo-600 hover:underline"
+          aria-expanded={isShowingAll}
+          data-testid="data-security-finding-occurrences-more"
+          onClick={() => {
+            setIsShowingAll(!isShowingAll);
+          }}
+        >
+          {isShowingAll
+            ? translator.translateText(SHOW_FEWER_RECORDS)
+            : translator.translatePlural(SHOW_MORE_RECORDS, hidden)}
+        </button>
+      ) : (
+        <></>
+      )}
       <p className="mt-2 text-xs text-gray-500">
-        {translator.translateText(RECORDS_FOOTNOTE)}
+        {translator.translateText(
+          FOOTNOTES[result.source || DataSecurityOccurrencesSource.Recent],
+        )}
       </p>
     </div>
   );
