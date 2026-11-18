@@ -7,13 +7,7 @@ import RowActionsStore, {
 import ConfirmModal from "../Modal/ConfirmModal";
 import GenericObject from "../../../Types/GenericObject";
 import useTranslateValue from "../../Utils/Translation";
-import React, {
-  ReactElement,
-  useCallback,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /*
@@ -212,23 +206,32 @@ const RowActionDialogs: <T extends GenericObject>(
 ): ReactElement => {
   const { store } = props;
 
-  const subscribe: (listener: () => void) => () => void = useCallback(
-    (listener: () => void): (() => void) => {
-      return store.subscribe(listener);
-    },
-    [store],
-  );
-
-  const getSnapshot: () => ReadonlyArray<RowActionDialog<T>> =
-    useCallback((): ReadonlyArray<RowActionDialog<T>> => {
+  const [dialogs, setDialogs] = useState<ReadonlyArray<RowActionDialog<T>>>(
+    () => {
       return store.getDialogs();
-    }, [store]);
-
-  const dialogs: ReadonlyArray<RowActionDialog<T>> = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getSnapshot,
+    },
   );
+
+  /*
+   * Drawn again as a dialog opens or closes, in the same update as whatever
+   * opened or closed it - a press, an action's answer - as the row's own
+   * state always was. Read with useSyncExternalStore it was drawn at once,
+   * ahead of the rest of that update: a list's Delete that failed while it
+   * was checking (BaseModelTable) showed its error over its own dialog,
+   * still checking, until the list closed it a moment later.
+   */
+  useEffect(() => {
+    const read: () => void = (): void => {
+      setDialogs(store.getDialogs());
+    };
+
+    const stopListening: () => void = store.subscribe(read);
+
+    // Whatever changed before it listened.
+    read();
+
+    return stopListening;
+  }, [store]);
 
   return (
     <>
