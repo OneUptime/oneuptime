@@ -131,7 +131,7 @@ A push rule, for a phone or a browser, can also send its push again until someon
 
 ## When a severity has no rule
 
-A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once.
+A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once. When your project has a default ladder, your email follows it instead: see [The default ladder](#the-default-ladder).
 
 A page that still finds no rule is sent to your verified methods anyway, and you are emailed about it; see [When no rule matches](/docs/notifications/index#when-no-rule-matches).
 

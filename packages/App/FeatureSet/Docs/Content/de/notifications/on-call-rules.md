@@ -131,7 +131,7 @@ Eine Push-Regel, für ein Telefon oder einen Browser, kann ihren Push auch wiede
 
 ## Wenn ein Schweregrad keine Regel hat
 
-Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten, und ein Push, der genauso klingt und sich genauso wiederholt. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort.
+Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten, und ein Push, der genauso klingt und sich genauso wiederholt. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort. Hat Ihr Projekt einen Standardablauf, folgt Ihre E-Mail stattdessen ihm: siehe [Der Standardablauf](#der-standardablauf).
 
 Ein Alarm, der trotzdem keine Regel findet, geht dennoch an Ihre verifizierten Methoden, und Sie erhalten darüber eine E-Mail; siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 

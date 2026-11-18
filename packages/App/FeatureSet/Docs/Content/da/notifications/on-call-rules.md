@@ -131,7 +131,7 @@ En push-regel, til en telefon eller en browser, kan også sende sin push igen, i
 
 ## Når en alvorlighed ingen regel har
 
-En alvorlighed, dit projekt tilføjer senere, får regler inden for få minutter, lavet ud fra de valg, du allerede har truffet på den fane: de samme metoder, efter de samme ventetider, og en push, der lyder og gentages på samme måde. Havde du ingen regler på den fane, får den din bekræftede e-mail, med det samme.
+En alvorlighed, dit projekt tilføjer senere, får regler inden for få minutter, lavet ud fra de valg, du allerede har truffet på den fane: de samme metoder, efter de samme ventetider, og en push, der lyder og gentages på samme måde. Havde du ingen regler på den fane, får den din bekræftede e-mail, med det samme. Når dit projekt har en standardrækkefølge, følger din e-mail den i stedet: se [Standardrækkefølgen](#standardrækkefølgen).
 
 Et tilkald, der alligevel ikke finder en regel, sendes til dine bekræftede metoder alligevel, og du får en e-mail om det; se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 

@@ -131,7 +131,7 @@ Une règle push, pour un téléphone ou un navigateur, peut aussi renvoyer son p
 
 ## Quand une gravité n'a pas de règle
 
-Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite.
+Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite. Quand votre projet a une séquence par défaut, votre e-mail la suit à la place : voir [La séquence par défaut](#la-séquence-par-défaut).
 
 Une alerte qui ne trouve toujours pas de règle est quand même envoyée à vos méthodes vérifiées, et vous recevez un e-mail à ce sujet ; voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 

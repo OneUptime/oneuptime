@@ -1839,8 +1839,26 @@ describe("personal on-call rules", () => {
     expect(backfill).toContain("schedule: EVERY_FIVE_MINUTE");
     expect(backfill).toContain("mirroredRules");
     expect(backfill).toContain('methodColumn: "userEmailId",');
-    expect(backfill).toContain("notifyAfterMinutes: 0,");
     expect(backfill).toContain("if (intent.hasOptOut) {");
+    /*
+     * The verified email at once - or as the project's default ladder sends
+     * email, when it has one (#9444): at each of its email steps, or never.
+     */
+    expect(backfill).toContain(
+      "await PagingLadderService.getProjectDefault(severity.projectId)",
+    );
+    expect(
+      functionSource(
+        backfill,
+        "const getNewSeverityEmailWaits: GetNewSeverityEmailWaitsFunction",
+        "type HasJoinedSinceSeverityFunction",
+      ),
+    ).toContain(
+      "if (defaultSteps.length === 0) {\n    return [0];\n  }\n\n  return getPagingLadderDefaultStepsForChannel({\n    defaultSteps: defaultSteps,\n    channel: OnCallPageChannel.Email,\n  })",
+    );
+    expect(backfill).toContain(
+      "for (const notifyAfterMinutes of data.emailWaits) {",
+    );
     // A push rule sounds and repeats as the person's other cards do (#7452).
     expect(backfill).toContain("getPagingLadderStepsForNewCell");
     expect(backfill).toContain("rule.pushNotificationLevel =");
@@ -1848,7 +1866,7 @@ describe("personal on-call rules", () => {
       "rule.repeatEveryMinutes = getRepeatEveryMinutes(",
     );
     expect(rules).toContain(
-      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once.",
+      "A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once. When your project has a default ladder, your email follows it instead: see [The default ladder](#the-default-ladder).",
     );
   });
 

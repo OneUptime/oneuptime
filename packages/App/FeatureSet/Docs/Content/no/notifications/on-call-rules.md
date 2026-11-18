@@ -131,7 +131,7 @@ En push-regel, for en telefon eller en nettleser, kan også sende pushen på nyt
 
 ## Når en alvorlighetsgrad ikke har noen regel
 
-En alvorlighetsgrad prosjektet legger til senere, får regler innen noen minutter, laget ut fra valgene du allerede har gjort på den fanen: de samme metodene, etter de samme ventetidene, og en push som lyder og gjentas på samme måte. Hadde du ingen regler på den fanen, får den den verifiserte e-posten din, med en gang.
+En alvorlighetsgrad prosjektet legger til senere, får regler innen noen minutter, laget ut fra valgene du allerede har gjort på den fanen: de samme metodene, etter de samme ventetidene, og en push som lyder og gjentas på samme måte. Hadde du ingen regler på den fanen, får den den verifiserte e-posten din, med en gang. Når prosjektet ditt har en standardrekkefølge, følger e-posten din den i stedet: se [Standardrekkefølgen](#standardrekkefølgen).
 
 En tilkalling som likevel ikke finner noen regel, sendes til de verifiserte metodene dine uansett, og du får en e-post om det; se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 

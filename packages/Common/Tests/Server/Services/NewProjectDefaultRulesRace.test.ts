@@ -1,10 +1,12 @@
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import logger from "../../../Server/Utils/Logger";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Project from "../../../Models/DatabaseModels/Project";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
@@ -378,6 +380,18 @@ beforeEach(() => {
     severity.projectId = PROJECT_ID;
     return Promise.resolve([severity]);
   }) as never);
+
+  /*
+   * The project has no default ladder (#7449): the join path and the job
+   * both read it, and both then page a new member's email at once.
+   */
+  jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation(((): Promise<Project> => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      return Promise.resolve(project);
+    }) as never);
 
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;

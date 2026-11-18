@@ -131,7 +131,7 @@ En push-regel, för en telefon eller en webbläsare, kan också skicka sin push 
 
 ## När en allvarlighetsgrad saknar regel
 
-En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt.
+En allvarlighetsgrad som ditt projekt lägger till senare får regler inom några minuter, skapade utifrån de val du redan har gjort på den fliken: samma metoder, efter samma väntetider, och en push som låter och upprepas på samma sätt. Hade du inga regler på den fliken får den din verifierade e-post, direkt. När ditt projekt har en standardordning följer din e-post den i stället: se [Standardordningen](#standardordningen).
 
 Ett larm som ändå inte hittar någon regel skickas till dina verifierade metoder i alla fall, och du får ett e-postmeddelande om det; se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 
