@@ -1,3 +1,9 @@
+import {
+  RECORD_PAGE_SEARCH_KINDS,
+  RecordPageSearchKind,
+  RecordPageSearchPage,
+} from "../../FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchIndex";
+import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -13,7 +19,10 @@ import path from "path";
  *    files, keyed by the English text, and a key that is missing silently
  *    shows English;
  *  - "Runs & Logs" was a label in code, specs and fixtures, and a copy left
- *    anywhere names a menu entry that no longer exists;
+ *    anywhere names a menu entry that no longer exists. Search alone keeps
+ *    it, as the Runs page's former title (formerTitles, #9204): it finds a
+ *    renamed page by the name someone remembers and never draws it, as
+ *    RetiredNamesGuard lets a former title be;
  *  - "Runs" is now a noun with a translation. Topology used the same English
  *    word as a verb ("Runs <its services>"), which would have shown the noun
  *    ("Ausführungen") in German.
@@ -267,8 +276,56 @@ describe("nothing names the old menu entry", () => {
     ).toBe(true);
   });
 
+  const OLD_NAME: RegExp = /Runs\s*(?:&|&amp;|and)\s*Logs/;
+
+  // The line of Search's index that lists a record page's former titles.
+  const isSearchFormerTitles: (offence: Offence) => boolean = (
+    offence: Offence,
+  ): boolean => {
+    return (
+      offence.file ===
+        "packages/App/FeatureSet/Dashboard/src/Components/CommandPalette/RecordPageSearchIndex.ts" &&
+      /^formerTitles:\s*\[/.test(offence.text)
+    );
+  };
+
   test('no source, spec or fixture says "Runs & Logs"', () => {
-    expect(findOffences(files, /Runs\s*(?:&|&amp;|and)\s*Logs/)).toEqual([]);
+    expect(
+      findOffences(files, OLD_NAME).filter((offence: Offence): boolean => {
+        return !isSearchFormerTitles(offence);
+      }),
+    ).toEqual([]);
+  });
+
+  test('Search finds the Runs page by "Runs & Logs", its title before, and that is the one place it is kept', () => {
+    const runs: Array<RecordPageSearchPage> = RECORD_PAGE_SEARCH_KINDS.flatMap(
+      (kind: RecordPageSearchKind): Array<RecordPageSearchPage> => {
+        return kind.pages.filter((page: RecordPageSearchPage): boolean => {
+          return (page.formerTitles || []).some((title: string): boolean => {
+            return OLD_NAME.test(title);
+          });
+        });
+      },
+    );
+
+    expect(
+      runs.map((page: RecordPageSearchPage): Record<string, unknown> => {
+        return {
+          page: page.page,
+          title: page.title,
+          formerTitles: page.formerTitles,
+        };
+      }),
+    ).toEqual([
+      {
+        page: PageMap.WORKFLOW_LOGS,
+        title: "Runs",
+        formerTitles: ["Runs & Logs"],
+      },
+    ]);
+    expect(findOffences(files, OLD_NAME).filter(isSearchFormerTitles)).toEqual([
+      expect.objectContaining({ text: 'formerTitles: ["Runs & Logs"],' }),
+    ]);
   });
 
   test("the run pages no longer title themselves Workflow Logs", () => {
