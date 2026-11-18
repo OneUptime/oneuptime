@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Reperibilità",
+      "La persona giusta viene avvisata, ogni volta",
+      "1",
+      "Crea una policy di reperibilità",
+      "2",
+      "Aggiungi pianificazioni o persone a ogni regola di escalation",
+      "3",
+      "Collegala a monitor, incidenti e avvisi",
+      "Configurazione guidata",
+      "Crea policy di reperibilità",
+      "Guida passo passo",
+      "Documentazione"
+    ],
+    "outline": [
+      "heading: La persona giusta viene avvisata, ogni volta",
+      "button: Configurazione guidata",
+      "button: Crea policy di reperibilità",
+      "link: Guida passo passo",
+      "link: Documentazione"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Aggiungi regola di escalation",
+      "Aggiunge il livello 2 di questa policy: chi viene chiamato, e quando.",
+      "Notifica",
+      "Le pianificazioni di reperibilità avvisano chi è reperibile; Successivo nella rotazione avvisa la persona dopo. I team avvisano ogni membro.",
+      "Aggiungi destinatario",
+      "Questa regola dice chi viene chiamato. Come viene raggiunta ogni persona, con quale metodo e dopo quanto tempo, lo decide la sua pagina Come contattarmi.",
+      "Chiamato dopo (in minuti)",
+      "Quanto Level 1 attende una conferma prima che venga chiamato questo livello. Salvato come attesa di Level 1.",
+      "Altri campi· Nome, Descrizione",
+      "Annulla",
+      "Crea regola",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Aggiungi regola di escalation",
+      "button: Chiudi",
+      "button: Aggiungi destinatario",
+      "link: Come contattarmi",
+      "field number: 30",
+      "button: Altri campi· Nome, Descrizione",
+      "button: Annulla",
+      "button: Crea regola"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Chiavi di acquisizione",

@@ -114,6 +114,12 @@ export const RESOURCE_SHOWCASE_ROW_STATE_TEST_ID: string =
   "resource-showcase-row-state";
 export const RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID: string =
   "resource-showcase-stat-unit";
+/*
+ * The pitch: the eyebrow, the title, the steps and the buttons, beside the
+ * example - what the docs' shot of a product's empty list holds (#9419).
+ */
+export const RESOURCE_SHOWCASE_PITCH_TEST_ID: string =
+  "resource-showcase-pitch";
 
 // Over the feature grid.
 export const RESOURCE_SHOWCASE_FEATURES_TITLE: string =
@@ -528,7 +534,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               : SHOWCASE_HERO_CLASS_NAME
           }
         >
-          <div className="min-w-0">
+          <div className="min-w-0" data-testid={RESOURCE_SHOWCASE_PITCH_TEST_ID}>
             {/* A dialog's title already names the product. */}
             {!props.isBare && (
               <Pill

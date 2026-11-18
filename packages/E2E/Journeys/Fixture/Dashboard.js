@@ -10,11 +10,14 @@
  * that drops it changes nothing):
  *   - seed=<a,b>   what earlier journeys left behind, so each journey can
  *                  start where a newcomer would: `monitor` (the website
- *                  monitor of the first journey)
+ *                  monitor of the first journey), and `busy`, a project in
+ *                  use (Fixture/NewProject.js lists them all)
  *   - as=member    signed in as Grace Hopper, a member invited a minute
  *                  ago, not as the project's owner
  *   - as=admin     signed in as Ada, also the master admin of a self-hosted
  *                  server that has no Twilio: no SMS and no calls
+ *   - as=viewer    signed in as Grace, a Project Viewer: reads everything,
+ *                  may create nothing
  *   - billing=on   OneUptime Cloud (server.js sets BILLING_ENABLED)
  *   - theme=dark   the dark theme (server.js draws the light one otherwise)
  *   - email=off    a server that cannot send email yet (its admin has not
@@ -83,7 +86,7 @@ const project = seedNewProject({
 
 signIn(
   project,
-  params.as === "member" || params.as === "admin" ? params.as : "owner",
+  ["member", "admin", "viewer"].includes(params.as) ? params.as : "owner",
 );
 
 installModelApi(ModelAPI, project.store, dashboardHooks(project));

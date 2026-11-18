@@ -1,6 +1,76 @@
 {
   "pixelRatio": 2,
   "shots": {
+    "escalation-rule-paged-after": {
+      "da": {
+        "width": 512,
+        "height": 548
+      },
+      "de": {
+        "width": 512,
+        "height": 568
+      },
+      "en": {
+        "width": 512,
+        "height": 508
+      },
+      "es": {
+        "width": 512,
+        "height": 548
+      },
+      "fa": {
+        "width": 512,
+        "height": 508
+      },
+      "fr": {
+        "width": 512,
+        "height": 548
+      },
+      "hi": {
+        "width": 512,
+        "height": 508
+      },
+      "it": {
+        "width": 512,
+        "height": 548
+      },
+      "ja": {
+        "width": 512,
+        "height": 528
+      },
+      "ko": {
+        "width": 512,
+        "height": 508
+      },
+      "nl": {
+        "width": 512,
+        "height": 548
+      },
+      "no": {
+        "width": 512,
+        "height": 528
+      },
+      "pt": {
+        "width": 512,
+        "height": 548
+      },
+      "ru": {
+        "width": 512,
+        "height": 588
+      },
+      "sv": {
+        "width": 512,
+        "height": 528
+      },
+      "zh-CN": {
+        "width": 512,
+        "height": 508
+      },
+      "zh-TW": {
+        "width": 512,
+        "height": 508
+      }
+    },
     "home-goal-paging": {
       "da": {
         "width": 986,
@@ -489,6 +559,76 @@
       "zh-TW": {
         "width": 952,
         "height": 512
+      }
+    },
+    "on-call-policies-guided-setup": {
+      "da": {
+        "width": 453,
+        "height": 365
+      },
+      "de": {
+        "width": 453,
+        "height": 438
+      },
+      "en": {
+        "width": 453,
+        "height": 365
+      },
+      "es": {
+        "width": 453,
+        "height": 415
+      },
+      "fa": {
+        "width": 453,
+        "height": 329
+      },
+      "fr": {
+        "width": 453,
+        "height": 438
+      },
+      "hi": {
+        "width": 453,
+        "height": 329
+      },
+      "it": {
+        "width": 453,
+        "height": 438
+      },
+      "ja": {
+        "width": 453,
+        "height": 438
+      },
+      "ko": {
+        "width": 453,
+        "height": 365
+      },
+      "nl": {
+        "width": 453,
+        "height": 438
+      },
+      "no": {
+        "width": 453,
+        "height": 365
+      },
+      "pt": {
+        "width": 453,
+        "height": 438
+      },
+      "ru": {
+        "width": 453,
+        "height": 461
+      },
+      "sv": {
+        "width": 453,
+        "height": 329
+      },
+      "zh-CN": {
+        "width": 453,
+        "height": 329
+      },
+      "zh-TW": {
+        "width": 453,
+        "height": 329
       }
     },
     "paging-no-answer": {

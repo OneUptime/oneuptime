@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "On-Call",
+      "The right person hears about it, every time",
+      "1",
+      "Create an on-call policy",
+      "2",
+      "Add schedules or people to each escalation rule",
+      "3",
+      "Connect it to monitors, incidents and alerts",
+      "Guided setup",
+      "Create On-Call Policy",
+      "Step-by-step guide",
+      "Documentation"
+    ],
+    "outline": [
+      "heading: The right person hears about it, every time",
+      "button: Guided setup",
+      "button: Create On-Call Policy",
+      "link: Step-by-step guide",
+      "link: Documentation"
+    ],
+    "width": 417,
+    "height": 328
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Add Escalation Rule",
+      "Adds level 2 of this policy: who is paged, and when.",
+      "Notify",
+      "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+      "Add responder",
+      "This rule says who is paged. How each person is reached, by which method and after how long, is their own How to Reach Me.",
+      "Paged after (in minutes)",
+      "How long Level 1 waits for someone to acknowledge before this level is paged. Saved as the wait of Level 1.",
+      "More fields· Name, Description",
+      "Cancel",
+      "Create Rule",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Add Escalation Rule",
+      "button: Close",
+      "button: Add responder",
+      "link: How to Reach Me",
+      "field number: 30",
+      "button: More fields· Name, Description",
+      "button: Cancel",
+      "button: Create Rule"
+    ],
+    "width": 512,
+    "height": 508
+  },
   "ingestion-keys": {
     "text": [
       "Ingestion Keys",

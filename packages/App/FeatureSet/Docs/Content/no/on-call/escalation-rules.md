@@ -62,6 +62,8 @@ Klikk på **Legg til mottaker** under **Varsle**, søk, og velg så mange vaktpl
 
 **Eskaler etter (i minutter)** er hvor lenge det ventes på en bekreftelse før neste nivå varsles. Den starter på **30 minutter**; endre den til det som passer for nivået.
 
+![Dialogen «Legg til eskaleringsregel» på en policy med ett nivå, med «Tilkalles etter (i minutter)» uthevet](screen:escalation-rule-paged-after)
+
 En regel som legges til etter den første, spør i stedet **Tilkalles etter (i minutter)**: hvor lenge nivået før den venter på en bekreftelse før dette nivået tilkalles. Den starter på ventetiden til det nivået og lagres som den; det nye nivået venter selv 30 minutter til du legger til et etter det. Den som kan legge til regler, men ikke endre dem, får **Eskaler etter (i minutter)**, og dialogen sier når det nye nivået tilkalles.
 
 ### Gi regelen et navn, hvis du vil

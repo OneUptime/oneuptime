@@ -125,7 +125,11 @@ on a high-density screen. Measured on 2026-11-12, with 19 shots in 17 languages 
 | Added to the repository only | 0.3 MB of fingerprints (`packages/E2E` is not in the App image) |
 | The same crop as PNG at the same ratio | about 2.4 times as much (95 KB against 40 KB on the shot measured first) |
 
+Measured again on 2026-11-18, with 22 shots in 17 languages: 374 pictures, from 17 KB to 137 KB
+(66 KB on average), 24.1 MB of pictures, a 25 KB manifest and 0.5 MB of fingerprints.
+
 That is well under 0.1% of a clone, and a docs page loads only its own pictures, lazily.
-`DocsScreenFiles.test.ts` fails a picture over 200 KB (a crop too loose) and a total over 24 MB.
+`DocsScreenFiles.test.ts` fails a picture over 200 KB (a crop too loose) and a total over 28 MB
+(24 MB until the on-call shots of #9419 reached it).
 If the total ever becomes a problem, the pictures can move to release assets, with the manifest
 pointing at them.

@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Jour",
+      "Rätt person får veta, varje gång",
+      "1",
+      "Skapa en jourpolicy",
+      "2",
+      "Lägg till scheman eller personer i varje eskaleringsregel",
+      "3",
+      "Koppla den till monitorer, incidenter och larm",
+      "Guidad installation",
+      "Skapa jourpolicy",
+      "Steg-för-steg-guide",
+      "Dokumentation"
+    ],
+    "outline": [
+      "heading: Rätt person får veta, varje gång",
+      "button: Guidad installation",
+      "button: Skapa jourpolicy",
+      "link: Steg-för-steg-guide",
+      "link: Dokumentation"
+    ],
+    "width": 417,
+    "height": 292
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Lägg till eskaleringsregel",
+      "Lägger till nivå 2 i den här policyn: vem som larmas, och när.",
+      "Avisera",
+      "Jourscheman larmar den som har jour; Nästa i rotationen larmar personen efter dem. Team larmar varje medlem.",
+      "Lägg till mottagare",
+      "Den här regeln säger vem som larmas. Hur varje person nås, med vilken metod och efter hur lång tid, står i personens egen Så når man mig.",
+      "Larmas efter (i minuter)",
+      "Hur länge Level 1 väntar på en bekräftelse innan den här nivån larmas. Sparas som väntetiden för Level 1.",
+      "Fler fält· Namn, Beskrivning",
+      "Avbryt",
+      "Skapa regel",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Lägg till eskaleringsregel",
+      "button: Stäng",
+      "button: Lägg till mottagare",
+      "link: Så når man mig",
+      "field number: 30",
+      "button: Fler fält· Namn, Beskrivning",
+      "button: Avbryt",
+      "button: Skapa regel"
+    ],
+    "width": 512,
+    "height": 528
+  },
   "ingestion-keys": {
     "text": [
       "Intagningsnycklar",

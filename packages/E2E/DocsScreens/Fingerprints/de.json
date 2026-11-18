@@ -517,6 +517,59 @@
     "width": 768,
     "height": 702
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Bereitschaft",
+      "Die richtige Person erfährt davon, jedes Mal",
+      "1",
+      "Bereitschaftsrichtlinie erstellen",
+      "2",
+      "Jeder Eskalationsregel Zeitpläne oder Personen hinzufügen",
+      "3",
+      "Mit Monitoren, Vorfällen und Warnungen verbinden",
+      "Geführte Einrichtung",
+      "Bereitschaftsrichtlinie erstellen",
+      "Schritt-für-Schritt-Anleitung",
+      "Dokumentation"
+    ],
+    "outline": [
+      "heading: Die richtige Person erfährt davon, jedes Mal",
+      "button: Geführte Einrichtung",
+      "button: Bereitschaftsrichtlinie erstellen",
+      "link: Schritt-für-Schritt-Anleitung",
+      "link: Dokumentation"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Eskalationsregel hinzufügen",
+      "Fügt Stufe 2 dieser Richtlinie hinzu: wer alarmiert wird, und wann.",
+      "Benachrichtigen",
+      "Bereitschaftspläne benachrichtigen, wer gerade Bereitschaft hat; Nächste in der Rotation benachrichtigt die Person danach. Teams benachrichtigen jedes Mitglied.",
+      "Empfänger hinzufügen",
+      "Diese Regel legt fest, wer alarmiert wird. Wie jede Person erreicht wird, mit welcher Methode und nach welcher Zeit, legt sie selbst fest: Wie ich erreichbar bin.",
+      "Alarmiert nach (in Minuten)",
+      "Wie lange Level 1 auf eine Bestätigung wartet, bevor diese Stufe alarmiert wird. Wird als Wartezeit von Level 1 gespeichert.",
+      "Weitere Felder· Name, Beschreibung",
+      "Abbrechen",
+      "Regel erstellen",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Eskalationsregel hinzufügen",
+      "button: Schließen",
+      "button: Empfänger hinzufügen",
+      "link: Wie ich erreichbar bin",
+      "field number: 30",
+      "button: Weitere Felder· Name, Beschreibung",
+      "button: Abbrechen",
+      "button: Regel erstellen"
+    ],
+    "width": 512,
+    "height": 568
+  },
   "ingestion-keys": {
     "text": [
       "Ingestion-Schlüssel",

@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Vagt",
+      "Den rigtige person får besked, hver gang",
+      "1",
+      "Opret en vagtpolitik",
+      "2",
+      "Tilføj vagtplaner eller personer til hver eskaleringsregel",
+      "3",
+      "Forbind den med monitorer, hændelser og advarsler",
+      "Guidet opsætning",
+      "Opret vagtpolitik",
+      "Trin-for-trin-vejledning",
+      "Dokumentation"
+    ],
+    "outline": [
+      "heading: Den rigtige person får besked, hver gang",
+      "button: Guidet opsætning",
+      "button: Opret vagtpolitik",
+      "link: Trin-for-trin-vejledning",
+      "link: Dokumentation"
+    ],
+    "width": 417,
+    "height": 328
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Tilføj eskaleringsregel",
+      "Tilføjer niveau 2 til denne politik: hvem der tilkaldes, og hvornår.",
+      "Underret",
+      "Vagtplaner tilkalder den, der har vagt; Næste i rotationen tilkalder personen efter dem. Teams tilkalder alle medlemmer.",
+      "Tilføj modtager",
+      "Denne regel siger, hvem der kaldes. Hvordan hver person nås, med hvilken metode og efter hvor lang tid, står i deres egen Sådan når man mig.",
+      "Tilkaldes efter (i minutter)",
+      "Hvor længe Level 1 venter på en bekræftelse, før dette niveau tilkaldes. Gemmes som ventetiden for Level 1.",
+      "Flere felter· Navn, Beskrivelse",
+      "Annuller",
+      "Opret regel",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Tilføj eskaleringsregel",
+      "button: Luk",
+      "button: Tilføj modtager",
+      "link: Sådan når man mig",
+      "field number: 30",
+      "button: Flere felter· Navn, Beskrivelse",
+      "button: Annuller",
+      "button: Opret regel"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Indtagelsesnøgler",

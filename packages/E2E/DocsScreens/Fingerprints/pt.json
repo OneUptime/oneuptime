@@ -517,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Plantão",
+      "A pessoa certa fica sabendo, sempre",
+      "1",
+      "Criar uma política de plantão",
+      "2",
+      "Adicionar escalas ou pessoas a cada regra de escalonamento",
+      "3",
+      "Conectá-la a monitores, incidentes e alertas",
+      "Configuração guiada",
+      "Criar política de plantão",
+      "Guia passo a passo",
+      "Documentação"
+    ],
+    "outline": [
+      "heading: A pessoa certa fica sabendo, sempre",
+      "button: Configuração guiada",
+      "button: Criar política de plantão",
+      "link: Guia passo a passo",
+      "link: Documentação"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Adicionar regra de escalonamento",
+      "Adiciona o nível 2 desta política: quem é acionado, e quando.",
+      "Notificar",
+      "Agendamentos de plantão acionam quem estiver de plantão; Próximo da rotação aciona a pessoa seguinte. Equipes acionam todos os membros.",
+      "Adicionar destinatário",
+      "Esta regra diz quem é chamado. Como cada pessoa é contatada, por qual método e depois de quanto tempo, é definido na página Como me contatar dela.",
+      "Acionado após (em minutos)",
+      "Quanto tempo Level 1 espera uma confirmação antes de este nível ser acionado. Salvo como a espera de Level 1.",
+      "Mais campos· Nome, Descrição",
+      "Cancelar",
+      "Criar regra",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Adicionar regra de escalonamento",
+      "button: Fechar",
+      "button: Adicionar destinatário",
+      "link: Como me contatar",
+      "field number: 30",
+      "button: Mais campos· Nome, Descrição",
+      "button: Cancelar",
+      "button: Criar regra"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Chaves de ingestão",
