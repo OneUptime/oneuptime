@@ -11,10 +11,13 @@ import PushNotificationService from "Common/Server/Services/PushNotificationServ
 import UserPushService from "Common/Server/Services/UserPushService";
 import UserService from "Common/Server/Services/UserService";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
+import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
+import { InstallationHealthProbeBehind } from "Common/Types/InstallationHealth/InstallationHealth";
+import { ProbeBehindWork } from "Common/Types/Probe/ProbeBehind";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -50,7 +53,9 @@ import {
  *   - email that stops working is told by push and SMS, never by email, and
  *     once more when it works again - not again while it stays as it is,
  *     and at most once an hour;
- *   - every global probe going quiet is told by email too;
+ *   - every global probe going quiet is told by email too, and so is one
+ *     falling behind, its monitors checked or its network devices polled
+ *     later than their interval, and all keeping up again (#9500);
  *   - with no channel that can carry it, nothing is sent and nothing is
  *     thrown; a channel that refuses does not keep the others from going;
  *   - OneUptime Cloud sends nothing until its operator chooses;
@@ -117,6 +122,11 @@ jest.mock("Common/Server/Utils/ServerSending/ServerSendingStatus", () => {
   return { __esModule: true, default: { getAnswer: jest.fn() } };
 });
 
+// Which global probes are behind, as OneUptime Health reads them.
+jest.mock("Common/Server/Utils/Probe/GlobalProbesBehind", () => {
+  return { __esModule: true, default: { read: jest.fn() } };
+});
+
 jest.mock("Common/Server/Services/UserService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
@@ -146,6 +156,7 @@ const updateOneById: jest.Mock =
   GlobalConfigService.updateOneById as unknown as jest.Mock;
 const getAnswer: jest.Mock =
   ServerSendingStatus.getAnswer as unknown as jest.Mock;
+const readBehind: jest.Mock = GlobalProbesBehind.read as unknown as jest.Mock;
 
 const NOW: Date = new Date("2026-11-18T10:00:00.000Z");
 
@@ -239,6 +250,7 @@ beforeEach(() => {
   sent = [];
   refusing = new Set<string>();
   flags.billingEnabled = false;
+  readBehind.mockResolvedValue([] as never);
 
   stored = {
     serverAlertPhoneNumber: new Phone("+15550100"),
@@ -425,6 +437,146 @@ describe("every global probe going quiet", () => {
     ).toEqual(["push", "sms", "email"]);
     expect(sent[2]).toMatchObject({ to: "ops@example.test" });
     expect(sent[2]!.title).toContain("No global probe");
+  });
+});
+
+/*
+ * A global probe falling behind (#9500): its monitors checked, or its
+ * network devices polled, later than their interval, as OneUptime Health
+ * finds it. The same path and the same rules as the rest.
+ */
+describe("a global probe falling behind", () => {
+  const BEHIND: Array<InstallationHealthProbeBehind> = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Probe-1",
+      since: "2026-11-18T09:50:00.000Z",
+      work: ProbeBehindWork.DevicePolls,
+    },
+  ];
+
+  async function behindAt(
+    now: Date,
+    behind: Array<InstallationHealthProbeBehind>,
+    probes: { total: number; reporting: number } = { total: 2, reporting: 2 },
+  ): Promise<void> {
+    readBehind.mockResolvedValue(behind as never);
+    await runAt(now, standing({}, probes));
+  }
+
+  test("is told by push, SMS and the Admin Notification Email, naming the probe and what it is behind on", async () => {
+    await behindAt(NOW, []);
+    expect(sent).toEqual([]);
+
+    await behindAt(later(5), BEHIND);
+
+    expect(
+      sent.map((one: Sent): string => {
+        return one.channel;
+      }),
+    ).toEqual(["push", "sms", "email"]);
+    expect(sent[1]).toMatchObject({ to: "+15550100" });
+    expect(sent[2]).toMatchObject({ to: "ops@example.test" });
+    expect(sent[0]!.title).toBe(
+      "Global probe Probe-1 of oneuptime.acme.io is behind",
+    );
+    expect(sent[1]!.text).toContain(
+      "its network devices are polled less often than set",
+    );
+    expect(
+      (stored.serverAlertState as JSONObject)[
+        ServerAlertSubject.GlobalProbesBehind
+      ],
+    ).toMatchObject({ told: ServerAlertCondition.Failing });
+  });
+
+  test("still behind five minutes on says nothing more and writes nothing; keeping up again is told once the hour is over", async () => {
+    await behindAt(NOW, []);
+    await behindAt(later(5), BEHIND);
+    sent = [];
+    updateOneById.mockClear();
+
+    await behindAt(later(10), BEHIND);
+    expect(sent).toEqual([]);
+    expect(updateOneById).not.toHaveBeenCalled();
+
+    // Caught up within the hour: it waits.
+    await behindAt(later(20), []);
+    expect(sent).toEqual([]);
+
+    await behindAt(later(5 + SERVER_ALERT_MIN_INTERVAL_MS / 60000), []);
+
+    expect(
+      sent.map((one: Sent): string => {
+        return one.channel;
+      }),
+    ).toEqual(["push", "sms", "email"]);
+    expect(sent[0]!.text).toBe(
+      "Global probes of oneuptime.acme.io keep up again: none is behind.",
+    );
+  });
+
+  test("the first look after an upgrade only notes it", async () => {
+    await behindAt(NOW, BEHIND);
+
+    expect(sent).toEqual([]);
+    expect(
+      (stored.serverAlertState as JSONObject)[
+        ServerAlertSubject.GlobalProbesBehind
+      ],
+    ).toMatchObject({ told: ServerAlertCondition.Failing });
+  });
+
+  test("while no global probe reports, only that is said", async () => {
+    await behindAt(NOW, []);
+
+    await behindAt(later(5), [], { total: 2, reporting: 0 });
+
+    // One message, by push, SMS and email: none of it about probes behind.
+    expect(
+      sent.map((one: Sent): string => {
+        return one.channel;
+      }),
+    ).toEqual(["push", "sms", "email"]);
+    for (const one of sent) {
+      expect(one.text).toContain("No global probe of oneuptime.acme.io");
+      expect(one.text).not.toContain("behind");
+      expect(one.text).not.toContain("keep up");
+    }
+  });
+
+  test("a read of the probes behind that fails tells nothing of them, changes nothing, and stops nothing else", async () => {
+    await behindAt(NOW, []);
+    readBehind.mockRejectedValue(new Error("statement timeout") as never);
+
+    await expect(
+      runAt(
+        later(5),
+        standing({ [ServerSendingChannel.Email]: ServerSendingState.Failing }),
+      ),
+    ).resolves.toBeUndefined();
+
+    // Email stopping is still told, by push and SMS.
+    expect(
+      sent.map((one: Sent): string => {
+        return one.channel;
+      }),
+    ).toEqual(["push", "sms"]);
+    expect(
+      (stored.serverAlertState as JSONObject)[
+        ServerAlertSubject.GlobalProbesBehind
+      ],
+    ).toMatchObject({ told: ServerAlertCondition.Working });
+  });
+
+  test("OneUptime Cloud says nothing of it until its operator chooses", async () => {
+    flags.billingEnabled = true;
+    stored.serverAlertPhoneNumber = undefined;
+
+    await behindAt(NOW, []);
+    await behindAt(later(5), BEHIND);
+
+    expect(sent).toEqual([]);
   });
 });
 
