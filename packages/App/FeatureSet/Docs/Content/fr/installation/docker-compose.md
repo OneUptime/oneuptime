@@ -495,7 +495,7 @@ Au bout de ces 30 minutes, les données de PostgreSQL occupaient 163 Mio et cell
 
 Ce profil tourne donc sur un serveur avec 4 cœurs de processeur et 6 Go de mémoire, avec de la marge pour le système, Docker et une mise à jour. nginx dans `ingress` démarre un worker par cœur : sur un serveur avec plus de cœurs, il utilise donc davantage, environ 510 Mio sur 32 cœurs.
 
-Une sonde vérifie au plus 50 moniteurs par minute avec ses réglages par défaut : 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 moniteurs chacun (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Pour que les 100 moniteurs soient vérifiés chaque minute, la mesure a défini `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` dans `config.env`. Augmentez-le, ou le nombre de workers, de la même façon pour plus de moniteurs.
+Avec ses réglages par défaut, une sonde vérifie jusqu'à 50 moniteurs à la fois : 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) de 10 moniteurs chacun (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Elle en demande d'autres dès qu'elle a de la place, et n'est ainsi pas limitée à 50 moniteurs par minute : mesurée avec 252 moniteurs de site web, d'API et de port qui vérifient chaque minute, elle a vérifié chacun d'eux chaque minute. La sonde de la version 15.0.0 ne demandait qu'une fois par minute, et vérifiait donc au plus 50 moniteurs par minute : pour que les 100 moniteurs soient vérifiés chaque minute, la mesure ci-dessus a défini `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` dans `config.env`. Une sonde qui prend du retard le signale dans Santé OneUptime, dans le tableau de bord admin : augmentez l'un ou l'autre réglage dans `config.env` pour qu'elle en vérifie plus à la fois.
 
 ## Mettre à jour OneUptime
 

@@ -384,6 +384,16 @@ Le richieste che vanno a buon fine ma durano più di `PROBE_API_SLOW_REQUEST_THR
 
 Sul lato server di OneUptime, anche una richiesta della sonda a cui si risponde lentamente, o che la sonda ha abbandonato prima che fosse inviata una risposta, viene registrata, con l'id della sonda. Quei due log insieme dicono da quale lato della connessione sta il problema.
 
+### Una sonda è in ritardo
+
+Una sonda è **In ritardo** quando i suoi monitor attendono più di un minuto oltre l'orario di controllo, quindi vengono controllati meno spesso di quanto impostato. Il suo **Stato** nella tabella **Sonde personalizzate** mostra allora **In ritardo**, e la sua pagina indica da quando in **Controlli dei monitor**. Per le sonde che un OneUptime self-hosted esegue da sé, lo segnala Integrità di OneUptime nel Pannello amministratore.
+
+Una sonda controlla fino a `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitor alla volta, 10 con le impostazioni predefinite, e ne chiede altri appena ha spazio. Resta indietro quando sono previsti più monitor di quanti ne possa controllare, per esempio quando molti dei loro controlli durano fino al timeout. Per farla rimettere in pari:
+
+- Aggiorna la sonda. Una sonda più vecchia chiede i suoi monitor solo una volta al minuto, quindi controlla al massimo `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitor al minuto.
+- Lasciale controllare più monitor alla volta: aumenta `PROBE_MONITORING_WORKERS`, poi riavvia la sonda. Per le sonde che esegue un OneUptime self-hosted, è `GLOBAL_PROBE_1_MONITORING_WORKERS` in `config.env` con Docker Compose, o il `monitoringWorkers` della sonda nei valori del chart Helm.
+- Dalle più CPU e memoria, oppure esegui un'altra copia con lo stesso `PROBE_ID` e lo stesso `PROBE_KEY`: le copie si dividono i suoi monitor.
+
 ### Altri problemi
 
 :::details La sonda si ferma subito dopo l'avvio

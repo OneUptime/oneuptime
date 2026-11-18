@@ -495,7 +495,7 @@ Efter de 30 minutter fyldte PostgreSQL's data 163 MiB og ClickHouse's 452 MiB, n
 
 Denne profil kører altså på en server med 4 CPU-kerner og 6 GB hukommelse, med plads til systemet, Docker og en opdatering. nginx i `ingress` starter én worker pr. kerne, så på en server med flere kerner bruger den mere: omkring 510 MiB med 32 kerner.
 
-Én sonde tjekker højst 50 monitorer i minuttet med sine standardindstillinger: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) med 10 monitorer hver (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). For at de 100 monitorer blev tjekket hvert minut, satte målingen `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` i `config.env`. Hæv den, eller antallet af workers, på samme måde for flere monitorer.
+Én sonde tjekker med sine standardindstillinger op til 50 monitorer ad gangen: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) med 10 monitorer hver (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). Den beder om flere, så snart den har plads, og er derfor ikke begrænset til 50 monitorer i minuttet: målt med 252 websteds-, API- og portmonitorer, der tjekker hvert minut, tjekkede den hver af dem hvert minut. Sonden i version 15.0.0 spurgte kun én gang i minuttet og tjekkede altså højst 50 monitorer i minuttet: for at de 100 monitorer blev tjekket hvert minut, satte målingen ovenfor `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` i `config.env`. En sonde, der kommer bagud, siger det i OneUptime-tilstand i Admin-dashboardet: hæv en af de to indstillinger i `config.env`, så den tjekker flere ad gangen.
 
 ## Opdatér OneUptime
 

@@ -384,6 +384,16 @@ Förfrågningar som lyckas men tar längre tid än `PROBE_API_SLOW_REQUEST_THRES
 
 På OneUptime-serverns sida loggas också en sondförfrågan som besvaras långsamt, eller som sonden gav upp innan ett svar skickades, med sondens id. De två loggarna tillsammans berättar på vilken sida av anslutningen felet ligger.
 
+### En sond ligger efter
+
+En sond **Ligger efter** när dess monitorer väntar mer än en minut efter sin kontrolltid, så att de kontrolleras mer sällan än inställt. Dess **Status** i tabellen **Anpassade sonder** visar då **Ligger efter**, och dess sida säger under **Monitorkontroller** sedan när. För de sonder som en självhostad OneUptime själv kör, säger OneUptime-hälsa i Administratörspanelen till.
+
+En sond kontrollerar upp till `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer samtidigt, 10 med sina standardinställningar, och ber om fler så snart den har plats. Den hamnar efter när fler monitorer står på tur än den hinner kontrollera, till exempel när många av deras kontroller pågår tills de når sin tidsgräns. Så kommer den ikapp:
+
+- Uppdatera sonden. En äldre sond ber om sina monitorer bara en gång i minuten, så den kontrollerar högst `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitorer i minuten.
+- Låt den kontrollera fler monitorer samtidigt: höj `PROBE_MONITORING_WORKERS` och starta om sonden. För de sonder som en självhostad OneUptime kör är det `GLOBAL_PROBE_1_MONITORING_WORKERS` i `config.env` med Docker Compose, eller sondens `monitoringWorkers` i Helm-chartets värden.
+- Ge den mer CPU och minne, eller kör en kopia till med samma `PROBE_ID` och samma `PROBE_KEY`: kopiorna delar på dess monitorer.
+
 ### Andra problem
 
 :::details Sonden stannar direkt efter start
