@@ -8,9 +8,11 @@ import ObjectID from "../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   PermissionProps,
+  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
 import { joinSentences } from "./SentenceSeparator";
@@ -199,6 +201,27 @@ export interface PermissionCheckableFormField {
   overrideField?: unknown;
   peoplePicker?: unknown;
   showEvenIfPermissionDoesNotExist?: boolean | undefined;
+}
+
+/*
+ * Where the reader's grants of one model action reach, read off their
+ * permission rows (PermissionGate.getActionReach).
+ */
+export interface PermissionGateActionReach {
+  // A grant that reaches every record of the project.
+  isProjectWide: boolean;
+  // The labels a grant limited to labels reaches.
+  labelIds: Array<string>;
+  // A grant limited to owned records reaches the records the reader owns.
+  reachesOwned: boolean;
+  // The labels a block with labels takes away, whatever else grants them.
+  blockedLabelIds: Array<string>;
+  /*
+   * The teams whose records a grant limited to owned records reaches: the
+   * teams of the rows that grant it, never the reader's other teams
+   * (UserPermission.scope).
+   */
+  ownedScopeTeamIds: Array<string>;
 }
 
 export interface PermissionGateOptions extends HeldPermissionsOptions {
@@ -659,6 +682,115 @@ export default class PermissionGate {
     }
 
     return teamIds;
+  }
+
+  /*
+   * WHERE THE READER'S GRANTS OF ONE MODEL ACTION REACH (#7517), for a page
+   * that offers records by whether the reader may act on each one - the
+   * status page setup's list of the pages a person may change. The rows of
+   * the action's own permissions, or its operational-resource wildcard,
+   * that grant it and those that take it away, as the server counts them
+   * (HeldPermissionsUtil), read for the reach each one gives
+   * (PermissionGateActionReach). Whether the reader may take the action at
+   * all is check's to say; this says where.
+   */
+  public static getActionReach(
+    model: PermissionCheckableModel,
+    action: ModelAction,
+  ): PermissionGateActionReach {
+    const modelPermissions: Array<Permission> = this.getModelPermissions(
+      model,
+      action,
+    );
+    const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
+      isOperationalResource: model.isOperationalResource,
+      operation: action,
+    });
+    const held: HeldPermissions = this.getHeldPermissions();
+    const granting: Array<Permission> =
+      HeldPermissionsUtil.getGrantingPermissions(held, {
+        modelPermissions: modelPermissions,
+        wildcard: wildcard,
+      });
+    const blocking: Array<Permission> =
+      HeldPermissionsUtil.getLabelBlockingPermissions(held, {
+        modelPermissions: modelPermissions,
+        wildcard: wildcard,
+      });
+    const reach: PermissionGateActionReach = {
+      isProjectWide: granting.some((permission: Permission): boolean => {
+        return held.allowedProjectWide.includes(permission);
+      }),
+      labelIds: [],
+      reachesOwned: false,
+      blockedLabelIds: [],
+      ownedScopeTeamIds: [],
+    };
+
+    const rows: Array<UserPermission> =
+      PermissionUtil.getProjectPermissions()?.permissions || [];
+
+    for (const row of rows) {
+      if (!row || !row.permission) {
+        continue;
+      }
+
+      const labelIds: Array<string> = (row.labelIds || [])
+        .map(PermissionGate.idText)
+        .filter(Boolean);
+
+      if (HeldPermissionsUtil.isBlockRow(row)) {
+        if (blocking.includes(row.permission)) {
+          reach.blockedLabelIds.push(...labelIds);
+        }
+        continue;
+      }
+
+      // The team of a row that grants the action limited to owned records.
+      const teamId: string = PermissionGate.idText(row.teamId);
+
+      if (
+        row.scope === PermissionScope.Owned &&
+        (modelPermissions.includes(row.permission) ||
+          row.permission === wildcard) &&
+        teamId &&
+        !reach.ownedScopeTeamIds.includes(teamId)
+      ) {
+        reach.ownedScopeTeamIds.push(teamId);
+      }
+
+      if (!granting.includes(row.permission)) {
+        continue;
+      }
+
+      if (PermissionHelper.isLimitedToLabels(row)) {
+        reach.labelIds.push(...labelIds);
+      } else if (
+        row.scope === PermissionScope.Owned &&
+        PermissionHelper.isScopeApplicable(row.permission)
+      ) {
+        reach.reachesOwned = true;
+      }
+    }
+
+    return reach;
+  }
+
+  // An id as a permission row carries it, compared in any case.
+  private static idText(value: unknown): string {
+    if (!value) {
+      return "";
+    }
+
+    // An ObjectID read back from storage without its type: { value }.
+    if (
+      typeof value === "object" &&
+      "value" in (value as Record<string, unknown>)
+    ) {
+      return String((value as { value: unknown }).value).toLowerCase();
+    }
+
+    return String(value).toLowerCase();
   }
 
   /*
