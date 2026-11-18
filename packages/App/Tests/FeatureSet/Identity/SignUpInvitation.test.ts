@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE INVITATION A SIGN-UP LINK IS FOR (#7471, Identity/Utils/
@@ -94,12 +95,12 @@ function membership(data: {
   return member;
 }
 
-let tokenLiveSpy: jest.SpiedFunction<
+let tokenLiveSpy: SpyInstance<
   typeof UserRegistrationToken.isRegistrationTokenLive
 >;
-let findUserSpy: jest.SpiedFunction<typeof UserService.findOneBy>;
-let findMembershipsSpy: jest.SpiedFunction<typeof TeamMemberService.findBy>;
-let readInviterSpy: jest.SpiedFunction<typeof InvitationInviterUtil.readById>;
+let findUserSpy: SpyInstance<typeof UserService.findOneBy>;
+let findMembershipsSpy: SpyInstance<typeof TeamMemberService.findBy>;
+let readInviterSpy: SpyInstance<typeof InvitationInviterUtil.readById>;
 
 beforeEach(() => {
   tokenLiveSpy = jest
@@ -145,7 +146,7 @@ describe("what the sign-up page may say", () => {
   });
 
   test("checks the token against the address asked about, and never spends it", async () => {
-    const consumeSpy: jest.SpiedFunction<
+    const consumeSpy: SpyInstance<
       typeof UserRegistrationToken.consumeRegistrationToken
     > = jest.spyOn(UserRegistrationToken, "consumeRegistrationToken");
 
@@ -301,7 +302,7 @@ describe("what it says to anyone else: nothing, the same for all", () => {
 });
 
 describe("joining the project the page named, once the token claimed the account", () => {
-  let updateSpy: jest.SpiedFunction<typeof TeamMemberService.updateBy>;
+  let updateSpy: SpyInstance<typeof TeamMemberService.updateBy>;
 
   beforeEach(() => {
     updateSpy = jest.spyOn(TeamMemberService, "updateBy").mockResolvedValue(2);

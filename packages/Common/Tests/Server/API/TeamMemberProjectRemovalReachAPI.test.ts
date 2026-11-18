@@ -33,6 +33,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * POST /team-member/project-removal-reach (#6599): of the people on a page
@@ -109,7 +110,7 @@ async function callRoute(body: unknown): Promise<{ thrownToNext: unknown }> {
     status: jest.fn().mockReturnThis(),
   } as unknown as ExpressResponse;
 
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await mockRouter
     .match("POST", PROJECT_REMOVAL_REACH_ROUTE)
@@ -123,7 +124,7 @@ async function callRoute(body: unknown): Promise<{ thrownToNext: unknown }> {
 // What the route answered, as it sent it.
 function answered(): JSONObject {
   const calls: Array<Array<unknown>> = (
-    Response.sendJsonObjectResponse as unknown as jest.Mock
+    Response.sendJsonObjectResponse as unknown as Mock
   ).mock.calls as Array<Array<unknown>>;
 
   expect(calls).toHaveLength(1);
@@ -132,10 +133,8 @@ function answered(): JSONObject {
 }
 
 describe("POST /team-member/project-removal-reach", () => {
-  let reachSpy: jest.SpiedFunction<
-    typeof TeamMemberService.getTeamsOutOfRemovalReach
-  >;
-  let namesSpy: jest.SpiedFunction<typeof ReadableTeamNames.read>;
+  let reachSpy: SpyInstance<typeof TeamMemberService.getTeamsOutOfRemovalReach>;
+  let namesSpy: SpyInstance<typeof ReadableTeamNames.read>;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;

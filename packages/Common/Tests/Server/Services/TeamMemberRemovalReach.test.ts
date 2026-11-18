@@ -10,6 +10,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHOM A CALLER'S REMOVE FROM PROJECT WOULD LEAVE IN THE PROJECT (#6599).
@@ -70,18 +71,16 @@ function memberships(data: {
   all: Array<TeamMember>;
   reached: Array<TeamMember>;
 }): {
-  findSpy: jest.SpiedFunction<typeof TeamMemberService.findBy>;
-  narrowSpy: jest.SpiedFunction<
-    typeof ModelPermission.checkDeleteQueryPermission
-  >;
+  findSpy: SpyInstance<typeof TeamMemberService.findBy>;
+  narrowSpy: SpyInstance<typeof ModelPermission.checkDeleteQueryPermission>;
 } {
-  const narrowSpy: jest.SpiedFunction<
+  const narrowSpy: SpyInstance<
     typeof ModelPermission.checkDeleteQueryPermission
   > = jest
     .spyOn(ModelPermission, "checkDeleteQueryPermission")
     .mockResolvedValue(REACHED as never);
 
-  const findSpy: jest.SpiedFunction<typeof TeamMemberService.findBy> = jest
+  const findSpy: SpyInstance<typeof TeamMemberService.findBy> = jest
     .spyOn(TeamMemberService, "findBy")
     .mockImplementation((async (args: { query: unknown }) => {
       return args.query === REACHED ? data.reached : data.all;
@@ -360,7 +359,7 @@ describe("ReadableTeamNames", () => {
   }
 
   test("names the teams the reader may read, by id, read with the reader's own permissions in the project", async () => {
-    const findSpy: jest.SpiedFunction<typeof TeamService.findBy> = jest
+    const findSpy: SpyInstance<typeof TeamService.findBy> = jest
       .spyOn(TeamService, "findBy")
       .mockResolvedValue([team(PLATFORM, " Platform ")]);
 
@@ -437,7 +436,7 @@ describe("ReadableTeamNames", () => {
   });
 
   test("no team reads nothing", async () => {
-    const findSpy: jest.SpiedFunction<typeof TeamService.findBy> = jest.spyOn(
+    const findSpy: SpyInstance<typeof TeamService.findBy> = jest.spyOn(
       TeamService,
       "findBy",
     );

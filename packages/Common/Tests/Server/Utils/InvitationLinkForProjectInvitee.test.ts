@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE INVITATION LINK OF AN INVITATION EMAIL THE SERVER FAILED TO SEND
@@ -57,11 +58,9 @@ function membership(id: ObjectID): TeamMember {
   return member;
 }
 
-let findUserSpy: jest.SpiedFunction<typeof UserService.findOneBy>;
-let findMembershipSpy: jest.SpiedFunction<typeof TeamMemberService.findOneBy>;
-let getForTeamMemberSpy: jest.SpiedFunction<
-  typeof InvitationLink.getForTeamMember
->;
+let findUserSpy: SpyInstance<typeof UserService.findOneBy>;
+let findMembershipSpy: SpyInstance<typeof TeamMemberService.findOneBy>;
+let getForTeamMemberSpy: SpyInstance<typeof InvitationLink.getForTeamMember>;
 
 beforeEach(() => {
   const user: User = new User();

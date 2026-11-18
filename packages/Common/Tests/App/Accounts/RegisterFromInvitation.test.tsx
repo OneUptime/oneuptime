@@ -445,8 +445,12 @@ describe("the words, in every language", () => {
   const LOCALES: Record<string, Record<string, Record<string, string>>> = {};
 
   beforeEach(() => {
-    const fs: typeof import("fs") = jest.requireActual("fs");
-    const path: typeof import("path") = jest.requireActual("path");
+    const fs: typeof import("fs") = jest.requireActual(
+      "fs",
+    ) as typeof import("fs");
+    const path: typeof import("path") = jest.requireActual(
+      "path",
+    ) as typeof import("path");
     const dir: string = path.resolve(
       __dirname,
       "../../../../App/FeatureSet/Accounts/src/Locales",

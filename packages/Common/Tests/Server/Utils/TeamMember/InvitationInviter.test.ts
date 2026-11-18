@@ -9,6 +9,7 @@ import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHO INVITED SOMEBODY, AS THE INVITATION NAMES THEM (#7471): the person
@@ -175,7 +176,7 @@ describe("who made the invitation", () => {
   } as DatabaseCommonInteractionProps;
 
   test("the request's person, read as OneUptime, by name and address", async () => {
-    const findSpy: jest.SpiedFunction<typeof UserService.findOneById> = jest
+    const findSpy: SpyInstance<typeof UserService.findOneById> = jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(account("Ada Walker", "ada@walk.co"));
 
@@ -201,8 +202,10 @@ describe("who made the invitation", () => {
   ] as Array<[string, DatabaseCommonInteractionProps]>)(
     "an invitation %s makes names nobody, and reads nothing",
     async (_maker: string, props: DatabaseCommonInteractionProps) => {
-      const findSpy: jest.SpiedFunction<typeof UserService.findOneById> =
-        jest.spyOn(UserService, "findOneById");
+      const findSpy: SpyInstance<typeof UserService.findOneById> = jest.spyOn(
+        UserService,
+        "findOneById",
+      );
 
       await expect(
         InvitationInviterUtil.read({ props: props, inviteeUserId: GRACE_ID }),
@@ -212,8 +215,10 @@ describe("who made the invitation", () => {
   );
 
   test("nor does one a person makes for themselves", async () => {
-    const findSpy: jest.SpiedFunction<typeof UserService.findOneById> =
-      jest.spyOn(UserService, "findOneById");
+    const findSpy: SpyInstance<typeof UserService.findOneById> = jest.spyOn(
+      UserService,
+      "findOneById",
+    );
 
     await expect(
       InvitationInviterUtil.read({
