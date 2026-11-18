@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddIdentityProviderSignOut1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddIdentityProviderSignOut";
+import { AddIdentityProviderSignOut1809184710000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184710000-AddIdentityProviderSignOut";
 import GlobalOIDC from "../../../../Models/DatabaseModels/GlobalOidc";
 import ProjectOIDC from "../../../../Models/DatabaseModels/ProjectOidc";
 import UserSession from "../../../../Models/DatabaseModels/UserSession";
@@ -24,12 +24,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * drift check holds the statements to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809184700000";
+const MIGRATION_TIMESTAMP: string = "1809184710000";
 const MIGRATION_BASE_NAME: string = "AddIdentityProviderSignOut";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
 const PREVIOUS_MIGRATION: string =
-  "AddBiLineageSummaryAndDashboardUpstream1809184620000";
+  "AddDataStoreFindingSampleRecords1809184700000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -44,7 +44,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddIdentityProviderSignOut1809184700000();
+    new AddIdentityProviderSignOut1809184710000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -55,7 +55,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddIdentityProviderSignOut1809184700000", () => {
+describe("AddIdentityProviderSignOut1809184710000", () => {
   test("adds the switch to both OIDC provider tables, off, and the session's record, nullable", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "ProjectOIDC" ADD "signOutOfIdentityProvider" boolean NOT NULL DEFAULT false`,
@@ -157,7 +157,7 @@ describe("AddIdentityProviderSignOut1809184700000", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddIdentityProviderSignOut1809184700000().name).toBe(
+    expect(new AddIdentityProviderSignOut1809184710000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
@@ -173,7 +173,7 @@ describe("AddIdentityProviderSignOut1809184700000", () => {
     expect(Number(MIGRATION_TIMESTAMP)).toBeGreaterThan(
       Math.max(
         ...timestamps.filter((value: number): boolean => {
-          return value <= 1809184620000;
+          return value <= 1809184700000;
         }),
       ),
     );

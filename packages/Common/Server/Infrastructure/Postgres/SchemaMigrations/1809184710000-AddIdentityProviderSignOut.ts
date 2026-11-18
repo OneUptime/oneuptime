@@ -21,10 +21,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * busy "UserSession" table is held only for the instant the catalog
  * changes. A server of the release before ignores all three.
  */
-export class AddIdentityProviderSignOut1809184700000
+export class AddIdentityProviderSignOut1809184710000
   implements MigrationInterface
 {
-  public name: string = "AddIdentityProviderSignOut1809184700000";
+  public name: string = "AddIdentityProviderSignOut1809184710000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
