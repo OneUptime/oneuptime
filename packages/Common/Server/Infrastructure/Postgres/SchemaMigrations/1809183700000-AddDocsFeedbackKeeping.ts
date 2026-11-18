@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * constant default on the one-row GlobalConfig, and a nullable column on
  * ProductFeedback. A server of the release before ignores them.
  */
-export class AddDocsFeedbackKeeping1809183600000 implements MigrationInterface {
-  public name: string = "AddDocsFeedbackKeeping1809183600000";
+export class AddDocsFeedbackKeeping1809183700000 implements MigrationInterface {
+  public name: string = "AddDocsFeedbackKeeping1809183700000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

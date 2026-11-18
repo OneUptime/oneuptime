@@ -384,6 +384,16 @@ Syslog 接收器每分鐘最多轉送 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 則�
 
 在 OneUptime 伺服器端，回應緩慢的探測器請求，或在傳送回應前探測器已放棄的請求，也會連同探測器的 id 一起被記錄。把這兩份記錄放在一起，就能看出問題出在連線的哪一端。
 
+### 探測器落後
+
+當探測器的監測器在檢查時間過後等待超過 1 分鐘、因而檢查頻率低於設定時，探測器為 **落後**。此時 **自訂探測器** 表格中探測器的 **狀態** 顯示 **落後**，探測器頁面的 **監測器檢查** 會顯示從何時開始。對於自行託管的 OneUptime 自己執行的探測器，管理員儀表板中的 OneUptime 健康狀態會提示這一點。
+
+探測器一次最多檢查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 個監測器（預設 10 個），一有空位就會請求更多。當到期的監測器多於它能檢查的數量時，例如很多檢查一直執行到逾時，它就會落後。要讓它趕上來：
+
+- 更新探測器。較舊的探測器每分鐘只請求一次監測器，因此每分鐘最多檢查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 個監測器。
+- 讓它一次檢查更多監測器：調高 `PROBE_MONITORING_WORKERS`，然後重新啟動探測器。對於自行託管的 OneUptime 執行的探測器，在 Docker Compose 中是 `config.env` 裡的 `GLOBAL_PROBE_1_MONITORING_WORKERS`，在 Helm chart 中是值裡該探測器的 `monitoringWorkers`。
+- 給它更多 CPU 和記憶體，或用相同的 `PROBE_ID` 和 `PROBE_KEY` 再執行一個副本：副本會分擔它的監測器。
+
 ### 其他問題
 
 :::details 探測器啟動後立即停止

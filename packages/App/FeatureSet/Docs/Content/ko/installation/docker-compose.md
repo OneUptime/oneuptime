@@ -496,7 +496,7 @@ MQTT_INGEST_ENABLED=false
 
 따라서 이 프로필은 CPU 코어 4개와 메모리 6 GB 서버에서 실행되며, 시스템과 Docker, 업데이트를 위한 여유도 남습니다. `ingress`의 nginx는 코어마다 worker를 하나씩 시작하므로 코어가 더 많은 서버에서는 더 많이 사용합니다. 32코어에서는 약 510 MiB였습니다.
 
-프로브 하나는 기본 설정으로 1분에 최대 50개의 모니터를 확인합니다. worker 5개(`GLOBAL_PROBE_1_MONITORING_WORKERS`)가 각각 10개씩(`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) 확인합니다. 모니터 100개를 매분 확인하도록 측정에서는 `config.env`에 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`을 설정했습니다. 모니터가 더 많으면 같은 방식으로 이 값이나 worker 수를 늘리세요.
+프로브 하나는 기본 설정으로 한 번에 최대 50개의 모니터를 확인합니다. worker 5개(`GLOBAL_PROBE_1_MONITORING_WORKERS`)가 각각 10개씩(`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) 확인합니다. 자리가 나는 대로 더 요청하므로 1분에 50개로 제한되지 않습니다. 매분 확인하는 웹사이트, API, 포트 모니터 252개로 측정한 결과, 모두를 매분 확인했습니다. 릴리스 15.0.0의 프로브는 1분에 한 번만 요청했기 때문에 1분에 최대 50개만 확인했습니다. 그래서 위의 측정에서는 모니터 100개를 매분 확인하도록 `config.env`에 `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20`을 설정했습니다. 지연되는 프로브는 관리자 대시보드의 OneUptime 상태에 표시됩니다. `config.env`에서 두 설정 중 하나를 높이면 한 번에 더 많이 확인합니다.
 
 ## OneUptime 업데이트
 

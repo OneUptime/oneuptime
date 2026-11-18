@@ -54,7 +54,15 @@ import VersionUtil from "Common/Utils/VersionUtil";
 import InstallationHealthUtil, {
   InstallationHealthAnswer,
   InstallationHealthFacts,
+  InstallationHealthProbeBehind,
 } from "Common/Types/InstallationHealth/InstallationHealth";
+import ProbeService from "Common/Server/Services/ProbeService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import ProbeBehindUtil from "Common/Types/Probe/ProbeBehind";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
   ClickhouseJsonResult,
@@ -995,8 +1003,8 @@ router.get(
  *
  * /api/admin/health/doctor answers the findings of
  * Common/Types/InstallationHealth: the datastores, the migrations,
- * ClickHouse's disks, the queues, the version and the server setup
- * checklist, worst first, each with its fix. Every edition: a self-hoster
+ * ClickHouse's disks, the queues, the global probes that are behind, the
+ * version and the server setup checklist, worst first, each with its fix. Every edition: a self-hoster
  * who cannot tell why their server is broken needs the answer, not an
  * upsell.
  *
@@ -1025,6 +1033,50 @@ export interface InstallationHealthReaders {
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
   // Which products the server switches off (#7481): what Settings > Products reads.
   serverProducts: () => Promise<ServerProductsAnswer>;
+  // The global probes that are behind (#9488): what Health > Global Probes reads.
+  globalProbesBehind: () => Promise<Array<InstallationHealthProbeBehind>>;
+}
+
+/*
+ * The connected global probes that are behind - their monitors checked
+ * later than their interval (#9488) - by what Probe:UpdateBehind keeps on
+ * each (Types/Probe/ProbeBehind).
+ */
+export async function readGlobalProbesBehind(): Promise<
+  Array<InstallationHealthProbeBehind>
+> {
+  const probes: Array<Probe> = await ProbeService.findBy({
+    query: {
+      isGlobalProbe: true,
+      connectionStatus: ProbeConnectionStatus.Connected,
+      checksLateSince: QueryHelper.notNull(),
+    },
+    select: {
+      _id: true,
+      name: true,
+      checksLateSince: true,
+      checksLastLateAt: true,
+    },
+    skip: 0,
+    limit: LIMIT_MAX,
+    props: { isRoot: true },
+  });
+
+  const behind: Array<InstallationHealthProbeBehind> = [];
+
+  for (const probe of probes) {
+    const since: Date | null = ProbeBehindUtil.getBehindSince(probe);
+
+    if (since && probe.id) {
+      behind.push({
+        id: probe.id.toString(),
+        name: probe.name || "",
+        since: since.toISOString(),
+      });
+    }
+  }
+
+  return behind;
 }
 
 /*
@@ -1101,6 +1153,9 @@ const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
   serverProducts: (): Promise<ServerProductsAnswer> => {
     return ServerProducts.getAnswer();
   },
+  globalProbesBehind: (): Promise<Array<InstallationHealthProbeBehind>> => {
+    return readGlobalProbesBehind();
+  },
 };
 
 // A reader that fails answers its fallback: one datastore down must not hide the rest.
@@ -1175,6 +1230,7 @@ export async function getInstallationHealthFacts(
     latestVersion,
     serverSetup,
     serverProducts,
+    globalProbesBehind,
   ] = await Promise.all([
     isPostgresConnected
       ? readOr<JSONObject | null>(readers.migrations, null, "migrations")
@@ -1201,6 +1257,13 @@ export async function getInstallationHealthFacts(
           readers.serverProducts,
           null,
           "the products switched off on this server",
+        )
+      : Promise.resolve(null),
+    isPostgresConnected
+      ? readOr<Array<InstallationHealthProbeBehind> | null>(
+          readers.globalProbesBehind,
+          null,
+          "whether the global probes are behind",
         )
       : Promise.resolve(null),
   ]);
@@ -1244,6 +1307,7 @@ export async function getInstallationHealthFacts(
       .filter((queue: { name: string }): boolean => {
         return Boolean(queue.name);
       }),
+    globalProbesBehind: globalProbesBehind,
     version: {
       current: AppVersion,
       latest: latestVersion,

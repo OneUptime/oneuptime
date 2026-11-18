@@ -1059,7 +1059,8 @@ import { AddProjectDefaultPagingLadder1809183250000 } from "./1809183250000-AddP
 import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
 import { AddServerAlerts1809183400000 } from "./1809183400000-AddServerAlerts";
 import { KeepSampleProjectColumns1809183500000 } from "./1809183500000-KeepSampleProjectColumns";
-import { AddDocsFeedbackKeeping1809183600000 } from "./1809183600000-AddDocsFeedbackKeeping";
+import { AddProbeChecksLate1809183650000 } from "./1809183650000-AddProbeChecksLate";
+import { AddDocsFeedbackKeeping1809183700000 } from "./1809183700000-AddDocsFeedbackKeeping";
 
 export default [
   InitialMigration,
@@ -2123,5 +2124,6 @@ export default [
   AddServerEmailLog1809183300000,
   AddServerAlerts1809183400000,
   KeepSampleProjectColumns1809183500000,
-  AddDocsFeedbackKeeping1809183600000,
+  AddProbeChecksLate1809183650000,
+  AddDocsFeedbackKeeping1809183700000,
 ];

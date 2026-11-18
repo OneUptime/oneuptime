@@ -1,6 +1,7 @@
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
+import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
@@ -25,6 +26,7 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Dictionary from "../../../Types/Dictionary";
 import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
@@ -2929,18 +2931,51 @@ describe("sendTestNotificationToDestination: provider reports delivery errors", 
 // ========================================================== nothing sent
 
 /*
- * WorkspaceNotificationLog.channelId / channelName are 100-character columns
- * and statusMessage is 500. The insert rejects an over-long field outright and
- * the best-effort logging swallows that, so without truncation the row simply
- * vanishes - and Microsoft's "app is not installed in this team" explanation
- * alone is longer than 500 characters.
+ * WorkspaceNotificationLog.statusMessage is a 500-character column, and so
+ * are channelId, channelName and threadId: a Microsoft Teams personal chat's
+ * id runs past the 100 characters they once had (issue #9284). The insert
+ * rejects an over-long field outright and the best-effort logging swallows
+ * that, so a field that does not fit makes the row simply vanish - and
+ * Microsoft's "app is not installed in this team" explanation alone is longer
+ * than 500 characters. The test send cuts the status message itself, and
+ * hands over where the message went as the workspace gave it: the log
+ * service's create hook fits that for every writer of a log
+ * (WorkspaceNotificationLogService.fitChannelColumns), keeping an id whole or
+ * leaving it out - a part of an id is another channel's - and cutting the
+ * name. create is mocked here, so a row is read as that hook leaves it.
  */
-describe("sendTestNotificationToDestination: log fields are cut to their column limits", () => {
+describe("sendTestNotificationToDestination: log fields fit their columns", () => {
   const LONG_PROVIDER_ERROR: string = "E".repeat(650);
+  // Longer than the 100 characters these columns once had.
   const LONG_NAME: string = "n".repeat(150);
   const LONG_ID: string = "C".repeat(150);
+  // Longer than any of these columns keeps.
+  const TOO_LONG_NAME: string = "n".repeat(ColumnLength.LongText + 150);
+  const TOO_LONG_ID: string = "C".repeat(ColumnLength.LongText + 150);
 
-  test("a failure log keeps the first 500 characters of the provider error and 100 of the channel name", async () => {
+  /*
+   * A row as the log service writes it: through its own create hook, then
+   * past the table's own length check, which would refuse the whole row.
+   */
+  async function asWritten(
+    log: WorkspaceNotificationLog,
+  ): Promise<WorkspaceNotificationLog> {
+    const onCreate: OnCreate<WorkspaceNotificationLog> =
+      await WorkspaceNotificationLogService["onBeforeCreate"]({
+        data: log,
+        props: { isRoot: true },
+      });
+
+    expect(() => {
+      return WorkspaceNotificationLogService["checkMaxLengthOfFields"](
+        onCreate.createBy.data,
+      );
+    }).not.toThrow();
+
+    return onCreate.createBy.data;
+  }
+
+  test("a failure log keeps the first 500 characters of the provider error, and as much of the channel name as its column holds", async () => {
     const mocks: Mocks = mockDeps({
       workspaceType: WorkspaceType.Slack,
       responses: [
@@ -2949,7 +2984,7 @@ describe("sendTestNotificationToDestination: log fields are cut to their column 
           errors: [
             {
               id: SLACK_CHANNEL_ID,
-              name: LONG_NAME,
+              name: TOO_LONG_NAME,
               error: LONG_PROVIDER_ERROR,
             },
           ],
@@ -2973,8 +3008,15 @@ describe("sendTestNotificationToDestination: log fields are cut to their column 
     expect(failures[0]!.statusMessage).toBe(
       LONG_PROVIDER_ERROR.substring(0, 500),
     );
-    expect(failures[0]!.channelName).toBe(LONG_NAME.substring(0, 100));
-    expect(failures[0]!.channelId).toBe(SLACK_CHANNEL_ID);
+    // The name as the workspace gave it: the log cuts it.
+    expect(failures[0]!.channelName).toBe(TOO_LONG_NAME);
+
+    const written: WorkspaceNotificationLog = await asWritten(failures[0]!);
+    expect(written.statusMessage).toBe(LONG_PROVIDER_ERROR.substring(0, 500));
+    expect(written.channelName).toBe(
+      TOO_LONG_NAME.substring(0, ColumnLength.LongText),
+    );
+    expect(written.channelId).toBe(SLACK_CHANNEL_ID);
   });
 
   test("a failure with an empty provider error is still logged with a readable status message", async () => {
@@ -3006,7 +3048,7 @@ describe("sendTestNotificationToDestination: log fields are cut to their column 
     expect(failures[0]!.statusMessage).toBe("Failed to send message");
   });
 
-  test("a success log keeps the first 100 characters of the channel id and name", async () => {
+  test("REGRESSION #9284: a success log keeps a channel id and name longer than 100 characters whole", async () => {
     const mocks: Mocks = mockDeps({
       workspaceType: WorkspaceType.Slack,
       responses: [
@@ -3030,9 +3072,47 @@ describe("sendTestNotificationToDestination: log fields are cut to their column 
 
     const successes: Array<WorkspaceNotificationLog> = successLogs(mocks);
     expect(successes).toHaveLength(1);
-    expect(successes[0]!.channelId).toBe(LONG_ID.substring(0, 100));
-    expect(successes[0]!.channelName).toBe(LONG_NAME.substring(0, 100));
-    expect(successes[0]!.threadId).toBe("1726000000.000100");
+
+    const written: WorkspaceNotificationLog = await asWritten(successes[0]!);
+    expect(written.channelId).toBe(LONG_ID);
+    expect(written.channelName).toBe(LONG_NAME);
+    expect(written.threadId).toBe("1726000000.000100");
+  });
+
+  test("a success log leaves out a channel id longer than its column - never a part of it - and cuts the name to fit", async () => {
+    const mocks: Mocks = mockDeps({
+      workspaceType: WorkspaceType.Slack,
+      responses: [
+        makeSendResponse({
+          workspaceType: WorkspaceType.Slack,
+          threads: [
+            {
+              id: TOO_LONG_ID,
+              name: TOO_LONG_NAME,
+              threadId: "1726000000.000100",
+            },
+          ],
+        }),
+      ],
+    });
+
+    await sendTest({
+      workspaceType: WorkspaceType.Slack,
+      channelId: SLACK_CHANNEL_ID,
+    });
+
+    const successes: Array<WorkspaceNotificationLog> = successLogs(mocks);
+    expect(successes).toHaveLength(1);
+    // As the workspace gave them: the log decides what it keeps.
+    expect(successes[0]!.channelId).toBe(TOO_LONG_ID);
+    expect(successes[0]!.channelName).toBe(TOO_LONG_NAME);
+
+    const written: WorkspaceNotificationLog = await asWritten(successes[0]!);
+    expect(written.channelId).toBeUndefined();
+    expect(written.channelName).toBe(
+      TOO_LONG_NAME.substring(0, ColumnLength.LongText),
+    );
+    expect(written.threadId).toBe("1726000000.000100");
   });
 });
 

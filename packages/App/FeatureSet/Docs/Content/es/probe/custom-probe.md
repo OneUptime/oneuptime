@@ -384,6 +384,16 @@ Las solicitudes que tienen éxito pero tardan más de `PROBE_API_SLOW_REQUEST_TH
 
 En el lado del servidor de OneUptime, una solicitud de sonda que se responde despacio, o que la sonda abandonó antes de que se enviara una respuesta, también se registra, con el id de la sonda. Esos dos registros juntos dicen en qué lado de la conexión está el fallo.
 
+### Una sonda va con retraso
+
+Una sonda está **Con retraso** cuando sus monitores esperan más de un minuto después de su hora de comprobación, por lo que se comprueban con menos frecuencia de la configurada. Su **Estado** en la tabla **Sondas personalizadas** muestra entonces **Con retraso**, y su página indica desde cuándo en **Comprobaciones de monitores**. Para las sondas que un OneUptime autoalojado ejecuta por sí mismo, lo indica Estado de OneUptime en el Panel de administración.
+
+Una sonda comprueba hasta `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores a la vez, 10 con su configuración predeterminada, y pide más en cuanto tiene sitio. Se retrasa cuando hay más monitores pendientes de los que puede comprobar, por ejemplo cuando muchas de sus comprobaciones duran hasta agotar su tiempo de espera. Para que se ponga al día:
+
+- Actualiza la sonda. Una sonda más antigua pide sus monitores solo una vez por minuto, así que comprueba como mucho `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` monitores por minuto.
+- Deja que compruebe más monitores a la vez: aumenta `PROBE_MONITORING_WORKERS` y reinicia la sonda. Para las sondas que ejecuta un OneUptime autoalojado, es `GLOBAL_PROBE_1_MONITORING_WORKERS` en `config.env` con Docker Compose, o el `monitoringWorkers` de la sonda en los valores del chart de Helm.
+- Dale más CPU y memoria, o ejecuta otra copia con el mismo `PROBE_ID` y el mismo `PROBE_KEY`: las copias se reparten sus monitores.
+
 ### Otros problemas
 
 :::details La sonda se detiene justo después de arrancar

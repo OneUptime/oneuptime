@@ -4,8 +4,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import { Green, Red } from "Common/Types/BrandColors";
-import OneUptimeDate from "Common/Types/Date";
+import GlobalProbeStatusElement from "../../../Components/Probe/GlobalProbeStatus";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Banner from "Common/UI/Components/Banner/Banner";
@@ -16,7 +15,6 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -128,6 +126,9 @@ const Settings: FunctionComponent = (): ReactElement => {
         selectMoreFields={{
           key: true,
           iconFileId: true,
+          // Whether it is behind (GlobalProbeStatus).
+          checksLateSince: true,
+          checksLastLateAt: true,
         }}
         actionButtons={[
           {
@@ -198,33 +199,9 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Status",
             type: FieldType.Text,
 
+            // As OneUptime Health shows it: Connected, Behind (#9488) or Disconnected.
             getElement: (item: Probe): ReactElement => {
-              if (
-                item &&
-                item["lastAlive"] &&
-                OneUptimeDate.getNumberOfMinutesBetweenDates(
-                  OneUptimeDate.fromString(item["lastAlive"]),
-                  OneUptimeDate.getCurrentDate(),
-                ) < 5
-              ) {
-                return (
-                  <Statusbubble
-                    text={t("common.connected")}
-                    isUserContent={true}
-                    color={Green}
-                    shouldAnimate={true}
-                  />
-                );
-              }
-
-              return (
-                <Statusbubble
-                  text={t("common.disconnected")}
-                  isUserContent={true}
-                  color={Red}
-                  shouldAnimate={false}
-                />
-              );
+              return <GlobalProbeStatusElement probe={item} />;
             },
           },
         ]}

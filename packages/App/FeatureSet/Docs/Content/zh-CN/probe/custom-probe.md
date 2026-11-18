@@ -384,6 +384,16 @@ Syslog 接收器每分钟最多转发 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 条�
 
 在 OneUptime 服务器端，应答缓慢的探测器请求，或在发送应答前探测器已放弃的请求，也会连同探测器的 id 一起被记录。把这两份日志放在一起，就能看出问题出在连接的哪一端。
 
+### 探测器滞后
+
+当探测器的监视器在检查时间过后等待超过 1 分钟、因而检查频率低于设置时，探测器为 **滞后**。此时 **自定义探测器** 表格中探测器的 **状态** 显示 **滞后**，探测器页面的 **监视器检查** 会显示从何时开始。对于自托管 OneUptime 自己运行的探测器，管理员仪表板中的 OneUptime 健康状况会提示这一点。
+
+探测器一次最多检查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 个监视器（默认 10 个），一有空位就会请求更多。当到期的监视器多于它能检查的数量时，例如很多检查一直运行到超时，它就会滞后。要让它赶上来：
+
+- 更新探测器。较旧的探测器每分钟只请求一次监视器，因此每分钟最多检查 `PROBE_MONITORING_WORKERS` × `PROBE_MONITOR_FETCH_LIMIT` 个监视器。
+- 让它一次检查更多监视器：调高 `PROBE_MONITORING_WORKERS`，然后重启探测器。对于自托管 OneUptime 运行的探测器，在 Docker Compose 中是 `config.env` 里的 `GLOBAL_PROBE_1_MONITORING_WORKERS`，在 Helm chart 中是值里该探测器的 `monitoringWorkers`。
+- 给它更多 CPU 和内存，或用相同的 `PROBE_ID` 和 `PROBE_KEY` 再运行一个副本：副本会分担它的监视器。
+
 ### 其他问题
 
 :::details 探测器启动后立即停止

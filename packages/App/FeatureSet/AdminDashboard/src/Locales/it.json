@@ -4227,5 +4227,16 @@
   "Text This Number": "Invia SMS a questo numero",
   "An SMS goes to this number through this server's own SMS settings. Leave it empty to send none.": "Un SMS viene inviato a questo numero tramite le impostazioni SMS di questo server. Lascia vuoto per non inviarne nessuno.",
   "Push to Master Admins' Devices": "Push sui dispositivi degli amministratori principali",
-  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Una notifica push va a ogni dispositivo su cui un amministratore principale ha effettuato l'accesso all'app OneUptime."
+  "A push notification goes to every device a master admin signed in to the OneUptime app on.": "Una notifica push va a ogni dispositivo su cui un amministratore principale ha effettuato l'accesso all'app OneUptime.",
+  "Behind": "In ritardo",
+  "{{probe}} is behind: since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{probe}} è in ritardo: dal {{time}}, i suoi monitor attendono più di un minuto oltre l'orario di controllo, quindi vengono controllati meno spesso di quanto impostato.",
+  "Give the probe more CPU and memory, or let it check more monitors at once: raise GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, or the probe's monitoringWorkers in the Helm values.": "Dai alla sonda più CPU e memoria, oppure lasciale controllare più monitor alla volta: aumenta GLOBAL_PROBE_1_MONITORING_WORKERS in config.env, o il monitoringWorkers della sonda nei valori Helm.",
+  "Search people or teams...": "Cerca persone o team...",
+  "Owners": "Proprietari",
+  "Is any of": "È uno tra",
+  "Is none of": "Non è nessuno tra",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} è uno tra {{count}} persone o team selezionati",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} è {{count}} persona o team selezionato",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} non è nessuno tra {{count}} persone o team selezionati",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} non è {{count}} persona o team selezionato"
 }

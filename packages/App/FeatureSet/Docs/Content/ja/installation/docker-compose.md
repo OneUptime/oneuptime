@@ -496,7 +496,7 @@ MQTT_INGEST_ENABLED=false
 
 したがって、このプロファイルは CPU 4 コアとメモリ 6 GB のサーバーで動き、システム、Docker、アップデートのための余裕も残ります。`ingress` の nginx はコアごとに 1 つの worker を起動するため、コア数の多いサーバーではより多く使います。32 コアでは約 510 MiB でした。
 
-1 つのプローブは、既定の設定では 1 分あたり最大 50 件のモニターをチェックします。worker 5 つ (`GLOBAL_PROBE_1_MONITORING_WORKERS`) がそれぞれ 10 件ずつ (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) です。100 件のモニターを毎分チェックするため、計測では `config.env` に `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` を設定しました。モニターがさらに多い場合も、同じようにこの値か worker の数を増やしてください。
+1 つのプローブは、既定の設定では一度に最大 50 件のモニターをチェックします。worker 5 つ (`GLOBAL_PROBE_1_MONITORING_WORKERS`) がそれぞれ 10 件ずつ (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`) です。空きができるとすぐに次を求めるので、1 分あたり 50 件に限られません。毎分チェックするウェブサイト、API、ポートのモニター 252 件で計測したところ、そのすべてを毎分チェックしました。リリース 15.0.0 のプローブは 1 分に 1 回しか求めなかったため、1 分あたり最大 50 件しかチェックしませんでした。そのため上の計測では、100 件のモニターを毎分チェックするよう、`config.env` に `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` を設定しました。遅れているプローブは、管理者ダッシュボードの OneUptime のヘルスに表示されます。`config.env` でどちらかの設定を引き上げると、一度により多くチェックします。
 
 ## OneUptime をアップデートする
 

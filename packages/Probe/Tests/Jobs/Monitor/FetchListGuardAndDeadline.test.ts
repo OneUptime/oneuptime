@@ -51,8 +51,10 @@ import { PROBE_MONITOR_CHECK_TIMEOUT_IN_MS } from "../../../Config";
 import MonitorUtil from "../../../Utils/Monitors/Monitor";
 import InitJob, {
   FetchListAndProbe,
+  getMonitorCheckSlots,
   probeMonitorWithDeadline,
   resetProbeWorkerRunState,
+  whenMonitorChecksSettle,
 } from "../../../Jobs/Monitor/FetchList";
 
 /*
@@ -72,7 +74,11 @@ import InitJob, {
  *     accumulated without bound.
  *
  * These tests pin both layers, so the same class of bug in any other
- * monitor implementation costs one cycle rather than the probe.
+ * monitor implementation costs one cycle rather than the probe. Since
+ * issue #9488 a worker no longer waits for its batch: each check holds a
+ * slot of its own (MonitorCheckSlots), so a check that never settles holds
+ * that one slot until its deadline, and the worker's run ends once the
+ * server has nothing more due for it.
  */
 
 const monitorIdOne: ObjectID = ObjectID.generate();
@@ -194,8 +200,8 @@ describe("monitor probing — per-check deadline", () => {
     ).rejects.toThrow("ssl handshake failed");
   });
 
-  test("a monitor that never settles does not block the rest of the batch", async () => {
-    fetchSpy.mockResolvedValue({
+  test("a monitor that never settles holds only its own slot, and gives it back at its deadline", async () => {
+    fetchSpy.mockResolvedValueOnce({
       data: [
         {
           _id: monitorIdOne.toString(),
@@ -216,24 +222,33 @@ describe("monitor probing — per-check deadline", () => {
     const startedAt: number = Date.now();
 
     /*
-     * The whole cycle must complete. Before the deadline this await never
-     * returned, and the worker running it was leaked for the lifetime of
-     * the process.
+     * The worker's run ends once the server has nothing more due for it:
+     * a batch of two is short of the ten it asked for. It does not wait for
+     * the wedged check.
      */
     await new FetchListAndProbe("Worker 1").run();
+
+    expect(Date.now() - startedAt).toBeLessThan(900);
+    expect(probeSpy).toHaveBeenCalledTimes(2);
+
+    await flushMicrotasks();
+
+    // The healthy check has given its slot back; the wedged one holds one.
+    expect(getMonitorCheckSlots().getInUse()).toBe(1);
+
+    /*
+     * The wedged check settles at the deadline. Before the deadline it
+     * never did, and the worker running it was leaked for the lifetime of
+     * the process.
+     */
+    await whenMonitorChecksSettle();
 
     const elapsed: number = Date.now() - startedAt;
 
     // Bounded by the 1000ms deadline from the environment, not unbounded.
     expect(elapsed).toBeLessThan(5000);
-
-    /*
-     * ...and it did wait for the wedged monitor's deadline rather than
-     * abandoning the batch the moment the healthy check came back.
-     */
     expect(elapsed).toBeGreaterThanOrEqual(900);
-
-    expect(probeSpy).toHaveBeenCalledTimes(2);
+    expect(getMonitorCheckSlots().getInUse()).toBe(0);
 
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -355,7 +370,8 @@ describe("monitor fetch-list cron — per-slot in-flight guard", () => {
 
 describe("monitor batch completion logging", () => {
   beforeEach(() => {
-    fetchSpy.mockResolvedValue({
+    // One batch of two - short of the ten asked for, so nothing more is due.
+    fetchSpy.mockResolvedValueOnce({
       data: [
         { _id: monitorIdOne.toString(), monitorType: MonitorType.Website },
         { _id: monitorIdTwo.toString(), monitorType: MonitorType.Website },
@@ -373,33 +389,37 @@ describe("monitor batch completion logging", () => {
     probeSpy.mockReturnValueOnce(slowCheck);
     // eslint-disable-next-line @typescript-eslint/typedef
     const debugSpy = jest.spyOn(logger, "debug").mockImplementation(() => {});
-    let completed: boolean = false;
-    const run: Promise<void> = new FetchListAndProbe("Worker 1")
-      .run()
-      .then(() => {
-        completed = true;
-      });
+    let settled: boolean = false;
+
+    await new FetchListAndProbe("Worker 1").run();
+
+    const checks: Promise<void> = whenMonitorChecksSettle().then(() => {
+      settled = true;
+    });
 
     try {
       await flushMicrotasks();
       expect(probeSpy).toHaveBeenCalledTimes(2);
-      expect(completed).toBe(false);
+      expect(settled).toBe(false);
       expect(debugSpy).toHaveBeenCalledWith(
         `Probed monitor ${monitorIdTwo.toString()}`,
       );
       expect(debugSpy).not.toHaveBeenCalledWith(
         `Probed monitor ${monitorIdOne.toString()}`,
       );
+      // The slow check keeps its slot; the finished one gave its back.
+      expect(getMonitorCheckSlots().getInUse()).toBe(1);
     } finally {
       finishSlowCheck();
-      await run;
+      await checks;
     }
     expect(debugSpy).toHaveBeenCalledWith(
       `Probed monitor ${monitorIdOne.toString()}`,
     );
+    expect(getMonitorCheckSlots().getInUse()).toBe(0);
   });
 
-  test("reports a failed monitor immediately and still waits for another check", async () => {
+  test("reports a failed monitor immediately, and the other check keeps its slot until it settles", async () => {
     let finishSlowCheck: () => void = (): void => {};
     const slowCheck: Promise<void> = new Promise<void>(
       (resolve: () => void) => {
@@ -409,35 +429,46 @@ describe("monitor batch completion logging", () => {
     const failure: Error = new Error("failed check with response context");
     probeSpy.mockRejectedValueOnce(failure);
     probeSpy.mockReturnValueOnce(slowCheck);
-    let completed: boolean = false;
-    const run: Promise<void> = new FetchListAndProbe("Worker 1")
-      .run()
-      .then(() => {
-        completed = true;
-      });
+    let settled: boolean = false;
+
+    await new FetchListAndProbe("Worker 1").run();
+
+    const checks: Promise<void> = whenMonitorChecksSettle().then(() => {
+      settled = true;
+    });
 
     try {
       await flushMicrotasks();
-      expect(completed).toBe(false);
+      expect(settled).toBe(false);
       expect(errorSpy).toHaveBeenCalledWith(failure);
       expect(errorSpy).toHaveBeenCalledWith("Error in probing monitor:");
+      // A failed check gives its slot back like any other.
+      expect(getMonitorCheckSlots().getInUse()).toBe(1);
     } finally {
       finishSlowCheck();
-      await run;
+      await checks;
     }
-    expect(completed).toBe(true);
+    expect(settled).toBe(true);
+    expect(getMonitorCheckSlots().getInUse()).toBe(0);
   });
 
   test("starts every check in a large batch without serializing monitoring", async () => {
     const monitorCount: number = 200;
-    fetchSpy.mockResolvedValue({
-      data: Array.from({ length: monitorCount }, () => {
-        return {
-          _id: ObjectID.generate().toString(),
-          monitorType: MonitorType.Website,
-        };
-      }),
-    } as never);
+    /*
+     * A server that hands out more than it was asked for: every monitor is
+     * already claimed, so every one is checked, past the probe's slots.
+     */
+    fetchSpy.mockReset();
+    fetchSpy
+      .mockResolvedValueOnce({
+        data: Array.from({ length: monitorCount }, () => {
+          return {
+            _id: ObjectID.generate().toString(),
+            monitorType: MonitorType.Website,
+          };
+        }),
+      } as never)
+      .mockResolvedValue({ data: [] } as never);
     const finishChecks: Array<() => void> = [];
     probeSpy.mockImplementation(() => {
       return new Promise<void>((resolve: () => void) => {
@@ -446,18 +477,30 @@ describe("monitor batch completion logging", () => {
     });
     // eslint-disable-next-line @typescript-eslint/typedef
     const debugSpy = jest.spyOn(logger, "debug").mockImplementation(() => {});
+
+    /*
+     * A full batch (more than the ten asked for): the worker asks again,
+     * and waits for room, since every slot and more is taken.
+     */
     const run: Promise<void> = new FetchListAndProbe("Worker 1").run();
 
     try {
       await flushMicrotasks();
       expect(probeSpy).toHaveBeenCalledTimes(monitorCount);
       expect(finishChecks).toHaveLength(monitorCount);
+      expect(getMonitorCheckSlots().getInUse()).toBe(monitorCount);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     } finally {
       for (const finish of finishChecks.reverse()) {
         finish();
       }
       await run;
+      await whenMonitorChecksSettle();
     }
+
+    // Once there was room, it asked again, and was handed nothing more.
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(getMonitorCheckSlots().getInUse()).toBe(0);
 
     expect(
       debugSpy.mock.calls.filter(

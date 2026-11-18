@@ -496,7 +496,7 @@ After those 30 minutes, PostgreSQL's data took 163 MiB and ClickHouse's 452 MiB,
 
 So this profile runs on a server with 4 CPU cores and 6 GB of memory, with room for the system, Docker and an update. nginx in `ingress` starts one worker per core, so on a server with more cores it uses more: about 510 MiB on 32 cores.
 
-One probe checks at most 50 monitors a minute with its default settings: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). For the 100 monitors to be checked every minute, the measurement set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. Raise it, or the number of workers, the same way for more monitors.
+With its default settings, one probe checks up to 50 monitors at once: 5 workers (`GLOBAL_PROBE_1_MONITORING_WORKERS`) of 10 monitors each (`GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT`). It asks for more as soon as it has room, so it is not limited to 50 monitors a minute: measured with 252 Website, API and Port monitors that check every minute, it checked each of them every minute. The probe of release 15.0.0 asked only once a minute, so it checked at most 50 monitors a minute: for the 100 monitors to be checked every minute, the measurement above set `GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT=20` in `config.env`. A probe that falls behind says so on OneUptime Health in the Admin Dashboard: raise either setting in `config.env` so it checks more at once.
 
 ## Update OneUptime
 
