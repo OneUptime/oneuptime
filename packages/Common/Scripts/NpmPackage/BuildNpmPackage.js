@@ -106,11 +106,11 @@ const PINNED_LEFT_OUT = Object.freeze({
   "Types/Workspace/NotificationRules/NotificationRuleCondition":
     "the workspace notification rule forms' choices, as dropdown options (UI/Utils/Dropdown)",
   "Types/Workspace/NotificationRules/NotificationRuleConditionMatch":
-    "matches one condition of a workspace notification rule by the rule forms' condition types (NotificationRuleCondition, so UI/Utils/Dropdown); new in 16.0.0, never published",
+    "matches one condition of a workspace notification rule by the condition types NotificationRuleCondition declares; new in 16.0.0 and never published (UI/Utils/Dropdown)",
   "Types/Workspace/NotificationRules/NotificationRuleUtil":
     "matches workspace notification rules, logging through the server's logger (Server/Utils/Logger)",
   "Types/Workspace/NotificationRules/PolicyNameConditionSwitch":
-    "switches an on-call rule's policy-name condition to the policies it names, with the rule forms' conditions (NotificationRuleCondition, so UI/Utils/Dropdown); new in 16.0.0, never published",
+    "switches an on-call rule's policy-name condition to the policies it names, with the conditions NotificationRuleCondition declares; new in 16.0.0 and never published (UI/Utils/Dropdown)",
   "Utils/Dashboard/Components/DashboardClockComponent":
     "the dashboard clock widget, in the viewer's time zone (UI/Utils/Timezone)",
   "Utils/Dashboard/Components/Index":

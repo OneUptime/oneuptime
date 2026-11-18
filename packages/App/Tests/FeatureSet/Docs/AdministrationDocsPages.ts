@@ -188,6 +188,7 @@ export const SERVER_MESSAGES: Readonly<Record<string, ReadonlyArray<string>>> =
       "This user has already been invited to this team",
       "You have reached the user limit for the free plan",
       "Too many invitations were sent to this email address in the last hour",
+      "You can remove this person from only some of their teams, so you can't remove them from the project",
     ],
     [BILLING]: [
       "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry",

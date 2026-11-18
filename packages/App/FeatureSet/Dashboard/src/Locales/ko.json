@@ -56873,6 +56873,7 @@
   "Not what I was looking for": "찾던 내용이 아님",
   "OneUptime docs": "OneUptime 문서",
   "Other OneUptime data": "기타 OneUptime 데이터",
+  "Remove them from your teams on their Teams page instead.": "대신 이 사용자의 팀 페이지에서 내 팀에서 제거하세요.",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{time}}부터 이 프로브의 모니터가 확인 시각을 1분 넘게 기다리고 있어, 설정보다 덜 자주 확인됩니다.",
   "Something is missing": "내용이 부족함",
   "Thanks for your answer.": "답변해 주셔서 감사합니다.",
@@ -56883,5 +56884,16 @@
   "Wrong or out of date": "틀렸거나 오래됨",
   "Your project is a week old. One click tells this server's admins how it went.": "프로젝트를 만든 지 일주일이 되었습니다. 한 번의 클릭으로 이 서버의 관리자에게 어땠는지 알려 주세요.",
   "{{helpful}} of {{count}} rated answers were helpful.": "평가된 답변 {{count}}개 중 {{helpful}}개가 도움이 되었습니다.",
-  "{{helpful}} of {{count}} rated answers were helpful._one": "평가된 답변 {{count}}개 중 {{helpful}}개가 도움이 되었습니다."
+  "{{helpful}} of {{count}} rated answers were helpful._one": "평가된 답변 {{count}}개 중 {{helpful}}개가 도움이 되었습니다.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "현재 역할로는 이 사용자의 팀 {{count}}개에서 사람을 제거할 수 없으므로 이 사용자는 이 프로젝트에 남게 됩니다.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "현재 역할로는 이 사용자의 팀 {{count}}개에서 사람을 제거할 수 없으므로 이 사용자는 이 프로젝트에 남게 됩니다.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "현재 역할로는 {{teams}}에서 사람을 제거할 수 없으므로 이 사용자는 이 프로젝트에 남게 됩니다.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "선택한 사람 중 {{count}}명은 현재 역할로 모든 팀에서 제거할 수 없으므로 이 프로젝트에 남습니다:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "선택한 사람 중 {{count}}명은 현재 역할로 모든 팀에서 제거할 수 없으므로 이 프로젝트에 남습니다:",
+  "{{teams}} and {{count}} other teams": "{{teams}} 외 팀 {{count}}개",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} 외 팀 {{count}}개",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이 링크를 복사해 직접 보내세요. 이 주소에서만, 7일 동안 한 번 사용할 수 있습니다.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이미 계정이 있고 이제 구성원입니다. 로그인할 수 있도록 이 링크를 보내세요.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이미 계정이 있습니다. 로그인할 수 있도록 이 링크를 보내면 그곳에서 초대를 수락합니다.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "초대 링크를 읽을 수 없습니다. 더 이상 이 프로젝트에 초대되어 있지 않을 수 있습니다. 프로젝트의 사용자 페이지에서 다시 초대하세요."
 }

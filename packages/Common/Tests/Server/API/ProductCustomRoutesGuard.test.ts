@@ -995,7 +995,7 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
       {
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 17,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 18,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 1,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
@@ -1044,7 +1044,7 @@ const FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        "packages/Common/Server/API/TeamMemberAPI.ts": 6,
+        "packages/Common/Server/API/TeamMemberAPI.ts": 7,
         "packages/Common/Server/API/UserAPI.ts": 7,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
         "ee/Server/Identity/API/SCIM.ts": 9,

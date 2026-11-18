@@ -56873,6 +56873,7 @@
   "Not what I was looking for": "探していた内容ではない",
   "OneUptime docs": "OneUptime のドキュメント",
   "Other OneUptime data": "その他の OneUptime データ",
+  "Remove them from your teams on their Teams page instead.": "代わりに、このユーザーの「チーム」ページで、あなたのチームから外してください。",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "{{time}} 以降、このプローブのモニターはチェック時刻を 1 分以上過ぎても待っているため、設定より少ない頻度でしかチェックされていません。",
   "Something is missing": "情報が足りない",
   "Thanks for your answer.": "ご回答ありがとうございます。",
@@ -56883,5 +56884,16 @@
   "Wrong or out of date": "誤り・古い情報がある",
   "Your project is a week old. One click tells this server's admins how it went.": "プロジェクトを作成して 1 週間です。ワンクリックで、うまくいったかをこのサーバーの管理者に伝えられます。",
   "{{helpful}} of {{count}} rated answers were helpful.": "評価された {{count}} 件の回答のうち {{helpful}} 件が役に立ちました。",
-  "{{helpful}} of {{count}} rated answers were helpful._one": "評価された {{count}} 件の回答のうち {{helpful}} 件が役に立ちました。"
+  "{{helpful}} of {{count}} rated answers were helpful._one": "評価された {{count}} 件の回答のうち {{helpful}} 件が役に立ちました。",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "あなたのロールでは、このユーザーの {{count}} 個のチームからメンバーを外せないため、このユーザーはこのプロジェクトに残ります。",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "あなたのロールでは、このユーザーの {{count}} 個のチームからメンバーを外せないため、このユーザーはこのプロジェクトに残ります。",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "あなたのロールでは {{teams}} からメンバーを外せないため、このユーザーはこのプロジェクトに残ります。",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "選択したユーザーのうち {{count}} 人は、あなたのロールではすべてのチームから外せないため、このプロジェクトに残ります：",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "選択したユーザーのうち {{count}} 人は、あなたのロールではすべてのチームから外せないため、このプロジェクトに残ります：",
+  "{{teams}} and {{count}} other teams": "{{teams}} とほか {{count}} 個のチーム",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} とほか {{count}} 個のチーム",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "{{email}} への招待メールは送信されませんでした。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちで、メンバーになっています。このリンクを送ってサインインしてもらってください。",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "{{email}} への招待メールは送信されませんでした。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "招待リンクを読み取れませんでした。このプロジェクトへの招待はもうないのかもしれません。プロジェクトの「ユーザー」ページから再度招待してください。"
 }

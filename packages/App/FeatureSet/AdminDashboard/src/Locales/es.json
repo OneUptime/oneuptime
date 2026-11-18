@@ -4264,5 +4264,10 @@
   "OneUptime docs": "Documentación de OneUptime",
   "Other OneUptime data": "Otros datos de OneUptime",
   "No data read": "No se leyeron datos",
-  "What the answers rated down read": "Qué leyeron las respuestas valoradas como no útiles"
+  "What the answers rated down read": "Qué leyeron las respuestas valoradas como no útiles",
+  "They can still join: send them their invitation link yourself.": "Aún puede unirse: envíale tú su enlace de invitación.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "El correo de invitación a {{email}} no se envió. Copia este enlace y envíaselo tú. Funciona una sola vez, solo para esta dirección, durante 7 días.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta: envíale este enlace para iniciar sesión y desde ahí aceptará la invitación.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "El correo de invitación a {{email}} no se envió. Ya tiene una cuenta y ahora es miembro: envíale este enlace para iniciar sesión.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "No se pudo leer el enlace de invitación. Quizá ya no esté invitado a este proyecto: vuelve a invitarlo desde su página Usuarios."
 }

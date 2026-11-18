@@ -49,6 +49,10 @@ export const INVITATION_LINK_COPY: {
   failed: string;
   done: string;
   getLink: string;
+  notSentDescription: string;
+  notSentRegisteredDescription: string;
+  notSentMemberDescription: string;
+  notSentFailed: string;
 } = {
   // What a master admin's invite dialog says before Invite is pressed.
   inviteDescriptionForAdmin: translationKey(
@@ -78,7 +82,36 @@ export const INVITATION_LINK_COPY: {
   done: translationKey("Done"),
   // A pending person's row action, which opens this dialog for them (#7168).
   getLink: translationKey("Get Invitation Link"),
+  /*
+   * Opened from an invitation email the server failed to send (the
+   * server's email log, #7169): the email may have failed on a server that
+   * sends others, so the dialog says that this one was not sent.
+   */
+  notSentDescription: translationKey(
+    "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.",
+  ),
+  notSentRegisteredDescription: translationKey(
+    "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.",
+  ),
+  notSentMemberDescription: translationKey(
+    "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.",
+  ),
+  notSentFailed: translationKey(
+    "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.",
+  ),
 };
+
+/*
+ * Whom the dialog reads the link for: a membership - a row of a list - or,
+ * from the server's email log, the project and the address an invitation
+ * email went to (#7169).
+ */
+export interface InvitationLinkInvitee {
+  projectId: string;
+  email: string;
+}
+
+export type InvitationLinkTarget = ObjectID | InvitationLinkInvitee;
 
 /*
  * GET INVITATION LINK, ON A PENDING PERSON'S ROW (#7168).
@@ -143,7 +176,22 @@ export interface InvitationLink {
  */
 export const getInvitationLinkDescription: (
   invitation: InvitationLink,
-) => string = (invitation: InvitationLink): string => {
+  options?: { isEmailNotSent?: boolean | undefined } | undefined,
+) => string = (
+  invitation: InvitationLink,
+  options?: { isEmailNotSent?: boolean | undefined } | undefined,
+): string => {
+  // Opened from an invitation email the server failed to send (#7169).
+  if (options?.isEmailNotSent) {
+    if (!invitation.isRegistered) {
+      return INVITATION_LINK_COPY.notSentDescription;
+    }
+
+    return invitation.isAccepted
+      ? INVITATION_LINK_COPY.notSentMemberDescription
+      : INVITATION_LINK_COPY.notSentRegisteredDescription;
+  }
+
   if (!invitation.isRegistered) {
     return INVITATION_LINK_COPY.description;
   }
@@ -155,11 +203,22 @@ export const getInvitationLinkDescription: (
 
 export const INVITATION_LINK_ROUTE: string = "/team-member/invitation-link";
 
+// How the route is asked for the link of a membership, or of a project's invitee.
+export const getInvitationLinkRequest: (
+  target: InvitationLinkTarget,
+) => JSONObject = (target: InvitationLinkTarget): JSONObject => {
+  if (target instanceof ObjectID) {
+    return { teamMemberId: target.toString() };
+  }
+
+  return { projectId: target.projectId, email: target.email };
+};
+
 // The link for a membership just created, or null when it cannot be read.
 export const fetchInvitationLink: (
-  teamMemberId: ObjectID,
+  target: InvitationLinkTarget,
 ) => Promise<InvitationLink | null> = async (
-  teamMemberId: ObjectID,
+  target: InvitationLinkTarget,
 ): Promise<InvitationLink | null> => {
   try {
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -168,9 +227,7 @@ export const fetchInvitationLink: (
         url: URL.fromURL(APP_API_URL).addRoute(
           new Route(INVITATION_LINK_ROUTE),
         ),
-        data: {
-          teamMemberId: teamMemberId.toString(),
-        },
+        data: getInvitationLinkRequest(target),
       });
 
     if (!response.isSuccess()) {
@@ -195,7 +252,14 @@ export const fetchInvitationLink: (
 };
 
 export interface ComponentProps {
-  teamMemberId: ObjectID;
+  // The membership whose link this is: a row of a list.
+  teamMemberId?: ObjectID | undefined;
+  /*
+   * Or the project and the address of an invitation email the server
+   * failed to send: the server's email log (#7169). The dialog then says
+   * that email was not sent.
+   */
+  invitee?: InvitationLinkInvitee | undefined;
   onClose: () => void;
 }
 
@@ -205,11 +269,18 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [invitation, setInvitation] = useState<InvitationLink | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const isEmailNotSent: boolean = Boolean(props.invitee);
 
   useEffect(() => {
     let isCurrent: boolean = true;
 
-    fetchInvitationLink(props.teamMemberId)
+    const read: Promise<InvitationLink | null> = props.invitee
+      ? fetchInvitationLink(props.invitee)
+      : props.teamMemberId
+        ? fetchInvitationLink(props.teamMemberId)
+        : Promise.resolve(null);
+
+    read
       .then((loaded: InvitationLink | null): void => {
         if (isCurrent) {
           setInvitation(loaded);
@@ -225,7 +296,11 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [props.teamMemberId.toString()]);
+  }, [
+    props.teamMemberId?.toString(),
+    props.invitee?.projectId,
+    props.invitee?.email,
+  ]);
 
   return (
     <Modal
@@ -233,7 +308,9 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
       description={
         invitation
           ? translator.translateTemplate(
-              getInvitationLinkDescription(invitation),
+              getInvitationLinkDescription(invitation, {
+                isEmailNotSent: isEmailNotSent,
+              }),
               { email: invitation.email },
             )
           : undefined
@@ -266,7 +343,11 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
           className="text-sm text-gray-600 text-pretty"
           data-testid="invitation-link-failed"
         >
-          {translator.translateText(INVITATION_LINK_COPY.failed)}
+          {translator.translateText(
+            isEmailNotSent
+              ? INVITATION_LINK_COPY.notSentFailed
+              : INVITATION_LINK_COPY.failed,
+          )}
         </p>
       )}
     </Modal>

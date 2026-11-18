@@ -2,6 +2,7 @@ import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSC
 import InitialMigration from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1717605043663-InitialMigration";
 import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1786700000000-DropProjectCallSMSConfigCredentialUniques";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
+import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -133,12 +134,31 @@ describe("ProjectCallSMSConfig credential columns", () => {
      * SID is 34 characters and an auth token 32, so truncation was never the
      * cause — but if these ever narrowed below that, the same endpoint would
      * start answering 500 again for an entirely different reason.
+     *
+     * The account SID is kept as written, in a varchar of its own length.
+     * The auth token is kept encrypted, in a text column with no length at
+     * all (#9267): its ciphertext is about 40% longer than the token, so a
+     * length of its own would refuse a token its field takes. The limit a
+     * token meets is its type's, on the token as written, before it is
+     * encrypted.
      */
-    for (const propertyName of CREDENTIAL_COLUMNS) {
-      expect(Number(columnArgs(propertyName).options.length)).toBeGreaterThan(
-        34,
-      );
-    }
+    expect(
+      Number(columnArgs("twilioAccountSID").options.length),
+    ).toBeGreaterThan(34);
+
+    const authToken: ColumnMetadataArgs["options"] =
+      columnArgs("twilioAuthToken").options;
+
+    expect(authToken.type).toBe("text");
+    expect(authToken.length).toBeUndefined();
+
+    // A type with no length of its own takes any token.
+    expect(
+      getMaxLengthFromTableColumnType(
+        new ProjectCallSMSConfig().getTableColumnMetadata("twilioAuthToken")
+          .type,
+      ) ?? Infinity,
+    ).toBeGreaterThan(34);
   });
 });
 

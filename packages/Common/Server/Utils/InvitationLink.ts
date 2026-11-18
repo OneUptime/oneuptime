@@ -9,6 +9,7 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
+import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -76,6 +77,10 @@ export interface InvitationLinkAnswer {
  */
 export const MAX_MEMBERSHIPS_PER_SIGN_UP_READ: number = 100;
 
+// A person named by project and address who is no longer invited there.
+export const INVITATION_NOT_IN_PROJECT_MESSAGE: string =
+  "This person is not invited to this project any more, so there is no invitation link to send. Invite them again from the project's Users page.";
+
 export default class InvitationLink {
   @CaptureSpan()
   public static async getForTeamMember(
@@ -136,6 +141,67 @@ export default class InvitationLink {
       isAccepted: isAccepted,
       email: user.email.toString(),
     };
+  }
+
+  /*
+   * The link of a person's invitation to a project, named by the project and
+   * the address it went to: what the server's email log knows of an
+   * invitation email it failed to send (#7169, Types/Email/ServerEmailLog),
+   * whose row offers Get Invitation Link. The person's membership in the
+   * project - one still waiting for them first, else one accepted for them -
+   * is read as getForTeamMember reads one. An address with no account, or
+   * an account no longer in the project, is told so: there is no
+   * invitation to send.
+   */
+  @CaptureSpan()
+  public static async getForProjectInvitee(data: {
+    projectId: ObjectID;
+    email: Email;
+  }): Promise<InvitationLinkAnswer> {
+    const user: User | null = await UserService.findOneBy({
+      query: {
+        email: data.email,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user || !user.id) {
+      throw new BadDataException(INVITATION_NOT_IN_PROJECT_MESSAGE);
+    }
+
+    const findMembership: (
+      hasAcceptedInvitation: boolean,
+    ) => Promise<TeamMember | null> = (
+      hasAcceptedInvitation: boolean,
+    ): Promise<TeamMember | null> => {
+      return TeamMemberService.findOneBy({
+        query: {
+          userId: user.id!,
+          projectId: data.projectId,
+          hasAcceptedInvitation: hasAcceptedInvitation,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    };
+
+    const membership: TeamMember | null =
+      (await findMembership(false)) || (await findMembership(true));
+
+    if (!membership || !membership.id) {
+      throw new BadDataException(INVITATION_NOT_IN_PROJECT_MESSAGE);
+    }
+
+    return await InvitationLink.getForTeamMember(membership.id);
   }
 
   /*

@@ -52,9 +52,11 @@ export interface LabelledReferences {
  * import a retry tries again, the AI run that opened a code task, the
  * playbook (playbooks carry no labels) a security case's AI triage
  * suggested, the audit log entry an audit log export's cursor stands at
- * (entries are kept in ClickHouse and carry no labels), and the incident
- * or alert severity an on-call test page runs the On-Call Rules of
- * (severities carry no labels).
+ * (entries are kept in ClickHouse and carry no labels), the incident or
+ * alert severity an on-call test page runs the On-Call Rules of
+ * (severities carry no labels), and the monitor's fire drill an on-call
+ * test page was part of (a drill has no record of its own: it is kept as
+ * its tests alone).
  */
 export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
   new Set<string>([
@@ -71,6 +73,12 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "SecurityCase.aiSuggestedPlaybookId",
     "AuditLogExport.cursorEntryId",
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",
+    /*
+     * The fire drill a test page was part of (#9386): one id, generated as
+     * the drill starts, on every test it started. A drill has no row of its
+     * own, so the id names no labelled record to weigh the test by.
+     */
+    "OnCallDutyPolicyExecutionLog.testPageFireDrillId",
   ]);
 
 /*

@@ -47,6 +47,27 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * A self-hosted server, whatever config.env says: the suites run with
+ * BILLING_ENABLED=true, OneUptime Cloud, where push stays off until its
+ * operator turns it on.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import ServerAlertsCard, {
   SERVER_ALERTS_CARD_TEST_ID,
   SERVER_ALERTS_COPY,

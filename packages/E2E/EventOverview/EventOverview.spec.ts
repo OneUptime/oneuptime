@@ -279,9 +279,10 @@ const INCIDENT_PAGE: EventPage = {
       description: "Sep 14 2026, 06:12 PM UTC",
     },
   ],
-  // What it touched leads the column.
+  // What it touched leads the column, then who was told about it (#7075).
   rightColumn: [
     "Affected Resources",
+    "Who Was Told",
     "Incident Details",
     "Measurements",
     "Incident Roles",
@@ -347,7 +348,12 @@ const ALERT_PAGE: EventPage = {
       description: "Sep 14 2026, 06:15 PM UTC",
     },
   ],
-  rightColumn: ["Affected Resources", "Alert Details", "Measurements"],
+  rightColumn: [
+    "Affected Resources",
+    "Who Was Told",
+    "Alert Details",
+    "Measurements",
+  ],
   detailsCard: "Alert Details",
   detailLabels: [
     "Monitor",
@@ -5181,12 +5187,17 @@ function composerFrame(page: Page): Locator {
     .first();
 }
 
+/*
+ * Send, and Stop in its place while the AI works: the shared Button's icon
+ * buttons (#9195), each named by what it does - and Send by its key - as
+ * its tooltip says it.
+ */
 function sendButton(page: Page): Locator {
-  return conversation(page).getByTitle("Send (Enter)");
+  return conversation(page).getByRole("button", { name: "Send (Enter)" });
 }
 
 function stopButton(page: Page): Locator {
-  return conversation(page).getByTitle("Stop generating");
+  return conversation(page).getByRole("button", { name: "Stop generating" });
 }
 
 function modePicker(page: Page): Locator {
@@ -16038,6 +16049,251 @@ test.describe("the record's channel card", () => {
 
     await page.keyboard.press("Tab");
     await expect(card.getByTestId("record-channel-add-people")).toBeFocused();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Who Was Told (#7075)
+ * ---------------------------------------------------------------------------
+ * Who OneUptime told about an incident or an alert, by what, and what
+ * failed, as it happened: the card beside the record's details, read from
+ * GET /who-was-told/<incident|alert>/<id>, which the fixture answers with
+ * the real buildWhoWasTold over the record's on-call run, its steps and its
+ * notification logs (Fixture.js, "Who was told").
+ */
+
+function whoWasToldCard(page: Page): Locator {
+  return card(page, "Who Was Told");
+}
+
+// A person's or a channel's two lines: how it was reached, then by what and when.
+function whoWasToldLines(row: Locator): Locator {
+  return row.locator(":scope > div > p");
+}
+
+// What a line folds under Show details, in order: each one's kind and status.
+async function whoWasToldDetails(row: Locator): Promise<Array<string>> {
+  return row
+    .getByTestId("who-was-told-details")
+    .locator(":scope > li")
+    .evaluateAll((items: Array<Element>): Array<string> => {
+      return items.map((item: Element): string => {
+        return `${item.getAttribute("data-testid")}: ${item.getAttribute("data-status")}`;
+      });
+    });
+}
+
+test.describe("Who Was Told (#7075)", () => {
+  test("an incident: whom its policy paged and by what, who acknowledged, the level that paged nobody, the channel and the subscribers", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE);
+
+    const told: Locator = whoWasToldCard(page);
+
+    await expect(told.getByTestId("who-was-told-summary")).toHaveText(
+      "OneUptime told 1 person and posted to 1 channel. Sam Rivera acknowledged it 3 minutes after the first page.",
+    );
+
+    // One line per person: how the page reached them, by what, and where they stand.
+    const person: Locator = told.getByTestId("who-was-told-person");
+    await expect(person).toHaveCount(1);
+    await expect(person).toHaveAttribute("data-status", "Acknowledged");
+    await expect(person.getByTestId("pill-text")).toHaveText("Acknowledged");
+    await expect(person).toContainText("Sam Rivera");
+    await expect(whoWasToldLines(person)).toHaveText([
+      "Paged by Checkout primary on-call · Level 1 · Schedule EU days",
+      "SMS, Push notification · Sep 14, 6:04 PM",
+    ]);
+
+    // Folded under it, in order of time: the page, then each notification.
+    await person.getByTestId("who-was-told-details-toggle").click();
+    expect(await whoWasToldDetails(person)).toEqual([
+      "who-was-told-page: Acknowledged",
+      "who-was-told-notification: Delivered",
+      "who-was-told-notification: Sent",
+    ]);
+    await expect(person.getByTestId("who-was-told-notification")).toHaveText(
+      [
+        "Sep 14, 6:01 PM SMS Delivered",
+        "Sep 14, 6:01 PM Push notification Sent",
+      ],
+      { useInnerText: true },
+    );
+
+    // The level that reached nobody, and why, as the on-call logs say it.
+    const notPaged: Locator = told.getByTestId("who-was-told-not-paged");
+    await expect(notPaged).toHaveCount(1);
+    await expect(notPaged.getByTestId("who-was-told-reason")).toHaveText(
+      "Nobody was on call in schedule EU nights.",
+    );
+    await expect(notPaged.getByTestId("pill-text")).toHaveText("Not paged");
+    await expect(notPaged).toContainText(
+      "Paged by Checkout primary on-call · Level 2 · Schedule EU nights · Sep 14, 6:01 PM",
+    );
+
+    // The channel the incident was posted to.
+    const channel: Locator = told.getByTestId("who-was-told-channel");
+    await expect(channel).toHaveCount(1);
+    await expect(channel).toHaveAttribute("data-status", "Told");
+    await expect(channel.getByTestId("pill-text").first()).toHaveText(
+      "Notified",
+    );
+    await expect(channel).toContainText("#checkout-incidents");
+    await expect(whoWasToldLines(channel)).toHaveText([
+      "Slack · Sep 14, 6:01 PM",
+    ]);
+
+    // Its status pages' subscribers: counted, never listed.
+    const subscribers: Locator = told.getByTestId("who-was-told-subscribers");
+    await expect(subscribers).toHaveAttribute("data-status", "Success");
+    await expect(subscribers.getByTestId("pill-text")).toHaveText("Notified");
+    await expect(subscribers).toContainText("1,284 notifications sent");
+
+    // Every notification is on the incident's Notification Logs.
+    await expect(told.getByTestId("who-was-told-logs-link")).toHaveAttribute(
+      "href",
+      `${INCIDENT_PATH}/notification-logs`,
+    );
+    expect(
+      await apiRequestsTo(page, `/who-was-told/incident/${INCIDENT_ID}`),
+    ).not.toHaveLength(0);
+
+    await screenshotElement(told, "incident-who-was-told");
+  });
+
+  test("an alert: whom its policy paged, by push and a phone call, and how soon they acknowledged", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, ALERT_PAGE);
+
+    const told: Locator = whoWasToldCard(page);
+
+    await expect(told.getByTestId("who-was-told-summary")).toHaveText(
+      "OneUptime told 1 person. Alex Kim acknowledged it 100 seconds after the first page.",
+    );
+
+    const person: Locator = told.getByTestId("who-was-told-person");
+    await expect(person).toHaveCount(1);
+    await expect(person).toHaveAttribute("data-status", "Acknowledged");
+    await expect(person).toContainText("Alex Kim");
+    await expect(whoWasToldLines(person)).toHaveText([
+      "Paged by Payments on-call · Level 1",
+      "Push notification, Phone call · Sep 14, 6:08 PM",
+    ]);
+
+    // Nothing else was told: no level that paged nobody, no channel, and an alert has no subscribers.
+    await expect(
+      told.getByTestId("who-was-told-not-paged-section"),
+    ).toHaveCount(0);
+    await expect(told.getByTestId("who-was-told-channels")).toHaveCount(0);
+    await expect(told.getByTestId("who-was-told-subscribers")).toHaveCount(0);
+
+    await expect(told.getByTestId("who-was-told-logs-link")).toHaveAttribute(
+      "href",
+      `${ALERT_PATH}/notification-logs`,
+    );
+    expect(
+      await apiRequestsTo(page, `/who-was-told/alert/${ALERT_ID}`),
+    ).not.toHaveLength(0);
+  });
+
+  test("before anybody acknowledges it (?state=created): the page went out, and nobody is said to have acknowledged it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+
+    const told: Locator = whoWasToldCard(page);
+
+    await expect(told.getByTestId("who-was-told-summary")).toHaveText(
+      "OneUptime told 1 person and posted to 1 channel.",
+    );
+
+    const person: Locator = told.getByTestId("who-was-told-person");
+    await expect(person).toHaveAttribute("data-status", "Told");
+    await expect(person.getByTestId("pill-text")).toHaveText("Notified");
+    // When it reached them, not when they answered: nobody has.
+    await expect(whoWasToldLines(person)).toHaveText([
+      "Paged by Checkout primary on-call · Level 1 · Schedule EU days",
+      "SMS, Push notification · Sep 14, 6:01 PM",
+    ]);
+  });
+
+  test("a page OneUptime AI holds (?hold=1) has told nobody yet, and the card says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "hold=1", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+
+    const told: Locator = whoWasToldCard(page);
+
+    await expect(told.getByTestId("who-was-told-summary")).toHaveText(
+      "Nobody has been told about this incident yet.",
+    );
+    await expect(told.getByTestId("who-was-told-person")).toHaveCount(0);
+
+    // The held run, under Not paged, says why in its own words.
+    const run: Locator = told.getByTestId("who-was-told-run");
+    await expect(run).toHaveCount(1);
+    await expect(run).toContainText("Checkout primary on-call");
+    await expect(run.getByTestId("pill-text")).toHaveText("Waiting");
+    await expect(run.getByTestId("who-was-told-reason")).toHaveText(
+      "Waiting for OneUptime AI. Paging starts Mon 18:31 (UTC) unless it resolves this.",
+    );
+  });
+
+  test("?fail=who-was-told: the card says it could not read who was told, and Try again reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "fail=who-was-told");
+
+    const told: Locator = whoWasToldCard(page);
+
+    await expect(told.getByTestId("who-was-told-error")).toHaveText(
+      "Couldn't read who was told. The notification logs could not be read.",
+    );
+
+    /*
+     * Read as the page opens, and once more when the AI report arrives and
+     * refreshes the feed: the card reads again whenever the page does.
+     */
+    await expect(summarySection(page)).toContainText(INCIDENT_TLDR);
+    await expect
+      .poll(async (): Promise<number> => {
+        return (
+          await apiRequestsTo(page, `/who-was-told/incident/${INCIDENT_ID}`)
+        ).length;
+      })
+      .toBe(2);
+
+    await told.getByTestId("who-was-told-try-again").click();
+
+    await expect
+      .poll(async (): Promise<number> => {
+        return (
+          await apiRequestsTo(page, `/who-was-told/incident/${INCIDENT_ID}`)
+        ).length;
+      })
+      .toBe(3);
+    await expect(told.getByTestId("who-was-told-error")).toHaveText(
+      "Couldn't read who was told. The notification logs could not be read.",
+    );
   });
 });
 

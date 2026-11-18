@@ -56873,6 +56873,7 @@
   "Not what I was looking for": "Ikke det jeg lette etter",
   "OneUptime docs": "OneUptime-dokumentasjonen",
   "Other OneUptime data": "Andre OneUptime-data",
+  "Remove them from your teams on their Teams page instead.": "Fjern heller personen fra teamene dine på personens side Team.",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "Siden {{time}} har monitorene ventet mer enn ett minutt etter sjekktidspunktet sitt, så de sjekkes sjeldnere enn innstilt.",
   "Something is missing": "Noe mangler",
   "Thanks for your answer.": "Takk for svaret ditt.",
@@ -56883,5 +56884,16 @@
   "Wrong or out of date": "Feil eller utdatert",
   "Your project is a week old. One click tells this server's admins how it went.": "Prosjektet ditt er en uke gammelt. Ett klikk forteller administratorene av denne serveren hvordan det gikk.",
   "{{helpful}} of {{count}} rated answers were helpful.": "{{helpful}} av {{count}} vurderte svar var nyttige.",
-  "{{helpful}} of {{count}} rated answers were helpful._one": "{{helpful}} av {{count}} vurdert svar var nyttig."
+  "{{helpful}} of {{count}} rated answers were helpful._one": "{{helpful}} av {{count}} vurdert svar var nyttig.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Rollen din kan ikke fjerne personer fra {{count}} av teamene deres, så personen ville blitt i dette prosjektet.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Rollen din kan ikke fjerne personer fra {{count}} av teamene deres, så personen ville blitt i dette prosjektet.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Rollen din kan ikke fjerne personer fra {{teams}}, så personen ville blitt i dette prosjektet.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "{{count}} av de valgte personene blir i dette prosjektet, fordi rollen din ikke kan fjerne dem fra alle teamene deres:",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} av de valgte personene blir i dette prosjektet, fordi rollen din ikke kan fjerne personen fra alle teamene sine:",
+  "{{teams}} and {{count}} other teams": "{{teams}} og {{count}} andre team",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} og {{count}} annet team",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. Kopier denne lenken og send den til dem selv. Den virker én gang, bare for denne adressen, i 7 dager.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. De har allerede en konto og er nå medlem: send dem denne lenken for å logge på.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "Invitasjonsmeldingen til {{email}} ble ikke sendt. De har allerede en konto: send dem denne lenken for å logge på, så godtar de invitasjonen derfra.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Invitasjonslenken kunne ikke leses. De er kanskje ikke lenger invitert til dette prosjektet: inviter dem på nytt fra siden Brukere i prosjektet."
 }

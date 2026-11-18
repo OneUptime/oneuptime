@@ -4264,5 +4264,10 @@
   "OneUptime docs": "OneUptime 문서",
   "Other OneUptime data": "기타 OneUptime 데이터",
   "No data read": "읽은 데이터 없음",
-  "What the answers rated down read": "도움이 되지 않은 답변이 읽은 것"
+  "What the answers rated down read": "도움이 되지 않은 답변이 읽은 것",
+  "They can still join: send them their invitation link yourself.": "초대 링크를 직접 보내면 여전히 참여할 수 있습니다.",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이 링크를 복사해 직접 보내세요. 이 주소에서만, 7일 동안 한 번 사용할 수 있습니다.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이미 계정이 있습니다. 로그인할 수 있도록 이 링크를 보내면 그곳에서 초대를 수락합니다.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "{{email}}에게 초대 이메일이 전송되지 않았습니다. 이미 계정이 있고 이제 구성원입니다. 로그인할 수 있도록 이 링크를 보내세요.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "초대 링크를 읽을 수 없습니다. 더 이상 이 프로젝트에 초대되어 있지 않을 수 있습니다. 프로젝트의 사용자 페이지에서 다시 초대하세요."
 }

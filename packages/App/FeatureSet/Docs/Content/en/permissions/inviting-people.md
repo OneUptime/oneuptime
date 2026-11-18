@@ -53,7 +53,7 @@ Type their address in **Email**. If no OneUptime account uses it yet, the dialog
 
 Click **Invite**. OneUptime emails the invitation and opens the person's page. They show as **Invitation Sent** until they accept.
 
-On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).
+On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form). Email set up later does not send the invitations made before it: they get in with their invitation link, or by signing up with the address you invited.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ On a self-hosted server that cannot send email yet, no email goes out, and they 
 
 ## Accept an invitation
 
-The invitation email names the project. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one. Once signed in, they accept in one of two places:
+The invitation email names the project and who invited them. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.
+
+**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.
+
+On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.
+
+Someone who signs in, or signs up another way, accepts in one of two places:
 
 | Where they are | What they see | What they click |
 | --- | --- | --- |
@@ -112,6 +118,8 @@ The Owners team always keeps at least one member who has joined, so a project ne
 
 On **Users**, open the person's row menu, **⋯**, and click **Remove from Project**. Or open the person and choose **Remove from Project** in their side menu. To remove several people at once, select their rows and delete the selection: each of them is removed the same way.
 
+If your role removes people only from some teams, such as the ones you own, **Remove from Project** is locked for someone who is also in a team you can't remove them from, and names the teams that keep them in the project, the ones you may see. Removing several people at once leaves them out, and says so.
+
 Removing someone takes them off every team of the project. They lose access at once, even while signed in, are taken off its on-call schedules and escalation rules, and stop getting its notifications. Their OneUptime account is not deleted, and you can invite them again. [Users, Teams & Permissions](/docs/permissions/index#users) lists everything that leaving a project takes with it.
 
 ## Other ways people join
@@ -134,8 +142,14 @@ On OneUptime Cloud, a project on the Free plan has room for one person. Change t
 One address can be sent 10 invitations an hour, to projects and private status pages together, whoever sends them. Wait an hour, then invite them again.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Your role removes people only from some of the project's teams, such as the ones you own, and this person is in others too. Remove them from your own teams on their **Teams** page, or ask a Project Owner or Project Admin to remove them from the project.
+:::
+
 :::details The invitation email did not arrive, or its link expired
 The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.
+
+To see whether it went out, open the **Email** tab of the project's **Notification Logs**: each invitation's row says whether it was sent, and why not. On a self-hosted server, a master admin also finds every email the server failed to send in its [email log](/docs/emails/email-providers#see-what-the-server-sent).
 
 On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.
 :::

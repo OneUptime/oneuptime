@@ -186,6 +186,39 @@ export default class TeamMembershipRemoval {
     });
   }
 
+  /**
+   * The names a list shows before a count closes it - "Database, On-call
+   * and 2 other teams" - in the reader's language's separator, never
+   * "Database and On-call and 2 other teams": at most
+   * MAX_LISTED_TEAM_NAMES of them, and how many it leaves out, for the
+   * count.
+   */
+  public static formatNamesBeforeCount(
+    names: Array<string>,
+    translator: Translator,
+  ): { names: string; leftOut: number } {
+    const unique: Array<string> = Array.from(
+      new Set(
+        names
+          .map((name: string) => {
+            return name.trim();
+          })
+          .filter((name: string) => {
+            return Boolean(name);
+          }),
+      ),
+    ).sort((a: string, b: string) => {
+      return a.localeCompare(b, undefined, { sensitivity: "base" });
+    });
+
+    const shown: Array<string> = unique.slice(0, MAX_LISTED_TEAM_NAMES);
+
+    return {
+      names: formatList(shown, translator),
+      leftOut: unique.length - shown.length,
+    };
+  }
+
   public static getTeamNames(memberships: Array<TeamMember>): Array<string> {
     return memberships
       .map((membership: TeamMember) => {

@@ -56873,6 +56873,7 @@
   "Not what I was looking for": "Не то, что я искал",
   "OneUptime docs": "Документация OneUptime",
   "Other OneUptime data": "Другие данные OneUptime",
+  "Remove them from your teams on their Teams page instead.": "Вместо этого удалите этого человека из своих команд на его странице «Команды».",
   "Since {{time}}, its monitors have waited more than a minute past their check time, so they are checked less often than set.": "С {{time}} его мониторы ждут больше минуты после своего времени проверки, поэтому они проверяются реже, чем задано.",
   "Something is missing": "Чего-то не хватает",
   "Thanks for your answer.": "Спасибо за ответ.",
@@ -56883,5 +56884,16 @@
   "Wrong or out of date": "Ошибка или устарело",
   "Your project is a week old. One click tells this server's admins how it went.": "Вашему проекту неделя. Один щелчок расскажет администраторам этого сервера, как всё прошло.",
   "{{helpful}} of {{count}} rated answers were helpful.": "Оценено ответов: {{count}}, из них полезных: {{helpful}}.",
-  "{{helpful}} of {{count}} rated answers were helpful._one": "Оценён {{count}} ответ, из них полезных: {{helpful}}."
+  "{{helpful}} of {{count}} rated answers were helpful._one": "Оценён {{count}} ответ, из них полезных: {{helpful}}.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project.": "Ваша роль не позволяет удалять людей из части их команд ({{count}}), поэтому этот человек останется в этом проекте.",
+  "Your role can't remove people from {{count}} of their teams, so they would stay in this project._one": "Ваша роль не позволяет удалять людей из {{count}} их команды, поэтому этот человек останется в этом проекте.",
+  "Your role can't remove people from {{teams}}, so they would stay in this project.": "Ваша роль не позволяет удалять людей из команд {{teams}}, поэтому этот человек останется в этом проекте.",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:": "Выбранные люди останутся в этом проекте, потому что ваша роль не позволяет удалить их из всех их команд (людей: {{count}}):",
+  "{{count}} of the selected people stay in this project, because your role can't remove them from all of their teams:_one": "{{count}} из выбранных людей останется в этом проекте, потому что ваша роль не позволяет удалить его из всех его команд:",
+  "{{teams}} and {{count}} other teams": "{{teams}} и ещё {{count}}",
+  "{{teams}} and {{count}} other teams_one": "{{teams}} и ещё {{count}}",
+  "The invitation email to {{email}} was not sent. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Письмо с приглашением на {{email}} не отправлено. Скопируйте эту ссылку и отправьте её сами. Она работает один раз, только для этого адреса, в течение 7 дней.",
+  "The invitation email to {{email}} was not sent. They already have an account and are a member now: send them this link to sign in.": "Письмо с приглашением на {{email}} не отправлено. У этого человека уже есть учётная запись, и теперь он участник: отправьте ему эту ссылку для входа.",
+  "The invitation email to {{email}} was not sent. They already have an account: send them this link to sign in and accept the invitation.": "Письмо с приглашением на {{email}} не отправлено. У этого человека уже есть учётная запись: отправьте ему эту ссылку для входа, и там он примет приглашение.",
+  "Their invitation link could not be read. They may not be invited to this project any more: invite them again from its Users page.": "Не удалось прочитать ссылку-приглашение. Возможно, этот человек больше не приглашён в этот проект: пригласите его снова на странице «Пользователи» проекта."
 }
