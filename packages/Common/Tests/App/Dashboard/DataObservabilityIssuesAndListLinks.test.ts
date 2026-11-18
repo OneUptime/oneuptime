@@ -168,7 +168,7 @@ describe("the Freshness chip", () => {
     ).toBeUndefined();
     expect(getFreshnessQueryValue([], "is", NOW)).toBeUndefined();
     expect(
-      getFreshnessQueryValue([TableFreshnessFilter.Late], "isNot", NOW),
+      getFreshnessQueryValue([TableFreshnessFilter.Late], "is_not", NOW),
     ).toBeUndefined();
     expect(getFreshnessQueryValue(["overdue"], "is", NOW)).toBeUndefined();
   });
