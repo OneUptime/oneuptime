@@ -11,6 +11,7 @@ import {
   PAGING_LADDER_DEFAULT_CHANNELS,
   PAGING_LADDER_DEFAULT_SKIPPED_MESSAGE,
   PHONE_PAGING_CHANNELS,
+  PagingLadderDefaultMemberResult,
   PagingLadderDefaultOutcome,
   PagingLadderDefaultStep,
   PagingLadderFromDefault,
@@ -22,6 +23,7 @@ import {
   getPagingLadderFromDefault,
   isMissingRequiredPhoneMethod,
   readPagingLadderDefault,
+  readPagingLadderDefaultMemberResults,
   toPagingLadderDefaultJSON,
   toPagingLadderDefaultStep,
   toPagingLadderStepOfChannel,
@@ -666,5 +668,95 @@ describe("describePagingLadderDefaultResult", () => {
         keptChannels: [],
       }),
     ).toBe("Applied the default ladder to their rules for every severity.");
+  });
+});
+
+describe("readPagingLadderDefaultMemberResults", () => {
+  test("anything but an answer with a list of results is no result", () => {
+    expect(readPagingLadderDefaultMemberResults(undefined)).toEqual([]);
+    expect(readPagingLadderDefaultMemberResults(null)).toEqual([]);
+    expect(readPagingLadderDefaultMemberResults("results")).toEqual([]);
+    expect(readPagingLadderDefaultMemberResults({})).toEqual([]);
+    expect(readPagingLadderDefaultMemberResults({ results: {} })).toEqual([]);
+  });
+
+  test("each member's result is read as the API sent it", () => {
+    const sent: Array<PagingLadderDefaultMemberResult> = [
+      {
+        userId: EMAIL,
+        outcome: PagingLadderDefaultOutcome.Applied,
+        appliedSteps: [
+          {
+            channel: OnCallPageChannel.Push,
+            notifyAfterMinutes: 0,
+            pushNotificationLevel: PushNotificationLevel.Standard,
+            repeatEveryMinutes: 5,
+          },
+          { channel: OnCallPageChannel.Call, notifyAfterMinutes: 10 },
+        ],
+        leftOutChannels: [OnCallPageChannel.SMS],
+        keptChannels: [OnCallPageChannel.Email],
+        changedRuleCount: 12,
+        message: "Applied the default ladder.",
+      },
+      {
+        userId: SMS,
+        outcome: PagingLadderDefaultOutcome.Skipped,
+        appliedSteps: [],
+        leftOutChannels: [OnCallPageChannel.Push],
+        keptChannels: [],
+        changedRuleCount: 0,
+        message: PAGING_LADDER_DEFAULT_SKIPPED_MESSAGE,
+      },
+    ];
+
+    expect(
+      readPagingLadderDefaultMemberResults(
+        JSON.parse(JSON.stringify({ results: sent })),
+      ),
+    ).toEqual(sent);
+  });
+
+  test("an outcome it does not know, or an entry that is not one, is left out", () => {
+    expect(
+      readPagingLadderDefaultMemberResults({
+        results: [
+          null,
+          "applied",
+          { userId: EMAIL, outcome: "maybe" },
+          { userId: SMS, outcome: PagingLadderDefaultOutcome.Failed },
+        ],
+      }),
+    ).toEqual([
+      {
+        userId: SMS,
+        outcome: PagingLadderDefaultOutcome.Failed,
+        appliedSteps: [],
+        leftOutChannels: [],
+        keptChannels: [],
+        changedRuleCount: 0,
+        message: "",
+      },
+    ]);
+  });
+
+  test("channels it does not know, and a count that is no number, are never guessed", () => {
+    const [result] = readPagingLadderDefaultMemberResults({
+      results: [
+        {
+          userId: CALL,
+          outcome: PagingLadderDefaultOutcome.Applied,
+          leftOutChannels: ["Pager", OnCallPageChannel.Call, 7],
+          keptChannels: "email",
+          changedRuleCount: "many",
+          message: 42,
+        },
+      ],
+    });
+
+    expect(result?.leftOutChannels).toEqual([OnCallPageChannel.Call]);
+    expect(result?.keptChannels).toEqual([]);
+    expect(result?.changedRuleCount).toBe(0);
+    expect(result?.message).toBe("");
   });
 });
