@@ -53,7 +53,7 @@ Scrivi il suo indirizzo in **E-mail**. Se nessun account OneUptime lo usa ancora
 
 Fai clic su **Invita**. OneUptime invia l'invito per email e apre la pagina della persona. Compare come **Invito inviato** finché non accetta.
 
-Su un server self-hosted che non può ancora inviare email, non parte nessuna email e la persona compare come **Invitato**. Un amministratore principale vede prima **Invia il link di invito**: copia il link, invialo tu stesso alla persona, poi fai clic su **Fatto**. Chiunque altro chiede all'amministratore del server di [configurare l'email](/docs/emails/smtp#aprire-il-modulo).
+Su un server self-hosted che non può ancora inviare email, non parte nessuna email e la persona compare come **Invitato**. Un amministratore principale vede prima **Invia il link di invito**: copia il link, invialo tu stesso alla persona, poi fai clic su **Fatto**. Chiunque altro chiede all'amministratore del server di [configurare l'email](/docs/emails/smtp#aprire-il-modulo). Configurare l'email in seguito non invia gli inviti fatti prima: la persona entra con il suo link di invito, o registrandosi con l'indirizzo invitato.
 :::
 
 > [!TIP]
@@ -61,7 +61,13 @@ Su un server self-hosted che non può ancora inviare email, non parte nessuna em
 
 ## Accettare un invito
 
-L'email di invito nomina il progetto. Il suo pulsante è **Create Your Account** per chi non ha ancora un account OneUptime, e **Sign In to OneUptime** per chi ne ha già uno. Dopo l'accesso, la persona accetta in uno di due posti:
+L'email di invito nomina il progetto e chi ha invitato la persona. Il suo pulsante è **Create Your Account** per chi non ha ancora un account OneUptime, e **Sign In to OneUptime** per chi ne ha già uno.
+
+**Create Your Account** apre la pagina di registrazione con il suo indirizzo e il nome che hai inserito già compilati, e dice quale progetto l'ha invitata e chi. Registrarsi lì la fa entrare nel progetto, senza altro da accettare.
+
+Su un server self-hosted che non può ancora inviare email, nessuno riceve un'email: il link di invito che la persona riceve al suo posto apre la stessa pagina di registrazione, o la pagina di accesso per chi ha già un account.
+
+Chi accede, o si registra in un altro modo, accetta in uno di due posti:
 
 | Dove si trova | Che cosa vede | Dove fa clic |
 | --- | --- | --- |
@@ -112,6 +118,8 @@ Il team Owners mantiene sempre almeno un membro entrato, così un progetto non p
 
 In **Utenti**, apri il menu della riga della persona, **⋯**, e fai clic su **Rimuovi dal progetto**. Oppure apri la persona e scegli **Rimuovi dal progetto** nel suo menu laterale. Per rimuovere più persone insieme, seleziona le loro righe ed elimina la selezione: ognuna viene rimossa nello stesso modo.
 
+Se il tuo ruolo rimuove persone solo da alcuni team, come quelli di cui sei proprietario, **Rimuovi dal progetto** è bloccato per chi è anche in un team da cui non puoi rimuoverlo, e nomina i team che lo tengono nel progetto, quelli che puoi vedere. Rimuovere più persone insieme lo lascia fuori, e lo dice.
+
 Rimuovere qualcuno lo toglie da ogni team del progetto. Perde subito l'accesso, anche se ha una sessione aperta, viene tolto dai turni di reperibilità e dalle regole di escalation e smette di ricevere le notifiche del progetto. Il suo account OneUptime non viene eliminato, e puoi invitarlo di nuovo. [Utenti, team e autorizzazioni](/docs/permissions/index#utenti) elenca tutto ciò che l'uscita da un progetto porta con sé.
 
 ## Altri modi per entrare
@@ -134,8 +142,14 @@ Su OneUptime Cloud, un progetto con il piano Free ha spazio per una persona. Cam
 A un indirizzo si possono inviare 10 inviti all'ora, a progetti e pagine di stato private insieme, chiunque li invii. Attendete un'ora, poi invitate di nuovo la persona.
 :::
 
+:::details "You can remove this person from only some of their teams, so you can't remove them from the project"
+Il tuo ruolo rimuove persone solo da alcuni team del progetto, come quelli di cui sei proprietario, e questa persona è anche in altri. Rimuovila dai tuoi team nella sua pagina **Team**, oppure chiedi a un Proprietario del progetto o a un Amministratore del progetto di rimuoverla dal progetto.
+:::
+
 :::details L'email di invito non è arrivata, o il suo link è scaduto
 L'invito non dipende dall'email. Chiedi alla persona di registrarsi con l'indirizzo invitato: OneUptime invia a quell'indirizzo un nuovo link per completare la creazione dell'account. Chi ha già un account accede e trova l'invito ad aspettarlo.
+
+Per vedere se è partita, apri la scheda **E-mail** dei **Log di notifica** del progetto: la riga di ogni invito dice se è stato inviato, e perché no. Su un server self-hosted, un amministratore principale trova anche ogni email che il server non è riuscito a inviare nel suo [log delle email](/docs/emails/email-providers#vedere-che-cosa-ha-inviato-il-server).
 
 Su un server self-hosted che non può ancora inviare email, nemmeno la registrazione può inviare un nuovo link via email: chiede invece alla persona di farsi dare il suo link di invito. Quando l'amministratore del server avrà [configurato l'email](/docs/emails/smtp#aprire-il-modulo), la registrazione funziona come sopra. Fino ad allora, un amministratore principale può inviarle un nuovo link, che funziona una volta, solo per quell'indirizzo, per 7 giorni: in **Utenti**, apri il menu della riga della persona, **⋯**, e fai clic su **Ottieni link di invito**.
 :::
