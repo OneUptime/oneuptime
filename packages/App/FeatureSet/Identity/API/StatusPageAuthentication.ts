@@ -252,14 +252,14 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
+    let statusPageId: ObjectID | null = null;
+
     try {
       if (!req.params["statuspageid"]) {
         throw new BadDataException("Status Page ID is required.");
       }
 
-      const statusPageId: ObjectID = new ObjectID(
-        req.params["statuspageid"].toString(),
-      );
+      statusPageId = new ObjectID(req.params["statuspageid"].toString());
 
       const refreshToken: string | undefined =
         CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
@@ -323,13 +323,20 @@ router.post(
         }
       }
 
-      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-      CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
-      CookieUtil.removeStatusPageSessionSignOutCookie(res, statusPageId);
-      CookieUtil.removeStatusPageMasterPasswordCookie(res, statusPageId);
+      CookieUtil.removeStatusPageSessionCookies(res, statusPageId);
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
+      /*
+       * Ending the session failed - the database could not be reached, say.
+       * The browser is still left with none of the page's session cookies,
+       * so it holds no token of the session any more (issue #9508); the
+       * failure is still answered, and logged, as one.
+       */
+      if (statusPageId && !res.headersSent) {
+        CookieUtil.removeStatusPageSessionCookies(res, statusPageId);
+      }
+
       return next(err);
     }
   },

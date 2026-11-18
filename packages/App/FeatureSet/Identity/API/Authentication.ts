@@ -2738,6 +2738,17 @@ router.post(
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
+      /*
+       * Ending the session failed - the database could not be reached, say.
+       * The browser is still left with none of the session's cookies, so it
+       * holds no token of the session any more and the next person on it is
+       * not signed in (issue #9508); the failure is still answered, and
+       * logged, as one.
+       */
+      if (!res.headersSent) {
+        CookieUtil.removeAllCookies(req, res);
+      }
+
       return next(err);
     }
   },
