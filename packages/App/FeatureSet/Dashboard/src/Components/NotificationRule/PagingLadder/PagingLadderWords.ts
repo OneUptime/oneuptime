@@ -5,9 +5,16 @@ import {
 } from "Common/Types/NotificationRule/PagingLadder";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import { NO_NOTIFICATION_REPEAT } from "Common/Types/NotificationRule/NotificationRepeat";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
+import { toSentenceTerm } from "Common/Types/Translator";
+import { joinList } from "Common/UI/Utils/ListSeparator";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import {
+  ComposedValue,
   PluralTemplate,
+  TemplateValues,
   Translator,
+  composedValue,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -152,6 +159,109 @@ export const PAGING_LADDER_COPY: {
   readOnlyNote: translationKey(
     "Only the person, or someone who may edit members' notification rules, can change this ladder.",
   ),
+};
+
+/*
+ * START FROM THE PROJECT'S DEFAULT (#9445): the button beside the ladder's
+ * title, and what the steps it filled say until they are saved. A channel
+ * of the default the person has not verified is left out, and named; while
+ * one is, their own steps of the channels the default does not use stay
+ * (getPagingLadderFromDefault), and are named too.
+ */
+export const PAGING_LADDER_DEFAULT_START_COPY: {
+  start: string;
+  started: string;
+  ownLeftOut: string;
+  ownLeftOutKeepingOwn: string;
+  memberLeftOut: string;
+  memberLeftOutKeepingOwn: string;
+} = {
+  start: translationKey("Start From the Project's Default"),
+  started: translationKey("Started from the project's default ladder."),
+  ownLeftOut: translationKey(
+    "You have not verified {{channels}} yet, so those steps are left out.",
+  ),
+  ownLeftOutKeepingOwn: translationKey(
+    "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.",
+  ),
+  memberLeftOut: translationKey(
+    "{{name}} has not verified {{channels}} yet, so those steps are left out.",
+  ),
+  memberLeftOutKeepingOwn: translationKey(
+    "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.",
+  ),
+};
+
+/*
+ * Channels named in a sentence of the reader's: "SMS and phone call", each
+ * by the name the ladder gives its method (NotificationMethodUtil), as the
+ * middle of a sentence words it.
+ */
+export const describeChannelsInSentence: (
+  channels: ReadonlyArray<OnCallPageChannel>,
+) => ComposedValue = (
+  channels: ReadonlyArray<OnCallPageChannel>,
+): ComposedValue => {
+  return composedValue((translator: Translator): string => {
+    return joinList(
+      channels.map((channel: OnCallPageChannel): string => {
+        return toSentenceTerm(
+          NotificationMethodUtil.getMethodName(translator, channel),
+          translator.language,
+        );
+      }),
+    );
+  });
+};
+
+/*
+ * What the steps filled from the project's default say they left out, in
+ * the reader's words: "You have not verified SMS and phone call yet, so
+ * those steps are left out." Empty when nothing was left out. For a
+ * member's page, `memberName` names them.
+ */
+export const describeDefaultStartLeftOut: (data: {
+  translator: Translator;
+  leftOutChannels: ReadonlyArray<OnCallPageChannel>;
+  // The channels of their own steps kept meanwhile; a custom channel is never named.
+  keptChannels: ReadonlyArray<OnCallPageChannel>;
+  memberName?: string | undefined;
+}) => string = (data: {
+  translator: Translator;
+  leftOutChannels: ReadonlyArray<OnCallPageChannel>;
+  keptChannels: ReadonlyArray<OnCallPageChannel>;
+  memberName?: string | undefined;
+}): string => {
+  if (data.leftOutChannels.length === 0) {
+    return "";
+  }
+
+  const kept: Array<OnCallPageChannel> = data.keptChannels.filter(
+    (channel: OnCallPageChannel): boolean => {
+      return channel !== OnCallPageChannel.CustomChannel;
+    },
+  );
+
+  const values: TemplateValues = {
+    channels: describeChannelsInSentence(data.leftOutChannels),
+    kept: describeChannelsInSentence(kept),
+  };
+
+  if (data.memberName) {
+    return data.translator.translateTemplate(
+      kept.length > 0
+        ? PAGING_LADDER_DEFAULT_START_COPY.memberLeftOutKeepingOwn
+        : PAGING_LADDER_DEFAULT_START_COPY.memberLeftOut,
+      { ...values, name: data.memberName },
+    );
+  }
+
+  return data.translator.translateTemplate(
+    kept.length > 0
+      ? PAGING_LADDER_DEFAULT_START_COPY.ownLeftOutKeepingOwn
+      : PAGING_LADDER_DEFAULT_START_COPY.ownLeftOut,
+    values,
+  );
 };
 
 // When a step is used.

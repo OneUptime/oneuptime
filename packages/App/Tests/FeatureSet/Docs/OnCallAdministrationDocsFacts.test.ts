@@ -3142,8 +3142,17 @@ describe("readiness", () => {
      * ticked by someone who may apply the project's default ladder (#7450).
      */
     expect(READINESS_PAGE).toContain("isItemSelectable={isSelectable}");
+    /*
+     * The rule the reminder, Readiness and the bell share (#7040): anything
+     * but Ready, or a phone method the project asks for and they lack.
+     */
     expect(READINESS_PAGE).toContain(
-      "row.status !== READINESS_STATUS_READY ||\n    row.readiness.isMissingPhoneMethod === true",
+      "return hasNotificationSetupToFinish(row.readiness);",
+    );
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/NotificationSetupToFinish.ts"),
+    ).toContain(
+      "readiness.status !== READY_READINESS_STATUS ||\n    readiness.isMissingPhoneMethod === true",
     );
     expect(READINESS_PAGE).toContain(
       "return isDefaultLadderOffered || isRemindable(row);",
@@ -3196,6 +3205,30 @@ describe("readiness", () => {
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "- Under **Users**, open a member, then **Readiness** in the **On-Call** section: their status, their methods and their coverage grid.",
+    );
+  });
+
+  /*
+   * The bell's own line (#7040): everyone a policy pages whose setup is not
+   * finished, by the rule the setup reminder and Readiness use
+   * (hasNotificationSetupToFinish), opening their checklist.
+   */
+  it("says the bell asks anyone on a policy to finish their own setup, by the rule Readiness uses", () => {
+    const nudge: string = readDashboardSource(
+      "Components/Header/NotificationSetupNudge.ts",
+    ).replace(/\s+/g, " ");
+
+    expect(nudge).toContain(
+      'title: translationKey("Finish setting up your notifications")',
+    );
+    expect(nudge).toContain(
+      "if (!hasNotificationSetupToFinish(readiness)) { return null; }",
+    );
+    expect(nudge).toContain(
+      "if (!readiness || readiness.reachedVia.length === 0) { return null; }",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "- Anyone on a policy whose own setup is not finished sees **Finish setting up your notifications** in the bell at the top of every page, which opens their setup checklist.",
     );
   });
 });

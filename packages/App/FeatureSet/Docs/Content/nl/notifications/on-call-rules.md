@@ -47,6 +47,8 @@ Klik op **Wijzigingen opslaan**, dat verschijnt zodra er iets is veranderd. Dat 
 
 **Test uw oproepen**, onderaan de pagina, stuurt u een testoproep via deze regels.
 
+Als je server nu geen e-mail, sms of telefoonoproepen kan versturen, is een stap van die soort gemarkeerd met **Wordt nu niet verstuurd**, en de pagina zegt één keer wie het kan inrichten.
+
 Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus**, de knop naast de titel, de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**. De pagina opent nog steeds op uw stappen en vermeldt daaronder elke kaart die afwijkt en wat die in plaats daarvan doet. **Wijzigingen opslaan** laat die kaarten zoals ze zijn; **Deze reeks voor elk ernstniveau gebruiken**, aan het eind van die lijst, geeft ook hun uw reeks, nadat het de kaarten heeft genoemd die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
 
 Een dienstbeleid bepaalt wie wordt opgeroepen en wanneer het volgende niveau komt. Hoe u wordt bereikt, is deze reeks, voor elk beleid dat u oproept.
@@ -87,6 +89,8 @@ Een project kan een standaardreeks hebben: hoe een lid wordt opgeroepen zodra he
 Met een standaardreeks krijgt een methode die je verifieert een regel bij elke stap van haar kanaal, op elke kaart van elk tabblad, en een kanaal dat de reeks weglaat krijgt er geen. Regels die je al hebt, veranderen nooit, en een oproep die geen regel vindt, valt nog steeds terug op je geverifieerde methoden.
 
 Om hem te geven aan leden die al regels hebben, gebruikt een beheerder **Standaardreeks toepassen** op de pagina Gereedheid: zie [De standaardreeks toepassen](/docs/on-call/readiness#de-standaardreeks-toepassen). Ieder van hen krijgt één e-mail.
+
+Om hem zelf te volgen, klik je op **Beginnen met de standaardreeks**, naast **Anders voor sommige ernstniveaus**. Je stappen worden die van de reeks, met je eigen geverifieerde methoden: een manier die je niet hebt geverifieerd, wordt weggelaten en genoemd, en je houdt in plaats daarvan je eigen stappen. Er verandert niets tot je op **Wijzigingen opslaan** klikt.
 
 **Telefoon voor mensen met dienst**, ernaast, vraagt iedereen met dienst om een geverifieerd nummer voor sms, telefoongesprekken of WhatsApp. Zolang je er geen hebt, zegt deze pagina dat boven **Je telefoon toevoegen**, en Gereedheid en Inrichtingsstatus noemen je. Niemand wordt buitengesloten.
 
@@ -131,7 +135,7 @@ Een pushregel, voor een telefoon of een browser, kan zijn push ook herhalen tot 
 
 ## Als een ernst geen regel heeft
 
-Een ernst die je project later toevoegt, krijgt binnen een paar minuten regels, gemaakt uit de keuzes die je op dat tabblad al hebt gemaakt: dezelfde methoden, na dezelfde wachttijden, en een push die net zo klinkt en net zo herhaalt. Had je op dat tabblad geen regels, dan krijgt hij je geverifieerde e-mailadres, meteen.
+Een ernst die je project later toevoegt, krijgt binnen een paar minuten regels, gemaakt uit de keuzes die je op dat tabblad al hebt gemaakt: dezelfde methoden, na dezelfde wachttijden, en een push die net zo klinkt en net zo herhaalt. Had je op dat tabblad geen regels, dan krijgt hij je geverifieerde e-mailadres, meteen. Als je project een standaardreeks heeft, volgt je e-mailadres die in plaats daarvan: zie [De standaardreeks](#de-standaardreeks).
 
 Een oproep die toch geen regel vindt, gaat alsnog naar je geverifieerde methoden, en je krijgt er een e-mail over; zie [Als geen regel past](/docs/notifications/index#als-geen-regel-past).
 

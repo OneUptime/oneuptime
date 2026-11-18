@@ -31,6 +31,10 @@ import {
   getChannelForPagingMethodColumn,
   getPagingLadderCells,
 } from "Common/Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderDefaultStep,
+  readPagingLadderDefault,
+} from "Common/Types/NotificationRule/PagingLadderDefault";
 import ObjectID from "Common/Types/ObjectID";
 import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDeviceType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -61,21 +65,42 @@ export interface PagingLadderData {
    * page says so while you have none. Not known: not asked.
    */
   isPhoneMethodRequired?: boolean | undefined;
+  /*
+   * The project's default ladder (#7449), which a person's steps can start
+   * from (#9445). Empty for none, or when it cannot be read.
+   */
+  defaultSteps?: Array<PagingLadderDefaultStep> | undefined;
 }
 
-// Whether the project asks everyone on call for a phone method; false when it cannot be read.
-const readIsPhoneMethodRequired: () => Promise<boolean> =
-  async (): Promise<boolean> => {
+// What the project says about how its members are paged.
+interface ProjectPagingFacts {
+  isPhoneMethodRequired: boolean;
+  defaultSteps: Array<PagingLadderDefaultStep>;
+}
+
+/*
+ * Whether the project asks everyone on call for a phone method, and its
+ * default ladder, in one read: neither, when it cannot be read - the page
+ * then says what it says without them. Any member may read both.
+ */
+const readProjectPagingFacts: () => Promise<ProjectPagingFacts> =
+  async (): Promise<ProjectPagingFacts> => {
     try {
       const project: Project | null = await ModelAPI.getItem<Project>({
         modelType: Project,
         id: ProjectUtil.getCurrentProjectId()!,
-        select: { requirePhoneMethodForOnCall: true },
+        select: {
+          requirePhoneMethodForOnCall: true,
+          defaultPagingLadder: true,
+        },
       });
 
-      return project?.requirePhoneMethodForOnCall === true;
+      return {
+        isPhoneMethodRequired: project?.requirePhoneMethodForOnCall === true,
+        defaultSteps: readPagingLadderDefault(project?.defaultPagingLadder),
+      };
     } catch {
-      return false;
+      return { isPhoneMethodRequired: false, defaultSteps: [] };
     }
   };
 
@@ -144,16 +169,11 @@ export const loadPagingLadderData: (
 ) => Promise<PagingLadderData> = async (
   userId: ObjectID,
 ): Promise<PagingLadderData> => {
-  const [
-    incidentSeverities,
-    alertSeverities,
-    ruleList,
-    isPhoneMethodRequired,
-  ]: [
+  const [incidentSeverities, alertSeverities, ruleList, projectFacts]: [
     Array<IncidentSeverity | AlertSeverity>,
     Array<IncidentSeverity | AlertSeverity>,
     ListResult<UserNotificationRule>,
-    boolean,
+    ProjectPagingFacts,
   ] = await Promise.all([
     readSeverities(IncidentSeverity),
     readSeverities(AlertSeverity),
@@ -168,7 +188,7 @@ export const loadPagingLadderData: (
       select: PAGING_LADDER_RULE_SELECT as never,
       sort: {},
     }),
-    readIsPhoneMethodRequired(),
+    readProjectPagingFacts(),
   ]);
 
   const severityColors: Record<string, string> = {};
@@ -186,7 +206,8 @@ export const loadPagingLadderData: (
     }),
     rules: ruleList.data as unknown as Array<PagingLadderRule>,
     severityColors: severityColors,
-    isPhoneMethodRequired: isPhoneMethodRequired,
+    isPhoneMethodRequired: projectFacts.isPhoneMethodRequired,
+    defaultSteps: projectFacts.defaultSteps,
   };
 };
 

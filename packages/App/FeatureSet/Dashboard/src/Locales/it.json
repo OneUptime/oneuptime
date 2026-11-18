@@ -56815,5 +56815,16 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Avvisa {{policy}} una volta, senza un incidente, per vedere che la policy raggiunge le persone. Ogni messaggio dice TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Scegli una policy importata e avvisala una volta, senza un incidente, per vedere che raggiunge le persone. Ogni messaggio dice TEST.",
   "Some severities have no notification rule yet.": "Alcuni livelli di gravità non hanno ancora una regola di notifica.",
+  "Not sent right now": "Non inviato al momento",
+  "Start From the Project's Default": "Parti dalla sequenza predefinita",
+  "Started from the project's default ladder.": "Ripreso dalla sequenza predefinita del progetto.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "Questo server al momento non può inviare SMS né fare chiamate, quindi questi numeri non ricevono né SMS né chiamate. Chiedi all'amministratore del server di configurare SMS e chiamate.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "Questo server al momento non può inviare SMS né fare chiamate, quindi questi numeri non ricevono né SMS né chiamate. Configura SMS e chiamate nell'Admin Dashboard.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Non hai ancora verificato {{channels}}, quindi quei passaggi sono tralasciati, e nel frattempo restano i tuoi passaggi via {{kept}}.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "Non hai ancora verificato {{channels}}, quindi quei passaggi sono tralasciati.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono tralasciati, e nel frattempo restano i suoi passaggi via {{kept}}.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono tralasciati.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Questo server al momento non può inviare SMS, quindi non può arrivarti il codice per aggiungere il tuo numero. Chiedi all'amministratore del server di configurare SMS e chiamate.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Questo server al momento non può inviare SMS, quindi non può arrivarti il codice per aggiungere il tuo numero. Configura SMS e chiamate nell'Admin Dashboard.",
   "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Questo progetto riceve già questi dati, quindi questo passaggio si completa quando un nuovo servizio invia dati. I dati che non indicano alcun servizio compaiono nell'esploratore appena arrivano."
 }

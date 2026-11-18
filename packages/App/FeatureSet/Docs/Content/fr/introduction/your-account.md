@@ -134,7 +134,7 @@ Vous pouvez appartenir à autant de projets que vous voulez. Le sélecteur de pr
 
 ## Ce que chaque projet garde pour vous
 
-Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieure, n'appartiennent qu'à vous, et chaque projet a les siens. Ouvrez-les dans chaque projet où vous êtes d'astreinte.
+Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieure, n'appartiennent qu'à vous, et chaque projet a les siens. Ouvrez-les dans chaque projet où vous êtes d'astreinte. Ils s'ouvrent sur **Liste de configuration** tant qu'il reste quelque chose à configurer, et sur **Méthodes de notification** une fois qu'il ne manque plus rien d'essentiel.
 
 | Page | À quoi elle sert | En savoir plus |
 | --- | --- | --- |

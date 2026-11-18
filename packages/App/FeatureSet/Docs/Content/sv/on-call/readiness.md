@@ -81,6 +81,7 @@ Ett sätt som någon inte har verifierat utelämnas, och personen behåller sina
 - På en policys **Eskaleringsregler** säger en nivå det på sitt kort om inte alla dess mottagare kan larmas. Se [Eskaleringsöversikten](/docs/on-call/escalation-rules#eskaleringsöversikten).
 - Under **Användare** öppnar du en medlem, och sedan **Beredskap** i avsnittet **Jour**: personens status, metoder och rutnät över täckning.
 - För dina egna inställningar guidar **Användarinställningar → Checklista för konfiguration** dig igenom dem. Se [Checklistan för konfiguration](/docs/notifications/index#checklistan-för-konfiguration).
+- Alla i en policy vars egen konfiguration inte är klar ser **Slutför inställningen av dina aviseringar** i klockan högst upp på varje sida, som öppnar deras checklista för konfiguration.
 
 ## Det veckovisa e-postmeddelandet om beredskap
 

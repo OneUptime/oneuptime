@@ -81,6 +81,7 @@ En måde, som en person ikke har bekræftet, udelades, og de beholder deres egne
 - På en politiks **Eskaleringsregler** siger et niveau på sit kort, hvis ikke alle dets modtagere kan tilkaldes. Se [Eskaleringsoversigten](/docs/on-call/escalation-rules#eskaleringsoversigten).
 - Under **Brugere** åbner du et medlem og derefter **Parathed** i sektionen **Vagt**: personens status, metoder og dækningsgitter.
 - Til din egen opsætning guider **Brugerindstillinger → Opsætningstjekliste** dig igennem. Se [Opsætningstjeklisten](/docs/notifications/index#opsætningstjeklisten).
+- Alle i en politik, hvis egen opsætning ikke er færdig, ser **Gør opsætningen af dine notifikationer færdig** i klokken øverst på hver side, som åbner deres opsætningstjekliste.
 
 ## Den ugentlige e-mail om parathed
 

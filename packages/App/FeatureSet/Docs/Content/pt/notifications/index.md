@@ -85,6 +85,10 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 | **Ainda não há como entrar em contato com você** | Nenhum dos seus métodos pode ser usado: nenhum está verificado, ou cada um verificado está em um canal que este projeto desativou |
 | **Você está configurado e não está de plantão agora** | Tudo está pronto para o dia em que uma política nomear você |
 
+Enquanto restar um passo, as **Configurações do usuário** abrem nesta lista, e em **Métodos de notificação** quando não restar nada essencial. Um link para qualquer outra página das **Configurações do usuário** continua abrindo essa página.
+
+Quando você está em uma política de plantão e a sua configuração não está concluída, o sino no topo de cada página mostra **Conclua a configuração das suas notificações**, e por quê: nada consegue chegar até você, uma gravidade não tem regra, ou o seu projeto pede um método de telefone que você não verificou. Ele abre esta lista, ou **Como me contatar** para o telefone. **Ocultar por uma semana** esconde o aviso neste navegador, e ele some sozinho assim que a sua configuração estiver concluída.
+
 ## Quando nenhuma regra corresponde
 
 Um acionamento pode chegar até você para um tipo e uma gravidade para os quais você não tem regra: por exemplo, uma gravidade adicionada depois que você entrou. O OneUptime aciona você mesmo assim, pelo que você verificou:

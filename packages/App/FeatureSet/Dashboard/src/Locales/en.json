@@ -56815,5 +56815,16 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.",
   "Some severities have no notification rule yet.": "Some severities have no notification rule yet.",
+  "Not sent right now": "Not sent right now",
+  "Start From the Project's Default": "Start From the Project's Default",
+  "Started from the project's default ladder.": "Started from the project's default ladder.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "You have not verified {{channels}} yet, so those steps are left out.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} has not verified {{channels}} yet, so those steps are left out.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.",
   "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives."
 }

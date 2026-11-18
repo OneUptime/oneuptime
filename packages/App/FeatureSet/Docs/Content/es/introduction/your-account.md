@@ -134,7 +134,7 @@ Puedes pertenecer a tantos proyectos como quieras. El selector de proyectos, arr
 
 ## Lo que cada proyecto guarda para ti
 
-Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son solo tuyos, y cada proyecto tiene los suyos. Ábrelos en cada proyecto en el que estés de guardia.
+Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son solo tuyos, y cada proyecto tiene los suyos. Ábrelos en cada proyecto en el que estés de guardia. Se abren en **Lista de configuración** mientras quede algo por configurar, y en **Métodos de notificación** cuando ya no queda nada esencial.
 
 | Página | Para qué sirve | Más información |
 | --- | --- | --- |

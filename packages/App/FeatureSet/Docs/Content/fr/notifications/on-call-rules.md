@@ -47,6 +47,8 @@ Cliquez sur **Enregistrer les modifications**, qui apparaît dès que quelque ch
 
 **Tester vos appels**, au pied de la page, vous envoie un appel de test à travers elles.
 
+Quand votre serveur ne peut pas envoyer d'e-mails, de SMS ou d'appels téléphoniques pour le moment, une étape de ce type est marquée **Non envoyé pour le moment**, et la page dit une seule fois qui peut le configurer.
+
 Quand une gravité mérite autre chose, **Différent pour certaines gravités**, le bouton à côté du titre, ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**. La page s'ouvre toujours sur vos étapes et liste en dessous chaque carte qui diffère et ce qu'elle fait à la place. **Enregistrer les modifications** laisse ces cartes telles quelles ; **Utiliser cette séquence pour chaque gravité**, à la fin de cette liste, leur donne aussi votre séquence, après avoir nommé les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
 
 Une politique d'astreinte décide qui est appelé et quand vient son niveau suivant. La façon dont vous êtes joint est cette séquence, pour chaque politique qui vous appelle.
@@ -87,6 +89,8 @@ Un projet peut avoir une séquence par défaut : la façon dont un membre est al
 Avec une séquence par défaut, une méthode que vous vérifiez reçoit une règle à chaque étape de son canal, sur chaque carte de chaque onglet, et un canal que la séquence laisse de côté n'en reçoit aucune. Les règles que vous avez déjà ne changent jamais, et une alerte qui ne trouve aucune règle se replie toujours sur vos méthodes vérifiées.
 
 Pour la donner aux membres qui ont déjà des règles, un administrateur utilise **Appliquer la séquence par défaut** sur la page Disponibilité : voir [Appliquer la séquence par défaut](/docs/on-call/readiness#appliquer-la-séquence-par-défaut). Chacun d'eux reçoit un e-mail.
+
+Pour la suivre vous-même, cliquez sur **Partir de la séquence par défaut**, à côté de **Différent pour certaines gravités**. Vos étapes deviennent celles de la séquence, avec vos propres méthodes vérifiées : un moyen que vous n'avez pas vérifié est laissé de côté et nommé, et vous gardez vos propres étapes à sa place. Rien ne change tant que vous n'avez pas cliqué sur **Enregistrer les modifications**.
 
 **Téléphone des personnes d'astreinte**, à côté, demande à toutes les personnes d'astreinte un numéro vérifié pour les SMS, les appels téléphoniques ou WhatsApp. Tant que vous n'en avez pas, cette page le dit au-dessus de **Ajouter votre téléphone**, et Disponibilité et Santé de la configuration vous nomment. Personne n'est bloqué.
 
@@ -131,7 +135,7 @@ Une règle push, pour un téléphone ou un navigateur, peut aussi renvoyer son p
 
 ## Quand une gravité n'a pas de règle
 
-Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite.
+Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite. Quand votre projet a une séquence par défaut, votre e-mail la suit à la place : voir [La séquence par défaut](#la-séquence-par-défaut).
 
 Une alerte qui ne trouve toujours pas de règle est quand même envoyée à vos méthodes vérifiées, et vous recevez un e-mail à ce sujet ; voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 

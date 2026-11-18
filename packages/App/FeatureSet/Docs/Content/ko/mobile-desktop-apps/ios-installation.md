@@ -58,6 +58,8 @@ OneUptime On-Call이 알림을 보내도 되는지 iOS가 물으면 **허용**�
 
 앱은 한 번에 하나의 프로젝트를 보여 줍니다. 전환하려면 화면 위쪽의 프로젝트 이름을 탭하세요. 싱글 사인온이 필요한 프로젝트는 **Settings → Manage Projects**에서 **Authenticate with SSO**를 탭할 때까지 **SSO Required**로 표시됩니다.
 
+새로 설치하면 앱이 이어서 **Get Ready for On-Call**을 한 번 엽니다. 밤에 무음 모드일 때도 호출이 기기에 도착하도록 하는 세 단계입니다. 알림을 허용하고, **Turn On Critical Alerts**를 탭한 다음 **Send Test Page**를 탭하고, 알림에서 테스트 호출을 인지하세요. **Not Now**는 화면을 닫고, **Settings → Get Ready for On-Call**에서 언제든 다시 열 수 있습니다. 중요 알림을 iOS 설정에서 허용해야 하는 경우, 앱으로 돌아오는 즉시 켜집니다.
+
 ## 호출이 기기에 도착하는지 확인하기
 
 :::steps

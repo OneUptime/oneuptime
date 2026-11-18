@@ -56815,5 +56815,16 @@
   "Page {{policy}} once to see that it reaches people, without an incident. Every message says TEST.": "Larma {{policy}} en gång, utan en incident, för att se att policyn når fram till personer. Varje meddelande säger TEST.",
   "Pick a policy you brought over and page it once to see that it reaches people, without an incident. Every message says TEST.": "Välj en överförd policy och larma den en gång, utan en incident, för att se att den når fram till personer. Varje meddelande säger TEST.",
   "Some severities have no notification rule yet.": "Vissa allvarlighetsgrader har ännu ingen aviseringsregel.",
+  "Not sent right now": "Skickas inte just nu",
+  "Start From the Project's Default": "Börja från projektets standardordning",
+  "Started from the project's default ladder.": "Utgår från projektets standardordning.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Ask your server's admin to set up SMS and calls.": "Den här servern kan varken skicka sms eller ringa just nu, så de här numren får varken sms eller samtal. Be serveradministratören att konfigurera sms och samtal.",
+  "This server can't send SMS or make calls right now, so these numbers get no SMS or calls. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan varken skicka sms eller ringa just nu, så de här numren får varken sms eller samtal. Konfigurera sms och samtal i Admin Dashboard.",
+  "You have not verified {{channels}} yet, so those steps are left out, and your own {{kept}} steps stay meanwhile.": "Du har inte verifierat {{channels}} än, så de stegen är utelämnade, och dina egna steg via {{kept}} finns kvar tills vidare.",
+  "You have not verified {{channels}} yet, so those steps are left out.": "Du har inte verifierat {{channels}} än, så de stegen är utelämnade.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out, and their own {{kept}} steps stay meanwhile.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade, och deras egna steg via {{kept}} finns kvar tills vidare.",
+  "{{name}} has not verified {{channels}} yet, so those steps are left out.": "{{name}} har inte verifierat {{channels}} än, så de stegen är utelämnade.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Ask your server's admin to set up SMS and calls.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Be serveradministratören att konfigurera sms och samtal.",
+  "This server can't send SMS right now, so it can't text you a code to add your number. Set up SMS and calls in the Admin Dashboard.": "Den här servern kan inte skicka sms just nu, så du kan inte få en kod via sms för att lägga till ditt nummer. Konfigurera sms och samtal i Admin Dashboard.",
   "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.": "Det här projektet tar redan emot dessa data, så det här steget slutförs när en ny tjänst rapporterar. Data som inte anger någon tjänst visas i utforskaren så snart de kommer in."
 }

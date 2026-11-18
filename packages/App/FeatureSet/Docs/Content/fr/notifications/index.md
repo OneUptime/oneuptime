@@ -85,6 +85,10 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 | **Rien ne peut encore vous joindre** | Aucune de vos méthodes n'est utilisable : aucune n'est vérifiée, ou chaque méthode vérifiée est sur un canal que ce projet a désactivé |
 | **Vous êtes configuré et n'êtes pas d'astreinte en ce moment** | Tout est prêt pour le jour où une politique vous nommera |
 
+Tant qu'une étape reste à faire, les **Paramètres utilisateur** s'ouvrent sur cette liste, et sur **Méthodes de notification** une fois qu'il ne reste plus rien d'essentiel. Un lien vers une autre page des **Paramètres utilisateur** ouvre toujours cette page.
+
+Quand vous êtes dans une politique d'astreinte et que votre configuration n'est pas terminée, la cloche en haut de chaque page affiche **Terminez la configuration de vos notifications**, et pourquoi : rien ne peut vous joindre, une gravité n'a pas de règle, ou votre projet demande un moyen téléphonique que vous n'avez pas vérifié. Elle ouvre cette liste, ou **Comment me joindre** pour le téléphone. **Masquer pendant une semaine** la masque dans ce navigateur, et elle disparaît d'elle-même une fois votre configuration terminée.
+
 ## Quand aucune règle ne correspond
 
 Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'avez pas de règle : une gravité ajoutée après votre arrivée, par exemple. OneUptime vous alerte quand même, par ce que vous avez vérifié :

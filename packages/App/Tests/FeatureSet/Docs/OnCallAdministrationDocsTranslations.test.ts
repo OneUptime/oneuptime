@@ -636,6 +636,14 @@ describe("the English pages", () => {
       expect(englishPage(entry.page)).not.toMatch(RELATIVE_MARKDOWN_LINK);
 
       for (const link of scanMarkdown(englishPage(entry.page)).links) {
+        /*
+         * A picture of the Dashboard (![...](screen:<shot>)) is no link: the
+         * docs draw that shot in its place (DocsScreenList holds them).
+         */
+        if (link.isImage && link.target.startsWith("screen:")) {
+          continue;
+        }
+
         expect({
           link: link.target,
           absolute:
