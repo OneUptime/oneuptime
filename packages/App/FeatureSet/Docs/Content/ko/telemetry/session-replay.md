@@ -177,8 +177,9 @@ export default function App() {
 | `stop()` | 보낼 수 있는 것을 비우고, 녹화를 멈추고, 수명 주기 핸들러를 분리합니다. |
 | `identify(userRef, traits?)` | 로그인한 사용자와 선택적 특성을 연결하며, **최종 사용자 신원 캡처**를 따릅니다. |
 | `setTags(tags)` / `addTag(key, value)` | 검색 가능한 세션 태그를 모두 바꾸거나, 다른 태그를 바꾸지 않고 태그 하나를 추가합니다. |
-| `track(name, properties?)` | 애플리케이션 이벤트를 리플레이 타임라인에 놓습니다. |
-| `setRoute(route)` | 탐색 후 정리된 논리적 화면이나 경로를 기록합니다. 내비게이터의 경로 변경 콜백에서 호출하세요. |
+| `track(name, properties?)` | 애플리케이션 이벤트를 리플레이 타임라인에 놓습니다. 제품 분석 이벤트가 켜져 있으면 녹화 여부와 관계없이 모든 세션에서 애플리케이션의 [제품 분석](/docs/rum/product-analytics#이벤트와-메트릭-보내기) 페이지가 세는 이벤트이기도 합니다. |
+| `metric(name, value, attributes?)` | 제품 분석 이벤트가 켜져 있으면 앱이 측정한 숫자를 애플리케이션 메트릭의 포인트로 보냅니다. 속성 값은 마스킹됩니다. |
+| `setRoute(route)` | 탐색 후 정리된 논리적 화면이나 경로를 기록합니다. 내비게이터의 경로 변경 콜백에서 호출하세요. 제품 분석 이벤트가 켜져 있으면 새 화면마다 페이지 조회이기도 합니다. |
 | `captureSession(reason?)` | _On error or frustration_ 설정에서, 사용자가 "문제 신고"를 누르는 것처럼 앱이 정한 이유로 순환 버퍼를 업로드합니다. |
 | `captureError(error)` | 처리된 JavaScript 오류를 기록하고 오류 기반 녹화를 활성화합니다. |
 | `grantConsent()` / `revokeConsent()` | 업로드를 허용하거나, 메모리 버퍼, 저장된 보낼 편지함, 세션, 방문자 ID를 즉시 지웁니다. 이후의 동의는 새 식별자로 시작합니다. |

@@ -54,8 +54,13 @@ export default class DashboardProductAnalyticsRetentionComponentUtil extends Das
     return [
       {
         name: "Saved Retention Table",
+        /*
+         * A public dashboard draws only the widget's title (issue #6717):
+         * a retention table's numbers count the application's end users,
+         * which a page anyone with the link can open never shows.
+         */
         description:
-          "The retention table this widget shows. Save one on a RUM application's User Retention page.",
+          "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.",
         required: true,
         type: ComponentInputType.EntityDropdown,
         id: "savedViewId",

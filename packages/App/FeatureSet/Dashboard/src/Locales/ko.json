@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "레코더 설치",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "이 애플리케이션은 세션 리플레이가 꺼져 있는데, 이벤트를 보내는 것은 바로 그 레코더입니다. {{replayPolicy}}에서도 켜세요.",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "세션 시작과 페이지 조회는 브라우저 레코더가 실행되는 곳이면 어디서나 자동으로 들어옵니다. 사람들이 하는 일을 세려면 앱에서 이벤트와 숫자를 보내세요:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "세션 시작과 페이지 조회는 브라우저 레코더와 React Native 레코더에서 자동으로 들어옵니다. 사람들이 하는 일을 세려면 이벤트와 숫자를 보내세요:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 {{counts}}(근사치, 청크가 아직 로드되지 않음)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 이 {{window}} 청크의 오류 {{count}}개(근사치, 청크가 아직 로드되지 않음)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "저장된 리텐션 표 삭제",
   "Funnel": "퍼널",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "RUM 애플리케이션의 제품 분석에서 이름을 붙여 저장한 퍼널과 리텐션 표로, 다시 열거나 대시보드에 표시할 수 있습니다.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "RUM 애플리케이션의 제품 분석 페이지에서 저장한 퍼널과 리텐션 표입니다.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "RUM 애플리케이션의 제품 분석 페이지에서 저장한 퍼널과 리텐션 표입니다. 공개 대시보드에서는 사용할 수 없습니다.",
   "Funnels are not available on public dashboards.": "공개 대시보드에서는 퍼널을 사용할 수 없습니다.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "이 퍼널의 단계, 완료까지 걸리는 시간, 세그먼트를 저장하여 여기서 다시 열거나 대시보드에 표시할 수 있게 합니다. 기간은 저장되지 않습니다.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "이 표의 시작 이벤트와 재방문 이벤트, 코호트 단위, 세그먼트를 저장하여 여기서 다시 열거나 대시보드에 표시할 수 있게 합니다. 기간은 저장되지 않습니다.",
@@ -54013,9 +54013,9 @@
   "Templates only": "템플릿만",
   "Text style options": "텍스트 스타일 옵션",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "위젯 본문입니다. 어디에든 {{variableName}}을 쓰면 대시보드 변수로 바뀝니다.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "이 위젯이 표시하는 퍼널입니다. RUM 애플리케이션의 퍼널 페이지에서 저장하세요.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "이 위젯이 표시하는 퍼널입니다. RUM 애플리케이션의 퍼널 페이지에서 저장하세요. 공개 대시보드에는 제목만 표시됩니다.",
   "The markup for this widget": "이 위젯의 마크업",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "이 위젯이 표시하는 리텐션 표입니다. RUM 애플리케이션의 사용자 리텐션 페이지에서 저장하세요.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "이 위젯이 표시하는 리텐션 표입니다. RUM 애플리케이션의 사용자 리텐션 페이지에서 저장하세요. 공개 대시보드에는 제목만 표시됩니다.",
   "The text content to display": "표시할 텍스트 내용",
   "The text to display in the widget": "위젯에 표시할 텍스트",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "이 시계의 시간대입니다. 비워 두면 대시보드를 보는 사람의 시간대를 씁니다.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android 설정",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "이벤트, 오류율과 p95 지속 시간, 충돌과 ANR, 기기 모델 및 텔레메트리 탭."
 }

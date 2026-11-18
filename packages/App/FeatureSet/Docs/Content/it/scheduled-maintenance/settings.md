@@ -45,12 +45,12 @@ Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di mo
 
 Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi eventi che corrispondono, e le **Regole etichette** aggiungono etichette. Crearne una richiede due passi: **Corrispondenza**, le condizioni, poi **Proprietari** o **Etichette**, ciò che la regola aggiunge.
 
-| Condizione                                                      | Corrisponde a                                                              |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitor**, **Etichette evento**, **Etichette del monitor**    | Eventi con uno qualsiasi dei monitor o delle etichette che scegliete.      |
-| **Titolo evento**, **Descrizione dell'evento**, **Nome del monitor**, **Descrizione del monitor** | Un modello, come espressione regolare, senza distinguere maiuscole e minuscole. |
+Nel passaggio **Corrispondenza**, **Si applica a** parte da **Tutti gli eventi di manutenzione**: la regola agisce su ogni nuovo evento. Per restringerla, scegliete **Solo gli eventi di manutenzione che soddisfano le condizioni**, compilate la condizione che si apre, poi fate clic su **Aggiungi condizione** per ciascuna delle altre. Con due o più condizioni, scegliete **Soddisfa tutte**, dove ogni condizione deve valere, oppure **Soddisfa almeno una**, dove ne basta una.
 
-Una regola corrisponde solo quando ogni condizione compilata è vera; una condizione lasciata vuota viene saltata.
+| Condizione                                                      | Confronta con                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitor**, **Etichette evento**, **Etichette del monitor**    | **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di**, rispetto ai monitor o alle etichette che scegliete. |
+| **Titolo evento**, **Descrizione dell'evento**, **Nome del monitor**, **Descrizione del monitor** | **Contiene**, **Non contiene**, **Uguale a**, **Diverso da**, **Inizia con**, **Termina con**, senza distinguere maiuscole e minuscole, oppure **Corrisponde al pattern** e **Non corrisponde al pattern**, per un'espressione regolare o un carattere jolly `*`. |
 
 - **Una regola può ereditare.** Chiusi in **Eredita proprietari** o **Eredita etichette**, sei interruttori trasmettono i proprietari o le etichette dei monitor, degli host, dei cluster Kubernetes, degli host Docker, degli host Podman e dei servizi dell'evento.
 - **Una nuova regola deve aggiungere qualcosa**: scegliete almeno un proprietario o un'etichetta, oppure attivate un interruttore.
@@ -132,7 +132,7 @@ Regole, campi personalizzati e misurazioni richiedono **Proprietario del progett
 ## Risoluzione dei problemi
 
 :::details Una regola del proprietario non ha aggiunto nessuno a un nuovo evento
-Aprite la regola e controllate le sue condizioni: ogni condizione compilata deve essere vera. Un modello del titolo è un'espressione regolare, quindi `db upgrade` non corrisponde a «DB-Upgrade»; scrivete `db.upgrade`. Inoltre una regola agisce solo sugli eventi creati dopo il suo salvataggio: usate **Esegui ora** per quelli che avete già.
+Aprite la regola e controllate le sue condizioni: con **Soddisfa tutte**, ognuna deve valere. Il testo viene confrontato così come è scritto, a parte maiuscole e minuscole, quindi **Contiene** `db upgrade` non corrisponde a «DB-Upgrade»; scegliete **Corrisponde al pattern** e scrivete `db.upgrade`. Inoltre una regola agisce solo sugli eventi creati dopo il suo salvataggio: usate **Esegui ora** per quelli che avete già.
 :::
 
 :::details I proprietari non hanno ricevuto nessun promemoria

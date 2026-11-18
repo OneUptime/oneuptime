@@ -177,8 +177,9 @@ Importera `OneUptimeReplay` direkt, eller anropa `useOneUptimeReplay()` under pr
 | `stop()` | Tömmer det som kan skickas, stoppar inspelningen och kopplar bort livscykelhanterarna. |
 | `identify(userRef, traits?)` | Kopplar den inloggade användaren och valfria egenskaper, beroende på **Registrera slutanvändarens identitet**. |
 | `setTags(tags)` / `addTag(key, value)` | Ersätter alla sessionens sökbara taggar, eller lägger till en tagg utan att ersätta de andra. |
-| `track(name, properties?)` | Placerar en apphändelse på uppspelningens tidslinje. |
-| `setRoute(route)` | Spelar in en rensad logisk skärm eller rutt efter en navigering. Anropa den från din navigerares återanrop vid ruttbyte. |
+| `track(name, properties?)` | Placerar en apphändelse på uppspelningens tidslinje. Med produktanalyshändelser på är det också en händelse som applikationens sidor under [Produktanalys](/docs/rum/product-analytics#skicka-händelser-och-mätvärden) räknar, från varje session, inspelad eller inte. |
+| `metric(name, value, attributes?)` | Med produktanalyshändelser på skickar den ett tal som appen har mätt som en punkt i ett av applikationens mätvärden. Dess attributvärden maskeras. |
+| `setRoute(route)` | Spelar in en rensad logisk skärm eller rutt efter en navigering. Anropa den från din navigerares återanrop vid ruttbyte. Med produktanalyshändelser på är varje ny skärm också en sidvisning. |
 | `captureSession(reason?)` | Laddar med _On error or frustration_ upp ringbufferten av ett skäl som appen bestämmer, som en användare som trycker på «Rapportera ett problem». |
 | `captureError(error)` | Spelar in ett hanterat JavaScript-fel och utlöser felstyrd inspelning. |
 | `grantConsent()` / `revokeConsent()` | Tillåter uppladdningar, eller rensar omedelbart bufferten i minnet, den lagrade utkorgen, sessionen och besöks-ID:t. Senare samtycke börjar med nya identifierare. |

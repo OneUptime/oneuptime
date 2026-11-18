@@ -191,6 +191,8 @@ IPv4 位址必須依 IPv4 的方式書寫：如果依 IPv6 的方式書寫，例
 
 自行託管的安裝可以在儲存每個檔案之前用 ClamAV 掃描惡意軟體：表單的檔案，以及登入後或用 API 金鑰上傳的檔案。將 `CLAMAV_HOST`（和 `CLAMAV_PORT`，預設 `3310`）設為一個 ClamAV 常駐程式。使用 Docker Compose 時，`config.env` 中的 `COMPOSE_PROFILES=clamav` 和 `CLAMAV_HOST=clamav` 會啟動 OneUptime 隨附的 ClamAV；使用 Helm 時，開啟 `clamav.enabled`。ClamAV 標記的檔案會被拒絕，並指出是哪個檔案，提交的內容一概不會儲存。在 ClamAV 沒有回應期間，每個檔案都會被拒絕，提示 "目前無法檢查檔案是否含有病毒，因此檔案未被接受。請幾分鐘後再試。" (503)，因此不會儲存任何未經檢查的檔案。沒有 `CLAMAV_HOST` 時，檔案和以前一樣不會被掃描。
 
+OneUptime 隨附的 ClamAV 在啟動時從 `database.clamav.net` 下載病毒碼並保持更新：這是一個連出你網路的連線。在無法存取網際網路的網路中，請將 `CLAMAV_HOST`（Helm Chart 中為 `clamav.host`）設為你自己的 ClamAV 常駐程式，並用該網路內的鏡像保持其更新：參見 [離線（氣隙）安裝](/docs/installation/air-gapped#what-still-reaches-out)。
+
 ## 疑難排解
 
 :::details 連結提示表單無法使用

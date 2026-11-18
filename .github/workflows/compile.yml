@@ -340,9 +340,11 @@ jobs:
       # What a visitor downloads before a public page can draw - the sign-in
       # and sign-up pages, a status page and a public dashboard - held to a
       # ceiling per page (packages/Common/Scripts/first-load-budgets.js,
-      # issue #5608). It builds the three frontends for production, a few
-      # seconds each, and needs every one installed above.
-      - name: Check the public pages' first-load budgets
+      # issue #5608), and one copy of each package a frontend's code imports
+      # in each of the five frontends' bundles (issue #9335). It builds the
+      # five for production, a few seconds each, and needs every one
+      # installed above.
+      - name: Check the public pages' first-load budgets and the frontends' single copies
         if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node packages/Common/Scripts/first-load-budgets.js

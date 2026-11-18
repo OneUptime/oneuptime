@@ -45,12 +45,12 @@ Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkform
 
 **Eigenaarsregels** voegen eigenaar-gebruikers en -teams toe aan nieuwe gebeurtenissen die passen, en **Labelregels** voegen labels toe. Er een maken kost twee stappen: **Overeenkomst**, de voorwaarden, en daarna **Eigenaren** of **Labels**, wat de regel toevoegt.
 
-| Voorwaarde                                                      | Past op                                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitoren**, **Gebeurtenislabels**, **Monitorlabels**         | Gebeurtenissen met een van de monitoren of labels die je kiest.            |
-| **Gebeurtenistitel**, **Gebeurtenisbeschrijving**, **Monitornaam**, **Monitorbeschrijving** | Een patroon, als reguliere expressie, zonder op hoofdletters te letten. |
+In de stap **Overeenkomst** begint **Geldt voor** bij **Alle onderhoudsgebeurtenissen**: de regel werkt op elke nieuwe gebeurtenis. Om haar in te perken, kies je **Alleen onderhoudsgebeurtenissen die aan de voorwaarden voldoen**, vul je de voorwaarde in die opent en klik je op **Voorwaarde toevoegen** voor elke volgende. Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaarde moet gelden, of **Voldoet aan één**, waarbij één genoeg is.
 
-Een regel past alleen als elke voorwaarde die je invult klopt; een lege voorwaarde wordt overgeslagen.
+| Voorwaarde                                                      | Vergelijkt met                                                             |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitoren**, **Gebeurtenislabels**, **Monitorlabels**         | **Heeft een van**, **Heeft alle** of **Heeft geen van** de monitoren of labels die je kiest. |
+| **Gebeurtenistitel**, **Gebeurtenisbeschrijving**, **Monitornaam**, **Monitorbeschrijving** | **Bevat**, **Bevat niet**, **Is gelijk aan**, **Is niet gelijk aan**, **Begint met**, **Eindigt met**, zonder op hoofdletters te letten, of **Komt overeen met patroon** en **Komt niet overeen met patroon**, voor een reguliere expressie of een `*`-jokerteken. |
 
 - **Een regel kan overnemen.** Ingeklapt onder **Eigenaren overnemen** of **Labels overnemen** geven zes schakelaars de eigenaren of labels door van de monitoren, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services van de gebeurtenis.
 - **Een nieuwe regel moet iets toevoegen**: kies minstens één eigenaar of label, of zet een schakelaar aan.
@@ -132,7 +132,7 @@ Regels, aangepaste velden en metingen vragen **Projecteigenaar** of **Projectbeh
 ## Probleemoplossing
 
 :::details Een eigenaarsregel heeft niemand aan een nieuwe gebeurtenis toegevoegd
-Open de regel en controleer haar voorwaarden: elke voorwaarde die je hebt ingevuld, moet kloppen. Een titelpatroon is een reguliere expressie, dus `db upgrade` past niet op 'DB-Upgrade'; schrijf `db.upgrade`. Een regel werkt bovendien alleen op gebeurtenissen die na het opslaan worden gemaakt: gebruik **Nu uitvoeren** voor de gebeurtenissen die je al hebt.
+Open de regel en controleer haar voorwaarden: met **Voldoet aan alle** moet elke voorwaarde kloppen. Tekst wordt vergeleken zoals hij geschreven is, op hoofdletters na, dus **Bevat** `db upgrade` past niet op 'DB-Upgrade'; kies **Komt overeen met patroon** en schrijf `db.upgrade`. Een regel werkt bovendien alleen op gebeurtenissen die na het opslaan worden gemaakt: gebruik **Nu uitvoeren** voor de gebeurtenissen die je al hebt.
 :::
 
 :::details Eigenaren kregen geen herinnering

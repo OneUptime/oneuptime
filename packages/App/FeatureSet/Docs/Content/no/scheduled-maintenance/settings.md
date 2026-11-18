@@ -45,12 +45,12 @@ En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å 
 
 **Eierregler** legger til eierbrukere og -team på nye hendelser som matcher, og **Etikettregler** legger til etiketter. Å opprette en tar to trinn: **Treff**, betingelsene, og deretter **Eiere** eller **Etiketter**, det regelen legger til.
 
-| Betingelse                                                      | Matcher                                                                    |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitorer**, **Hendelsesetiketter**, **Monitoretiketter** | Hendelser med en av monitorene eller etikettene du velger.                 |
-| **Hendelsestittel**, **Hendelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | Et mønster, som et regulært uttrykk, uten forskjell på store og små bokstaver. |
+I trinnet **Treff** starter **Gjelder for** på **Alle vedlikeholdshendelser**: regelen virker på hver ny hendelse. For å snevre den inn velger du **Bare vedlikeholdshendelser som oppfyller betingelsene**, fyller ut betingelsen som åpnes, og klikker deretter på **Legg til betingelse** for hver av de andre. Med to eller flere betingelser velger du **Samsvar med alle**, der hver betingelse må stemme, eller **Samsvar med én**, der én er nok.
 
-En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse som står tom, hoppes over.
+| Betingelse                                                      | Sammenligner med                                                           |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Monitorer**, **Hendelsesetiketter**, **Monitoretiketter** | **Har en av**, **Har alle** eller **Har ingen av** monitorene eller etikettene du velger. |
+| **Hendelsestittel**, **Hendelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
 
 - **En regel kan arve.** Sammenslått under **Arv eiere** eller **Arv etiketter** gir seks brytere videre eierne eller etikettene til hendelsens monitorer, verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester.
 - **En ny regel må legge til noe**: velg minst én eier eller etikett, eller slå på en bryter.
@@ -132,7 +132,7 @@ Regler, egendefinerte felt og målinger krever **Prosjekteier** eller **Prosjekt
 ## Feilsøking
 
 :::details En eierregel la ikke til noen på en ny hendelse
-Åpne regelen og sjekk betingelsene: hver betingelse du har fylt ut, må holde. Et tittelmønster er et regulært uttrykk, så `db upgrade` matcher ikke "DB-Upgrade"; skriv `db.upgrade`. En regel virker også bare på hendelser som er opprettet etter at den ble lagret: bruk **Kjør nå** for dem du allerede har.
+Åpne regelen og sjekk betingelsene: med **Samsvar med alle** må hver av dem stemme. Tekst sammenlignes slik den er skrevet, bortsett fra store og små bokstaver, så **Inneholder** `db upgrade` matcher ikke "DB-Upgrade"; velg **Samsvarer med mønster** og skriv `db.upgrade`. En regel virker også bare på hendelser som er opprettet etter at den ble lagret: bruk **Kjør nå** for dem du allerede har.
 :::
 
 :::details Eierne fikk ingen påminnelse

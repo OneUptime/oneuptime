@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Predeterminado del proyecto para SMS",
   "Install the recorder": "Instalar el grabador",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "La reproducción de sesiones está desactivada para esta aplicación, y es su grabador el que envía los eventos. Actívala también en {{replayPolicy}}.",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "Los inicios de sesión y las vistas de página llegan solos dondequiera que funcione el grabador del navegador. Para contar lo que hace la gente, envía eventos y números desde tu app:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "Los inicios de sesión y las vistas de página llegan solos desde el grabador del navegador y el de React Native. Para contar lo que hace la gente, envía eventos y números:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} errores en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error en este fragmento de {{window}} (aproximado, fragmento aún no cargado)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "Eliminar tabla de retención guardada",
   "Funnel": "Embudo",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "Embudos y tablas de retención guardados con un nombre desde la analítica de producto de una aplicación RUM, para volver a abrirlos o mostrarlos en un panel.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "Embudos y tablas de retención guardados en las páginas de analítica de producto de una aplicación RUM.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "Embudos y tablas de retención guardados en las páginas de analítica de producto de una aplicación RUM. No disponibles en los paneles públicos.",
   "Funnels are not available on public dashboards.": "Los embudos no están disponibles en los paneles públicos.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "Guarda los pasos de este embudo, su tiempo para completarlo y su segmento, para volver a abrirlo aquí o mostrarlo en un panel. El rango de tiempo no se guarda.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "Guarda los eventos inicial y de retorno de esta tabla, su período y su segmento, para volver a abrirla aquí o mostrarla en un panel. El rango de tiempo no se guarda.",
@@ -54013,9 +54013,9 @@
   "Templates only": "Solo plantillas",
   "Text style options": "Opciones de estilo del texto",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "El cuerpo del widget. Usa {{variableName}} en cualquier parte para sustituir una variable del panel.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "El embudo que muestra este widget. Guarda uno en la página Embudos de una aplicación RUM.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "El embudo que muestra este widget. Guarda uno en la página Embudos de una aplicación RUM. Los paneles públicos solo muestran su título.",
   "The markup for this widget": "El marcado de este widget",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "La tabla de retención que muestra este widget. Guarda una en la página Retención de usuarios de una aplicación RUM.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "La tabla de retención que muestra este widget. Guarda una en la página Retención de usuarios de una aplicación RUM. Los paneles públicos solo muestran su título.",
   "The text content to display": "El contenido de texto que se muestra",
   "The text to display in the widget": "El texto que muestra el widget",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "La zona horaria de este reloj. Déjalo vacío para usar la de quien esté viendo el panel.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Configuración de Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Eventos, tasa de errores y duración p95, bloqueos y ANR, modelos de dispositivo y las pestañas de telemetría."
 }

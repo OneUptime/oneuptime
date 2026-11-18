@@ -17,13 +17,20 @@ export interface RumDocsPageEntry {
 export const RUM_INDEX: string = "rum/index";
 export const BROWSER_SETUP: string = "rum/browser-setup";
 export const MOBILE_SETUP: string = "rum/mobile-setup";
+/*
+ * Issue #9533: a native Android app with OpenTelemetry Android, from the
+ * dependency to a kiosk fleet configured from its MDM. RumAndroidDocsFacts
+ * holds the English page to the product and to the SDK's own source.
+ */
+export const ANDROID_SETUP: string = "rum/android-setup";
 export const WEB_VITALS: string = "rum/web-vitals";
 
-// The RUM nav group's first four links, in nav order.
+// The RUM nav group's first five links, in nav order.
 export const RUM_SETUP_PAGES: ReadonlyArray<RumDocsPageEntry> = [
   { page: RUM_INDEX, navTitle: "RUM Overview" },
   { page: BROWSER_SETUP, navTitle: "Browser Setup" },
   { page: MOBILE_SETUP, navTitle: "Mobile Setup" },
+  { page: ANDROID_SETUP, navTitle: "Android Setup" },
   { page: WEB_VITALS, navTitle: "Core Web Vitals" },
 ];
 
@@ -177,6 +184,7 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [RUM_INDEX]: ["Create Ingestion Key"],
   [BROWSER_SETUP]: ["Create Ingestion Key"],
   [MOBILE_SETUP]: ["Create Ingestion Key"],
+  [ANDROID_SETUP]: ["Create Ingestion Key"],
   // The RUM Applications table's own.
   [RUM_APPLICATIONS]: ["Create RUM Application"],
   [SESSION_REPLAY]: ["Create Ingestion Key"],
@@ -258,6 +266,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * its Network panel's type filters) and a Power Pages site's settings.
  */
 export const OTHER_PRODUCTS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  // Esper's console, where a blueprint holds an app's managed configuration.
+  [ANDROID_SETUP]: ["Managed Configuration"],
   [SESSION_REPLAY_TROUBLESHOOTING]: [
     "Network",
     "Img",

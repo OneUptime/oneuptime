@@ -124,6 +124,7 @@ With the values above, OneUptime makes no connection out of your network on its 
 | Domain monitors | They read registration data from the registries' RDAP servers, found through IANA. | Leave domain monitors out. |
 | MCP sign-in | An MCP client that names its metadata by an address is read from that address. | Set `mcpOAuth.disableClientIdMetadataDocuments: true`. |
 | Certificates | The install orders a certificate from Let's Encrypt for its own address when you turn on `ssl.provision`, and for a status page's own domain that has none uploaded. | Upload your own certificates. |
+| Malware scanning | With `clamav.enabled`, the chart's ClamAV downloads its signatures from `database.clamav.net` when it starts, and keeps them up to date. | The chart's ClamAV has no setting for a signature mirror yet. Run a ClamAV daemon of your own, kept up to date from a mirror inside the gap, and set `clamav.host` to its address. |
 | Integrations | Email, SMS and calls, Slack and Microsoft Teams, hosted AI models: each only once you set it up. | Use your own mail server, an [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway) and a [model you run](/docs/ai/llm-provider). |
 
 [Connections out of your network](/docs/self-hosted/architecture#ネットワークの外への接続) lists every connection a self-hosted install makes, with the page for each.

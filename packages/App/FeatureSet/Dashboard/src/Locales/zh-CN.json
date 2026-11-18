@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "安装录制器",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "此应用的会话回放已关闭，而发送事件的正是它的录制器。请同时在“{{replayPolicy}}”中开启它。",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "会话开始和页面浏览会从浏览器录制器运行的任何地方自动传来。要统计用户的操作，请从应用中发送事件和数值：",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "会话开始和页面浏览会从浏览器录制器和 React Native 录制器自动传来。要统计用户的操作，请发送事件和数值：",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 这个 {{window}}的数据块中有 {{counts}}（近似值，数据块尚未加载）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} 这个 {{window}}的数据块中有 {{count}} 个错误（近似值，数据块尚未加载）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "删除已保存的留存表",
   "Funnel": "漏斗",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "从 RUM 应用的产品分析中以名称保存的漏斗和留存表，可再次打开或显示在仪表板上。",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "在 RUM 应用的产品分析页面上保存的漏斗和留存表。",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "在 RUM 应用的产品分析页面上保存的漏斗和留存表。公开仪表板上不可用。",
   "Funnels are not available on public dashboards.": "公开仪表板不支持漏斗。",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "保存此漏斗的步骤、完成时间和细分，以便在此处再次打开或显示在仪表板上。不保存时间范围。",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "保存此表的初始行为和回访行为、周期和细分，以便在此处再次打开或显示在仪表板上。不保存时间范围。",
@@ -54013,9 +54013,9 @@
   "Templates only": "仅模板",
   "Text style options": "文本样式选项",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "小部件的正文。在任意位置使用 {{variableName}} 即可替换为仪表板变量。",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "此小部件显示的漏斗。请在 RUM 应用的“漏斗”页面上保存一个。",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "此小部件显示的漏斗。请在 RUM 应用的“漏斗”页面上保存一个。公开仪表板只显示其标题。",
   "The markup for this widget": "此小部件的标记",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "此小部件显示的留存表。请在 RUM 应用的“用户留存”页面上保存一个。",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "此小部件显示的留存表。请在 RUM 应用的“用户留存”页面上保存一个。公开仪表板只显示其标题。",
   "The text content to display": "要显示的文本内容",
   "The text to display in the widget": "小部件中显示的文本",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "此时钟使用的时区。留空则使用正在查看仪表板的人的时区。",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android 端设置",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "事件、错误率和 p95 时长、崩溃和 ANR、设备型号以及遥测标签页。"
 }

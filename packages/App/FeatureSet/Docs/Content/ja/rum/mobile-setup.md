@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) エージェントはその上に自動インストルメンテーションを加え、独自のリソースにデバイスの属性を設定します。使う場合は、そのエクスポーターを同じエンドポイントとヘッダーに向け、お使いのバージョンで `device.model.identifier` がリソースに届くことを確認してください。
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) エージェントはその上にクラッシュ、ANR、遅いフレームとフリーズしたフレーム、アプリの起動を加え、独自のリソースに `device.model.identifier` と `device.manufacturer` を設定します。 [Android のセットアップ](/docs/rum/android-setup) では、上のコードの代わりにこのエージェントをセットアップします。
 @tab iOS
 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) を使い、デバイスの属性は自分で設定します。各バージョンが自動で追加するリソースは、リリースごとに変わってきたためです。
 

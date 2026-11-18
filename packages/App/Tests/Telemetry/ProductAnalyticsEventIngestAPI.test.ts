@@ -19,6 +19,10 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import {
+  ProductAnalyticsEventKind as MobileProductAnalyticsEventKind,
+  ProductAnalyticsWireBatch as MobileProductAnalyticsWireBatch,
+} from "../../FeatureSet/MobileRecorder/src/ProductAnalyticsContract";
 
 /*
  * POST /session-replay/v1/events (issue #6444, part two): the door a RUM
@@ -650,6 +654,145 @@ describe("after the gate", () => {
     const answer: Answer = await post();
 
     expect((answer.nextError as Error).message).toBe("boom");
+  });
+});
+
+/*
+ * Issue #6629: the React Native recorder posts the browser's batch through
+ * the same door, as a native recorder - its kind, its app's identifier and
+ * the app:// origin the key check resolves from it - with a phone's context
+ * and its screens as pages. The batch is built as its channel builds one
+ * (MobileRecorder/src/ProductAnalytics.ts), typed by its copy of the
+ * contract, and filed whole.
+ */
+describe("a React Native recorder's batch", () => {
+  const MOBILE_HEADERS: Record<string, string> = {
+    [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree",
+    [SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER]: "com.example.shop",
+  };
+
+  function mobileBatch(): MobileProductAnalyticsWireBatch {
+    const at: number = Date.now() - 5000;
+
+    return {
+      v: PRODUCT_ANALYTICS_WIRE_VERSION,
+      batchId: BATCH_ID,
+      sessionId: "d".repeat(32),
+      visitorId: "e".repeat(32),
+      userRef: "user-42",
+      userProperties: { plan: "••••" },
+      consentState: "NotRequired",
+      sentAt: Date.now(),
+      context: {
+        deviceType: "tablet",
+        browserName: "",
+        osName: "ios",
+        appVersion: "2.4.1",
+      },
+      events: [
+        { kind: MobileProductAnalyticsEventKind.Session, name: "", at: at },
+        {
+          kind: MobileProductAnalyticsEventKind.Page,
+          name: "/Checkout",
+          at: at,
+          page: "/Checkout",
+        },
+        {
+          kind: MobileProductAnalyticsEventKind.Custom,
+          name: "Checkout started",
+          at: at,
+          page: "/Checkout",
+          properties: { cartSize: "••••" },
+        },
+      ],
+      metrics: [
+        {
+          name: "cart.value",
+          value: 42.5,
+          at: at,
+          attributes: { currency: "••••" },
+        },
+      ],
+    };
+  }
+
+  test("goes through the gate as the app's origin and is filed whole: its screens, its context and its metric", async () => {
+    gateMock.mockImplementation(async (): Promise<unknown> => {
+      return {
+        outcome: ProductAnalyticsGateOutcome.Accepted,
+        reason: "accepted",
+        policy: {
+          captureGeo: false,
+          productAnalyticsUserPropertyKeys: ["plan"],
+        },
+      };
+    });
+
+    const answer: Answer = await post({
+      body: toBody(mobileBatch() as unknown as JSONObject),
+      headers: MOBILE_HEADERS,
+      resolvedClientOrigin: "app://com.example.shop",
+    });
+
+    expect(answer.status).toBe(202);
+    expect(gateMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      appIdentifier: APP_IDENTIFIER,
+      origin: "app://com.example.shop",
+      consentState: "NotRequired",
+      itemCount: 4,
+    });
+
+    const jobInput: {
+      batch: {
+        sessionId: string;
+        userRef: string;
+        userProperties: Record<string, string>;
+        context: Record<string, string>;
+        events: Array<{ kind: string; name: string; page: string }>;
+        metrics: Array<{ name: string; value: number }>;
+        droppedEvents: number;
+        droppedMetrics: number;
+      };
+    } = buildJobMock.mock.calls[0]![0] as typeof jobInput;
+
+    expect(jobInput.batch.sessionId).toBe("d".repeat(32));
+    expect(jobInput.batch.userRef).toBe("user-42");
+    expect(jobInput.batch.userProperties).toEqual({ plan: "••••" });
+    expect(jobInput.batch.context).toEqual({
+      deviceType: "tablet",
+      browserName: "",
+      osName: "ios",
+      appVersion: "2.4.1",
+    });
+    expect(
+      jobInput.batch.events.map(
+        (event: { kind: string; name: string; page: string }) => {
+          return [event.kind, event.name, event.page];
+        },
+      ),
+    ).toEqual([
+      ["session", "", ""],
+      ["page", "/Checkout", "/Checkout"],
+      ["custom", "Checkout started", "/Checkout"],
+    ]);
+    expect(jobInput.batch.metrics).toEqual([
+      expect.objectContaining({ name: "cart.value", value: 42.5 }),
+    ]);
+    expect(jobInput.batch.droppedEvents).toBe(0);
+    expect(jobInput.batch.droppedMetrics).toBe(0);
+    expect(addJobMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("is refused without its app's identifier, before the gate", async () => {
+    const answer: Answer = await post({
+      body: toBody(mobileBatch() as unknown as JSONObject),
+      headers: { [SESSION_REPLAY_RECORDER_KIND_HEADER]: "rn-view-tree" },
+    });
+
+    expect(answer.status).toBe(400);
+    expect(answer.body?.["reason"]).toBe("invalid-mobile-app-identifier");
+    expect(gateMock).not.toHaveBeenCalled();
   });
 });
 

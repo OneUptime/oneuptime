@@ -458,6 +458,15 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
     onByDefault: false,
   },
   {
+    key: "malware-signatures",
+    name: "Malware scanning",
+    destination: "`database.clamav.net`",
+    when: "Scanning uploaded files with the chart's own ClamAV (`clamav.enabled: true`): it downloads its signatures as it starts, and keeps them up to date.",
+    inside:
+      "The chart's ClamAV has no setting for a signature mirror yet. Run a ClamAV daemon of your own, kept up to date from a mirror inside the gap, and set `clamav.host` to its address.",
+    onByDefault: false,
+  },
+  {
     key: "paging",
     name: "SMS, calls and push",
     destination:

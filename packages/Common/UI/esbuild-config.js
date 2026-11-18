@@ -9,6 +9,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
 const { createMermaidSourcePlugin } = require("./esbuild-mermaid");
+const { createSingleCopyPlugin } = require("./esbuild-single-copy");
 
 function createRefractorCompatibilityPlugin() {
   const candidateRoots = [
@@ -595,6 +596,12 @@ function createConfig(options) {
        */
       createMermaidSourcePlugin(),
       createRefractorCompatibilityPlugin(),
+      /*
+       * One copy of each package Common installs: a frontend's own import of
+       * one (recharts, reactflow, ...) takes Common's copy when it can stand
+       * in, rather than bundling a second (see esbuild-single-copy.js).
+       */
+      createSingleCopyPlugin(),
       /*
        * A stylesheet is a string in the bundle, which minifying leaves as
        * written: a production build takes its comments out instead. A

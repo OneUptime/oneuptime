@@ -3,9 +3,13 @@ ClamAV in the cluster, for the malware scanning of the files people send
 OneUptime (clamav.enabled, off by default): a public form's files, and the
 files people upload while signed in or with an API key. The app scans with it
 over clamd's TCP port (CLAMAV_HOST, oneuptime.env.runtime). ClamAV downloads
-its signatures when it starts and keeps them up to date itself (freshclam);
-they live in memory, so the pod needs a few GiB. While it starts, and whenever
-it is down, uploads are refused: scanning fails closed.
+its signatures when it starts and keeps them up to date itself (freshclam),
+from database.clamav.net: a connection out of the cluster, which the
+air-gapped page (packages/Home/Utils/AirGapped.ts) and the docs list. Nothing
+here points freshclam at a mirror, and the signatures are kept in an emptyDir,
+so inside an air gap scan with a clamd of your own (clamav.host) instead. The
+signatures live in memory, so the pod needs a few GiB. While it starts, and
+whenever it is down, uploads are refused: scanning fails closed.
 */}}
 {{- if .Values.clamav.enabled }}
 apiVersion: apps/v1

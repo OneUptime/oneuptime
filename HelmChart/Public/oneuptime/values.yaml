@@ -2783,6 +2783,11 @@ globalRunner:
 # ClamAV. Off by default: files are stored without a scan, as before. While it
 # is on, a file ClamAV flags is refused, saying which, and every file is
 # refused while ClamAV does not answer, so no file is stored unchecked.
+# The ClamAV that enabled runs downloads its signatures from
+# database.clamav.net when it starts, and keeps them up to date: a connection
+# out of your network. It has no setting for a signature mirror, so on a
+# network without internet access, scan with a clamd of your own (host) that
+# you keep up to date from a mirror inside it.
 clamav:
   # Run ClamAV in the cluster (a Deployment and a Service) and scan with it.
   enabled: false

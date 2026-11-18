@@ -81,6 +81,8 @@ flowchart TB
 | Slack و Microsoft Teams | اعلان‌ها و کنش‌های فضای کاری | [یکپارچه‌سازی Slack](/docs/self-hosted/slack-integration) |
 | یک ارائه‌دهندهٔ LLM، مانند OpenAI، Anthropic، Microsoft Foundry یا مدلی که خودتان اجرا می‌کنید | OneUptime AI | [ارائه‌دهندگان LLM](/docs/ai/llm-provider) |
 | `oneuptime.com` | فعال‌سازی آنلاین پروانهٔ Enterprise | [نسخه سازمانی](/docs/self-hosted/enterprise) |
+| Let's Encrypt | گواهی‌هایی که OneUptime خودش سفارش می‌دهد: برای نشانی نصب شما با `PROVISION_SSL=true` (`ssl.provision` در چارت Helm)، و برای دامنه‌های اختصاصی صفحه‌های وضعیت | [گواهی‌های صفحه وضعیت](/docs/status-pages/branding-and-domains#گواهیهای-ssl) |
+| به‌روزرسانی امضاهای ClamAV، از `database.clamav.net` | بررسی بدافزار فایل‌هایی که افراد می‌فرستند، وقتی ClamAV همراه OneUptime را روشن کنید | [بررسی بدافزار](/docs/forms/sharing-and-security#بررسی-بدافزار) |
 
 اتصال‌های جهت مخالف - SendGrid که ایمیل ورودی را تحویل می‌دهد، و Slack و Microsoft Teams که فراخوانی برگشتی انجام می‌دهند - نیاز دارند که ingress از اینترنت در دسترس باشد. اینکه برنامه و پراب‌ها به کدام نشانی‌های خصوصی برسند با شماست: [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید.
 

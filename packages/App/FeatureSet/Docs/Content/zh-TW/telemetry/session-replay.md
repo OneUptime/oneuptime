@@ -177,8 +177,9 @@ export default function App() {
 | `stop()` | 清出可以傳送的內容，停止擷取，並解除生命週期處理常式。 |
 | `identify(userRef, traits?)` | 附加已登入的使用者與選用的特徵，受 **擷取終端使用者身分** 約束。 |
 | `setTags(tags)` / `addTag(key, value)` | 取代所有可搜尋的工作階段標籤，或在不取代其他標籤的情況下新增一個標籤。 |
-| `track(name, properties?)` | 在重播時間軸上放置一個應用程式事件。 |
-| `setRoute(route)` | 在導覽後記錄經過清理的邏輯畫面或路由。請在導覽器的路由變更回呼中呼叫它。 |
+| `track(name, properties?)` | 在重播時間軸上放置一個應用程式事件。開啟產品分析事件後，它也是應用程式的 [產品分析](/docs/rum/product-analytics#傳送事件和指標) 頁面所計算的事件，來自每個工作階段，無論是否錄製。 |
+| `metric(name, value, attributes?)` | 開啟產品分析事件後，把應用程式測得的數值當作應用程式某個指標的資料點傳送。其屬性值會被遮罩。 |
+| `setRoute(route)` | 在導覽後記錄經過清理的邏輯畫面或路由。請在導覽器的路由變更回呼中呼叫它。開啟產品分析事件後，每個新畫面也是一次頁面瀏覽。 |
 | `captureSession(reason?)` | 在 _On error or frustration_ 下，因應用程式自訂的原因（例如使用者點按「回報問題」）上傳滾動緩衝區。 |
 | `captureError(error)` | 記錄一個已處理的 JavaScript 錯誤，並啟動錯誤觸發的擷取。 |
 | `grantConsent()` / `revokeConsent()` | 允許上傳，或立即清除記憶體緩衝區、已儲存的發件匣、工作階段與訪客 ID。之後再次同意會以新的識別碼開始。 |

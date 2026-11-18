@@ -81,6 +81,8 @@ flowchart TB
 | Slack 和 Microsoft Teams | 工作区通知和操作 | [Slack 集成](/docs/self-hosted/slack-integration) |
 | LLM 提供商，例如 OpenAI、Anthropic、Microsoft Foundry，或你自己运行的模型 | OneUptime AI | [LLM 提供商](/docs/ai/llm-provider) |
 | `oneuptime.com` | 在线激活 Enterprise 许可证 | [企业版](/docs/self-hosted/enterprise) |
+| Let's Encrypt | OneUptime 自行申请的证书：`PROVISION_SSL=true`（Helm Chart 中为 `ssl.provision`）时为你的安装地址申请，以及为状态页的自有域名申请 | [状态页证书](/docs/status-pages/branding-and-domains#ssl-证书) |
+| ClamAV 的特征库更新，来自 `database.clamav.net` | 在你开启 OneUptime 自带的 ClamAV 后，对人们发送的文件进行恶意软件扫描 | [恶意软件扫描](/docs/forms/sharing-and-security#恶意软件扫描) |
 
 反方向的连接——SendGrid 投递入站邮件、Slack 和 Microsoft Teams 回调——需要 ingress 能从互联网访问。应用和探测器可以访问哪些私有地址由你决定：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
 

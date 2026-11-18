@@ -191,6 +191,8 @@ IPv4 地址必须按 IPv4 的方式书写：如果按 IPv6 的方式书写，例
 
 自托管安装可以在保存每个文件之前用 ClamAV 扫描恶意软件：表单的文件，以及登录后或用 API 密钥上传的文件。将 `CLAMAV_HOST`（和 `CLAMAV_PORT`，默认 `3310`）设为一个 ClamAV 守护进程。使用 Docker Compose 时，`config.env` 中的 `COMPOSE_PROFILES=clamav` 和 `CLAMAV_HOST=clamav` 会启动 OneUptime 自带的 ClamAV；使用 Helm 时，开启 `clamav.enabled`。ClamAV 标记的文件会被拒绝，并指明是哪个文件，提交的内容一概不会保存。在 ClamAV 没有响应期间，每个文件都会被拒绝，提示 "目前无法检查文件是否含有病毒，因此文件未被接受。请几分钟后重试。" (503)，因此不会保存任何未经检查的文件。没有 `CLAMAV_HOST` 时，文件和以前一样不会被扫描。
 
+OneUptime 自带的 ClamAV 在启动时从 `database.clamav.net` 下载特征库并保持更新：这是一个连出你网络的连接。在无法访问互联网的网络中，请将 `CLAMAV_HOST`（Helm Chart 中为 `clamav.host`）设为你自己的 ClamAV 守护进程，并用该网络内的镜像保持其更新：参见 [离线（气隙）安装](/docs/installation/air-gapped#what-still-reaches-out)。
+
 ## 故障排除
 
 :::details 链接提示表单不可用

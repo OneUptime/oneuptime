@@ -191,6 +191,8 @@ Når din OneUptime-instans har hCaptcha slået til, viser formularen en captcha,
 
 En selvhostet installation kan få ClamAV til at scanne hver fil, folk sender, for malware, før den gemmes: en formulars filer og de filer, folk uploader, mens de er logget ind eller med en API-nøgle. Sæt `CLAMAV_HOST` (og `CLAMAV_PORT`, `3310` som standard) til en ClamAV-dæmon. Med Docker Compose starter `COMPOSE_PROFILES=clamav` og `CLAMAV_HOST=clamav` i `config.env` den ClamAV, der følger med OneUptime; med Helm slår du `clamav.enabled` til. En fil, som ClamAV markerer, afvises med navnet på filen, og intet fra indsendelsen gemmes. Så længe ClamAV ikke svarer, afvises hver fil med "Filer kan ikke tjekkes for virus lige nu, så de blev ikke modtaget. Prøv igen om et par minutter." (503), så ingen fil gemmes uden at være tjekket. Uden `CLAMAV_HOST` scannes filer ikke, som før.
 
+Den ClamAV, der følger med OneUptime, henter sine signaturer fra `database.clamav.net`, når den starter, og holder dem opdateret: en forbindelse ud af dit netværk. På et netværk uden internetadgang peger du `CLAMAV_HOST` (`clamav.host` i Helm-chartet) på en ClamAV-dæmon, du selv kører og holder opdateret fra et spejl inde i netværket: se [Air-gapped installation](/docs/installation/air-gapped#what-still-reaches-out).
+
 ## Fejlfinding
 
 :::details Linket siger, at formularen ikke er tilgængelig

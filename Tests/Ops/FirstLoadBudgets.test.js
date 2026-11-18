@@ -19,16 +19,19 @@ const zlib = require("zlib");
 const yaml = require("js-yaml");
 
 const {
+  FRONTENDS,
   GZIP_LEVEL,
   PAGES,
   WARNING_HEADROOM_SHARE,
   describe: describeResult,
+  describeSingleCopies,
   escapeAnnotation,
   firstLoadOutputs,
   heaviest,
   measurePage,
   outputFor,
   report,
+  singleCopies,
   warnNearCeiling,
   weightKey,
 } = require("../../packages/Common/Scripts/first-load-budgets.js");
@@ -451,6 +454,240 @@ describe("what an input weighs toward", () => {
   });
 });
 
+/*
+ * Each frontend's bundle holds one copy of each package its code imports
+ * (issue #9335): a public dashboard carried recharts twice, Common's copy
+ * for Common's charts and the Dashboard's for its widgets.
+ */
+describe("a frontend's copies of a package", () => {
+  // A public dashboard's build, with recharts and @babel/runtime twice.
+  const TWICE = {
+    inputs: {
+      "../../../Common/UI/Components/Charts/ChartLibrary/LineChart/LineChart.tsx":
+        {
+          imports: [
+            { path: "../../../Common/node_modules/recharts/es6/index.js" },
+          ],
+        },
+      "../Dashboard/src/Components/Dashboard/Components/DashboardLogChartComponent.tsx":
+        {
+          imports: [
+            { path: "../Dashboard/node_modules/recharts/es6/index.js" },
+          ],
+        },
+      "../Dashboard/node_modules/jspdf/dist/jspdf.es.min.js": {
+        imports: [
+          {
+            path: "../Dashboard/node_modules/@babel/runtime/helpers/esm/typeof.js",
+          },
+        ],
+      },
+      "../../../Common/node_modules/react-big-calendar/dist/index.js": {
+        imports: [
+          {
+            path: "../../../Common/node_modules/@babel/runtime/helpers/esm/extends.js",
+          },
+        ],
+      },
+    },
+    outputs: {
+      "public/dist/Index.js": output({
+        inputs: {
+          "../../../Common/node_modules/recharts/es6/index.js": {
+            bytesInOutput: 291942,
+          },
+          "../Dashboard/node_modules/recharts/es6/index.js": {
+            bytesInOutput: 291430,
+          },
+          "../Dashboard/node_modules/@babel/runtime/helpers/esm/typeof.js": {
+            bytesInOutput: 2355,
+          },
+          "../../../Common/node_modules/@babel/runtime/helpers/esm/extends.js":
+            { bytesInOutput: 6042 },
+        },
+      }),
+    },
+  };
+
+  // As the run reads them, from each install's package.json.
+  const VERSIONS = {
+    "../../../Common/node_modules recharts": "3.8.1",
+    "../Dashboard/node_modules recharts": "3.9.0",
+    "../../../Common/node_modules @babel/runtime": "7.28.4",
+    "../Dashboard/node_modules @babel/runtime": "7.29.2",
+  };
+
+  const versionOf = (install, name) => {
+    return VERSIONS[`${install} ${name}`] || null;
+  };
+
+  const twice = singleCopies("PublicDashboard", TWICE, versionOf);
+  const once = singleCopies(
+    "Accounts",
+    {
+      inputs: {},
+      outputs: {
+        "public/dist/Index.js": output({
+          inputs: {
+            "../../../Common/node_modules/recharts/es6/index.js": {
+              bytesInOutput: 291942,
+            },
+          },
+        }),
+      },
+    },
+    versionOf,
+  );
+
+  test("are each package from two installs, and whether its own code imports it from more than one, with each copy's version", () => {
+    expect(twice.frontend).toBe("PublicDashboard");
+    expect(twice.twice).toEqual([
+      {
+        name: "recharts",
+        installs: [
+          {
+            install: "../../../Common/node_modules",
+            bytes: 291942,
+            importedByOwnCode: true,
+            version: "3.8.1",
+          },
+          {
+            install: "../Dashboard/node_modules",
+            bytes: 291430,
+            importedByOwnCode: true,
+            version: "3.9.0",
+          },
+        ],
+      },
+    ]);
+    expect(
+      twice.alsoTwice.map((bundled) => {
+        return bundled.name;
+      }),
+    ).toEqual(["@babel/runtime"]);
+    expect(once).toEqual({ frontend: "Accounts", twice: [], alsoTwice: [] });
+  });
+
+  test("a package its code imports from two installs reads as a failure that says what to do", () => {
+    const lines = describeSingleCopies(twice);
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0].split("\n")[0]).toBe(
+      "PublicDashboard bundles recharts twice, and its own code imports it from more than one install: 3.8.1 (285.1 KiB) from ../../../Common/node_modules and 3.9.0 (284.6 KiB) from ../Dashboard/node_modules, before gzip.",
+    );
+    expect(lines[0].split("\n")[1]).toContain(
+      "Run npm update recharts where the copy is older, so one version serves both",
+    );
+    expect(lines[0]).toContain("packages/Common/UI/esbuild-single-copy.js");
+    // A second copy only a package brings is listed, not failed.
+    expect(lines[1]).toBe(
+      "  Packages of its own install also bring a second copy of @babel/runtime: 7.28.4 (5.9 KiB) from ../../../Common/node_modules and 7.29.2 (2.3 KiB) from ../Dashboard/node_modules.",
+    );
+  });
+
+  test("one copy of each reads as one line, and a copy whose version cannot be read is named without one", () => {
+    expect(describeSingleCopies(once)).toEqual([
+      "Accounts bundles one copy of each package its code imports.",
+    ]);
+
+    const unversioned = singleCopies("PublicDashboard", TWICE);
+
+    expect(describeSingleCopies(unversioned)[0].split("\n")[0]).toBe(
+      "PublicDashboard bundles recharts twice, and its own code imports it from more than one install: (285.1 KiB) from ../../../Common/node_modules and (284.6 KiB) from ../Dashboard/node_modules, before gzip.",
+    );
+  });
+
+  test("three copies read as three times", () => {
+    const thrice = singleCopies("PublicDashboard", {
+      inputs: {
+        "src/A.tsx": {
+          imports: [{ path: "node_modules/use-async-effect/index.js" }],
+        },
+        "../Dashboard/src/B.tsx": {
+          imports: [
+            { path: "../Dashboard/node_modules/use-async-effect/index.js" },
+          ],
+        },
+      },
+      outputs: {
+        "public/dist/Index.js": output({
+          inputs: {
+            "node_modules/use-async-effect/index.js": { bytesInOutput: 300 },
+            "../Dashboard/node_modules/use-async-effect/index.js": {
+              bytesInOutput: 300,
+            },
+            "../../../Common/node_modules/use-async-effect/index.js": {
+              bytesInOutput: 300,
+            },
+          },
+        }),
+      },
+    });
+
+    expect(thrice.twice).toHaveLength(1);
+    expect(describeSingleCopies(thrice)[0]).toMatch(
+      /^PublicDashboard bundles use-async-effect 3 times, /,
+    );
+  });
+
+  test("the run fails on a package a frontend's code imports twice, after the pages' lines, and not on a second copy a package brings", () => {
+    const page = {
+      frontend: "PublicDashboard",
+      page: "a public dashboard",
+      route: "src/Pages/AllPages.tsx",
+      ceiling: 1310 * 1024,
+      bytes: 1200 * 1024,
+      headroom: 110 * 1024,
+      outputs: ["public/dist/Index.js"],
+      over: false,
+      nearCeiling: false,
+      heaviest: [],
+    };
+    const onlyAPackagesCopy = { ...twice, twice: [] };
+
+    expect(report([page], [twice, once])).toEqual({
+      lines: [
+        describeResult(page),
+        ...describeSingleCopies(twice),
+        ...describeSingleCopies(once),
+      ],
+      failed: true,
+    });
+    expect(report([page], [onlyAPackagesCopy, once]).failed).toBe(false);
+    expect(report([page], [once])).toEqual({
+      lines: [describeResult(page), ...describeSingleCopies(once)],
+      failed: false,
+    });
+  });
+});
+
+describe("the frontends the run checks for their copies", () => {
+  test("are every frontend built from the shared esbuild config, the pages' among them", () => {
+    const sharedConfig = fs
+      .readdirSync(FEATURE_SETS)
+      .filter((frontend) => {
+        const config = path.join(FEATURE_SETS, frontend, "esbuild.config.js");
+
+        return (
+          fs.existsSync(config) &&
+          /require\("Common\/UI\/esbuild-config"\)/.test(
+            fs.readFileSync(config, "utf8"),
+          )
+        );
+      })
+      .sort();
+
+    expect([...FRONTENDS].sort()).toEqual(sharedConfig);
+    expect(FRONTENDS).toEqual(
+      expect.arrayContaining(
+        PAGES.map((page) => {
+          return page.frontend;
+        }),
+      ),
+    );
+  });
+});
+
 describe("the pages the budget holds", () => {
   test("are the public frontends' sign-in and sign-up, a status page and a public dashboard", () => {
     expect(
@@ -493,7 +730,7 @@ describe("compile.yml's compile-frontends job", () => {
     expect(budget).toBeGreaterThan(-1);
   });
 
-  test("runs it once every frontend it builds is installed, and Dashboard, whose sources Public Dashboard imports", () => {
+  test("runs it once every frontend it builds is installed, Dashboard among them, whose sources Public Dashboard imports", () => {
     const installed = steps
       .slice(0, budget)
       .map((step) => {
@@ -501,17 +738,13 @@ describe("compile.yml's compile-frontends job", () => {
       })
       .filter(Boolean);
 
+    expect(FRONTENDS).toContain("Dashboard");
     expect(installed).toEqual(
       expect.arrayContaining([
         "packages/Common",
-        "packages/App/FeatureSet/Dashboard",
-        ...Array.from(
-          new Set(
-            PAGES.map((page) => {
-              return `packages/App/FeatureSet/${page.frontend}`;
-            }),
-          ),
-        ),
+        ...FRONTENDS.map((frontend) => {
+          return `packages/App/FeatureSet/${frontend}`;
+        }),
       ]),
     );
   });

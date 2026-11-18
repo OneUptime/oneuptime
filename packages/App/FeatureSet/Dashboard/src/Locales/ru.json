@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "Установить рекордер",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Воспроизведение сеансов для этого приложения выключено, а события отправляет именно его рекордер. Включите его также в разделе «{{replayPolicy}}».",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "Начала сеансов и просмотры страниц приходят сами везде, где работает браузерный рекордер. Чтобы считать, что делают люди, отправляйте события и числа из приложения:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "Начала сеансов и просмотры страниц приходят сами от браузерного рекордера и рекордера React Native. Чтобы считать, что делают люди, отправляйте события и числа:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} ошибок в этом фрагменте длительностью {{window}}: {{count}} (приблизительно, фрагмент ещё не загружен)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} ошибка в этом фрагменте длительностью {{window}} (приблизительно, фрагмент ещё не загружен)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "Удалить сохранённую таблицу удержания",
   "Funnel": "Воронка",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "Воронки и таблицы удержания, сохранённые под именем из продуктовой аналитики RUM-приложения, чтобы снова открыть их или показать на панели.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "Воронки и таблицы удержания, сохранённые на страницах продуктовой аналитики RUM-приложения.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "Воронки и таблицы удержания, сохранённые на страницах продуктовой аналитики RUM-приложения. Недоступны на публичных панелях.",
   "Funnels are not available on public dashboards.": "Воронки недоступны на публичных панелях.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "Сохраняет шаги этой воронки, время на её прохождение и сегмент, чтобы снова открыть её здесь или показать на панели. Период не сохраняется.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "Сохраняет начальное событие и событие возврата этой таблицы, интервал когорт и сегмент, чтобы снова открыть её здесь или показать на панели. Период не сохраняется.",
@@ -54013,9 +54013,9 @@
   "Templates only": "Только шаблоны",
   "Text style options": "Параметры стиля текста",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "Содержимое виджета. Используйте {{variableName}} в любом месте, чтобы подставить переменную панели.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "Воронка, которую показывает виджет. Сохраните её на странице «Воронки» RUM-приложения.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "Воронка, которую показывает виджет. Сохраните её на странице «Воронки» RUM-приложения. Публичные панели показывают только её заголовок.",
   "The markup for this widget": "Разметка этого виджета",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "Таблица удержания, которую показывает виджет. Сохраните её на странице «Удержание пользователей» RUM-приложения.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "Таблица удержания, которую показывает виджет. Сохраните её на странице «Удержание пользователей» RUM-приложения. Публичные панели показывают только её заголовок.",
   "The text content to display": "Текст для показа",
   "The text to display in the widget": "Текст, который показывает виджет",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "Часовой пояс этих часов. Оставьте пустым, чтобы использовать пояс того, кто смотрит панель.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Настройка для Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "События, доля ошибок и длительность p95, сбои и ANR, модели устройств и вкладки телеметрии."
 }

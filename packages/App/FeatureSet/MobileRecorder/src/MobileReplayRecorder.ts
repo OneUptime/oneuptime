@@ -46,6 +46,7 @@ import {
   forgetReplayConfig,
   loadCachedReplayConfig,
   MobileReplayStartOptions,
+  mobileRequestHeaders,
   ResolvedReplayConfig,
   saveReplayConfig,
   ValidatedStartOptions,
@@ -66,6 +67,17 @@ import {
   NativeViewTreeNode,
 } from "./NativeViewTree";
 import ReplayOutbox from "./Outbox";
+import MobileProductAnalytics, {
+  ProductAnalyticsDiagnostics,
+  ProductAnalyticsIdentity,
+} from "./ProductAnalytics";
+import {
+  PRODUCT_ANALYTICS_EVENTS_PATH,
+  PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH,
+  PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE,
+  ProductAnalyticsWireContext,
+  toProductAnalyticsAppVersion,
+} from "./ProductAnalyticsContract";
 import {
   MAX_CAPTURE_REASON_LENGTH,
   MAX_CUSTOM_EVENT_NAME_LENGTH,
@@ -127,6 +139,13 @@ export interface MobileReplayDiagnostics {
   triggered: boolean;
   consentState: SessionReplayConsentState;
   pendingEvents: number;
+  /*
+   * Product analytics events (issue #6629): "off" when the application has
+   * them off or nothing runs, "on" while they are sent, else why they
+   * stopped; how many items are held to be sent, and how many events were
+   * dropped because too many were held.
+   */
+  productAnalytics: ProductAnalyticsDiagnostics;
   events: Array<MobileReplayDiagnosticEvent>;
 }
 
@@ -508,6 +527,21 @@ export default class MobileReplayRecorder {
   private softKeyboardVisible: boolean = false;
   private keyboardSubscriptions: Array<KeyboardSubscription> = [];
 
+  /*
+   * Product analytics events (issue #6629, src/ProductAnalytics.ts): beside
+   * the recording, from every session the policy lets the recorder run in,
+   * recorded or not. Null while the application has them off.
+   */
+  private analytics: MobileProductAnalytics | null = null;
+
+  /*
+   * The replay sample left the session out under "Always": nothing of it
+   * is recorded, but its product analytics events are still sent - and,
+   * nothing else moving the session, they are what keeps it alive
+   * (ReplaySessionStore.continueSession), as the browser recorder does.
+   */
+  private analyticsOnly: boolean = false;
+
   public constructor(dependencies: MobileReplayRecorderDependencies = {}) {
     this.storage = dependencies.storage ?? defaultReplayStorage;
     this.nativeViewTree =
@@ -608,6 +642,8 @@ export default class MobileReplayRecorder {
     this.idlePause = null;
     this.idleResumeBacklog = null;
     this.customSignalMatcher.reset();
+    /* A run before this one (an unsampled session's events) ends here. */
+    this.stopProductAnalytics();
     const validated: ValidatedStartOptions | null =
       validateStartOptions(options);
     if (!validated) {
@@ -722,12 +758,31 @@ export default class MobileReplayRecorder {
      * and pause on its very first capture.
      */
     this.lastInputUnixMs = nowUnixMs;
+
+    /*
+     * Product analytics (issue #6629) start before the replay sample is
+     * read: a session it leaves out records nothing, but its events still
+     * count. Their context needs the app's metadata, read first.
+     */
+    let metadataRead: boolean = false;
+    if (config.productAnalytics.enabled) {
+      if (!(await this.readAppMetadata(validated, generation))) {
+        return false;
+      }
+      metadataRead = true;
+      await this.startProductAnalytics(validated, config, namespace);
+      if (!this.isCurrentGeneration(generation)) {
+        return false;
+      }
+    }
+
     if (
       !awaitingConsent &&
       config.captureTrigger === SessionReplayCaptureTrigger.Always &&
       !this.sampled &&
       !config.isTargeted
     ) {
+      this.analyticsOnly = this.analytics !== null;
       this.disable("not-sampled");
       return false;
     }
@@ -736,29 +791,8 @@ export default class MobileReplayRecorder {
     this.transport = this.createTransport(validated, this.outbox);
     this.subscribeConnectivity(validated);
 
-    try {
-      const nativeMetadata: NativeAppMetadata =
-        await this.nativeViewTree.getAppMetadata();
-      if (!this.isCurrentGeneration(generation)) {
-        return false;
-      }
-      this.metadata = {
-        appName: safeMetadataValue(
-          validated.appName,
-          safeMetadataValue(nativeMetadata?.appName, "React Native"),
-        ),
-        appVersion: safeMetadataValue(
-          validated.appVersion,
-          safeMetadataValue(nativeMetadata?.appVersion, "unknown"),
-        ),
-        osName: safeMetadataValue(nativeMetadata?.osName, "unknown"),
-        osVersion: safeMetadataValue(nativeMetadata?.osVersion, "unknown"),
-      };
-    } catch {
-      if (!this.isCurrentGeneration(generation)) {
-        return false;
-      }
-      this.diagnostic("native-metadata-unavailable");
+    if (!metadataRead && !(await this.readAppMetadata(validated, generation))) {
+      return false;
     }
 
     this.route = "/";
@@ -809,6 +843,8 @@ export default class MobileReplayRecorder {
     this.lifecycleCancellationEpoch += 1;
     this.pendingStartCancellation?.cancel();
     this.acceptingEvents = false;
+    /* What product analytics holds goes now, while it can (issue #6629). */
+    this.stopProductAnalytics(true);
     this.quiesceCapture();
     return this.enqueueLifecycleOperation(async (): Promise<void> => {
       await identityBarrier;
@@ -907,6 +943,8 @@ export default class MobileReplayRecorder {
     }
     this.diagnosticsStatus = this.foreground ? "recording" : "background";
     this.diagnostic("consent-granted");
+    /* Held events go now, under the session the grant opened (issue #6629). */
+    this.analytics?.onConsentGranted();
   }
 
   public revokeConsent(): Promise<void> {
@@ -916,6 +954,11 @@ export default class MobileReplayRecorder {
     this.pendingStartCancellation?.cancel();
     this.consentGranted = false;
     this.acceptingEvents = false;
+    /*
+     * Product analytics drops what it held, forgets the session it
+     * announced, and holds nothing until a new grant (issue #6629).
+     */
+    this.analytics?.forget();
     this.haltCapture();
     this.transport?.destroy();
     return this.enqueueLifecycleOperation(async (): Promise<void> => {
@@ -1016,6 +1059,18 @@ export default class MobileReplayRecorder {
       return;
     }
 
+    /*
+     * With product analytics on, also an event the application's Events,
+     * Funnels and User Retention pages count, from every session, recorded
+     * or not (issue #6629). Not held back by the recording's own state - a
+     * session paused or left out by the sample still counts what is done
+     * in it - only by an identify() still being applied, as the recording
+     * is: a track() right after a sign-in is the signed-in user's.
+     */
+    this.afterIdentity((): void => {
+      this.analytics?.track(name, properties);
+    });
+
     const sanitizedProperties: Record<string, string> = maskStringMapValues(
       sanitizeEventProperties(properties),
     );
@@ -1039,8 +1094,53 @@ export default class MobileReplayRecorder {
     });
   }
 
+  /*
+   * A number the app measured ("cart.value", 42.5), with optional
+   * attributes: a point in the metric store under the RUM application, for
+   * charts, dashboards and Metrics monitors (issue #6629). It needs product
+   * analytics on for the application; its attribute values are masked, as
+   * track()'s property values are.
+   */
+  public metric(
+    name: string,
+    value: number,
+    attributes?: Record<string, unknown>,
+  ): void {
+    if (!this.analytics || !this.analytics.isStarted()) {
+      this.diagnostic("metric-analytics-off");
+      return;
+    }
+
+    this.afterIdentity((): void => {
+      this.analytics?.metric(name, value, attributes);
+    });
+  }
+
+  /*
+   * Runs a product analytics call once every identify() made before it has
+   * been applied - a change of user starts the next session first - or
+   * now, when none is pending. Dropped when consent is withdrawn meanwhile.
+   */
+  private afterIdentity(action: () => void): void {
+    if (this.pendingIdentityOperations === 0) {
+      action();
+      return;
+    }
+    const identityEpoch: number = this.identityCancellationEpoch;
+    void this.identityQueue.then((): void => {
+      if (identityEpoch === this.identityCancellationEpoch) {
+        action();
+      }
+    });
+  }
+
   public async setRoute(route: string): Promise<void> {
     await this.identityQueue;
+    /*
+     * A page view for product analytics (issue #6629), named by the route
+     * as the recording keeps it, whatever the recording does with it.
+     */
+    this.analytics?.page(sanitizeRoute(route));
     /*
      * Paused for idle, the route the app moves to on its own is not
      * recorded (nor counted) - only remembered, so the snapshot the resume
@@ -1350,6 +1450,9 @@ export default class MobileReplayRecorder {
       consentState: this.consentState(),
       pendingEvents:
         this.rollingBuffer.length + (this.chunkBuffer.isEmpty() ? 0 : 1),
+      productAnalytics: this.analytics
+        ? this.analytics.getDiagnostics()
+        : { state: "off", pending: 0, dropped: 0 },
       events: this.diagnosticsEvents.map(
         (event: MobileReplayDiagnosticEvent): MobileReplayDiagnosticEvent => {
           const copied: MobileReplayDiagnosticEvent = {
@@ -2696,6 +2799,25 @@ export default class MobileReplayRecorder {
       return;
     }
     if (!this.running) {
+      /*
+       * A session the replay sample left out still sends its events
+       * (#6629), and like a recording it is one person's: another user, or
+       * none, starts the next session, as a recording one does.
+       */
+      if (
+        this.analyticsOnly &&
+        ref !== this.userRef &&
+        this.identityPersisted &&
+        this.sessionStore
+      ) {
+        const identity: ReplaySessionIdentity = await this.sessionStore.rotate(
+          this.now(),
+        );
+        if (identityEpoch !== this.identityCancellationEpoch) {
+          return;
+        }
+        this.identity = identity;
+      }
       this.applyIdentityValues(ref, traits, true);
       return;
     }
@@ -2997,6 +3119,14 @@ export default class MobileReplayRecorder {
   ): Promise<boolean> {
     this.config = freshConfig;
     this.metaDirty = true;
+    const analyticsStart: Promise<void> | null =
+      this.syncProductAnalytics(freshConfig);
+    if (analyticsStart) {
+      await analyticsStart;
+      if (!this.running || !this.isCurrentGeneration(generation)) {
+        return false;
+      }
+    }
     const hasConsent: boolean =
       freshConfig.consentMode === SessionReplayConsentMode.NotRequired ||
       this.consentGranted;
@@ -3007,6 +3137,11 @@ export default class MobileReplayRecorder {
         this.uploadActive ||
         previousConsentState !== "Unknown";
       if (mustWithdrawPersistedState) {
+        /*
+         * Product analytics lets go of what it held and of the session it
+         * announced, and holds what comes next for the grant (#6629).
+         */
+        this.analytics?.reset();
         this.transport?.destroy();
         this.chunkBuffer.clear();
         this.rollingBuffer.clear();
@@ -3114,6 +3249,8 @@ export default class MobileReplayRecorder {
     this.diagnostic("policy-refreshed", {
       configEpoch: freshConfig.configEpoch,
     });
+    /* A session named only now (after consent) takes what was held for it. */
+    this.analytics?.refresh();
     return true;
   }
 
@@ -3139,6 +3276,13 @@ export default class MobileReplayRecorder {
     code: string,
     reason: string,
   ): Promise<void> {
+    if (reason === "not-sampled") {
+      /* Nothing more is recorded, but the session's events still count. */
+      this.analyticsOnly = this.analytics !== null;
+    } else {
+      /* Replay is off: so are the events its recorder sends. */
+      this.stopProductAnalytics();
+    }
     this.disable(code, { reason });
     this.haltCapture();
     this.transport?.destroy();
@@ -3538,6 +3682,8 @@ export default class MobileReplayRecorder {
       !this.sampled &&
       !this.config.isTargeted
     ) {
+      /* Nothing of it is recorded, but its events still count (#6629). */
+      this.analyticsOnly = this.analytics !== null;
       this.disable("not-sampled");
       this.haltCapture();
       return;
@@ -3552,6 +3698,215 @@ export default class MobileReplayRecorder {
     if (this.captureTimer === null && this.running && this.foreground) {
       this.startTimers();
     }
+  }
+
+  /*
+   * The app's name, version and system, as the start options and then the
+   * native module say them. False when a newer start or a stop took over
+   * meanwhile.
+   */
+  private async readAppMetadata(
+    validated: ValidatedStartOptions,
+    generation: number,
+  ): Promise<boolean> {
+    try {
+      const nativeMetadata: NativeAppMetadata =
+        await this.nativeViewTree.getAppMetadata();
+      if (!this.isCurrentGeneration(generation)) {
+        return false;
+      }
+      this.metadata = {
+        appName: safeMetadataValue(
+          validated.appName,
+          safeMetadataValue(nativeMetadata?.appName, "React Native"),
+        ),
+        appVersion: safeMetadataValue(
+          validated.appVersion,
+          safeMetadataValue(nativeMetadata?.appVersion, "unknown"),
+        ),
+        osName: safeMetadataValue(nativeMetadata?.osName, "unknown"),
+        osVersion: safeMetadataValue(nativeMetadata?.osVersion, "unknown"),
+      };
+    } catch {
+      if (!this.isCurrentGeneration(generation)) {
+        return false;
+      }
+      this.diagnostic("native-metadata-unavailable");
+    }
+    return true;
+  }
+
+  /*
+   * Product analytics events (issue #6629, src/ProductAnalytics.ts), when
+   * the application has them on: the channel asks this recorder for the
+   * session, the visitor, consent and who is signed in, so an event and a
+   * recording of the same visit carry the same ids.
+   */
+  private async startProductAnalytics(
+    options: ValidatedStartOptions,
+    config: ResolvedReplayConfig,
+    namespace: string,
+  ): Promise<void> {
+    if (this.analytics || !config.productAnalytics.enabled) {
+      return;
+    }
+
+    const analytics: MobileProductAnalytics = new MobileProductAnalytics(
+      {
+        url: `${options.host}${PRODUCT_ANALYTICS_EVENTS_PATH}`,
+        headers: mobileRequestHeaders(options),
+        fetch: options.fetch,
+        now: this.now,
+        storage: this.storage,
+        namespace,
+        appState: this.appState,
+        connectivity: options.connectivity,
+        getSessionId: (nowUnixMs: number): string => {
+          return this.analyticsSessionId(nowUnixMs, true);
+        },
+        peekSessionId: (): string => {
+          return this.analyticsSessionId(this.now(), false);
+        },
+        getVisitorId: (): string => {
+          return this.identityPersisted ? this.identity?.visitorId ?? "" : "";
+        },
+        getConsentState: (): SessionReplayConsentState => {
+          return this.consentState();
+        },
+        requiresConsent: (): boolean => {
+          return (
+            this.config?.consentMode ===
+            SessionReplayConsentMode.RequireExplicit
+          );
+        },
+        getIdentity: (): ProductAnalyticsIdentity => {
+          return this.analyticsIdentity();
+        },
+        toProperties: (value: unknown): Record<string, string> => {
+          return maskStringMapValues(sanitizeEventProperties(value));
+        },
+        getContext: (): ProductAnalyticsWireContext => {
+          return this.analyticsContext();
+        },
+        onDiagnostic: (
+          code: string,
+          details?: Record<string, unknown>,
+        ): void => {
+          this.diagnostic(code, details);
+        },
+      },
+      config.productAnalytics,
+    );
+    this.analytics = analytics;
+    await analytics.start();
+  }
+
+  /*
+   * Ends the product analytics channel this recorder started; `flushFirst`
+   * sends what it holds first (stop()).
+   */
+  private stopProductAnalytics(flushFirst: boolean = false): void {
+    const analytics: MobileProductAnalytics | null = this.analytics;
+    this.analytics = null;
+    this.analyticsOnly = false;
+    if (!analytics) {
+      return;
+    }
+    if (flushFirst) {
+      analytics.flush(true);
+    }
+    analytics.stop();
+  }
+
+  /*
+   * A refreshed policy's product analytics: switched off, the channel
+   * stops; switched on, it starts - again, too, after the server said they
+   * were off - and its trait keys follow the policy. A promise only when a
+   * channel has to start.
+   */
+  private syncProductAnalytics(
+    config: ResolvedReplayConfig,
+  ): Promise<void> | null {
+    if (!config.productAnalytics.enabled) {
+      this.stopProductAnalytics();
+      return null;
+    }
+    if (this.analytics && this.analytics.getStopReason() !== "not-enabled") {
+      this.analytics.setConfig(config.productAnalytics);
+      return null;
+    }
+    if (!this.options) {
+      return null;
+    }
+    const options: ValidatedStartOptions = this.currentStartOptions();
+    this.stopProductAnalytics();
+    return this.startProductAnalytics(
+      options,
+      config,
+      getReplayStorageNamespace(options),
+    );
+  }
+
+  /*
+   * The session a product analytics event belongs to (issue #6629). The
+   * recording's own while the recorder runs: it rotates its session
+   * itself, and a session that ended idle keeps its id until the next one
+   * starts. "" before consent, when the session the recorder holds is a
+   * throwaway: the events wait for the one the grant opens. A session the
+   * replay sample left out records nothing, so an event is its activity
+   * (isActivity), and keeps it alive or rolls it over.
+   */
+  private analyticsSessionId(nowUnixMs: number, isActivity: boolean): string {
+    if (!this.identity || !this.identityPersisted) {
+      return "";
+    }
+    if (this.running) {
+      return this.identity.sessionId;
+    }
+    if (this.analyticsOnly && this.sessionStore) {
+      if (isActivity) {
+        const continued: ReplaySessionIdentity | null =
+          this.sessionStore.continueSession(nowUnixMs);
+        if (continued) {
+          this.identity = continued;
+        }
+      }
+      return this.identity.sessionId;
+    }
+    return "";
+  }
+
+  /* Who is signed in, only while the application captures identity. */
+  private analyticsIdentity(): ProductAnalyticsIdentity {
+    if (this.config?.captureUserIdentity !== true || !this.userRef) {
+      return { userRef: "", traits: null };
+    }
+    return { userRef: this.userRef, traits: { ...this.traits } };
+  }
+
+  /*
+   * What the app runs on, as its recorded sessions are filed (Common's
+   * RumProductAnalyticsSession): a phone, or a tablet from a shorter side
+   * of 600 points; no browser; the system the native module names; and the
+   * app's version, from the start options or the native module.
+   */
+  private analyticsContext(): ProductAnalyticsWireContext {
+    const size: { width: number; height: number } = getViewport();
+    const known: (value: string) => string = (value: string): string => {
+      return value === "unknown" ? "" : value;
+    };
+    return {
+      deviceType:
+        Math.min(size.width, size.height) >=
+        PRODUCT_ANALYTICS_TABLET_MIN_SHORT_SIDE
+          ? "tablet"
+          : "mobile",
+      browserName: "",
+      osName: known(this.metadata.osName)
+        .trim()
+        .slice(0, PRODUCT_ANALYTICS_MAX_CONTEXT_VALUE_LENGTH),
+      appVersion: toProductAnalyticsAppVersion(known(this.metadata.appVersion)),
+    };
   }
 
   private disable(code: string, details?: Record<string, unknown>): void {

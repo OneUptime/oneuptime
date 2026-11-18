@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Ist Projektstandard für SMS",
   "Install the recorder": "Recorder installieren",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Die Sitzungswiedergabe ist für diese Anwendung deaktiviert, und ihr Recorder sendet die Ereignisse. Aktivieren Sie sie auch unter {{replayPolicy}}.",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "Sitzungsstarts und Seitenaufrufe kommen von selbst, wo immer der Browser-Recorder läuft. Um zu zählen, was Personen tun, senden Sie Ereignisse und Zahlen aus Ihrer App:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "Sitzungsstarts und Seitenaufrufe kommen von selbst vom Browser-Recorder und vom React-Native-Recorder. Um zu zählen, was Personen tun, senden Sie Ereignisse und Zahlen:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} Fehler in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} Fehler in diesem {{window}} langen Chunk (ungefähr, Chunk noch nicht geladen)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "Gespeicherte Bindungstabelle löschen",
   "Funnel": "Trichter",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "Trichter und Bindungstabellen, die aus der Produktanalyse einer RUM-Anwendung unter einem Namen gespeichert wurden, um sie erneut zu öffnen oder auf einem Dashboard anzuzeigen.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "Trichter und Bindungstabellen, die auf den Produktanalyse-Seiten einer RUM-Anwendung gespeichert wurden.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "Trichter und Bindungstabellen, die auf den Produktanalyse-Seiten einer RUM-Anwendung gespeichert wurden. Auf öffentlichen Dashboards nicht verfügbar.",
   "Funnels are not available on public dashboards.": "Trichter sind auf öffentlichen Dashboards nicht verfügbar.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "Speichert die Schritte dieses Trichters, die Zeit bis zu seinem Abschluss und sein Segment, um ihn hier erneut zu öffnen oder auf einem Dashboard anzuzeigen. Der Zeitraum wird nicht gespeichert.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "Speichert das Start- und das Rückkehrereignis dieser Tabelle, ihre Periode und ihr Segment, um sie hier erneut zu öffnen oder auf einem Dashboard anzuzeigen. Der Zeitraum wird nicht gespeichert.",
@@ -54013,9 +54013,9 @@
   "Templates only": "Nur Vorlagen",
   "Text style options": "Optionen für den Textstil",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "Der Inhalt des Widgets. Mit {{variableName}} setzen Sie an beliebiger Stelle eine Dashboard-Variable ein.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "Der Trichter, den dieses Widget zeigt. Speichern Sie einen auf der Seite Trichter einer RUM-Anwendung.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "Der Trichter, den dieses Widget zeigt. Speichern Sie einen auf der Seite Trichter einer RUM-Anwendung. Öffentliche Dashboards zeigen nur seinen Titel.",
   "The markup for this widget": "Das Markup dieses Widgets",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "Die Bindungstabelle, die dieses Widget zeigt. Speichern Sie eine auf der Seite Benutzerbindung einer RUM-Anwendung.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "Die Bindungstabelle, die dieses Widget zeigt. Speichern Sie eine auf der Seite Benutzerbindung einer RUM-Anwendung. Öffentliche Dashboards zeigen nur ihren Titel.",
   "The text content to display": "Der anzuzeigende Textinhalt",
   "The text to display in the widget": "Der Text, den das Widget anzeigt",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "Die Zeitzone dieser Uhr. Leer lassen, um die Zeitzone der jeweils betrachtenden Person zu verwenden.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android-Einrichtung",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Ereignisse, Fehlerrate und p95-Dauer, Abstürze und ANRs, Gerätemodelle und die Telemetrie-Tabs."
 }

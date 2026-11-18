@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "هل هو الافتراضي للمشروع لرسائل SMS",
   "Install the recorder": "تثبيت المسجّل",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "إعادة تشغيل الجلسات متوقفة لهذا التطبيق، ومسجّلها هو الذي يرسل الأحداث. فعّلها أيضًا في «{{replayPolicy}}».",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "تصل بدايات الجلسات ومشاهدات الصفحات تلقائيًا من أي مكان يعمل فيه مسجّل المتصفح. ولإحصاء ما يفعله الناس، أرسل الأحداث والأرقام من تطبيقك:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "تصل بدايات الجلسات ومشاهدات الصفحات تلقائيًا من مسجّل المتصفح ومسجّل React Native. ولإحصاء ما يفعله الناس، أرسل الأحداث والأرقام:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} من الأخطاء في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} خطأ في هذا المقطع الذي مدته {{window}} (تقريبي، لم يُحمَّل المقطع بعد)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "حذف جدول الاحتفاظ المحفوظ",
   "Funnel": "مسار التحويل",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "مسارات التحويل وجداول الاحتفاظ المحفوظة باسم من تحليلات المنتج لتطبيق RUM، لفتحها مجددًا أو عرضها على لوحة معلومات.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "مسارات التحويل وجداول الاحتفاظ المحفوظة في صفحات تحليلات المنتج لتطبيق RUM.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "مسارات التحويل وجداول الاحتفاظ المحفوظة في صفحات تحليلات المنتج لتطبيق RUM. غير متاحة في لوحات المعلومات العامة.",
   "Funnels are not available on public dashboards.": "مسارات التحويل غير متاحة في لوحات المعلومات العامة.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "يحفظ خطوات مسار التحويل هذا، والوقت اللازم لإكماله، وشريحته، لفتحه هنا مجددًا أو عرضه على لوحة معلومات. لا يُحفظ النطاق الزمني.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "يحفظ حدثي البداية والعودة لهذا الجدول، وفترته، وشريحته، لفتحه هنا مجددًا أو عرضه على لوحة معلومات. لا يُحفظ النطاق الزمني.",
@@ -54013,9 +54013,9 @@
   "Templates only": "القوالب فقط",
   "Text style options": "خيارات نمط النص",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "متن الأداة. استخدم {{variableName}} في أي مكان لاستبدال متغير لوحة المعلومات.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "مسار التحويل الذي تعرضه هذه الأداة. احفظ واحدًا في صفحة مسارات التحويل لتطبيق RUM.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "مسار التحويل الذي تعرضه هذه الأداة. احفظ واحدًا في صفحة مسارات التحويل لتطبيق RUM. لا تعرض لوحات المعلومات العامة إلا عنوانه.",
   "The markup for this widget": "ترميز هذه الأداة",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "جدول الاحتفاظ الذي تعرضه هذه الأداة. احفظ واحدًا في صفحة الاحتفاظ بالمستخدمين لتطبيق RUM.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "جدول الاحتفاظ الذي تعرضه هذه الأداة. احفظ واحدًا في صفحة الاحتفاظ بالمستخدمين لتطبيق RUM. لا تعرض لوحات المعلومات العامة إلا عنوانه.",
   "The text content to display": "محتوى النص المعروض",
   "The text to display in the widget": "النص المعروض في الأداة",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "المنطقة الزمنية لهذه الساعة. اتركها فارغة لاستخدام منطقة من يشاهد لوحة المعلومات.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "إعداد Android",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "الأحداث، ومعدل الأخطاء والمدة p95، وحالات التعطل وحالات ANR، وطُرز الأجهزة، وعلامات تبويب القياس عن بُعد."
 }

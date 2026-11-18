@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "Install the recorder",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "Delete saved retention table",
   "Funnel": "Funnel",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "Funnels and retention tables saved on a RUM application's product analytics pages.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.",
   "Funnels are not available on public dashboards.": "Funnels are not available on public dashboards.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.",
@@ -54013,9 +54013,9 @@
   "Templates only": "Templates only",
   "Text style options": "Text style options",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "The funnel this widget shows. Save one on a RUM application's Funnels page.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.",
   "The markup for this widget": "The markup for this widget",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "The retention table this widget shows. Save one on a RUM application's User Retention page.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.",
   "The text content to display": "The text content to display",
   "The text to display in the widget": "The text to display in the widget",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android setup",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs."
 }

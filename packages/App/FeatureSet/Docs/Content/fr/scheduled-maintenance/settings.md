@@ -45,12 +45,12 @@ Une nouvelle règle démarre activée ; désactivez **Activé** dans son formula
 
 Les **Règles de propriétaire** ajoutent des utilisateurs et équipes propriétaires aux nouveaux événements qui correspondent, et les **Règles d'étiquettes** ajoutent des étiquettes. En créer une prend deux étapes : **Correspondance**, les conditions, puis **Propriétaires** ou **Étiquettes**, ce que la règle ajoute.
 
-| Condition                                                       | Correspond à                                                               |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Moniteurs**, **Étiquettes de l'événement**, **Étiquettes du moniteur** | Les événements avec l'un des moniteurs ou l'une des étiquettes choisis. |
-| **Titre de l'événement**, **Description de l'événement**, **Nom du moniteur**, **Description du moniteur** | Un motif, sous forme d'expression régulière, sans tenir compte de la casse. |
+À l'étape **Correspondance**, **S'applique à** démarre sur **Tous les événements de maintenance** : la règle agit sur chaque nouvel événement. Pour la restreindre, choisissez **Uniquement les événements de maintenance qui correspondent aux conditions**, remplissez la condition qui s'ouvre, puis cliquez sur **Ajouter une condition** pour chacune des autres. Avec deux conditions ou plus, choisissez **Toutes requises**, où chaque condition doit être remplie, ou **Au moins une requise**, où une seule suffit.
 
-Une règle ne correspond que lorsque chaque condition remplie est vraie ; une condition laissée vide est ignorée.
+| Condition                                                       | Compare avec                                                               |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Moniteurs**, **Étiquettes de l'événement**, **Étiquettes du moniteur** | **Contient l'un de**, **Contient tous les** ou **Ne contient aucun de**, appliqués aux moniteurs ou aux étiquettes que vous choisissez. |
+| **Titre de l'événement**, **Description de l'événement**, **Nom du moniteur**, **Description du moniteur** | **Contient**, **Ne contient pas**, **Égal à**, **Différent de**, **Commence par**, **Se termine par**, sans tenir compte de la casse, ou **Correspond au modèle** et **Ne correspond pas au modèle**, pour une expression régulière ou un joker `*`. |
 
 - **Une règle peut hériter.** Repliés sous **Hériter des propriétaires** ou **Hériter des étiquettes**, six interrupteurs transmettent les propriétaires ou les étiquettes des moniteurs, hôtes, clusters Kubernetes, hôtes Docker, hôtes Podman et services de l'événement.
 - **Une nouvelle règle doit ajouter quelque chose** : choisissez au moins un propriétaire ou une étiquette, ou activez un interrupteur.
@@ -132,7 +132,7 @@ Les règles, champs personnalisés et mesures requièrent **Propriétaire du pro
 ## Dépannage
 
 :::details Une règle de propriétaire n'a ajouté personne à un nouvel événement
-Ouvrez la règle et vérifiez ses conditions : chaque condition remplie doit être vraie. Un motif de titre est une expression régulière, donc `db upgrade` ne correspond pas à « DB-Upgrade » ; écrivez `db.upgrade`. Une règle n'agit par ailleurs que sur les événements créés après son enregistrement : utilisez **Exécuter maintenant** pour ceux que vous avez déjà.
+Ouvrez la règle et vérifiez ses conditions : avec **Toutes requises**, chacune doit être remplie. Le texte est comparé tel qu'il est écrit, à la casse près, donc **Contient** `db upgrade` ne correspond pas à « DB-Upgrade » ; choisissez **Correspond au modèle** et écrivez `db.upgrade`. Une règle n'agit par ailleurs que sur les événements créés après son enregistrement : utilisez **Exécuter maintenant** pour ceux que vous avez déjà.
 :::
 
 :::details Les propriétaires n'ont reçu aucun rappel

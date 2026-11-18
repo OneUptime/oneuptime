@@ -381,7 +381,9 @@ export default class DataLineageMapReader {
       dashboards.dashboards.length,
     );
     const nodeRoom: number =
-      (data.maxNodes ?? MAX_DATA_LINEAGE_MAP_NODES) - choice.nodeCount - onFlows;
+      (data.maxNodes ?? MAX_DATA_LINEAGE_MAP_NODES) -
+      choice.nodeCount -
+      onFlows;
     const dashboardRoom: number = choice.dashboardRoom - onFlows;
     const biRows: Array<DataLineageMapDashboardRow> =
       nodeRoom > 0 &&

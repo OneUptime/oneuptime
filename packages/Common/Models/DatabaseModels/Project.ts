@@ -3589,7 +3589,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "alertInvestigationMinimumSeverityId",
     type: TableColumnType.Entity,
-    modelType: AlertSeverity,
+    // Lazy: AlertSeverity imports Project back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return AlertSeverity;
+    },
     title: "Alert Investigation Minimum Severity",
     description:
       "Only alerts at or above this severity are investigated automatically by AI. Unset means every alert is investigated, whatever its severity.",
@@ -3841,7 +3844,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "incidentInvestigationMinimumSeverityId",
     type: TableColumnType.Entity,
-    modelType: IncidentSeverity,
+    // Lazy: IncidentSeverity imports Project back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return IncidentSeverity;
+    },
     title: "Incident Investigation Minimum Severity",
     description:
       "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated, whatever its severity.",
@@ -4613,7 +4619,10 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "resellerId",
     type: TableColumnType.Entity,
     hideColumnInDocumentation: true,
-    modelType: Reseller,
+    // Lazy: Reseller imports User, which imports Project back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Reseller;
+    },
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
   })
@@ -4683,7 +4692,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
-    modelType: ResellerPlan,
+    // Lazy: ResellerPlan imports User, which imports Project back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return ResellerPlan;
+    },
     hideColumnInDocumentation: true,
     title: "ResellerPlan",
     description:

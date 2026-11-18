@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "Is Project Default for SMS",
   "Install the recorder": "Installer opptakeren",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "Øktavspilling er slått av for denne applikasjonen, og det er opptakeren dens som sender hendelsene. Slå den også på under {{replayPolicy}}.",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "Øktstarter og sidevisninger kommer av seg selv overalt der nettleseropptakeren kjører. For å telle hva folk gjør, send hendelser og tall fra appen din:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "Øktstarter og sidevisninger kommer av seg selv fra nettleseropptakeren og React Native-opptakeren. For å telle hva folk gjør, send hendelser og tall:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{counts}} i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} {{count}} feil i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} feil i denne blokken på {{window}} (omtrentlig, blokken er ikke lastet inn ennå)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "Slett lagret lojalitetstabell",
   "Funnel": "Trakt",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "Trakter og lojalitetstabeller lagret under et navn fra en RUM-applikasjons produktanalyse, slik at de kan åpnes igjen eller vises på et dashbord.",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "Trakter og lojalitetstabeller lagret på en RUM-applikasjons produktanalysesider.",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "Trakter og lojalitetstabeller lagret på en RUM-applikasjons produktanalysesider. Ikke tilgjengelige på offentlige dashbord.",
   "Funnels are not available on public dashboards.": "Trakter er ikke tilgjengelige på offentlige dashbord.",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "Lagrer traktens trinn, tiden til å fullføre den og segmentet, slik at den kan åpnes igjen her eller vises på et dashbord. Tidsrommet lagres ikke.",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "Lagrer tabellens start- og returhendelse, perioden og segmentet, slik at den kan åpnes igjen her eller vises på et dashbord. Tidsrommet lagres ikke.",
@@ -54013,9 +54013,9 @@
   "Templates only": "Bare maler",
   "Text style options": "Alternativer for tekststil",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "Widgetens innhold. Bruk {{variableName}} hvor som helst for å sette inn en dashbordvariabel.",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "Trakten denne widgeten viser. Lagre en på en RUM-applikasjons side Trakter.",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "Trakten denne widgeten viser. Lagre en på en RUM-applikasjons side Trakter. Offentlige dashbord viser bare tittelen.",
   "The markup for this widget": "Markeringen til denne widgeten",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "Lojalitetstabellen denne widgeten viser. Lagre en på en RUM-applikasjons side Brukerlojalitet.",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "Lojalitetstabellen denne widgeten viser. Lagre en på en RUM-applikasjons side Brukerlojalitet. Offentlige dashbord viser bare tittelen.",
   "The text content to display": "Teksten som skal vises",
   "The text to display in the widget": "Teksten widgeten viser",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "Klokkens tidssone. La stå tom for å bruke tidssonen til den som ser på dashbordet.",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android-oppsett",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "Hendelser, feilrate og p95-varighet, krasj og ANR-er, enhetsmodeller og telemetrifanene."
 }

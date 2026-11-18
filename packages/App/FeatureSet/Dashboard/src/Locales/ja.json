@@ -48805,7 +48805,7 @@
   "Is Project Default for SMS": "SMS のプロジェクトのデフォルト",
   "Install the recorder": "レコーダーをインストール",
   "Session Replay is off for this application, and its recorder is what sends the events. Turn it on under {{replayPolicy}} too.": "このアプリケーションではセッションリプレイがオフになっていますが、イベントを送信するのはそのレコーダーです。{{replayPolicy}}でもオンにしてください。",
-  "Session starts and page views arrive on their own wherever the browser recorder runs. To count what people do, send events and numbers from your app:": "セッションの開始とページビューは、ブラウザーレコーダーが動作するすべての場所から自動で届きます。ユーザーの操作を数えるには、アプリからイベントと数値を送信します:",
+  "Session starts and page views arrive on their own from the browser and React Native recorders. To count what people do, send events and numbers:": "セッションの開始とページビューは、ブラウザーレコーダーと React Native レコーダーから自動で届きます。ユーザーの操作を数えるには、イベントと数値を送信します:",
   "~{{time}} {{counts}} in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内: {{counts}}（概算、チャンクは未読み込み）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)": "~{{time}} この {{window}} のチャンク内のエラー {{count}} 件（概算、チャンクは未読み込み）",
   "~{{time}} {{count}} errors in this {{window}} chunk (approximate, chunk not loaded yet)_one": "~{{time}} {{count}} error in this {{window}} chunk (approximate, chunk not loaded yet)",
@@ -49528,7 +49528,7 @@
   "Delete saved retention table": "保存済みのリテンションテーブルを削除",
   "Funnel": "ファネル",
   "Funnels and retention tables saved from a RUM application's product analytics, by name, to open again or show on a dashboard.": "RUM アプリケーションのプロダクト分析から名前を付けて保存したファネルとリテンションテーブル。再び開いたり、ダッシュボードに表示したりできます。",
-  "Funnels and retention tables saved on a RUM application's product analytics pages.": "RUM アプリケーションのプロダクト分析ページで保存したファネルとリテンションテーブル。",
+  "Funnels and retention tables saved on a RUM application's product analytics pages. Not available on public dashboards.": "RUM アプリケーションのプロダクト分析ページで保存したファネルとリテンションテーブル。公開ダッシュボードでは利用できません。",
   "Funnels are not available on public dashboards.": "公開ダッシュボードではファネルを利用できません。",
   "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.": "このファネルのステップ、完了までの時間、セグメントを保存し、ここで再び開いたりダッシュボードに表示したりできるようにします。期間は保存されません。",
   "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.": "このテーブルの最初のイベントと再訪時のイベント、集計単位、セグメントを保存し、ここで再び開いたりダッシュボードに表示したりできるようにします。期間は保存されません。",
@@ -54013,9 +54013,9 @@
   "Templates only": "テンプレートのみ",
   "Text style options": "テキストのスタイル",
   "The body of the widget. Use {{variableName}} anywhere to substitute a dashboard variable.": "ウィジェットの本文。{{variableName}} をどこにでも書くと、ダッシュボード変数に置き換わります。",
-  "The funnel this widget shows. Save one on a RUM application's Funnels page.": "このウィジェットが表示するファネル。RUM アプリケーションのファネルページで保存します。",
+  "The funnel this widget shows. Save one on a RUM application's Funnels page. Public dashboards show only its title.": "このウィジェットが表示するファネル。RUM アプリケーションのファネルページで保存します。公開ダッシュボードにはタイトルだけが表示されます。",
   "The markup for this widget": "このウィジェットのマークアップ",
-  "The retention table this widget shows. Save one on a RUM application's User Retention page.": "このウィジェットが表示するリテンション表。RUM アプリケーションのユーザーリテンションページで保存します。",
+  "The retention table this widget shows. Save one on a RUM application's User Retention page. Public dashboards show only its title.": "このウィジェットが表示するリテンション表。RUM アプリケーションのユーザーリテンションページで保存します。公開ダッシュボードにはタイトルだけが表示されます。",
   "The text content to display": "表示するテキスト",
   "The text to display in the widget": "ウィジェットに表示するテキスト",
   "The timezone this clock reads in. Leave empty to use the timezone of whoever is viewing the dashboard.": "この時計のタイムゾーン。空欄にすると、ダッシュボードを見ている人のタイムゾーンを使います。",
@@ -57084,5 +57084,7 @@
   "{{count}} tables not watched": "{{count}} tables not watched",
   "{{count}} tables not watched_one": "{{count}} table not watched",
   "{{matched}} of {{count}} tables watched": "{{matched}} of {{count}} tables watched",
-  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched"
+  "{{matched}} of {{count}} tables watched_one": "{{matched}} of {{count}} table watched",
+  "Android setup": "Android のセットアップ",
+  "Events, error rate and p95 duration, crashes and ANRs, device models and the telemetry tabs.": "イベント、エラー率、p95 の期間、クラッシュと ANR、デバイスのモデル、テレメトリのタブ。"
 }
