@@ -1,6 +1,7 @@
 import AuditLogService from "./AuditLogService";
 import DatabaseService from "./DatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -139,6 +140,64 @@ export interface SessionLengthsImpact {
   includesSession: boolean;
 }
 
+/*
+ * WHETHER THE SESSION AN ACCESS TOKEN NAMES IS STILL LIVE, ON EVERY REQUEST,
+ * WITHOUT A DATABASE READ PER REQUEST (#9534).
+ *
+ * An access token is a stateless JWT that lives 15 minutes. Signing out,
+ * revoking a session, a new password, a block, a session length and every
+ * other end revoke the session in the database, which stops its refresh
+ * token at once; the access token used to work on until it expired - after
+ * a sign-out whose answer never reached the browser, for whoever sat down
+ * at the computer next, and for anyone who had copied it.
+ *
+ * So every request asks whether its session is live (isSessionLive, from
+ * UserAuthorization.readRequestSession), and the answer is kept on each
+ * server, the way whether its person is blocked is (UserService
+ * .isUserBlocked):
+ *
+ *   - a live session is read once per server every
+ *     LIVE_SESSION_CACHE_TTL_MS, with one primary-key read, and concurrent
+ *     requests share it;
+ *   - a session that has ended is kept as ended for as long as any access
+ *     token of it can live (ENDED_SESSION_CACHE_TTL_MS): it never comes back;
+ *   - when a session ends, the server that ended it holds it as ended at
+ *     once, and tells every other server (RealtimeAccessChanges,
+ *     SessionsEnded), which do the same (forgetEndedSessions,
+ *     forgetSessionsOfUser). A server the message cannot reach reads the
+ *     session again within LIVE_SESSION_CACHE_TTL_MS, so an ended session's
+ *     token is refused there within that bound, never after its own 15
+ *     minutes;
+ *   - a read that fails is an error, never "live", and nothing about it is
+ *     kept.
+ */
+export const LIVE_SESSION_CACHE_TTL_MS: number = 60_000;
+
+/*
+ * How long a server keeps a session it knows has ended as ended: the longest
+ * an access token signed for it before it ended can still live. No token is
+ * signed for a session that has ended.
+ */
+export const ENDED_SESSION_CACHE_TTL_MS: number = 15 * 60 * 1000;
+
+// How many sessions one server keeps the standing of at once.
+export const SESSION_STANDING_CACHE_MAX_ENTRIES: number = 10_000;
+
+/*
+ * What a server knows of one session: whether it is live, and whose it is
+ * (lower-case; empty when no such session was found).
+ */
+export interface SessionStanding {
+  isLive: boolean;
+  userId: string;
+}
+
+// A lookup of a session's standing in flight, and whose session the token named.
+interface SessionStandingLookup {
+  userId: string;
+  lookup: Promise<SessionStanding>;
+}
+
 // How many sessions endSessionsPastLengths ends in one go.
 const SESSIONS_ENDED_PER_BATCH: number = 500;
 
@@ -262,6 +321,18 @@ export class Service extends DatabaseService<Model> {
   public static readonly SSO_SIGN_IN_LIFETIME_IN_SECONDS: number =
     30 * 24 * 60 * 60;
 
+  // What isSessionLive read, per server (see LIVE_SESSION_CACHE_TTL_MS).
+  private sessionStandingCache: InMemoryTTLCache<SessionStanding> =
+    new InMemoryTTLCache(SESSION_STANDING_CACHE_MAX_ENTRIES);
+
+  /*
+   * One read per session in flight. A dashboard load fires a burst of
+   * requests at once, and without this a cold cache turns the burst into
+   * as many identical reads.
+   */
+  private sessionStandingLookups: Map<string, SessionStandingLookup> =
+    new Map();
+
   public constructor() {
     super(Model);
 
@@ -270,6 +341,173 @@ export class Service extends DatabaseService<Model> {
      * without deleting sessions that have renewed their refresh credentials.
      */
     this.hardDeleteItemsOlderThanInDays("refreshTokenExpiresAt", 30);
+  }
+
+  /**
+   * Whether the session an access token names is still live: there is such
+   * a session, it is `userId`'s, and nothing has ended it - signed out,
+   * revoked, a new password, a block, the session lengths. Asked on every
+   * authenticated request (UserAuthorization.readRequestSession), so the
+   * answer is kept on each server (LIVE_SESSION_CACHE_TTL_MS): one
+   * primary-key read per session per server a minute, never one per
+   * request, and an end reaches every server at once (forgetEndedSessions).
+   *
+   * Rejects when the session cannot be read: "we could not find out" is not
+   * "live", and nothing about a failure is kept.
+   */
+  @CaptureSpan()
+  public async isSessionLive(data: {
+    sessionId: ObjectID;
+    userId: ObjectID;
+  }): Promise<boolean> {
+    const userKey: string = Service.getStandingKey(data.userId);
+
+    const standing: SessionStanding = await this.getSessionStanding({
+      key: Service.getStandingKey(data.sessionId),
+      userKey: userKey,
+    });
+
+    return standing.isLive && standing.userId === userKey;
+  }
+
+  /*
+   * What this server knows of a session, or one primary-key read of it,
+   * kept: a live session for LIVE_SESSION_CACHE_TTL_MS, one that has ended -
+   * or that is not there - for ENDED_SESSION_CACHE_TTL_MS.
+   */
+  private async getSessionStanding(data: {
+    key: string;
+    userKey: string;
+  }): Promise<SessionStanding> {
+    const cached: SessionStanding | undefined = this.sessionStandingCache.get(
+      data.key,
+    );
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const inFlight: SessionStandingLookup | undefined =
+      this.sessionStandingLookups.get(data.key);
+
+    if (inFlight) {
+      return inFlight.lookup;
+    }
+
+    const lookup: Promise<SessionStanding> = this.findOneById({
+      id: new ObjectID(data.key),
+      select: {
+        _id: true,
+        userId: true,
+        isRevoked: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    })
+      .then((session: Model | null): SessionStanding => {
+        const standing: SessionStanding = {
+          isLive: Boolean(session && session.isRevoked === false),
+          userId: session?.userId
+            ? Service.getStandingKey(session.userId)
+            : "",
+        };
+
+        /*
+         * Kept only while this read is still the current one: a session
+         * that ended while it was on the wire is held as ended already
+         * (forgetEndedSessions), and this read may predate the end.
+         */
+        if (this.sessionStandingLookups.get(data.key)?.lookup === lookup) {
+          this.sessionStandingCache.set(
+            data.key,
+            standing,
+            standing.isLive
+              ? LIVE_SESSION_CACHE_TTL_MS
+              : ENDED_SESSION_CACHE_TTL_MS,
+          );
+        }
+
+        return standing;
+      })
+      .finally((): void => {
+        if (this.sessionStandingLookups.get(data.key)?.lookup === lookup) {
+          this.sessionStandingLookups.delete(data.key);
+        }
+      });
+
+    this.sessionStandingLookups.set(data.key, {
+      userId: data.userKey,
+      lookup: lookup,
+    });
+
+    return lookup;
+  }
+
+  /*
+   * These sessions have ended (signed out, revoked, deleted), here or on
+   * another server (RealtimeAccessChanges, SessionsEnded): each one this
+   * server knows of, or is reading right now, is held as ended at once, so
+   * the next request with its access token is refused without a read. A
+   * session it does not know of needs nothing: its next request reads it,
+   * ended, from the database.
+   */
+  public forgetEndedSessions(sessionIds: Array<ObjectID | string>): void {
+    for (const sessionId of sessionIds) {
+      const key: string = Service.getStandingKey(sessionId);
+
+      const known: SessionStanding | undefined =
+        this.sessionStandingCache.get(key);
+      const inFlight: SessionStandingLookup | undefined =
+        this.sessionStandingLookups.get(key);
+
+      this.sessionStandingLookups.delete(key);
+
+      if (known === undefined && !inFlight) {
+        continue;
+      }
+
+      this.sessionStandingCache.set(
+        key,
+        {
+          isLive: false,
+          userId: known?.userId || inFlight?.userId || "",
+        },
+        ENDED_SESSION_CACHE_TTL_MS,
+      );
+    }
+  }
+
+  /*
+   * Every session of this person ended - their account was deleted, with
+   * its sessions - here or on another server: this server forgets each one
+   * it held as live, so their next request reads it again. One it holds as
+   * ended stays ended.
+   */
+  public forgetSessionsOfUser(userId: ObjectID | string): void {
+    const userKey: string = Service.getStandingKey(userId);
+
+    this.sessionStandingCache.deleteWhere(
+      (standing: SessionStanding): boolean => {
+        return standing.isLive && standing.userId === userKey;
+      },
+    );
+
+    for (const [key, inFlight] of Array.from(
+      this.sessionStandingLookups.entries(),
+    )) {
+      if (inFlight.userId === userKey) {
+        this.sessionStandingLookups.delete(key);
+      }
+    }
+  }
+
+  /*
+   * One session, one entry: the database compares ids without regard to
+   * case, so an id written in capitals names the same session.
+   */
+  private static getStandingKey(id: ObjectID | string): string {
+    return id.toString().toLowerCase();
   }
 
   public async createSession(
@@ -758,10 +996,9 @@ export class Service extends DatabaseService<Model> {
   /*
    * Ends every such session, a batch at a time, the way the session lengths
    * end theirs (endSessionsSelectedBy): revoked with SignedInWithoutSso's
-   * words, so its refresh token is refused from now on, its live updates
-   * end at once and its end is in the audit log. An access token it handed
-   * out lives out its last minutes (15 at most) but opens no project, which
-   * the server requires SSO for. Returns how many sessions it ended.
+   * words, so its refresh token is refused from now on, its access token
+   * at its next request (isSessionLive), its live updates end at once and
+   * its end is in the audit log. Returns how many sessions it ended.
    */
   @CaptureSpan()
   public async endSessionsSignedInWithoutSso(): Promise<number> {
@@ -1356,8 +1593,9 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A session that is revoked - signed out, a password changed, the person
-   * blocked, a refresh token past its time - ends the live updates opened
-   * with it at once, on every server (RealtimeAccessChanges), and its end
+   * blocked, a refresh token past its time - ends at once on every server
+   * (RealtimeAccessChanges): its access token is refused at its next request
+   * (isSessionLive, #9534) and the live updates opened with it end. Its end
    * goes into the audit log (issue #6762). Every revocation is an update
    * through this service (revokeSessionById, revokeAllSessionsByUserId,
    * endSessionsPastLengths, endSessionsThatRanOut,
@@ -1369,7 +1607,7 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.isRevoked === true) {
-      Service.endLiveUpdatesOfSessions(updatedItemIds);
+      this.endSessionsEverywhere(updatedItemIds);
 
       await this.recordSessionEnds({
         carryForward: onUpdate.carryForward as
@@ -1487,21 +1725,28 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // A session that is deleted ends its live updates the same way.
+  // A session that is deleted ends the same way.
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    Service.endLiveUpdatesOfSessions(itemIdsBeforeDelete);
+    this.endSessionsEverywhere(itemIdsBeforeDelete);
 
     return onDelete;
   }
 
-  private static endLiveUpdatesOfSessions(sessionIds: Array<ObjectID>): void {
+  /*
+   * Sessions that have just ended: this server refuses their access tokens
+   * at once (forgetEndedSessions), and every server is told, which refuses
+   * them too and ends the live updates opened with them.
+   */
+  private endSessionsEverywhere(sessionIds: Array<ObjectID>): void {
     if (sessionIds.length === 0) {
       return;
     }
+
+    this.forgetEndedSessions(sessionIds);
 
     RealtimeAccessChanges.announce({
       kind: RealtimeAccessChangeKind.SessionsEnded,

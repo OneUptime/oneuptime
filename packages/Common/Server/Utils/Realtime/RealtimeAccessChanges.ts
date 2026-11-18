@@ -8,6 +8,7 @@ import type { Service as GlobalConfigServiceType } from "../../Services/GlobalCo
 import type { ProjectService as ProjectServiceType } from "../../Services/ProjectService";
 import type { TeamMemberService as TeamMemberServiceType } from "../../Services/TeamMemberService";
 import type { Service as UserServiceType } from "../../Services/UserService";
+import type { Service as UserSessionServiceType } from "../../Services/UserSessionService";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -25,8 +26,8 @@ import ObjectID from "../../../Types/ObjectID";
  * So the change is announced: the server that makes it applies it to
  * itself at once and publishes it on a Valkey channel every server
  * listens to (listen, from Realtime.init). Each one then forgets what it
- * held for that person, and ends the live updates of sessions that have
- * ended. When a project's sign-in rules change (it now requires SSO, or
+ * held for that person, and refuses the access tokens and ends the live
+ * updates of sessions that have ended. When a project's sign-in rules change (it now requires SSO, or
  * another provider, or one of its SSO providers was turned off, on or
  * deleted), each one reads them again and asks the sockets it holds in
  * that project again, as their joins were asked. When a master admin
@@ -48,9 +49,11 @@ import ObjectID from "../../../Types/ObjectID";
  * When the channel cannot be reached, a change still applies on the server
  * that made it, and the others catch up as their entries run out: 30
  * seconds for permissions, a minute for a block (of a person or of a
- * project) or a sign-in rule, and the access token's lifetime for a
- * session, whose sockets end when it expires (RealtimeSessions), and for a
- * socket that joined under the old rules, whose renewal joins again.
+ * project), a sign-in rule or an ended session's access token
+ * (UserSessionService.isSessionLive), and the access token's lifetime for
+ * an ended session's sockets, which end when it expires (RealtimeSessions),
+ * and for a socket that joined under the old rules, whose renewal joins
+ * again.
  */
 
 export enum RealtimeAccessChangeKind {
@@ -58,7 +61,10 @@ export enum RealtimeAccessChangeKind {
   PermissionsChanged = "PermissionsChanged",
   // Their account changed: blocked or unblocked, made or no longer a server admin.
   AccountChanged = "AccountChanged",
-  // Sessions ended: signed out, revoked, or every session of a person.
+  /*
+   * Sessions ended: signed out, revoked, or every session of a person. Their
+   * access tokens are refused at once, and their live updates end.
+   */
   SessionsEnded = "SessionsEnded",
   /*
    * A project's sign-in rules changed (Require SSO, the provider it pins, a
@@ -489,6 +495,23 @@ export default class RealtimeAccessChanges {
         }
 
         case RealtimeAccessChangeKind.SessionsEnded: {
+          /*
+           * First, as it closes a door: the access tokens of these
+           * sessions are refused here from their next request, not when
+           * they expire (UserSessionService.isSessionLive, #9534).
+           */
+          if (change.sessionIds) {
+            RealtimeAccessChanges.getUserSessionService().forgetEndedSessions(
+              change.sessionIds,
+            );
+          }
+
+          if (change.userId) {
+            RealtimeAccessChanges.getUserSessionService().forgetSessionsOfUser(
+              change.userId,
+            );
+          }
+
           RealtimeSessions.endWhere({
             userId: change.userId,
             sessionIds: change.sessionIds,
@@ -727,6 +750,11 @@ export default class RealtimeAccessChanges {
   private static getUserService(): UserServiceType {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     return require("../../Services/UserService").default;
+  }
+
+  private static getUserSessionService(): UserSessionServiceType {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/UserSessionService").default;
   }
 
   private static getTeamMemberService(): TeamMemberServiceType {
