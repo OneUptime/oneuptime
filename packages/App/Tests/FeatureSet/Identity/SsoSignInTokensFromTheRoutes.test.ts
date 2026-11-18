@@ -261,6 +261,17 @@ jest.mock("Common/Server/Services/GlobalOidcProjectService", () => {
   };
 });
 
+/*
+ * The provider's discovery document, as the client was made from it: where
+ * it ends its sessions, or nothing (Google's names none).
+ */
+const discovery: { endSessionEndpoint: string | null } = {
+  endSessionEndpoint: null,
+};
+
+const OIDC_ID_TOKEN: string =
+  "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmb3gubXVsZGVyIn0.c2lnbmF0dXJl";
+
 // The provider answered the code with an ID token that validated, for this person.
 jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
   return {
@@ -276,7 +287,12 @@ jest.mock("../../../FeatureSet/Identity/Utils/OIDC", () => {
         return Promise.resolve({
           email: new identity.default("fox.mulder@example.com"),
           name: null,
+          idToken:
+            "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmb3gubXVsZGVyIn0.c2lnbmF0dXJl",
         });
+      },
+      getEndSessionEndpoint: (): string | null => {
+        return discovery.endSessionEndpoint;
       },
     },
   };
@@ -838,6 +854,111 @@ describe.each(RUNS)(
           new ObjectID(flow.providerId),
         ),
       ).toBe(true);
+    });
+  },
+);
+
+/*
+ * ---------------------------------------------------------------------------
+ * "SIGN OUT OF THE IDENTITY PROVIDER TOO" (#9535): AN OIDC SIGN-IN THROUGH A
+ * PROVIDER WITH THE SWITCH ON KEEPS WHAT ITS SIGN-OUT AT THE PROVIDER NEEDS.
+ *
+ * The session is handed the provider, the end_session_endpoint its
+ * discovery names and the sign-in's ID token, which it keeps server-side,
+ * encrypted (UserSessionService.createSession). The browser gets none of it
+ * - no cookie carries the ID token. The mobile app signs out of OneUptime
+ * alone, so its sign-in keeps nothing; nor does a provider without the
+ * switch, or one whose discovery names no end_session_endpoint.
+ * ---------------------------------------------------------------------------
+ */
+
+const END_SESSION_ENDPOINT: string =
+  "https://idp.example.com/realms/acme/protocol/openid-connect/logout";
+
+const OIDC_FLOWS: Array<Flow> = FLOWS.filter((flow: Flow): boolean => {
+  return (
+    flow.providerType === SsoProviderType.ProjectOIDC ||
+    flow.providerType === SsoProviderType.GlobalOIDC
+  );
+});
+
+describe.each(OIDC_FLOWS)(
+  "$name, signing people out of the provider too",
+  (flow: Flow) => {
+    // The provider as its row is read at the callback: with or without the switch.
+    const switchIs: (on: boolean) => void = (on: boolean): void => {
+      const findOneBy: jest.Mock =
+        flow.providerType === SsoProviderType.GlobalOIDC
+          ? globalOidcFindOneBy
+          : projectOidcFindOneBy;
+      const read: (() => Promise<unknown>) | undefined =
+        findOneBy.getMockImplementation() as
+          | (() => Promise<unknown>)
+          | undefined;
+
+      findOneBy.mockImplementation(async (): Promise<unknown> => {
+        return {
+          ...((await read?.()) as JSONObject),
+          signOutOfIdentityProvider: on,
+        };
+      });
+    };
+
+    const kept: () => unknown = (): unknown => {
+      return (createSession.mock.calls[0]![0] as JSONObject)[
+        "identityProviderSignOut"
+      ];
+    };
+
+    beforeEach(() => {
+      discovery.endSessionEndpoint = END_SESSION_ENDPOINT;
+    });
+
+    test("a browser sign-in keeps the provider, its end_session_endpoint and the ID token with the session", async () => {
+      switchIs(true);
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toEqual({
+        providerType: flow.providerType,
+        providerId: flow.providerId,
+        endSessionEndpoint: END_SESSION_ENDPOINT,
+        idToken: OIDC_ID_TOKEN,
+      });
+    });
+
+    test("hands the browser no cookie that carries the ID token", async () => {
+      switchIs(true);
+
+      const { cookies } = await signIn(flow, "browser");
+
+      expect(Object.values(cookies).join(" ")).not.toContain(OIDC_ID_TOKEN);
+    });
+
+    test("the mobile app's sign-in keeps nothing: it signs out of OneUptime alone", async () => {
+      switchIs(true);
+
+      await signIn(flow, "mobile app");
+
+      expect(kept()).toBeUndefined();
+    });
+
+    test("a provider with the switch off keeps nothing, as every sign-in did before", async () => {
+      switchIs(false);
+
+      await signIn(flow, "browser");
+
+      expect(kept()).toBeUndefined();
+    });
+
+    test("a provider whose discovery names no end_session_endpoint keeps nothing, and the sign-in goes ahead", async () => {
+      switchIs(true);
+      discovery.endSessionEndpoint = null;
+
+      const { cookies } = await signIn(flow, "browser");
+
+      expect(kept()).toBeUndefined();
+      expect(cookies[CookieUtil.getUserTokenKey()]).toBeDefined();
     });
   },
 );
