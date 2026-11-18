@@ -725,7 +725,7 @@ class BaseAPI extends API {
      * The sentences of an error nobody explained are written here: a card
      * that puts one in a sentence of its own (errorInSentence) says it to
      * the page's reader - Cloud or not, a master admin, a visitor (#7307).
-     * Told here, as a page runs: at load, API and User import each other.
+     * Told here, as a page runs: the first time it asks for a message.
      */
     registerPageErrorReader();
 
