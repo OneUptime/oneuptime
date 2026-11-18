@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} はまだ {{channels}} を確認していないため、それらのステップは除外されました。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} はオンコール担当ですが、このプロジェクトがオンコール担当者全員に求めている確認済みの電話の連絡方法がありません。",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "App Store または Google Play からアプリをインストールし、{{serverUrl}} にサインインして、求められたら通知と重大なアラートを許可してください。",
+  "An invitation to this project hasn't been accepted yet.": "このプロジェクトへの招待がまだ承諾されていません。",
+  "More to set up": "次に設定できること",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "現在、あなたを呼び出せるのはメールだけです。電話かモバイルアプリを追加して、自分にテスト呼び出しを送信してください。",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "インシデントやアラートが作成されたら、適切な担当者に通知します。テスト呼び出しが確認されると完了です。それまでは、プロジェクト所有者にメールが届きます。",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "最初のステップは完了しました。いつでも続けて設定できます。各項目は動作した時点で自動的にチェックされます。",
   "No email addresses yet.": "メールアドレスはまだありません。",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "このサーバーは現在電話を発信できません。サーバー管理者が SMS と電話を設定するか、このプロジェクトが独自の Twilio 設定を追加するまで、誰にも電話は届きません。",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "このサーバーは現在電話を発信できないため、これらの番号に電話は届きません。サーバー管理者に SMS と電話の設定を依頼してください。",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "このサーバーは現在 SMS を送信できないため、これらの番号に SMS は届きません。サーバー管理者に SMS と電話の設定を依頼してください。",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "このサーバーは現在 SMS を送信できないため、これらの番号に SMS は届きません。Admin Dashboard で SMS と電話を設定してください。",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。サーバー管理者にメールの設定を依頼してください。",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。Admin Dashboard でメールを設定してください。"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "このサーバーは現在メールを送信できないため、これらのアドレスにメールは届きません。Admin Dashboard でメールを設定してください。",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "このサーバーが自身のメール設定で送信した、どのプロジェクトにも属さないメールと、送信に失敗したプロジェクトのメールです。メッセージ本文は含みません。",
+  "Server Alert Phone Number": "サーバーアラートの電話番号",
+  "Server Alert State": "サーバーアラートの状態",
+  "Server Alerts by Push": "プッシュによるサーバーアラート",
+  "Server Email Log": "サーバーのメールのログ",
+  "Server Email Logs": "サーバーのメールのログ"
 }

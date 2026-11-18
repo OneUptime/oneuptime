@@ -74,7 +74,7 @@ Opsætningen af webstedet har allerede oprettet **Standardvagtpolitik**, som til
 :::steps
 ### Åbn vagtopsætningen
 
-Klik i oversigten i opsætningen af webstedet på **Få kald via SMS eller telefonopkald**: Linket åbner den guidede opsætning **Tilkalde den rette person, når noget går ned**. Vil du åbne den senere, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg den. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning.
+Klik i oversigten i opsætningen af webstedet på **Få kald via SMS eller telefonopkald**: Linket åbner den guidede opsætning **Tilkalde den rette person, når noget går ned**. Vil du åbne den senere, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg den. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning. Når den har, og så længe kun e-mail kan tilkalde dig, beholder Hjem **Få kald via SMS eller telefonopkald** under det.
 
 ### Vælg, hvordan du bliver kontaktet
 

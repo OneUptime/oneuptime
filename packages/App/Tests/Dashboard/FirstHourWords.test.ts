@@ -56,13 +56,18 @@ const WHITESPACE_RUN: RegExp = /\s+/g;
 /*
  * The Welcome checklist ticks its steps on outcomes since #6803, and each
  * step says when it is done: the on-call step's sentence gained "Done when
- * ...", and still says who is told until then.
+ * ...", and still says who is told until then. Its guided setup ends in a
+ * test page, and the step ticks once one is acknowledged, so that is what
+ * "Done when" says since #6937.
  */
 const ON_CALL_STEP_DESCRIPTION: string =
-  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.";
 
 const PREVIOUS_ON_CALL_STEP_DESCRIPTION: string =
   "Page the right person when an incident or alert opens. Until then, the Project Owners get an email.";
+
+const RULE_ON_CALL_STEP_DESCRIPTION: string =
+  "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.";
 
 const EVERY_NEW_EVENT_TITLE: string =
   "Page this policy for every new incident and alert";
@@ -83,6 +88,7 @@ const RETIRED_SENTENCES: Array<string> = [
   "Route alerts and incidents to the right person at the right time.",
   PREVIOUS_ON_CALL_STEP_DESCRIPTION,
   PREVIOUS_CREATE_MONITOR_DESCRIPTION,
+  RULE_ON_CALL_STEP_DESCRIPTION,
 ];
 
 /*

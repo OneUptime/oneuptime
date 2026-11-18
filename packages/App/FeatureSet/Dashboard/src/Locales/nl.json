@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} heeft {{channels}} nog niet geverifieerd, dus die stappen zijn weggelaten.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} heeft dienst maar geen geverifieerde telefoonmethode, waar dit project iedereen met dienst om vraagt.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installeer de app via de App Store of Google Play, log in op {{serverUrl}} en sta meldingen en kritieke waarschuwingen toe als de app erom vraagt.",
+  "An invitation to this project hasn't been accepted yet.": "Een uitnodiging voor dit project is nog niet geaccepteerd.",
+  "More to set up": "Meer om in te stellen",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Nu kan alleen e-mail je oproepen. Voeg je telefoon of de mobiele app toe, en stuur jezelf een testoproep.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Roep de juiste persoon op wanneer een incident of waarschuwing wordt geopend. Klaar zodra een testoproep is bevestigd. Tot die tijd krijgen de Projecteigenaren een e-mail.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Je eerste stappen zijn klaar. Stel meer in wanneer je wilt: elke stap vinkt zichzelf af zodra hij werkt.",
   "No email addresses yet.": "Nog geen e-mailadressen.",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Deze server kan nu niet bellen, dus niemand krijgt een oproep tot uw serverbeheerder sms en oproepen inricht, of dit project een eigen Twilio-configuratie toevoegt.",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "Deze server kan nu niet bellen, dus deze nummers krijgen geen oproepen. Vraag uw serverbeheerder om sms en oproepen in te richten.",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Vraag uw serverbeheerder om sms en oproepen in te richten.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Deze server kan nu geen sms versturen, dus deze nummers krijgen geen sms. Richt sms en oproepen in via het Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Vraag uw serverbeheerder om e-mail in te stellen.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Stel e-mail in via het Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Deze server kan nu geen e-mail versturen, dus deze adressen krijgen geen e-mail. Stel e-mail in via het Admin Dashboard.",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "E-mails die deze server via zijn eigen e-mailinstellingen heeft verstuurd en die bij geen enkel project horen, en die van een project die zijn mislukt. Nooit het bericht zelf.",
+  "Server Alert Phone Number": "Telefoonnummer voor serverwaarschuwingen",
+  "Server Alert State": "Status van serverwaarschuwingen",
+  "Server Alerts by Push": "Serverwaarschuwingen via push",
+  "Server Email Log": "E-maillogboek van de server",
+  "Server Email Logs": "E-maillogboeken van de server"
 }

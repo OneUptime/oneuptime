@@ -74,7 +74,7 @@ The website setup already made **Default on-call policy**, which pages you by em
 :::steps
 ### Open the on-call setup
 
-On the website setup's summary, click **Get paged by SMS or phone call**: it opens the guided setup **Page the right person when something breaks**. To open it later, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose it. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup.
+On the website setup's summary, click **Get paged by SMS or phone call**: it opens the guided setup **Page the right person when something breaks**. To open it later, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose it. While the checklist has not ticked **Set up an on-call policy**, that step opens the same guided setup. Once it has, and while only email can page you, Home keeps **Get paged by SMS or phone call** under it.
 
 ### Choose how you are reached
 

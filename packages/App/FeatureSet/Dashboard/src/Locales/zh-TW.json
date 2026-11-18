@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未驗證{{channels}}，因此省略了這些步驟。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在待命，但沒有此專案要求每位待命人員都具備的已驗證電話聯絡方式。",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "從 App Store 或 Google Play 安裝 App，登入 {{serverUrl}}，並在 App 要求時允許通知和重大警示。",
+  "An invitation to this project hasn't been accepted yet.": "此專案的一份邀請尚未被接受。",
+  "More to set up": "更多可設定的項目",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "目前只能透過電子郵件呼叫您。新增您的電話或行動 App，然後傳送一則測試呼叫給自己。",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "建立事件或警示時通知合適的人。測試呼叫被確認後即完成。在此之前，專案擁有者會收到電子郵件。",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "您的第一步已完成。隨時可以繼續設定：每一項一旦生效就會自動勾選。",
   "No email addresses yet.": "尚無電子郵件地址。",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此伺服器目前無法撥打電話，因此在伺服器管理員設定簡訊和電話、或此專案新增自己的 Twilio 設定之前，任何人都不會接到電話。",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法撥打電話，因此這些號碼不會接到電話。請聯絡伺服器管理員設定簡訊和電話。",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請聯絡伺服器管理員設定簡訊和電話。",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "此伺服器目前無法傳送簡訊，因此這些號碼不會收到簡訊。請在 Admin Dashboard 中設定簡訊和電話。",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請聯絡伺服器管理員設定電子郵件。",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請在 Admin Dashboard 中設定電子郵件。"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此伺服器目前無法傳送電子郵件，因此這些地址不會收到郵件。請在 Admin Dashboard 中設定電子郵件。",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "此伺服器透過自身電子郵件設定傳送、不屬於任何專案的電子郵件，以及專案中傳送失敗的電子郵件。絕不包含郵件內容本身。",
+  "Server Alert Phone Number": "伺服器警示電話號碼",
+  "Server Alert State": "伺服器警示狀態",
+  "Server Alerts by Push": "透過推送傳送的伺服器警示",
+  "Server Email Log": "伺服器電子郵件日誌",
+  "Server Email Logs": "伺服器電子郵件日誌"
 }

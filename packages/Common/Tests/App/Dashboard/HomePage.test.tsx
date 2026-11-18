@@ -231,6 +231,7 @@ import Home, {
   HOME_ROW_SIDE_COLUMN_CLASS_NAME,
   HomeMode,
   getHomeMode,
+  isCreateFirstMonitorShown,
   needsSomeoneDuringQuickstart,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
 import {
@@ -1423,13 +1424,44 @@ describe("which page Home is", () => {
     [WelcomeCardView.Checklist, false, HomeMode.Overview],
     [WelcomeCardView.Hidden, false, HomeMode.Overview],
     [WelcomeCardView.InvitedMember, false, HomeMode.Overview],
+    // What else to set up is a card in the overview too (#7986).
+    [WelcomeCardView.More, false, HomeMode.Overview],
     [WelcomeCardView.None, false, HomeMode.Overview],
   ])(
     "%s, taking Home %s: %s",
     (view: WelcomeCardView | null, isTakingHome: boolean, mode: HomeMode) => {
-      expect(getHomeMode({ view: view, isTakingHome: isTakingHome })).toBe(
-        mode,
-      );
+      expect(
+        getHomeMode({
+          view: view,
+          isTakingHome: isTakingHome,
+          offersFirstMonitor: false,
+        }),
+      ).toBe(mode);
+    },
+  );
+
+  /*
+   * One start for one job (#7759): the headline offers to create the first
+   * monitor to whoever may, unless the Welcome card offers that step.
+   */
+  test.each([
+    [true, false, true],
+    [true, true, false],
+    [false, false, false],
+    [false, true, false],
+  ])(
+    "may create a monitor %s, the card offers it %s: the headline's button %s",
+    (canCreateMonitor: boolean, cardOffers: boolean, expected: boolean) => {
+      expect(
+        isCreateFirstMonitorShown({
+          canCreateMonitor: canCreateMonitor,
+          welcome: {
+            view: WelcomeCardView.Checklist,
+            isTakingHome: false,
+            offersFirstMonitor: cardOffers,
+          },
+        }),
+      ).toBe(expected);
     },
   );
 
@@ -1531,6 +1563,157 @@ describe("a brand-new project whose quickstart is hidden", () => {
       "Nothing is being monitored yet",
     );
     expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+  });
+});
+
+/*
+ * ONE START FOR THE FIRST JOB (#7759). The headline's "Create your first
+ * monitor" and the Welcome card's step of the same name opened the same
+ * guided setup, one above the other, and a newcomer stopped to choose. A
+ * new project's quickstart is the whole of Home, so the headline is not
+ * drawn there (#8897); wherever else the card offers that step - an older
+ * project's checklist in its overview, or what else to set up - the
+ * headline leaves its button out.
+ */
+describe("one start for the first job", () => {
+  const OLDER_PROJECT_MONITOR_LEFT: Record<string, unknown> = {
+    goals: null,
+    shouldAskForGoals: false,
+    steps: ["monitor", "on_call", "status_page", "team"].map(
+      (step: string, index: number) => {
+        return {
+          step: step,
+          isDone: step === "team",
+          needsPlan: null,
+          isNext: index === 0,
+        };
+      },
+    ),
+    doneCount: 1,
+  };
+
+  test("an older project's checklist offers the first monitor: the headline does not too", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = OLDER_PROJECT_MONITOR_LEFT;
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    expect(screen.getByTestId("home-health-headline")).toHaveTextContent(
+      "Nothing is being monitored yet",
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("getting-started-task-monitor")).toBeVisible();
+    });
+    expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+    expect(
+      screen.getAllByText("Create your first monitor", { exact: true }),
+    ).toHaveLength(1);
+  });
+
+  test("once its monitor step is done, the checklist offers it no more, and neither does the headline need to", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = {
+      ...OLDER_PROJECT_MONITOR_LEFT,
+      steps: [
+        { step: "monitor", isDone: true, needsPlan: null, isNext: false },
+        { step: "on_call", isDone: false, needsPlan: null, isNext: true },
+      ],
+    };
+    await renderHome();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("getting-started")).toBeVisible();
+    });
+    // The project has no monitor now: the headline's button is the one start.
+    expect(screen.getByTestId("home-health-create-monitor")).toBeVisible();
+  });
+
+  test("hidden, the checklist offers nothing: the headline's button is the one start", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = { ...OLDER_PROJECT_MONITOR_LEFT, isHiddenForMe: true };
+    await renderHome();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("welcome-checklist-hidden")).toBeVisible();
+    });
+    expect(screen.getByTestId("home-health-create-monitor")).toBeVisible();
+  });
+
+  test("what else to set up offering the first monitor: the headline leaves its own out", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    newProjectWelcome = {
+      goals: ["telemetry"],
+      isFinished: true,
+      steps: [],
+      doneCount: 0,
+      totalCount: 0,
+      moreSteps: [
+        { step: "monitor", isDone: false, needsPlan: null, isNext: false },
+        { step: "team", isDone: false, needsPlan: null, isNext: false },
+      ],
+    };
+    await renderHome();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("welcome-more")).toBeVisible();
+    });
+    expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+  });
+});
+
+/*
+ * WHAT ELSE TO SET UP (#7986): once a project's first steps are done, Home
+ * is its overview again, with the card that offers what is left in the
+ * Welcome card's place - never the whole of Home.
+ */
+describe("a project whose first steps are done", () => {
+  test("sees its overview, with what else to set up under the headline", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    projects.set(OTHER_PROJECT_ID, { ...newProject(), totalMonitors: 1 });
+    newProjectWelcome = {
+      goals: ["uptime"],
+      isFinished: true,
+      steps: [],
+      doneCount: 0,
+      totalCount: 0,
+      moreSteps: [
+        { step: "status_page", isDone: false, needsPlan: null, isNext: false },
+        { step: "team", isDone: false, needsPlan: null, isNext: false },
+      ],
+    };
+    await renderHome();
+
+    expect(homeMode()).toBe(HomeMode.Overview);
+    await waitFor(() => {
+      expect(screen.getByTestId("welcome-more")).toBeVisible();
+    });
+    expect(screen.getByTestId("home-command-bar")).toBeVisible();
+    expect(screen.getByTestId("home-needs-attention")).toBeVisible();
+    expect(screen.getByTestId("home-explore-products")).toBeVisible();
+    expect(
+      screen
+        .getByTestId("home-project-health")
+        .compareDocumentPosition(screen.getByTestId("welcome-more")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // As wide as the cards around it.
+    expect(screen.getByTestId("welcome-more").className).not.toContain(
+      QUICKSTART_MAX_WIDTH_CLASS_NAME,
+    );
+    expect(screen.getByTestId("welcome-more")).toHaveTextContent(
+      "Publish a status page",
+    );
+    expect(screen.getByTestId("welcome-more")).toHaveTextContent(
+      "Invite your team",
+    );
+  });
+
+  test("with nothing left, the overview has no Welcome card at all", async () => {
+    await renderHome();
+
+    expect(screen.queryByTestId("welcome-more")).toBeNull();
+    expect(screen.queryByTestId("getting-started")).toBeNull();
+    expect(screen.queryByTestId("welcome-checklist-hidden")).toBeNull();
   });
 });
 

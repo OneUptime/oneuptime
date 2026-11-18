@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} has not verified {{channels}} yet, so those steps were left out.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
+  "An invitation to this project hasn't been accepted yet.": "An invitation to this project hasn't been accepted yet.",
+  "More to set up": "More to set up",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.",
   "No email addresses yet.": "No email addresses yet.",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.",
+  "Server Alert Phone Number": "Server Alert Phone Number",
+  "Server Alert State": "Server Alert State",
+  "Server Alerts by Push": "Server Alerts by Push",
+  "Server Email Log": "Server Email Log",
+  "Server Email Logs": "Server Email Logs"
 }

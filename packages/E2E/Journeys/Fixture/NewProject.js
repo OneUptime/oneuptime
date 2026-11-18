@@ -1038,12 +1038,10 @@ export function dashboardRoutes(project) {
       goals,
       facts: {
         reached: [],
-        hasRuleThatPagesSomeone: false,
+        hasPolicyThatPagesSomeone: false,
         hasFinishedImport: false,
-        serverCanSendEmail: project.canSendEmail,
       },
       plan: { isFreePlan: false },
-      readerIsServerAdmin: false,
     });
 
     return {

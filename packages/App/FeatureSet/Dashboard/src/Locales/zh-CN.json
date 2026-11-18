@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} 尚未验证{{channels}}，因此省略了这些步骤。",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} 正在值班，但没有此项目要求每位值班人员都具备的已验证电话联系方式。",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "从 App Store 或 Google Play 安装应用，登录 {{serverUrl}}，并在应用请求时允许通知和重要警报。",
+  "An invitation to this project hasn't been accepted yet.": "此项目的一份邀请尚未被接受。",
+  "More to set up": "更多可设置的内容",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "目前只能通过电子邮件呼叫您。添加您的电话或移动应用，然后给自己发送一条测试呼叫。",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "创建事件或警报时通知合适的人。测试呼叫被确认后即完成。在此之前，项目所有者会收到电子邮件。",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "您的第一步已完成。随时可以继续设置：每一项一旦生效就会自动勾选。",
   "No email addresses yet.": "还没有电子邮件地址。",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "此服务器目前无法拨打电话，因此在服务器管理员设置短信和电话、或此项目添加自己的 Twilio 配置之前，任何人都不会接到电话。",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "此服务器目前无法拨打电话，因此这些号码不会接到电话。请联系服务器管理员设置短信和电话。",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "此服务器目前无法发送短信，因此这些号码不会收到短信。请联系服务器管理员设置短信和电话。",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "此服务器目前无法发送短信，因此这些号码不会收到短信。请在 Admin Dashboard 中设置短信和电话。",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请联系服务器管理员设置电子邮件。",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请在 Admin Dashboard 中设置电子邮件。"
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "此服务器目前无法发送电子邮件，因此这些地址不会收到邮件。请在 Admin Dashboard 中设置电子邮件。",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "此服务器通过自身电子邮件设置发送的、不属于任何项目的电子邮件，以及项目中发送失败的电子邮件。从不包含邮件内容本身。",
+  "Server Alert Phone Number": "服务器警报电话号码",
+  "Server Alert State": "服务器警报状态",
+  "Server Alerts by Push": "通过推送发送的服务器警报",
+  "Server Email Log": "服务器电子邮件日志",
+  "Server Email Logs": "服务器电子邮件日志"
 }

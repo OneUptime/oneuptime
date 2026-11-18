@@ -56783,6 +56783,11 @@
   "{{name}} has not verified {{channels}} yet, so those steps were left out.": "{{name}} non ha ancora verificato {{channels}}, quindi quei passaggi sono stati tralasciati.",
   "{{name}} is on call but has no verified phone method, which this project asks everyone on call to have.": "{{name}} è reperibile ma non ha un metodo telefonico verificato, che questo progetto chiede a tutte le persone reperibili.",
   "Install the app from the App Store or Google Play, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.": "Installa l'app dall'App Store o da Google Play, accedi a {{serverUrl}} e consenti notifiche e avvisi critici quando te lo chiede.",
+  "An invitation to this project hasn't been accepted yet.": "Un invito a questo progetto non è ancora stato accettato.",
+  "More to set up": "Altro da configurare",
+  "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.": "Per ora solo l'email può avvisarti. Aggiungi il tuo telefono o l'app mobile e inviati una chiamata di test.",
+  "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.": "Avvisa la persona giusta quando si apre un incidente o un avviso. Fatto quando una chiamata di test viene riconosciuta. Fino ad allora, i Proprietari del progetto ricevono un'email.",
+  "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.": "I tuoi primi passaggi sono completati. Configurane altri quando vuoi: ognuno si spunta da solo appena funziona.",
   "No email addresses yet.": "Ancora nessun indirizzo email.",
   "This server can't make calls right now, so nobody gets one until your server's admin sets up SMS and calls, or this project adds its own Twilio config.": "Questo server al momento non può fare chiamate, quindi nessuno ne riceve finché l'amministratore del server non configura SMS e chiamate, o questo progetto non aggiunge una propria configurazione Twilio.",
   "This server can't make calls right now, so these numbers get no calls. Ask your server's admin to set up SMS and calls.": "Questo server al momento non può fare chiamate, quindi questi numeri non ricevono chiamate. Chiedi all'amministratore del server di configurare SMS e chiamate.",
@@ -56791,5 +56796,11 @@
   "This server can't send SMS right now, so these numbers get no SMS. Ask your server's admin to set up SMS and calls.": "Questo server al momento non può inviare SMS, quindi questi numeri non ricevono SMS. Chiedi all'amministratore del server di configurare SMS e chiamate.",
   "This server can't send SMS right now, so these numbers get no SMS. Set up SMS and calls in the Admin Dashboard.": "Questo server al momento non può inviare SMS, quindi questi numeri non ricevono SMS. Configura SMS e chiamate nell'Admin Dashboard.",
   "This server can't send email right now, so these addresses get no email. Ask your server's admin to set up email.": "Questo server al momento non può inviare email, quindi questi indirizzi non ricevono email. Chiedi all'amministratore del server di configurare l'email.",
-  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Questo server al momento non può inviare email, quindi questi indirizzi non ricevono email. Configura l'email nell'Admin Dashboard."
+  "This server can't send email right now, so these addresses get no email. Set up email in the Admin Dashboard.": "Questo server al momento non può inviare email, quindi questi indirizzi non ricevono email. Configura l'email nell'Admin Dashboard.",
+  "Emails this server sent through its own email settings that belong to no project, and the ones of a project that failed. Never the message itself.": "Le email che questo server ha inviato con le proprie impostazioni email e che non appartengono a nessun progetto, e quelle di un progetto il cui invio non è riuscito. Mai il messaggio stesso.",
+  "Server Alert Phone Number": "Numero di telefono per gli avvisi del server",
+  "Server Alert State": "Stato degli avvisi del server",
+  "Server Alerts by Push": "Avvisi del server tramite push",
+  "Server Email Log": "Log email del server",
+  "Server Email Logs": "Log email del server"
 }
