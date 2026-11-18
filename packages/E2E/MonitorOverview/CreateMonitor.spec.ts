@@ -1686,6 +1686,20 @@ test.describe("Test Monitor on Create Monitor", () => {
     return page.getByTestId("monitor-test-verdict");
   }
 
+  /*
+   * Runs the test, and moves the page's clock past Test Monitor's poll -
+   * fifteen seconds (MONITOR_TEST_POLL_INTERVAL_IN_MS) - rather than wait
+   * it out: the probe's answer is read on the poll's first tick.
+   */
+  async function runTest(page: Page, buttonName: string): Promise<void> {
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: buttonName, exact: true })
+      .click();
+    await expect(page.getByTestId("modal")).toBeVisible();
+    await page.clock.fastForward("00:16");
+  }
+
   test("with one probe in all it runs there and asks nothing; the result says which criteria matched and what follows", async ({
     page,
   }: {
@@ -1704,7 +1718,7 @@ test.describe("Test Monitor on Create Monitor", () => {
     );
     await expect(dialog.getByText("Select Probe")).toHaveCount(0);
 
-    await dialog.getByRole("button", { name: "Run Test", exact: true }).click();
+    await runTest(page, "Run Test");
 
     await expect(verdict(page)).toBeVisible({ timeout: 60000 });
     await expect(verdict(page)).toHaveAttribute("data-matched", "true");
@@ -1749,7 +1763,7 @@ test.describe("Test Monitor on Create Monitor", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("Frankfurt (eu-central-1)");
 
-    await dialog.getByRole("button", { name: "Run Test", exact: true }).click();
+    await runTest(page, "Run Test");
     await expect(verdict(page)).toBeVisible({ timeout: 60000 });
 
     const creates: Array<RecordedCreate> = await createsRecorded(page);
@@ -1773,10 +1787,7 @@ test.describe("Test Monitor on Create Monitor", () => {
     );
 
     await page.getByTestId("test-monitor-button").click();
-    await page
-      .getByTestId("modal")
-      .getByRole("button", { name: "Run Test", exact: true })
-      .click();
+    await runTest(page, "Run Test");
 
     await expect(verdict(page)).toBeVisible({ timeout: 60000 });
     await expect(verdict(page)).toContainText(
@@ -1816,13 +1827,7 @@ test.describe("Test Monitor on Create Monitor", () => {
     );
 
     await page.getByTestId("test-monitor-button").click();
-    await page
-      .getByTestId("modal")
-      .getByRole("button", {
-        name: dashboardWord("fa", "Run Test"),
-        exact: true,
-      })
-      .click();
+    await runTest(page, dashboardWord("fa", "Run Test"));
 
     await expect(verdict(page)).toBeVisible({ timeout: 60000 });
     // Matched by what it does, whatever its name's language.
