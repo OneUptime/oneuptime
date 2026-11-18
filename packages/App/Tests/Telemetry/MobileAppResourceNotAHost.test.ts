@@ -109,22 +109,27 @@ function attributes(pairs: Record<string, string>): JSONArray {
 }
 
 /*
- * The resource OpenTelemetry Android builds for an app (its
- * AndroidResource), plus the two keys a kiosk fleet adds: the device's name
- * in host.name and a label for the store it stands in.
+ * The resource OpenTelemetry Android 1.8 builds for an app (its
+ * AndroidResource, over the Java SDK's default resource), plus the two keys
+ * a kiosk fleet adds: the device's name in host.name and a label for the
+ * store it stands in.
  */
 const KIOSK_APP_RESOURCE: Record<string, string> = {
   "service.name": "kiosk-ordering",
   "service.version": "4.2.0",
-  "rum.sdk.version": "0.16.0",
+  "telemetry.sdk.name": "opentelemetry",
+  "telemetry.sdk.language": "java",
+  "telemetry.sdk.version": "1.8.1-alpha",
   "device.model.identifier": "Elo-i3-15",
   "device.model.name": "Elo-i3-15",
   "device.manufacturer": "Elo Touch Solutions",
   "os.name": "Android",
   "os.type": "linux",
   "os.version": "13",
+  "os.build_id": "TQ3A.230901.001",
   "os.description": "Android Version 13 (Build TQ3A.230901.001 API level 33)",
-  "telemetry.sdk.language": "java",
+  "android.os.api_level": "33",
+  "app.installation.id": "0f5c8e2a-6a39-4f0e-9d0e-6c1b7f2a9e41",
   "host.name": "store-0412-kiosk-02",
   "oneuptime.label.store": "0412",
 };
