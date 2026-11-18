@@ -56964,8 +56964,13 @@
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.": "As sessões dessa pessoa podem ser mais antigas que os {{count}} meses em que esses números são mantidos, ou podem ter sido apagadas.",
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased._one": "As sessões dessa pessoa podem ser mais antigas que o {{count}} mês em que esses números são mantidos, ou podem ter sido apagadas.",
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Foram enviados convites demais para este endereço na última hora. Você poderá reenviá-lo depois das {{time}}.",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
   "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Deixe vazio para importar só os dispositivos. Cada monitor copia os critérios, o intervalo, os rótulos e os padrões de campos personalizados do modelo, e pode ser cobrado.",
   "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Ainda não há nenhum modelo de monitor de dispositivo de rede, Ping, IP, Porta ou NTP. Crie um em \"Gerenciar modelos\" e ele aparecerá quando você voltar a esta etapa.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "{{count}} months (default)": "{{count}} meses (padrão)",
   "{{count}} months (default)_one": "{{count}} mês (padrão)"
 }

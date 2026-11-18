@@ -4,6 +4,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
+import logger from "../Logger";
 
 /*
  * MICROSOFT DATAVERSE, OVER ITS WEB API AND ITS READ-ONLY SQL ENDPOINT.
@@ -17,7 +18,10 @@ import DataSourceHttpFetch, {
  * it is in when it is asked without a token.
  *
  * Each collection asks the Web API for:
- *  - the table definitions (EntityDefinitions), which read no rows;
+ *  - the table definitions (EntityDefinitions), which read no rows: one
+ *    request, which Dataverse never pages. When it fails that request, the
+ *    tables watched by default and by name are read twenty at a time, and
+ *    the custom tables on their own (TableHealthCollector's DataverseCatalog);
  *  - the rows of every watched table, in one call per fifty tables
  *    (RetrieveTotalRecordCount), from a snapshot Dataverse takes once a day,
  *    so a table's rows lag by up to a day;
@@ -25,9 +29,27 @@ import DataSourceHttpFetch, {
  *    only that time is read;
  *  - once an hour, the watched tables' columns (their attribute
  *    definitions), twenty tables a call.
+ * A group of tables Dataverse fails is asked again in smaller parts - one
+ * table at a time, or in halves for the counts - so a table it cannot read
+ * leaves out only itself, and the collection says which and why, in
+ * Dataverse's own words: its error code and message.
+ *
+ * Every request carries the headers Microsoft documents for the Web API
+ * (Accept, OData-MaxVersion, OData-Version and If-None-Match) and no
+ * Prefer. The odata.include-annotations="none" this client once sent is no
+ * pattern Dataverse's OData library accepts - a pattern names a namespace
+ * and a term (Microsoft.Dynamics.CRM.*), or is * - so Dataverse answered
+ * every request that carried it with an empty 500, and no collection ever
+ * read a table (issue #9506). Without the preference, no annotation is
+ * returned anyway.
+ *
  * Every call counts against the app's service protection limits (6,000
- * requests in five minutes, per user): a 429 stops the reads of the
- * collection that met it, and the rest wait for the next.
+ * requests in five minutes, per user). A 429, a 408 or a 5xx is asked
+ * again, twice at most, after the Retry-After it gives or a backoff of two
+ * then four seconds; a 429 holds back every request of the collection, not
+ * only its own. A wait of more than thirty seconds, or past a minute of
+ * waiting in one collection, is not waited out: a 429 then stops the reads
+ * of the collection that met it, and the rest wait for the next.
  *
  * Not every table is watched. An environment holds hundreds of tables
  * before anyone adds one, most of them Dataverse's own, and every watched
@@ -87,6 +109,57 @@ export const DATAVERSE_TABLES_PER_COUNT: number = 50;
 
 // How many tables one EntityDefinitions call reads the columns of.
 export const DATAVERSE_TABLES_PER_COLUMN_READ: number = 20;
+
+// How many tables one EntityDefinitions call reads the definitions of, when the whole list failed.
+export const DATAVERSE_TABLES_PER_DEFINITION_READ: number = 20;
+
+// The most times one request is sent: once, and twice more for an answer that may pass.
+export const DATAVERSE_MAX_ATTEMPTS: number = 3;
+
+// The longest one wait between tries: a Retry-After past it is left to the next collection.
+export const DATAVERSE_MAX_RETRY_WAIT_IN_MS: number = 30_000;
+
+// The most one collection waits between tries in all, so a struggling environment cannot hold it up.
+export const DATAVERSE_RETRY_BUDGET_IN_MS: number = 60_000;
+
+// The first backoff when Dataverse names no Retry-After, doubled at each try after it.
+export const DATAVERSE_FIRST_BACKOFF_IN_MS: number = 2_000;
+
+/*
+ * Answers worth asking again: a request that timed out, a throttle, and a
+ * server or gateway that failed for now. Microsoft's own Web API sample
+ * retries the same (its WebAPIService's retry policy).
+ */
+const RETRYABLE_STATUS_CODES: ReadonlyArray<number> = [
+  408, 429, 500, 502, 503, 504,
+];
+
+// After this many tables in a row fail one at a time, the rest of their group is not asked one by one.
+const MAX_TABLES_FAILED_IN_A_ROW: number = 3;
+
+// The most pages one list follows (@odata.nextLink); Dataverse pages no metadata list at all.
+const MAX_LIST_PAGES: number = 100;
+
+/*
+ * The headers of every Web API request, as Microsoft's "Compose HTTP
+ * requests and handle errors" lists them. If-None-Match keeps an expanded
+ * collection (a table's columns) from coming back from a cache, stale.
+ * Never a Prefer: see the top of this file (issue #9506).
+ */
+const WEB_API_HEADERS: Readonly<Record<string, string>> = {
+  Accept: "application/json",
+  "OData-MaxVersion": "4.0",
+  "OData-Version": "4.0",
+  "If-None-Match": "null",
+};
+
+// What a table's definition is read for: whether, and how, it is watched.
+const DEFINITION_PROPERTIES: string =
+  "LogicalName,EntitySetName,TableType,IsCustomEntity,IsIntersect,IsPrivate,IsLogicalEntity,IsActivityParty,IsBPFEntity";
+
+// What a table's columns are read for: their names, types, order and whether they may be empty.
+const COLUMN_EXPANSION: string =
+  "Attributes($select=LogicalName,AttributeType,AttributeTypeName,AttributeOf,IsValidForRead,RequiredLevel,ColumnNumber)";
 
 // The most tables a connection may name.
 export const MAX_NAMED_DATAVERSE_TABLES: number = 500;
@@ -152,6 +225,26 @@ const MISSING_PROPERTY: RegExp = /could not find a property named/i;
 const NAME_CHARACTER: RegExp = /[A-Za-z0-9_@#$]/;
 const DIGIT: RegExp = /[0-9]/;
 const SENTENCE_END: RegExp = /[.!?]$/;
+// A request ID, as Dataverse's x-ms-service-request-id and REQ_ID headers give it.
+const GUID: RegExp =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+// Dataverse's own error code, such as 0x80040216.
+const ERROR_CODE: RegExp = /^[A-Za-z0-9_.-]{1,40}$/;
+// The code Dataverse gives when it has none.
+const EMPTY_ERROR_CODE: RegExp = /^(?:0x)?0+$/i;
+// A body that is an HTML page, as a gateway or a proxy answers: never Dataverse's own error.
+const HTML_PAGE: RegExp = /^<(?:!doctype|html|head|body|\?xml)/i;
+const HTML_TITLE: RegExp = /<title[^>]*>([\s\S]*?)<\/title>/i;
+const HTML_HIDDEN: RegExp = /<(script|style)[^>]*>[\s\S]*?<\/\1>/gi;
+const HTML_TAG: RegExp = /<[^>]*>/g;
+// Credentials an answer could repeat: a bearer token, or a JSON web token on its own.
+const BEARER_TOKEN: RegExp = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const JSON_WEB_TOKEN: RegExp =
+  /eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}/g;
+// The most of Dataverse's own message an error keeps, so the whole sentence around it fits.
+const MAX_ERROR_MESSAGE_LENGTH: number = 130;
+// The longest name of a table's collection an error names.
+const MAX_NAME_IN_ERROR_LENGTH: number = 60;
 
 function readText(value: unknown, maxLength: number = 2_000): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -588,7 +681,7 @@ export function inlineDataverseSqlParameters(
   return out;
 }
 
-// Raised when Dataverse asks the app to slow down (429): the reads after it wait for the next collection.
+// Raised when Dataverse asks the app to slow down (429) for longer than a collection waits: the reads after it wait for the next collection.
 export class DataverseThrottledError extends Error {
   public readonly retryAfterInSeconds: number | null;
 
@@ -600,20 +693,79 @@ export class DataverseThrottledError extends Error {
   }
 }
 
-// The first line of what Dataverse or Entra ID said went wrong.
-function errorOf(body: JSONObject, fallback: string): string {
-  const error: JSONObject = readObject(body["error"]);
+/*
+ * An answer of Dataverse's that is no success: its status, its own error
+ * code (0x80040216), and the request ID Microsoft support traces it by.
+ * The message says what was being read and what Dataverse answered, short
+ * enough to be kept whole; reason says only the answer, for a warning that
+ * names the tables itself. Neither ever holds a token or the app's secret.
+ */
+export class DataverseRequestError extends Error {
+  public readonly statusCode: number;
+  public readonly errorCode: string | null;
+  public readonly requestId: string | null;
+  public readonly attempts: number;
+  public readonly reason: string;
 
+  public constructor(data: {
+    message: string;
+    reason: string;
+    statusCode: number;
+    errorCode: string | null;
+    requestId: string | null;
+    attempts: number;
+  }) {
+    super(data.message);
+    this.reason = data.reason;
+    this.statusCode = data.statusCode;
+    this.errorCode = data.errorCode;
+    this.requestId = data.requestId;
+    this.attempts = data.attempts;
+  }
+}
+
+/*
+ * Whether a read that failed leaves out only the tables it asked about:
+ * Dataverse answered about them (a 400, a 403 for a table the app's role
+ * may not read, a 500). A 401, a throttle, a token Entra ID refused or a
+ * network that failed would fail every other read as well.
+ */
+export function isTableLevelDataverseError(
+  error: unknown,
+): error is DataverseRequestError {
+  return error instanceof DataverseRequestError && error.statusCode !== 401;
+}
+
+/*
+ * Whether Dataverse itself failed a read, for now or for this request's
+ * size: a 5xx, or a request that timed out (408). Smaller requests may
+ * still be answered; a refusal (401, 403) or a wrong request (400) would
+ * be refused again.
+ */
+export function isServerSideDataverseError(
+  error: unknown,
+): error is DataverseRequestError {
   return (
-    readText(error["message"]) ||
-    readText(body["error_description"]) ||
-    readText(body["message"]) ||
-    readText(body["error"]) ||
-    fallback
-  )
-    .split(/\r?\n/)[0]!
-    .trim()
-    .slice(0, 300);
+    error instanceof DataverseRequestError &&
+    (error.statusCode >= 500 || error.statusCode === 408)
+  );
+}
+
+// Tables a read left out, and Dataverse's answer about them.
+export interface DataverseSkippedTables {
+  logicalNames: Array<string>;
+  reason: string;
+}
+
+/*
+ * What a read of many tables got: its result for the tables it could read,
+ * the tables it could not and why, and the throttle that stopped it part
+ * way, if one did - the tables after it are simply not in the result.
+ */
+export interface DataverseTablesRead<T> {
+  result: T;
+  skipped: Array<DataverseSkippedTables>;
+  throttle: DataverseThrottledError | null;
 }
 
 // A message ending in a full stop, so a sentence can follow it.
@@ -621,6 +773,79 @@ export function asSentence(text: string): string {
   const trimmed: string = text.trim();
 
   return !trimmed || SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+// The words of a body that is no JSON: an HTML page's title (a gateway's 502), else its first line.
+function readBodyText(text: string): string {
+  const trimmed: string = (text || "").trim();
+
+  if (!HTML_PAGE.test(trimmed)) {
+    return trimmed.split(/\r?\n/)[0]!.trim();
+  }
+
+  const title: string | undefined = HTML_TITLE.exec(trimmed)?.[1];
+
+  return (
+    title !== undefined
+      ? title
+      : trimmed.replace(HTML_HIDDEN, " ").replace(HTML_TAG, " ")
+  )
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// The first line of what Dataverse or Entra ID said went wrong, in its own words; "" when it said nothing.
+function messageOf(response: DataSourceHttpResponse): string {
+  const body: JSONObject = readObject(response.bodyJson);
+  const error: JSONObject = readObject(body["error"]);
+
+  return (
+    readText(error["message"]) ||
+    readText(body["error_description"]) ||
+    readText(body["message"]) ||
+    readText(body["error"]) ||
+    (response.bodyJson === undefined ? readBodyText(response.bodyText) : "")
+  )
+    .split(/\r?\n/)[0]!
+    .trim();
+}
+
+// Dataverse's own code for the error (0x80040216); null when it gave none.
+function errorCodeOf(response: DataSourceHttpResponse): string | null {
+  const code: string = readText(
+    readObject(readObject(response.bodyJson)["error"])["code"],
+    100,
+  );
+
+  return ERROR_CODE.test(code) && !EMPTY_ERROR_CODE.test(code) ? code : null;
+}
+
+// The ID Microsoft support finds a request by: Dataverse's, or Entra ID's.
+function requestIdOf(response: DataSourceHttpResponse): string | null {
+  const headers: Record<string, string> = response.headers || {};
+
+  for (const name of [
+    "x-ms-service-request-id",
+    "req_id",
+    "x-ms-request-id",
+    "request-id",
+  ]) {
+    const match: RegExpExecArray | null = GUID.exec(
+      String(headers[name] || ""),
+    );
+
+    if (match) {
+      return match[0].toLowerCase();
+    }
+  }
+
+  return null;
 }
 
 // One OData query string, its option names as written ($select) and its values encoded.
@@ -632,17 +857,43 @@ function oDataQuery(options: Array<[string, string]>): string {
     .join("&");
 }
 
+// A filter on the tables' logical names, which LOGICAL_NAME_PATTERN keeps free of quotes.
+function logicalNameFilter(names: Array<string>): string {
+  return names
+    .map((name: string): string => {
+      return `LogicalName eq '${name}'`;
+    })
+    .join(" or ");
+}
+
+function isLogicalName(name: string): boolean {
+  return LOGICAL_NAME_PATTERN.test(name);
+}
+
 export default class DataverseApi {
   private readonly connection: DataverseConnection;
   private readonly transport: DataverseTransport;
   private readonly now: () => number;
+  private readonly sleep: (ms: number) => Promise<void>;
   private tenantId: string | null;
   private accessToken: { value: string; expiresAt: number } | null = null;
+  // Until when every Web API request waits, as a 429 asked.
+  private throttledUntil: number = 0;
+  // How long this client has waited between tries, held to DATAVERSE_RETRY_BUDGET_IN_MS.
+  private waitedInMs: number = 0;
+
+  // How the client waits between tries; replaced in tests.
+  public static sleep(ms: number): Promise<void> {
+    return new Promise((resolve: () => void) => {
+      setTimeout(resolve, ms);
+    });
+  }
 
   public constructor(data: {
     connection: DataverseConnection;
     transport?: DataverseTransport | undefined;
     now?: (() => number) | undefined;
+    sleep?: ((ms: number) => Promise<void>) | undefined;
   }) {
     this.connection = data.connection;
     this.tenantId = data.connection.tenantId;
@@ -652,6 +903,11 @@ export default class DataverseApi {
       data.now ||
       ((): number => {
         return Date.now();
+      });
+    this.sleep =
+      data.sleep ||
+      ((ms: number): Promise<void> => {
+        return DataverseApi.sleep(ms);
       });
   }
 
@@ -683,19 +939,33 @@ export default class DataverseApi {
       return this.tenantId;
     }
 
-    const response: DataSourceHttpResponse = await this.transport({
-      method: "GET",
-      url: `${this.environmentUrl}${WEB_API_PATH}/`,
-      headers: { Accept: "application/json" },
-      timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
-      acceptAnyStatus: true,
-    } as DataSourceHttpRequest);
+    const { response, attempts } = await this.exchange(
+      async (): Promise<DataSourceHttpRequest> => {
+        return {
+          method: "GET",
+          url: `${this.environmentUrl}${WEB_API_PATH}/`,
+          headers: { Accept: "application/json" },
+          timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
+          acceptAnyStatus: true,
+        };
+      },
+      false,
+    );
     const challenge: string = String(
       response.headers?.["www-authenticate"] || "",
     );
     const match: RegExpMatchArray | null = challenge.match(TENANT_IN_CHALLENGE);
 
     if (!match) {
+      // An environment that failed to answer has not said it names no tenant.
+      if (RETRYABLE_STATUS_CODES.includes(response.statusCode)) {
+        throw this.failure(
+          response,
+          "asking which tenant the environment is in",
+          attempts,
+        );
+      }
+
       throw new Error(
         "Dataverse did not say which Microsoft Entra ID tenant the environment is in: add tenantId to the connection.",
       );
@@ -716,26 +986,38 @@ export default class DataverseApi {
       this.connection.host,
     );
     const tenantId: string = await this.getTenantId();
-    const response: DataSourceHttpResponse = await this.transport({
-      method: "POST",
-      url: `https://${authority}/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`,
-      headers: { Accept: "application/json" },
-      body: {
-        grant_type: "client_credentials",
-        client_id: this.connection.clientId,
-        client_secret: this.connection.clientSecret,
-        scope: `${this.environmentUrl}/.default`,
+    const { response, attempts } = await this.exchange(
+      async (): Promise<DataSourceHttpRequest> => {
+        return {
+          method: "POST",
+          url: `https://${authority}/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`,
+          headers: { Accept: "application/json" },
+          body: {
+            grant_type: "client_credentials",
+            client_id: this.connection.clientId,
+            client_secret: this.connection.clientSecret,
+            scope: `${this.environmentUrl}/.default`,
+          },
+          formUrlEncoded: true,
+          timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
+          acceptAnyStatus: true,
+        };
       },
-      formUrlEncoded: true,
-      timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
-      acceptAnyStatus: true,
-    } as DataSourceHttpRequest);
+      false,
+    );
     const body: JSONObject = readObject(response.bodyJson);
     const token: string = readText(body["access_token"], 20_000);
 
     if (response.statusCode >= 400 || !token) {
+      const message: string = this.redact(
+        messageOf(response) || "no token was given",
+      ).slice(0, MAX_ERROR_MESSAGE_LENGTH);
+      const isOutage: boolean = RETRYABLE_STATUS_CODES.includes(
+        response.statusCode,
+      );
+
       throw new Error(
-        `Microsoft Entra ID refused the app (${response.statusCode}): ${errorOf(body, "no token was given")}`,
+        `Microsoft Entra ID ${isOutage ? "could not sign the app in" : "refused the app"} (${response.statusCode}): ${asSentence(message)}${attempts > 1 ? ` Tried ${attempts} times.` : ""}`,
       );
     }
 
@@ -749,105 +1031,516 @@ export default class DataverseApi {
     return token;
   }
 
-  // One Web API request; a 429 is a DataverseThrottledError, any other failure says why.
-  private async request(path: string): Promise<DataSourceHttpResponse> {
-    const response: DataSourceHttpResponse = await this.transport({
-      method: "GET",
-      url: `${this.environmentUrl}${WEB_API_PATH}${path}`,
-      headers: {
-        Authorization: `Bearer ${await this.getAccessToken()}`,
-        Accept: "application/json",
-        "OData-MaxVersion": "4.0",
-        "OData-Version": "4.0",
-        Prefer: 'odata.include-annotations="none"',
+  /*
+   * One request, asked again when its answer may pass (a 429, a 408 or a
+   * 5xx), after the Retry-After the answer gives or a doubling backoff,
+   * DATAVERSE_MAX_ATTEMPTS times at most and within the collection's
+   * budget for waiting. The last answer is returned, whatever it is. A 429
+   * of the Web API holds back every Web API request of this client: the
+   * limit is the app's, not the request's.
+   */
+  private async exchange(
+    build: () => Promise<DataSourceHttpRequest>,
+    isWebApi: boolean,
+  ): Promise<{ response: DataSourceHttpResponse; attempts: number }> {
+    for (let attempts: number = 1; ; attempts++) {
+      if (isWebApi) {
+        await this.waitOutThrottle();
+      }
+
+      const request: DataSourceHttpRequest = await build();
+      const response: DataSourceHttpResponse = await this.transport(request);
+      const waitInMs: number | null =
+        attempts < DATAVERSE_MAX_ATTEMPTS
+          ? this.reserveWait(response, attempts)
+          : null;
+
+      if (waitInMs === null) {
+        return { response, attempts };
+      }
+
+      logger.debug(
+        `Dataverse: ${request.method} ${request.url.split("?")[0]} answered ${response.statusCode}; asking again in ${Math.ceil(waitInMs / 1000)} seconds (try ${attempts + 1} of ${DATAVERSE_MAX_ATTEMPTS}).`,
+      );
+
+      if (isWebApi && response.statusCode === 429) {
+        this.throttledUntil = Math.max(
+          this.throttledUntil,
+          this.now() + waitInMs,
+        );
+      } else {
+        await this.sleep(waitInMs);
+      }
+    }
+  }
+
+  /*
+   * How long to wait before asking again, taken from the collection's
+   * budget; null when the answer is not worth asking again, or the wait is
+   * longer than a collection waits.
+   */
+  private reserveWait(
+    response: DataSourceHttpResponse,
+    attempts: number,
+  ): number | null {
+    if (!RETRYABLE_STATUS_CODES.includes(response.statusCode)) {
+      return null;
+    }
+
+    const waitInMs: number =
+      RetryAfter.msFromHeaders(response.headers, { nowMs: this.now() }) ??
+      DATAVERSE_FIRST_BACKOFF_IN_MS * 2 ** (attempts - 1);
+
+    if (
+      waitInMs > DATAVERSE_MAX_RETRY_WAIT_IN_MS ||
+      this.waitedInMs + waitInMs > DATAVERSE_RETRY_BUDGET_IN_MS
+    ) {
+      return null;
+    }
+
+    this.waitedInMs += waitInMs;
+
+    return waitInMs;
+  }
+
+  // Waits until a 429 said the app may ask again.
+  private async waitOutThrottle(): Promise<void> {
+    const waitInMs: number = this.throttledUntil - this.now();
+
+    if (waitInMs > 0) {
+      await this.sleep(waitInMs);
+    }
+  }
+
+  // Text from an answer with any token or the app's secret in it taken out.
+  private redact(text: string): string {
+    let redacted: string = text
+      .replace(BEARER_TOKEN, "Bearer ****")
+      .replace(JSON_WEB_TOKEN, "****");
+
+    for (const secret of [
+      this.connection.clientSecret,
+      this.accessToken?.value || "",
+    ]) {
+      if (secret.length >= 3) {
+        redacted = redacted.split(secret).join("****");
+      }
+    }
+
+    return redacted;
+  }
+
+  /*
+   * What an answer that is no success says, as an error: what was being
+   * read, Dataverse's status, code and message, how many times it was
+   * asked, and the request ID Microsoft support traces it by.
+   */
+  private failure(
+    response: DataSourceHttpResponse,
+    operation: string,
+    attempts: number,
+  ): DataverseRequestError {
+    const statusCode: number = response.statusCode;
+    const errorCode: string | null = errorCodeOf(response);
+    const requestId: string | null = requestIdOf(response);
+    const message: string = asSentence(
+      this.redact(messageOf(response))
+        .slice(0, MAX_ERROR_MESSAGE_LENGTH)
+        .trim(),
+    );
+    const isRefusal: boolean = statusCode === 401 || statusCode === 403;
+    const answer: string = isRefusal
+      ? `Dataverse refused the app (${statusCode}${errorCode ? `, ${errorCode}` : ""})`
+      : `Dataverse answered ${statusCode}${errorCode ? ` (${errorCode})` : ""}`;
+    const said: string = message
+      ? `: ${message}`
+      : isRefusal
+        ? "."
+        : ", with no error message.";
+    const reason: string = `${answer}${said}`;
+    const parts: Array<string> = [`${answer} while ${operation}${said}`];
+
+    if (isRefusal) {
+      parts.push(
+        "Add it to the environment as an application user, with a security role that may read the tables.",
+      );
+    } else {
+      if (attempts > 1) {
+        parts.push(`Tried ${attempts} times.`);
+      }
+
+      if (requestId) {
+        parts.push(`Request ID: ${requestId}.`);
+      }
+    }
+
+    logger.debug(
+      `Dataverse: ${parts.join(" ")}${requestId && isRefusal ? ` Request ID: ${requestId}.` : ""}`,
+    );
+
+    return new DataverseRequestError({
+      message: parts.join(" "),
+      reason,
+      statusCode,
+      errorCode,
+      requestId,
+      attempts,
+    });
+  }
+
+  /*
+   * One Web API read - a path under the Web API, or a page Dataverse named
+   * - sent with the app's token and the documented headers. A 429 it
+   * cannot wait out is a DataverseThrottledError; any other answer that is
+   * no success says why, as a DataverseRequestError.
+   */
+  private async readJson(
+    target: string,
+    operation: string,
+  ): Promise<{ body: JSONObject; response: DataSourceHttpResponse }> {
+    const url: string = target.startsWith("https://")
+      ? target
+      : `${this.environmentUrl}${WEB_API_PATH}${target}`;
+    const { response, attempts } = await this.exchange(
+      async (): Promise<DataSourceHttpRequest> => {
+        return {
+          method: "GET",
+          url,
+          headers: {
+            Authorization: `Bearer ${await this.getAccessToken()}`,
+            ...WEB_API_HEADERS,
+          },
+          timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
+          acceptAnyStatus: true,
+        };
       },
-      timeoutInMs: DATAVERSE_REQUEST_TIMEOUT_IN_MS,
-      acceptAnyStatus: true,
-    } as DataSourceHttpRequest);
+      true,
+    );
 
     if (response.statusCode === 429) {
       // Whole seconds or an HTTP-date, as RFC 9110 writes them (RetryAfter).
       throw new DataverseThrottledError(
-        RetryAfter.secondsFromHeaders(response.headers) ?? null,
+        RetryAfter.secondsFromHeaders(response.headers, {
+          nowMs: this.now(),
+        }) ?? null,
       );
     }
 
-    return response;
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw this.failure(response, operation, attempts);
+    }
+
+    return { body: readObject(response.bodyJson), response };
   }
 
-  private async send(path: string): Promise<JSONObject> {
-    const response: DataSourceHttpResponse = await this.request(path);
-    const body: JSONObject = readObject(response.bodyJson);
+  /*
+   * Every row of a list, following each page Dataverse names on this
+   * environment's Web API. A list that is not one, or a next page
+   * elsewhere, is an error, never a short list: a table missing from a
+   * list it read would be taken for dropped.
+   */
+  private async readList(
+    path: string,
+    operation: string,
+  ): Promise<Array<JSONObject>> {
+    const rows: Array<JSONObject> = [];
+    let target: string = path;
 
-    if (response.statusCode === 401 || response.statusCode === 403) {
-      throw new Error(
-        `Dataverse refused the app (${response.statusCode}): ${asSentence(errorOf(body, "not allowed"))} Add it to the environment as an application user, with a security role that may read the tables.`,
+    for (let page: number = 1; ; page++) {
+      const { body, response } = await this.readJson(target, operation);
+
+      if (!Array.isArray(body["value"])) {
+        throw new DataverseRequestError({
+          message: `Dataverse answered ${response.statusCode} while ${operation}, but with no list of results: ${asSentence(readBodyText(response.bodyText).slice(0, 80)) || "an empty body."}`,
+          reason: `Dataverse answered ${response.statusCode}, but with no list of results.`,
+          statusCode: response.statusCode,
+          errorCode: null,
+          requestId: requestIdOf(response),
+          attempts: 1,
+        });
+      }
+
+      rows.push(...body["value"].map(readObject));
+
+      const next: string = readText(body["@odata.nextLink"], 8_000);
+
+      if (!next) {
+        return rows;
+      }
+
+      if (page >= MAX_LIST_PAGES || !this.isOwnPage(next)) {
+        throw new DataverseRequestError({
+          message: `Dataverse named a next page OneUptime does not follow while ${operation}: the list was not read whole.`,
+          reason: "Dataverse named a next page OneUptime does not follow.",
+          statusCode: response.statusCode,
+          errorCode: null,
+          requestId: requestIdOf(response),
+          attempts: 1,
+        });
+      }
+
+      target = next;
+    }
+  }
+
+  // Whether a page Dataverse named is on this environment's Web API, the only place its token is sent.
+  private isOwnPage(link: string): boolean {
+    try {
+      const url: URL = new URL(link);
+
+      return (
+        url.protocol === "https:" &&
+        url.hostname.toLowerCase() === this.connection.host &&
+        url.pathname.startsWith(`${WEB_API_PATH}/`)
       );
+    } catch {
+      return false;
+    }
+  }
+
+  /*
+   * Reads tables a group at a time. A group Dataverse answers with an
+   * error about its tables is asked again in smaller parts, so a table it
+   * cannot read leaves out only itself:
+   *  - one by one, for definitions and columns, which Dataverse answers
+   *    for one table as for many; after MAX_TABLES_FAILED_IN_A_ROW fail in
+   *    a row, the rest of the group is left out with its answer;
+   *  - in halves, for the counts, a half that fails halved again: when both
+   *    halves fail, the fault is the read's, not one table's, and the whole
+   *    part is left out.
+   * A throttle stops the reads, and is handed back with what was read;
+   * anything else that would fail every read (a 401, a network down) is
+   * thrown.
+   */
+  private async readInGroups(data: {
+    names: Array<string>;
+    groupSize: number;
+    isolate: "one by one" | "in halves";
+    read: (names: Array<string>) => Promise<void>;
+  }): Promise<Omit<DataverseTablesRead<void>, "result">> {
+    const skipped: Array<DataverseSkippedTables> = [];
+    const skip: (names: Array<string>, reason: string) => void = (
+      names: Array<string>,
+      reason: string,
+    ): void => {
+      if (names.length > 0) {
+        skipped.push({ logicalNames: names, reason });
+      }
+    };
+    // Null once the tables are read; Dataverse's answer when it failed them.
+    const attempt: (
+      names: Array<string>,
+    ) => Promise<DataverseRequestError | null> = async (
+      names: Array<string>,
+    ): Promise<DataverseRequestError | null> => {
+      try {
+        await data.read(names);
+
+        return null;
+      } catch (error) {
+        if (isTableLevelDataverseError(error)) {
+          return error;
+        }
+
+        throw error;
+      }
+    };
+    const halve: (
+      names: Array<string>,
+      failed: DataverseRequestError,
+    ) => Promise<void> = async (
+      names: Array<string>,
+      failed: DataverseRequestError,
+    ): Promise<void> => {
+      if (names.length === 1) {
+        skip(names, failed.reason);
+
+        return;
+      }
+
+      const middle: number = Math.ceil(names.length / 2);
+      const halves: Array<Array<string>> = [
+        names.slice(0, middle),
+        names.slice(middle),
+      ];
+      const errors: Array<DataverseRequestError | null> = [
+        await attempt(halves[0]!),
+        await attempt(halves[1]!),
+      ];
+
+      if (errors[0] && errors[1]) {
+        skip(names, errors[0].reason);
+
+        return;
+      }
+
+      for (let index: number = 0; index < 2; index++) {
+        if (errors[index]) {
+          await halve(halves[index]!, errors[index]!);
+        }
+      }
+    };
+    const oneByOne: (
+      names: Array<string>,
+      failed: DataverseRequestError,
+    ) => Promise<void> = async (
+      names: Array<string>,
+      failed: DataverseRequestError,
+    ): Promise<void> => {
+      let failedInARow: number = 0;
+
+      for (let index: number = 0; index < names.length; index++) {
+        const error: DataverseRequestError | null = await attempt([
+          names[index]!,
+        ]);
+
+        if (!error) {
+          failedInARow = 0;
+          continue;
+        }
+
+        skip([names[index]!], error.reason);
+        failedInARow++;
+
+        if (failedInARow >= MAX_TABLES_FAILED_IN_A_ROW) {
+          skip(names.slice(index + 1), failed.reason);
+
+          return;
+        }
+      }
+    };
+
+    try {
+      for (
+        let start: number = 0;
+        start < data.names.length;
+        start += data.groupSize
+      ) {
+        const group: Array<string> = data.names.slice(
+          start,
+          start + data.groupSize,
+        );
+        const error: DataverseRequestError | null = await attempt(group);
+
+        if (!error) {
+          continue;
+        }
+
+        if (group.length === 1) {
+          skip(group, error.reason);
+        } else if (data.isolate === "in halves") {
+          await halve(group, error);
+        } else {
+          await oneByOne(group, error);
+        }
+      }
+    } catch (error) {
+      if (error instanceof DataverseThrottledError) {
+        return { skipped, throttle: error };
+      }
+
+      throw error;
     }
 
-    if (response.statusCode >= 400) {
-      throw new Error(
-        `Dataverse answered ${response.statusCode}: ${errorOf(body, response.bodyText.slice(0, 300))}`,
-      );
-    }
-
-    return body;
+    return { skipped, throttle: null };
   }
 
   // Every table's definition: no rows are read, and every table comes back at once.
   public async listTables(): Promise<Array<JSONObject>> {
-    const body: JSONObject = await this.send(
-      `/EntityDefinitions?${oDataQuery([
-        [
-          "$select",
-          "LogicalName,EntitySetName,TableType,IsCustomEntity,IsIntersect,IsPrivate,IsLogicalEntity,IsActivityParty,IsBPFEntity",
-        ],
-      ])}`,
+    return await this.readList(
+      `/EntityDefinitions?${oDataQuery([["$select", DEFINITION_PROPERTIES]])}`,
+      "listing the tables (EntityDefinitions)",
     );
+  }
 
-    return readArray(body["value"]).map(readObject);
+  /*
+   * The definitions of the tables named, twenty a call - for when the
+   * whole list failed. A table the environment has not is not in the
+   * result; one Dataverse could not describe is in skipped.
+   */
+  public async readTableDefinitions(
+    logicalNames: Array<string>,
+  ): Promise<DataverseTablesRead<Array<JSONObject>>> {
+    const definitions: Array<JSONObject> = [];
+    const read: Omit<
+      DataverseTablesRead<void>,
+      "result"
+    > = await this.readInGroups({
+      names: Array.from(new Set(logicalNames.filter(isLogicalName))),
+      groupSize: DATAVERSE_TABLES_PER_DEFINITION_READ,
+      isolate: "one by one",
+      read: async (names: Array<string>): Promise<void> => {
+        definitions.push(
+          ...(await this.readList(
+            `/EntityDefinitions?${oDataQuery([
+              ["$select", DEFINITION_PROPERTIES],
+              ["$filter", logicalNameFilter(names)],
+            ])}`,
+            names.length === 1
+              ? `reading the definition of ${names[0]} (EntityDefinitions)`
+              : "reading table definitions (EntityDefinitions)",
+          )),
+        );
+      },
+    });
+
+    return { result: definitions, ...read };
+  }
+
+  // The definitions of the environment's custom tables alone - for when the whole list failed.
+  public async listCustomTables(): Promise<Array<JSONObject>> {
+    return await this.readList(
+      `/EntityDefinitions?${oDataQuery([
+        ["$select", DEFINITION_PROPERTIES],
+        ["$filter", "IsCustomEntity eq true"],
+      ])}`,
+      "listing the custom tables (EntityDefinitions)",
+    );
   }
 
   /*
    * Each table's rows, from the snapshot Dataverse takes once a day, fifty
-   * tables a call. A table the snapshot does not hold is left out.
+   * tables a call. A table the snapshot does not hold is left out; a group
+   * Dataverse fails is halved until the tables it cannot count are found.
    */
   public async countRows(
     logicalNames: Array<string>,
-  ): Promise<Map<string, number>> {
+  ): Promise<DataverseTablesRead<Map<string, number>>> {
     const counts: Map<string, number> = new Map();
+    const read: Omit<
+      DataverseTablesRead<void>,
+      "result"
+    > = await this.readInGroups({
+      names: logicalNames.filter(isLogicalName),
+      groupSize: DATAVERSE_TABLES_PER_COUNT,
+      isolate: "in halves",
+      read: async (names: Array<string>): Promise<void> => {
+        const { body } = await this.readJson(
+          `/RetrieveTotalRecordCount(EntityNames=@p1)?${oDataQuery([
+            ["@p1", JSON.stringify(names)],
+          ])}`,
+          names.length === 1
+            ? `counting the rows of ${names[0]} (RetrieveTotalRecordCount)`
+            : "counting rows (RetrieveTotalRecordCount)",
+        );
+        const collection: JSONObject = readObject(
+          body["EntityRecordCountCollection"],
+        );
+        const keys: Array<unknown> = readArray(collection["Keys"]);
+        const values: Array<unknown> = readArray(collection["Values"]);
 
-    for (
-      let start: number = 0;
-      start < logicalNames.length;
-      start += DATAVERSE_TABLES_PER_COUNT
-    ) {
-      const names: Array<string> = logicalNames.slice(
-        start,
-        start + DATAVERSE_TABLES_PER_COUNT,
-      );
-      const body: JSONObject = await this.send(
-        `/RetrieveTotalRecordCount(EntityNames=@p1)?${oDataQuery([
-          ["@p1", JSON.stringify(names)],
-        ])}`,
-      );
-      const collection: JSONObject = readObject(
-        body["EntityRecordCountCollection"],
-      );
-      const keys: Array<unknown> = readArray(collection["Keys"]);
-      const values: Array<unknown> = readArray(collection["Values"]);
+        keys.forEach((key: unknown, index: number) => {
+          const name: string = readText(key, 200).toLowerCase();
+          const count: number = Number(values[index]);
 
-      keys.forEach((key: unknown, index: number) => {
-        const name: string = readText(key, 200).toLowerCase();
-        const count: number = Number(values[index]);
+          if (name && Number.isFinite(count) && count >= 0) {
+            counts.set(name, Math.floor(count));
+          }
+        });
+      },
+    });
 
-        if (name && Number.isFinite(count) && count >= 0) {
-          counts.set(name, Math.floor(count));
-        }
-      });
-    }
-
-    return counts;
+    return { result: counts, ...read };
   }
 
   /*
@@ -856,27 +1549,33 @@ export default class DataverseApi {
    * no modifiedon. Null for a table with no rows, or with neither column.
    */
   public async readNewestChange(entitySetName: string): Promise<Date | null> {
+    const operation: string = `reading the newest row of ${entitySetName.slice(0, MAX_NAME_IN_ERROR_LENGTH)}`;
+
     for (const column of ["modifiedon", "createdon"]) {
-      const response: DataSourceHttpResponse = await this.request(
-        `/${encodeURIComponent(entitySetName)}?${oDataQuery([
-          ["$select", column],
-          ["$orderby", `${column} desc`],
-          ["$top", "1"],
-        ])}`,
-      );
-      const body: JSONObject = readObject(response.bodyJson);
+      let body: JSONObject;
 
-      if (
-        response.statusCode === 400 &&
-        MISSING_PROPERTY.test(errorOf(body, ""))
-      ) {
-        continue;
-      }
+      try {
+        body = (
+          await this.readJson(
+            `/${encodeURIComponent(entitySetName)}?${oDataQuery([
+              ["$select", column],
+              ["$orderby", `${column} desc`],
+              ["$top", "1"],
+            ])}`,
+            operation,
+          )
+        ).body;
+      } catch (error) {
+        // A table that keeps no such column is asked for the next.
+        if (
+          error instanceof DataverseRequestError &&
+          error.statusCode === 400 &&
+          MISSING_PROPERTY.test(error.reason)
+        ) {
+          continue;
+        }
 
-      if (response.statusCode >= 400) {
-        throw new Error(
-          `Dataverse answered ${response.statusCode}: ${errorOf(body, response.bodyText.slice(0, 300))}`,
-        );
+        throw error;
       }
 
       const row: JSONObject = readObject(readArray(body["value"])[0]);
@@ -893,62 +1592,47 @@ export default class DataverseApi {
   /*
    * The tables' column definitions, twenty tables a call: each table's
    * attributes, by its logical name. A table Dataverse does not return is
-   * left out.
+   * left out; a group it fails is read again one table at a time.
    */
   public async listColumns(
     logicalNames: Array<string>,
-  ): Promise<Map<string, Array<JSONObject>>> {
+  ): Promise<DataverseTablesRead<Map<string, Array<JSONObject>>>> {
     const columns: Map<string, Array<JSONObject>> = new Map();
+    const read: Omit<
+      DataverseTablesRead<void>,
+      "result"
+    > = await this.readInGroups({
+      names: logicalNames.filter(isLogicalName),
+      groupSize: DATAVERSE_TABLES_PER_COLUMN_READ,
+      isolate: "one by one",
+      read: async (names: Array<string>): Promise<void> => {
+        const definitions: Array<JSONObject> = await this.readList(
+          `/EntityDefinitions?${oDataQuery([
+            ["$select", "LogicalName"],
+            ["$filter", logicalNameFilter(names)],
+            ["$expand", COLUMN_EXPANSION],
+          ])}`,
+          names.length === 1
+            ? `reading the columns of ${names[0]} (EntityDefinitions)`
+            : "reading columns (EntityDefinitions)",
+        );
 
-    for (
-      let start: number = 0;
-      start < logicalNames.length;
-      start += DATAVERSE_TABLES_PER_COLUMN_READ
-    ) {
-      const names: Array<string> = logicalNames
-        .slice(start, start + DATAVERSE_TABLES_PER_COLUMN_READ)
-        .filter((name: string): boolean => {
-          return LOGICAL_NAME_PATTERN.test(name);
-        });
+        for (const definition of definitions) {
+          const name: string = readText(
+            definition["LogicalName"],
+            200,
+          ).toLowerCase();
 
-      if (names.length === 0) {
-        continue;
-      }
-
-      const body: JSONObject = await this.send(
-        `/EntityDefinitions?${oDataQuery([
-          ["$select", "LogicalName"],
-          [
-            "$filter",
-            names
-              .map((name: string): string => {
-                return `LogicalName eq '${name}'`;
-              })
-              .join(" or "),
-          ],
-          [
-            "$expand",
-            "Attributes($select=LogicalName,AttributeType,AttributeTypeName,AttributeOf,IsValidForRead,RequiredLevel,ColumnNumber)",
-          ],
-        ])}`,
-      );
-
-      for (const value of readArray(body["value"])) {
-        const definition: JSONObject = readObject(value);
-        const name: string = readText(
-          definition["LogicalName"],
-          200,
-        ).toLowerCase();
-
-        if (name) {
-          columns.set(
-            name,
-            readArray(definition["Attributes"]).map(readObject),
-          );
+          if (name) {
+            columns.set(
+              name,
+              readArray(definition["Attributes"]).map(readObject),
+            );
+          }
         }
-      }
-    }
+      },
+    });
 
-    return columns;
+    return { result: columns, ...read };
   }
 }

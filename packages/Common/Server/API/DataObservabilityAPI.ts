@@ -43,6 +43,7 @@ import {
   DataObservabilityAiAppTable,
   DataObservabilityAttentionCountResponse,
   DataObservabilityCheckHealthResponse,
+  DataObservabilityCollectNowResponse,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
   DataObservabilityIssuesRequest,
@@ -486,11 +487,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           req,
         );
+        const requestedAt: Date = OneUptimeDate.getCurrentDate();
 
         await DataStoreService.updateColumnsByIdWithoutHooks({
           id: store.id!,
           data: {
-            nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate(),
+            nextTableHealthCollectionAt: requestedAt,
           } as never,
         });
 
@@ -502,7 +504,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           });
         }
 
-        return {};
+        // The page waits for the store's attemptedAt to pass it: the collection asked for has ended.
+        const response: DataObservabilityCollectNowResponse = {
+          requestedAt: requestedAt.toISOString(),
+        };
+
+        return response as unknown as JSONObject;
       },
     );
 
@@ -1564,6 +1571,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       tableHealthStatus: true,
       tableHealthMessage: true,
       tableHealthCollectedAt: true,
+      tableHealthAttemptedAt: true,
       tableHealthAssetCount: true,
       connectionString: true,
       cloudConnectionId: true,
@@ -1660,6 +1668,11 @@ export default class DataObservabilityAPI extends BaseAPI<
           collectedAt: store.tableHealthCollectedAt
             ? OneUptimeDate.fromString(
                 store.tableHealthCollectedAt,
+              ).toISOString()
+            : null,
+          attemptedAt: store.tableHealthAttemptedAt
+            ? OneUptimeDate.fromString(
+                store.tableHealthAttemptedAt,
               ).toISOString()
             : null,
           assetCount: store.tableHealthAssetCount || 0,

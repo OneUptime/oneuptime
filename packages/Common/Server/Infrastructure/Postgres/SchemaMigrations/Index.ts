@@ -1067,6 +1067,7 @@ import { AddRumSessionErasureRequestProductAnalyticsRowsDeleted1809183906628 } f
 import { AddRumApplicationProductAnalyticsRetention1809183906630 } from "./1809183906630-AddRumApplicationProductAnalyticsRetention";
 import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } from "./1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners";
 import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
+import { AddTableHealthAttemptedAt1809184570000 } from "./1809184570000-AddTableHealthAttemptedAt";
 
 export default [
   InitialMigration,
@@ -2138,4 +2139,5 @@ export default [
   AddRumApplicationProductAnalyticsRetention1809183906630,
   AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000,
   AddDataCheckMonitorIdIndex1809184560000,
+  AddTableHealthAttemptedAt1809184570000,
 ];

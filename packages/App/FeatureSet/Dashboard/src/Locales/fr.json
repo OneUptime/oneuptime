@@ -56964,8 +56964,13 @@
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.": "Ses sessions sont peut-être plus anciennes que les {{count}} mois de conservation de ces chiffres, ou ont peut-être été effacées.",
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased._one": "Ses sessions sont peut-être plus anciennes que la durée de conservation de ces chiffres ({{count}} mois), ou ont peut-être été effacées.",
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Trop d'invitations ont été envoyées à cette adresse au cours de la dernière heure. Vous pourrez la renvoyer après {{time}}.",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
   "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Laissez vide pour importer uniquement les équipements. Chaque moniteur reprend les critères, l'intervalle, les étiquettes et les valeurs par défaut des champs personnalisés du modèle, et peut être facturé.",
   "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Aucun modèle de moniteur d'équipement réseau, Ping, IP, Port ou NTP pour l'instant. Créez-en un avec « Gérer les modèles » : il apparaîtra quand vous reviendrez à cette étape.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "{{count}} months (default)": "{{count}} mois (par défaut)",
   "{{count}} months (default)_one": "{{count}} mois (par défaut)"
 }

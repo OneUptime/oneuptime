@@ -56964,8 +56964,13 @@
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased.": "Hun sessies zijn mogelijk ouder dan de {{count}} maanden dat deze cijfers worden bewaard, of zijn mogelijk gewist.",
   "Their sessions may be older than the {{count}} months these numbers are kept, or may have been erased._one": "Hun sessies zijn mogelijk ouder dan de {{count}} maand dat deze cijfers worden bewaard, of zijn mogelijk gewist.",
   "Too many invitations were sent to this address in the last hour. You can send it again after {{time}}.": "Er zijn het afgelopen uur te veel uitnodigingen naar dit adres verzonden. U kunt de uitnodiging na {{time}} opnieuw verzenden.",
+  "Collecting now. This page shows how it went when it ends.": "Collecting now. This page shows how it went when it ends.",
+  "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.": "Last tried {{time}}. OneUptime tries again every 15 minutes until it collects.",
   "Leave it empty to import devices only. Each monitor copies the template's criteria, interval, labels and custom field defaults, and may be billed.": "Laat leeg om alleen apparaten te importeren. Elke monitor neemt de criteria, het interval, de labels en de standaardwaarden voor aangepaste velden van het sjabloon over, en kan in rekening worden gebracht.",
   "No Network Device, Ping, IP, Port or NTP monitor template yet. Create one with Manage templates, and it is listed when you come back to this step.": "Nog geen netwerkapparaat-, Ping-, IP-, poort- of NTP-monitorsjabloon. Maak er een met 'Sjablonen beheren'; het staat in de lijst wanneer u terugkomt bij deze stap.",
+  "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.": "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
+  "Table Health Attempted At": "Table Health Attempted At",
+  "The collection is taking longer than usual. Come back in a few minutes to see how it went.": "The collection is taking longer than usual. Come back in a few minutes to see how it went.",
   "{{count}} months (default)": "{{count}} maanden (standaard)",
   "{{count}} months (default)_one": "{{count}} maand (standaard)"
 }
