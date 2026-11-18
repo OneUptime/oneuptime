@@ -510,6 +510,12 @@ test.describe("a saved funnel on a dashboard", () => {
     await expect(settings).toContainText(
       "Public dashboards show only its title.",
     );
+    await settings
+      .getByText("Public dashboards show only its title.", { exact: false })
+      .scrollIntoViewIfNeeded();
+    await settings.screenshot({
+      path: `${SCREENSHOTS}/funnel-widget-settings-${test.info().project.name}.png`,
+    });
     await pickDropdownOption(
       page,
       settings.getByRole("combobox").first(),
