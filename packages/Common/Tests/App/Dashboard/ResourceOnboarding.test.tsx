@@ -84,11 +84,14 @@ import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
+import ProjectMilestone from "../../../Models/DatabaseModels/ProjectMilestone";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import Service from "../../../Models/DatabaseModels/Service";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
@@ -181,6 +184,19 @@ function matches(row: Row, query: Record<string, unknown>): boolean {
 
     if (wanted instanceof GreaterThanOrEqual) {
       if (!(asTime(value) >= asTime(wanted.value))) {
+        return false;
+      }
+      continue;
+    }
+
+    if (wanted instanceof Includes) {
+      if (
+        !wanted.values
+          .map((item: unknown): string => {
+            return String(item);
+          })
+          .includes(String(value))
+      ) {
         return false;
       }
       continue;
@@ -1447,6 +1463,349 @@ describe("a telemetry guide's last step, for data that names no service", () => 
     expect(
       screen.getByTestId("resource-connection-data-arrived"),
     ).toHaveTextContent("The first data arrived with the key Production.");
+  });
+});
+
+/*
+ * #7888: a key something already sends with - traces, say - has a stamp
+ * that moves whatever a new shipper does, so its first data cannot finish
+ * the step. The project's first data of the guide's signal can: its mark,
+ * kept by the server once the data is stored, whichever key sent it and
+ * whether or not it names a service.
+ */
+describe("a telemetry guide's last step, for the project's first data of its signal", () => {
+  const PRODUCTION_KEY_ID: string = "40000000-0000-4000-8000-000000000001";
+
+  // The server keeps the project's first data of a kind once it is stored.
+  function keep(milestone: ActivationMilestone): void {
+    rowsOf(ProjectMilestone).push({
+      _id: `50000000-0000-4000-8000-${String(rowsOf(ProjectMilestone).length + 1).padStart(12, "0")}`,
+      milestone: milestone,
+      reachedAt: new Date(),
+    });
+  }
+
+  function markChecks(): Array<Record<string, unknown>> {
+    return reads
+      .filter(
+        (read: { table: string; query: Record<string, unknown> }): boolean => {
+          return read.table === "ProjectMilestone";
+        },
+      )
+      .map(
+        (read: {
+          table: string;
+          query: Record<string, unknown>;
+        }): Record<string, unknown> => {
+          return read.query;
+        },
+      );
+  }
+
+  // Logs > Setup Guide, with a key that already sends something.
+  async function openLogsGuide(): Promise<HTMLElement> {
+    rowsOf(TelemetryIngestionKey).find((row: Row): boolean => {
+      return String(row["_id"]) === PRODUCTION_KEY_ID;
+    })!["lastUsedAt"] = new Date();
+
+    await show(<TelemetryDocumentation telemetryType="logs" />);
+
+    return screen.getByTestId("telemetry-documentation-first-data");
+  }
+
+  test("a key that already sends: the project's first logs finish it, though no service registered, with the explorer's link", async () => {
+    const step: HTMLElement = await openLogsGuide();
+    // The first look notes the marks the project has: none of its logs.
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    keep(ActivationMilestone.FirstLogsReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const done: HTMLElement = within(step).getByTestId(
+      "resource-connection-data-arrived",
+    );
+
+    expect(done).toHaveTextContent("The first data arrived.");
+    expect(done).not.toHaveTextContent("with the key");
+    expect(
+      within(done).getByRole("link", { name: "View logs" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID.toString()}/logs`);
+    expect(rowsOf(Service)).toHaveLength(0);
+
+    // It asked for the logs guide's own mark, and no other.
+    for (const query of markChecks()) {
+      expect(query["milestone"]).toBeInstanceOf(Includes);
+      expect((query["milestone"] as Includes).values).toEqual([
+        ActivationMilestone.FirstLogsReceived,
+      ]);
+    }
+  });
+
+  test("first logs the project had before the step looked finish nothing", async () => {
+    keep(ActivationMilestone.FirstLogsReceived);
+    await openLogsGuide();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(screen.getByTestId("resource-connection-waiting")).toHaveTextContent(
+      "Waiting for the first data. This step updates by itself.",
+    );
+  });
+
+  test("another signal's first data finishes nothing: the project's first traces are not the logs", async () => {
+    await openLogsGuide();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    keep(ActivationMilestone.FirstTracesReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+    expect(
+      screen.getByTestId("resource-connection-waiting"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("resource-connection-data-arrived")).toBeNull();
+  });
+
+  /*
+   * Ingest registers the service a batch names before it stores the batch,
+   * and only a stored batch keeps the mark: a service the data names is
+   * there by the time its mark is, and wins, with its own link.
+   */
+  test("a service the data names wins over the mark, with its own link", async () => {
+    await openLogsGuide();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    arrive({
+      modelType: Service,
+      id: 30,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    keep(ActivationMilestone.FirstLogsReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-connected"),
+    ).toHaveTextContent(
+      "checkout-api is connected. Its data arrives within a minute or two.",
+    );
+    expect(screen.queryByTestId("resource-connection-data-arrived")).toBeNull();
+  });
+
+  test("a service and its mark seen together: the page hears of the service alone, never of data without one", async () => {
+    let dataArrivals: number = 0;
+    let connections: number = 0;
+
+    await show(
+      <ResourceConnectionWatch
+        modelType={Service}
+        viewPage={PageMap.SERVICE_VIEW_LOGS}
+        viewText="View logs"
+        dataPage={PageMap.LOGS}
+        firstDataMilestones={[ActivationMilestone.FirstLogsReceived]}
+        onDataArrived={() => {
+          dataArrivals++;
+        }}
+        onConnected={() => {
+          connections++;
+        }}
+      />,
+    );
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    arrive({
+      modelType: Service,
+      id: 32,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    keep(ActivationMilestone.FirstLogsReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+    expect(connections).toBe(1);
+    expect(dataArrivals).toBe(0);
+  });
+
+  test("a service that registers after the mark still takes over", async () => {
+    await openLogsGuide();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+    keep(ActivationMilestone.FirstLogsReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      screen.getByTestId("resource-connection-data-arrived"),
+    ).toBeInTheDocument();
+
+    arrive({
+      modelType: Service,
+      id: 31,
+      name: "checkout-api",
+      nameField: "name",
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(
+      within(screen.getByTestId("resource-connection-connected")).getByRole(
+        "link",
+        { name: "View logs" },
+      ),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/service/${idOf(31)}/logs`,
+    );
+  });
+
+  test("once the mark is in, it is asked for no more; the services are, until one connects", async () => {
+    await openLogsGuide();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+    keep(ActivationMilestone.FirstLogsReceived);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    const marksThen: number = markChecks().length;
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(markChecks()).toHaveLength(marksThen);
+  });
+
+  test("a guide that names no first data reads no mark: a resource's", async () => {
+    await show(
+      <AddResourceGuide onboarding={SERVERLESS_FUNCTION_ONBOARDING} />,
+    );
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 2);
+
+    expect(markChecks()).toHaveLength(0);
+  });
+
+  describe("where only a service finishes it (the telemetry guided setup)", () => {
+    const watch: (onConnected?: () => void) => ReactElement = (
+      onConnected?: () => void,
+    ): ReactElement => {
+      return (
+        <ResourceConnectionWatch
+          modelType={Service}
+          viewPage={PageMap.SERVICE_VIEW}
+          viewText="View service"
+          isServiceRequired={true}
+          firstDataMilestones={[
+            ActivationMilestone.FirstTracesReceived,
+            ActivationMilestone.FirstMetricsReceived,
+            ActivationMilestone.FirstLogsReceived,
+          ]}
+          onConnected={onConnected}
+        />
+      );
+    };
+
+    test("data that names no service says so, and how to name one, and the step waits on", async () => {
+      let connections: number = 0;
+      await show(
+        watch(() => {
+          connections++;
+        }),
+      );
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      keep(ActivationMilestone.FirstMetricsReceived);
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      const waiting: HTMLElement = screen.getByTestId(
+        "resource-connection-waiting",
+      );
+      const note: HTMLElement = within(waiting).getByTestId(
+        "resource-connection-names-no-service",
+      );
+
+      expect(note).toHaveTextContent(
+        "Data arrived, but it names no service. Set service.name in your app to finish this step.",
+      );
+      // The attribute is code, as it is typed.
+      expect(within(note).getByText("service.name").tagName).toBe("CODE");
+      expect(
+        screen.queryByTestId("resource-connection-data-arrived"),
+      ).toBeNull();
+      expect(connections).toBe(0);
+
+      // The app is given a service.name: its service registers.
+      arrive({
+        modelType: Service,
+        id: 40,
+        name: "checkout-api",
+        nameField: "name",
+      });
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-connected"),
+      ).toHaveTextContent("checkout-api is connected.");
+      expect(connections).toBe(1);
+    });
+
+    test("data that names a service connects it, with nothing said of no service", async () => {
+      await show(watch());
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      arrive({
+        modelType: Service,
+        id: 41,
+        name: "checkout-api",
+        nameField: "name",
+      });
+      keep(ActivationMilestone.FirstTracesReceived);
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-connected"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("resource-connection-names-no-service"),
+      ).toBeNull();
+    });
+
+    test("a read of the marks that fails says nothing, and the services are still checked", async () => {
+      jest.spyOn(ModelAPI, "getList").mockImplementation(((data: {
+        modelType: { new (): BaseModel };
+        query?: Record<string, unknown>;
+        limit?: number;
+      }): Promise<ListResult<BaseModel>> => {
+        if (data.modelType === ProjectMilestone) {
+          return Promise.reject(new Error("The API is down."));
+        }
+
+        const found: Array<BaseModel> = rowsOf(data.modelType)
+          .filter((row: Row): boolean => {
+            return matches(row, data.query || {});
+          })
+          .map((row: Row): BaseModel => {
+            return Object.assign(new data.modelType(), row);
+          });
+
+        return Promise.resolve({
+          data: found,
+          count: found.length,
+          skip: 0,
+          limit: data.limit || 10,
+        } as ListResult<BaseModel>);
+      }) as never);
+
+      await show(watch());
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+      keep(ActivationMilestone.FirstLogsReceived);
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.queryByTestId("resource-connection-names-no-service"),
+      ).toBeNull();
+
+      arrive({
+        modelType: Service,
+        id: 42,
+        name: "checkout-api",
+        nameField: "name",
+      });
+      await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+      expect(
+        screen.getByTestId("resource-connection-connected"),
+      ).toBeInTheDocument();
+    });
   });
 });
 

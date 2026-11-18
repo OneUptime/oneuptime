@@ -299,6 +299,29 @@ export const RESOURCE_CONNECTION_DATA_ARRIVED: string = translationKey(
 );
 
 /*
+ * The project's first data of a telemetry guide's signal arrived, and no
+ * service registered (#7888): its first logs for the logs guide, whichever
+ * key sent them - a key that already sends traces too - and whether or not
+ * they name a service. Ingest keeps the mark once the data is stored, so it
+ * is there to view.
+ */
+export const RESOURCE_CONNECTION_FIRST_DATA_ARRIVED: string = translationKey(
+  "The first data arrived.",
+);
+
+/*
+ * A guide that only a service finishes (the telemetry guided setup alerts
+ * on that service) saw data arrive that names none (#7888): it says how to
+ * finish, and keeps waiting. {{attribute}} is service.name, drawn as code.
+ */
+export const RESOURCE_CONNECTION_DATA_NAMES_NO_SERVICE: string = translationKey(
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.",
+);
+
+// The resource attribute that names a telemetry service.
+export const SERVICE_NAME_ATTRIBUTE: string = "service.name";
+
+/*
  * At the top of the guide that opens once a form has added a resource
  * (ResourceAddedModal): the form did its part, and the steps do the rest.
  */

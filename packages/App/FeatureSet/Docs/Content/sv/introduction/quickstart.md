@@ -74,7 +74,7 @@ Installationen för webbplatsen har redan skapat **Standardjourpolicy**, som lar
 :::steps
 ### Öppna jourinstallationen
 
-Klicka på **Bli larmad via SMS eller telefonsamtal** i sammanfattningen i installationen för webbplatsen: länken öppnar den guidade installationen **Larma rätt person när något går sönder**. Vill du öppna den senare trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer den. Så länge checklistan inte har bockat av **Konfigurera en jourpolicy** öppnar det steget samma guidade installation.
+Klicka på **Bli larmad via SMS eller telefonsamtal** i sammanfattningen i installationen för webbplatsen: länken öppnar den guidade installationen **Larma rätt person när något går sönder**. Vill du öppna den senare trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer den. Så länge checklistan inte har bockat av **Konfigurera en jourpolicy** öppnar det steget samma guidade installation. När den har det, och så länge bara e-post kan larma dig, behåller Hem **Bli larmad via SMS eller telefonsamtal** under det.
 
 ### Välj hur du nås
 

@@ -7,9 +7,19 @@ import ProjectGoal, {
   toGoalsEventValue,
 } from "../../../Types/WelcomeChecklist/ProjectGoal";
 import {
+  WELCOME_GAP_INVITATION_NOT_ACCEPTED,
   WelcomeAudience,
   WelcomeStep,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  SETUP_HEALTH_WORDS,
+  SetupHealthCheck,
+  SetupHealthFinding,
+  SetupHealthFix,
+  SetupHealthLevel,
+  SetupHealthRecordKind,
+  makeSetupHealthFinding,
+} from "../../../Types/SetupHealth/SetupHealth";
 import {
   WELCOME_CHECKLIST_BROWSER_STATE_ROUTE,
   WELCOME_CHECKLIST_GOALS_ROUTE,
@@ -19,6 +29,7 @@ import {
   WelcomeChecklistAnswer,
   getEmptyWelcomeChecklistAnswer,
   parseWelcomeChecklistAnswer,
+  parseWelcomeStepGap,
   toWelcomeChecklistAnswerJSON,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 import {
@@ -388,6 +399,21 @@ describe("the checklist's state", () => {
 });
 
 describe("the answer Home reads", () => {
+  // A status page that shows no monitor (#6938), as Setup health finds it.
+  const EMPTY_PAGE: SetupHealthFinding = makeSetupHealthFinding({
+    check: SetupHealthCheck.StatusPageShowsNoMonitor,
+    level: SetupHealthLevel.WorthFixing,
+    record: {
+      kind: SetupHealthRecordKind.StatusPage,
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "Acme status",
+    },
+    fix: SetupHealthFix.StatusPageResources,
+    fixRecordId: "33333333-3333-4333-8333-333333333333",
+    words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+    values: { statusPage: "Acme status" },
+  });
+
   const ANSWER: WelcomeChecklistAnswer = {
     audience: WelcomeAudience.SetUp,
     goals: [ProjectGoal.Uptime, ProjectGoal.OnCall],
@@ -403,22 +429,37 @@ describe("the answer Home reads", () => {
         isDone: true,
         needsPlan: null,
         isNext: false,
+        gap: null,
       },
       {
         step: WelcomeStep.OnCall,
         isDone: false,
         needsPlan: null,
         isNext: true,
+        gap: null,
+      },
+      {
+        step: WelcomeStep.StatusPage,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+        gap: {
+          check: SetupHealthCheck.StatusPageShowsNoMonitor,
+          finding: EMPTY_PAGE,
+        },
       },
       {
         step: WelcomeStep.Team,
         isDone: false,
         needsPlan: PlanType.Growth,
         isNext: false,
+        gap: null,
       },
     ],
     doneCount: 1,
-    totalCount: 2,
+    totalCount: 3,
+    moreSteps: [],
+    canBePagedByPhoneOrApp: false,
   };
 
   test("goes over the wire and back unchanged", () => {
@@ -459,12 +500,14 @@ describe("the answer Home reads", () => {
         isDone: false,
         needsPlan: null,
         isNext: true,
+        gap: null,
       },
       {
         step: WelcomeStep.OnCall,
         isDone: false,
         needsPlan: null,
         isNext: false,
+        gap: null,
       },
     ]);
     expect(parsed?.doneCount).toBe(0);
@@ -515,8 +558,171 @@ describe("the answer Home reads", () => {
     const empty: WelcomeChecklistAnswer = getEmptyWelcomeChecklistAnswer();
 
     expect(empty.steps).toEqual([]);
+    expect(empty.moreSteps).toEqual([]);
+    expect(empty.canBePagedByPhoneOrApp).toBeNull();
     expect(empty.shouldAskForGoals).toBe(false);
     expect(empty.audience).toBe(WelcomeAudience.InvitedMember);
+  });
+
+  /*
+   * What else to set up once the checklist is finished (#7986): offered,
+   * so never next and never done, each step once.
+   */
+  test("what else to set up goes over the wire and back, offered and never next", () => {
+    const finished: WelcomeChecklistAnswer = {
+      ...ANSWER,
+      isFinished: true,
+      steps: [],
+      doneCount: 0,
+      totalCount: 0,
+      moreSteps: [
+        {
+          step: WelcomeStep.StatusPage,
+          isDone: false,
+          needsPlan: null,
+          isNext: false,
+          gap: {
+            check: SetupHealthCheck.StatusPageShowsNoMonitor,
+            finding: EMPTY_PAGE,
+          },
+        },
+        {
+          step: WelcomeStep.Team,
+          isDone: false,
+          needsPlan: null,
+          isNext: false,
+          gap: { check: WELCOME_GAP_INVITATION_NOT_ACCEPTED, finding: null },
+        },
+      ],
+      canBePagedByPhoneOrApp: false,
+    };
+
+    expect(
+      parseWelcomeChecklistAnswer(
+        JSON.parse(JSON.stringify(toWelcomeChecklistAnswerJSON(finished))),
+      ),
+    ).toEqual(finished);
+
+    const parsed: WelcomeChecklistAnswer | null = parseWelcomeChecklistAnswer({
+      audience: "set_up",
+      isFinished: true,
+      moreSteps: [
+        { step: "status_page", isDone: false, isNext: true },
+        { step: "status_page", isDone: false },
+        { step: "team", isDone: true },
+        { step: "teleport", isDone: false },
+      ],
+    });
+
+    expect(parsed?.moreSteps).toEqual([
+      {
+        step: WelcomeStep.StatusPage,
+        isDone: false,
+        needsPlan: null,
+        isNext: false,
+        gap: null,
+      },
+    ]);
+    expect(
+      parseWelcomeChecklistAnswer({ audience: "set_up" })?.moreSteps,
+    ).toEqual([]);
+  });
+
+  // Whether a phone or the app pages the person (#9442): said, or unknown.
+  test("reads whether a phone or the app pages the person only when it says so", () => {
+    for (const [value, expected] of [
+      [true, true],
+      [false, false],
+      ["no", null],
+      [undefined, null],
+      [null, null],
+    ] as Array<[unknown, boolean | null]>) {
+      expect(
+        parseWelcomeChecklistAnswer({
+          audience: "set_up",
+          canBePagedByPhoneOrApp: value,
+        })?.canBePagedByPhoneOrApp,
+      ).toBe(expected);
+    }
+  });
+
+  /*
+   * Why a step is not done although its record exists (#6938): a gap Home
+   * can draw, or nothing - never half of one.
+   */
+  test("a step's gap is the checklist's own, or a Setup health finding Home knows", () => {
+    expect(
+      parseWelcomeStepGap({ check: WELCOME_GAP_INVITATION_NOT_ACCEPTED }),
+    ).toEqual({ check: WELCOME_GAP_INVITATION_NOT_ACCEPTED, finding: null });
+
+    expect(
+      parseWelcomeStepGap(
+        JSON.parse(
+          JSON.stringify({
+            check: SetupHealthCheck.StatusPageShowsNoMonitor,
+            finding: EMPTY_PAGE,
+          }),
+        ),
+      ),
+    ).toEqual({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      finding: EMPTY_PAGE,
+    });
+  });
+
+  test.each([
+    ["nothing", null],
+    ["a list", []],
+    ["a check with no finding", { check: "policy_not_run" }],
+    [
+      "a check a newer server knows",
+      { check: "nonsense", finding: { check: "nonsense" } },
+    ],
+    [
+      "a finding whose check is not the gap's",
+      { check: "policy_not_run", finding: "EMPTY_PAGE" },
+    ],
+    [
+      "a finding with a fix Home cannot open",
+      { check: "status_page_shows_no_monitor", finding: "UNKNOWN_FIX" },
+    ],
+    [
+      "a finding with no words",
+      { check: "status_page_shows_no_monitor", finding: "NO_WORDS" },
+    ],
+  ])("is no gap: %s", (_name: string, value: unknown) => {
+    const findings: Record<string, unknown> = {
+      EMPTY_PAGE: EMPTY_PAGE,
+      UNKNOWN_FIX: { ...EMPTY_PAGE, fix: "OpenTheMoon" },
+      NO_WORDS: { ...EMPTY_PAGE, words: "" },
+    };
+    const gap: unknown =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? {
+            ...(value as Record<string, unknown>),
+            finding:
+              typeof (value as Record<string, unknown>)["finding"] === "string"
+                ? findings[(value as Record<string, string>)["finding"]!]
+                : (value as Record<string, unknown>)["finding"],
+          }
+        : value;
+
+    expect(parseWelcomeStepGap(gap)).toBeNull();
+  });
+
+  test("a step that is done carries no gap, whatever the body says", () => {
+    const parsed: WelcomeChecklistAnswer | null = parseWelcomeChecklistAnswer({
+      audience: "set_up",
+      steps: [
+        {
+          step: "status_page",
+          isDone: true,
+          gap: { check: WELCOME_GAP_INVITATION_NOT_ACCEPTED },
+        },
+      ],
+    });
+
+    expect(parsed?.steps[0]?.gap).toBeNull();
   });
 
   test("its routes are under /welcome-checklist", () => {

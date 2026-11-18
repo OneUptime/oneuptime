@@ -748,6 +748,7 @@ describe("from a new project's Welcome checklist", () => {
           isDone: false,
           needsPlan: null,
           isNext: true,
+          gap: null,
         },
       ],
       doneCount: 0,

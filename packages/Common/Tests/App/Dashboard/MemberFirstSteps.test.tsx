@@ -327,8 +327,20 @@ function memberAnswer(
 
 function ownerAnswer(): WelcomeChecklistAnswer {
   const steps: Array<WelcomeChecklistStepState> = [
-    { step: WelcomeStep.Monitor, isDone: false, needsPlan: null, isNext: true },
-    { step: WelcomeStep.OnCall, isDone: false, needsPlan: null, isNext: false },
+    {
+      step: WelcomeStep.Monitor,
+      isDone: false,
+      needsPlan: null,
+      isNext: true,
+      gap: null,
+    },
+    {
+      step: WelcomeStep.OnCall,
+      isDone: false,
+      needsPlan: null,
+      isNext: false,
+      gap: null,
+    },
   ];
 
   return {

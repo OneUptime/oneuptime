@@ -176,6 +176,21 @@ describe("Create monitor from where the data is", () => {
       "offersCreateMonitor={true}",
     );
 
+    /*
+     * A service's Logs and Traces too (#6876): where a setup guide's View
+     * logs and View traces land once the service reports, so being told
+     * about its logs is one click away there. The viewer's own scope - the
+     * service - goes into the link (primaryEntityId), so the new monitor
+     * watches that service.
+     */
+    const serviceLogs: string = readSquashed("Pages/Service/View/Logs.tsx");
+    expect(serviceLogs).toContain("offersCreateMonitor={true}");
+    expect(serviceLogs).toContain("serviceIds={[modelId]}");
+
+    const serviceTraces: string = readSquashed("Pages/Service/View/Traces.tsx");
+    expect(serviceTraces).toContain("offersCreateMonitor={true}");
+    expect(serviceTraces).toContain("primaryEntityId={modelId}");
+
     const logs: string = readSquashed("Components/Logs/LogsViewer.tsx");
     expect(logs).toContain(
       "onCreateMonitor={ props.offersCreateMonitor && canCreateMonitor ? navigateToCreateMonitor : undefined }",

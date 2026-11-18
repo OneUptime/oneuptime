@@ -13,6 +13,8 @@ import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/Telemetr
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import LogService from "Common/Server/Services/LogService";
+import TelemetryMilestones from "Common/Server/Utils/Activation/TelemetryMilestones";
+import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -87,6 +89,8 @@ export default class SnmpTrapLogWriter {
 
       if (dbLogs.length > 0) {
         await LogService.insertJsonRows(dbLogs);
+        // The project's first logs (#6897), as for a probe's syslog.
+        TelemetryMilestones.markInserted(AnalyticsTableName.Log, dbLogs);
       }
     } catch (err) {
       logger.error("SNMP trap log writer: error persisting trap:");
@@ -117,6 +121,7 @@ export default class SnmpTrapLogWriter {
 
       if (row) {
         await LogService.insertJsonRows([row]);
+        TelemetryMilestones.markInserted(AnalyticsTableName.Log, [row]);
       }
     } catch (err) {
       logger.error("SNMP trap log writer: error persisting unmatched trap:");

@@ -11,6 +11,10 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import LogService from "Common/Server/Services/LogService";
 import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
+import ProjectMilestoneService, {
+  ReachMilestoneData,
+} from "Common/Server/Services/ProjectMilestoneService";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
@@ -334,5 +338,71 @@ describe("a trap from an address that is no device", () => {
     expect(attributes["event.device"]).toBe("10.0.0.2");
     expect(Object.keys(attributes)).not.toContain("networkDevice.id");
     expect(findInterface).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A device's traps are in the Logs explorer beside its syslog, so its first
+ * trap is the project's first logs (#6897): kept once ClickHouse took the
+ * row, never for an insert that failed.
+ */
+describe("the project's first logs", () => {
+  let reached: Array<ReachMilestoneData> = [];
+
+  beforeEach(() => {
+    reached = [];
+    jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation((data: ReachMilestoneData): void => {
+        reached.push(data);
+      });
+  });
+
+  test("a device's first trap keeps them, once stored", async () => {
+    await write(trap(COLD_START));
+
+    expect(insertedRows).toHaveLength(1);
+    expect(reached).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        milestone: ActivationMilestone.FirstLogsReceived,
+      },
+    ]);
+  });
+
+  test("so does a trap from an address that is no device yet", async () => {
+    await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
+      snmpTrap: trap(WARM_START),
+      probeId: PROBE,
+      projectId: PROJECT,
+    });
+
+    expect(reached).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        milestone: ActivationMilestone.FirstLogsReceived,
+      },
+    ]);
+  });
+
+  test("an insert that failed keeps nothing, and the trap's failure stays the writer's", async () => {
+    jest
+      .spyOn(LogService, "insertJsonRows")
+      .mockImplementation((async (): Promise<void> => {
+        throw new Error("ClickHouse is down.");
+      }) as never);
+
+    await SnmpTrapLogWriter.writeTrapLogRows({
+      snmpTrap: trap(COLD_START),
+      probeId: PROBE,
+      devices: [switchDevice()],
+    });
+    await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
+      snmpTrap: trap(COLD_START),
+      probeId: PROBE,
+      projectId: PROJECT,
+    });
+
+    expect(reached).toEqual([]);
   });
 });

@@ -511,9 +511,10 @@ journey(
  * metrics and traces, then get alerted", from where the manual journey goes
  * - Logs, from the products menu - whose first-run explanation offers it
  * before the setup guide's dialog (#7142). The guide's ingestion key; the
- * first data arrives (the person's app sends it as the key is made) and the
- * setup goes on by itself to the service that reported; the three
- * recommended monitors, ticked, made in one click. Ends on the summary.
+ * first data arrives (the person's app sends its traces, metrics and logs
+ * as the key is made) and the setup goes on by itself to the service that
+ * reported; the four monitors recommended for that data (#7146), ticked,
+ * made in one click. Ends on the summary.
  */
 journey(
   "first-telemetry-guided",
@@ -527,8 +528,8 @@ journey(
     await person.press("Create Ingestion Key");
     await person.submit("Create Ingestion Key");
     // The step that waits checks every ten seconds, then step 2 opens.
-    await person.waitUntilShown("Create 3 monitors", 25);
-    await person.press("Create 3 monitors");
+    await person.waitUntilShown("Create 4 monitors", 25);
+    await person.press("Create 4 monitors");
     await expect(page.getByTestId("guided-setup-summary")).toContainText(
       "checkout-api",
     );
@@ -536,7 +537,15 @@ journey(
   (log: FixtureLog) => {
     expect(writesTo(log, "TelemetryIngestionKey")).toHaveLength(1);
     const monitors: Array<FixtureWrite> = writesTo(log, "Monitor");
-    expect(monitors).toHaveLength(3);
+    // Traces, metrics and logs arrived: one monitor for each, and exceptions.
+    expect(monitors).toHaveLength(4);
+    expect(
+      monitors
+        .map((monitor: FixtureWrite): unknown => {
+          return monitor.data["monitorType"];
+        })
+        .sort(),
+    ).toEqual(["Exceptions", "Logs", "Metrics", "Traces"]);
     // Each watches the service that reported.
     for (const monitor of monitors) {
       expect(JSON.stringify(monitor.data["monitorSteps"])).toContain(SERVICE);
