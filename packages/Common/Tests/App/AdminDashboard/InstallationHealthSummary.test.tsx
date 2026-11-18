@@ -42,6 +42,27 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * A self-hosted server, whatever config.env says: the suites run with
+ * BILLING_ENABLED=true, OneUptime Cloud, where a failure names no command
+ * to run - only a self-hosted server's admin runs npm run doctor.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 import InstallationHealthSummary, {
   INSTALLATION_HEALTH_API_ROUTE,
   INSTALLATION_HEALTH_COPY,
