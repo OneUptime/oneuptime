@@ -159,7 +159,7 @@ an invitation by address makes the person it names (who has not accepted), and t
 server has a push key, so a browser can be offered push.
 
 Other suites on this fixture (`OnCallGuidedSetup`, `WebsiteDownGuidedSetup`,
-`StatusPageAndTelemetryGuidedSetups`) run it on
+`StatusPageTelemetryGuidedSetups`) run it on
 a port of their own and build it into a folder of their own (`JOURNEYS_FIXTURE_PORT`,
 `JOURNEYS_FIXTURE_OUTPUT`).
 

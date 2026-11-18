@@ -338,7 +338,9 @@ jobs:
           # shares, and the website setup's (#7056) in group 5. Four short
           # suites moved to make room (Profiles to 1, Suite Helpers to 5,
           # Exceptions AI to 10, Give Feedback to 11): each group 21.3 to
-          # 21.9 minutes.
+          # 21.9 minutes. Group 13 came on 2026-11-18 for the status page
+          # and telemetry setups' suite (#7143): no group had its minutes
+          # left on a lane.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -504,6 +506,9 @@ jobs:
               test-sign-in-options-ui
               test-side-by-side-pages-ui
               test-server-setup-ui
+          - group: 13
+            suites: >-
+              test-status-page-telemetry-guided-setups-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -747,6 +752,8 @@ jobs:
             output/playwright/on-call-guided-setup-ui/test-results
             output/playwright/website-down-guided-setup-ui/*.png
             output/playwright/website-down-guided-setup-ui/test-results
+            output/playwright/status-page-telemetry-guided-setups-ui/*.png
+            output/playwright/status-page-telemetry-guided-setups-ui/test-results
             output/playwright/journeys-ui/*.md
             output/playwright/journeys-ui/*.json
             output/playwright/journeys-ui/test-results
