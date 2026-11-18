@@ -7,7 +7,6 @@ import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from ".
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
-import ContiguousOrder from "../../../Server/Utils/Database/ContiguousOrder";
 import logger from "../../../Server/Utils/Logger";
 import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceKind,
@@ -58,8 +57,8 @@ import { DataSource, QueryRunner } from "typeorm";
  *     takes its runs with it;
  *   - a run paging on a deleted level, with the services' own SQL on that
  *     structure: its place written as the rule goes, its claim to move on
- *     given back, its hand-over, and its move on - which pages the level
- *     that moved up into the deleted one's place;
+ *     given back, its hand-over, and its move on - which pages the first
+ *     level after the deleted one's place;
  *   - OnlineDdl.replaceForeignKey swaps a CASCADE key for SET NULL on a
  *     real table, rows and all, and does nothing the second time; the three
  *     migrations, run again on the migrated schema, change nothing.
@@ -1170,7 +1169,7 @@ describePostgres(
         ).toBe(OnCallDutyPolicyStatus.Executing);
       });
 
-      test("its wait over, it moves on to the level that moved up into the deleted one's place", async () => {
+      test("its wait over, it moves on to the first level after the deleted one's place", async () => {
         const world: World = await seed();
         const waitStartedAt: Date = (await rowOf(
           "OnCallDutyPolicyExecutionLog",
@@ -1179,28 +1178,20 @@ describePostgres(
 
         /*
          * Level 2 deleted as its service deletes it: the place of the runs
-         * on it written, the rule deleted (the keys clear it), and the
-         * levels after it moved up a place.
+         * on it written, and the rule deleted (the keys clear it). The
+         * levels after it keep their numbers: a gap at 2 (issue #9573).
          */
         await OnCallDutyPolicyExecutionLogService.recordPlaceOfRunsOnRule({
           ruleId: new ObjectID(world.levelTwo),
           order: 2,
         });
         await deleteRow("OnCallDutyPolicyEscalationRule", world.levelTwo);
-        await ContiguousOrder.afterDelete({
-          service: OnCallDutyPolicyEscalationRuleService,
-          list: {
-            onCallDutyPolicyId: new ObjectID(world.policy),
-            projectId: projectId,
-          },
-          order: 2,
-        });
 
         expect(
           (await rowOf("OnCallDutyPolicyEscalationRule", world.levelThree))![
             "order"
           ],
-        ).toBe(2);
+        ).toBe(3);
 
         const started: Array<string> = [];
 
@@ -1251,7 +1242,7 @@ describePostgres(
 
         expect(result.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
         expect(started).toEqual([world.levelThree]);
-        expect(result.rule?.order).toBe(2);
+        expect(result.rule?.order).toBe(3);
 
         // The move was claimed on the run itself: only one worker pages.
         const claimed: Dictionary<unknown> | null = await rowOf(
@@ -1273,15 +1264,8 @@ describePostgres(
           `UPDATE "${schema}"."OnCallDutyPolicyExecutionLog" SET "lastExecutedEscalationRuleId" = $1, "lastExecutedEscalationRuleOrder" = 1 WHERE "_id" = $2`,
           [world.levelOne, world.pagingRun],
         );
+        // The levels after it keep their numbers: a gap at 2 (issue #9573).
         await deleteRow("OnCallDutyPolicyEscalationRule", world.levelTwo);
-        await ContiguousOrder.afterDelete({
-          service: OnCallDutyPolicyEscalationRuleService,
-          list: {
-            onCallDutyPolicyId: new ObjectID(world.policy),
-            projectId: projectId,
-          },
-          order: 2,
-        });
 
         const started: Array<string> = [];
 

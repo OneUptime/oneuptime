@@ -41,9 +41,9 @@ import { Mock } from "jest-mock";
  *
  * The database keeps every run, line and page that named a deleted rule
  * and clears the rule from them (ON DELETE SET NULL). A run still paging on
- * the level goes on from the place it recorded - to the level that moves up
- * into it - once its wait is over (OnCallRunLevel). These pin what the
- * service does around that:
+ * the level goes on from the place it recorded - to the first level at that
+ * place or after it - once its wait is over (OnCallRunLevel). These pin what
+ * the service does around that:
  *
  *   - the delete writes the rule's place now on the runs still on it,
  *     before the rule is gone - in case a level before it changed while
@@ -171,9 +171,14 @@ describe("deleting an escalation rule", () => {
     });
     expect(wasThereAsItsPlaceWasWritten).toBe(true);
 
-    // The rule went, and the levels after it moved up (ContiguousOrder).
+    /*
+     * The rule went, and the levels after it keep their numbers
+     * (ContiguousOrder, #9573): the runs go on to the first level after
+     * the place they recorded, gap or none (OnCallRunLevel).
+     */
     expect(table.deletes).toEqual([LEVEL_2]);
-    expect(table.get(LEVEL_3)?.["order"]).toBe(2);
+    expect(table.get(LEVEL_3)?.["order"]).toBe(3);
+    expect(table.updates).toEqual([]);
   });
 
   test("a place that cannot be written never stops the delete: the runs go on from the place they recorded", async () => {
