@@ -747,6 +747,9 @@ import DataSecurityCustomDataTypeService, {
 import DataSecurityCheckSettingService, {
   Service as DataSecurityCheckSettingServiceType,
 } from "Common/Server/Services/DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService, {
+  Service as DataSecurityComplianceSettingServiceType,
+} from "Common/Server/Services/DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService, {
   Service as DataSecurityResidencyRuleServiceType,
 } from "Common/Server/Services/DataSecurityResidencyRuleService";
@@ -1939,6 +1942,7 @@ import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssu
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
@@ -4831,6 +4835,17 @@ const BaseAPIFeatureSet: FeatureSet = {
         DataSecurityCheckSetting,
         DataSecurityCheckSettingServiceType
       >(DataSecurityCheckSetting, DataSecurityCheckSettingService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingServiceType
+      >(
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingService,
+      ).getRouter(),
     );
 
     app.use(

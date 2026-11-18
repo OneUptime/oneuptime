@@ -22,15 +22,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import SecuritySeverity from "../../Types/SecuritySeverity";
-import ComplianceFramework, {
-  ALL_COMPLIANCE_FRAMEWORKS,
-  COMPLIANCE_FRAMEWORK_INFO,
-} from "../../Types/DataSecurity/ComplianceFramework";
-import {
-  ComplianceIssueInput,
-  ComplianceStoreInput,
-  scoreComplianceFramework,
-} from "../../Types/DataSecurity/ComplianceRequirementCatalog";
+import ComplianceFramework from "../../Types/DataSecurity/ComplianceFramework";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
   isPersonalDataCategory,
@@ -48,6 +40,8 @@ import {
   DataSecurityOverviewIssue,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
+  DataSecurityResourceComplianceResponse,
+  DataSecurityResourceScope,
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
 import { getBuiltInDataType } from "../../Types/DataSecurity/DataTypeCatalog";
 import {
@@ -128,6 +122,12 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ResourceDataSecurity from "../Utils/DataSecurity/ResourceDataSecurity";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import {
+  DataStoreResourceKind,
+  isDataStoreResourceKind,
+} from "../../Types/DataSecurity/DataStoreResource";
 import ProductKey from "../../Types/Product/ProductKey";
 
 /*
@@ -138,6 +138,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *
  *  - the Overview's figures, the compliance scores and the GDPR record of
  *    processing, for anyone who may read data stores;
+ *  - a resource's own stores and compliance - a Kubernetes cluster's, a
+ *    container host's, a database's, a cloud resource's or a service's
+ *    (ResourceDataSecurity) - for anyone who may read data stores and
+ *    that resource;
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
  *    rules - the rule is theirs, made under their own permissions;
@@ -244,6 +248,64 @@ export default class DataSecurityAPI extends BaseAPI<
         return (await DataSecurityAPI.getCompliance(
           projectId,
         )) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A resource's Data Security and Compliance pages (#9547, #9555): the
+     * stores its pages show, and how the ones whose compliance it owns
+     * stand. The resource is read with the caller's own props: one they
+     * may not read is not found.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.resourceScope,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const resource: { kind: DataStoreResourceKind; id: ObjectID } =
+          DataSecurityAPI.readResourceRequest(req);
+        const scope: DataSecurityResourceScope | null =
+          await ResourceDataSecurity.readScope({
+            projectId,
+            kind: resource.kind,
+            id: resource.id,
+            props,
+          });
+
+        if (!scope) {
+          throw new NotFoundException("This resource could not be found.");
+        }
+
+        return scope as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const resource: { kind: DataStoreResourceKind; id: ObjectID } =
+          DataSecurityAPI.readResourceRequest(req);
+        const compliance: DataSecurityResourceComplianceResponse | null =
+          await ResourceDataSecurity.readCompliance({
+            projectId,
+            kind: resource.kind,
+            id: resource.id,
+            props,
+          });
+
+        if (!compliance) {
+          throw new NotFoundException("This resource could not be found.");
+        }
+
+        return compliance as unknown as JSONObject;
       },
     );
 
@@ -650,6 +712,28 @@ export default class DataSecurityAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  // The resource a resource route is asked about: { kind, id } in its body.
+  private static readResourceRequest(req: ExpressRequest): {
+    kind: DataStoreResourceKind;
+    id: ObjectID;
+  } {
+    const body: JSONObject = (req.body || {}) as JSONObject;
+    const kind: unknown = body["kind"];
+    const id: string = typeof body["id"] === "string" ? body["id"].trim() : "";
+
+    if (!isDataStoreResourceKind(kind)) {
+      throw new BadDataException(
+        "Name the kind of resource: a Kubernetes cluster, a Docker or Podman host, a database, a cloud resource or a service.",
+      );
+    }
+
+    if (!ObjectID.isValidUUID(id)) {
+      throw new BadDataException("A valid resource ID is required.");
+    }
+
+    return { kind, id: new ObjectID(id) };
   }
 
   private static readId(req: ExpressRequest): ObjectID {
@@ -1237,61 +1321,16 @@ export default class DataSecurityAPI extends BaseAPI<
     };
   }
 
+  /*
+   * Every framework, scored over the project's stores and their open
+   * issues, with what each store's resource turned off
+   * (ResourceDataSecurity, Types/DataSecurity/ComplianceScope).
+   */
   public static async getCompliance(
     projectId: ObjectID,
   ): Promise<DataSecurityComplianceResponse> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        dataTypeIds: true,
-        subjectCountries: true,
-        configurationReadAt: true,
-        contentScannedAt: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
-    });
-    const issues: Array<DataSecurityIssue> =
-      await DataSecurityIssueService.findBy({
-        query: { projectId, status: DataSecurityIssueStatus.Open },
-        select: { dataStoreId: true, checkId: true },
-        skip: 0,
-        limit: 20000,
-        props: { isRoot: true },
-      });
-    const storeInputs: Array<ComplianceStoreInput> = stores.map(
-      (store: DataStore): ComplianceStoreInput => {
-        return {
-          id: store.id!.toString(),
-          dataTypeIds: store.dataTypeIds || [],
-          subjectCountries: store.subjectCountries || [],
-          isEvaluated: Boolean(
-            store.configurationReadAt || store.contentScannedAt,
-          ),
-        };
-      },
-    );
-    const issueInputs: Array<ComplianceIssueInput> = issues.map(
-      (issue: DataSecurityIssue): ComplianceIssueInput => {
-        return {
-          storeId: issue.dataStoreId?.toString() || "",
-          checkId: issue.checkId || "",
-        };
-      },
-    );
-
     return {
-      frameworks: ALL_COMPLIANCE_FRAMEWORKS.map(
-        (framework: ComplianceFramework) => {
-          return {
-            ...scoreComplianceFramework(framework, storeInputs, issueInputs),
-            fullName: COMPLIANCE_FRAMEWORK_INFO[framework].fullName,
-            scope: COMPLIANCE_FRAMEWORK_INFO[framework].scope,
-          };
-        },
-      ),
+      frameworks: await ResourceDataSecurity.readProjectCompliance(projectId),
     };
   }
 
