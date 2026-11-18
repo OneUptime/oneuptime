@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A "TEST MONITOR" RUN IS WORK FOR A PROBE, AND A PROJECT ASKS FOR A
@@ -107,7 +108,7 @@ type CountByArgs = {
 };
 
 let recentTests: number = 0;
-let countBy: jest.SpiedFunction<typeof MonitorTestService.countBy>;
+let countBy: SpyInstance<typeof MonitorTestService.countBy>;
 // What ran, in order: the base hook's reference check and the count.
 let ran: Array<string> = [];
 

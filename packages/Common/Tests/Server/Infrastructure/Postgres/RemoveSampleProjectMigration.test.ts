@@ -16,6 +16,7 @@ import {
   QueryRunner,
 } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The sample project is removed (it was added by AddSampleProject and
@@ -280,7 +281,7 @@ describe("RemoveSampleProject1809180800000", () => {
   });
 
   test("says how many it is removing, since a large install takes minutes", async () => {
-    const info: jest.SpiedFunction<typeof logger.info> = jest
+    const info: SpyInstance<typeof logger.info> = jest
       .spyOn(logger, "info")
       .mockImplementation((() => {
         return undefined;

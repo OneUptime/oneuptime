@@ -547,7 +547,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -602,7 +605,10 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })

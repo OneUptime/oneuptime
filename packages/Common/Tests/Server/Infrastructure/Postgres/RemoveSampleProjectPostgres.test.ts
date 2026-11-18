@@ -50,9 +50,10 @@ import { DataSource, QueryRunner } from "typeorm";
  *     SAMPLE_REMOVAL_TEST_DATABASE_PORT=15433 \
  *     npx jest Tests/Server/Infrastructure/Postgres/RemoveSampleProjectPostgres.test.ts
  *
- * Everything is made in a schema of its own, dropped afterwards. The
- * migration's online index drop names the index in "public"; it is the
- * index this migration exists to drop, and IF EXISTS.
+ * Everything is made in a schema of its own, dropped afterwards, so a
+ * migrated database (the Postgres Schema Drift workflow's) is left as it
+ * was: the migrations' statements name their tables unqualified, and
+ * OnlineDdl finds an index or a key by its table through the search path.
  */
 
 // describe.skip's type is the one both branches share.
