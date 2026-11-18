@@ -3135,13 +3135,37 @@ describe("readiness", () => {
     );
   });
 
-  it("does not let ready responders be ticked", () => {
-    expect(READINESS_PAGE).toContain("isItemSelectable={isRemindable}");
+  it("reminds a ready responder only of a phone method the project asks for", () => {
+    /*
+     * A ready responder is reminded only when the project asks people on
+     * call for a phone method and they have none (#7449); anybody may be
+     * ticked by someone who may apply the project's default ladder (#7450).
+     */
+    expect(READINESS_PAGE).toContain("isItemSelectable={isSelectable}");
     expect(READINESS_PAGE).toContain(
-      "return row.status !== READINESS_STATUS_READY;",
+      "row.status !== READINESS_STATUS_READY ||\n    row.readiness.isMissingPhoneMethod === true",
+    );
+    expect(READINESS_PAGE).toContain(
+      "return isDefaultLadderOffered || isRemindable(row);",
+    );
+    expect(READINESS_PAGE).toContain(
+      "await sendSetupReminders(onClickProps.items.filter(isRemindable));",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "Ready responders cannot be ticked: there is nothing to remind them about.",
+      "A ready responder is reminded only when they have **No phone method**: there is nothing else to remind them about.",
+    );
+  });
+
+  it("applies the default ladder from the same list, to the people ticked", () => {
+    expect(READINESS_PAGE).toContain("useApplyDefaultLadderBulkAction");
+    expect(READINESS_PAGE).toContain(
+      "defaultLadder.length > 0 && canApplyDefaultLadder();",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "2. Click **Apply Default Ladder**. The confirmation shows the ladder and names everyone it changes.",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "Applying it takes **Project Owner** or **Project Admin**, or **Edit User Notification Rules** in a custom role.",
     );
   });
 

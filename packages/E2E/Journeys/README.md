@@ -142,16 +142,20 @@ page to be at rest (nothing changed for 700ms) before it acts, so every run read
 same pages.
 
 `?seed=monitor` adds the website monitor, `?seed=phones` turns SMS and calls on with
-money in the balance, `?as=member` signs in as Grace, `?as=admin` signs Ada in as the
-master admin of a self-hosted server with no Twilio, `?billing=on` draws OneUptime
-Cloud and `?theme=dark` the dark theme. A new monitor is checked at once by both probes
+money in the balance, `?seed=teammate-monitor` adds Ada's monitor of
+`https://acme-commerce.example`, `?seed=status-page` a status page showing nothing yet,
+`?as=member` signs in as Grace, `?as=admin` signs Ada in as the master admin of a
+self-hosted server with no Twilio, `?email=off` makes it a server that cannot send email
+yet, `?test=unanswered` leaves a test page paging with nobody acknowledging it,
+`?billing=on` draws OneUptime Cloud and `?theme=dark` the dark theme. A new monitor is checked at once by both probes
 (each answering 200 in 312 ms), and a test page to yourself is acknowledged at once. A
 policy's test page preview lists its first level's people by the methods they verified,
 an invitation by address makes the person it names (who has not accepted), and the
 server has a push key, so a browser can be offered push.
 
-Another suite on this fixture (`OnCallGuidedSetup`) runs it on a port of its own and
-builds it into a folder of its own (`JOURNEYS_FIXTURE_PORT`, `JOURNEYS_FIXTURE_OUTPUT`).
+Other suites on this fixture (`OnCallGuidedSetup`, `WebsiteDownGuidedSetup`) run it on
+a port of their own and build it into a folder of their own (`JOURNEYS_FIXTURE_PORT`,
+`JOURNEYS_FIXTURE_OUTPUT`).
 
 ## Run it
 

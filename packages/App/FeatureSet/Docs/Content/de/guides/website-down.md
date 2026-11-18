@@ -28,13 +28,15 @@ Die Adresse wird von der eigenen Sonde Ihres Servers geprüft, daher muss sie vo
 
 ![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Wissen, wenn meine Website oder API ausfällt“ ist angehakt](screen:home-goal-website)
 
-Die **Startseite** eines neuen Projekts fragt zunächst **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt** an und klicken Sie auf **Weiter**. Klicken Sie dann in der Checkliste **Willkommen bei OneUptime 👋** auf **Ersten Monitor erstellen**. Zeigt die Checkliste diesen Schritt nicht, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `website down` ein und wählen Sie **Wissen, wenn meine Website oder API ausfällt**.
+Die **Startseite** eines neuen Projekts fragt zunächst **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt** an und klicken Sie auf **Weiter**. Klicken Sie dann in der Checkliste **Willkommen bei OneUptime 👋** auf **Ersten Monitor erstellen**. Zeigt die Checkliste diesen Schritt nicht, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `website down` ein und wählen Sie **Wissen, wenn meine Website oder API ausfällt**. **Monitore** bietet sie auch an: **Geführte Einrichtung** in der leeren Liste und unter **So funktioniert es**, und eine Zeile in **Monitor erstellen**, sobald Sie **Website** oder **API** wählen.
 
 ### Die Adresse eingeben
 
 ![Der Schritt „Was sollen wir prüfen?“, „Prüfung starten“ ist markiert](screen:website-down-address)
 
-Geben Sie unter **Was sollen wir prüfen?** die Adresse in **Adresse der Website oder API** ein. Haken Sie für einen API-Endpunkt **Dies ist ein API-Endpunkt** an. Klicken Sie auf **Prüfung starten**: Die Sonden prüfen die Adresse sofort, und ein Satz sagt, was sie gefunden haben. Klicken Sie auf **Weiter**.
+Unter **Was sollen wir prüfen?** sagt der Schritt, von wie vielen Standorten aus die Adresse geprüft wird. Geben Sie sie in **Adresse der Website oder API** ein. Haken Sie für einen API-Endpunkt **Dies ist ein API-Endpunkt** an. Klicken Sie auf **Prüfung starten**: Die Sonden prüfen die Adresse sofort, und ein Satz sagt, was sie gefunden haben. Klicken Sie auf **Weiter**.
+
+Prüft schon der Monitor eines Teammitglieds die Adresse, oder einer, den die API, Terraform oder ein Import erstellt hat, sagt der Schritt das, bevor er etwas erstellt. Klicken Sie auf **Monitor öffnen**, um zu sehen, wen er informiert, oder auf **Eigenen Monitor erstellen**, um mit einem eigenen weiterzumachen. Er nennt nur einen Monitor, den Sie öffnen dürfen.
 
 ### Festlegen, wer informiert wird
 
@@ -42,7 +44,7 @@ Geben Sie unter **Was sollen wir prüfen?** die Adresse in **Adresse der Website
 
 Was Sie unter **Wer soll informiert werden?** sehen, hängt vom Projekt ab:
 
-- Gibt es noch keine Bereitschaftsrichtlinie und keine Bereitschaftsregel, stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Teammitglieder hinzufügen**, um Personen hinzuzufügen, die schon im Projekt sind, und dann auf **Speichern und weiter**. Dabei wird die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert.
+- Gibt es noch keine Bereitschaftsrichtlinie und keine Bereitschaftsregel, stehen Sie bereits in **Wer alarmiert wird**. Klicken Sie auf **Teammitglieder hinzufügen**, um Personen hinzuzufügen, die schon im Projekt sind, und dann auf **Speichern und weiter**. Dabei wird die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung im Projekt alarmiert. Jede Person wird so alarmiert, wie es ihr **Wie ich erreichbar bin** festlegt: Der Link öffnet Ihres in einem neuen Tab.
 - Gibt es schon eine Bereitschaftsrichtlinie oder -regel, entscheiden die eigenen Regeln des Projekts, wer alarmiert wird: Klicken Sie auf **Weiter**.
 - Sind Sie Mitglied, dürfen Sie keine Alarmierung einrichten, und der Schritt sagt Ihnen, dass Sie als Eigentümer des Monitors per E-Mail benachrichtigt werden: Klicken Sie auf **Weiter**.
 
@@ -50,18 +52,23 @@ Was Sie unter **Wer soll informiert werden?** sehen, hängt vom Projekt ab:
 
 ![Der Schritt „Test senden“, „Mir eine Test-Alarmierung senden“ ist markiert](screen:website-down-test)
 
-Klicken Sie unter **Test senden** auf **Mir eine Test-Alarmierung senden**. Wählen Sie einen **Schweregrad** und klicken Sie auf **Test-Alarmierung senden**. Der Test erreicht Sie so, wie eine echte Alarmierung Sie erreichen würde, und in jeder Nachricht steht TEST. Es wird kein Vorfall erstellt.
+Klicken Sie unter **Test senden** auf **Mir eine Test-Alarmierung senden**. Wählen Sie einen **Schweregrad**: Die Zeile darunter sagt, dass der Test Sie so erreicht, wie es Ihr **Wie ich erreichbar bin** für diesen Schweregrad festlegt. Klicken Sie auf **Test-Alarmierung senden**. Der Test erreicht Sie so, wie eine echte Alarmierung Sie erreichen würde, und in jeder Nachricht steht TEST. Es wird kein Vorfall erstellt.
 
 ### Die Test-Alarmierung bestätigen
 
 Öffnen Sie den Link in der E-Mail und bestätigen Sie die Alarmierung dort. Eine verifizierte Telefonnummer funktioniert auch, sobald SMS und Anrufe für das Projekt eingeschaltet sind: Öffnen Sie den Link in der SMS, oder drücken Sie während des Anrufs die 1. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**.
+
+### Ihren Kunden zeigen
+
+Hat das Projekt eine Statusseite und dürfen Sie ihr Monitore hinzufügen, folgt ein weiterer Schritt. Wählen Sie unter **Ihren Kunden zeigen?** die Seite in **Statusseite** und klicken Sie auf **Zur Statusseite hinzufügen**, oder klicken Sie auf **Jetzt nicht**. Ein Projekt ohne Statusseite überspringt ihn: Die Zusammenfassung bietet stattdessen **Auf einer Statusseite anzeigen** an, mit Ihrem Monitor bereits angehakt.
 :::
 
 ## Prüfen, ob es funktioniert hat
 
 ![Die Zusammenfassung aus den Datensätzen: „Geprüft“, „Bei einem Ausfall“, „Wer informiert wird“ und „Getestet“](screen:website-down-summary)
 
-- Die Einrichtung endet mit ihrer Zusammenfassung, aus den gespeicherten Daten gelesen: **Geprüft**, **Bei einem Ausfall**, **Wer informiert wird** und **Getestet**.
+- Die Einrichtung endet mit ihrer Zusammenfassung, aus den gespeicherten Daten gelesen: **Geprüft**, **Bei einem Ausfall**, **Wer informiert wird** und **Getestet**, und **Statusseite**, sobald eine Seite den Monitor zeigt.
+- Unter **Nächste Schritte** öffnet **Per SMS oder Anruf alarmiert werden** die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt**, die Ihr Telefon hinzufügt.
 - Klicken Sie auf **Monitor öffnen** und dann auf der Karte **Wenn das ausfällt** des Monitors auf **Kette anzeigen**: Sie sehen die Kette vom Monitor bis zu den Personen, die er erreicht, und wenn nichts sie unterbrechen würde, steht dort **Nichts unterbricht die Kette.**
 - Auf der **Startseite** markiert die Checkliste **Ersten Monitor erstellen** als erledigt, sobald die erste Prüfung eingeht. War es der letzte Schritt, ist die Checkliste verschwunden.
 

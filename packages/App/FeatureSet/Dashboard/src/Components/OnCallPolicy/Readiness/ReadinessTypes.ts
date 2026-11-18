@@ -385,7 +385,7 @@ const parseUserReadiness: (json: JSONObject) => UserReadinessWire = (
 ): UserReadinessWire => {
   const profilePictureId: string = readIdString(json["userProfilePictureId"]);
 
-  return {
+  const readiness: UserReadinessWire = {
     userId: readIdString(json["userId"]),
     userName: readString(json["userName"]),
     userEmail: readString(json["userEmail"]),
@@ -413,6 +413,16 @@ const parseUserReadiness: (json: JSONObject) => UserReadinessWire = (
     reachedVia: readArray(json["reachedVia"]).filter(isResponderSourceValue),
     teams: parseTeams(json["teams"]),
   };
+
+  /*
+   * The project asks people on call for a phone method and they have none
+   * (#7449): said only when it is so, as the server says it.
+   */
+  if (json["isMissingPhoneMethod"] === true) {
+    readiness.isMissingPhoneMethod = true;
+  }
+
+  return readiness;
 };
 
 export const countByStatus: (

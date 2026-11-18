@@ -2,10 +2,22 @@ import AlertSeverityService from "../../../Server/Services/AlertSeverityService"
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import PagingLadderService, {
   PAGING_LADDER_ADMIN_WRITE_PERMISSIONS,
+  PAGING_LADDER_DEFAULT_FAILED_MESSAGE,
+  PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
   PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE,
   PAGING_LADDER_NOT_ALLOWED_MESSAGE,
+  PAGING_LADDER_NO_DEFAULT_MESSAGE,
   PagingLadderSaveResult,
 } from "../../../Server/Services/PagingLadderService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
+import {
+  PAGING_LADDER_DEFAULT_SKIPPED_MESSAGE,
+  PagingLadderDefaultMemberResult,
+  PagingLadderDefaultOutcome,
+  PagingLadderDefaultStep,
+} from "../../../Types/NotificationRule/PagingLadderDefault";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMattermostService from "../../../Server/Services/UserMattermostService";
@@ -1046,7 +1058,425 @@ describe("the refusals say what to do next", () => {
   test.each([
     PAGING_LADDER_NOT_ALLOWED_MESSAGE,
     PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE,
+    PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+    PAGING_LADDER_NO_DEFAULT_MESSAGE,
+    PAGING_LADDER_DEFAULT_FAILED_MESSAGE,
   ])("%s", (message: string) => {
     expect(message).toMatch(/^[A-Z].*\.$/);
+  });
+});
+
+/*
+ * APPLYING THE PROJECT'S DEFAULT LADDER (#7450): "push and SMS at once,
+ * then a call after five minutes", by channel, applied by an admin to the
+ * members they pick. Ana has every channel; Bob has SMS and email, and
+ * pages by email now; Cy has only email.
+ */
+describe("applying the project's default ladder", () => {
+  const CY: ObjectID = new ObjectID("10000000-0000-4000-8000-0000000000c1");
+  const BOB_EMAIL: string = "30000000-0000-4000-8000-0000000000b3";
+  const CY_EMAIL: string = "30000000-0000-4000-8000-0000000000c2";
+
+  const DEFAULT_LADDER: Array<Record<string, unknown>> = [
+    { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+    { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+    { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+  ];
+
+  let projectSpy: jest.SpyInstance;
+
+  const projectWith: (defaultPagingLadder: unknown) => Project = (
+    defaultPagingLadder: unknown,
+  ): Project => {
+    const project: Project = new Project();
+    project.id = PROJECT;
+    project.defaultPagingLadder = defaultPagingLadder as never;
+    return project;
+  };
+
+  const live: () => Array<PagingLadderCell> = (): Array<PagingLadderCell> => {
+    return cells().filter((cell: PagingLadderCell): boolean => {
+      return !cell.isArchived;
+    });
+  };
+
+  const applyTo: (
+    userIds: Array<ObjectID>,
+    props?: DatabaseCommonInteractionProps,
+  ) => Promise<Array<PagingLadderDefaultMemberResult>> = (
+    userIds: Array<ObjectID>,
+    props?: DatabaseCommonInteractionProps,
+  ): Promise<Array<PagingLadderDefaultMemberResult>> => {
+    return PagingLadderService.applyDefaultLadderToMembers({
+      projectId: PROJECT,
+      userIds: userIds,
+      props: props || bobProps([Permission.ProjectAdmin]),
+    });
+  };
+
+  // What a member's rules page after the writes, read as How to Reach Me reads them.
+  const ladderOf: (userId: ObjectID) => string = (userId: ObjectID): string => {
+    const own: Array<PagingLadderRule> = rulesAfterSave().filter(
+      (row: PagingLadderRule): boolean => {
+        const created: UserNotificationRule | undefined = createdRules().find(
+          (candidate: UserNotificationRule): boolean => {
+            return (
+              candidate.ruleType === row.ruleType &&
+              readPagingId(candidate.userEmailId) ===
+                readPagingId(row.userEmailId) &&
+              readPagingId(candidate.userSmsId) ===
+                readPagingId(row.userSmsId) &&
+              readPagingId(candidate.userCallId) ===
+                readPagingId(row.userCallId) &&
+              readPagingId(candidate.userPushId) ===
+                readPagingId(row.userPushId)
+            );
+          },
+        );
+        const original: UserNotificationRule | undefined = rules.find(
+          (candidate: UserNotificationRule): boolean => {
+            return readPagingId(candidate.id) === readPagingId(row._id);
+          },
+        );
+        const owner: unknown = original
+          ? original.userId
+          : created
+            ? created.userId
+            : undefined;
+
+        return readPagingId(owner) === userId.toString();
+      },
+    );
+
+    const reading: {
+      steps: Array<{ methodId: string }>;
+      isOneLadder: boolean;
+    } = readPagingLadder({ cells: cells(), rules: own });
+
+    expect(reading.isOneLadder).toBe(true);
+
+    return reading.steps
+      .map((step: { methodId: string; notifyAfterMinutes?: number }) => {
+        return `${step.methodId}@${step.notifyAfterMinutes}`;
+      })
+      .join(",");
+  };
+
+  beforeEach(() => {
+    projectSpy = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWith(DEFAULT_LADDER) as never);
+
+    methodRows["email"]!.push(
+      {
+        _id: BOB_EMAIL,
+        userId: BOB.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
+      {
+        _id: CY_EMAIL,
+        userId: CY.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
+    );
+
+    // Bob and Cy page by email at once, in every live card.
+    for (const cell of live()) {
+      rules.push(
+        rule({
+          cell: cell,
+          userId: BOB,
+          column: "userEmailId",
+          methodId: BOB_EMAIL,
+        }),
+        rule({
+          cell: cell,
+          userId: CY,
+          column: "userEmailId",
+          methodId: CY_EMAIL,
+        }),
+      );
+    }
+  });
+
+  test("somebody with every channel gets exactly the default", async () => {
+    const [result] = await applyTo([ANA]);
+
+    expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+    expect(result!.leftOutChannels).toEqual([]);
+    expect(result!.keptChannels).toEqual([]);
+    expect(result!.changedRuleCount).toBeGreaterThan(0);
+    expect(ladderOf(ANA)).toBe(`${ANA_PUSH}@0,${ANA_SMS}@0,${ANA_CALL}@5`);
+  });
+
+  test("somebody with no verified push or call keeps their own email in their place", async () => {
+    const [result] = await applyTo([BOB]);
+
+    expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+    expect(result!.leftOutChannels).toEqual([
+      OnCallPageChannel.Push,
+      OnCallPageChannel.Call,
+    ]);
+    expect(result!.keptChannels).toEqual([OnCallPageChannel.Email]);
+    expect(
+      result!.appliedSteps.map((step: PagingLadderDefaultStep) => {
+        return step.channel;
+      }),
+    ).toEqual([OnCallPageChannel.SMS]);
+    expect(result!.message).toBe(
+      "Applied the default ladder to their rules for every severity. Left out push notification and phone call: they have not verified them yet. Kept their own email steps meanwhile.",
+    );
+    expect(ladderOf(BOB)).toBe(`${BOB_EMAIL}@0,${BOB_SMS}@0`);
+  });
+
+  test("somebody with none of the default's channels is skipped: nothing written, nobody mailed", async () => {
+    const [result] = await applyTo([CY]);
+
+    expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Skipped);
+    expect(result!.message).toBe(PAGING_LADDER_DEFAULT_SKIPPED_MESSAGE);
+    expect(result!.leftOutChannels).toEqual([
+      OnCallPageChannel.Push,
+      OnCallPageChannel.SMS,
+      OnCallPageChannel.Call,
+    ]);
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(auditSpy).not.toHaveBeenCalled();
+  });
+
+  test("each member is audited per row and told once; a skipped one is neither", async () => {
+    const admin: ObjectID = new ObjectID(
+      "10000000-0000-4000-8000-0000000000d1",
+    );
+
+    await applyTo([ANA, BOB, CY], {
+      ...bobProps([Permission.ProjectAdmin]),
+      userId: admin,
+    });
+
+    const calls: Array<{
+      ownerUserId: ObjectID;
+      actorUserId: ObjectID;
+      notifyOwner: boolean;
+    }> = auditSpy.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as never;
+    });
+
+    const writes: number =
+      createSpy.mock.calls.length +
+      updateSpy.mock.calls.length +
+      deleteSpy.mock.calls.length;
+
+    // One audit entry per row written, every one of them the admin's doing.
+    expect(writes).toBeGreaterThan(0);
+    expect(calls).toHaveLength(writes);
+
+    for (const call of calls) {
+      expect(call.actorUserId.toString()).toBe(admin.toString());
+      expect(call.ownerUserId.toString()).not.toBe(CY.toString());
+    }
+
+    // One email each to Ana and Bob, however many cards changed; none to Cy.
+    const mailed: Array<string> = calls
+      .filter((call: { notifyOwner: boolean }): boolean => {
+        return call.notifyOwner;
+      })
+      .map((call: { ownerUserId: ObjectID }): string => {
+        return call.ownerUserId.toString();
+      });
+
+    expect(mailed).toEqual([ANA.toString(), BOB.toString()]);
+  });
+
+  test("an admin's own rules, applied by themselves, are not an admin's change: no audit, no email", async () => {
+    const [result] = await applyTo([BOB], bobProps([Permission.ProjectAdmin]));
+
+    expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+    expect(createSpy).toHaveBeenCalled();
+    expect(auditSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member already on the default is left as they are: no write, no email", async () => {
+    await applyTo([ANA]);
+
+    // Ana's rows as the first application left them.
+    rules = [
+      ...rules.filter((row: UserNotificationRule): boolean => {
+        return readPagingId(row.userId) !== ANA.toString();
+      }),
+    ];
+
+    for (const cell of live()) {
+      rules.push(
+        rule({ cell: cell, column: "userPushId", methodId: ANA_PUSH }),
+        rule({ cell: cell, column: "userSmsId", methodId: ANA_SMS }),
+        rule({
+          cell: cell,
+          column: "userCallId",
+          methodId: ANA_CALL,
+          wait: 5,
+        }),
+      );
+    }
+
+    createSpy.mockClear();
+    updateSpy.mockClear();
+    deleteSpy.mockClear();
+    auditSpy.mockClear();
+
+    const [result] = await applyTo([ANA]);
+
+    expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+    expect(result!.changedRuleCount).toBe(0);
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(auditSpy).not.toHaveBeenCalled();
+  });
+
+  test("never for somebody who is not a member; the others still get it (partial results)", async () => {
+    memberSpy.mockImplementation((async (data: { targetUserId: ObjectID }) => {
+      if (data.targetUserId.toString() === BOB.toString()) {
+        throw new BadDataException(
+          "Cannot create a notification rule for this user because they are not a member of this project.",
+        );
+      }
+    }) as never);
+
+    const results: Array<PagingLadderDefaultMemberResult> = await applyTo([
+      ANA,
+      BOB,
+      CY,
+    ]);
+
+    expect(
+      results.map((result: PagingLadderDefaultMemberResult) => {
+        return [result.userId, result.outcome];
+      }),
+    ).toEqual([
+      [ANA.toString(), PagingLadderDefaultOutcome.Applied],
+      [BOB.toString(), PagingLadderDefaultOutcome.Failed],
+      [CY.toString(), PagingLadderDefaultOutcome.Skipped],
+    ]);
+    expect(results[1]!.message).toMatch(/not a member of this project/);
+
+    // Nothing of Bob's was written.
+    for (const created of createdRules()) {
+      expect(readPagingId(created.userId)).not.toBe(BOB.toString());
+    }
+  });
+
+  test("a failure nobody explained says what to do, and the rest go on", async () => {
+    let calls: number = 0;
+
+    createSpy.mockImplementation((async (
+      createBy: CreateBy<UserNotificationRule>,
+    ) => {
+      calls++;
+
+      if (readPagingId(createBy.data.userId) === ANA.toString()) {
+        throw new Error("connection reset");
+      }
+
+      createBy.data.id = new ObjectID(
+        `60000000-0000-4000-8000-${String(calls).padStart(12, "0")}`,
+      );
+      return createBy.data;
+    }) as never);
+
+    const results: Array<PagingLadderDefaultMemberResult> = await applyTo([
+      ANA,
+      BOB,
+    ]);
+
+    expect(results[0]!.outcome).toBe(PagingLadderDefaultOutcome.Failed);
+    expect(results[0]!.message).toBe(PAGING_LADDER_DEFAULT_FAILED_MESSAGE);
+    expect(results[1]!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+  });
+
+  test("the methods are always the member's own verified ones, never the admin's", async () => {
+    await applyTo([BOB], {
+      ...bobProps([Permission.ProjectAdmin]),
+      userId: ANA,
+    });
+
+    for (const created of createdRules()) {
+      expect(readPagingId(created.userId)).toBe(BOB.toString());
+      expect(readPagingId(created.userSmsId)).toBe(BOB_SMS);
+    }
+  });
+
+  test("a project with no default refuses before anything is read or written", async () => {
+    projectSpy.mockResolvedValue(projectWith(null) as never);
+
+    await expect(applyTo([ANA])).rejects.toThrow(
+      new BadDataException(PAGING_LADDER_NO_DEFAULT_MESSAGE),
+    );
+    expect(memberSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  describe("who may apply it", () => {
+    test.each([
+      ["a member", []],
+      [
+        "a member holding only Read",
+        [Permission.ReadProjectUserNotificationRule],
+      ],
+      [
+        "a member of the on-call team",
+        [Permission.EditProjectOnCallDutyPolicy],
+      ],
+    ])(
+      "%s may not - not even to themselves",
+      async (_name: string, permissions: Array<Permission>) => {
+        for (const target of [ANA, BOB]) {
+          await expect(
+            applyTo([target], bobProps(permissions)),
+          ).rejects.toThrow(
+            new NotAuthorizedException(
+              PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+            ),
+          );
+        }
+
+        expect(projectSpy).not.toHaveBeenCalled();
+        expect(createSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectUserNotificationRule,
+    ])("someone holding %s may", async (permission: Permission) => {
+      const [result] = await applyTo([ANA], bobProps([permission]));
+
+      expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+      expect(createSpy).toHaveBeenCalled();
+    });
+
+    test("a master admin may", async () => {
+      const [result] = await applyTo([ANA], {
+        userId: BOB,
+        tenantId: PROJECT,
+        isMasterAdmin: true,
+      });
+
+      expect(result!.outcome).toBe(PagingLadderDefaultOutcome.Applied);
+    });
+
+    test("one member at a time is refused the same way", async () => {
+      await expect(
+        PagingLadderService.applyDefaultLadder({
+          projectId: PROJECT,
+          targetUserId: ANA,
+          props: bobProps([]),
+        }),
+      ).rejects.toThrow(PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE);
+    });
   });
 });

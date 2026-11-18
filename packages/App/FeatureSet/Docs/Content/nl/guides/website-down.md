@@ -28,13 +28,15 @@ Het adres wordt gecontroleerd door de eigen sonde van uw server, dus het moet va
 
 ![Start vraagt "Wat wil je eerst doen?", met "Weten wanneer mijn website of API plat ligt" aangevinkt](screen:home-goal-website)
 
-Bij een nieuw project stelt de pagina **Start** eerst de vraag **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt** aan en klik op **Doorgaan**. Klik daarna in de checklist **Welkom bij OneUptime 👋** op **Maak je eerste monitor**. Toont de checklist die stap niet, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `website down` en kies **Weten wanneer mijn website of API plat ligt**.
+Bij een nieuw project stelt de pagina **Start** eerst de vraag **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt** aan en klik op **Doorgaan**. Klik daarna in de checklist **Welkom bij OneUptime 👋** op **Maak je eerste monitor**. Toont de checklist die stap niet, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `website down` en kies **Weten wanneer mijn website of API plat ligt**. Ook **Monitoren** biedt hem aan: **Begeleide installatie** in de lege lijst en onder **Hoe het werkt**, en een regel in **Monitor maken** zodra je **Website** of **API** kiest.
 
 ### Het adres invoeren
 
 ![De stap "Wat moeten we controleren?", met "Beginnen met controleren" omcirkeld](screen:website-down-address)
 
-Typ onder **Wat moeten we controleren?** het adres bij **Adres van de website of API**. Vink voor een API-endpoint **Dit is een API-endpoint** aan. Klik op **Beginnen met controleren**: de sondes controleren het adres meteen, en een zin vertelt wat ze hebben gevonden. Klik op **Doorgaan**.
+Onder **Wat moeten we controleren?** zegt de stap vanaf hoeveel locaties het adres wordt gecontroleerd. Typ het bij **Adres van de website of API**. Vink voor een API-endpoint **Dit is een API-endpoint** aan. Klik op **Beginnen met controleren**: de sondes controleren het adres meteen, en een zin vertelt wat ze hebben gevonden. Klik op **Doorgaan**.
+
+Controleert de monitor van een teamgenoot het adres al, of een monitor die de API, Terraform of een import heeft gemaakt, dan zegt de stap dat voordat er iets wordt gemaakt. Klik op **Monitor openen** om te zien wie hij inlicht, of op **Mijn eigen monitor maken** om met een eigen monitor verder te gaan. Hij noemt alleen een monitor die je mag openen.
 
 ### Kiezen wie er wordt ingelicht
 
@@ -42,7 +44,7 @@ Typ onder **Wat moeten we controleren?** het adres bij **Adres van de website of
 
 Wat u onder **Wie moet er op de hoogte worden gesteld?** ziet, hangt af van het project:
 
-- Is er nog geen bereikbaarheidsbeleid of bereikbaarheidsregel, dan staat u al bij **Wie wordt opgeroepen**. Klik op **Teamleden toevoegen** om mensen toe te voegen die al in het project zitten, en klik daarna op **Opslaan en doorgaan**. Zo wordt het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project.
+- Is er nog geen bereikbaarheidsbeleid of bereikbaarheidsregel, dan staat u al bij **Wie wordt opgeroepen**. Klik op **Teamleden toevoegen** om mensen toe te voegen die al in het project zitten, en klik daarna op **Opslaan en doorgaan**. Zo wordt het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project. Ieder wordt opgeroepen zoals zijn of haar **Hoe ik bereikbaar ben** zegt: de link opent die van jou in een nieuw tabblad.
 - Is er al een bereikbaarheidsbeleid of -regel, dan bepalen de eigen regels van het project wie er wordt opgeroepen: klik op **Doorgaan**.
 - Bent u lid, dan mag u geen oproepen instellen, en ziet u dat u als eigenaar van de monitor per e-mail bericht krijgt: klik op **Doorgaan**.
 
@@ -50,18 +52,23 @@ Wat u onder **Wie moet er op de hoogte worden gesteld?** ziet, hangt af van het 
 
 ![De stap "Stuur een test", met "Stuur mij een testoproep" omcirkeld](screen:website-down-test)
 
-Klik onder **Stuur een test** op **Stuur mij een testoproep**. Kies een **Ernst** en klik op **Testoproep sturen**. De test bereikt u zoals een echte oproep dat zou doen, en in elk bericht staat TEST. Er wordt geen incident aangemaakt.
+Klik onder **Stuur een test** op **Stuur mij een testoproep**. Kies een **Ernst**: de regel eronder zegt dat de test je bereikt zoals je **Hoe ik bereikbaar ben** voor die ernst zegt. Klik op **Testoproep sturen**. De test bereikt u zoals een echte oproep dat zou doen, en in elk bericht staat TEST. Er wordt geen incident aangemaakt.
 
 ### De testoproep bevestigen
 
 Open de link in de e-mail en bevestig de oproep daar. Een geverifieerd telefoonnummer werkt ook, zodra sms en oproepen voor het project aanstaan: open de link in de sms, of druk tijdens het telefoongesprek op 1. Klik daarna in het dialoogvenster op **Klaar** en op **Doorgaan**.
+
+### Aan klanten tonen
+
+Heeft het project een statuspagina en mag je er monitoren aan toevoegen, dan volgt nog een stap. Kies onder **Aan klanten tonen?** de pagina bij **Statuspagina** en klik op **Aan statuspagina toevoegen**, of klik op **Niet nu**. Een project zonder statuspagina slaat die stap over: de samenvatting biedt dan **Op een statuspagina tonen** aan, met je monitor al aangevinkt.
 :::
 
 ## Controleren of het gelukt is
 
 ![De samenvatting, gelezen uit de gegevens: "Gecontroleerd", "Bij een storing", "Wie wordt ingelicht" en "Getest"](screen:website-down-summary)
 
-- De begeleide installatie eindigt op de samenvatting, gelezen uit de opgeslagen gegevens: **Gecontroleerd**, **Bij een storing**, **Wie wordt ingelicht** en **Getest**.
+- De begeleide installatie eindigt op de samenvatting, gelezen uit de opgeslagen gegevens: **Gecontroleerd**, **Bij een storing**, **Wie wordt ingelicht** en **Getest**, en **Statuspagina** zodra een pagina de monitor toont.
+- Onder **Volgende stappen** opent **Opgeroepen worden via SMS of telefoontje** de begeleide installatie **De juiste persoon oproepen als er iets kapotgaat**, die je telefoon toevoegt.
 - Klik op **Monitor openen** en daarna op de kaart **Als dit uitvalt** van de monitor op **Keten tonen**: u ziet de keten van de monitor tot de mensen die hij bereikt, en als niets de keten zou tegenhouden, staat er **Niets houdt de keten tegen.**
 - Op **Start** markeert de checklist **Maak je eerste monitor** als klaar zodra de eerste controle binnenkomt. Was het de laatste stap, dan is de checklist verdwenen.
 

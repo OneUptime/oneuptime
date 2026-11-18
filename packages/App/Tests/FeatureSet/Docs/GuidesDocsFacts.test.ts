@@ -720,33 +720,49 @@ describe("Know When Your Website or API Is Down, against the product", () => {
     expect(searchEntryOf("MONITOR_GUIDED_SETUP")).toContain('"website down",');
   });
 
-  it("meets the setup's three steps in the setup's order, then its summary", () => {
-    const list: string = WEBSITE_DOWN_SETUP.slice(
-      WEBSITE_DOWN_SETUP.indexOf("export const WEBSITE_DOWN_STEPS"),
-    );
-    const steps: string = list.slice(0, list.indexOf("];"));
-    const places: Array<number> = [
+  /*
+   * Step 4 (#7053) is walked only where it can be done, after the three
+   * every run walks, so the guide meets it after the test and before the
+   * summary. Each word is looked for after the one before it: step 1's
+   * notice of a teammate's monitor (#7254) says "Open the monitor" long
+   * before the summary does.
+   */
+  it("meets the setup's three steps in the setup's order, then its optional step, then its summary", () => {
+    const listOf: (name: string) => string = (name: string): string => {
+      const list: string = WEBSITE_DOWN_SETUP.slice(
+        WEBSITE_DOWN_SETUP.indexOf(`export const ${name}`),
+      );
+
+      return list.slice(0, list.indexOf("];"));
+    };
+    const places: Array<number> = [];
+
+    for (const property of [
       "checkTitle",
       "addressLabel",
       "startChecking",
       "whoTitle",
       "testTitle",
+      "statusPageTitle",
       "summaryChecked",
       "nextMonitor",
       "startOver",
-    ].map((property: string): number => {
-      return WEBSITE_DOWN.indexOf(
-        `**${copyValue(WEBSITE_DOWN_SETUP, property)}**`,
+    ]) {
+      places.push(
+        WEBSITE_DOWN.indexOf(
+          `**${copyValue(WEBSITE_DOWN_SETUP, property)}**`,
+          (places[places.length - 1] ?? -1) + 1,
+        ),
       );
-    });
+    }
 
-    expect(steps.match(/WebsiteDownStep\.\w+,/g)).toHaveLength(3);
-    expect(places).not.toContain(-1);
     expect(
-      [...places].sort((a: number, b: number) => {
-        return a - b;
-      }),
-    ).toEqual(places);
+      listOf("WEBSITE_DOWN_STEPS").match(/WebsiteDownStep\.\w+,/g),
+    ).toHaveLength(3);
+    expect(
+      listOf("WEBSITE_DOWN_OPTIONAL_STEPS").match(/WebsiteDownStep\.\w+,/g),
+    ).toEqual(["WebsiteDownStep.StatusPage,"]);
+    expect(places).not.toContain(-1);
   });
 
   it("checks every 5 minutes, and counts no answer or an answer outside 200 to 399 as down", () => {
@@ -791,9 +807,15 @@ describe("Know When Your Website or API Is Down, against the product", () => {
   });
 
   it("names the policy the setup makes, and when it makes one", () => {
-    // A single-quoted sentence (it quotes the policy's name), read as written.
+    /*
+     * A single-quoted sentence (it quotes the policy's name), read as
+     * written, with the Glossary's word marked in it (#7057).
+     */
     expect(WEBSITE_DOWN_SETUP).toContain(
-      `'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.'`,
+      `'This makes the {{onCallPolicy}} "{{policy}}", which pages them for every new incident and alert in this project.'`,
+    );
+    expect(WEBSITE_DOWN_SETUP).toContain(
+      'onCallPolicy: translationKey("on-call policy"),',
     );
     expect(WEBSITE_DOWN).toContain("**Default on-call policy**");
     expect(WEBSITE_DOWN).toContain(
@@ -859,7 +881,11 @@ describe("Know When Your Website or API Is Down, against the product", () => {
    */
   it("says an incident opens only when all of the probes find it down", () => {
     expect(copyValue(WEBSITE_DOWN_SETUP, "checkHelp")).toContain(
-      "An incident opens when every location that checks it finds it down",
+      "An {{incident}} opens when every location that checks it finds it down",
+    );
+    // With the number of locations (#7461), as the guide says it.
+    expect(WEBSITE_DOWN_SETUP).toContain(
+      "from {{count}} locations. An {{incident}} opens when all of them find it down",
     );
     expect(
       repoFile("packages/Common/Utils/Monitor/ProbeAgreementRule.ts"),

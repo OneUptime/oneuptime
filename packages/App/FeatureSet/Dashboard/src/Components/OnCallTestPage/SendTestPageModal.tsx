@@ -58,7 +58,10 @@ import {
   formatList,
   getInlineSeparator,
   Translator,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import PageMap from "../../Utils/PageMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
@@ -140,6 +143,36 @@ export function getTestPageDialogDescription(
     ) || ""
   );
 }
+
+/*
+ * WHAT THE SEVERITY CHANGES, under its picker (#7756): How to Reach Me can
+ * reach a person a different way for a severity, so the severity picked
+ * decides how the test reaches them. The newcomer testing their own first
+ * page from the website setup left "Critical Incident" as it was without
+ * knowing whether it mattered. Their own test links their How to Reach Me,
+ * in a new tab so the dialog stays open; someone else's is a page the
+ * reader may not open, so it is named only.
+ */
+export const SEVERITY_HINTS: {
+  self: string;
+  member: string;
+  policy: string;
+} = {
+  self: translationKey(
+    "The test reaches you as your {{howToReachMe}} says for this severity.",
+  ),
+  member: translationKey(
+    "The test reaches them as their How to Reach Me says for this severity.",
+  ),
+  policy: translationKey(
+    "The test reaches each person as their How to Reach Me says for this severity.",
+  ),
+};
+
+export const SEVERITY_HINT_TEST_ID: string = "test-page-severity-hint";
+
+// The words of the link in the self hint: the page's own name.
+export const HOW_TO_REACH_ME_TEXT: string = translationKey("How to Reach Me");
 
 /*
  * "Email · ana@example.com", "SMS (after 5 minutes on a real page)". The
@@ -871,6 +904,48 @@ export const WalkPreview: FunctionComponent<{
   );
 };
 
+// What the severity picked changes, under its picker (SEVERITY_HINTS).
+export const SeverityHint: FunctionComponent<{
+  target: OnCallTestPageTarget;
+}> = (props: { target: OnCallTestPageTarget }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.target.kind !== "self") {
+    return (
+      <p className="text-sm text-gray-500" data-testid={SEVERITY_HINT_TEST_ID}>
+        {translator.translateText(
+          props.target.kind === "policy"
+            ? SEVERITY_HINTS.policy
+            : SEVERITY_HINTS.member,
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-sm text-gray-500" data-testid={SEVERITY_HINT_TEST_ID}>
+      <TranslatedSentence
+        template={SEVERITY_HINTS.self}
+        slots={{
+          howToReachMe: (
+            <a
+              href={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
+              ).toString()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-indigo-600 underline-offset-2 hover:text-indigo-800 hover:underline"
+              data-testid="test-page-how-to-reach-me"
+            >
+              {translator.translateText(HOW_TO_REACH_ME_TEXT)}
+            </a>
+          ),
+        }}
+      />
+    </p>
+  );
+};
+
 const SendTestPageModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -1160,7 +1235,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
               )}
             </p>
           ) : (
-            <></>
+            <SeverityHint target={props.target} />
           )}
         </div>
 

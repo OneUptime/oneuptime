@@ -61,7 +61,7 @@ Quando entrate in un progetto con un'e-mail di accesso verificata, OneUptime vi 
 2. Per ogni gravità, su ciascuna delle quattro schede delle **Come contattarmi**, una regola vi invia un'e-mail appena venite chiamati.
 3. Un insieme di aggiornamenti su ciò che è vostro, e sui vostri turni, viene attivato via e-mail. Vedete [Impostazioni notifiche](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
-Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Come contattarmi](/docs/notifications/on-call-rules#le-regole-con-cui-partite).
+Ogni metodo che verificate in seguito riceve le stesse regole: una regola per ogni gravità, inviata appena venite chiamati. Quindi verificare un numero di telefono per gli SMS significa che ogni chiamata vi manda anche un SMS. Per tenere gli SMS solo per le chiamate critiche, eliminate le regole SMS delle altre gravità. Vedete [Come contattarmi](/docs/notifications/on-call-rules#le-regole-con-cui-partite). Quando il vostro progetto ha una sequenza predefinita, la vostra e-mail e ogni metodo che verificate la seguono invece: vedete [La sequenza predefinita](/docs/notifications/on-call-rules#la-sequenza-predefinita).
 
 ## L'elenco di configurazione
 

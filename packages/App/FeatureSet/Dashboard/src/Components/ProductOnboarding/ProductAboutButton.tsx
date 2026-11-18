@@ -1,5 +1,6 @@
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import { GuidedSetupEntryPoint } from "Common/UI/Utils/GuidedSetupEvents";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -94,6 +95,7 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
                */
               setupButton={getProductGuidedSetupButton({
                 onboarding: onboarding,
+                from: GuidedSetupEntryPoint.HowItWorks,
                 beforeOpen: (): void => {
                   setIsOpen(false);
                 },

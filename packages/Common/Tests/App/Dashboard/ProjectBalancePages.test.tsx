@@ -95,6 +95,25 @@ jest.mock("../../../UI/Config", () => {
   return { ...actual, BILLING_ENABLED: true };
 });
 
+/*
+ * How members are paged by default (#7449), folded under the page's More
+ * settings, is not about the balance: ProjectPagingDefaults tests it.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaults",
+  () => {
+    return {
+      __esModule: true,
+      DefaultPagingLadderCard: (): null => {
+        return null;
+      },
+      PhoneForOnCallCard: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
 const WAIT_TIMEOUT: number = 20000;
 
 const BASE_PERMISSIONS: Array<Permission> = [

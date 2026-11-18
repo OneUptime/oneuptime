@@ -74,7 +74,7 @@ La configuration du site web a déjà créé la **Politique d'astreinte par déf
 :::steps
 ### Ouvrir la configuration de l'astreinte
 
-Appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Tant que la liste de vérification n'a pas coché **Configurez une politique d'astreinte**, cette étape ouvre la même configuration guidée.
+Dans le résumé de la configuration du site web, cliquez sur **Être alerté par SMS ou par appel téléphonique** : le lien ouvre la configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne**. Pour l'ouvrir plus tard, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez-la. Tant que la liste de vérification n'a pas coché **Configurez une politique d'astreinte**, cette étape ouvre la même configuration guidée.
 
 ### Choisir comment vous êtes joint
 

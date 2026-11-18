@@ -74,7 +74,7 @@ La configurazione del sito web ha già creato la **Policy di reperibilità prede
 :::steps
 ### Aprire la configurazione della reperibilità
 
-Premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**. Finché l'elenco non ha segnato **Configura una policy di reperibilità**, quel passaggio apre la stessa configurazione guidata.
+Nel riepilogo della configurazione del sito web, fai clic su **Ricevere chiamate via SMS o telefono**: il link apre la configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta**. Per aprirla più tardi, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e sceglila. Finché l'elenco non ha segnato **Configura una policy di reperibilità**, quel passaggio apre la stessa configurazione guidata.
 
 ### Scegliere come essere raggiunto
 

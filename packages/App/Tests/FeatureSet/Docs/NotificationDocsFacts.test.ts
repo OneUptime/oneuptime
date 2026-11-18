@@ -742,16 +742,26 @@ describe("what a new member starts with", () => {
       expect(forMethod).toContain(`NotificationRuleType.${ruleType}`);
     }
 
+    /*
+     * At once, unless the project has a default ladder (#7449): then the
+     * method's channel follows it, at each of its waits, or gets no rule.
+     */
+    expect(forMethod).toContain(
+      "steps === null ? [{ notifyAfterMinutes: 0 }] : steps;",
+    );
     expect(
       functionSource(
         ruleService,
         "private async createSeverityScopedRules(",
         "private async createSingleRule(",
       ),
-    ).toContain("rule.notifyAfterMinutes = 0;");
+    ).toContain("rule.notifyAfterMinutes = step.notifyAfterMinutes;");
 
     expect(english(REACHING_YOU)).toContain(
       "1. Your sign-in email is added as a verified email method.\n2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.",
+    );
+    expect(english(REACHING_YOU)).toContain(
+      "When your project has a default ladder, your email and every method you verify follow it instead: see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder).",
     );
   });
 

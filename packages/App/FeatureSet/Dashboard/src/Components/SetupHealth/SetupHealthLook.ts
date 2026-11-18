@@ -106,6 +106,8 @@ export const CHECK_ICONS: Readonly<Record<SetupHealthCheck, IconProp>> = {
   [SetupHealthCheck.PolicyHasNoEscalationRules]: IconProp.Call,
   [SetupHealthCheck.PolicyReachesNobody]: IconProp.Call,
   [SetupHealthCheck.ResponderCannotBePaged]: IconProp.User,
+  // A phone method the project asks people on call for (#7449).
+  [SetupHealthCheck.ResponderHasNoPhone]: IconProp.DevicePhoneMobile,
   [SetupHealthCheck.ChannelOff]: IconProp.BellSlash,
   [SetupHealthCheck.NoBalance]: IconProp.Billing,
   [SetupHealthCheck.ServerCannotSend]: IconProp.Email,

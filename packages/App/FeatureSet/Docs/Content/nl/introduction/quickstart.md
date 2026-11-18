@@ -74,7 +74,7 @@ De website-installatie heeft al het **Standaard bereikbaarheidsbeleid** aangemaa
 :::steps
 ### De bereikbaarheidsinstallatie openen
 
-Druk op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. Zolang de checklist **Stel een bereikbaarheidsbeleid in** niet heeft afgevinkt, opent die stap dezelfde begeleide installatie.
+Klik in het overzicht van de website-installatie op **Opgeroepen worden via SMS of telefoontje**: de link opent de begeleide installatie **De juiste persoon oproepen als er iets kapotgaat**. Om haar later te openen, druk op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies haar. Zolang de checklist **Stel een bereikbaarheidsbeleid in** niet heeft afgevinkt, opent die stap dezelfde begeleide installatie.
 
 ### Kiezen hoe u bereikt wordt
 

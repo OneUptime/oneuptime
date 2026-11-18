@@ -28,13 +28,15 @@ Adressen kontrolleras från din servers egen sond, så den måste gå att nå d�
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Veta när min webbplats eller mitt API ligger nere” ikryssat](screen:home-goal-website)
 
-I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första monitor** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**.
+I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första monitor** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**. **Monitorer** erbjuder den också: **Guidad installation** i den tomma listan och under **Så fungerar det**, och en rad på **Skapa monitor** när du väljer **Webbplats** eller **API**.
 
 ### Ange adressen
 
 ![Steget ”Vad ska vi kontrollera?”, med ”Börja kontrollera” markerad](screen:website-down-address)
 
-Under **Vad ska vi kontrollera?** skriver du adressen i **Adress till webbplats eller API**. För en API-endpoint kryssar du i **Det här är en API-endpoint**. Klicka på **Börja kontrollera**: sonderna kontrollerar adressen direkt, och en mening talar om vad de hittade. Klicka på **Fortsätt**.
+Under **Vad ska vi kontrollera?** säger steget från hur många platser adressen kontrolleras. Skriv den i **Adress till webbplats eller API**. För en API-endpoint kryssar du i **Det här är en API-endpoint**. Klicka på **Börja kontrollera**: sonderna kontrollerar adressen direkt, och en mening talar om vad de hittade. Klicka på **Fortsätt**.
+
+Om en kollegas monitor redan kontrollerar adressen, eller en monitor som API:t, Terraform eller en import har skapat, säger steget det innan något skapas. Klicka på **Öppna monitorn** för att se vem den larmar, eller på **Skapa min egen monitor** för att fortsätta med en egen. Det nämner bara en monitor som du får öppna.
 
 ### Välj vem som får veta
 
@@ -42,7 +44,7 @@ Under **Vad ska vi kontrollera?** skriver du adressen i **Adress till webbplats 
 
 Under **Vem ska få veta?** beror det du ser på projektet:
 
-- Om projektet ännu inte har någon jourpolicy eller jourregel finns du redan i **Vem som larmas**. Klicka på **Lägg till teammedlemmar** för att lägga till personer som redan finns i projektet, och klicka sedan på **Spara och fortsätt**. Då skapas **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm i projektet.
+- Om projektet ännu inte har någon jourpolicy eller jourregel finns du redan i **Vem som larmas**. Klicka på **Lägg till teammedlemmar** för att lägga till personer som redan finns i projektet, och klicka sedan på **Spara och fortsätt**. Då skapas **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm i projektet. Varje person larmas som deras **Så når man mig** säger: länken öppnar ditt i en ny flik.
 - Om projektet har en jourpolicy eller jourregel avgör projektets egna regler vem som larmas: klicka på **Fortsätt**.
 - Är du medlem, och får alltså inte konfigurera larmning, får du veta att du kommer att få e-post som monitorns ägare: klicka på **Fortsätt**.
 
@@ -50,18 +52,23 @@ Under **Vem ska få veta?** beror det du ser på projektet:
 
 ![Steget ”Skicka ett test”, med ”Skicka ett testlarm till mig” markerad](screen:website-down-test)
 
-Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**. Välj en **Allvarlighetsgrad** och klicka på **Skicka testlarm**. Testet når dig på samma sätt som ett riktigt larm skulle göra, och varje meddelande är märkt TEST. Ingen incident skapas.
+Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**. Välj en **Allvarlighetsgrad**: raden under säger att testet når dig som ditt **Så når man mig** säger för den allvarlighetsgraden. Klicka på **Skicka testlarm**. Testet når dig på samma sätt som ett riktigt larm skulle göra, och varje meddelande är märkt TEST. Ingen incident skapas.
 
 ### Bekräfta testlarmet
 
 Öppna länken i e-postmeddelandet och bekräfta larmet där. Ett verifierat telefonnummer fungerar också, när sms och samtal är påslagna i projektet: öppna länken i sms:et, eller tryck på 1 under samtalet. Klicka sedan på **Klar** i dialogrutan och därefter på **Fortsätt**.
+
+### Visa den för kunderna
+
+Om projektet har en statussida och du får lägga till monitorer på den följer ett steg till. Under **Visa den för kunderna?** väljer du sidan i **Statussida** och klickar på **Lägg till på statussida**, eller så klickar du på **Inte nu**. Ett projekt utan statussida hoppar över det: sammanfattningen erbjuder i stället **Visa den på en statussida**, med din monitor redan ikryssad.
 :::
 
 ## Kontrollera att det fungerade
 
 ![Sammanfattningen, läst från posterna: ”Kontrollerad”, ”När den går ner”, ”Vem som får veta” och ”Testat”](screen:website-down-summary)
 
-- Konfigurationen avslutas med sin sammanfattning, som bygger på det som faktiskt har sparats: **Kontrollerad**, **När den går ner**, **Vem som får veta** och **Testat**.
+- Konfigurationen avslutas med sin sammanfattning, som bygger på det som faktiskt har sparats: **Kontrollerad**, **När den går ner**, **Vem som får veta** och **Testat**, och **Statussida** så snart en sida visar monitorn.
+- Under **Nästa steg** öppnar **Bli larmad via SMS eller telefonsamtal** den guidade installationen **Larma rätt person när något går sönder**, som lägger till din telefon.
 - Klicka på **Öppna monitorn** och sedan på **Visa kedjan** på monitorns kort **När den går ner**: där visas kedjan från monitorn till de personer som den når, och när inget skulle stoppa kedjan står det **Inget stoppar kedjan.**
 - På sidan **Hem** markerar checklistan **Skapa din första monitor** som klar så snart den första kontrollen har kommit in. Om det var det sista steget försvinner checklistan.
 

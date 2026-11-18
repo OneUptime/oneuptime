@@ -34,7 +34,7 @@ De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsA
 :::steps
 ### Tilføj en måde at nå dig på
 
-Klik på **Tilføj** ved et trin for at sende en af dine bekræftede metoder på trinnets tidspunkt, eller på **Tilføj trin** for at starte et nyt trin efter det sidste. Et nummer eller en adresse, der stadig venter på sin kode, står under **Ikke bekræftet endnu**, med **Bekræft**.
+Klik på **Tilføj** ved et trin for at sende en af dine bekræftede metoder på trinnets tidspunkt, eller på **Tilføj trin** for at starte et nyt trin efter det sidste. Et nummer eller en adresse, der stadig venter på sin kode, står under **Ikke bekræftet endnu**, med **Bekræft**. Uden at forlade siden sender **Tilføj din telefon** under trinnene en kode til dit nummer, og når det er bekræftet, tilkalder nummeret dig via sms og telefonopkald; **Brug denne browser** og **Hent appen** tilføjer push på samme måde.
 
 ### Vælg, hvornår den bruges
 
@@ -68,7 +68,7 @@ En alvorlighed, som dit projekt har arkiveret, kommer efter de andre, markeret m
 
 ## De regler, du starter med
 
-Hver metode, du bekræfter, får en regel på hvert kort på hver fane, sendt så snart du bliver tilkaldt. Din login-e-mail har dem fra den dag, du blev medlem, så et tilkald altid når dig. Bekræft et telefonnummer til sms, og hvert tilkald sender dig også en sms.
+Hver metode, du bekræfter, får en regel på hvert kort på hver fane, sendt så snart du bliver tilkaldt. Din login-e-mail har dem fra den dag, du blev medlem, så et tilkald altid når dig. Bekræft et telefonnummer til sms, og hvert tilkald sender dig også en sms. Når dit projekt har en standardrækkefølge, følger en metode, du bekræfter, den i stedet: se [Standardrækkefølgen](#standardrækkefølgen).
 
 Det er en sikker start, og som regel for meget. Skær det ned til det, hver alvorlighed fortjener:
 
@@ -79,6 +79,16 @@ Det er en sikker start, og som regel for meget. Skær det ned til det, hver alvo
 | Mindre eller lav | En e-mail med det samme |
 
 Dine egne regler har ingen stille timer: hold lave alvorligheder på e-mail, eller på en push-regel sat til **Normal**, så de aldrig vækker dig. For at lade tilkaldelsen for en lav alvorlighed vente på arbejdstiden for alle, sætter du den vagtregel, der tilkalder, til **Kun i arbejdstiden**: se [Vagtregler](/docs/alerts/settings#vagtregler).
+
+## Standardrækkefølgen
+
+Et projekt kan have en standardrækkefølge: hvordan et medlem tilkaldes, når det bekræfter en måde at blive nået på. En Projektejer eller Projektadministrator angiver den i **Standardrækkefølge for nye medlemmer**, sammenklappet under **Yderligere indstillinger** på **Projektindstillinger → Notifikationer → Notifikationskanaler**, med kanaler i stedet for nogens egne enheder: for eksempel push med det samme og et telefonopkald efter 5 minutter.
+
+Med en standardrækkefølge får en metode, du bekræfter, en regel ved hvert af sin kanals trin, på hvert kort på hver fane, og en kanal, som rækkefølgen udelader, får ingen. Regler, du allerede har, ændres aldrig, og et tilkald, der ikke finder nogen regel, falder stadig tilbage på dine bekræftede metoder.
+
+For at give den til medlemmer, der allerede har regler, bruger en administrator **Anvend standardrækkefølge** på siden Parathed: se [Anvend standardrækkefølgen](/docs/on-call/readiness#anvend-standardrækkefølgen). Hver af dem får én e-mail.
+
+**Telefon for folk på vagt**, ved siden af, beder alle på vagt om at have et bekræftet nummer til sms, telefonopkald eller WhatsApp. Så længe du ikke har et, siger denne side det over **Tilføj din telefon**, og Parathed og Opsætningens tilstand nævner dig. Ingen bliver låst ude.
 
 ## Tilføj en regel
 

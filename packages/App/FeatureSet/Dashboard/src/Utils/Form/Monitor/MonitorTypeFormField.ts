@@ -1,9 +1,13 @@
-import { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import { CardSelectCatalog } from "Common/UI/Components/CardSelect/CardSelect";
 import type Field from "Common/UI/Components/Forms/Types/Field";
+import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import type { ReactElement } from "react";
 import MonitorTypeUtil from "../../MonitorType";
 
 /*
@@ -57,6 +61,13 @@ export interface MonitorTypeFormFieldOptions {
    * monitor it produces.
    */
   description?: string | undefined;
+  /*
+   * Drawn under the picker, from the type picked: Create Monitor's offer of
+   * the guided setup when Website or API is picked (#7054).
+   */
+  getFooterElement?:
+    | ((monitorType: MonitorType | undefined) => ReactElement | undefined)
+    | undefined;
 }
 
 export type GetMonitorTypeFormFieldFunction = <TEntity>(
@@ -80,6 +91,28 @@ export const getMonitorTypeFormField: GetMonitorTypeFormFieldFunction = <
     cardSelectSearchable: true,
     cardSelectSearchPlaceholder: MONITOR_TYPE_SEARCH_PLACEHOLDER,
     cardSelectCatalog: MONITOR_TYPE_CATALOG,
+    ...getFooterField<TEntity>(options?.getFooterElement),
+  };
+};
+
+// The picker's footer, drawn from the type picked, where a form asks for one.
+const getFooterField: <TEntity>(
+  getFooterElement: MonitorTypeFormFieldOptions["getFooterElement"],
+) => Pick<Field<TEntity>, "getFooterElement"> = <TEntity>(
+  getFooterElement: MonitorTypeFormFieldOptions["getFooterElement"],
+): Pick<Field<TEntity>, "getFooterElement"> => {
+  if (!getFooterElement) {
+    return {};
+  }
+
+  return {
+    getFooterElement: (
+      values: FormValues<TEntity>,
+    ): ReactElement | undefined => {
+      return getFooterElement(
+        (values as { monitorType?: MonitorType | undefined }).monitorType,
+      );
+    },
   };
 };
 

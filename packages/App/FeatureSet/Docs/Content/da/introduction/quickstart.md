@@ -74,7 +74,7 @@ Opsætningen af webstedet har allerede oprettet **Standardvagtpolitik**, som til
 :::steps
 ### Åbn vagtopsætningen
 
-Tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning.
+Klik i oversigten i opsætningen af webstedet på **Få kald via SMS eller telefonopkald**: Linket åbner den guidede opsætning **Tilkalde den rette person, når noget går ned**. Vil du åbne den senere, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg den. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning.
 
 ### Vælg, hvordan du bliver kontaktet
 

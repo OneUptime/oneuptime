@@ -122,7 +122,8 @@ const blankProfilePicture = path.join(
  */
 /*
  * What the page is told before its bundle runs. The fixture's query
- * parameters (seed, as, billing) are kept in the tab's sessionStorage, so a
+ * parameters (seed, as, billing, theme, email, test) are kept in the tab's
+ * sessionStorage, so a
  * page that reloads itself, or one an in-app link took to an address
  * without them, is drawn for the same project and person.
  */
@@ -135,7 +136,7 @@ const VAPID_PUBLIC_KEY =
   "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
 
 const BOOT = `(function () {
-  var names = ["seed", "as", "billing", "theme"];
+  var names = ["seed", "as", "billing", "theme", "email", "test"];
   var query = new URLSearchParams(window.location.search);
   var kept = {};
   try { kept = JSON.parse(window.sessionStorage.getItem("__journeyParams") || "{}"); } catch (e) {}

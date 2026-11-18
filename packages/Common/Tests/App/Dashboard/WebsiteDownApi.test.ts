@@ -9,12 +9,22 @@ import {
 import type { SpyInstance } from "jest-mock";
 import WebsiteDownApi, {
   FirstCheckState,
+  OTHER_MONITORS_READ_LIMIT,
   OWN_MONITORS_READ_LIMIT,
+  STATUS_PAGES_READ_LIMIT,
+  WebsiteDownFoundMonitor,
   WebsiteDownMonitorRecord,
   isPaymentRequired,
   mayAddMonitorOwner,
   mayAddPaymentMethod,
+  mayAddToStatusPage,
+  mayUseOnCallSetup,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
+import StatusPageSetupApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
+import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
+import Project from "../../../Models/DatabaseModels/Project";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import { isProjectOnFreePlan } from "../../../../App/FeatureSet/Dashboard/src/Utils/PayAsYouGo";
 import BillingPaymentMethod from "../../../Models/DatabaseModels/BillingPaymentMethod";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
@@ -1304,5 +1314,516 @@ describe("the summary's other records", () => {
       await WebsiteDownApi.loadIncidentSeverityName(id(11).toString()),
     ).toBe("Critical");
     expect(await WebsiteDownApi.loadIncidentSeverityName(null)).toBeNull();
+  });
+});
+
+/*
+ * A MONITOR SOMEONE ELSE MADE FOR THE ADDRESS (#7254): a teammate's, or one
+ * the API, Terraform or an import made. Read through the model API as any
+ * list is - so the server hands over only what this person may read - and
+ * never taken over.
+ */
+describe("a monitor someone else made for the address (#7254)", () => {
+  const ME: string = id(7).toString();
+  const GRACE: string = id(8).toString();
+
+  const monitorFor: (
+    n: number,
+    text: string,
+    values?: Record<string, unknown>,
+  ) => Monitor = (
+    n: number,
+    text: string,
+    values?: Record<string, unknown>,
+  ): Monitor => {
+    const made: Monitor = buildWebsiteMonitor({
+      address: parseWebsiteAddress(text)!,
+      isApi: false,
+      seeds: {
+        operationalStatusId: id(1),
+        offlineStatusId: id(3),
+        incidentSeverityId: id(11),
+        alertSeverityId: id(20),
+      },
+    });
+
+    return model(Monitor, {
+      _id: id(n).toString(),
+      name: made.name,
+      monitorSteps: made.monitorSteps,
+      monitoringInterval: made.monitoringInterval,
+      ...(values || {}),
+    });
+  };
+
+  const find: (text: string) => Promise<WebsiteDownFoundMonitor | null> = (
+    text: string,
+  ): Promise<WebsiteDownFoundMonitor | null> => {
+    return WebsiteDownApi.findOtherMonitor({
+      address: parseWebsiteAddress(text)!,
+      userId: ME,
+    });
+  };
+
+  test("reads the project's newest Website and API monitors, whoever made them, with who made each", async () => {
+    getListSpy.mockResolvedValue(list([]));
+
+    expect(await find("acme.example")).toBeNull();
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+
+    const call: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      requestOptions?: unknown;
+    } = getListSpy.mock.calls[0]![0] as unknown as {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      requestOptions?: unknown;
+    };
+
+    expect(call.modelType).toBe(Monitor);
+    // Anyone's: no createdByUserId, unlike this person's own read.
+    expect(Object.keys(call.query)).toEqual(["monitorType"]);
+    expect((call.query["monitorType"] as Includes).values).toEqual([
+      MonitorType.Website,
+      MonitorType.API,
+    ]);
+    expect(call.sort).toEqual({ createdAt: SortOrder.Descending });
+    expect(call.limit).toBe(OTHER_MONITORS_READ_LIMIT);
+    expect(OTHER_MONITORS_READ_LIMIT).toBe(200);
+    expect(call.skip).toBe(0);
+    expect(call.select).toEqual({
+      _id: true,
+      name: true,
+      monitorSteps: true,
+      monitoringInterval: true,
+      minimumProbeAgreement: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+      createdByUserId: true,
+      createdByUser: { name: true },
+    });
+    /*
+     * As this person, through the model API's own route: nothing asks the
+     * server for more than it lets them read.
+     */
+    expect(call.requestOptions).toBeUndefined();
+  });
+
+  test("a teammate's that checks the address: its name and who made it, never this person's", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        monitorFor(1, "status.acme.example"),
+        monitorFor(2, "https://ACME.example/", {
+          name: "Acme storefront",
+          createdByUserId: new ObjectID(GRACE),
+          createdByUser: model(User, { name: "Grace Hopper" }),
+        }),
+      ]),
+    );
+
+    const found: WebsiteDownFoundMonitor | null = await find("acme.example");
+
+    expect(found).toEqual({
+      id: id(2).toString(),
+      name: "Acme storefront",
+      creatorName: "Grace Hopper",
+      isOwn: false,
+      record: {
+        id: id(2).toString(),
+        name: "Acme storefront",
+        monitorSteps: expect.anything(),
+        monitoringInterval: "*/5 * * * *",
+        minimumProbeAgreement: null,
+      },
+    });
+  });
+
+  test("one the API, Terraform or an import made names nobody", async () => {
+    getListSpy.mockResolvedValue(list([monitorFor(2, "acme.example")]));
+
+    const found: WebsiteDownFoundMonitor | null = await find("acme.example");
+
+    expect(found?.creatorName).toBe("");
+    expect(found?.isOwn).toBe(false);
+  });
+
+  test("one this person made, older than their own read, is theirs", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        monitorFor(3, "acme.example", {
+          createdByUserId: new ObjectID(ME),
+          createdByUser: model(User, { name: "Ada Lovelace" }),
+        }),
+      ]),
+    );
+
+    expect((await find("acme.example"))?.isOwn).toBe(true);
+  });
+
+  test("archived, turned off or another address is not checking it: nothing is said of it", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        monitorFor(1, "acme.example", { isArchived: true }),
+        monitorFor(2, "acme.example", { disableActiveMonitoring: true }),
+        monitorFor(3, "acme.example/health"),
+      ]),
+    );
+
+    expect(await find("acme.example")).toBeNull();
+  });
+
+  test("a name it may not read is the address's host, never blank", async () => {
+    getListSpy.mockResolvedValue(
+      list([monitorFor(4, "acme.example", { name: undefined })]),
+    );
+
+    expect((await find("acme.example"))?.name).toBe("acme.example");
+  });
+
+  /*
+   * A monitor this person may not read is never in the list the server
+   * hands back, so nothing is said of it: the setup asks no count, no
+   * root read and no other route that could tell it exists.
+   */
+  test("only what the server handed over is named: no count, no other read", async () => {
+    getListSpy.mockResolvedValue(list([]));
+
+    expect(await find("acme.example")).toBeNull();
+    expect(countSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a read that fails throws: nothing is made on a guess", async () => {
+    getListSpy.mockRejectedValue(new Error("offline"));
+
+    await expect(find("acme.example")).rejects.toThrow("offline");
+  });
+});
+
+/*
+ * FROM HOW MANY LOCATIONS (#7461): the probes a new monitor starts with, by
+ * Create Monitor's rule, read before it is made.
+ */
+describe("how many locations a new monitor is checked from (#7461)", () => {
+  const probe: (n: number, values: Record<string, unknown>) => Probe = (
+    n: number,
+    values: Record<string, unknown>,
+  ): Probe => {
+    return model(Probe, { _id: id(n).toString(), ...values });
+  };
+
+  let getAllProbesSpy: LooseSpy;
+  let getItemSpy: LooseSpy;
+
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(id(500));
+    getAllProbesSpy = jest.spyOn(
+      ProbeUtil,
+      "getAllProbes",
+    ) as unknown as LooseSpy;
+    getItemSpy = jest.spyOn(ModelAPI, "getItem") as unknown as LooseSpy;
+    getItemSpy.mockResolvedValue(model(Project, {}));
+  });
+
+  test("one probe on a self-hosted server: one location", async () => {
+    getAllProbesSpy.mockResolvedValue([
+      probe(1, {
+        isGlobalProbe: false,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+    ]);
+
+    expect(await WebsiteDownApi.loadDefaultLocationCount()).toBe(1);
+  });
+
+  test("only the probes a new monitor starts with: those that opt in", async () => {
+    getAllProbesSpy.mockResolvedValue([
+      probe(1, {
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+      probe(2, {
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+      probe(3, {
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: false,
+      }),
+      probe(4, {
+        isGlobalProbe: false,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+    ]);
+
+    expect(await WebsiteDownApi.loadDefaultLocationCount()).toBe(3);
+  });
+
+  test("the global ones left out where the project says so", async () => {
+    getAllProbesSpy.mockResolvedValue([
+      probe(1, {
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+      probe(2, {
+        isGlobalProbe: false,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+    ]);
+    getItemSpy.mockResolvedValue(
+      model(Project, { doNotAddGlobalProbesByDefaultOnNewMonitors: true }),
+    );
+
+    expect(await WebsiteDownApi.loadDefaultLocationCount()).toBe(1);
+
+    const call: {
+      modelType: unknown;
+      id: ObjectID;
+      select: Record<string, unknown>;
+    } = getItemSpy.mock.calls[0]![0] as unknown as {
+      modelType: unknown;
+      id: ObjectID;
+      select: Record<string, unknown>;
+    };
+
+    expect(call.modelType).toBe(Project);
+    expect(call.id.toString()).toBe(id(500).toString());
+    expect(call.select).toEqual({
+      doNotAddGlobalProbesByDefaultOnNewMonitors: true,
+    });
+  });
+
+  test("a project it cannot read is the server's default: global probes added", async () => {
+    getAllProbesSpy.mockResolvedValue([
+      probe(1, {
+        isGlobalProbe: true,
+        shouldAutoEnableProbeOnNewMonitors: true,
+      }),
+    ]);
+    getItemSpy.mockRejectedValue(new Error("not allowed"));
+
+    expect(await WebsiteDownApi.loadDefaultLocationCount()).toBe(1);
+  });
+
+  test("probes that cannot be read: no number, never a guess", async () => {
+    getAllProbesSpy.mockRejectedValue(new Error("offline"));
+
+    expect(await WebsiteDownApi.loadDefaultLocationCount()).toBeNull();
+  });
+});
+
+/*
+ * STEP 4, SHOW IT TO CUSTOMERS? (#7053): the pages offered, whether one
+ * shows the monitor already, and putting it on one.
+ */
+describe("a status page to show it on (#7053)", () => {
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(id(500));
+  });
+
+  test("the project's status pages by name, none archived", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        model(StatusPage, { _id: id(1).toString(), name: "Acme Status" }),
+        model(StatusPage, {
+          _id: id(2).toString(),
+          name: "Old status",
+          isArchived: true,
+        }),
+        model(StatusPage, { _id: id(3).toString(), name: "Internal" }),
+      ]),
+    );
+
+    expect(await WebsiteDownApi.loadStatusPages()).toEqual([
+      { id: id(1).toString(), name: "Acme Status" },
+      { id: id(3).toString(), name: "Internal" },
+    ]);
+
+    const call: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+    } = getListSpy.mock.calls[0]![0] as unknown as {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+    };
+
+    expect(call.modelType).toBe(StatusPage);
+    expect(String(call.query["projectId"])).toBe(id(500).toString());
+    expect(call.limit).toBe(STATUS_PAGES_READ_LIMIT);
+    expect(call.select).toEqual({ _id: true, name: true, isArchived: true });
+    expect(call.sort).toEqual({ name: SortOrder.Ascending });
+  });
+
+  const PAGES: Array<{ id: string; name: string }> = [
+    { id: id(1).toString(), name: "Acme Status" },
+    { id: id(2).toString(), name: "Internal" },
+  ];
+
+  const showing: (statusPageIds: Array<string>) => void = (
+    statusPageIds: Array<string>,
+  ): void => {
+    getListSpy.mockResolvedValue(
+      list(
+        statusPageIds.map((statusPageId: string, index: number) => {
+          return model(StatusPageResource, {
+            _id: id(100 + index).toString(),
+            statusPageId: new ObjectID(statusPageId),
+          });
+        }),
+      ),
+    );
+  };
+
+  test("the page that shows the monitor, read by the monitor", async () => {
+    showing([id(2).toString()]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+      }),
+    ).toEqual(PAGES[1]);
+
+    const call: { modelType: unknown; query: Record<string, unknown> } =
+      getListSpy.mock.calls[0]![0] as unknown as {
+        modelType: unknown;
+        query: Record<string, unknown>;
+      };
+
+    expect(call.modelType).toBe(StatusPageResource);
+    expect(String(call.query["monitorId"])).toBe(id(99).toString());
+  });
+
+  test("the run's page first, when it still shows it", async () => {
+    showing([id(1).toString(), id(2).toString()]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+        preferredStatusPageId: id(2).toString(),
+      }),
+    ).toEqual(PAGES[1]);
+  });
+
+  test("none shows it, or a page not offered: null", async () => {
+    showing([]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+      }),
+    ).toBeNull();
+
+    showing([id(42).toString()]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+        preferredStatusPageId: id(42).toString(),
+      }),
+    ).toBeNull();
+  });
+
+  test("no page offered: nothing is read", async () => {
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: [],
+      }),
+    ).toBeNull();
+    expect(getListSpy).not.toHaveBeenCalled();
+  });
+
+  test("puts the monitor on the page as the status page setup does, named after the monitor", async () => {
+    const addSpy: LooseSpy = jest
+      .spyOn(StatusPageSetupApi, "addMonitors")
+      .mockResolvedValue({
+        succeeded: [],
+        skipped: [],
+        failed: [],
+      } as never) as unknown as LooseSpy;
+
+    await WebsiteDownApi.addToStatusPage({
+      statusPageId: id(1).toString(),
+      monitorId: id(99).toString(),
+      monitorName: "acme.example",
+    });
+
+    expect(addSpy).toHaveBeenCalledWith({
+      statusPageId: id(1).toString(),
+      monitors: [{ id: id(99).toString(), name: "acme.example" }],
+    });
+  });
+
+  test("a page it could not be added to throws: the step never reads as done", async () => {
+    jest
+      .spyOn(StatusPageSetupApi, "addMonitors")
+      .mockRejectedValue(new Error("Status page not found."));
+
+    await expect(
+      WebsiteDownApi.addToStatusPage({
+        statusPageId: id(1).toString(),
+        monitorId: id(99).toString(),
+        monitorName: "acme.example",
+      }),
+    ).rejects.toThrow("Status page not found.");
+  });
+});
+
+/*
+ * WHO MAY DO WHAT THE NEW WAYS OFFER: put a monitor on a status page
+ * (#7053), and use the on-call guided setup (#7370).
+ */
+describe("who may do what the summary and step 4 offer", () => {
+  const allowOnly: (allowed: Array<{ new (): unknown }>) => void = (
+    allowed: Array<{ new (): unknown }>,
+  ): void => {
+    jest
+      .spyOn(PermissionGate, "check")
+      .mockImplementation((record: unknown): PermissionGateResult => {
+        return {
+          isAllowed: allowed.some((type: { new (): unknown }): boolean => {
+            return record instanceof type;
+          }),
+        };
+      });
+  };
+
+  test("a status page: reading the pages and adding a monitor to one, both", () => {
+    allowOnly([StatusPage, StatusPageResource]);
+    expect(mayAddToStatusPage()).toBe(true);
+
+    allowOnly([StatusPage]);
+    expect(mayAddToStatusPage()).toBe(false);
+
+    allowOnly([StatusPageResource]);
+    expect(mayAddToStatusPage()).toBe(false);
+  });
+
+  test("the on-call setup: who may create an on-call policy, as On-Call's own Guided setup", () => {
+    allowOnly([OnCallDutyPolicy]);
+    expect(mayUseOnCallSetup()).toBe(true);
+
+    allowOnly([]);
+    expect(mayUseOnCallSetup()).toBe(false);
   });
 });

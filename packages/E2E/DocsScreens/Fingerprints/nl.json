@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Wat moeten we controleren?",
-      "OneUptime controleert dit elke 5 minuten. Er wordt een incident geopend wanneer elke locatie die het controleert een storing ziet: geen antwoord, of een antwoord met een fout.",
+      "OneUptime maakt een monitor die dit elke 5 minuten controleert vanaf 2 locaties. Er wordt een incident geopend wanneer ze allemaal een storing zien: geen antwoord, of een antwoord met een fout.",
       "Adres van de website of API",
       "Dit is een API-endpoint",
       "Beginnen met controleren",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Beginnen met controleren",
@@ -209,8 +211,10 @@
       "Opslaan en doorgaan"
     ],
     "outline": [
+      "link: Hoe ik bereikbaar ben",
       "button: Teamleden toevoegen",
       "button: Ada Lovelace verwijderen",
+      "button: bereikbaarheidsbeleid",
       "button: Opslaan en doorgaan"
     ],
     "width": 768,

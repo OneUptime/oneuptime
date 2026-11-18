@@ -34,7 +34,7 @@ La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y lo
 :::steps
 ### Añadir una forma de contactarte
 
-Haz clic en **Añadir** en un paso para enviar uno de tus métodos verificados en el momento de ese paso, o en **Añadir paso** para empezar un paso nuevo después del último. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**.
+Haz clic en **Añadir** en un paso para enviar uno de tus métodos verificados en el momento de ese paso, o en **Añadir paso** para empezar un paso nuevo después del último. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**. Sin salir de la página, **Añadir tu teléfono** bajo los pasos envía un código a tu número y, en cuanto está verificado, el número te avisa por SMS y por llamada telefónica; **Usar este navegador** y **Obtener la app** añaden push de la misma forma.
 
 ### Elegir cuándo se usa
 
@@ -68,7 +68,7 @@ Una gravedad que su proyecto archivó aparece después de las demás, marcada co
 
 ## Las reglas con las que empiezas
 
-Cada método que verificas recibe una regla en cada tarjeta de cada pestaña, enviada en cuanto te avisan. Tu correo de inicio de sesión las tiene desde el día en que te uniste, para que un aviso siempre te llegue. Verifica un número de teléfono para SMS, y cada aviso también te envía un SMS.
+Cada método que verificas recibe una regla en cada tarjeta de cada pestaña, enviada en cuanto te avisan. Tu correo de inicio de sesión las tiene desde el día en que te uniste, para que un aviso siempre te llegue. Verifica un número de teléfono para SMS, y cada aviso también te envía un SMS. Cuando tu proyecto tiene una secuencia predeterminada, cada método que verificas la sigue en su lugar: consulta [La secuencia predeterminada](#la-secuencia-predeterminada).
 
 Es un comienzo seguro, y normalmente demasiado. Recórtalo a lo que merece cada gravedad:
 
@@ -79,6 +79,16 @@ Es un comienzo seguro, y normalmente demasiado. Recórtalo a lo que merece cada 
 | Menor o baja | Un correo al instante |
 
 Tus propias reglas no tienen horas de silencio: deja las gravedades bajas en correo, o en una regla push configurada como **Estándar**, para que nunca te despierten. Para que el aviso de una gravedad baja espere al horario laboral para todos, configura la regla de guardia que lo activa como **Solo en horario laboral**: consulta [Reglas de guardia](/docs/alerts/settings#reglas-de-guardia).
+
+## La secuencia predeterminada
+
+Un proyecto puede tener una secuencia predeterminada: cómo se avisa a un miembro en cuanto verifica una forma de contactarlo. Un Propietario del proyecto o un Administrador del proyecto la define en **Secuencia predeterminada para nuevos miembros**, plegada en **Más ajustes** en **Ajustes del proyecto → Notificaciones → Canales de notificación**, con canales en lugar de los dispositivos de cada persona: por ejemplo, push al instante y una llamada telefónica a los 5 minutos.
+
+Con una secuencia predeterminada, un método que verificas recibe una regla en cada paso de su canal, en cada tarjeta de cada pestaña, y un canal que la secuencia deja fuera no recibe ninguna. Las reglas que ya tienes nunca cambian, y un aviso que no encuentra ninguna regla sigue recurriendo a tus métodos verificados.
+
+Para dársela a miembros que ya tienen reglas, un administrador usa **Aplicar secuencia predeterminada** en la página Preparación: consulta [Aplicar la secuencia predeterminada](/docs/on-call/readiness#aplicar-la-secuencia-predeterminada). Cada uno de ellos recibe un correo.
+
+**Teléfono para las personas de guardia**, a su lado, pide a todas las personas de guardia un número verificado de SMS, llamada telefónica o WhatsApp. Mientras no tengas ninguno, esta página lo dice encima de **Añadir tu teléfono**, y Preparación y Salud de la configuración te nombran. Nadie queda bloqueado.
 
 ## Añade una regla
 
