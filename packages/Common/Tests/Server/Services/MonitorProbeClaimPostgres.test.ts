@@ -43,6 +43,10 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - skips a row another writer holds instead of waiting for it;
  *   - never hands one row to two claims made at the same moment, and loses
  *     none;
+ *   - hands every due row out once, interval after interval, to a probe's
+ *     workers claiming again while they are handed full batches, several
+ *     at once (#9488), to another probe's beside them, and to a probe that
+ *     restarted after a claim - never what it lost, in that interval;
  *   - does not hand out a row another instance claimed between this one's
  *     read and its claim;
  *   - sets aside the due rows nothing may probe that its read stepped over,
@@ -876,6 +880,220 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
 
     expect(await claim()).toEqual([]);
     expect(await dueCount()).toBe(0);
+  });
+
+  /*
+   * How a probe asks since #9488: each of its workers claims a batch, and
+   * claims again while it is handed a full one, so a probe keeps up with
+   * every monitor that is due. Its workers do so at once, and so do the
+   * replicas of a probe that runs as several. The claim is what keeps that
+   * from handing a monitor out twice for one interval.
+   */
+
+  // Monitors that check every minute, due over the last `count` seconds.
+  async function insertDueMonitorProbes(count: number): Promise<Array<string>> {
+    const rows: Array<{ _id: string }> = await database.query(
+      `WITH "monitors" AS (
+         INSERT INTO "${schema}"."Monitor"
+           ("_id", "projectId", "name", "monitorType", "monitoringInterval",
+            "isArchived", "disableActiveMonitoring",
+            "disableActiveMonitoringBecauseOfManualIncident",
+            "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent")
+         SELECT gen_random_uuid(), $1, 'Website', 'Website', '* * * * *',
+                false, false, false, false
+         FROM generate_series(1, $2)
+         RETURNING "_id"
+       ),
+       "numbered" AS (
+         SELECT "_id", row_number() OVER () AS "position" FROM "monitors"
+       )
+       INSERT INTO "${schema}"."MonitorProbe"
+         ("_id", "projectId", "probeId", "monitorId", "isEnabled", "nextPingAt",
+          "createdAt", "updatedAt", "version")
+       SELECT gen_random_uuid(), $1, $3, "numbered"."_id", true,
+              now() - "numbered"."position" * interval '1 second', now(), now(), 1
+       FROM "numbered"
+       RETURNING "_id"`,
+      [PROJECT_ID.toString(), count, PROBE_ID.toString()],
+    );
+
+    return rows.map((row: { _id: string }) => {
+      return row._id;
+    });
+  }
+
+  // One worker's fetching for a minute: batches of 10 until one is short.
+  async function claimUntilShort(limit: number = 10): Promise<Array<string>> {
+    const handedOut: Array<string> = [];
+
+    for (let round: number = 0; round < 1000; round++) {
+      const batch: Array<string> = await claim(limit);
+
+      expect(batch.length).toBeLessThanOrEqual(limit);
+      handedOut.push(...batch);
+
+      if (batch.length < limit) {
+        break;
+      }
+    }
+
+    return handedOut;
+  }
+
+  // `workers` of them at once.
+  async function workersClaimUntilShort(
+    workers: number,
+  ): Promise<Array<string>> {
+    const rounds: Array<Array<string>> = await Promise.all(
+      Array.from({ length: workers }, () => {
+        return claimUntilShort();
+      }),
+    );
+
+    return rounds.flat();
+  }
+
+  function expectEachOnce(
+    handedOut: Array<string>,
+    expected: Array<string>,
+  ): void {
+    expect(new Set<string>(handedOut).size).toBe(handedOut.length);
+    expect([...handedOut].sort()).toEqual([...expected].sort());
+  }
+
+  test("eight workers claiming again while handed full batches hand every due row out once, interval after interval", async () => {
+    const ids: Array<string> = await insertDueMonitorProbes(400);
+
+    for (let interval: number = 1; interval <= 2; interval++) {
+      const startedAt: number = Date.now();
+
+      /*
+       * Two replicas of four workers. A worker that raced another for the
+       * same rows may stop at a short batch with rows still due; its
+       * minute's next tick takes them.
+       */
+      const handedOut: Array<string> = [
+        ...(await workersClaimUntilShort(8)),
+        ...(await workersClaimUntilShort(1)),
+      ];
+
+      expectEachOnce(handedOut, ids);
+      expect(await dueCount()).toBe(0);
+
+      // Every row moved on to its next minute, and was stamped as handed out.
+      const schedules: Array<{
+        lastPingAt: Date | null;
+        nextPingAt: Date | null;
+      }> = await database.query(
+        `SELECT "lastPingAt", "nextPingAt" FROM "${schema}"."MonitorProbe"
+         WHERE "probeId" = $1`,
+        [PROBE_ID.toString()],
+      );
+
+      expect(schedules).toHaveLength(400);
+
+      for (const schedule of schedules) {
+        expect(schedule.lastPingAt!.getTime()).toBeGreaterThanOrEqual(
+          startedAt - 1000,
+        );
+        expect(schedule.nextPingAt!.getTime()).toBeGreaterThan(
+          schedule.lastPingAt!.getTime(),
+        );
+        expect(schedule.nextPingAt!.getTime() - Date.now()).toBeLessThanOrEqual(
+          MINUTE_IN_MS,
+        );
+      }
+
+      // The next interval: every row due again.
+      await database.query(
+        `UPDATE "${schema}"."MonitorProbe" SET "nextPingAt" = now() - interval '1 second'
+         WHERE "probeId" = $1`,
+        [PROBE_ID.toString()],
+      );
+    }
+  });
+
+  test("the probe's claims stay its own while another probe's workers claim at the same moment", async () => {
+    const ids: Array<string> = await insertDueMonitorProbes(120);
+    const othersIds: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 30; index++) {
+      othersIds.push(
+        await insertMonitorProbe({
+          nextPingAt: minutesAgo(index + 1),
+          probeId: OTHER_PROBE_ID,
+        }),
+      );
+    }
+
+    const [ours, theirs] = await Promise.all([
+      workersClaimUntilShort(4),
+      Promise.all(
+        Array.from({ length: 4 }, async () => {
+          const handedOut: Array<string> = [];
+
+          for (let round: number = 0; round < 100; round++) {
+            const batch: Array<string> = await claim(10, OTHER_PROBE_ID);
+            handedOut.push(...batch);
+
+            if (batch.length < 10) {
+              break;
+            }
+          }
+
+          return handedOut;
+        }),
+      ),
+    ]);
+
+    expectEachOnce([...ours, ...(await workersClaimUntilShort(1))], ids);
+
+    const theirsHandedOut: Array<string> = theirs.flat();
+    expect(new Set<string>(theirsHandedOut).size).toBe(theirsHandedOut.length);
+    expect(theirsHandedOut.length).toBeLessThanOrEqual(30);
+    for (const id of theirsHandedOut) {
+      expect(sorted(othersIds)).toContain(id);
+    }
+  });
+
+  test("a probe that restarts after its claim gets none of what it lost again that interval", async () => {
+    const ids: Array<string> = await insertDueMonitorProbes(60);
+
+    // Handed to the process that restarts before checking them.
+    const lost: Array<string> = await claim(50);
+    expect(lost).toHaveLength(50);
+
+    // The new process's five workers.
+    const afterRestart: Array<string> = await workersClaimUntilShort(5);
+    const rest: Array<string> = [
+      ...afterRestart,
+      ...(await workersClaimUntilShort(1)),
+    ];
+
+    for (const id of rest) {
+      expect(lost).not.toContain(id);
+    }
+    expectEachOnce([...lost, ...rest], ids);
+  });
+
+  test("rows that come due while the workers claim are handed out once too", async () => {
+    const first: Array<string> = await insertDueMonitorProbes(200);
+
+    const [handedOut, late] = await Promise.all([
+      workersClaimUntilShort(6),
+      (async (): Promise<Array<string>> => {
+        // Monitors created, or turned back on, while the claims run.
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 20);
+        });
+        return await insertDueMonitorProbes(50);
+      })(),
+    ]);
+
+    expectEachOnce(
+      [...handedOut, ...(await workersClaimUntilShort(1))],
+      [...first, ...late],
+    );
   });
 
   test("the pending count counts what may be probed and is due by the time asked", async () => {
