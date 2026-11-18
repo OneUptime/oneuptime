@@ -84,7 +84,7 @@ Når personen godtar, er den med i prosjektet med en gang, med teamets tillatels
 | --- | --- |
 | **Bruker** | Navn og e-postadresse. |
 | **Team** | Hvert av prosjektets team personen er med i eller invitert til. |
-| **Status** | **Medlem** når personen har blitt med, med antallet invitasjoner til andre team som ikke er godtatt ennå. **Invitasjon sendt** til da. På en selvhostet server som ikke kan sende e-post ennå, **Invitert** i stedet: invitasjonen opprettes, men ingen e-post sendes. |
+| **Status** | **Medlem** når personen har blitt med, med antallet invitasjoner til andre team som ikke er godtatt ennå. **Invitasjon sendt** til da, eller **E-post ikke sendt** når e-posttjenesten avviste den siste invitasjonsmeldingen. På en selvhostet server som ikke kan sende e-post ennå, **Invitert** i stedet: invitasjonen opprettes, men ingen e-post sendes. |
 
 Filtrer listen etter **Bruker**, **Status** eller **Team**. Klikk på en rad for å åpne personens side:
 
@@ -152,6 +152,10 @@ Invitasjonen avhenger ikke av e-posten. Be personen registrere seg med den invit
 For å se om den ble sendt, åpner du fanen **E-post** under prosjektets **Varslingslogger**: Raden for hver invitasjon sier om den ble sendt, og hvorfor ikke. På en selvhostet server finner en hovedadministrator også hver e-post serveren ikke klarte å sende, i [e-postloggen](/docs/emails/email-providers#se-hva-serveren-har-sendt) til serveren.
 
 På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke registreringen sende en ny lenke på e-post: den ber i stedet personen spørre etter invitasjonslenken sin. Når serverens administrator har [satt opp e-post](/docs/emails/smtp#åpne-skjemaet), virker registreringen som over. Inntil da kan en hovedadministrator sende personen en ny lenke, som virker én gang, bare for den adressen, i 7 dager: under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Hent invitasjonslenke**.
+:::
+
+:::details En person viser E-post ikke sendt
+E-posttjenesten avviste den siste invitasjonsmeldingen, så ingenting nådde personen. Pek på **E-post ikke sendt**, eller trykk på den, for å se hvorfor, slik fanen **E-post** under prosjektets **Varslingslogger** sier det. Sjekk adressen du inviterte, og når e-post virker, fjerner du personen og inviterer vedkommende på nytt. På en selvhostet server kan serverens administrator sende personen invitasjonslenken i stedet: En hovedadministrator åpner radmenyen til personen under **Brukere**, **⋯**, og klikker på **Hent invitasjonslenke**.
 :::
 
 :::details Inviter bruker sier at brukerne styres av SCIM Push Groups

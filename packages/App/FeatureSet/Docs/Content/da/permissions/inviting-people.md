@@ -84,7 +84,7 @@ Når personen accepterer, er den med i projektet med det samme, med teamets till
 | --- | --- |
 | **Bruger** | Navn og e-mailadresse. |
 | **Teams** | Hvert af projektets teams, personen er med i eller inviteret til. |
-| **Status** | **Medlem**, når personen er kommet med, med antallet af invitationer til andre teams, der ikke er accepteret endnu. **Invitation sendt** indtil da. På en selvhostet server, der endnu ikke kan sende e-mails, **Inviteret** i stedet: invitationen oprettes, men der sendes ingen e-mail. |
+| **Status** | **Medlem**, når personen er kommet med, med antallet af invitationer til andre teams, der ikke er accepteret endnu. **Invitation sendt** indtil da, eller **E-mail ikke sendt**, når mailtjenesten afviste den seneste invitationsmail. På en selvhostet server, der endnu ikke kan sende e-mails, **Inviteret** i stedet: invitationen oprettes, men der sendes ingen e-mail. |
 
 Filtrér listen efter **Bruger**, **Status** eller **Team**. Klik på en række for at åbne personens side:
 
@@ -152,6 +152,10 @@ Invitationen afhænger ikke af e-mailen. Bed personen om at tilmelde sig med den
 For at se, om den gik ud, skal du åbne fanen **E-mail** under projektets **Notifikationslogs**: Rækken for hver invitation siger, om den blev sendt, og hvorfor ikke. På en selvhostet server finder en masteradministrator desuden hver e-mail, serveren ikke kunne sende, i dens [e-mail-log](/docs/emails/email-providers#se-hvad-serveren-har-sendt).
 
 På en selvhostet server, der endnu ikke kan sende e-mails, kan en tilmelding heller ikke e-maile personen et nyt link: tilmeldingen beder i stedet personen om at bede om sit invitationslink. Når serverens administrator har [sat e-mail op](/docs/emails/smtp#åbn-formularen), virker tilmeldingen som ovenfor. Indtil da kan en masteradministrator sende personen et nyt link, som virker én gang, kun for den adresse, i 7 dage: under **Brugere** åbner du rækkemenuen for personen, **⋯**, og klikker på **Hent invitationslink**.
+:::
+
+:::details En person viser E-mail ikke sendt
+Mailtjenesten afviste personens seneste invitationsmail, så intet nåede frem. Peg på **E-mail ikke sendt**, eller tryk på den, for at se hvorfor, sådan som fanen **E-mail** under projektets **Notifikationslogs** siger det. Tjek den adresse, du inviterede, og når e-mail virker, så fjern personen og invitér vedkommende igen. På en selvhostet server kan serverens administrator i stedet sende personen sit invitationslink: En masteradministrator åbner rækkemenuen for personen under **Brugere**, **⋯**, og klikker på **Hent invitationslink**.
 :::
 
 :::details Inviter bruger siger, at brugerne styres af SCIM Push Groups
