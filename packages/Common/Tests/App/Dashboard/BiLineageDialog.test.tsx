@@ -101,7 +101,6 @@ const FACILITIES: DataBiLineageSource = {
   tableCount: 0,
   matchedTableCount: 0,
   dataStoreId: null,
-  dataStoreName: null,
   connectKind: DataStoreKind.SqlServer,
   connectionExample:
     "mssql://USER:PASSWORD@sql01.corp.acme.com:1433/Facilities",
@@ -113,7 +112,6 @@ const SALES: DataBiLineageSource = {
   tableCount: 5,
   matchedTableCount: 4,
   dataStoreId: "store-sales",
-  dataStoreName: "Sales DB",
   connectKind: null,
   connectionExample: null,
 };
@@ -127,7 +125,6 @@ const CHECKLISTS: DataBiLineageSource = {
   tableCount: 0,
   matchedTableCount: 0,
   dataStoreId: null,
-  dataStoreName: null,
   connectKind: null,
   connectionExample: null,
 };
@@ -279,7 +276,7 @@ describe("the words of a tool's summary", () => {
     ).toEqual(["1 dashboard read", "4 of 5 tables watched"]);
     expect(getBiSourceStanding(translator, SALES)).toEqual({
       standing: BiSourceStanding.Watched,
-      text: "Watched as Sales DB",
+      text: "Watched",
     });
     expect(getBiSourceStanding(translator, FACILITIES)).toEqual({
       standing: BiSourceStanding.NotConnected,
@@ -395,7 +392,7 @@ describe("the Tables Matched dialog", () => {
     expect(sources[2]).toHaveTextContent(
       "SQL Server · 3 datasets · 4 of 5 tables watched",
     );
-    expect(sources[2]).toHaveTextContent("Watched as Sales DB");
+    expect(within(sources[2]!).getByText("Watched")).toBeInTheDocument();
     // Only a database OneUptime can watch, and does not, is offered to connect.
     expect(screen.getAllByTestId("bi-lineage-connect")).toHaveLength(1);
     expect(screen.getByText("And 2 more data sources.")).toBeInTheDocument();

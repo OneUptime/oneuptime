@@ -83,9 +83,11 @@ export interface DataBiLineageSource extends DataBiSource {
   // Tables read from it, and how many of them matched a watched table.
   tableCount: number;
   matchedTableCount: number;
-  // The watched database it is, when it is one.
+  /*
+   * The watched database it is, when it is one: by its ID only. Its name is
+   * Data Security's record, which not everyone who reads the tool may read.
+   */
   dataStoreId: string | null;
-  dataStoreName: string | null;
   /*
    * A database OneUptime could watch and does not: the kind to connect it
    * as (a DataStoreKind), and a connection string to start from, its user
@@ -252,7 +254,6 @@ export function readDataBiLineageSummary(
               tableCount: readCount(fields["tableCount"]),
               matchedTableCount: readCount(fields["matchedTableCount"]),
               dataStoreId: readText(fields["dataStoreId"]),
-              dataStoreName: readText(fields["dataStoreName"]),
               connectKind: readText(fields["connectKind"]),
               connectionExample: readText(fields["connectionExample"]),
             }

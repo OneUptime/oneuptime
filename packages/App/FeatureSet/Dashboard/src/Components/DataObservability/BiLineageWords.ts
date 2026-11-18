@@ -267,7 +267,6 @@ export enum BiSourceStanding {
   Elsewhere = "Elsewhere",
 }
 
-const WATCHED_AS: string = translationKey("Watched as {{name}}");
 const WATCHED: string = translationKey("Watched");
 const NOT_CONNECTED: string = translationKey("Not connected");
 const NOT_WATCHABLE: string = translationKey("Not a database OneUptime reads");
@@ -288,11 +287,7 @@ export function getBiSourceStanding(
   if (source.dataStoreId) {
     return {
       standing: BiSourceStanding.Watched,
-      text: source.dataStoreName
-        ? translator.translateTemplate(WATCHED_AS, {
-            name: source.dataStoreName,
-          })
-        : translated(translator, WATCHED),
+      text: translated(translator, WATCHED),
     };
   }
 

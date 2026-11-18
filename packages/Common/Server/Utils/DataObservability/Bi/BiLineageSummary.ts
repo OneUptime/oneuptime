@@ -11,9 +11,13 @@ import {
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import { getCollectorEngineOfKind } from "../DataObservabilityEngines";
 import { buildConnectionExample } from "../DataSourceSuggestions";
-import { ProjectCatalog } from "../OpenLineageIngest";
 import { UsageAsset, UsageStore } from "../TableUsageMatching";
-import { isSameBiHost, matchBiTable, readBiHost } from "./BiMatching";
+import {
+  BiCatalog,
+  isSameBiHost,
+  matchBiTable,
+  readBiHost,
+} from "./BiMatching";
 import { BiSourceRead, collectBiSources } from "./BiSources";
 import { BiTableRef, getBiTableKey, getBiTableName } from "./BiTables";
 
@@ -220,7 +224,8 @@ export function getBiLineageProblems(data: {
 
 export function summarizeBiLineage(data: {
   dashboards: Array<BiDashboardTables>;
-  catalog: ProjectCatalog;
+  // The watched tables and databases, never their names: a database is named by its ID only.
+  catalog: BiCatalog;
   /*
    * Where the data comes from, as the tool says (Power BI's datasets);
    * left out, each dashboard's tables' databases are its sources.
@@ -292,9 +297,6 @@ export function summarizeBiLineage(data: {
         tableCount: read.tables.length,
         matchedTableCount: matched.size,
         dataStoreId: store?.dataStoreId || null,
-        dataStoreName: store
-          ? data.catalog.storeNames.get(store.dataStoreId) || null
-          : null,
         // Watched already: nothing to connect.
         ...(store
           ? { connectKind: null, connectionExample: null }

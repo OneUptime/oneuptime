@@ -57025,7 +57025,6 @@
   "Table Matching": "資料表比對",
   "These tables are in databases OneUptime watches, but are not watched: {{tables}}. They may be left out of the database's scan, or not collected yet.": "These tables are in databases OneUptime watches, but are not watched: {{tables}}. They may be left out of the database's scan, or not collected yet.",
   "Watch the Tables Your Dashboards Read": "Watch the Tables Your Dashboards Read",
-  "Watched as {{name}}": "Watched as {{name}}",
   "What to Do": "What to Do",
   "Where the Data Comes From": "Where the Data Comes From",
   "Your BI tools were read, but their dashboards are built on no table OneUptime watches yet. The map draws them once they are, from any of these:": "Your BI tools were read, but their dashboards are built on no table OneUptime watches yet. The map draws them once they are, from any of these:",

@@ -338,7 +338,6 @@ describe("what keeps dashboards off their tables", () => {
       tableCount: 1,
       matchedTableCount: 0,
       dataStoreId: null,
-      dataStoreName: null,
       ...data,
     };
   }
@@ -445,7 +444,6 @@ describe("a tool's summary", () => {
           tableCount: 2,
           matchedTableCount: 1,
           dataStoreId: "store-sales",
-          dataStoreName: "Sales DB",
           connectKind: null,
           connectionExample: null,
         },
@@ -455,7 +453,6 @@ describe("a tool's summary", () => {
           tableCount: 0,
           matchedTableCount: 0,
           dataStoreId: null,
-          dataStoreName: null,
           // No database: nothing to connect.
           connectKind: null,
           connectionExample: null,
@@ -468,6 +465,8 @@ describe("a tool's summary", () => {
         DataBiLineageProblem.NotDatabases,
       ],
     });
+    // The database's name is Data Security's record, which not everyone who reads the tool may read.
+    expect(JSON.stringify(summary)).not.toContain("Sales DB");
     // Kept as JSON and read back as it was.
     expect(
       readDataBiLineageSummary(JSON.parse(JSON.stringify(summary))),
@@ -575,7 +574,6 @@ describe("a tool's summary", () => {
           tableCount: 0,
           matchedTableCount: 0,
           dataStoreId: null,
-          dataStoreName: null,
           connectKind: null,
           connectionExample: null,
         },
@@ -694,11 +692,11 @@ describe("the read keeps the summary on the tool, and what each dashboard is bui
         expect.objectContaining({
           type: "SQL Server",
           dataStoreId: "store-sales",
-          dataStoreName: "Sales DB",
         }),
       ],
       problems: [],
     });
+    expect(JSON.stringify(written["lineageSummary"])).not.toContain("Sales DB");
   });
 
   test("a known dashboard is updated with what it is built on; a tool that says nothing leaves it as it was", async () => {
