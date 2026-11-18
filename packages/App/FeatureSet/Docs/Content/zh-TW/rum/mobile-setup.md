@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理程式在此基礎上加入自動檢測，並在自己的資源上設定裝置屬性。如果你使用它，請把它的匯出器指向相同的端點和標頭，並確認在你的版本中 `device.model.identifier` 有進入資源。
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理程式在此基礎上加入當機、ANR、緩慢影格和凍結影格以及應用程式啟動，並在自己的資源上設定 `device.model.identifier` 和 `device.manufacturer` 。 [Android 端設定](/docs/rum/android-setup) 說明如何用它取代上面的程式碼進行設定。
 @tab iOS
 使用 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) ，並自行設定裝置屬性：各版本自行加入的資源在不同版本之間有所變動。
 

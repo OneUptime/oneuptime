@@ -105,7 +105,7 @@ class StorefrontApplication : Application() {
 }
 ```
 
-عامل [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) ابزارگذاری خودکار را بر آن می‌افزاید و ویژگی‌های دستگاه را روی منبع خودش تنظیم می‌کند. اگر از آن استفاده می‌کنید، صادرکننده‌اش را به همان نقطه پایانی و سرآیند نشانه بروید و بررسی کنید که در نسخه شما `device.model.identifier` به منبع می‌رسد.
+عامل [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) کرش‌ها، ANRها، فریم‌های کند و یخ‌زده و شروع‌های برنامه را هم بر آن می‌افزاید و `device.model.identifier` و `device.manufacturer` را روی منبع خودش تنظیم می‌کند. [راه‌اندازی اندروید](/docs/rum/android-setup) آن را به‌جای کد بالا راه‌اندازی می‌کند.
 @tab iOS
 از [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) استفاده کنید و ویژگی‌های دستگاه را خودتان تنظیم کنید: منبعی که هر نسخه خودش می‌افزاید میان انتشارها تغییر کرده است.
 
