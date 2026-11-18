@@ -23,7 +23,7 @@ ProjectMilestoneService.reachInBackground({
   1. Add a value to `ActivationMilestone` in `Common/Types/Analytics/ActivationMilestone.ts`.
   2. Add a line to `ACTIVATION_MILESTONE_DETAILS` in the same file.
   3. Add a `reachInBackground` call where it happens.
-  4. Add a row to `Docs/analytics/activation.md`. Add a backfill source in `ProjectMilestoneBackfill.ts` too, if old data can show it.
+  4. Add a row to `Docs/analytics/activation.md`. Add a backfill source in `ProjectMilestoneBackfill.ts` too, if old data can show it. A telemetry milestone's old data is in ClickHouse: `TelemetryMilestoneBackfill.ts` reads each table of `TELEMETRY_KIND_OF_TABLE`, so a new telemetry table needs its time column there.
 
 Telemetry milestones (first logs, traces, metrics, exceptions and profiles) are set by `TelemetryFanInWriter.submit`, once ClickHouse accepts the rows. A writer that inserts telemetry itself, outside the fan-in writer, calls `TelemetryMilestones.markInserted(tableName, rows)` after its insert succeeds: the network device syslog and trap writers (`ProbeSyslogIngestService`, `SnmpTrapLogWriter`) do. See `TelemetryMilestones.ts`.
 

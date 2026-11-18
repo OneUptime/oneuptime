@@ -8,6 +8,13 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import ProjectMilestoneBackfill, {
   ProjectMilestoneBackfillResult,
 } from "../../../Server/Utils/Activation/ProjectMilestoneBackfill";
+import TelemetryMilestoneBackfill, {
+  KEEP_MARKS_SQL,
+  TelemetryMilestoneBackfillResult,
+} from "../../../Server/Utils/Activation/TelemetryMilestoneBackfill";
+import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { JSONObject } from "../../../Types/JSON";
 import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
@@ -41,7 +48,12 @@ import { dropSchemaOneTableAtATime } from "../../Helpers/DropSchemaOneTableAtATi
  *  - the backfill reads every source as the live hooks count - a person's
  *    acknowledgement, not a monitor's; a policy's run, not a direct page or
  *    an archived policy's log; a confirmed subscriber; the second person -
- *    marks its rows backfilled, and never overwrites a milestone kept live.
+ *    marks its rows backfilled, and never overwrites a milestone kept live;
+ *  - the first-data marks read from ClickHouse (#9454; ClickHouse stood in
+ *    for here, and run for real in App's
+ *    BackfillTelemetryMilestonesFromClickhouseClickhouse suite) are written
+ *    the same way, at a time within the project's life, never for a project
+ *    that is gone, and once however many runs race for them.
  *
  * Opt in with RUN_POSTGRES_PROJECT_MILESTONE_TESTS=true against a Postgres
  * migrated to the current head (the Postgres Schema Drift workflow's
@@ -576,6 +588,224 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
         ),
       ).toBe(0);
       expect(again.projects).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe("the first-data marks, from what ClickHouse holds (#9454)", () => {
+    let oldLogs: string;
+    let liveLogs: string;
+    let backdated: string;
+    let ahead: string;
+    let quiet: string;
+    // What ClickHouse holds: table -> project -> earliest row, in ms.
+    let held: Partial<Record<AnalyticsTableName, Record<string, number>>>;
+    // The projects each read asked for.
+    let asked: Array<{ table: string; projectIds: Array<string> }>;
+
+    const tableOf: (statement: Statement) => AnalyticsTableName = (
+      statement: Statement,
+    ): AnalyticsTableName => {
+      return Object.values(statement.query_params).find(
+        (value: unknown): boolean => {
+          return Object.values(AnalyticsTableName).includes(
+            value as AnalyticsTableName,
+          );
+        },
+      ) as AnalyticsTableName;
+    };
+
+    const runTelemetryBackfill: () => Promise<TelemetryMilestoneBackfillResult> =
+      async (): Promise<TelemetryMilestoneBackfillResult> => {
+        return await TelemetryMilestoneBackfill.backfill({
+          batchSize: 2,
+          tableExists: async (): Promise<boolean> => {
+            return true;
+          },
+          query: async (
+            sql: string,
+            parameters: Array<unknown>,
+          ): Promise<unknown> => {
+            return await database.query(sql, parameters);
+          },
+          readClickhouse: async (
+            statement: Statement,
+          ): Promise<Array<JSONObject>> => {
+            const table: AnalyticsTableName = tableOf(statement);
+            const projectIds: Array<string> = Object.values(
+              statement.query_params,
+            ).find((value: unknown): boolean => {
+              return Array.isArray(value);
+            }) as Array<string>;
+
+            asked.push({ table, projectIds });
+
+            return projectIds
+              .filter((projectId: string): boolean => {
+                return held[table]?.[projectId] !== undefined;
+              })
+              .map((projectId: string): JSONObject => {
+                return {
+                  projectId,
+                  firstRowAt: String(held[table]![projectId]),
+                };
+              });
+          },
+        });
+      };
+
+    beforeAll(async () => {
+      oldLogs = await insertProject(at(0));
+      liveLogs = await insertProject(at(0));
+      backdated = await insertProject(at(100));
+      ahead = await insertProject(at(0));
+      quiet = await insertProject(at(0));
+
+      // A mark the fan-in writer kept live, with its event, since the upgrade.
+      await database.query(
+        `INSERT INTO "ProjectMilestone" ("version", "projectId", "milestone", "reachedAt", "wasBackfilled") VALUES (1, $1, 'first_logs_received', $2, false)`,
+        [liveLogs, at(700)],
+      );
+    });
+
+    beforeEach(() => {
+      asked = [];
+      held = {
+        [AnalyticsTableName.Log]: {
+          [oldLogs]: at(20).getTime(),
+          [liveLogs]: at(15).getTime(),
+          // Timed before its project was created: a client's clock.
+          [backdated]: at(30).getTime(),
+        },
+        [AnalyticsTableName.Span]: {
+          // Timed in the future.
+          [ahead]: Date.now() + 24 * 60 * 60 * 1000,
+        },
+      };
+    });
+
+    test("a project with old logs and no mark gets first logs, backfilled, at its first log's time - and nothing is sent", async () => {
+      await runTelemetryBackfill();
+
+      expect(await milestonesOf(oldLogs)).toEqual([
+        {
+          milestone: "first_logs_received",
+          reachedAt: at(20),
+          wasBackfilled: true,
+        },
+      ]);
+      expect(ProductAnalytics.capture).not.toHaveBeenCalled();
+    });
+
+    test("a mark kept live stays as it was, and its kind is not even read", async () => {
+      await runTelemetryBackfill();
+
+      expect(await milestonesOf(liveLogs)).toEqual([
+        {
+          milestone: "first_logs_received",
+          reachedAt: at(700),
+          wasBackfilled: false,
+        },
+      ]);
+      expect(
+        asked
+          .filter((read: { table: string }): boolean => {
+            return read.table === AnalyticsTableName.Log;
+          })
+          .flatMap((read: { projectIds: Array<string> }): Array<string> => {
+            return read.projectIds;
+          }),
+      ).not.toContain(liveLogs);
+    });
+
+    test("a mark's time is within its project's life: never before it was created, never after now", async () => {
+      const before: number = Date.now();
+
+      await runTelemetryBackfill();
+
+      expect(await milestonesOf(backdated)).toEqual([
+        {
+          milestone: "first_logs_received",
+          reachedAt: at(100),
+          wasBackfilled: true,
+        },
+      ]);
+
+      const [traces] = await milestonesOf(ahead);
+
+      expect(traces!.milestone).toBe("first_traces_received");
+      expect(traces!.reachedAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
+      expect(traces!.reachedAt.getTime()).toBeLessThanOrEqual(Date.now());
+    });
+
+    test("a project with no rows gets nothing", async () => {
+      await runTelemetryBackfill();
+
+      expect(await milestonesOf(quiet)).toEqual([]);
+    });
+
+    test("a project gone by the time its mark is written gets none, and the write does not fail", async () => {
+      const gone: string = ObjectID.generate().toString();
+
+      expect(
+        await database.query(KEEP_MARKS_SQL, [
+          [gone, oldLogs],
+          [at(5).toISOString(), at(6).toISOString()],
+          "first_metrics_received",
+        ]),
+      ).toHaveLength(1);
+      expect(await milestonesOf(gone)).toEqual([]);
+      expect(
+        (await milestonesOf(oldLogs)).map(
+          (mark: { milestone: string }): string => {
+            return mark.milestone;
+          },
+        ),
+      ).toContain("first_metrics_received");
+
+      await database.query(
+        `DELETE FROM "ProjectMilestone" WHERE "projectId" = $1 AND "milestone" = 'first_metrics_received'`,
+        [oldLogs],
+      );
+    });
+
+    test("runs racing each other keep one row per mark, and a second run keeps nothing more", async () => {
+      await database.query(
+        `DELETE FROM "ProjectMilestone" WHERE "projectId" = ANY($1::uuid[]) AND "wasBackfilled" = true`,
+        [[oldLogs, backdated, ahead]],
+      );
+
+      const results: Array<TelemetryMilestoneBackfillResult> =
+        await Promise.all([
+          runTelemetryBackfill(),
+          runTelemetryBackfill(),
+          runTelemetryBackfill(),
+        ]);
+
+      const kept: (result: TelemetryMilestoneBackfillResult) => number = (
+        result: TelemetryMilestoneBackfillResult,
+      ): number => {
+        return Object.values(result.keptByMilestone).reduce(
+          (sum: number, count: number | undefined): number => {
+            return sum + (count || 0);
+          },
+          0,
+        );
+      };
+
+      expect(
+        results.reduce(
+          (sum: number, result: TelemetryMilestoneBackfillResult): number => {
+            return sum + kept(result);
+          },
+          0,
+        ),
+      ).toBe(3);
+
+      for (const projectId of [oldLogs, backdated, ahead]) {
+        expect(await milestonesOf(projectId)).toHaveLength(1);
+      }
+
+      expect(kept(await runTelemetryBackfill())).toBe(0);
     });
   });
 });
