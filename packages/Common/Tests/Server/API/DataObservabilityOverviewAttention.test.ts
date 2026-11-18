@@ -242,6 +242,7 @@ function stubOverviewSources(): void {
     failingCheckCount: 2,
     checkCount: 4,
     pipelineCount: 1,
+    storeIdByCheckId: new Map(),
   };
 
   reads = [];
@@ -477,6 +478,7 @@ describe("the Overview's answer", () => {
       failingCheckCount: 0,
       checkCount: 0,
       pipelineCount: 0,
+      storeIdByCheckId: new Map(),
     };
 
     const overview: DataObservabilityOverview =

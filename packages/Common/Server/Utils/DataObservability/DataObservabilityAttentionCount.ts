@@ -159,14 +159,20 @@ export default class DataObservabilityAttentionCount {
     return await counting;
   }
 
-  // Forgets what was kept: for tests, and a project whose records just changed under them.
+  /*
+   * Forgets what was kept, and what is being counted: for tests, and a
+   * project whose records just changed under them. The next caller counts
+   * again.
+   */
   public static forget(projectId?: ObjectID | undefined): void {
     if (projectId) {
       this.kept.delete(projectId.toString());
+      this.inFlight.delete(projectId.toString());
       return;
     }
 
     this.kept = new InMemoryTTLCache<number>(5_000);
+    this.inFlight = new Map();
   }
 
   // Each kind of thing that needs someone, counted.
