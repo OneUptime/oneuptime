@@ -7,14 +7,14 @@ For a website or API, a guided setup walks you from its address to a test page i
 > [!NOTE]
 > To create a monitor you need the Project Owner, Project Admin, Project Member, Monitor Admin or Monitor Member role, or a custom role with the Create Monitor permission.
 
-## Monitor Info
+## What to Monitor
 
-The first step asks what to monitor and what to call it.
+The first step asks what to monitor, where it is, and what to call it.
 
 :::steps
 ### Open Create Monitor
 
-Go to **Monitors** and click **Create Monitor**. The form opens on its first step, **Monitor Info**.
+Go to **Monitors** and click **Create Monitor**. The form opens on its first step, **What to Monitor**.
 
 ### Pick the monitor type
 
@@ -26,9 +26,13 @@ The first question is the **Monitor Type**: what do you want to monitor?
 
 The type you pick shrinks to one line. Click **Change** to pick another; press **Escape** while choosing to keep the type you had.
 
+### Enter where it is
+
+A type whose check is of one address asks for it right after the type: the **Website URL** of a website or an SSL certificate, the **API URL** of an API, the host or IP address to ping, a host and its **Port**, or an NTP server. The box shows an example. Under a website's or an API's address, **Bypass caches on every check** shows how to put a value in it that changes on every check. Other types ask where to look on the next step, such as a DNS monitor's domain or a database's connection.
+
 ### Name the monitor
 
-Fill in the **Name**. It is used in alerts and incident titles. **Description** and **Labels** are optional and wait under **More fields**.
+Fill in the **Name**. After an address it fills in by itself, such as `example.com`, until you write one of your own. It is used in alerts and incident titles. **Description** and **Labels** are optional and wait under **More fields**.
 
 A **Manual** monitor needs nothing more, so **Create Monitor** is on this step. For any other type, click **Next**.
 :::
@@ -40,9 +44,9 @@ The second step asks what to check, and decides what counts as a problem.
 :::steps
 ### Enter what to check
 
-This step opens on what to check. For a website, that is its URL, with an example in the box; other types ask for a host, a query, a cluster or a log filter. Settings most monitors never change, such as timeouts and retries, are folded under **More fields**.
+This step opens on the rest of what the check reads. A monitor of one address shows it under **Monitor Target**, with what else it takes, such as an API's request method; other types ask for a domain, a query, a cluster or a log filter here. Settings most monitors never change, such as timeouts and retries, are folded under **More fields**.
 
-For a monitor that probes check, **Test Monitor** runs the check once before you save it: pick a probe under **Select Probe** and click **Run Test**. The answer opens in **Monitor Test Result**.
+For a monitor that probes check, **Test Monitor** runs the check once before you save it, on a probe the monitor is checked from: click **Run Test**, or pick another probe under **Select Probe** first. **Monitor Test Result** says which criteria the answer matches and what would follow (the status, the incident or alert and who is told), then shows what the probe found.
 
 ### Review the criteria
 

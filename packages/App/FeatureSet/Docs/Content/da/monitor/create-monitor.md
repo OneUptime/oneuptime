@@ -7,14 +7,14 @@ For et websted eller API fører en guidet opsætning dig i stedet fra adressen t
 > [!NOTE]
 > For at oprette en monitor skal du have rollen Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 
-## Monitorinfo
+## Hvad der skal overvåges
 
-Første trin spørger, hvad der skal overvåges, og hvad monitoren skal hedde.
+Første trin spørger, hvad der skal overvåges, hvor det er, og hvad monitoren skal hedde.
 
 :::steps
 ### Åbn Opret monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit første trin, **Monitorinfo**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit første trin, **Hvad der skal overvåges**.
 
 ### Vælg monitortypen
 
@@ -26,9 +26,13 @@ Det første spørgsmål er **Monitortype**: hvad vil du overvåge?
 
 Den valgte type skrumper til én linje. Klik på **Skift** for at vælge en anden; tryk på **Escape**, mens du vælger, for at beholde den type, du havde.
 
+### Angiv, hvor det er
+
+En type, hvis tjek gælder én adresse, beder om den lige efter typen: et websteds eller et SSL-certifikats **Websteds-URL**, en API's **API-URL**, værten eller IP-adressen, der skal pinges, en vært og dens **Port** eller en NTP-server. Feltet viser et eksempel. Under et websteds eller en API's adresse viser **Gå uden om caches ved hvert tjek**, hvordan du sætter en værdi ind, der skifter ved hvert tjek. Andre typer spørger på næste trin, hvor der skal kigges, som en DNS-monitors domæne eller en databases forbindelse.
+
 ### Navngiv monitoren
 
-Udfyld **Navn**. Det bruges i advarsler og i hændelsers titler. **Beskrivelse** og **Etiketter** er valgfrie og venter under **Flere felter**.
+Udfyld **Navn**. Efter en adresse udfyldes det af sig selv, for eksempel med `example.com`, indtil du skriver dit eget. Det bruges i advarsler og i hændelsers titler. **Beskrivelse** og **Etiketter** er valgfrie og venter under **Flere felter**.
 
 En **Manuel**-monitor behøver ikke mere, så **Opret monitor** ligger på dette trin. For alle andre typer klikker du på **Næste**.
 :::
@@ -40,9 +44,9 @@ Andet trin spørger, hvad der skal tjekkes, og afgør, hvad der tæller som et p
 :::steps
 ### Angiv, hvad der skal tjekkes
 
-Dette trin åbner på det, der skal tjekkes. For et websted er det dets URL med et eksempel i feltet; andre typer beder om en vært, en forespørgsel, en klynge eller et logfilter. Indstillinger, som de fleste monitorer aldrig ændrer, som timeouts og genforsøg, er foldet sammen under **Flere felter**.
+Dette trin åbner på resten af det, tjekket læser. En monitor af én adresse viser den under **Monitor-mål** med det, den ellers skal bruge, som en API's anmodningsmetode; andre typer beder her om et domæne, en forespørgsel, en klynge eller et logfilter. Indstillinger, som de fleste monitorer aldrig ændrer, som timeouts og genforsøg, er foldet sammen under **Flere felter**.
 
-For en monitor, som sonder tjekker, kører **Test monitor** tjekket én gang, før du gemmer: vælg en sonde under **Vælg sonde**, og klik på **Kør test**. Svaret åbner i **Monitortestresultat**.
+For en monitor, som sonder tjekker, kører **Test monitor** tjekket én gang, før du gemmer, på en sonde, der tjekker monitoren: klik på **Kør test**, eller vælg først en anden sonde under **Vælg sonde**. **Monitortestresultat** fortæller, hvilket kriterium svaret opfylder, og hvad der ville følge (status, hændelsen eller advarslen og hvem der får besked), og viser derefter, hvad sonden fandt.
 
 ### Gennemgå kriterierne
 

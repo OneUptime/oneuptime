@@ -26,9 +26,11 @@ import path from "path";
  * The maintainer called Create Monitor "extremely confusing". It now asks
  * what to monitor first - six common types, the rest behind More monitor
  * types or the search box, a picked type shrunk to one line with Change -
- * then the name, folds the description and labels, folds the default
- * criteria and says nothing is missing until Next. This page says so, in
- * every language, with the words that language's dashboard shows.
+ * then where it is, for a type whose check is of one address (#7463), then
+ * the name, which the address fills in; it folds the description and
+ * labels, folds the default criteria and says nothing is missing until
+ * Next. This page says so, in every language, with the words that
+ * language's dashboard shows.
  *
  * Markdown is not compiled, so nothing else notices when a step is renamed,
  * the common types change, the interval default moves or the picker's
@@ -81,7 +83,7 @@ const PRODUCT_ONBOARDINGS_FILE: string =
 
 // Create Monitor's steps, in order: the page's first three sections.
 const STEP_TITLES: Array<string> = [
-  "Monitor Info",
+  "What to Monitor",
   "Criteria",
   "Probes & Interval",
 ];
@@ -101,6 +103,8 @@ const UI_WORDS: Array<string> = [
   "Description",
   "Labels",
   MORE_FIELDS_SECTION_TITLE,
+  // The address a type whose check is of one address asks with the type.
+  "Website URL",
   "Test Monitor",
   "Criteria",
   "Add Criteria",
@@ -346,7 +350,7 @@ describe("the Creating a Monitor docs page", () => {
       }
     });
 
-    it("says Manual and Probe Status are under Other, and Manual is created from Monitor Info", () => {
+    it("says Manual and Probe Status are under Other, and Manual is created from What to Monitor", () => {
       const other: MonitorTypeCategory | undefined =
         MonitorTypeHelper.getMonitorTypeCategories().find(
           (category: MonitorTypeCategory): boolean => {
@@ -368,7 +372,7 @@ describe("the Creating a Monitor docs page", () => {
       );
     });
 
-    it("names the fields of Monitor Info, the folded ones under More fields", () => {
+    it("names the fields of What to Monitor, the folded ones under More fields", () => {
       const first: string = pageSections[0]!.body;
 
       for (const title of ["Name", "Description", "Labels"]) {
@@ -377,6 +381,51 @@ describe("the Creating a Monitor docs page", () => {
 
       expect(first).toContain(
         `**Description** and **Labels** are optional and wait under **${MORE_FIELDS_SECTION_TITLE}**.`,
+      );
+    });
+
+    /*
+     * #7463: the address is asked with the type, the name follows it, and
+     * the fold under a website's or an API's address says what it is for.
+     */
+    it("asks where it is with the type, before the name, for each type of one address", () => {
+      const first: string = pageSections[0]!.body;
+      const create: string = readRepoFile(CREATE_PAGE_FILE);
+      const where: number = first.indexOf("### Enter where it is");
+      const name: number = first.indexOf("### Name the monitor");
+
+      expect(where).toBeGreaterThan(first.indexOf("### Pick the monitor type"));
+      expect(name).toBeGreaterThan(where);
+      expect(create).toContain(
+        '...getMonitorAddressFormFields({ stepId: "monitor-info" }),',
+      );
+
+      for (const label of [
+        "Website URL",
+        "API URL",
+        "Port",
+        "Bypass caches on every check",
+      ]) {
+        expect({ label, named: first.includes(`**${label}**`) }).toEqual({
+          label,
+          named: true,
+        });
+      }
+
+      expect(first).not.toContain("URL placeholder help");
+      expect(first).toContain(
+        "After an address it fills in by itself, such as `example.com`, until you write one of your own.",
+      );
+    });
+
+    it("says Test Monitor starts on a probe that checks the monitor, and what its result says", () => {
+      const criteria: string = pageSections[1]!.body;
+
+      expect(criteria).toContain(
+        "on a probe the monitor is checked from: click **Run Test**, or pick another probe under **Select Probe** first.",
+      );
+      expect(criteria).toContain(
+        "**Monitor Test Result** says which criteria the answer matches and what would follow",
       );
     });
 

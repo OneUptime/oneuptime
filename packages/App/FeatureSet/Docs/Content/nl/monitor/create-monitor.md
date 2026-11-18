@@ -7,14 +7,14 @@ Voor een website of API leidt een begeleide installatie u in plaats daarvan van 
 > [!NOTE]
 > Om een monitor te maken hebt u de rol Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid nodig, of een aangepaste rol met de machtiging Create Monitor.
 
-## Monitorinfo
+## Wat te bewaken
 
-De eerste stap vraagt wat u wilt bewaken en hoe de monitor heet.
+De eerste stap vraagt wat u wilt bewaken, waar het te vinden is en hoe de monitor heet.
 
 :::steps
 ### Monitor maken openen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de eerste stap, **Monitorinfo**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de eerste stap, **Wat te bewaken**.
 
 ### Het monitortype kiezen
 
@@ -26,9 +26,13 @@ De eerste vraag is het **Monitortype**: wat wilt u bewaken?
 
 Het gekozen type krimpt tot één regel. Klik op **Wijzigen** om een ander te kiezen; druk tijdens het kiezen op **Escape** om het type te houden dat u had.
 
+### Invullen waar het te vinden is
+
+Een type waarvan de controle één adres geldt, vraagt dat direct na het type: de **Website-URL** van een website of een SSL-certificaat, de **API-URL** van een API, de host of het IP-adres om te pingen, een host en zijn **Poort**, of een NTP-server. Het vak toont een voorbeeld. Onder het adres van een website of API laat **Caches bij elke controle omzeilen** zien hoe u er een waarde in zet die bij elke controle verandert. Andere types vragen in de volgende stap waar gekeken wordt, zoals het domein van een DNS-monitor of de verbinding van een database.
+
 ### De monitor een naam geven
 
-Vul de **Naam** in. Die wordt gebruikt in waarschuwingen en in de titels van incidenten. **Beschrijving** en **Labels** zijn optioneel en wachten onder **Meer velden**.
+Vul de **Naam** in. Na een adres vult die zich vanzelf in, bijvoorbeeld met `example.com`, totdat u er zelf een schrijft. Die wordt gebruikt in waarschuwingen en in de titels van incidenten. **Beschrijving** en **Labels** zijn optioneel en wachten onder **Meer velden**.
 
 Een **Handmatig**-monitor heeft niets meer nodig, dus **Monitor maken** staat op deze stap. Klik bij elk ander type op **Volgende**.
 :::
@@ -40,9 +44,9 @@ De tweede stap vraagt wat er gecontroleerd wordt en bepaalt wat als een probleem
 :::steps
 ### Invullen wat er gecontroleerd wordt
 
-Deze stap opent op wat er gecontroleerd wordt. Voor een website is dat de URL, met een voorbeeld in het vak; andere types vragen om een host, een query, een cluster of een logfilter. Instellingen die de meeste monitoren nooit wijzigen, zoals time-outs en nieuwe pogingen, zijn ingeklapt onder **Meer velden**.
+Deze stap opent op de rest van wat de controle leest. Een monitor van één adres toont dat onder **Monitordoel**, met wat hij verder nodig heeft, zoals de aanvraagmethode van een API; andere types vragen hier om een domein, een query, een cluster of een logfilter. Instellingen die de meeste monitoren nooit wijzigen, zoals time-outs en nieuwe pogingen, zijn ingeklapt onder **Meer velden**.
 
-Voor een monitor die sondes controleren, voert **Monitor testen** de controle één keer uit voordat u opslaat: kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. Het antwoord opent in **Testresultaat van monitor**.
+Voor een monitor die sondes controleren, voert **Monitor testen** de controle één keer uit voordat u opslaat, op een sonde die de monitor controleert: klik op **Test uitvoeren**, of kies eerst een andere sonde onder **Selecteer sonde**. **Testresultaat van monitor** zegt aan welk criterium het antwoord voldoet en wat er zou volgen (de status, het incident of de waarschuwing en wie bericht krijgt), en toont daarna wat de sonde vond.
 
 ### De criteria nakijken
 
