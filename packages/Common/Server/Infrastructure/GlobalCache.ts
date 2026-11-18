@@ -571,11 +571,16 @@ export default abstract class GlobalCache {
    * callers that may take all of them can count against the same key, and
    * the ones refused at the lower limit do not use up what the others still
    * may take.
+   *
+   * `by` adds more than one at once, all or nothing: refused - adding
+   * nothing - when the counter would go past limit. What several units
+   * claimed together need (an on-call fire drill's tests, #7012), where one
+   * add at a time could take some of them and be refused the rest.
    */
   public static async incrementIfBelow(
     namespace: string,
     key: string,
-    options: CacheSetOptions & { limit: number },
+    options: CacheSetOptions & { limit: number; by?: number | undefined },
   ): Promise<number | null> {
     const client: ClientType | null = Redis.getClient();
 
@@ -583,17 +588,34 @@ export default abstract class GlobalCache {
       throw new DatabaseNotConnectedException("Cache is not connected");
     }
 
-    const result: unknown = await client.eval(
-      "local current = tonumber(redis.call('GET', KEYS[1]) or '0') " +
-        "if current >= tonumber(ARGV[1]) then return -1 end " +
-        "local count = redis.call('INCR', KEYS[1]) " +
-        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end " +
-        "return count",
-      1,
-      `${namespace}-${key}`,
-      String(Math.floor(options.limit)),
-      String(options.expiresInSeconds),
-    );
+    const by: number = Math.max(1, Math.floor(options.by || 1));
+
+    const result: unknown =
+      by === 1
+        ? await client.eval(
+            "local current = tonumber(redis.call('GET', KEYS[1]) or '0') " +
+              "if current >= tonumber(ARGV[1]) then return -1 end " +
+              "local count = redis.call('INCR', KEYS[1]) " +
+              "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end " +
+              "return count",
+            1,
+            `${namespace}-${key}`,
+            String(Math.floor(options.limit)),
+            String(options.expiresInSeconds),
+          )
+        : await client.eval(
+            "local current = tonumber(redis.call('GET', KEYS[1]) or '0') " +
+              "local by = tonumber(ARGV[3]) " +
+              "if current + by > tonumber(ARGV[1]) then return -1 end " +
+              "local count = redis.call('INCRBY', KEYS[1], by) " +
+              "if count == by then redis.call('EXPIRE', KEYS[1], ARGV[2]) end " +
+              "return count",
+            1,
+            `${namespace}-${key}`,
+            String(Math.floor(options.limit)),
+            String(options.expiresInSeconds),
+            String(by),
+          );
 
     const count: number = Number(result);
 

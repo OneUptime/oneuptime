@@ -691,7 +691,7 @@ describe("the notification settings matrix and custom channels", () => {
     // The settings and the workspaces are in; only the channels are not.
     await settle();
 
-    expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("detail-skeleton").length).toBeGreaterThan(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
     expect(screen.queryAllByRole("table")).toHaveLength(0);
 
@@ -725,7 +725,7 @@ describe("the notification settings matrix and custom channels", () => {
     });
     await settle();
 
-    expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("detail-skeleton").length).toBeGreaterThan(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
   });
 
@@ -799,7 +799,7 @@ describe("the notification settings matrix and custom channels", () => {
       // Every card of the tab drawn: no loader left.
       await waitFor(() => {
         expect(screen.getAllByRole("switch").length).toBeGreaterThan(1);
-        expect(screen.queryAllByTestId("component-loader")).toHaveLength(0);
+        expect(screen.queryAllByTestId("detail-skeleton")).toHaveLength(0);
       });
 
       for (const table of screen.getAllByRole("table")) {

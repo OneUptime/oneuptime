@@ -99,7 +99,7 @@ export const UPCOMING_SHIFT_NOW_TILE_CLASS_NAME: string =
   "flex h-12 w-12 flex-none flex-col items-center justify-center rounded-lg border border-green-200 bg-green-50 text-center";
 
 export const UPCOMING_SHIFT_TILE_MONTH_CLASS_NAME: string =
-  "max-w-full truncate px-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide";
+  "max-w-full truncate px-0.5 text-xs font-semibold uppercase leading-none tracking-wide";
 
 export const UPCOMING_SHIFT_TILE_DAY_CLASS_NAME: string =
   "mt-1 text-lg font-semibold leading-none";

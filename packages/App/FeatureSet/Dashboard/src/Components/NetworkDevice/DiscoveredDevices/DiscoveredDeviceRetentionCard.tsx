@@ -6,6 +6,7 @@ import DiscoveredDeviceRetentionCopy, {
   getDiscoveredDeviceRetentionDescription,
   getDiscoveredDeviceRetentionText,
 } from "./DiscoveredDeviceRetentionCopy";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Project from "Common/Models/DatabaseModels/Project";
 import {
   DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS,
@@ -14,7 +15,6 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -243,7 +243,7 @@ const DiscoveredDeviceRetentionCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (error) {

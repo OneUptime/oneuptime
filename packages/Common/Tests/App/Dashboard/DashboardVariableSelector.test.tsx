@@ -15,6 +15,14 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  closeDropdown,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -200,10 +208,17 @@ const renderToolbar: RenderToolbarFunction = (
   return state;
 };
 
-type GetSelectFunction = (index?: number) => HTMLSelectElement;
+/*
+ * A variable's picker is the shared Dropdown (#9310): "All" is its
+ * placeholder, a pick is an option of its menu, and clearing it picks "All".
+ */
+type GetSelectFunction = (index?: number) => HTMLElement;
 
-const getSelect: GetSelectFunction = (index: number = 0): HTMLSelectElement => {
-  return screen.getAllByRole("combobox")[index] as HTMLSelectElement;
+const getSelect: GetSelectFunction = (index: number = 0): HTMLElement => {
+  // A locked picker (its values on their way) is out of the accessibility tree.
+  return screen.getAllByRole("combobox", { hidden: true })[
+    index
+  ] as HTMLElement;
 };
 
 type GetTextInputFunction = (index?: number) => HTMLInputElement;
@@ -214,20 +229,23 @@ const getTextInput: GetTextInputFunction = (
   return screen.getAllByRole("textbox")[index] as HTMLInputElement;
 };
 
-/*
- * A TelemetryAttribute select is disabled, and holds only the "All" option,
- * until its values come back — so every assertion about what it displays has
- * to wait for that.
- */
-type WaitForOptionsFunction = (index?: number) => Promise<HTMLSelectElement>;
+type WaitForOptionsFunction = (index?: number) => Promise<HTMLElement>;
 
 const waitForOptions: WaitForOptionsFunction = async (
   index: number = 0,
-): Promise<HTMLSelectElement> => {
+): Promise<HTMLElement> => {
   await waitFor((): void => {
+    expect(screen.queryByText("Loading…")).toBeNull();
     expect(getSelect(index)).not.toBeDisabled();
   });
   return getSelect(index);
+};
+
+// What the picker reads: its pick, or "All" - its placeholder.
+type ShownFunction = (select: HTMLElement) => string | null;
+
+const shown: ShownFunction = (select: HTMLElement): string | null => {
+  return getShownDropdownValue(select) ?? getShownDropdownPlaceholder(select);
 };
 
 type SelectValueFunction = (element: HTMLElement, value: string) => void;
@@ -236,17 +254,29 @@ const selectValue: SelectValueFunction = (
   element: HTMLElement,
   value: string,
 ): void => {
-  fireEvent.change(element, { target: { value: value } });
+  if (value === "") {
+    clearDropdown(element);
+    return;
+  }
+
+  chooseDropdownOption(element, value);
 };
 
-type OptionLabelsFunction = (select: HTMLSelectElement) => Array<string>;
+// The choices: "All" (the placeholder), then the options the menu lists.
+type OptionLabelsFunction = (select: HTMLElement) => Array<string>;
 
 const optionLabels: OptionLabelsFunction = (
-  select: HTMLSelectElement,
+  select: HTMLElement,
 ): Array<string> => {
-  return Array.from(select.options).map((option: HTMLOptionElement): string => {
-    return option.textContent || "";
-  });
+  openDropdown(select);
+  const names: Array<string> = screen
+    .queryAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(select);
+
+  return ["All", ...names];
 };
 
 /** What the widgets would be filtered by, given what the toolbar is holding. */
@@ -276,11 +306,10 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       // Untouched, the variable shows its default. That part was never broken.
-      expect(select).toHaveValue("prod");
-      expect(select).toHaveDisplayValue("prod");
+      expect(shown(select)).toBe("prod");
 
       selectValue(select, "");
 
@@ -288,8 +317,8 @@ describe("DashboardVariableSelector", () => {
        * The whole report in two assertions: the value is the empty string the
        * user picked, and what they read is "All" — not "prod".
        */
-      expect(getSelect()).toHaveValue("");
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
 
@@ -317,7 +346,7 @@ describe("DashboardVariableSelector", () => {
        * "prod" while the interpolation, reading the same variable, applied no
        * filter at all and the widgets showed every cluster.
        */
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
       expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
       expect(
         DashboardVariableInterpolation.applyToAttributes({}, state.variables),
@@ -345,11 +374,11 @@ describe("DashboardVariableSelector", () => {
       ]);
 
       selectValue(await waitForOptions(), "");
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
 
       selectValue(getSelect(), "staging");
 
-      expect(getSelect()).toHaveValue("staging");
+      expect(shown(getSelect())).toBe("staging");
       expect(resolvedFilter(state.variables[0]!)).toEqual({
         scalar: "staging",
       });
@@ -364,8 +393,8 @@ describe("DashboardVariableSelector", () => {
       selectValue(getSelect(), "staging");
       selectValue(getSelect(), "");
 
-      expect(getSelect()).toHaveValue("");
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
       expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
     });
@@ -387,10 +416,10 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod", selectedValue: "" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
-      expect(select).toHaveValue("");
-      expect(select).toHaveDisplayValue("All");
+      expect(shown(select)).toBe("All");
+      expect(shown(select)).toBe("All");
     });
   });
 
@@ -400,7 +429,7 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      expect(await waitForOptions()).toHaveValue("prod");
+      expect(shown(await waitForOptions())).toBe("prod");
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
 
@@ -409,16 +438,16 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod", selectedValue: "staging" }),
       ]);
 
-      expect(await waitForOptions()).toHaveValue("staging");
+      expect(shown(await waitForOptions())).toBe("staging");
     });
 
     test('a variable with no default and no selection opens on "All"', async () => {
       const state: ToolbarState = renderToolbar([telemetryVariable({})]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
-      expect(select).toHaveValue("");
-      expect(select).toHaveDisplayValue("All");
+      expect(shown(select)).toBe("All");
+      expect(shown(select)).toBe("All");
       expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
     });
 
@@ -434,11 +463,10 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
-      expect(select).toHaveValue("prod");
-      expect(select).toHaveDisplayValue("prod");
+      expect(shown(select)).toBe("prod");
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
   });
@@ -470,7 +498,7 @@ describe("DashboardVariableSelector", () => {
       renderToolbar([telemetryVariable({ defaultValue: "prod" })]);
 
       expect(getSelect()).toBeDisabled();
-      expect(optionLabels(getSelect())).toEqual(["Loading…"]);
+      expect(shown(getSelect())).toBe("Loading…");
 
       await act(async (): Promise<void> => {
         releaseValues(OPTIONS);
@@ -478,7 +506,7 @@ describe("DashboardVariableSelector", () => {
 
       expect(getSelect()).not.toBeDisabled();
       expect(optionLabels(getSelect())).toEqual(["All", "prod", "staging"]);
-      expect(getSelect()).toHaveValue("prod");
+      expect(shown(getSelect())).toBe("prod");
     });
 
     test("a failed fetch leaves the control usable and still showing the default", async () => {
@@ -490,11 +518,11 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       // No values came back, but the widgets are still filtered by "prod".
       expect(optionLabels(select)).toEqual(["All", "prod"]);
-      expect(select).toHaveDisplayValue("prod");
+      expect(shown(select)).toBe("prod");
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "prod" });
     });
 
@@ -505,10 +533,10 @@ describe("DashboardVariableSelector", () => {
 
       renderToolbar([telemetryVariable({})]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       expect(optionLabels(select)).toEqual(["All"]);
-      expect(select).toHaveValue("");
+      expect(shown(select)).toBe("All");
     });
   });
 
@@ -536,10 +564,10 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "zeta" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
-      expect(select).toHaveValue("zeta");
-      expect(select).toHaveDisplayValue("zeta");
+      expect(shown(select)).toBe("zeta");
+      expect(shown(select)).toBe("zeta");
       expect(optionLabels(select)).toEqual(["All", "zeta", ...FIRST_HUNDRED]);
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "zeta" });
       expect(
@@ -552,10 +580,10 @@ describe("DashboardVariableSelector", () => {
         telemetryVariable({ defaultValue: "prod", selectedValue: "zeta" }),
       ]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
-      expect(select).toHaveValue("zeta");
-      expect(select).toHaveDisplayValue("zeta");
+      expect(shown(select)).toBe("zeta");
+      expect(shown(select)).toBe("zeta");
       expect(optionLabels(select)).toEqual(["All", "zeta", "prod", "staging"]);
       expect(resolvedFilter(state.variables[0]!)).toEqual({ scalar: "zeta" });
     });
@@ -563,10 +591,10 @@ describe("DashboardVariableSelector", () => {
     test("a listed value is not offered twice", async () => {
       renderToolbar([telemetryVariable({ defaultValue: "staging" })]);
 
-      const select: HTMLSelectElement = await waitForOptions();
+      const select: HTMLElement = await waitForOptions();
 
       expect(optionLabels(select)).toEqual(["All", "prod", "staging"]);
-      expect(select).toHaveDisplayValue("staging");
+      expect(shown(select)).toBe("staging");
     });
 
     test("the extra option goes away once the user picks something else", async () => {
@@ -576,7 +604,7 @@ describe("DashboardVariableSelector", () => {
 
       selectValue(await waitForOptions(), "staging");
 
-      expect(getSelect()).toHaveDisplayValue("staging");
+      expect(shown(getSelect())).toBe("staging");
       expect(optionLabels(getSelect())).toEqual(["All", "prod", "staging"]);
       expect(resolvedFilter(state.variables[0]!)).toEqual({
         scalar: "staging",
@@ -584,7 +612,7 @@ describe("DashboardVariableSelector", () => {
 
       selectValue(getSelect(), "");
 
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
       expect(optionLabels(getSelect())).toEqual(["All", "prod", "staging"]);
       expect(resolvedFilter(state.variables[0]!)).toBeUndefined();
     });
@@ -604,7 +632,7 @@ describe("DashboardVariableSelector", () => {
 
       renderToolbar([telemetryVariable({ defaultValue: "zeta" })]);
 
-      expect(optionLabels(getSelect())).toEqual(["Loading…"]);
+      expect(shown(getSelect())).toBe("Loading…");
 
       await act(async (): Promise<void> => {
         releaseValues(OPTIONS);
@@ -616,7 +644,7 @@ describe("DashboardVariableSelector", () => {
         "prod",
         "staging",
       ]);
-      expect(getSelect()).toHaveDisplayValue("zeta");
+      expect(shown(getSelect())).toBe("zeta");
     });
 
     test("a multi-select keeps and names a picked value the options do not list", async () => {
@@ -654,7 +682,7 @@ describe("DashboardVariableSelector", () => {
         "eu-west-1",
         "us-east-1",
       ]);
-      expect(getSelect()).toHaveValue("eu-west-1");
+      expect(shown(getSelect())).toBe("eu-west-1");
     });
 
     test('picking "All" stays on "All"', () => {
@@ -664,8 +692,8 @@ describe("DashboardVariableSelector", () => {
 
       selectValue(getSelect(), "");
 
-      expect(getSelect()).toHaveValue("");
-      expect(getSelect()).toHaveDisplayValue("All");
+      expect(shown(getSelect())).toBe("All");
+      expect(shown(getSelect())).toBe("All");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
 
@@ -746,8 +774,8 @@ describe("DashboardVariableSelector", () => {
 
       selectValue(await waitForOptions(0), "");
 
-      expect(getSelect(0)).toHaveDisplayValue("All");
-      expect(getSelect(1)).toHaveValue("eu-west-1");
+      expect(shown(getSelect(0))).toBe("All");
+      expect(shown(getSelect(1))).toBe("eu-west-1");
       expect(state.variables[1]!.selectedValue).toBeUndefined();
       expect(resolvedFilter(state.variables[1]!)).toEqual({
         scalar: "eu-west-1",
@@ -767,9 +795,9 @@ describe("DashboardVariableSelector", () => {
        * The re-render that the second variable forces is exactly where the
        * first one used to jump back to "prod".
        */
-      expect(getSelect(0)).toHaveValue("");
-      expect(getSelect(0)).toHaveDisplayValue("All");
-      expect(getSelect(1)).toHaveValue("us-east-1");
+      expect(shown(getSelect(0))).toBe("All");
+      expect(shown(getSelect(0))).toBe("All");
+      expect(shown(getSelect(1))).toBe("us-east-1");
       expect(state.variables[0]!.selectedValue).toBe("");
     });
 

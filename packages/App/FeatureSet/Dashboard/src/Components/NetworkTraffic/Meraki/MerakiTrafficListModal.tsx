@@ -1,4 +1,5 @@
 import { fetchNetworkTrafficUsageList } from "../NetworkTrafficUsageApi";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { TrafficTopRow, TrafficTopRows } from "../TrafficTopList";
 import {
   toApplicationTopRow,
@@ -24,7 +25,6 @@ import {
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageRequest,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -221,7 +221,7 @@ const MerakiTrafficListModal: FunctionComponent<ComponentProps> = (
 
   const body: ReactElement = ((): ReactElement => {
     if (!result && isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={5} />;
     }
 
     if (error && !result) {

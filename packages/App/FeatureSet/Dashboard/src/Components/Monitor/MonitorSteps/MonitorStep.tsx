@@ -1,4 +1,5 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import MonitorStepMetricPreview from "./MonitorStepMetricPreview";
 import TelemetryRuleSummary from "./TelemetryRuleSummary";
 import TelemetryAlertRuleUtil, {
@@ -25,7 +26,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -350,7 +350,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   ]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton fields={4} />;
   }
 
   if (error) {

@@ -162,7 +162,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
           />
         </div>
       )}
-      <div className="mt-2 border-t border-gray-100 pt-1.5 text-[11px] text-gray-500">
+      <div className="mt-2 border-t border-gray-100 pt-1.5 text-xs text-gray-500">
         {isHighlighted
           ? translator.translateText("Click to clear the highlight.")
           : translator.translateTemplate(
@@ -292,7 +292,7 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
         }}
       >
         {fits(props.widthPx, GAP_TEXT_MIN_WIDTH_PX) && (
-          <span className="truncate text-[11px] font-semibold text-amber-800">
+          <span className="truncate text-xs font-semibold text-amber-800">
             {translator.translateText("No one on call")}
           </span>
         )}
@@ -395,7 +395,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
             substitute: shift.userName,
           },
         )}
-        className={`absolute top-[46px] flex h-[18px] items-center gap-1 overflow-hidden rounded text-[11px] text-gray-500 focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-indigo-500 ${
+        className={`absolute top-[46px] flex h-[18px] items-center gap-1 overflow-hidden rounded text-xs text-gray-500 focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-indigo-500 ${
           fits(props.widthPx, BAR_TEXT_MIN_WIDTH_PX) ? "px-1.5" : "px-0"
         }`}
         style={{

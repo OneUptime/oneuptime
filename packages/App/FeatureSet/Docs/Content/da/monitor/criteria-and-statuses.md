@@ -93,6 +93,49 @@ flowchart TB
 
 For at se, hvordan en kontrol blev vurderet, skal du åbne monitorens **Oversigt**: kortet **Monitor-resumé** viser, hvilket kriterium der matchede, og hvad hvert kriterium gjorde, også en hændelse, der blev sprunget over, fordi der allerede var en åben.
 
+## Hvem der får besked, når den går ned
+
+**Når den går ned** fortæller i få sætninger, hvad der sker, når monitoren fejler, og hvem der får besked: den status, den sætter, den hændelse eller advarsel, den åbner, hvem der får en e-mail, og hvem den tilkalder, med navn. Alt, der ville forhindre nogen i at få besked, står på sin egen linje med et link til den side, hvor det rettes. Du finder det i en monitors **Oversigt**, under kriterierne på siden **Kriterier**, i kriterietrinnet i **Opret monitor** for den monitor, du er ved at oprette, og i den guidede opsætning af websites.
+
+Det finder kæden, sådan som en rigtig hændelse eller advarsel gør: med dit projekts ejerregler, privatlivsregler, etiketregler og vagtregler, hændelsesreglen for advarsler, der gør en advarsel til en hændelse, og hvem den første eskaleringsregel i hver vagtpolitik når lige nu. En vagtregel, der spørger, hvem der ejer en advarsel (**Ejer af advarsel**), matches med de ejere, advarslen får: de personer og teams, dens kriterier angiver, ejerne af den netværksenhed, monitoren overvåger, og dem, ejerregler tilføjer. En pladsholder i titlen, som først en kontrol udfylder, vises, som den er skrevet. **Vis kæden** åbner den række for række:
+
+| Række | Hvad den siger |
+| --- | --- |
+| **Status** | Den status, kriterierne sætter. |
+| **Åbner** | Hændelsen eller advarslen, dens alvorlighed i parentes og dens titel. |
+| **E-mails** | Hvem e-mailen om oprettelsen når: dens ejere, de ejere, ejerregler tilføjer, eller Projektejerne, når der ingen er. Den, som tilkaldet når først, får ikke også e-mailen som ejer. |
+| **Ejerregler** | De ejerregler, der tilføjer dens ejere. |
+| **Privat** | Hvorfor den er privat: en privatlivsregel eller kriterierne. En privat hændelse vises ikke på nogen statusside og giver ingen abonnenter besked, og kun dens ejere, Projektejerne og Projektadministratorerne kan se den. |
+| **Etiketregler** | De etiketregler, hvis etiketter ændrer, hvilke vagtregler der tilkalder. |
+| **Vagtregler** | De vagtregler, der matcher den. For en regel, der matcher, hvem der ejer en advarsel, står der, hvilken ejer der får den til at matche. |
+| **Vagtpolitik** | Hver politik, som de regler kører: hvem dens første eskaleringsregel når lige nu og hvordan, og hvem den ikke når, og hvorfor. |
+| **Statussider** | De statussider, der viser den, hver med den monitorgruppe, siden viser monitoren gennem. |
+| **Hændelsesregel** | For en advarsel: den hændelsesregel for advarsler, der opretter en hændelse ud fra den, straks eller når advarslen er forblevet åben, og den hændelse, beskrevet som enhver hændelse. |
+
+### Hvad der forhindrer, at nogen får besked
+
+| Hvad der forhindrer det | Link |
+| --- | --- |
+| Ingen kriterier ændrer status eller åbner en hændelse eller advarsel. | **Åbn kriterier** |
+| Ingen tilkaldes: ingen vagtregel matcher, eller projektet har endnu ingen vagtpolitik. | **Opsæt tilkald** |
+| Monitoren åbner advarsler, og kun hændelser har vagtregler. | **Opsæt tilkald** |
+| En vagtpolitik har ingen eskaleringsregler. | **Åbn vagtpolitik** |
+| En vagtpolitik når ingen lige nu. | **Åbn vagtpolitik** |
+| En person, som en politik tilkalder, kan ikke nås: vedkommende har fravalgt det, har ingen bekræftet metode eller har ingen regel for alvorligheden i et projekt uden reserveløsning. | **Åbn parathed** |
+| SMS, opkald, WhatsApp eller Telegram er slået fra i projektet. | **Åbn notifikationskanaler** |
+| Projektet har ingen saldo tilbage til SMS og opkald (OneUptime Cloud). | **Åbn fakturering** |
+| Serveren kan endnu ikke sende e-mails eller SMS eller foretage opkald. | **Åbn Admin-dashboardet**, for serverens administratorer |
+
+En advarsel, som en hændelsesregel for advarsler gør til en hændelse, der tilkalder nogen, er ikke et brud: I stedet tjekkes hændelsens egne politikker.
+
+Ejere, der ikke får e-mail, står efter bruddene, hver med årsagen og stedet, hvor de er angivet: en person, der ikke er medlem af projektet, et team, hvor ingen er medlem (**Åbn team**), eller et team fra et andet projekt, angivet i kriterierne (**Åbn kriterier**), på den netværksenhed, monitoren overvåger (**Åbn netværksenhed**), eller af en ejerregel (**Åbn ejerregler**). E-mailen sendes stadig, til de ejere, den når, eller til Projektejerne, så de er ikke brud. Opsætningens tilstand viser dem også, som noget, der er værd at rette.
+
+### Kontrollér igen, og hvad du kan se
+
+Svaret er højst et minut gammelt, og **Kontrollér igen** finder det igen. Når en ny kontrol mislykkes, beholder kortet det seneste svar og siger nedenunder hvorfor.
+
+Kortet nævner kun det, du må læse. En vagtpolitik, en regel, en statusside eller en monitorgruppe, du ikke kan se, beholder sin plads uden sit navn, og en privat hændelse eller advarsel, du ikke vil kunne se, siger kun, at den åbnes, og at den er privat.
+
 ## Hvad en hændelse eller advarsel beholder af kontrollen
 
 En hændelse eller advarsel, som en monitor åbner, beholder den kontrol, der åbnede den, så du kan se hvorfor længe efter, at monitorens egne logfiler er væk. Under grundårsagen nævner **Evalueringsdetaljer** det kriterium, der matchede, og for hvert filter, der matchede, hvad kontrollen fandt. **Vis detaljer** tilføjer resten af beviserne, de filtre, der ikke matchede, og selve kontrollen: anmodningen, hvornår den kørte, fra hvilken sonde og hvad der kom tilbage. Det, et filter fandt, kan være:

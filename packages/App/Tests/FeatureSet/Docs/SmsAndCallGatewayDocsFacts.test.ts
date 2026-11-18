@@ -397,16 +397,24 @@ describe("Set It Up, as the Admin Dashboard's card draws it", () => {
     expect(setUp).toContain("go to **Settings > Call and SMS**");
   });
 
-  it("names the card, its Edit Provider button and its Send Test button", () => {
+  /*
+   * #7029: the card's own test sends nobody a message, beside the page's
+   * Send test SMS and Make test call, which do. It is Check Gateway, named
+   * for what it checks, and the page calls it that.
+   */
+  it("names the card, its Edit Provider button and its Check Gateway button", () => {
     expect(card).toContain('name="SMS and Call Provider"');
     expect(card).toContain('title: "SMS and Call Provider",');
     expect(card).toContain('editButtonText="Edit Provider"');
-    expect(card).toContain('title: "Send Test",');
+    expect(card).toContain('button: "Check Gateway",');
+    expect(card).toContain("title: CHECK_GATEWAY_COPY.button,");
+    expect(card).not.toContain('"Send Test"');
 
     expect(setUp).toContain(
       "click **Edit Provider** on the **SMS and Call Provider** card",
     );
-    expect(setUp).toContain("Click **Send Test**.");
+    expect(setUp).toContain("Click **Check Gateway**.");
+    expect(page).not.toMatch(/\*\*Send test\*\*/i);
   });
 
   it("names the answer, the URL field and the folded secret as the form does", () => {
@@ -607,7 +615,7 @@ describe("What Your Gateway Receives", () => {
     expect(test["project"]).toBeNull();
     expect(test["actions"]).toBeNull();
     expect(testRequests).toContain(
-      "**Send test** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`.",
+      "**Check Gateway** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`.",
     );
   });
 

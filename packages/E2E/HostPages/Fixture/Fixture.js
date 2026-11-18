@@ -742,6 +742,27 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
+/*
+ * hold=1: every read waits for good, so the suite can see what each page
+ * draws while it loads: the shapes of its content, not a bar (#9220).
+ */
+if (params.get("hold") === "1") {
+  const never = () => {
+    return new Promise(() => {});
+  };
+  ModelAPI.getList = never;
+  ModelAPI.count = never;
+  ModelAPI.getItem = never;
+  AnalyticsModelAPI.aggregate = never;
+  AnalyticsModelAPI.getList = never;
+  AnalyticsModelAPI.count = never;
+  API.get = never;
+  API.post = never;
+  API.put = never;
+  API.delete = never;
+  API.fetch = never;
+}
+
 function subscribe() {
   return () => {};
 }

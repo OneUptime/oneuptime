@@ -1,4 +1,5 @@
 import TracerouteHopsTable from "./TracerouteHopsTable";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import ProbeMessageLine from "../Monitor/SummaryView/ProbeMessageLine";
 import {
@@ -30,7 +31,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -660,7 +660,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
 
   const getBodyElement: GetBodyElementFunction = (): ReactElement => {
     if (isDeviceLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (deviceError) {

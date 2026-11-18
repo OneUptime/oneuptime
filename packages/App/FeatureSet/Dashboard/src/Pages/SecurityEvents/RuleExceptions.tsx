@@ -211,7 +211,7 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
                 <IsolatedText text={name} />
               </span>
             ) : (
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-gray-500">
                 {translator.translateText(RULE_NOT_FOUND)}
               </span>
             );

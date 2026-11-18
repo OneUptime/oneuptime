@@ -2,6 +2,12 @@ import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import { DiscoveredDeviceImportFacts } from "../../Types/NetworkDevice/DiscoveredDevice";
 import { DiscoveryImportSettings } from "../../Types/NetworkDevice/DiscoveryImport";
+import {
+  NetworkDeviceDiscoveredField,
+  NetworkDeviceDiscoveredValue,
+  buildDiscoveredListEntries,
+} from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import { JSONObject } from "../../Types/JSON";
 import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../Types/ObjectID";
 import { MAX_DEVICE_NAME_LENGTH } from "./DiscoveredDeviceBuilder";
@@ -26,7 +32,13 @@ import { MAX_DEVICE_NAME_LENGTH } from "./DiscoveredDeviceBuilder";
  *     with credentials is walked with the site's (read at each poll), and
  *     one in no such site is checked by ping;
  *   - polled as often as the person chose, and given its vendor's health
- *     template when it answers SNMP and they asked for that.
+ *     template when it answers SNMP and they asked for that;
+ *   - knowing what the list knew about it (issue #9305): the maker its MAC
+ *     names and the name its controller gives it, in its discovered details
+ *     with the list's row as their source - so its Vendor / Model and its
+ *     inventory are not empty. A later change on the list follows it there
+ *     (DiscoveredDeviceInventorySync); nothing a person saves on the device
+ *     is ever replaced by them.
  *
  * Its name is the name the list showed (the classification a person gave
  * it, the name its controller or DHCP gave it, else its address). A device
@@ -39,6 +51,8 @@ export function buildNetworkDeviceFromDiscoveredDevice(data: {
   facts: DiscoveredDeviceImportFacts;
   settings: DiscoveryImportSettings;
   name?: string | undefined;
+  // When the list's row was read: now, unless a test says otherwise.
+  readAt?: Date | undefined;
 }): NetworkDevice {
   const address: string = data.ipAddress.trim();
   const name: string = (data.name || data.facts.name || address)
@@ -58,6 +72,22 @@ export function buildNetworkDeviceFromDiscoveredDevice(data: {
   if (data.facts.macAddress) {
     device.macAddress = data.facts.macAddress;
     device.isMacAddressLearned = true;
+  }
+
+  const listEntries: Partial<
+    Record<NetworkDeviceDiscoveredField, NetworkDeviceDiscoveredValue>
+  > = buildDiscoveredListEntries({
+    reading: {
+      endpointId: data.facts.endpointId,
+      name: data.facts.name || address,
+      vendor: data.facts.vendor,
+      clientName: data.facts.hostname,
+    },
+    readAt: data.readAt || new Date(),
+  });
+
+  if (Object.keys(listEntries).length > 0) {
+    device.discoveredDetails = listEntries as unknown as JSONObject;
   }
 
   if (data.facts.siteId) {

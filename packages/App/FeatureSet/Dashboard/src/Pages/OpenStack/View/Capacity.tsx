@@ -28,7 +28,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -174,7 +174,7 @@ function AllocatedCell(props: {
         className="whitespace-nowrap"
         dataTestId="openstack-capacity-allocated-used"
       />{" "}
-      <span className="whitespace-nowrap text-gray-400">
+      <span className="whitespace-nowrap text-gray-500">
         /{" "}
         <IsolatedText
           text={formatOpenStackCapacityAmount(
@@ -967,7 +967,7 @@ const OpenStackCloudCapacity: FunctionComponent<
     }, [modelId.toString()]);
 
   if (read.isLoading && !read.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && !read.data) {

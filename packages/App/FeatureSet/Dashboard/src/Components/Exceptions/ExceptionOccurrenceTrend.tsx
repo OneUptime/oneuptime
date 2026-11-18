@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -18,7 +19,6 @@ import useTimeRangeZoom, {
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "Common/UI/Components/Charts/Utils/useHistogramRangeSelection";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -441,7 +441,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
           className="flex h-44 select-none items-center justify-center"
           {...selection.placeholderProps}
         >
-          <ComponentLoader />
+          <ChartSkeleton heightInPx={176} hasLegend={false} />
         </div>
       );
     }

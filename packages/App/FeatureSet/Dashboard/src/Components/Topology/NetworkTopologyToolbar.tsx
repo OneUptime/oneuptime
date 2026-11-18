@@ -312,7 +312,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
                     {isDefault ? (
                       <span
                         data-testid="network-topology-layout-default-tag"
-                        className={`ml-1.5 rounded px-1 py-px text-[10px] font-semibold uppercase tracking-wide ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500"}`}
+                        className={`ml-1.5 rounded px-1 py-px text-xs font-semibold uppercase tracking-wide ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500"}`}
                       >
                         {translateString("Default")}
                       </span>

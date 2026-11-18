@@ -44,7 +44,7 @@ const Badge: FunctionComponent<{ text: string; tone: string }> = ({
 }): ReactElement => {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}
     >
       {text}
     </span>
@@ -74,7 +74,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
 
   if (shown.length === 0) {
     return (
-      <div className="py-3 text-center text-xs text-gray-400">
+      <div className="py-3 text-center text-xs text-gray-500">
         {translator.translateText("Nothing here.")}
       </div>
     );
@@ -95,12 +95,12 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
                     {toStr(item["type"]) ||
                       translator.translateText("Exception")}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-[11px] text-gray-500">
+                  <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
                     {toStr(item["message"])}
                   </div>
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
                     {toStr(item["occurrences"]) || "0"}×
                   </span>
                   {item["isResolved"] ? (
@@ -111,7 +111,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
                   ) : null}
                 </div>
               </div>
-              <div className="mt-1.5 text-[10px] text-gray-400">
+              <div className="mt-1.5 text-xs text-gray-500">
                 {translator.translateTemplate("Last seen {{time}}", {
                   time: timeAgo(item["lastSeenAt"]),
                 })}
@@ -170,7 +170,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
                   {toStr(item["title"])}
                 </div>
                 {item["description"] ? (
-                  <div className="mt-0.5 line-clamp-1 text-[11px] text-gray-500">
+                  <div className="mt-0.5 line-clamp-1 text-xs text-gray-500">
                     {toStr(item["description"])}
                   </div>
                 ) : null}
@@ -183,14 +183,14 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
                   />
                 ) : null}
                 {item["severity"] ? (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-500">
                     {toStr(item["severity"])}
                   </span>
                 ) : null}
               </div>
             </div>
             {item["createdAt"] ? (
-              <div className="mt-1.5 text-[10px] text-gray-400">
+              <div className="mt-1.5 text-xs text-gray-500">
                 {translator.translateTemplate("Created {{time}}", {
                   time: timeAgo(item["createdAt"]),
                 })}
@@ -200,7 +200,7 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
         );
       })}
       {items.length > shown.length && (
-        <div className="text-[11px] text-gray-400">
+        <div className="text-xs text-gray-500">
           {translator.translatePlural(
             {
               one: "Showing {{shown}} of {{count}}.",

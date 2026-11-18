@@ -56,6 +56,13 @@ import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventStanding,
 } from "../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import IncidentSubscriberAudienceBuilder, {
+  IncidentSubscriberAudienceRequest,
+} from "../../../Server/Utils/StatusPage/IncidentSubscriberAudienceBuilder";
+import IncidentSubscriberAudience, {
+  IncidentSubscriberAudienceExclusionReason,
+  IncidentSubscriberAudienceResult,
+} from "../../../Types/StatusPage/IncidentSubscriberAudience";
 
 /*
  * DECLARING AN INCIDENT FROM SLACK, LINKED TO WHAT IT IS ABOUT - THROUGH
@@ -86,10 +93,15 @@ import WorkspaceMemberActions, {
  *   - an alert's own channel: the form says it is declared from the alert,
  *     starts from its title and its resources, and the incident is linked
  *     to the alert - never to its monitor;
- *   - status page subscribers (#7606): the form asks nothing about them, so
- *     the incident is declared as the project starts Notify Status Page
- *     Subscribers on Declare New Incident - without notifying them where
- *     the project starts it unticked, as always everywhere else.
+ *   - status page subscribers (#7917, #7916): the form asks Notify Status
+ *     Page Subscribers right after the monitors, starting as the project
+ *     starts it on Declare New Incident - not of a member who may not
+ *     choose, nor for a private alert's incident; the answer is what the
+ *     incident is created with, either way, and a form without the box
+ *     follows the project's switch (#7606); an answer from someone who may
+ *     not give one is refused; the confirmation says whether subscribers
+ *     will be told and which status pages', or why not, in the channel and
+ *     in the person's direct messages alike.
  */
 
 jest.mock("../../../Server/Middleware/SlackAuthorization", () => {
@@ -157,6 +169,33 @@ const CORE_SWITCH: string = "d3c10000-0000-4000-8000-000000000401";
 
 const ALERT_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/alerts/${ALERT_ID.toString()}`;
 const INCIDENT_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${CREATED_INCIDENT_ID.toString()}`;
+
+/*
+ * The confirmation's line about status page subscribers
+ * (WorkspaceIncidentSubscriberNotification), as Slack shows it.
+ */
+const NO_MONITORS_LINE: string =
+  "Status page subscribers were not notified: the incident has no monitors, so no status page shows it.";
+const BOX_OFF_LINE: string =
+  "Status page subscribers were not notified: Notify Status Page Subscribers was off. To tell them later, post a public note in OneUptime with Notify Status Page Subscribers ticked.";
+const PRIVATE_LINE: string =
+  "Status page subscribers were not notified: the incident is private.";
+
+// Who an incident reaches: by default, on no monitor - most incidents.
+function audienceOf(
+  values: Partial<IncidentSubscriberAudienceResult> = {},
+): IncidentSubscriberAudienceResult {
+  return {
+    hasMonitors: false,
+    isScoped: false,
+    isHiddenFromStatusPages: false,
+    statusPages: [],
+    hiddenStatusPageCount: 0,
+    excludedStatusPages: [],
+    selectedStatusPagesNotListingMonitors: [],
+    ...values,
+  };
+}
 
 // One resource of the stand-in database.
 interface ResourceRow {
@@ -536,12 +575,17 @@ function optionsRequest(data: {
   };
 }
 
-// What Slack posts when the New Incident form is submitted.
+/*
+ * What Slack posts when the New Incident form is submitted. `notify` is
+ * Notify Status Page Subscribers as it was left - ticked or not - and left
+ * out for a form that had no box.
+ */
 function formSubmission(data: {
   privateMetadata: string;
   title: string;
   picks: Array<{ value: string; text: string }>;
   monitors?: Array<string> | undefined;
+  notify?: boolean | undefined;
 }): Record<string, string> {
   const values: JSONObject = {
     incidentTitle: {
@@ -587,6 +631,26 @@ function formSubmission(data: {
     },
   };
 
+  // A box Slack sends as its ticked options: its one option, or none.
+  if (data.notify !== undefined) {
+    values["notifyStatusPageSubscribers"] = {
+      notifyStatusPageSubscribers: {
+        type: "checkboxes",
+        selected_options: data.notify
+          ? [
+              {
+                value: "value",
+                text: {
+                  type: "plain_text",
+                  text: "Notify Status Page Subscribers",
+                },
+              },
+            ]
+          : [],
+      },
+    };
+  }
+
   return {
     payload: JSON.stringify({
       type: "view_submission",
@@ -623,10 +687,17 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
   let isAiOn: boolean;
   /*
    * The project's Notify status page subscribers by default (Incidents >
-   * Settings > Subscriber Notifications), and every read of it.
+   * Settings > Subscriber Notifications) - undefined for a project that
+   * holds no value - and every read of it.
    */
-  let notifiesByDefault: boolean;
+  let notifiesByDefault: boolean | undefined;
   let projectReads: Array<JSONObject>;
+  /*
+   * Who the declared incident reaches (IncidentSubscriberAudienceBuilder),
+   * and every request for it.
+   */
+  let reached: IncidentSubscriberAudienceResult;
+  let audienceRequests: Array<IncidentSubscriberAudienceRequest>;
 
   beforeAll(async () => {
     app = await startSlackApp();
@@ -649,6 +720,8 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
     isAiOn = true;
     notifiesByDefault = true;
     projectReads = [];
+    reached = audienceOf();
+    audienceRequests = [];
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
     jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
@@ -658,10 +731,25 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
 
       const project: Project = new Project();
       project.id = findOneById["id"] as ObjectID;
-      project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
-        notifiesByDefault;
+
+      if (notifiesByDefault !== undefined) {
+        project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+          notifiesByDefault;
+      }
+
       return project;
     }) as never);
+    // Who the declared incident reaches, as the Dashboard's review reads it.
+    jest
+      .spyOn(IncidentSubscriberAudienceBuilder, "build")
+      .mockImplementation(
+        async (
+          request: IncidentSubscriberAudienceRequest,
+        ): Promise<IncidentSubscriberAudienceResult> => {
+          audienceRequests.push(request);
+          return reached;
+        },
+      );
     // The project's AI switch, which Affected Resources' hint follows.
     jest
       .spyOn(AIService, "isProjectAIEnabled")
@@ -1078,6 +1166,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         "incidentSeverity",
         "affectedResources",
         "incidentMonitors",
+        "notifyStatusPageSubscribers",
       ]);
 
       const field: JSONObject = inputOf(view, "affectedResources");
@@ -1397,7 +1486,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(posted).toEqual([
         {
           channel: OPS_CHANNEL_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host) and *prod* (Kubernetes Cluster).\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host) and *prod* (Kubernetes Cluster).\n${NO_MONITORS_LINE}\n`,
         },
       ]);
       // Everything was linked: nothing more is said.
@@ -1423,7 +1512,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
         {
           channel: OPS_CHANNEL_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n${NO_MONITORS_LINE}\n`,
         },
       ]);
     });
@@ -1456,7 +1545,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
         {
           channel: SLACK_USER_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host).\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-1* (Host).\n${NO_MONITORS_LINE}\n`,
           user: undefined,
         },
       ]);
@@ -1494,7 +1583,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         }),
       ).toEqual([API_2]);
       expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
-        `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-2* (Host).\n`,
+        `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *api-2* (Host).\n${NO_MONITORS_LINE}\n`,
       );
       // It names the incident: it may be read away from the confirmation.
       expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
@@ -1508,19 +1597,22 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
   });
 
   /*
-   * The form asks nothing about status page subscribers. Where the project
-   * starts Notify Status Page Subscribers unticked on Declare New Incident,
-   * an incident declared here tells them nothing either; anywhere else it is
-   * declared exactly as before, the column not written at all.
+   * A form opened before Slack's form asked about status page subscribers -
+   * its submission carries no box - is declared as the project starts
+   * Notify Status Page Subscribers on Declare New Incident (#7606): without
+   * notifying them where the project starts it unticked; anywhere else
+   * exactly as before, the column not written at all.
    */
-  describe("status page subscribers, as the project starts Notify Status Page Subscribers", () => {
+  describe("a form without the box, opened before the form asked: as the project starts it", () => {
+    // Submitted as a form drawn before: nothing opens it now.
     async function declare(): Promise<Incident> {
-      await command("incident");
-      const view: JSONObject = await openedForm();
-      slackCalls = [];
-
       await submit({
-        privateMetadata: view["private_metadata"] as string,
+        privateMetadata: JSON.stringify({
+          oneuptime: 1,
+          value: OPS_CHANNEL_ID,
+          channelId: OPS_CHANNEL_ID,
+          projectId: PROJECT_ID.toString(),
+        }),
         title: "Checkout is slow",
         picks: [],
       });
@@ -1532,7 +1624,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       return created[0]!.data;
     }
 
-    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column", async () => {
+    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column, and the confirmation says so", async () => {
       notifiesByDefault = false;
 
       const incident: Incident = await declare();
@@ -1540,12 +1632,12 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(
         incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
       ).toBe(false);
-      // Still declared as Simon, and confirmed as always.
+      // Still declared as Simon.
       expect(created[0]!.props).toBe(memberProps);
       expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
         {
           channel: OPS_CHANNEL_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n${BOX_OFF_LINE}\n`,
         },
       ]);
       expect(projectReads).toEqual([
@@ -1555,6 +1647,8 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
           props: { isRoot: true },
         },
       ]);
+      // Nobody will be told: who it reaches is not read.
+      expect(audienceRequests).toEqual([]);
     });
 
     test("a project that keeps it on: declared as always - the column is not written, so the incident notifies them", async () => {
@@ -1564,6 +1658,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
       ).toBeUndefined();
       expect(projectReads).toHaveLength(1);
+      expect(audienceRequests).toHaveLength(1);
     });
 
     test("a project that cannot be read: declared all the same, as always", async () => {
@@ -1626,6 +1721,438 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         }),
       ).toEqual([STAGING_PROJECT_ID.toString()]);
     });
+  });
+
+  /*
+   * The form asks Notify Status Page Subscribers (#7917): right after the
+   * monitors, in the Dashboard's words, starting as the project starts it
+   * on Declare New Incident - read once, as OneUptime, for the one column.
+   */
+  describe("Notify Status Page Subscribers on the form", () => {
+    const BOX: JSONObject = {
+      text: { type: "plain_text", text: "Notify Status Page Subscribers" },
+      value: "value",
+    };
+
+    function boxOf(view: JSONObject): JSONObject | undefined {
+      return (view["blocks"] as Array<JSONObject>).find(
+        (block: JSONObject): boolean => {
+          return block["block_id"] === "notifyStatusPageSubscribers";
+        },
+      );
+    }
+
+    test("right after the monitors, in the Dashboard's words, ticked in a project that keeps it on - the project read once, as OneUptime, for the one column", async () => {
+      await command("incident");
+      const view: JSONObject = await openedForm();
+
+      expect(blockIdsOf(view).slice(-2)).toEqual([
+        "incidentMonitors",
+        "notifyStatusPageSubscribers",
+      ]);
+      expect(boxOf(view)).toEqual({
+        type: "input",
+        block_id: "notifyStatusPageSubscribers",
+        // Unticked is an answer too: Slack submits no required box unticked.
+        optional: true,
+        element: {
+          type: "checkboxes",
+          action_id: "notifyStatusPageSubscribers",
+          options: [BOX],
+          initial_options: [BOX],
+        },
+        label: { type: "plain_text", text: "Status Page Subscribers" },
+        hint: {
+          type: "plain_text",
+          text: "Should status page subscribers be notified when this incident is created?",
+        },
+      });
+      expect(projectReads).toEqual([
+        {
+          id: PROJECT_ID,
+          select: { notifyStatusPageSubscribersOfNewIncidentsByDefault: true },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    test("a project that starts it unticked: unticked, and its question says so", async () => {
+      notifiesByDefault = false;
+
+      await command("incident");
+      const box: JSONObject = boxOf(await openedForm())!;
+
+      expect((box["element"] as JSONObject)["initial_options"]).toBeUndefined();
+      expect(box["hint"]).toEqual({
+        type: "plain_text",
+        text: "Should status page subscribers be notified when this incident is created? Unticked by default in this project.",
+      });
+    });
+
+    test("a project that holds no value: ticked, as it always started", async () => {
+      notifiesByDefault = undefined;
+
+      await command("incident");
+      const box: JSONObject = boxOf(await openedForm())!;
+
+      expect((box["element"] as JSONObject)["initial_options"]).toEqual([BOX]);
+    });
+
+    test("a project that cannot be read: ticked, as it always started, and the form opens all the same", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async () => {
+          throw new Error("the database is not connected");
+        }) as never);
+
+      await command("incident");
+      const box: JSONObject = boxOf(await openedForm())!;
+
+      expect((box["element"] as JSONObject)["initial_options"]).toEqual([BOX]);
+    });
+
+    test("with every list to pick from: after Change Monitor Status to, before the on-call policies and the labels", async () => {
+      jest
+        .spyOn(WorkspaceActionAuthorization, "findReadable")
+        .mockImplementation((async (data: { service: unknown }) => {
+          const named: (model: BaseModel, name: string) => BaseModel = (
+            model: BaseModel,
+            name: string,
+          ): BaseModel => {
+            model.id = ObjectID.generate();
+            (model as unknown as Record<string, unknown>)["name"] = name;
+            return model;
+          };
+
+          if (data.service === IncidentSeverityService) {
+            return [named(new IncidentSeverity(), "Critical")];
+          }
+
+          if (data.service === MonitorService) {
+            return [named(new Monitor(), "Checkout API")];
+          }
+
+          const service: { modelType: { new (): BaseModel } } =
+            data.service as never;
+
+          return [named(new service.modelType(), "Something")];
+        }) as never);
+
+      await command("incident");
+      const view: JSONObject = await openedForm();
+
+      expect(blockIdsOf(view)).toEqual([
+        "incidentTitle",
+        "incidentDescription",
+        "incidentSeverity",
+        "affectedResources",
+        "incidentMonitors",
+        "monitorStatus",
+        "notifyStatusPageSubscribers",
+        "onCallDutyPolicies",
+        "labels",
+      ]);
+    });
+
+    test("a member who may not choose gets no box, and the project is not read for it", async () => {
+      memberProps = propsWith([
+        Permission.ReadProjectIncident,
+        Permission.ReadProjectMonitor,
+      ]);
+
+      await command("incident");
+      const view: JSONObject = await openedForm();
+
+      expect(boxOf(view)).toBeUndefined();
+      expect(projectReads).toEqual([]);
+    });
+
+    test("a private alert's incident: no box - no status page shows it, and the form says it will be private", async () => {
+      isAlertPrivate = true;
+
+      await command("incident", ALERT_CHANNEL_ID);
+      const view: JSONObject = await openedForm();
+
+      expect(boxOf(view)).toBeUndefined();
+      expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toContain(
+        "Like the alert, it will be private.",
+      );
+    });
+  });
+
+  /*
+   * What the box was left at is what the incident is created with, either
+   * way, and the confirmation says whether status page subscribers will be
+   * told - the status pages, by name - or why not (#7916): from the incident
+   * as created, and from who it reaches, read for it as Simon.
+   */
+  describe("the answer, and what the confirmation says about subscribers", () => {
+    async function declareWith(notify: boolean): Promise<Incident> {
+      await command("incident");
+      const view: JSONObject = await openedForm();
+      slackCalls = [];
+
+      await submit({
+        privateMetadata: view["private_metadata"] as string,
+        title: "Checkout is slow",
+        picks: [],
+        monitors: [CHECKOUT_MONITOR.toString()],
+        notify: notify,
+      });
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(created).toHaveLength(1);
+      return created[0]!.data;
+    }
+
+    function confirmation(): string {
+      const posted: Array<{ text: string }> = postedTo(
+        "https://slack.com/api/chat.postMessage",
+      );
+
+      expect(posted).toHaveLength(1);
+      return posted[0]!.text;
+    }
+
+    function withLine(line: string): string {
+      return `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n${line}\n`;
+    }
+
+    function statusPage(
+      name: string,
+      email: number,
+    ): IncidentSubscriberAudienceResult["statusPages"][number] {
+      return {
+        statusPageId: ObjectID.generate().toString(),
+        name: name,
+        subscriberCounts: {
+          ...IncidentSubscriberAudience.getEmptyCounts(),
+          email: email,
+        },
+      };
+    }
+
+    test("ticked: created notifying them, and the confirmation names the status pages that will tell their subscribers - read for the incident, as Simon", async () => {
+      reached = audienceOf({
+        hasMonitors: true,
+        statusPages: [statusPage("Acme Status", 41), statusPage("Beta", 3)],
+      });
+
+      const incident: Incident = await declareWith(true);
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(true);
+      expect(confirmation()).toBe(
+        withLine(
+          "Status page subscribers will be notified: *Acme Status* and *Beta*.",
+        ),
+      );
+
+      expect(audienceRequests).toHaveLength(1);
+      const request: {
+        projectId: ObjectID;
+        props: DatabaseCommonInteractionProps;
+        incidentId: ObjectID;
+      } = audienceRequests[0] as never;
+      expect(request.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(request.incidentId.toString()).toBe(
+        CREATED_INCIDENT_ID.toString(),
+      );
+      expect(request.props.userId).toEqual(SIMON);
+      expect(request.props.isRoot).toBeUndefined();
+    });
+
+    test("unticked in a project that keeps it on: created without notifying them - the answer given is what is saved - and the confirmation says why, and how to tell them later", async () => {
+      const incident: Incident = await declareWith(false);
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      expect(confirmation()).toBe(withLine(BOX_OFF_LINE));
+      expect(audienceRequests).toEqual([]);
+    });
+
+    test("ticked in a project that starts it unticked: created notifying them", async () => {
+      notifiesByDefault = false;
+      reached = audienceOf({
+        hasMonitors: true,
+        statusPages: [statusPage("Acme Status", 41)],
+      });
+
+      const incident: Incident = await declareWith(true);
+
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(true);
+      expect(confirmation()).toBe(
+        withLine("Status page subscribers will be notified: *Acme Status*."),
+      );
+      // Read once, for the form: the submit asks no more of the project.
+      expect(projectReads).toHaveLength(1);
+    });
+
+    test.each([
+      ["on no monitor", audienceOf({ hasMonitors: false }), NO_MONITORS_LINE],
+      [
+        "no status page lists its monitors",
+        audienceOf({ hasMonitors: true }),
+        "Status page subscribers were not notified: no status page shows this incident's monitors.",
+      ],
+      [
+        "the page that shows it has no subscribers yet",
+        audienceOf({
+          hasMonitors: true,
+          statusPages: [statusPage("Acme Status", 0)],
+        }),
+        "Status page subscribers were not notified: *Acme Status* (no subscribers yet).",
+      ],
+      [
+        "the page that lists its monitors does not show incidents",
+        audienceOf({
+          hasMonitors: true,
+          excludedStatusPages: [
+            {
+              statusPageId: ObjectID.generate().toString(),
+              name: "Acme Status",
+              reason: IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+            },
+          ],
+        }),
+        "Status page subscribers were not notified: *Acme Status* (does not show incidents).",
+      ],
+      [
+        "a status page Simon may not read",
+        audienceOf({ hasMonitors: true, hiddenStatusPageCount: 1 }),
+        "Status page subscribers will be notified: 1 status page you do not have access to.",
+      ],
+    ])(
+      "ticked, %s: the confirmation says so",
+      async (
+        _label: string,
+        audience: IncidentSubscriberAudienceResult,
+        line: string,
+      ) => {
+        reached = audience;
+
+        await declareWith(true);
+
+        expect(confirmation()).toBe(withLine(line));
+      },
+    );
+
+    test("who it reaches cannot be worked out: the incident is declared, and the confirmation says it could not tell", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(IncidentSubscriberAudienceBuilder, "build")
+        .mockImplementation(async () => {
+          throw new Error("the database is not connected");
+        });
+
+      await declareWith(true);
+
+      expect(confirmation()).toBe(
+        withLine(
+          "Could not work out which status page subscribers will be notified.",
+        ),
+      );
+    });
+
+    test("a private alert's incident: private, nobody told, and the confirmation says why - nobody's audience read", async () => {
+      isAlertPrivate = true;
+
+      await command("incident", ALERT_CHANNEL_ID);
+      const view: JSONObject = await openedForm();
+      slackCalls = [];
+
+      await submit({
+        privateMetadata: view["private_metadata"] as string,
+        title: "Disk almost full",
+        picks: [],
+      });
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(created[0]!.data.isPrivate).toBe(true);
+      expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
+        `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *<${ALERT_URL}|Alert ALT-3>*.\n${PRIVATE_LINE}\n`,
+      );
+      expect(audienceRequests).toEqual([]);
+    });
+
+    test("a form opened where there is no channel: the line is in Simon's direct messages too", async () => {
+      reached = audienceOf({
+        hasMonitors: true,
+        statusPages: [statusPage("Acme Status", 41)],
+      });
+
+      await submit({
+        privateMetadata: JSON.stringify({
+          oneuptime: 1,
+          value: "",
+          projectId: PROJECT_ID.toString(),
+        }),
+        title: "Checkout is slow",
+        picks: [],
+        notify: true,
+      });
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
+        {
+          channel: SLACK_USER_ID,
+          text: withLine(
+            "Status page subscribers will be notified: *Acme Status*.",
+          ),
+          user: undefined,
+        },
+      ]);
+    });
+
+    test.each([true, false])(
+      "an answer (%s) from a member who may not give one: refused where he submitted it, with who may - and nothing is declared",
+      async (notify: boolean) => {
+        memberProps = propsWith([
+          Permission.ReadProjectIncident,
+          Permission.ReadProjectMonitor,
+        ]);
+
+        const answer: RouteAnswer = await submit({
+          privateMetadata: JSON.stringify({
+            oneuptime: 1,
+            value: OPS_CHANNEL_ID,
+            channelId: OPS_CHANNEL_ID,
+            projectId: PROJECT_ID.toString(),
+          }),
+          title: "Checkout is slow",
+          picks: [],
+          notify: notify,
+        });
+
+        expect(answer.status).toBe(200);
+        await slackCallsAfter(1);
+        await settle();
+
+        expect(created).toEqual([]);
+        expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([]);
+        expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
+          {
+            channel: OPS_CHANNEL_ID,
+            user: SLACK_USER_ID,
+            text: "You do not have permission to choose whether status page subscribers are notified, so the incident was not declared. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident. Open the form again to declare it without this choice.\n",
+          },
+        ]);
+        // Refused before anything else: no pick read, no project asked.
+        expect(resourceReads).toEqual([]);
+        expect(projectReads).toEqual([]);
+      },
+    );
   });
 
   describe("in an alert's own channel", () => {
@@ -1704,7 +2231,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(postedTo("https://slack.com/api/chat.postMessage")).toEqual([
         {
           channel: ALERT_CHANNEL_ID,
-          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *<${ALERT_URL}|Alert ALT-3>* and *api-1* (Host).\n`,
+          text: `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\nLinked to *<${ALERT_URL}|Alert ALT-3>* and *api-1* (Host).\n${NO_MONITORS_LINE}\n`,
         },
       ]);
     });
@@ -1750,7 +2277,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(created).toHaveLength(1);
       expect(created[0]!.miscDataProps).toBeUndefined();
       expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
-        `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n`,
+        `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n${NO_MONITORS_LINE}\n`,
       );
       expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([
         {

@@ -1,9 +1,9 @@
 import { runNetworkControllerTest } from "../NetworkTrafficUsageApi";
 import MerakiTestResultPanel from "./MerakiTestResultPanel";
+import MerakiReadIntervalPicker from "./MerakiReadIntervalPicker";
 import {
   MerakiTemplate,
   drawMerakiTemplate,
-  getMerakiIntervalOptions,
   getMerakiIntervalWords,
   getMerakiRegionOptions,
 } from "./MerakiWords";
@@ -27,6 +27,15 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getSteppedModalFooter } from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -81,6 +90,15 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
   const [step, setStep] = useState<1 | 2>(1);
   const [apiKey, setApiKey] = useState<string>("");
   const [region, setRegion] = useState<MerakiRegion>(DEFAULT_MERAKI_REGION);
+  // A region's name in the reader's language, and the address it signs in at.
+  const regionOptions: Array<DropdownOption> = getMerakiRegionOptions().map(
+    (definition: MerakiRegionDefinition): DropdownOption => {
+      return getTranslatedDropdownOption(
+        definition.region,
+        `${translator.translateText(definition.name) || definition.name} (${definition.dashboardHost})`,
+      );
+    },
+  );
   const [keyError, setKeyError] = useState<string>("");
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [listResult, setListResult] =
@@ -403,28 +421,26 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                 >
                   {translator.translateText("Dashboard region")}
                 </label>
-                <select
-                  id="meraki-region"
-                  value={region}
-                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                    setRegion(event.target.value as MerakiRegion);
-                  }}
-                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  data-testid="meraki-region"
-                >
-                  {getMerakiRegionOptions().map(
-                    (definition: MerakiRegionDefinition): ReactElement => {
-                      return (
-                        <option
-                          key={definition.region}
-                          value={definition.region}
-                        >
-                          {`${translator.translateText(definition.name) || definition.name} (${definition.dashboardHost})`}
-                        </option>
-                      );
-                    },
-                  )}
-                </select>
+                <div className="mt-1" data-testid="meraki-region">
+                  <Dropdown
+                    inputId="meraki-region"
+                    className="relative w-full overflow-visible"
+                    options={regionOptions}
+                    value={findDropdownOption(regionOptions, region)}
+                    // A connection always signs in at one region.
+                    isClearable={false}
+                    onChange={(
+                      next: DropdownValue | Array<DropdownValue> | null,
+                    ): void => {
+                      const picked: string | null =
+                        readPickedDropdownValue(next);
+
+                      if (picked !== null && picked !== region) {
+                        setRegion(picked as MerakiRegion);
+                      }
+                    }}
+                  />
+                </div>
                 <p className="mt-1.5 text-xs text-gray-500">
                   {translator.translateText(
                     "The address you sign in to Meraki at. Most organizations are on dashboard.meraki.com.",
@@ -616,30 +632,12 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                     >
                       {translator.translateText("Read uplink usage")}
                     </label>
-                    <select
-                      id="meraki-read-interval"
-                      value={String(interval)}
-                      onChange={(
-                        event: React.ChangeEvent<HTMLSelectElement>,
-                      ) => {
-                        setReadInterval(Number(event.target.value));
-                      }}
-                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      data-testid="meraki-read-interval"
-                    >
-                      {getMerakiIntervalOptions().map(
-                        (option: {
-                          value: number;
-                          words: MerakiTemplate;
-                        }): ReactElement => {
-                          return (
-                            <option key={option.value} value={option.value}>
-                              {drawMerakiTemplate(translator, option.words)}
-                            </option>
-                          );
-                        },
-                      )}
-                    </select>
+                    <MerakiReadIntervalPicker
+                      inputId="meraki-read-interval"
+                      dataTestId="meraki-read-interval"
+                      value={interval}
+                      onChange={setReadInterval}
+                    />
                     <p className="mt-1.5 text-xs text-gray-500">
                       {translator.translateText(
                         "Each read of the uplinks is one API call for the whole organization. Applications and clients are read every two hours, as Meraki sums them.",

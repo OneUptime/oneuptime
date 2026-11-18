@@ -165,7 +165,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                 (item["labelIds"] as Array<ObjectID>) || [];
               if (labelIds.length === 0) {
                 return (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText("No labels assigned")}
                   </span>
                 );

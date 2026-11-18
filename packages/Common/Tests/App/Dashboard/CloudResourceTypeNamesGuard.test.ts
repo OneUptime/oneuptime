@@ -363,13 +363,22 @@ describe("a cloud resource type's name, as a page draws it", () => {
     },
   );
 
-  test("in Spanish: a subnet is a subred, a Google Cloud instance group an Instance Group either way", () => {
+  test("in Spanish: a route table is a tabla de rutas, a Google Cloud instance group an Instance Group either way", () => {
     const spanish: Translator = dashboardTranslator("es");
 
+    /*
+     * Subnets are listed on every cloud now (#9375), so each goes by the
+     * catalog's label; a type only ever named - a route table - reads in
+     * the reader's language.
+     */
     expect(
-      getCloudResourceTypeText(CloudProvider.AWS, "AWS::EC2::Subnet", spanish),
-    ).toBe(readDashboardLocale("es")["Subnet"]);
-    expect(readDashboardLocale("es")["Subnet"]).not.toBe("Subnet");
+      getCloudResourceTypeText(
+        CloudProvider.AWS,
+        "AWS::EC2::RouteTable",
+        spanish,
+      ),
+    ).toBe(readDashboardLocale("es")["Route Table"]);
+    expect(readDashboardLocale("es")["Route Table"]).not.toBe("Route Table");
 
     // Held by OneUptime (a type the catalog lists), or only linked to.
     for (const type of [

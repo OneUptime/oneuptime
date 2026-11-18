@@ -285,6 +285,7 @@ Um banner no topo das páginas do SLO diz o que o impede de medir:
 | --- | --- | --- |
 | **Nenhum monitor vinculado** | O SLO não tem monitores, então não há nada para medir. | Associe monitores ou crie uma regra de monitor. |
 | **Aguardando a avaliação do SLO** | Há monitores associados, mas a última avaliação não tinha dados de status deles. | Confira se os monitores estão sendo verificados. Os números aparecem depois da próxima avaliação com dados. |
+| **Aguardando a primeira verificação** | Há monitores associados, mas nada os verificou ainda: um monitor criado há um minuto ou uma sonda auto-hospedada que não está conectada. | Nada: o SLO é medido a partir da primeira verificação deles. Se ela não chegar, abra os monitores para ver por quê. |
 | **A medição está pausada** | Todos os monitores que ele mede estão arquivados ou com o monitoramento ativo desligado. | Ligue de novo o monitoramento de pelo menos um monitor, ou espere a manutenção terminar. |
 | **A meta está fora do intervalo** | A meta não é maior que 0 e menor que 100. | Defina uma meta como 99,9 em **Configurações** → **Objetivo**. |
 | **Este SLO está desabilitado** | A avaliação está desligada. | Clique em **Ligar a avaliação**. |

@@ -1,4 +1,5 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,7 +7,6 @@ import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -107,7 +107,7 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
   }, [props.modelId.toString()]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton />;
   }
 
   if (error) {

@@ -74,17 +74,17 @@ De website-installatie heeft al het **Standaard bereikbaarheidsbeleid** aangemaa
 :::steps
 ### De bereikbaarheidsinstallatie openen
 
-Druk op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. Zolang de checklist **Stel een bereikbaarheidsbeleid in** niet heeft afgevinkt, opent die stap dezelfde begeleide installatie.
+Klik in het overzicht van de website-installatie op **Opgeroepen worden via SMS of telefoontje**: de link opent de begeleide installatie **De juiste persoon oproepen als er iets kapotgaat**. Om haar later te openen, druk op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies haar. Zolang de checklist **Stel een bereikbaarheidsbeleid in** niet heeft afgevinkt, opent die stap dezelfde begeleide installatie. Zodra die is afgevinkt, en zolang alleen e-mail je kan oproepen, houdt Start **Opgeroepen worden via SMS of telefoontje** eronder.
 
 ### Kiezen hoe u bereikt wordt
 
 ![De stap "Hoe moeten we je bereiken?", met "Sms en oproepen aanzetten" omcirkeld](screen:paging-reach-you)
 
-Onder **Hoe moeten we je bereiken?** staat uw inlog-e-mail er al. Voor pushmeldingen installeert u de app OneUptime On-Call uit de App Store of Google Play, meldt u zich aan en klikt u op **Opnieuw controleren**. Om ook sms'jes en oproepen te krijgen, klikt u op **Sms en oproepen aanzetten**, voert u uw nummer in bij **Je telefoonnummer** en klikt u op **Stuur me een code per sms**: op OneUptime Cloud worden sms'jes en oproepen betaald uit het tegoed van het project, dus vraagt de stap u eerst tegoed toe te voegen. Klik op **Doorgaan**.
+Onder **Hoe moeten we je bereiken?** staat uw inlog-e-mail er al. Voor pushmeldingen installeert u de app OneUptime On-Call uit de App Store of Google Play, meldt u zich aan en klikt u op **Opnieuw controleren**. **Download de app** toont voor elke winkel een code om te scannen, en **Deze browser gebruiken** roept ook deze browser op. Om ook sms'jes en oproepen te krijgen, klikt u op **Sms en oproepen aanzetten**, voert u uw nummer in bij **Je telefoonnummer** en klikt u op **Stuur me een code per sms**: op OneUptime Cloud worden sms'jes en oproepen betaald uit het tegoed van het project, dus vraagt de stap u eerst tegoed toe te voegen. Klik op **Doorgaan**.
 
-### Kiezen wie er nog meer wordt opgeroepen
+### Kiezen wie als eerste wordt opgeroepen
 
-Houd onder **Wie is er nog meer bereikbaar?** het **Standaard bereikbaarheidsbeleid** aan bij **Bereikbaarheidsbeleid**. Om teamleden met u op te roepen, voegt u ze toe onder **Toevoegen aan de eerste escalatieregel**. Klik op **Opslaan en doorgaan**.
+Houd onder **Wie wordt als eerste opgeroepen?** het **Standaard bereikbaarheidsbeleid** aan bij **Bereikbaarheidsbeleid**. Om teamleden tegelijk met u op te roepen, voegt u ze toe onder **Toevoegen aan de eerste escalatieregel**, of nodigt u ze uit met **Uitnodigen per e-mail**. Klik op **Opslaan en doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 

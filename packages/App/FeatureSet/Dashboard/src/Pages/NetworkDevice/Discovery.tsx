@@ -33,7 +33,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -762,7 +762,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
   useRefreshProbesOnFocus(setProbes);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {
@@ -1221,7 +1221,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               item = liveUpdates.getScan(item);
               if (!item.isRecurring) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("One-time")}
                   </span>
                 );

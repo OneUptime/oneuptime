@@ -114,7 +114,7 @@ Personen treten dem Kanal einer Regel über das Mattermost-Konto bei, das sie ve
 
 Ein Vorfall, eine Warnung, eine Episode oder ein Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Mattermost öffnen**. Das öffnet diesen Kanal in einem neuen Tab, auf Ihrem Mattermost-Server. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz, der auch Kanäle in Slack oder Microsoft Teams hat, hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
-**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, wie bei Slack.
+**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, wie bei Slack. **Test jetzt senden** bei einer Zusammenfassung antwortet wie bei Slack: **Zusammenfassung gesendet**, oder **Test fehlgeschlagen** mit jedem Kanal, der sie nicht bekommen hat, und warum. Jeder Beitrag, und warum einer fehlschlug unter **Grund**, steht unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** auf der Registerkarte **Arbeitsbereich**.
 
 Die Nachrichten von OneUptime benachrichtigen niemanden durch das, was sie zitieren: Ein Name oder eine Beschreibung mit `@channel`, `@here` oder `@someone` erscheint so, wie sie geschrieben ist, und benachrichtigt niemanden.
 

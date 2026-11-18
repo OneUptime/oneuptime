@@ -61,7 +61,7 @@ import UserOverrideOverlapsMark, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideOverlapsMark";
 import {
   USER_OVERRIDE_AWAY_LOCKED_TEXT,
-  USER_OVERRIDE_END_NOW_TEXT,
+  USER_OVERRIDE_ENDS_TEXT,
   USER_OVERRIDE_START_LOCKED_TEXT,
   USER_OVERRIDE_START_MOVABLE_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm";
@@ -232,7 +232,7 @@ const NEW_WORDS: ReadonlyArray<string> = Array.from(
     USER_OVERRIDE_AWAY_LOCKED_TEXT,
     USER_OVERRIDE_START_LOCKED_TEXT,
     USER_OVERRIDE_START_MOVABLE_TEXT,
-    USER_OVERRIDE_END_NOW_TEXT,
+    USER_OVERRIDE_ENDS_TEXT,
     USER_OVERRIDE_EDIT_THAT_OVERRIDE,
     "Edit the override for {{name}}",
     USER_OVERRIDE_CONFLICT_COVERED_ON_POLICY,

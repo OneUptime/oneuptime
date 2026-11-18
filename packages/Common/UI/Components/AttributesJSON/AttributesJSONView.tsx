@@ -67,7 +67,7 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
                   key={itemFormat}
                   type="button"
                   aria-pressed={isActive}
-                  className={`rounded px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isActive
                       ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200"
                       : "text-gray-500 hover:bg-white hover:text-gray-700"
@@ -86,7 +86,7 @@ const AttributesJSONView: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {/* The section header already counts the attributes; say what the shape means. */}
-        <span className="min-w-0 truncate text-[10.5px] text-gray-500">
+        <span className="min-w-0 truncate text-xs text-gray-500">
           {translator.translateText(
             ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[format],
           )}

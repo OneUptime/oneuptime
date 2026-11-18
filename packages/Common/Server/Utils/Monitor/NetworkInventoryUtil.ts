@@ -43,6 +43,10 @@ import ProbeService from "../../Services/ProbeService";
 import IP from "../../../Types/IP/IP";
 import { pickDeviceOwnMac } from "../../../Utils/NetworkDevice/DeviceOwnMacUtil";
 import { isFirstPollSinceRefresh } from "../../../Utils/NetworkDevice/NetworkDeviceRefresh";
+import {
+  isNetworkDeviceManufacturerChangedByWalk,
+  isNetworkDeviceManufacturerInputWrite,
+} from "../../../Utils/NetworkDevice/NetworkDeviceStoredManufacturer";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
 import { isPostgresLockContentionError } from "../Database/PostgresLockContention";
@@ -267,6 +271,12 @@ export default class NetworkInventoryUtil {
            */
           refreshRequestedAt: true,
           lastPolledAt: true,
+          /*
+           * When the walk last succeeded: a walk after a discovery scan makes
+           * the device's own SNMP identity the newer reading again, which
+           * can change the maker it is listed under (issue #9363).
+           */
+          lastSnmpSeenAt: true,
           /*
            * What the walk's device enrichment below would write, so only
            * what changed is written (withoutUnchangedInventory).
@@ -685,6 +695,36 @@ export default class NetworkInventoryUtil {
             isRoot: true,
           },
         });
+      }
+
+      /*
+       * The maker the lists file the device under (issue #9363). A walk
+       * that read a different SNMP identity was written just above, and
+       * that write works the maker out again by itself. One that read the
+       * same can still change it: its verdict moved lastSnmpSeenAt on, and
+       * after a discovery scan read the device, of the two readings the
+       * newer - now the walk's - is the one the maker is read off. Worked
+       * out here from what this poll read the device with, so only such a
+       * walk costs a read; never fatal.
+       */
+      if (
+        isNewestPoll &&
+        !isMonitorBacked &&
+        walkSucceeded &&
+        !isNetworkDeviceManufacturerInputWrite(Object.keys(changedInventory)) &&
+        isNetworkDeviceManufacturerChangedByWalk(ownedDevice, receivedAt)
+      ) {
+        try {
+          await NetworkDeviceService.refreshManufacturer({
+            deviceIds: [deviceId],
+          });
+        } catch (error) {
+          logger.error(
+            `Network device ${deviceId.toString()}: its maker was not worked out again after its walk: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
       }
 
       /*

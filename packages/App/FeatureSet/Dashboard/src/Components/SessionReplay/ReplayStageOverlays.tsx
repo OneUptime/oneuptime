@@ -1059,7 +1059,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         />
         <span
           ref={urlTextRef}
-          className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-600"
+          className="min-w-0 flex-1 truncate font-mono text-xs text-gray-600"
           title={
             currentUrl || translator.translateText("No page URL is known yet")
           }
@@ -1145,7 +1145,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           >
             {viewportLabel}
             {isScaledFit && (
-              <span className="text-gray-400">-&gt; {scalePercent}</span>
+              <span className="text-gray-500">-&gt; {scalePercent}</span>
             )}
           </span>
         )}

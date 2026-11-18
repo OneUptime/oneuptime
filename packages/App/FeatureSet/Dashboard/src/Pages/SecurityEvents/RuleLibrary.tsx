@@ -519,12 +519,8 @@ const RuleLibraryPage: FunctionComponent<
           openClassName={RULE_LIBRARY_OPEN_SEARCH_CLASS_NAME}
           dataTestId="rule-library-search-slot"
         >
-          <div
+          <label
             className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-            onClick={() => {
-              searchInputRef.current?.focus();
-            }}
-            role="presentation"
           >
             <Icon
               icon={IconProp.Search}
@@ -574,7 +570,7 @@ const RuleLibraryPage: FunctionComponent<
             ) : (
               <></>
             )}
-          </div>
+          </label>
         </TableHeaderSearchSlot>
       }
     >

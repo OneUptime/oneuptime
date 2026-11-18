@@ -620,6 +620,6 @@ describe("the Active Incidents list Home's number opens", () => {
     const code: string = ACTIVE_INCIDENTS_SOURCE.replace(/\s+/g, " ");
 
     expect(code).toContain("if (error) { return <ErrorMessage");
-    expect(code).toContain("if (!unresolvedStateIds) { return <PageLoader");
+    expect(code).toContain("if (!unresolvedStateIds) { return <PageSkeleton");
   });
 });

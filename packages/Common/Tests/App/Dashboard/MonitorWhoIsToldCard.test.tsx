@@ -45,21 +45,37 @@ jest.mock("../../../UI/Config", () => {
   return mockedConfig;
 });
 
-import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
+import MonitorWhoIsToldCard, {
+  WhoIsToldPlace,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
+import OnCallTestPageApi from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageApi";
+import MonitorDraftWhoIsTold, {
+  getDraftLabelIds,
+  getMonitorDraft,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import WhoIsToldApi, {
   getWhoIsToldUrl,
   isWhoIsToldResult,
+  WhoIsToldDraftInput,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {
   BREAK_SENTENCES,
   getBreakSentence,
+  getDeclaresSentence,
   getFixLink,
+  getOwnerMatchSentence,
   getOwnersSentences,
   getPagedOwnersSentence,
+  getPrivateSentences,
   getWhoIsToldSentences,
   getWhoIsToldSummary,
   WhoIsToldFixLink,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldWords";
+import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import Navigation from "../../../UI/Utils/Navigation";
+import ProductEvents from "../../../UI/Utils/ProductEvents";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -73,6 +89,10 @@ import {
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
   WhoIsToldPersonProblem,
@@ -116,6 +136,14 @@ const ANA: string = "68102222-0000-4000-8000-0000000000d1";
 const BEN: string = "68102222-0000-4000-8000-0000000000d2";
 
 const translator: Translator = getGlobalTranslator();
+
+/*
+ * The card reads its monitor's last fire drill too (#9386, LastFireDrill):
+ * none here, stood in for as every other read of the server is.
+ */
+beforeEach(() => {
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
+});
 
 // A Tailwind variant that follows the window's width, not the card's.
 const WINDOW_WIDTH_VARIANT: RegExp = /(^|\s)(sm|md|lg|xl|2xl):/u;
@@ -2009,5 +2037,995 @@ describe("the card says an owner the page reaches first is not emailed as an own
 
       expect(screen.queryByTestId("who-is-told-paged-owners")).toBeNull();
     });
+  });
+});
+
+/*
+ * WHAT A NEW RECORD'S OWN RULES MAKE OF IT, ON THE CARD (#7212, #7213,
+ * #7214, #7216, #7572): private records and who may see them, the label
+ * rules that change who is paged, the group a status page shows the monitor
+ * through, the incident an alert's incident rule declares, and the owners
+ * no Created email reaches - each in the reader's words, from what the
+ * server worked out.
+ */
+describe("what the record's own rules make of it", () => {
+  const PRIVACY_RULE: { id: string; name: string } = {
+    id: "68102222-0000-4000-8000-0000000000f1",
+    name: "Payments are private",
+  };
+  const TEAM_ID: string = "68102222-0000-4000-8000-0000000000e1";
+  const DEVICE_ID: string = "68102222-0000-4000-8000-0000000000e2";
+
+  function renderWith(answer: WhoIsToldResult): void {
+    jest.spyOn(WhoIsToldApi, "getForMonitor").mockResolvedValue(answer);
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+  }
+
+  async function openChain(): Promise<HTMLElement> {
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+    return screen.getByTestId("who-is-told-chain");
+  }
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  describe("a private record (#7213)", () => {
+    test("one the reader can't see: what opens and that it is private - nothing of whom it tells", async () => {
+      const hidden: WhoIsToldEvent = {
+        kind: OnCallTestPageRecordKind.Incident,
+        title: "",
+        severityName: "Critical",
+        owners: {
+          source: WhoIsToldOwnersSource.Named,
+          userNames: [],
+          teamNames: [],
+        },
+        ownerRules: [],
+        rules: [],
+        policies: [],
+        statusPages: [],
+        isPrivate: true,
+        privacyRules: [{ id: PRIVACY_RULE.id, name: "" }],
+        isHidden: true,
+      };
+      renderWith(result([offline({ events: [hidden] })]));
+
+      expect(
+        await screen.findByTestId("who-is-told-summary"),
+      ).toHaveTextContent(
+        "OneUptime marks it Offline and opens an incident (Critical). It's private, so you can't see who it tells.",
+      );
+      expect(screen.getByTestId("who-is-told-summary")).not.toHaveTextContent(
+        "Nobody is paged",
+      );
+
+      const chain: HTMLElement = await openChain();
+      const block: HTMLElement = within(chain).getByTestId("who-is-told-event");
+
+      expect(block).toHaveAttribute("data-hidden", "true");
+      expect(
+        within(block).getByTestId("who-is-told-private"),
+      ).toHaveTextContent(
+        "Privacy rule A rule you can't see makes it private.It's private, so you can't see who it tells.",
+      );
+      // No row of whom it tells: no emails, no rules, no policy.
+      expect(block).not.toHaveTextContent("Emails");
+      expect(block).not.toHaveTextContent("On-call rules");
+      expect(
+        within(block).queryByTestId("who-is-told-status-pages"),
+      ).toBeNull();
+    });
+
+    test("one the reader can see: why it is private, who can see it, and why no status page shows it", async () => {
+      renderWith(
+        result([
+          offline({
+            events: [
+              event({
+                isPrivate: true,
+                privacyRules: [PRIVACY_RULE],
+                statusPages: [],
+                isPrivateOffStatusPages: true,
+              }),
+            ],
+          }),
+        ]),
+      );
+
+      const chain: HTMLElement = await openChain();
+
+      expect(
+        within(chain).getByTestId("who-is-told-private"),
+      ).toHaveTextContent(
+        "Privacy rule Payments are private makes it private.Only its owners, Project Owners and Project Admins can see it.",
+      );
+      expect(
+        within(chain).getByTestId("who-is-told-status-pages"),
+      ).toHaveTextContent("None: it's private");
+      // Who it tells is said as for any incident.
+      expect(chain).toHaveTextContent("Ana Lopez");
+    });
+
+    test("the criteria makes it private: said so, with no rule named", async () => {
+      renderWith(
+        result([
+          offline({
+            events: [event({ isPrivate: true, privacyRules: [] })],
+          }),
+        ]),
+      );
+
+      const chain: HTMLElement = await openChain();
+
+      expect(
+        within(chain).getByTestId("who-is-told-private"),
+      ).toHaveTextContent("The criteria makes it private.");
+    });
+
+    test("several privacy rules are said together, in the plural", () => {
+      expect(
+        getPrivateSentences(
+          event({
+            isPrivate: true,
+            privacyRules: [
+              PRIVACY_RULE,
+              { id: "68102222-0000-4000-8000-0000000000f2", name: "Checkout" },
+            ],
+          }),
+          translator,
+        )[0],
+      ).toBe(
+        "Privacy rules Payments are private and Checkout make it private.",
+      );
+    });
+  });
+
+  test("the label rules whose labels change which on-call rules page it (#7212)", async () => {
+    renderWith(
+      result([
+        offline({
+          events: [
+            event({
+              labelRules: [
+                {
+                  id: "68102222-0000-4000-8000-0000000000c1",
+                  name: "Tag checkout",
+                },
+                { id: "68102222-0000-4000-8000-0000000000c2", name: "" },
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+
+    const row: HTMLElement = within(await openChain()).getByTestId(
+      "who-is-told-label-rules",
+    );
+
+    expect(row).toHaveTextContent(
+      "Tag checkout, A rule you can't seeTheir labels change which on-call rules page it.",
+    );
+  });
+
+  test("no label rule changes who is paged: no Label Rules row", async () => {
+    renderWith(result([offline()]));
+
+    expect(
+      within(await openChain()).queryByTestId("who-is-told-label-rules"),
+    ).toBeNull();
+  });
+
+  /*
+   * AN ALERT OWNER RULE (#9407): the on-call rule matches on who owns the
+   * alert, and the chain says which owner made it match, under the rule.
+   */
+  describe("the owners that make an on-call rule match (#9407)", () => {
+    const PAYMENTS_RULE: string = "68102222-0000-4000-8000-0000000000c3";
+    const NIGHT_RULE: string = "68102222-0000-4000-8000-0000000000c4";
+
+    function ownedAlert(
+      overrides: Partial<WhoIsToldEvent> = {},
+    ): WhoIsToldEvent {
+      return event({
+        kind: OnCallTestPageRecordKind.Alert,
+        rules: [
+          { id: PAYMENTS_RULE, name: "Payments' alerts" },
+          { id: NIGHT_RULE, name: "" },
+        ],
+        ownerMatches: [
+          { ruleId: PAYMENTS_RULE, ownerNames: ["Payments", "Ana Lopez"] },
+          { ruleId: NIGHT_RULE, ownerNames: ["Night shift"] },
+        ],
+        ...overrides,
+      });
+    }
+
+    test("each matched rule's owners are said under On-call rules, a rule the reader can't see as such", async () => {
+      renderWith(result([offline({ events: [ownedAlert()] })]));
+
+      const row: HTMLElement = within(await openChain()).getByTestId(
+        "who-is-told-rules",
+      );
+      const lines: Array<string> = within(row)
+        .getAllByTestId("who-is-told-owner-match")
+        .map((line: HTMLElement): string => {
+          return line.textContent || "";
+        });
+
+      expect(row).toHaveTextContent("Payments' alerts, A rule you can't see");
+      expect(lines).toEqual([
+        "It's owned by Payments, Ana Lopez, so Payments' alerts matches.",
+        "It's owned by Night shift, so a rule you can't see matches.",
+      ]);
+    });
+
+    test("no rule its owners make match: no such line, and the row reads as before", async () => {
+      renderWith(
+        result([
+          offline({ events: [ownedAlert({ ownerMatches: undefined })] }),
+        ]),
+      );
+
+      const row: HTMLElement = within(await openChain()).getByTestId(
+        "who-is-told-rules",
+      );
+
+      expect(within(row).queryByTestId("who-is-told-owner-match")).toBeNull();
+      expect(row).toHaveTextContent(
+        "On-call rulesPayments' alerts, A rule you can't see",
+      );
+    });
+
+    test("a private alert the reader can't see says nothing of its owners", async () => {
+      renderWith(
+        result([
+          offline({
+            events: [
+              ownedAlert({
+                isPrivate: true,
+                isHidden: true,
+                title: "",
+                rules: [],
+                ownerMatches: undefined,
+              }),
+            ],
+          }),
+        ]),
+      );
+
+      const chain: HTMLElement = await openChain();
+
+      expect(within(chain).queryByTestId("who-is-told-owner-match")).toBeNull();
+      expect(chain).not.toHaveTextContent("Payments");
+    });
+
+    test("in the reader's language, the rule and owners set apart as names", () => {
+      const german: Translator = localeTranslator("de");
+
+      expect(
+        getOwnerMatchSentence({
+          match: { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+          rules: [{ id: PAYMENTS_RULE, name: "Payments' alerts" }],
+          translator: german,
+        }),
+      ).toContain("Eigentümer:");
+      expect(
+        getOwnerMatchSentence({
+          match: { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+          rules: [{ id: PAYMENTS_RULE, name: "" }],
+          translator: german,
+        }),
+      ).toContain("eine Regel, die Sie nicht sehen können");
+    });
+  });
+
+  test("a status page names the monitor group it shows the monitor through, one the reader can't see as such (#7214)", async () => {
+    renderWith(
+      result([
+        offline({
+          events: [
+            event({
+              statusPages: [
+                {
+                  id: "s2",
+                  name: "Payments status",
+                  groups: [
+                    { id: "g1", name: "Checkout" },
+                    { id: "g2", name: "" },
+                  ],
+                },
+                { id: "s", name: "Public status", groups: [] },
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+
+    expect(
+      within(await openChain()).getByTestId("who-is-told-status-pages"),
+    ).toHaveTextContent(
+      "Payments status (through Checkout, a group you can't see), Public status",
+    );
+  });
+
+  describe("the incident an alert incident rule declares (#7216)", () => {
+    function alertThatDeclares(
+      declaration: Partial<NonNullable<WhoIsToldEvent["declares"]>> = {},
+    ): WhoIsToldEvent {
+      return event({
+        kind: OnCallTestPageRecordKind.Alert,
+        severityName: "High",
+        rules: [],
+        policies: [],
+        statusPages: [],
+        declares: {
+          rule: {
+            id: "68102222-0000-4000-8000-0000000000b1",
+            name: "Database alerts",
+          },
+          waitInMinutes: 30,
+          incident: event({ title: "Checkout API is offline" }),
+          ...declaration,
+        },
+      });
+    }
+
+    test("the first words say the alert becomes an incident, and who the incident pages", async () => {
+      renderWith(
+        result([
+          offline({ statusName: undefined, events: [alertThatDeclares()] }),
+        ]),
+      );
+
+      expect(
+        await screen.findByTestId("who-is-told-summary"),
+      ).toHaveTextContent(
+        "OneUptime opens an alert (High). It emails the Project Owners (Owner One). If it's still open after 30 minutes, alert incident rule Database alerts declares an incident (Critical) from it. It pages Ana Lopez through Primary.",
+      );
+      // Not "Nobody is paged": the incident pages.
+      expect(screen.getByTestId("who-is-told-summary")).not.toHaveTextContent(
+        "Nobody is paged",
+      );
+      expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
+    });
+
+    test("the chain shows the incident under the alert, told as any incident", async () => {
+      renderWith(
+        result([
+          offline({ events: [alertThatDeclares({ waitInMinutes: 0 })] }),
+        ]),
+      );
+
+      const declares: HTMLElement = within(await openChain()).getByTestId(
+        "who-is-told-declares",
+      );
+
+      expect(
+        within(declares).getByTestId("who-is-told-declares-sentence"),
+      ).toHaveTextContent(
+        "Alert incident rule Database alerts declares an incident (Critical) from it right away.",
+      );
+
+      const incident: HTMLElement =
+        within(declares).getByTestId("who-is-told-event");
+
+      expect(incident).toHaveAttribute(
+        "data-kind",
+        OnCallTestPageRecordKind.Incident,
+      );
+      expect(incident).toHaveTextContent("Checkout API is offline");
+      expect(incident).toHaveTextContent("Primary");
+      expect(incident).toHaveTextContent("Public status");
+    });
+
+    test("a rule the reader can't see is said as such, never by an empty name, one minute in the singular", () => {
+      expect(
+        getDeclaresSentence(
+          {
+            rule: { id: "r", name: "" },
+            waitInMinutes: 1,
+            incident: event(),
+          },
+          translator,
+        ),
+      ).toBe(
+        // The count kept on the line of the word it counts.
+        `If it's still open after 1${NO_BREAK_SPACE}minute, an alert incident rule you can't see declares an incident (Critical) from it.`,
+      );
+      expect(
+        getDeclaresSentence(
+          {
+            rule: { id: "r", name: "" },
+            waitInMinutes: 0,
+            incident: event(),
+          },
+          translator,
+        ),
+      ).toBe(
+        "An alert incident rule you can't see declares an incident (Critical) from it right away.",
+      );
+    });
+  });
+
+  describe("owners no Created email reaches (#7572)", () => {
+    function withOwnersNotReached(
+      notReached: Array<WhoIsToldOwnerNotReached>,
+      kind: OnCallTestPageRecordKind = OnCallTestPageRecordKind.Incident,
+    ): WhoIsToldResult {
+      const opened: WhoIsToldEvent = event({
+        kind: kind,
+        owners: {
+          source: WhoIsToldOwnersSource.Named,
+          userNames: ["Ben Ito"],
+          teamNames: [],
+          notReached: notReached,
+        },
+      });
+
+      // Two criteria name the same owners: each is said once.
+      return result([
+        offline({ events: [opened] }),
+        offline({ id: "degraded", name: "Degraded", events: [opened] }),
+      ]);
+    }
+
+    test("each, why, where they are named, and the page that puts it right", async () => {
+      renderWith(
+        withOwnersNotReached([
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: "68102222-0000-4000-8000-0000000000a9",
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.Criteria,
+          },
+          {
+            kind: WhoIsToldOwnerKind.Team,
+            id: TEAM_ID,
+            name: "Night Shift",
+            problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+            addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+            rule: { id: "o", name: "Checkout owners" },
+          },
+          {
+            kind: WhoIsToldOwnerKind.Team,
+            id: "68102222-0000-4000-8000-0000000000a8",
+            name: "",
+            problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+            addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+            networkDeviceId: DEVICE_ID,
+          },
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: "68102222-0000-4000-8000-0000000000a7",
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+            rule: { id: "o2", name: "" },
+          },
+        ]),
+      );
+
+      const list: HTMLElement = await screen.findByTestId(
+        "who-is-told-owners-not-emailed",
+      );
+
+      expect(list).toHaveAttribute("aria-label", "Owners who aren't emailed");
+
+      const lines: Array<HTMLElement> = within(list).getAllByTestId(
+        "who-is-told-owner-not-emailed",
+      );
+
+      expect(
+        lines.map((line: HTMLElement): string => {
+          return line.textContent || "";
+        }),
+      ).toEqual([
+        "Someone named as an owner isn't a member of this project, so isn't emailed.Named in the criteria.Open Criteria",
+        "Team Night Shift has nobody in it who is a member of this project, so nobody is emailed through it.Added by owner rule Checkout owners.Open Team",
+        "A team of another project is named as an owner, so nobody is emailed through it.An owner of the network device this monitor watches.Open Network Device",
+        "Someone named as an owner isn't a member of this project, so isn't emailed.Added by an owner rule you can't see.Open Owner Rules",
+      ]);
+
+      const hrefs: Array<string | null> = within(list)
+        .getAllByTestId("who-is-told-owner-fix")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        });
+
+      expect(hrefs).toEqual([
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route,
+          { modelId: MONITOR_ID },
+        ).toString(),
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.TEAM_VIEW_MEMBERS] as Route,
+          { modelId: new ObjectID(TEAM_ID) },
+        ).toString(),
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_DEVICE_VIEW_OWNERS] as Route,
+          { modelId: new ObjectID(DEVICE_ID) },
+        ).toString(),
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route,
+        ).toString(),
+      ]);
+      // Not a break: the email still goes out, to Ben Ito.
+      expect(screen.getByTestId("who-is-told-no-breaks")).toBeInTheDocument();
+    });
+
+    test("an alert's owner rule opens the alerts' owner rules", async () => {
+      renderWith(
+        withOwnersNotReached(
+          [
+            {
+              kind: WhoIsToldOwnerKind.User,
+              id: "68102222-0000-4000-8000-0000000000a7",
+              name: "",
+              problem: WhoIsToldOwnerProblem.NotInProject,
+              addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+              rule: { id: "o2", name: "Alert owners" },
+            },
+          ],
+          OnCallTestPageRecordKind.Alert,
+        ),
+      );
+
+      expect(
+        await screen.findByTestId("who-is-told-owner-fix"),
+      ).toHaveAttribute(
+        "href",
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ALERTS_SETTINGS_OWNER_RULES] as Route,
+        ).toString(),
+      );
+    });
+
+    test("nobody left out: no list", async () => {
+      renderWith(result([offline()]));
+
+      await screen.findByTestId("who-is-told-summary");
+      expect(screen.queryByTestId("who-is-told-owners-not-emailed")).toBeNull();
+    });
+  });
+});
+
+/*
+ * A RECHECK THAT FAILS (#7308) keeps the answer on the card: the summary,
+ * the breaks and the open chain stay, Checked keeps the time of the last
+ * read that worked, and why checking again failed is said under them, in
+ * the reader's words - until a read works, or the monitor changes. A first
+ * read that fails says so in place of the answer, with Try again.
+ */
+describe("a Recheck that fails", () => {
+  const CHECKED_AT: string = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+  function answer(): WhoIsToldResult {
+    return result([offline()], { checkedAt: CHECKED_AT });
+  }
+
+  async function renderAndRecheck(
+    getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor>,
+    refreshToken?: number,
+  ): Promise<{ rerender: (token: number) => void }> {
+    const view: ReturnType<typeof render> = render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard
+          monitorId={MONITOR_ID}
+          refreshToken={refreshToken}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("who-is-told-recheck"));
+    });
+
+    await waitFor(() => {
+      expect(getForMonitor).toHaveBeenCalledTimes(2);
+    });
+
+    return {
+      rerender: (token: number): void => {
+        view.rerender(
+          <MemoryRouter>
+            <MonitorWhoIsToldCard monitorId={MONITOR_ID} refreshToken={token} />
+          </MemoryRouter>,
+        );
+      },
+    };
+  }
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("keeps the summary, the breaks and the open chain, and says why under them", async () => {
+    const getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor> =
+      jest.spyOn(WhoIsToldApi, "getForMonitor");
+    getForMonitor.mockResolvedValueOnce(answer());
+    getForMonitor.mockRejectedValueOnce(new Error(SERVER_DOWN_MESSAGE));
+
+    await renderAndRecheck(getForMonitor);
+
+    const note: HTMLElement = await screen.findByTestId(
+      "who-is-told-recheck-error",
+    );
+
+    expect(note.textContent).toBe(
+      "Couldn't check again. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    expect(within(note).getByTestId("error-in-sentence")).toHaveAttribute(
+      "data-error-kind",
+      "ServerDown",
+    );
+    expect(screen.getByTestId("who-is-told-summary")).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical).",
+    );
+    expect(screen.getByTestId("who-is-told-chain")).toBeInTheDocument();
+    expect(screen.queryByTestId("who-is-told-error")).toBeNull();
+    expect(screen.queryByTestId("who-is-told-try-again")).toBeNull();
+    // Checked is the last read that worked, and Recheck is there to try again.
+    expect(screen.getByTestId("monitor-who-is-told-card")).toHaveTextContent(
+      "Checked 5 minutes ago",
+    );
+    expect(screen.getByTestId("who-is-told-recheck")).toBeEnabled();
+    // The note comes after Checked and Recheck.
+    expect(
+      screen.getByTestId("who-is-told-recheck").compareDocumentPosition(note) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a Recheck that then works clears it, and Checked moves on", async () => {
+    const getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor> =
+      jest.spyOn(WhoIsToldApi, "getForMonitor");
+    getForMonitor.mockResolvedValueOnce(answer());
+    getForMonitor.mockRejectedValueOnce(new Error("Gateway Timeout"));
+    getForMonitor.mockResolvedValueOnce(
+      result([offline()], { checkedAt: new Date().toISOString() }),
+    );
+
+    await renderAndRecheck(getForMonitor);
+
+    expect(
+      await screen.findByTestId("who-is-told-recheck-error"),
+    ).toHaveTextContent("Couldn't check again. Gateway Timeout");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("who-is-told-recheck"));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("who-is-told-recheck-error")).toBeNull();
+    });
+    expect(getForMonitor.mock.calls[2]![0]).toEqual({
+      monitorId: MONITOR_ID,
+      refresh: true,
+    });
+    expect(
+      screen.getByTestId("monitor-who-is-told-card"),
+    ).not.toHaveTextContent("Checked 5 minutes ago");
+  });
+
+  test("the monitor changing clears it", async () => {
+    const getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor> =
+      jest.spyOn(WhoIsToldApi, "getForMonitor");
+    getForMonitor.mockResolvedValueOnce(answer());
+    getForMonitor.mockRejectedValueOnce(new Error("Gateway Timeout"));
+    let finish: (value: WhoIsToldResult) => void = (): void => {};
+    getForMonitor.mockReturnValueOnce(
+      new Promise<WhoIsToldResult>(
+        (resolve: (value: WhoIsToldResult) => void) => {
+          finish = resolve;
+        },
+      ),
+    );
+
+    const view: { rerender: (token: number) => void } = await renderAndRecheck(
+      getForMonitor,
+      1,
+    );
+
+    await screen.findByTestId("who-is-told-recheck-error");
+
+    await act(async () => {
+      view.rerender(2);
+    });
+
+    // Gone at once: it was about the monitor as it was.
+    expect(screen.queryByTestId("who-is-told-recheck-error")).toBeNull();
+    expect(getForMonitor.mock.calls[2]![0]).toEqual({
+      monitorId: MONITOR_ID,
+      refresh: false,
+    });
+
+    await act(async () => {
+      finish(answer());
+    });
+  });
+
+  test("a first read that fails still says so in place of the answer, with Try again", async () => {
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockRejectedValue(new Error("Gateway Timeout"));
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("who-is-told-error")).toHaveTextContent(
+      "Couldn't work out who is told. Gateway Timeout",
+    );
+    expect(screen.getByTestId("who-is-told-try-again")).toBeInTheDocument();
+    expect(screen.queryByTestId("who-is-told-recheck-error")).toBeNull();
+  });
+});
+
+/*
+ * WHAT PEOPLE DO WITH THE CARD (#7079): Show the chain opened, and a fix
+ * followed - where the card is, and the kinds of break, never a name.
+ */
+describe("the card's activation events", () => {
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("Show the chain sends where, how many breaks and which kinds - once, on opening", async () => {
+    const send: SpyInstance<typeof ProductEvents.send> = jest
+      .spyOn(ProductEvents, "send")
+      .mockImplementation((): void => {});
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockResolvedValue(
+        result([offline({ events: [event({ rules: [], policies: [] })] })]),
+      );
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard
+          monitorId={MONITOR_ID}
+          place={WhoIsToldPlace.MonitorCriteria}
+        />
+      </MemoryRouter>,
+    );
+
+    const toggle: HTMLElement = await screen.findByTestId(
+      "who-is-told-chain-toggle",
+    );
+
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+
+    expect(send.mock.calls).toEqual([
+      [
+        ProductEventName.WhoIsToldChainOpened,
+        {
+          place: "monitor_criteria",
+          break_count: 1,
+          break_kinds: WhoIsToldBreakKind.NobodyPaged,
+          owners_not_emailed_count: 0,
+        },
+      ],
+    ]);
+    expect(JSON.stringify(send.mock.calls)).not.toContain("Checkout API");
+  });
+
+  test("a fix followed sends where, the break's kind and the page", async () => {
+    const send: SpyInstance<typeof ProductEvents.send> = jest
+      .spyOn(ProductEvents, "send")
+      .mockImplementation((): void => {});
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockResolvedValue(
+        result([offline({ events: [event({ rules: [], policies: [] })] })]),
+      );
+    jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId("who-is-told-fix"));
+
+    expect(send).toHaveBeenCalledWith(ProductEventName.WhoIsToldFixOpened, {
+      place: "monitor_overview",
+      kind: WhoIsToldBreakKind.NobodyPaged,
+      fix: WhoIsToldFix.IncidentOnCallRules,
+    });
+  });
+});
+
+/*
+ * A MONITOR NOT CREATED YET (#7055): Create Monitor's criteria, read for
+ * the monitor the form holds - in a section of the form, its fixes opening
+ * in a new tab so the form is never left, and no Criteria page to link to.
+ */
+describe("When this goes down on Create Monitor", () => {
+  function draftSteps(): MonitorSteps {
+    return new MonitorSteps();
+  }
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("the form's monitor is read at once, as a draft, and said as any monitor's", async () => {
+    const getForDraft: SpyInstance<typeof WhoIsToldApi.getForDraft> = jest
+      .spyOn(WhoIsToldApi, "getForDraft")
+      .mockResolvedValue({ ...result([offline()]), monitorId: "" });
+    const getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor> =
+      jest.spyOn(WhoIsToldApi, "getForMonitor");
+    const label: ObjectID = ObjectID.generate();
+
+    render(
+      <MemoryRouter>
+        <MonitorDraftWhoIsTold
+          monitorType={MonitorType.Website}
+          name="Payments API"
+          monitorSteps={draftSteps()}
+          labels={[{ _id: label.toString() }, "not-an-id"]}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical).",
+    );
+    expect(getForMonitor).not.toHaveBeenCalled();
+
+    const draft: WhoIsToldDraftInput = getForDraft.mock.calls[0]![0].draft;
+
+    expect(draft.name).toBe("Payments API");
+    expect(draft.monitorType).toBe(MonitorType.Website);
+    expect(draft.monitorId).toBeUndefined();
+    expect(
+      draft.labelIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([label.toString()]);
+
+    // A section of the form: its title over it, no Checked line or Recheck.
+    expect(
+      screen.getByRole("heading", { name: "When this goes down" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("who-is-told-recheck")).toBeNull();
+  });
+
+  test("a break's fix opens in a new tab, and criteria that do nothing link to no Criteria page", async () => {
+    jest.spyOn(WhoIsToldApi, "getForDraft").mockResolvedValue({
+      ...result([offline({ events: [event({ rules: [], policies: [] })] })]),
+      monitorId: "",
+      breaks: [
+        makeWhoIsToldBreak({
+          kind: WhoIsToldBreakKind.NothingHappens,
+          fix: WhoIsToldFix.MonitorCriteria,
+        }),
+        makeWhoIsToldBreak({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix: WhoIsToldFix.IncidentOnCallRules,
+          recordKind: OnCallTestPageRecordKind.Incident,
+        }),
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <MonitorDraftWhoIsTold
+          monitorType={MonitorType.Website}
+          name="Payments API"
+          monitorSteps={draftSteps()}
+        />
+      </MemoryRouter>,
+    );
+
+    await screen.findAllByTestId("who-is-told-break");
+
+    const fixes: Array<HTMLElement> = screen.getAllByTestId("who-is-told-fix");
+
+    // Only Set Up Paging: the criteria are the form itself.
+    expect(fixes).toHaveLength(1);
+    expect(fixes[0]).toHaveTextContent("Set Up Paging");
+    expect(fixes[0]).toHaveAttribute("target", "_blank");
+  });
+
+  test("criteria changed: read again a moment later, the last answer kept meanwhile", async () => {
+    const getForDraft: SpyInstance<typeof WhoIsToldApi.getForDraft> = jest
+      .spyOn(WhoIsToldApi, "getForDraft")
+      .mockResolvedValue({ ...result([offline()]), monitorId: "" });
+
+    const view: ReturnType<typeof render> = render(
+      <MemoryRouter>
+        <MonitorDraftWhoIsTold
+          monitorType={MonitorType.Website}
+          name="Payments API"
+          monitorSteps={draftSteps()}
+        />
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("who-is-told-summary");
+    expect(getForDraft).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <MemoryRouter>
+        <MonitorDraftWhoIsTold
+          monitorType={MonitorType.Website}
+          name="Payments API v2"
+          monitorSteps={draftSteps()}
+        />
+      </MemoryRouter>,
+    );
+
+    // Not at once: the person may still be typing.
+    expect(getForDraft).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("who-is-told-summary")).toBeInTheDocument();
+
+    await waitFor(
+      () => {
+        expect(getForDraft).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 3000 },
+    );
+    expect(getForDraft.mock.calls[1]![0].draft.name).toBe("Payments API v2");
+  });
+
+  test("a Manual monitor, or one with no type yet, has nothing to work out", () => {
+    const getForDraft: SpyInstance<typeof WhoIsToldApi.getForDraft> =
+      jest.spyOn(WhoIsToldApi, "getForDraft");
+
+    render(
+      <MemoryRouter>
+        <MonitorDraftWhoIsTold
+          monitorType={MonitorType.Manual}
+          name="Payment provider"
+          monitorSteps={draftSteps()}
+        />
+        <MonitorDraftWhoIsTold
+          monitorType={undefined}
+          name=""
+          monitorSteps={draftSteps()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTestId("monitor-draft-who-is-told")).toBeNull();
+    expect(getForDraft).not.toHaveBeenCalled();
+  });
+
+  test("the steps as the form was seeded with them, as JSON, are read too", () => {
+    expect(
+      getMonitorDraft({
+        monitorType: MonitorType.Website,
+        name: "Payments API",
+        monitorSteps: new MonitorSteps().toJSON(),
+      })?.monitorSteps,
+    ).toBeInstanceOf(MonitorSteps);
+    expect(
+      getMonitorDraft({
+        monitorType: MonitorType.Website,
+        name: "Payments API",
+        monitorSteps: { _type: "Not steps" },
+      }),
+    ).toBeNull();
+    expect(getDraftLabelIds(["not-an-id", 7, null])).toEqual([]);
   });
 });

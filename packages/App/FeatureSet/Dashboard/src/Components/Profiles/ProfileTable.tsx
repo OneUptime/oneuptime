@@ -24,7 +24,7 @@ import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -515,7 +515,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   });
 
   if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (
@@ -789,7 +789,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                         <span className="text-sm text-gray-900">
                           {host.name || host.hostIdentifier}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {translator.translateText("Host")}
                         </span>
                       </div>
@@ -814,7 +814,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                       <span className="text-sm text-gray-900" title={entityId}>
                         {source.primary}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-500">
                         {source.typeLabel}
                       </span>
                     </div>
@@ -828,7 +828,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                     </span>
                     {source.shortId && (
                       <span
-                        className="text-xs font-mono text-gray-400"
+                        className="text-xs font-mono text-gray-500"
                         title={entityId}
                       >
                         {source.shortId}

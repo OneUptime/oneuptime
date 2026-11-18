@@ -62,7 +62,7 @@ Politikker, eskaleringsregler, vagtplaner og tilsidesættelser hører til projek
 
 ### Opret en politik
 
-Gå til **Vagtpolitikker**, og klik på **Opret Vagtpolitik**. Vælg vagtplanen under **Hvem tilkaldes først?**. Den bliver politikkens første eskaleringsregel, **Level 1**, som venter 30 minutter på en kvittering.
+Gå til **Vagtpolitikker**, og klik på **Opret vagtpolitik**. Vælg vagtplanen under **Hvem tilkaldes først?**. Den bliver politikkens første eskaleringsregel, **Level 1**, som venter 30 minutter på en kvittering.
 
 ### Tilføj de næste niveauer
 
@@ -70,7 +70,7 @@ Klik på politikkens side **Eskaleringsregler** på **Tilføj eskaleringsregel**
 
 ### Kør politikken automatisk
 
-Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til. For enhver anden politik går du til **Hændelser → Regler → Vagtregler** eller **Advarsler → Regler → Vagtregler** og tilføjer en regel, der kører den for de hændelser eller advarsler, den matcher, fx alle kritiske. Se [Hvad der kører en politik](/docs/on-call/policies#hvad-der-kører-en-politik).
+Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til. En senere politik får samme spørgsmål, slået fra fra start. For at køre en politik for kun nogle hændelser eller advarsler, fx alle kritiske, går du til **Hændelser → Regler → Vagtregler** eller **Advarsler → Regler → Vagtregler** og tilføjer en regel, der matcher dem. Se [Hvad der kører en politik](/docs/on-call/policies#hvad-der-kører-en-politik).
 
 ### Tjek, at alle kan nås
 

@@ -485,6 +485,36 @@ describe("the Network Device Monitor page: a device's status", () => {
   });
 });
 
+/*
+ * Issue #9363: the Devices list's Vendor filter and the Vendor / Model
+ * column's sort read the maker the server keeps on each device
+ * (manufacturer), which is the one the column shows, wherever it came from.
+ * The page says so; the list is keyed so.
+ */
+describe("the Network Device Monitor page: a device's maker on the Devices list", () => {
+  const DEVICES_LIST: string = readSource(
+    "App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Devices.tsx",
+  );
+
+  it("says the Vendor filter and the column's sort find a device by the maker its Vendor / Model column shows", () => {
+    expect(DEVICE).toContain(
+      "The **Devices** list's **Vendor / Model** column shows the maker the device's details give, and the list's **Vendor** filter and the column's sort find each device by the maker the column shows, whether it was saved on the device, read by its poll or a scan, or named by its network controller or the Discovered Devices list.",
+    );
+  });
+
+  it("keys the Vendor filter and the Vendor / Model column by that maker, which the server keeps on the device", () => {
+    expect(DEVICES_LIST).toMatch(
+      /field: \{\s*manufacturer: true,\s*\},\s*title: "Vendor",/,
+    );
+    expect(DEVICES_LIST).toMatch(
+      /field: \{\s*manufacturer: true,\s*\},\s*title: "Vendor \/ Model",/,
+    );
+    expect(NETWORK_DEVICE_MODEL).toContain(
+      "public manufacturer?: string = undefined;",
+    );
+  });
+});
+
 describe("the Network Device Monitor page: polling", () => {
   const polling: Array<Array<string>> = tableAfter(
     DEVICE,

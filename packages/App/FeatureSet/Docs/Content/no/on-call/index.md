@@ -62,7 +62,7 @@ Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, 
 
 ### Opprett en policy
 
-Gå til **Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**. Velg vaktplanen under **Hvem varsles først?**. Den blir den første eskaleringsregelen i policyen, **Level 1**, som venter 30 minutter på en bekreftelse.
+Gå til **Vaktpolicyer**, og klikk på **Opprett vaktpolicy**. Velg vaktplanen under **Hvem varsles først?**. Den blir den første eskaleringsregelen i policyen, **Level 1**, som venter 30 minutter på en bekreftelse.
 
 ### Legg til de neste nivåene
 
@@ -70,7 +70,7 @@ Klikk på **Legg til eskaleringsregel** på siden **Eskaleringsregler** for poli
 
 ### Kjør policyen automatisk
 
-Den første policyen i et prosjekt kan gjøre dette allerede når den opprettes: la **Utløs den ved hver nye hendelse og hvert nye varsel** være slått på. For alle andre policyer går du til **Hendelser → Regler → Vaktregler** eller **Varsler → Regler → Vaktregler**, og legger til en regel som kjører den for hendelsene eller varslene den passer på, for eksempel hver kritiske. Se [Hva som kjører en policy](/docs/on-call/policies#hva-som-kjører-en-policy).
+Den første policyen i et prosjekt kan gjøre dette allerede når den opprettes: la **Utløs den ved hver nye hendelse og hvert nye varsel** være slått på. En senere policy får det samme spørsmålet, slått av fra start. For å kjøre en policy for bare noen hendelser eller varsler, for eksempel hver kritiske, går du til **Hendelser → Regler → Vaktregler** eller **Varsler → Regler → Vaktregler** og legger til en regel som passer på dem. Se [Hva som kjører en policy](/docs/on-call/policies#hva-som-kjører-en-policy).
 
 ### Sjekk at alle kan nås
 

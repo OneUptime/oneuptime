@@ -93,7 +93,12 @@ The suite checks what jsdom cannot:
   with Tab and opened with Space, and the step being filled in is not a
   button. On a 390 pixel touch phone, light and dark, the tabs and steps are
   44 pixels tall and attribute filter chips wrap with every word on the
-  screen (#9136);
+  screen (#9136); a table cell's help is an (i) Tab reaches, whose words
+  show on its focus and hide with Escape (#9223); a network diagram's bands
+  and addresses are buttons Tab reaches, with a drawn focus, that Enter and
+  Space press (#9222); the CSV upload area lights up under a dragged file,
+  reads a dropped CSV, refuses anything else by name in an alert, and Tab
+  reaches its file input, whose focus rings the area (#9224);
 - a stepped edit dialog (`BasicFormModal`, "Edit SMTP Config" on
   `?section=keyboard`): at 1280 pixels Next walks on, a step's row opens it
   from any corner, the far end too, and Save Changes is on the last step,

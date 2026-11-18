@@ -340,7 +340,7 @@ export const CloudResourceCostCardView: FunctionComponent<ViewProps> = (
                               )}
                             </bdi>
                           </div>
-                          <div className="text-[11px] text-gray-500">
+                          <div className="text-xs text-gray-500">
                             {translator.translateText(PER_MONTH)}
                           </div>
                         </>

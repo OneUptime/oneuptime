@@ -1074,7 +1074,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
                 {u.coveringLabel && (
                   <span
                     data-testid="legend-covering-label"
-                    className="text-[11px] font-medium text-indigo-600"
+                    className="text-xs font-medium text-indigo-600"
                   >
                     {u.coveringLabel}
                   </span>

@@ -77,7 +77,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
         return (
           <div key={span.spanId || index} className="flex items-center gap-2">
             <div
-              className="min-w-0 flex-shrink-0 truncate text-[11px] text-gray-600"
+              className="min-w-0 flex-shrink-0 truncate text-xs text-gray-600"
               style={{
                 width: "42%",
                 paddingLeft: `${Math.min(depth, 8) * 10}px`,
@@ -106,14 +106,14 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
                 )}${formatMilliseconds(translator, span.durationMs)}`}
               />
             </div>
-            <div className="min-w-[4rem] flex-shrink-0 whitespace-nowrap text-right text-[11px] tabular-nums text-gray-500">
+            <div className="min-w-[4rem] flex-shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-gray-500">
               {formatMilliseconds(translator, span.durationMs)}
             </div>
           </div>
         );
       })}
       {spans.length > shown.length && (
-        <div className="pt-1 text-[11px] text-gray-400">
+        <div className="pt-1 text-xs text-gray-500">
           {translator.translatePlural(
             {
               one: "Showing {{shown}} of {{count}} span.",

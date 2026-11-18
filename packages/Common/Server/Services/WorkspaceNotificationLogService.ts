@@ -9,7 +9,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import ColumnLength from "../../Types/Database/ColumnLength";
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
-import { OnFind } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate, OnFind } from "../Types/Database/Hooks";
+import WorkspaceStoredValue from "../Utils/Workspace/WorkspaceStoredValue";
 import PositiveNumber from "../../Types/PositiveNumber";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -93,6 +95,47 @@ export class Service extends ProjectReferencesService<Model> {
    */
   protected override checksServerWrites(): boolean {
     return false;
+  }
+
+  /*
+   * Every log is written with where its message went as the column can keep
+   * it (fitChannelColumns), whoever writes it: they hand over the ids and
+   * the name as the workspace gave them.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    Service.fitChannelColumns(createBy.data);
+
+    return { createBy: createBy, carryForward: undefined };
+  }
+
+  /*
+   * A log keeps the ids of where its message went whole, or leaves them out:
+   * never a part of one. They are read back to find what a message in a
+   * channel is about (WorkspaceReactionNote) and which project posted in a
+   * channel (WorkspaceProjectResolution), and a cut id is another channel's,
+   * or no channel's - a Microsoft Teams personal chat's id, 130 characters
+   * and more, cut to 100 matched nothing (issue #9284). The channel's name
+   * is only shown, and is cut to fit, so it never fails the log.
+   */
+  public static fitChannelColumns(log: Model): Model {
+    for (const column of ["channelId", "threadId"] as const) {
+      const id: string | undefined = log[column];
+
+      if (typeof id === "string" && WorkspaceStoredValue.id(id) === undefined) {
+        log.removeValue(column);
+      }
+    }
+
+    if (typeof log.channelName === "string") {
+      log.channelName = WorkspaceStoredValue.channelName(log.channelName);
+    }
+
+    return log;
   }
 
   public async createWorkspaceLog(
@@ -238,7 +281,8 @@ export class Service extends ProjectReferencesService<Model> {
    * A channel the workspace did not create: the name it was asked for and
    * what it answered. Both are cut to their columns - a name too long for
    * the workspace is one reason it refuses a channel - since an over-long
-   * value fails the whole insert; the message keeps the name whole.
+   * value fails the whole insert (the name in fitChannelColumns, as every
+   * log's); the message keeps the name whole.
    */
   public async logCreateChannelError(
     data: {
@@ -262,7 +306,7 @@ export class Service extends ProjectReferencesService<Model> {
       {
         projectId: data.projectId,
         workspaceType: data.workspaceType,
-        channelName: data.channelName.substring(0, ColumnLength.ShortText),
+        channelName: data.channelName,
         actionType: WorkspaceNotificationActionType.CreateChannel,
         status: WorkspaceNotificationStatus.Error,
         statusMessage: data.error.substring(0, ColumnLength.LongText),

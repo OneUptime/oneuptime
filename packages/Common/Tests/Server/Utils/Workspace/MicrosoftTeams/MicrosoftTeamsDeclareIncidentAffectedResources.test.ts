@@ -43,6 +43,14 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../../../Types/Incident/IncidentAlertLink";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../../../Types/Permission";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import IncidentSubscriberAudienceBuilder, {
+  IncidentSubscriberAudienceRequest,
+} from "../../../../../Server/Utils/StatusPage/IncidentSubscriberAudienceBuilder";
+import IncidentSubscriberAudience, {
+  IncidentSubscriberAudienceResult,
+} from "../../../../../Types/StatusPage/IncidentSubscriberAudience";
 
 /*
  * MICROSOFT TEAMS' CREATE NEW INCIDENT CARD, LINKED TO WHAT THE INCIDENT IS
@@ -61,10 +69,14 @@ import ObjectID from "../../../../../Types/ObjectID";
  *     incident private like a private alert; the confirmation says what it
  *     is linked to, and what was picked and not linked is said in a reply
  *     that mentions them.
- *   - Status page subscribers (#7606): the card asks nothing about them, so
- *     the incident is declared as the project starts Notify Status Page
- *     Subscribers on Declare New Incident - without notifying them where the
- *     project starts it unticked, as always everywhere else.
+ *   - Status page subscribers (#7917, #7916): the card asks Notify Status
+ *     Page Subscribers right after the monitors, its toggle on or off as the
+ *     project starts the box on Declare New Incident - not for a sender who
+ *     may not choose, nor for a private alert's incident; the answer is what
+ *     the incident is created with, either way, and a card without the
+ *     toggle follows the project's switch (#7606); an answer from someone
+ *     who may not give one is refused; the confirmation says whether
+ *     subscribers will be told and which status pages', or why not.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -88,7 +100,76 @@ const ALERT_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/alerts/${A
 const MEMBER_PROPS: DatabaseCommonInteractionProps = {
   userId: USER_ID,
   tenantId: PROJECT_ID,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectMember,
+          isBlockPermission: false,
+          labelIds: [],
+        },
+      ],
+    },
+  },
 };
+
+// A member whose role reads incidents and monitors, and declares nothing.
+const READER_PROPS: DatabaseCommonInteractionProps = {
+  userId: USER_ID,
+  tenantId: PROJECT_ID,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: [
+        Permission.ReadProjectIncident,
+        Permission.ReadProjectMonitor,
+      ].map((permission: Permission): UserPermission => {
+        return {
+          _type: "UserPermission",
+          permission: permission,
+          isBlockPermission: false,
+          labelIds: [],
+        };
+      }),
+    },
+  },
+};
+
+/*
+ * The confirmation's line about status page subscribers
+ * (WorkspaceIncidentSubscriberNotification), as Teams shows it.
+ */
+const NO_MONITORS_LINE: string =
+  "Status page subscribers were not notified: the incident has no monitors, so no status page shows it.";
+const BOX_OFF_LINE: string =
+  "Status page subscribers were not notified: Notify Status Page Subscribers was off. To tell them later, post a public note in OneUptime with Notify Status Page Subscribers ticked.";
+const PRIVATE_LINE: string =
+  "Status page subscribers were not notified: the incident is private.";
+
+const QUESTION: string =
+  "Should status page subscribers be notified when this incident is created?";
+const QUESTION_UNTICKED: string =
+  "Should status page subscribers be notified when this incident is created? Unticked by default in this project.";
+
+// Who an incident reaches: by default, on no monitor - most incidents.
+function audienceOf(
+  values: Partial<IncidentSubscriberAudienceResult> = {},
+): IncidentSubscriberAudienceResult {
+  return {
+    hasMonitors: false,
+    isScoped: false,
+    isHiddenFromStatusPages: false,
+    statusPages: [],
+    hiddenStatusPageCount: 0,
+    excludedStatusPages: [],
+    selectedStatusPagesNotListingMonitors: [],
+    ...values,
+  };
+}
 
 const API_HOST: LinkedAffectedResource = {
   kind: AiAffectedResourceKind.Host,
@@ -364,6 +445,113 @@ describe("the card", () => {
   });
 });
 
+describe("the card's Notify Status Page Subscribers", () => {
+  // Every list to pick from, so the toggle's place among them shows.
+  function everyList(): MicrosoftTeamsNewIncidentFormChoices {
+    return {
+      ...choices(),
+      monitorStatuses: listOf([{ title: "Degraded", value: SEVERITY_ID }]),
+      labels: listOf([{ title: "Production", value: SEVERITY_ID }]),
+      onCallDutyPolicies: listOf([{ title: "Primary", value: SEVERITY_ID }]),
+    };
+  }
+
+  function toggleOf(card: JSONObject): JSONObject | undefined {
+    return bodyOf(card).find((element: JSONObject): boolean => {
+      return element["id"] === "notifyStatusPageSubscribers";
+    });
+  }
+
+  test("right after the monitors and Change Monitor Status To, before the on-call policies and labels: the Dashboard's name beside the toggle, its question under it", () => {
+    const card: JSONObject =
+      MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+        choices: everyList(),
+        budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        notifySubscribers: { isTickedByDefault: true, description: QUESTION },
+      });
+
+    expect(outlineOf(card)).toEqual([
+      "TextBlock: Create New Incident",
+      "incidentTitle",
+      "incidentDescription",
+      "incidentSeverity",
+      "incidentMonitors",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+      "monitorStatus",
+      "notifyStatusPageSubscribers",
+      `TextBlock: ${QUESTION}`,
+      "onCallDutyPolicies",
+      "labels",
+    ]);
+    expect(toggleOf(card)).toEqual({
+      type: "Input.Toggle",
+      id: "notifyStatusPageSubscribers",
+      label: "Status Page Subscribers",
+      title: "Notify Status Page Subscribers",
+      value: "true",
+      valueOn: "true",
+      valueOff: "false",
+      wrap: true,
+    });
+    // Its question is small print, as the card's other hints are.
+    expect(
+      bodyOf(card).find((element: JSONObject): boolean => {
+        return element["text"] === QUESTION;
+      }),
+    ).toMatchObject({ isSubtle: true, size: "Small", wrap: true });
+  });
+
+  test("in a project that starts it unticked: off, and its question says so", () => {
+    const card: JSONObject =
+      MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+        choices: choices(),
+        budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        notifySubscribers: {
+          isTickedByDefault: false,
+          description: QUESTION_UNTICKED,
+        },
+      });
+
+    expect(toggleOf(card)!["value"]).toBe("false");
+    expect(outlineOf(card)).toContain(`TextBlock: ${QUESTION_UNTICKED}`);
+  });
+
+  test("not asked: no toggle, and no question", () => {
+    const card: JSONObject =
+      MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+        choices: everyList(),
+        budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        notifySubscribers: null,
+      });
+
+    expect(toggleOf(card)).toBeUndefined();
+    expect(JSON.stringify(card)).not.toContain("status page subscribers");
+  });
+
+  test("whatever the project, the card with the toggle fits Teams' first budget, and keeps it", () => {
+    for (const monitorCount of [0, 50, 500, 5000]) {
+      const card: JSONObject =
+        MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
+          choices: choices(monitorCount),
+          budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+          affectedResources: { projectId: PROJECT_ID, isAiEnabled: true },
+          notifySubscribers: {
+            isTickedByDefault: false,
+            description: QUESTION_UNTICKED,
+          },
+        });
+
+      expect({
+        monitorCount,
+        fits:
+          JSON.stringify(card).length * 2 <=
+          MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
+        hasToggle: Boolean(toggleOf(card)),
+      }).toEqual({ monitorCount, fits: true, hasToggle: true });
+    }
+  });
+});
+
 describe("the command draws the card as the sender, in the channel it was typed in", () => {
   type ReadChannelAlert = typeof WorkspaceIncidentFromAlert.readChannelAlert;
   type IsOffered = typeof WorkspaceAffectedResources.isOffered;
@@ -373,10 +561,33 @@ describe("the command draws the card as the sender, in the channel it was typed 
   let readChannelAlertSpy: SpyInstance<ReadChannelAlert>;
   let isOfferedSpy: SpyInstance<IsOffered>;
   let isAiEnabledSpy: SpyInstance<IsProjectAIEnabled>;
+  /*
+   * The project's Notify status page subscribers by default - undefined for
+   * a project that holds no value - and every read of it.
+   */
+  let notifiesByDefault: boolean | undefined;
+  let projectReads: Array<JSONObject>;
 
   beforeEach(() => {
     sentCards = [];
+    notifiesByDefault = true;
+    projectReads = [];
 
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+      findOneById: JSONObject,
+    ) => {
+      projectReads.push(findOneById);
+
+      const project: Project = new Project();
+      project.id = findOneById["id"] as ObjectID;
+
+      if (notifiesByDefault !== undefined) {
+        project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+          notifiesByDefault;
+      }
+
+      return project;
+    }) as never);
     jest
       .spyOn(MicrosoftTeamsCommands, "authorizeSender")
       .mockResolvedValue(MEMBER_PROPS);
@@ -504,6 +715,76 @@ describe("the command draws the card as the sender, in the channel it was typed 
     expect(sentCards).toEqual([]);
     expect(isOfferedSpy).not.toHaveBeenCalled();
     expect(readChannelAlertSpy).not.toHaveBeenCalled();
+    expect(projectReads).toEqual([]);
+  });
+
+  function toggleOf(card: JSONObject): JSONObject | undefined {
+    return bodyOf(card).find((element: JSONObject): boolean => {
+      return element["id"] === "notifyStatusPageSubscribers";
+    });
+  }
+
+  test("Notify Status Page Subscribers on, as the project keeps the box on - the project read once, as OneUptime, for the one column", async () => {
+    const card: JSONObject = await run(CHANNEL_ID);
+
+    expect(toggleOf(card)!["value"]).toBe("true");
+    expect(outlineOf(card)).toContain(`TextBlock: ${QUESTION}`);
+    expect(projectReads).toEqual([
+      {
+        id: PROJECT_ID,
+        select: { notifyStatusPageSubscribersOfNewIncidentsByDefault: true },
+        props: { isRoot: true },
+      },
+    ]);
+  });
+
+  test("a project that starts the box unticked: off, and its question says so", async () => {
+    notifiesByDefault = false;
+
+    const card: JSONObject = await run(CHANNEL_ID);
+
+    expect(toggleOf(card)!["value"]).toBe("false");
+    expect(outlineOf(card)).toContain(`TextBlock: ${QUESTION_UNTICKED}`);
+  });
+
+  test("a project that holds no value: on, as the box always started", async () => {
+    notifiesByDefault = undefined;
+
+    expect(toggleOf(await run(CHANNEL_ID))!["value"]).toBe("true");
+  });
+
+  test("a project that cannot be read: on, as the box always started, and the card is sent all the same", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+      throw new Error("the database is not connected");
+    }) as never);
+
+    expect(toggleOf(await run(CHANNEL_ID))!["value"]).toBe("true");
+  });
+
+  test("a sender who may not choose: no toggle, and the project is not read for it", async () => {
+    jest
+      .spyOn(MicrosoftTeamsCommands, "authorizeSender")
+      .mockResolvedValue(READER_PROPS);
+
+    const card: JSONObject = await run(CHANNEL_ID);
+
+    expect(toggleOf(card)).toBeUndefined();
+    expect(projectReads).toEqual([]);
+  });
+
+  test("in a private alert's own channel: no toggle - no status page shows its incident, and the card says it will be private", async () => {
+    readChannelAlertSpy.mockResolvedValue({
+      ...DECLARING_ALERT,
+      isPrivate: true,
+    });
+
+    const card: JSONObject = await run(CHANNEL_ID);
+
+    expect(toggleOf(card)).toBeUndefined();
+    expect(String(bodyOf(card)[1]!["text"])).toContain(
+      "Like the alert, it will be private.",
+    );
   });
 });
 
@@ -533,6 +814,12 @@ describe("the submit", () => {
    */
   let notifiesByDefault: boolean;
   let projectReads: Array<JSONObject>;
+  /*
+   * Who the declared incident reaches (IncidentSubscriberAudienceBuilder),
+   * and every request for it.
+   */
+  let reached: IncidentSubscriberAudienceResult;
+  let audienceRequests: Array<IncidentSubscriberAudienceRequest>;
 
   beforeEach(() => {
     sent = [];
@@ -540,6 +827,20 @@ describe("the submit", () => {
     created = [];
     notifiesByDefault = true;
     projectReads = [];
+    reached = audienceOf();
+    audienceRequests = [];
+
+    // Who the declared incident reaches, as the Dashboard's review reads it.
+    jest
+      .spyOn(IncidentSubscriberAudienceBuilder, "build")
+      .mockImplementation(
+        async (
+          request: IncidentSubscriberAudienceRequest,
+        ): Promise<IncidentSubscriberAudienceResult> => {
+          audienceRequests.push(request);
+          return reached;
+        },
+      );
     toLink = { linked: [API_HOST, CHECKOUT], notLinkedCount: 0 };
     alertLink = {
       miscDataProps: {
@@ -624,7 +925,11 @@ describe("the submit", () => {
     } as unknown as TurnContext;
   }
 
-  async function submit(value: JSONObject): Promise<void> {
+  // The card, submitted by the member `props` are of.
+  async function submit(
+    value: JSONObject,
+    props: DatabaseCommonInteractionProps = MEMBER_PROPS,
+  ): Promise<void> {
     await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
       actionType: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
       actionValue: "",
@@ -637,7 +942,7 @@ describe("the submit", () => {
       },
       projectId: PROJECT_ID,
       oneUptimeUserId: USER_ID,
-      databaseProps: MEMBER_PROPS,
+      databaseProps: props,
       turnContext: turnContext(),
     });
   }
@@ -680,7 +985,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).\n\n${NO_MONITORS_LINE}`,
       },
     ]);
     expect(deleted).toEqual(["form-1"]);
@@ -695,7 +1000,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\n${NO_MONITORS_LINE}`,
       },
     ]);
   });
@@ -711,7 +1016,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host).`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host).\n\n${NO_MONITORS_LINE}`,
       },
       {
         kind: "answer",
@@ -738,7 +1043,7 @@ describe("the submit", () => {
     expect(created[0]!.data.isPrivate).toBeUndefined();
     // The alert first, then the resources.
     expect(sent[0]!.text).toBe(
-      `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).\n\n${NO_MONITORS_LINE}`,
     );
   });
 
@@ -766,7 +1071,7 @@ describe("the submit", () => {
     expect(sent).toEqual([
       {
         kind: "reply",
-        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})`,
+        text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\n${NO_MONITORS_LINE}`,
       },
       {
         kind: "answer",
@@ -810,13 +1115,14 @@ describe("the submit", () => {
   });
 
   /*
-   * The card asks nothing about status page subscribers. Where the project
-   * starts Notify Status Page Subscribers unticked on Declare New Incident,
-   * an incident declared here tells them nothing either; anywhere else it is
-   * declared exactly as before, the column not written at all.
+   * A card drawn before Teams' card asked about status page subscribers -
+   * its submit carries no toggle - is declared as the project starts Notify
+   * Status Page Subscribers on Declare New Incident (#7606): without
+   * notifying them where the project starts it unticked; anywhere else
+   * exactly as before, the column not written at all.
    */
-  describe("status page subscribers, as the project starts Notify Status Page Subscribers", () => {
-    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column", async () => {
+  describe("a card without the toggle, drawn before the card asked: as the project starts it", () => {
+    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column, and the confirmation says so", async () => {
       notifiesByDefault = false;
 
       await submit({});
@@ -825,12 +1131,12 @@ describe("the submit", () => {
       expect(
         created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
       ).toBe(false);
-      // Still declared as the member, and confirmed as always.
+      // Still declared as the member.
       expect(created[0]!.props).toBe(MEMBER_PROPS);
       expect(sent).toEqual([
         {
           kind: "reply",
-          text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).`,
+          text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).\n\n${BOX_OFF_LINE}`,
         },
       ]);
       expect(projectReads).toEqual([
@@ -840,6 +1146,8 @@ describe("the submit", () => {
           props: { isRoot: true },
         },
       ]);
+      // Nobody will be told: who it reaches is not read.
+      expect(audienceRequests).toEqual([]);
     });
 
     test("a project that keeps it on: declared as always - the column is not written, so the incident notifies them", async () => {
@@ -849,6 +1157,7 @@ describe("the submit", () => {
         created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
       ).toBeUndefined();
       expect(projectReads).toHaveLength(1);
+      expect(audienceRequests).toHaveLength(1);
     });
 
     test("a project that cannot be read: declared all the same, as always", async () => {
@@ -868,13 +1177,189 @@ describe("the submit", () => {
       expect(sent).toHaveLength(1);
     });
 
-    test("declared from a private alert in a project that starts it unticked: private, and not notifying", async () => {
+    test("declared from a private alert in a project that starts it unticked: private, not notifying, and the confirmation says it is private", async () => {
       notifiesByDefault = false;
       alertLink = { ...(alertLink as WorkspaceAlertToLink), isPrivate: true };
 
       await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
 
       expect(created[0]!.data.isPrivate).toBe(true);
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      expect(sent[0]!.text).toBe(
+        `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **[Alert ALT-3](${ALERT_LINK})**, **api-1** (Host) and **checkout** (Service).\n\n${PRIVATE_LINE}`,
+      );
+    });
+  });
+
+  /*
+   * What the toggle was left at is what the incident is created with,
+   * either way, and the confirmation says whether status page subscribers
+   * will be told - the status pages, by name - or why not (#7916): from the
+   * incident as created, and from who it reaches, read for it as the member
+   * who submits the card.
+   */
+  describe("the toggle's answer, and what the confirmation says about subscribers", () => {
+    function statusPage(
+      name: string,
+      email: number,
+    ): IncidentSubscriberAudienceResult["statusPages"][number] {
+      return {
+        statusPageId: ObjectID.generate().toString(),
+        name: name,
+        subscriberCounts: {
+          ...IncidentSubscriberAudience.getEmptyCounts(),
+          email: email,
+        },
+      };
+    }
+
+    function withLine(line: string): string {
+      return `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).\n\n${line}`;
+    }
+
+    test("on: created notifying them, and the confirmation names the status pages that will tell their subscribers - read for the incident, as the member", async () => {
+      reached = audienceOf({
+        hasMonitors: true,
+        statusPages: [statusPage("Acme Status", 41), statusPage("Beta", 3)],
+      });
+
+      await submit({ notifyStatusPageSubscribers: "true" });
+
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(true);
+      expect(sent).toEqual([
+        {
+          kind: "reply",
+          text: withLine(
+            "Status page subscribers will be notified: **Acme Status** and **Beta**.",
+          ),
+        },
+      ]);
+
+      expect(audienceRequests).toHaveLength(1);
+      const request: {
+        projectId: ObjectID;
+        props: DatabaseCommonInteractionProps;
+        incidentId: ObjectID;
+      } = audienceRequests[0] as never;
+      expect(request.projectId).toBe(PROJECT_ID);
+      expect(request.incidentId.toString()).toBe(CREATED_ID.toString());
+      expect(request.props.userId).toBe(USER_ID);
+      // The answer was given: the project's switch is not asked.
+      expect(projectReads).toEqual([]);
+    });
+
+    test("off in a project that keeps it on: created without notifying them - the answer given is what is saved - and the confirmation says why, and how to tell them later", async () => {
+      await submit({ notifyStatusPageSubscribers: "false" });
+
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      expect(sent[0]!.text).toBe(withLine(BOX_OFF_LINE));
+      expect(audienceRequests).toEqual([]);
+      expect(projectReads).toEqual([]);
+    });
+
+    test("on in a project that starts it unticked: created notifying them", async () => {
+      notifiesByDefault = false;
+      reached = audienceOf({
+        hasMonitors: true,
+        statusPages: [statusPage("Acme Status", 41)],
+      });
+
+      await submit({ notifyStatusPageSubscribers: "true" });
+
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(true);
+      expect(sent[0]!.text).toBe(
+        withLine("Status page subscribers will be notified: **Acme Status**."),
+      );
+    });
+
+    test.each([
+      ["on no monitor", audienceOf({ hasMonitors: false }), NO_MONITORS_LINE],
+      [
+        "no status page lists its monitors",
+        audienceOf({ hasMonitors: true }),
+        "Status page subscribers were not notified: no status page shows this incident's monitors.",
+      ],
+      [
+        "the page that shows it has no subscribers yet",
+        audienceOf({
+          hasMonitors: true,
+          statusPages: [statusPage("Acme Status", 0)],
+        }),
+        "Status page subscribers were not notified: **Acme Status** (no subscribers yet).",
+      ],
+      [
+        "a status page the member may not read",
+        audienceOf({ hasMonitors: true, hiddenStatusPageCount: 2 }),
+        "Status page subscribers will be notified: 2 status pages you do not have access to.",
+      ],
+    ])(
+      "on, %s: the confirmation says so",
+      async (
+        _label: string,
+        audience: IncidentSubscriberAudienceResult,
+        line: string,
+      ) => {
+        reached = audience;
+
+        await submit({ notifyStatusPageSubscribers: "true" });
+
+        expect(sent[0]!.text).toBe(withLine(line));
+      },
+    );
+
+    test("who it reaches cannot be worked out: declared and confirmed all the same, saying it could not tell - and the form is still taken away", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(IncidentSubscriberAudienceBuilder, "build")
+        .mockImplementation(async () => {
+          throw new Error("the database is not connected");
+        });
+
+      await submit({ notifyStatusPageSubscribers: "true" });
+
+      expect(created).toHaveLength(1);
+      expect(sent[0]!.text).toBe(
+        withLine(
+          "Could not work out which status page subscribers will be notified.",
+        ),
+      );
+      expect(deleted).toEqual(["form-1"]);
+    });
+
+    test.each(["true", "false"])(
+      "an answer (%s) from someone who may not give one - a card another member asked for: refused, with who may, and nothing is declared or read",
+      async (answer: string) => {
+        await expect(
+          submit({ notifyStatusPageSubscribers: answer }, READER_PROPS),
+        ).rejects.toThrow(
+          new NotAuthorizedException(
+            "You do not have permission to choose whether status page subscribers are notified, so the incident was not declared. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident. Open the form again to declare it without this choice.",
+          ),
+        );
+
+        expect(created).toEqual([]);
+        expect(readPickedSpy).not.toHaveBeenCalled();
+        expect(projectReads).toEqual([]);
+        expect(sent).toEqual([]);
+        // The card stays, for its answer to be changed or the form asked again.
+        expect(deleted).toEqual([]);
+      },
+    );
+
+    test("such a member's card without the toggle: declared as the project starts it", async () => {
+      notifiesByDefault = false;
+
+      await submit({}, READER_PROPS);
+
+      expect(created).toHaveLength(1);
       expect(
         created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
       ).toBe(false);

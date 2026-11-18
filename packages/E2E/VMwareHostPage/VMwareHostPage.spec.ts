@@ -6,6 +6,7 @@ import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { shownDropdownValueOf } from "../SuiteHelpers/Dropdowns";
 
 /*
  * An ESXi host's page inside its vCenter, in a browser, against the offline
@@ -1341,7 +1342,7 @@ test.describe("on a phone, in dark mode and in German", () => {
       name: GERMAN["Auto-refresh"]!,
     });
     // The interval in German as well: "30 Sek.", not English's "30s" (#7303).
-    await expect(interval.locator("option:checked")).toHaveText("Alle 30 Sek.");
+    await expect(shownDropdownValueOf(interval)).toHaveText("Alle 30 Sek.");
 
     /*
      * Each tile's title keeps clear of its icon: "Festplattenlatenz" ran

@@ -19,7 +19,9 @@ import type { SpyInstance } from "jest-mock";
  * beside it (Monitor.incomingMonitorRequest), cut as the monitor's logs are,
  * by its Keep request content switch. The rules themselves are pinned with
  * every other copy of a check in MonitorCheckCopiesRedaction.test.ts; here,
- * which copy is which, and which request the heartbeat judges.
+ * which copy is which, and which request a rewrite of the two starts from.
+ * The heartbeat reads the request as it came alone (#8906), which App's
+ * CheckHeartbeat.test.ts pins.
  */
 
 const REDACTED: string = "[REDACTED]";
@@ -206,7 +208,15 @@ describe("LatestIncomingRequest.toColumns: the two copies a request is written t
   });
 });
 
-describe("LatestIncomingRequest.getAsReceived: the request the heartbeat judges", () => {
+/*
+ * The request a rewrite of the two copies starts from: the switch's, and
+ * RedactLatestIncomingRequests' split of a request a server older than
+ * 14.0.106 kept once, in the copy people read, as it came. That fallback
+ * stays while the migration is registered (App's
+ * RedactLatestIncomingRequests.test.ts holds the two together). The
+ * heartbeat no longer asks: it reads the request as it came alone (#8906).
+ */
+describe("LatestIncomingRequest.getAsReceived: the request a rewrite starts from", () => {
   const asReceived: IncomingMonitorRequest = stored(deployHook());
 
   // The copy people read, as the same request wrote it.
@@ -234,8 +244,25 @@ describe("LatestIncomingRequest.getAsReceived: the request the heartbeat judges"
     ).toBe(keptOnce);
   });
 
-  test("a copy newer than the request beside it - a server from before the split wrote it during an upgrade - is the latest request", () => {
-    const writtenLater: IncomingMonitorRequest = stored(
+  test("a request kept once, read as Postgres hands back the column that holds nothing beside it: the copy", () => {
+    const keptOnce: IncomingMonitorRequest = stored(deployHook());
+
+    expect(
+      LatestIncomingRequest.getAsReceived({
+        incomingMonitorRequest: keptOnce,
+        incomingMonitorRequestAsReceived:
+          null as unknown as IncomingMonitorRequest,
+      }),
+    ).toBe(keptOnce);
+  });
+
+  /*
+   * Every server since 14.0.106 writes both copies in one statement, so a
+   * copy no longer comes later than the request beside it; and a copy that
+   * says so is cut, so it is never taken for the request as it came.
+   */
+  test("a copy that says it came later than the request beside it is not taken: the request is", () => {
+    const saysLater: IncomingMonitorRequest = stored(
       deployHook({
         checkedAt: new Date("2026-11-10T08:05:00.000Z"),
         incomingRequestReceivedAt: new Date("2026-11-10T08:04:59.000Z"),
@@ -245,73 +272,36 @@ describe("LatestIncomingRequest.getAsReceived: the request the heartbeat judges"
 
     expect(
       LatestIncomingRequest.getAsReceived({
-        incomingMonitorRequest: writtenLater,
-        incomingMonitorRequestAsReceived: asReceived,
-      }),
-    ).toBe(writtenLater);
-  });
-
-  test("a copy older than the request beside it is not", () => {
-    const older: IncomingMonitorRequest = stored(
-      deployHook({ checkedAt: new Date("2026-11-10T07:00:00.000Z") }),
-    );
-
-    expect(
-      LatestIncomingRequest.getAsReceived({
-        incomingMonitorRequest: older,
+        incomingMonitorRequest: saysLater,
         incomingMonitorRequestAsReceived: asReceived,
       }),
     ).toBe(asReceived);
   });
 
-  test("times are compared whether they are dates or the text jsonb keeps", () => {
-    const later: IncomingMonitorRequest = deployHook({
-      checkedAt: new Date("2026-11-10T09:00:00.000Z"),
-    });
-
-    expect(
-      LatestIncomingRequest.getAsReceived({
-        incomingMonitorRequest: later,
-        incomingMonitorRequestAsReceived: asReceived,
-      }),
-    ).toBe(later);
-
-    expect(
-      LatestIncomingRequest.getAsReceived({
-        incomingMonitorRequest: readersCopy,
-        incomingMonitorRequestAsReceived: deployHook({
-          checkedAt: new Date("2026-11-10T09:00:00.000Z"),
-        }),
-      })?.requestBody,
-    ).toEqual(deployHook().requestBody);
-  });
-
   test.each([
-    ["the copy's", "not a time", CHECKED_AT],
-    ["the request's", CHECKED_AT, "not a time"],
-    ["either", undefined, CHECKED_AT],
+    ["later, as a date", new Date("2026-11-10T09:00:00.000Z")],
+    ["later, as the text jsonb keeps", "2026-11-10T09:00:00.000Z"],
+    ["earlier", "2026-11-10T07:00:00.000Z"],
+    ["unreadable", "not a time"],
+    ["missing", undefined],
   ])(
-    "%s time unreadable: the request as it came",
-    (_which: string, copyTime: unknown, requestTime: unknown) => {
+    "whatever time the copy says - %s - the request as it came",
+    (_which: string, copyTime: unknown) => {
       const copy: IncomingMonitorRequest = {
         ...stored(deployHook()),
         checkedAt: copyTime as Date,
-      };
-      const request: IncomingMonitorRequest = {
-        ...stored(deployHook()),
-        checkedAt: requestTime as Date,
       };
 
       expect(
         LatestIncomingRequest.getAsReceived({
           incomingMonitorRequest: copy,
-          incomingMonitorRequestAsReceived: request,
+          incomingMonitorRequestAsReceived: asReceived,
         }),
-      ).toBe(request);
+      ).toBe(asReceived);
     },
   );
 
-  test("no request yet: none, and the heartbeat falls back to when the monitor was made", () => {
+  test("no request yet: none, so a rewrite writes nothing", () => {
     expect(LatestIncomingRequest.getAsReceived({})).toBeUndefined();
     expect(
       // As Postgres hands back a column that holds nothing.
@@ -329,48 +319,6 @@ describe("LatestIncomingRequest.getAsReceived: the request the heartbeat judges"
         incomingMonitorRequestAsReceived: asReceived,
       }),
     ).toBe(asReceived);
-  });
-});
-
-describe("LatestIncomingRequest.isReadersCopyAsItCame: a request not split yet", () => {
-  const asReceived: IncomingMonitorRequest = stored(deployHook());
-  const readersCopy: IncomingMonitorRequest = LatestIncomingRequest.toColumns({
-    request: deployHook(),
-    keepResponseContent: true,
-  }).incomingMonitorRequest;
-
-  test("a request kept once, as it came", () => {
-    expect(
-      LatestIncomingRequest.isReadersCopyAsItCame({
-        incomingMonitorRequest: stored(deployHook()),
-      }),
-    ).toBe(true);
-  });
-
-  test("a copy a server from before the split wrote after the request beside it", () => {
-    expect(
-      LatestIncomingRequest.isReadersCopyAsItCame({
-        incomingMonitorRequest: stored(
-          deployHook({ checkedAt: new Date("2026-11-10T08:10:00.000Z") }),
-        ),
-        incomingMonitorRequestAsReceived: asReceived,
-      }),
-    ).toBe(true);
-  });
-
-  test("not a split request, and not a monitor no request reached", () => {
-    expect(
-      LatestIncomingRequest.isReadersCopyAsItCame({
-        incomingMonitorRequest: readersCopy,
-        incomingMonitorRequestAsReceived: asReceived,
-      }),
-    ).toBe(false);
-    expect(LatestIncomingRequest.isReadersCopyAsItCame({})).toBe(false);
-    expect(
-      LatestIncomingRequest.isReadersCopyAsItCame({
-        incomingMonitorRequestAsReceived: asReceived,
-      }),
-    ).toBe(false);
   });
 });
 
@@ -487,9 +435,14 @@ describe("LatestIncomingRequest.getReadersCopyRewrite: both copies written again
     expect(rewrite!.expectedData.incomingMonitorRequest).toBe(keptOnce);
   });
 
-  test("a copy a server from before the split wrote later: that request is the one kept, and cut", () => {
-    const earlier: IncomingMonitorRequest = stored(deployHook());
-    const later: IncomingMonitorRequest = stored(
+  /*
+   * No server writes the copy alone any more, so a copy is never the
+   * request to keep while one is kept beside it: a copy that says it came
+   * later is written again from the request, as every other copy is.
+   */
+  test("a copy that says it came later than the request beside it: the request is the one kept, and the copy is cut again from it", () => {
+    const request: IncomingMonitorRequest = stored(deployHook());
+    const saysLater: IncomingMonitorRequest = stored(
       deployHook({
         checkedAt: new Date("2026-11-10T08:30:00.000Z"),
         requestBody: { status: "failed", token: "tok_live_1" },
@@ -500,15 +453,22 @@ describe("LatestIncomingRequest.getReadersCopyRewrite: both copies written again
       LatestIncomingRequest.getReadersCopyRewrite(
         monitorWith({
           keepResponseContent: true,
-          incomingMonitorRequest: later,
-          incomingMonitorRequestAsReceived: earlier,
+          incomingMonitorRequest: saysLater,
+          incomingMonitorRequestAsReceived: request,
         }),
       );
 
-    expect(rewrite!.data.incomingMonitorRequestAsReceived).toEqual(later);
+    expect(rewrite!.data.incomingMonitorRequestAsReceived).toEqual(request);
     expect(asJson(rewrite!.data.incomingMonitorRequest)["requestBody"]).toEqual(
-      { status: "failed", token: REDACTED },
+      {
+        status: "deployed",
+        service: "checkout",
+        deployer: { name: "Jane Doe", email: REDACTED },
+        apiKey: REDACTED,
+      },
     );
+    // Written only while the monitor still holds the copy it was read with.
+    expect(rewrite!.expectedData.incomingMonitorRequest).toBe(saysLater);
   });
 
   test("a monitor read without its switch writes nothing: the switch is unknown", () => {

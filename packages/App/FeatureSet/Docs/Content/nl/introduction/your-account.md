@@ -134,7 +134,7 @@ U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het
 
 ## Wat elk project voor u bewaart
 
-**Gebruikersinstellingen**, rechts in de balk onder de bovenste balk, zijn alleen van u, en elk project heeft zijn eigen. Open ze in elk project waarin u bereikbaarheidsdienst hebt.
+**Gebruikersinstellingen**, rechts in de balk onder de bovenste balk, zijn alleen van u, en elk project heeft zijn eigen. Open ze in elk project waarin u bereikbaarheidsdienst hebt. Ze openen op **Instellingschecklist** zolang er iets in te stellen is, en op **Meldingsmethoden** zodra er niets wezenlijks meer ontbreekt.
 
 | Pagina | Waarvoor ze dient | Meer weten |
 | --- | --- | --- |

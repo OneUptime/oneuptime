@@ -15,7 +15,7 @@ Hem är den första sidan du ser i ett projekt. Den visar med en blick om något
 
 1. En sökruta, med **Deklarera incident** och **Skapa** bredvid.
 2. En rad som säger om något är fel, ovanför fem siffror som räknar det som behöver uppmärksamhet.
-3. **Välkommen till OneUptime 👋**, en checklista för ett nytt projekt, tills den är klar.
+3. **Välkommen till OneUptime 👋**, en checklista för ett nytt projekt, tills den är klar, och sedan **Mer att konfigurera** så länge något återstår.
 4. **Kräver uppmärksamhet**, varje problem som är öppet just nu, med namn.
 5. **Ditt projekt**, vad projektet består av, och **Kommande underhåll** när något underhåll är schemalagt.
 6. **Utforska OneUptime**, varje produkt, en kategori i taget.
@@ -40,7 +40,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 
 Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. Hem följer också det den räknar när det ändras: när en incident, ett larm, en monitor, en underhållshändelse eller ett SLO skapas, ändras eller tas bort kommer raden, siffrorna, **Kräver uppmärksamhet** och **Kommande underhåll** i kapp inom några sekunder, utan omladdning. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
-Så länge inget övervakas ännu slutar raden med knappen **Skapa din första monitor**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
+Så länge inget övervakas ännu slutar raden med knappen **Skapa din första monitor**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, om inte checklistan under redan erbjuder det steget. Bara den som får skapa monitorer ser den.
 
 ### De fem siffrorna
 
@@ -68,13 +68,17 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 | **Skapa din första monitor** | Den första kontrollen kommer in. | Den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, eller listan **Monitorer** för den som inte får skapa monitorer. |
 | **Anslut en server eller ett kluster** | De första mätvärdena kommer in. | **Värdar** |
 | **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | Den guidade installationen **Skicka loggar, mätvärden och spår och få sedan larm** |
-| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | Den guidade installationen **Larma rätt person när något går sönder** |
+| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel eller en monitor kör en policy som kan nå någon. | Den guidade installationen **Larma rätt person när något går sönder** |
 | **Publicera en statussida** | En statussida visar en monitor. | Den guidade installationen **Publicera en statussida**, eller listan **Statussidor** för den som inte får skapa statussidor. |
 | **Bjud in ditt team** | Någon accepterar din inbjudan. | **Användare** |
 
-Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
+Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte är konfigurerad ser dess administratörer i stället serverns eget kort ovanför checklistan, med **Slutför konfigurationen**, som öppnar administratörsdashboarden.
 
 Varje steg säger ungefär hur lång tid det tar, checklistan ungefär hur lång tid som är kvar, och nästa steg har en egen knapp **Starta**.
+
+Ett steg vars post finns men ännu inte fungerar säger under sig varför, med orden från **Inställningarnas hälsa**: en statussida som inte visar någon monitor, en monitor som ingenting kontrollerar, en jourpolicy som ingenting kör eller som inte når någon, en inbjudan som ingen har accepterat. Steget öppnar då sidan som åtgärdar det, och när det är nästa steg säger dess knapp åtgärden, till exempel **Lägg till monitorer**.
+
+När **Konfigurera en jourpolicy** är avbockat, och så länge bara e-post kan larma dig, ligger **Bli larmad via SMS eller telefonsamtal** kvar under det: länken öppnar den guidade installationen **Larma rätt person när något går sönder**, där du lägger till din telefon eller mobilappen. Bara den som får skapa jourpolicyer ser den.
 
 En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Ja"| hidden{"Dold<br/>av dig?"}
     hidden -->|"Ja"| line["En rad för att<br/>visa den igen"]
     hidden -->|"Nej"| done{"Alla steg<br/>klara?"}
-    done -->|"Ja"| gone["Ingen checklista"]
+    done -->|"Ja"| gone["Mer att konfigurera,<br/>så länge något återstår"]
     done -->|"Nej"| shown["Checklistan med<br/>de steg som återstår"]
 ```
 
 Checklistan försvinner för alla när varje steg är klart. För att dölja den tidigare klickar du på **Dölj**: den döljs då bara för dig, på alla enheter, och en rad blir kvar med **Visa den** och **Så fungerar OneUptime**. Den som har bjudits in till projektet som medlem ser inte checklistan. **Så fungerar OneUptime** finns kvar ett klick bort, i alla projekt: öppna det från **Hjälp** eller med knappen bredvid **Utforska OneUptime**.
+
+När checklistan är klar tar **Mer att konfigurera** dess plats under rubriken, som ett kort bland de andra: de grundläggande steg som dina mål inte tog med, till exempel en statussida och ditt team, vart och ett tills det fungerar, med **Bli larmad via SMS eller telefonsamtal** först så länge bara e-post kan larma dig. Dess **Dölj** döljer den för dig, utan att någon rad blir kvar.
 
 **Så fungerar OneUptime** öppnar med **Så hänger det ihop**: de fyra steg ett problem går igenom, **Upptäck**, **Reagera**, **Kommunicera** och **Förbättra**, vart och ett med de produkter som gör det. Sedan kommer kategorierna i menyn **Produkter**, var och en med sina produkter och vad varje produkt är till för: välj en, eller gå vidare med piltangenterna eller **Nästa**. Klicka på en produkt för att öppna den. Produkter som ditt projekt döljer är utelämnade.
 
@@ -103,7 +109,7 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 ### Inställningarnas hälsa
 
-När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som börjar med en rad i färgen för det allvarligaste fyndet: hur många problem som skulle hindra att folk får veta, hur många saker som är värda att åtgärda, eller **Inget att åtgärda**. Under den listar sidan vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor, en anpassad domän vars SSL-certifikat inte kunde utfärdas, en intagningsnyckel som inga data har kommit in med. Varje fynd säger i en mening vad som är fel, med namnen på era monitorer, policyer och personer i fetstil, de monitorer eller policyer som fyndet rör efter **Påverkar**, och direkt under det knappen som öppnar åtgärden. Två går att åtgärda direkt där, när en dialog har sagt exakt vad som ändras: **Slå på SMS** (eller telefonsamtal, WhatsApp eller Telegram) för den som får slå på det, och **Skapa jourregel**, som larmar den jourpolicy du väljer för en monitor som inte larmade någon. En monitors fynd är de avbrott som dess kort **När den går ner** nämner, och en jourpolicy som ingenting kör, eller en anpassad domän som inte öppnar sin statussida, säger det också högst upp på policyns eller statussidans egen sida. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
+När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som börjar med en rad i färgen för det allvarligaste fyndet: hur många problem som skulle hindra att folk får veta, hur många saker som är värda att åtgärda, eller **Inget att åtgärda**. Under den listar sidan vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor, en anpassad domän vars SSL-certifikat inte kunde utfärdas, en intagningsnyckel som inga data har kommit in med. Varje fynd säger i en mening vad som är fel, med namnen på era monitorer, policyer och personer i fetstil, de monitorer eller policyer som fyndet rör efter **Påverkar**, och direkt under det knappen som öppnar åtgärden. Två går att åtgärda direkt där, när en dialog har sagt exakt vad som ändras: **Slå på SMS** (eller telefonsamtal, WhatsApp eller Telegram) för den som får slå på det, och **Skapa jourregel**, som larmar den jourpolicy du väljer för en monitor som inte larmade någon. En monitors fynd är de avbrott som dess kort **När den går ner** nämner, och en jourpolicy som ingenting kör, eller en anpassad domän som inte öppnar sin statussida, säger det också högst upp på policyns eller statussidans egen sida. Varje ägare som e-postmeddelandet om skapandet enligt kortet aldrig når är också ett fynd som är värt att åtgärda, med samma sida för att rätta till det. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
 
 ### Ditt projekt
 
@@ -113,7 +119,7 @@ När något i projektets inställningar skulle hindra att folk får veta, slutar
 
 ### Utforska OneUptime
 
-**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den. Produkterna som ditt projekt döljer är inte med.
+**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den. Produkterna som ditt projekt döljer finns under den sista fliken, **Fler produkter**, med en notis om att de fortfarande fungerar.
 
 ## Hitta rätt
 
@@ -158,8 +164,10 @@ Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på
 
 - **Varje sida i menyerna**, under namnet som menyn ger den: API-nycklar, Ta bort projekt, Jourscheman, Incidentallvar, dina egna Aviseringsmetoder. Varje resultat säger var det finns, till exempel *Projektinställningar › Avancerad*, så att sidor med samma namn (Anpassade fält under Incidenter, Larm och Monitorer) är lätta att skilja åt.
 - **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Anpassade SMTP-konfigurationer* hittar Aviseringskanaler. Skriv namnet på engelska eller på ditt eget språk.
-- **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
+- **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. Skapa statussida, Skapa jourpolicy, Skapa jourschema, Skapa instrumentpanel, Skapa arbetsflöde och Bjud in användare öppnar formuläret på sin lista. En åtgärd som ändrar något erbjuds bara den som får utföra den.
 - **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
+- **Personerna i ditt projekt**, efter namn eller e-post, under Användare: var och en öppnar personens sida. Du hittar de personer som sidan Användare visar dig.
+- **En posts egna sidor**: på en statussida öppnar *sso* dess sida Enkel inloggning. Överallt annars lägger du till postens namn eller dess typ: *status page sso*, eller *acme subscribers* för prenumeranterna på en statussida som heter Acme. Bara poster du kan se erbjuds, och en sida som har bytt namn hittas fortfarande under sitt gamla namn, till exempel *advanced settings*.
 - **Dokumentationen**, i en grupp *Dokumentation* under allt annat: de sidor och avsnitt vars ord stämmer med det du skriver, på ditt språk, även med ett stavfel. Var och en öppnas i en ny flik, så att du behåller din plats.
 
 Sökningen läser det du skriver som du menar det:

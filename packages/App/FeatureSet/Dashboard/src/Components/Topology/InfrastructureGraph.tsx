@@ -21,7 +21,17 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME } from "./TopologyToolbarPicker";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
   composedValue,
@@ -1109,6 +1119,13 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return translateString(value) || value;
   };
   const graphTranslator: Translator = useTranslator();
+  // The line-label picker's choices, in the reader's language.
+  const trafficLabelOptions: Array<DropdownOption> = [
+    getTranslatedDropdownOption("calls", t("Request rate")),
+    getTranslatedDropdownOption("errors", t("Error rate")),
+    getTranslatedDropdownOption("latency", t("Average latency")),
+    getTranslatedDropdownOption("hover", t("On hover")),
+  ];
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
   /* Null until the user picks one: then the default below applies. */
@@ -1317,23 +1334,28 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
           )}
         </p>
         {linkCount > 0 && (
-          <label className="flex items-center gap-2 text-xs text-gray-600">
-            {t("Line labels")}
-            <select
-              className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs"
-              aria-label={t("Line labels")}
-              data-testid="infrastructure-traffic-label"
-              value={trafficLabel}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                setTrafficLabel(event.target.value as TrafficLabel);
-              }}
-            >
-              <option value="calls">{t("Request rate")}</option>
-              <option value="errors">{t("Error rate")}</option>
-              <option value="latency">{t("Average latency")}</option>
-              <option value="hover">{t("On hover")}</option>
-            </select>
-          </label>
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <span aria-hidden={true}>{t("Line labels")}</span>
+            <div data-testid="infrastructure-traffic-label">
+              <Dropdown
+                className={TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME}
+                options={trafficLabelOptions}
+                value={findDropdownOption(trafficLabelOptions, trafficLabel)}
+                isClearable={false}
+                ariaLabel={t("Line labels")}
+                isAriaLabelTranslated={true}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const picked: string | null = readPickedDropdownValue(next);
+
+                  if (picked !== null) {
+                    setTrafficLabel(picked as TrafficLabel);
+                  }
+                }}
+              />
+            </div>
+          </div>
         )}
         <span
           className="text-xs text-gray-500"

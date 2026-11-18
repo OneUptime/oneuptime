@@ -6,6 +6,7 @@ Mientras alguien está ausente, una sustitución de usuario envía los avisos qu
 - [Cómo cambia un aviso una sustitución](#cómo-cambia-un-aviso-una-sustitución): A quién se avisa en su lugar, y cuándo.
 - [Añadir una sustitución](#añadir-una-sustitución): Quién está ausente, quién cubre, desde cuándo y hasta cuándo.
 - [Editar una sustitución](#editar-una-sustitución): Cambiar quién cubre, o cuándo empieza y termina.
+- [Terminar una sustitución antes](#terminar-una-sustitución-antes): Traer de vuelta a alguien antes de que termine su sustitución.
 - [Todas las políticas, o una](#todas-las-políticas-o-una): Dónde añadir una sustitución, y cuál gana.
 - [Otras formas de añadir una](#otras-formas-de-añadir-una): Desde una programación y desde tus próximos turnos.
 :::
@@ -56,10 +57,16 @@ Cada sustitución es una fila: **Ausente**, **Cubierto por**, **Empieza** y **Fi
 Haz clic en **Editar** en la fila de una sustitución, en cualquiera de las dos páginas **Sustituciones de usuarios** o en la lista de sustituciones de usuarios de la página **Capas** de una programación. El formulario se abre con la sustitución tal como se guardó: cámbiala y haz clic en **Guardar cambios**.
 
 - **¿Quién cubre?** se puede cambiar hasta que termine la sustitución. Vuelve a ponerlo en **Siguiente persona de la rotación** para omitir a la persona en su lugar.
-- **Empieza** se puede mover hasta que empiece la sustitución, y después se queda como está. **Finaliza** se puede mover hasta que termine la sustitución: ponlo en ahora para terminar la sustitución antes. Ninguno de los dos se puede mover al pasado.
+- **Empieza** se puede mover hasta que empiece la sustitución, y después se queda como está. **Finaliza** se puede mover hasta que termine la sustitución: para terminarla ahora, usa **Terminar ahora**. Ninguno de los dos se puede mover al pasado.
 - **¿Quién está ausente?** no se puede cambiar. Para otra persona, añade una nueva sustitución.
 
-Una sustitución que ya terminó no se puede cambiar: su **Editar** está bloqueado y dice por qué.
+Una sustitución que ya terminó no se puede cambiar: su **Editar** está bloqueado y dice por qué. La aplicación móvil de OneUptime edita las sustituciones con las mismas reglas.
+
+## Terminar una sustitución antes
+
+Para traer de vuelta a alguien antes de que termine su sustitución, haz clic en **Terminar ahora**: en el menú de la fila de la sustitución, en cualquiera de las dos páginas **Sustituciones de usuarios**, junto a ella en la lista de sustituciones de usuarios de la página **Capas** de una programación, o bajo **Finaliza** en su formulario de edición. Primero pregunta, y dice qué pasa con el tiempo que queda: quien cubre deja de cubrir a la persona, o la persona deja de ser omitida, y desde ese momento sus avisos vuelven a ser suyos. Después, la sustitución termina en el acto.
+
+**Terminar ahora** solo se ofrece mientras una sustitución está en curso: una que aún no ha empezado no tiene nada que terminar, así que elimínala en su lugar. La aplicación móvil termina igual una sustitución en curso.
 
 ## Todas las políticas, o una
 
@@ -68,11 +75,11 @@ Una sustitución que ya terminó no se puede cambiar: su **Editar** está bloque
 | **Guardia → Avanzado → Sustituciones de usuarios** | **Sustituciones globales de usuarios** | Todas las políticas de guardia del proyecto |
 | **Sustituciones de usuarios** de una política | **Sustituciones de usuarios de la política de guardia** | Solo esa política |
 
-Dos sustituciones de la misma persona no pueden solaparse en la misma política, ni cuando las dos son globales. El formulario lo dice en cuanto se eligen las horas, con **Editar esa sustitución** para cambiar esa en su lugar. Una puede terminar justo cuando empieza la siguiente.
+Dos sustituciones de la misma persona no pueden solaparse en la misma política, ni cuando las dos son globales. El formulario, y **Omitir hasta…** en las capas de una programación, lo dicen junto a las horas en cuanto se eligen, con **Editar esa sustitución** para cambiar esa en su lugar. Una puede terminar justo cuando empieza la siguiente.
 
 La sustitución propia de una política puede solaparse con una global de la misma persona: en esa política, se usa la propia mientras ambas se aplican, y el formulario lo dice. Un aviso enviado sin política, desde un workflow o desde el chat, solo sigue las sustituciones globales.
 
-Las sustituciones que ya se solapaban antes de esta regla se quedan como están. Las dos llevan la marca **Se solapa**, que dice cuál se usa: la que nombra a quien cubre antes que una omisión, luego la que empieza primero, luego la que se añadió primero.
+Las sustituciones que ya se solapaban antes de esta regla se quedan como están. Las dos llevan la marca **Se solapa**, que dice cuál se usa: la que nombra a quien cubre antes que una omisión, luego la que empieza primero, luego la que se añadió primero. Cualquiera de las dos se puede seguir acortando, o terminar con **Terminar ahora**: solo un cambio que añade tiempo está sujeto a la regla.
 
 ## Otras formas de añadir una
 
@@ -85,7 +92,7 @@ Cuando alguien deja el proyecto, se elimina cada sustitución que lo nombra y qu
 
 **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias** pueden añadir, editar y eliminar sustituciones; **Visor** y **Visor de guardias** pueden verlas. En un rol personalizado, los permisos son **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** y **Read On-Call Policy User Override**. En la **Cronología de la programación**, solo quien puede leer sustituciones ve qué turno se está cubriendo.
 
-Una sustitución en una política sigue el alcance de la política. Da a un equipo **Miembro de guardias** limitado a las políticas que le pertenecen, o a su etiqueta, y sus miembros añaden, editan y eliminan sustituciones solo en esas políticas. Una sustitución global se aplica a todas las políticas, incluidas las de otro equipo, así que añadirla, editarla o eliminarla requiere el permiso de sustituciones sobre todo el proyecto. Con uno más limitado, **Añadir Sustitución de usuario**, **Editar** y **Eliminar** en **Guardia → Avanzado → Sustituciones de usuarios** están bloqueados y dicen por qué. **Omitir hasta…** en las capas de una programación y **Buscar cobertura** en tus próximos turnos, que añaden sustituciones globales, ofrecen en su lugar las políticas en las que puedes añadir sustituciones, con una sustitución por política, igual que la cobertura de la aplicación móvil; donde no puedes en ninguna, están bloqueados y dicen por qué. El equipo añade sus sustituciones en la página **Sustituciones de usuarios** de cada política. Lo mismo vale para la API: una sustitución sin `onCallDutyPolicyId` se rechaza para un permiso limitado a etiquetas o a las políticas propias.
+Una sustitución en una política sigue el alcance de la política. Da a un equipo **Miembro de guardias** limitado a las políticas que le pertenecen, o a su etiqueta, y sus miembros añaden, editan y eliminan sustituciones solo en esas políticas. Una sustitución global se aplica a todas las políticas, incluidas las de otro equipo, así que añadirla, editarla o eliminarla requiere el permiso de sustituciones sobre todo el proyecto. Con uno más limitado, **Añadir Sustitución de usuario**, **Editar**, **Terminar ahora** y **Eliminar** en **Guardia → Avanzado → Sustituciones de usuarios** están bloqueados y dicen por qué. **Omitir hasta…** en las capas de una programación y **Buscar cobertura** en tus próximos turnos, que añaden sustituciones globales, ofrecen en su lugar las políticas en las que puedes añadir sustituciones, con una sustitución por política, igual que la cobertura de la aplicación móvil; donde no puedes en ninguna, están bloqueados y dicen por qué. El equipo añade sus sustituciones en la página **Sustituciones de usuarios** de cada política. Lo mismo vale para la API: una sustitución sin `onCallDutyPolicyId` se rechaza para un permiso limitado a etiquetas o a las políticas propias.
 
 En OneUptime Cloud, las sustituciones de usuarios necesitan el plan **Growth**.
 
@@ -118,6 +125,8 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
 Se rechaza una sustitución cuya persona ausente y cuya cobertura son la misma persona, y también una que termina antes de empezar. También se rechaza una que se solapa con otra sustitución de la misma persona en la misma política, o cuando las dos son globales: el rechazo nombra la sustitución con la que se solapa.
 
 Para cambiar una sustitución, envía `PUT /api/on-call-duty-policy-user-override/<override-id>` con los campos que cambian dentro de `data`: `routeAlertsToUserId` (`null` para omitir a la persona en su lugar), `startsAt` y `endsAt`. `overrideUserId` y `onCallDutyPolicyId` no se pueden cambiar. Una sustitución que ya terminó no se puede cambiar, ni el inicio de una que ya empezó, y una hora que se cambia no se puede mover al pasado.
+
+Para terminar una sustitución en curso, envía `POST /api/on-call-duty-policy-user-override/<override-id>/end-now`. Termina según el reloj del servidor, y la respuesta da su nuevo `endsAt`. Una que aún no ha empezado, o que ya terminó, se rechaza.
 
 ## Solución de problemas
 

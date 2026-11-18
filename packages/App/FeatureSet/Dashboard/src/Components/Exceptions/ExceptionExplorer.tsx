@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -12,7 +13,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI, {
@@ -26,7 +27,6 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -557,7 +557,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -642,7 +642,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return (
       <Card title={title}>
         <div className="flex h-32 items-center justify-center">
-          <ComponentLoader />
+          <TableSkeleton rows={3} hasHeader={false} />
         </div>
       </Card>
     );

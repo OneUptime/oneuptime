@@ -98,6 +98,23 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 import HostProcesses from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Processes";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { chooseDropdownOption } from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 // The Host pages read their ids from the route, not from these props.
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
@@ -635,9 +652,7 @@ describe("paging through the Processes list", () => {
     serve(MANY);
     await renderPage();
 
-    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-      target: { value: "50" },
-    });
+    chooseDropdownOption(rowsPerPage(), "50");
     await settle();
 
     expect(visiblePids()).toHaveLength(30);

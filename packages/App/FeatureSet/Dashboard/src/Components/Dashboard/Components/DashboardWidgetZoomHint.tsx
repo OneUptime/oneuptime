@@ -68,7 +68,7 @@ const DashboardWidgetZoomHint: FunctionComponent<ComponentProps> = (
        * every chart's hint, never on a phone, where no finger drags or
        * double-clicks (#8048).
        */
-      className={`pointer-events-none shrink-0 whitespace-nowrap text-[10px] text-gray-400 ${TIME_RANGE_ZOOM_HINT_NOT_ON_PHONES_CLASSES} ${TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES} ${props.className || ""}`}
+      className={`pointer-events-none shrink-0 whitespace-nowrap text-xs text-gray-500 ${TIME_RANGE_ZOOM_HINT_NOT_ON_PHONES_CLASSES} ${TIME_RANGE_ZOOM_HINT_REVEAL_CLASSES} ${props.className || ""}`}
     >
       {translator.translateText(text)}
     </span>

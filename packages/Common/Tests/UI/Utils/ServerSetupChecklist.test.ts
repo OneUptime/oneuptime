@@ -222,7 +222,11 @@ describe("a test send", () => {
       ServerSendingChannel.Call,
     ]) {
       post.mockResolvedValueOnce(
-        ok({ ...ACCEPTED, channel: channel, to: "+14155550100" }) as never,
+        ok({
+          ...ACCEPTED,
+          channel: channel,
+          to: "+14155550100",
+        } as unknown as JSONObject) as never,
       );
 
       await sendServerTest({ channel: channel, to: "+14155550100" });

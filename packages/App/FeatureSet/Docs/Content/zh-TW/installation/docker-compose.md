@@ -413,6 +413,8 @@ npm run backup
 
 它會詢問你的 sudo 密碼，並寫入 `Backups/db-<day of the month>.backup`，因此每天的備份會取代一個月前的備份。請至少每天執行一次。
 
+每次執行都會把結果告訴 OneUptime，因此 Admin Dashboard 中的伺服器設定會顯示上一次備份何時完成，並在備份失敗或上一次備份已超過一週時提示。傾印失敗的執行會說明這一點並以錯誤結束，這樣 cron 工作也能察覺。
+
 ### 把備份複製到伺服器以外
 
 與資料庫位於同一顆磁碟上的備份，無法在這顆磁碟損毀後保存下來。
@@ -518,7 +520,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 npm run doctor
 ```
 
-它會列出出錯的地方，最嚴重的排在最前，每行都附有確切的修正方法，最後顯示 **Everything looks right.** 或需要修正的問題數量。它會檢查每個容器，並顯示未執行容器日誌的最後幾行，還會檢查 `config.env`、`HOST` 能否到達這台伺服器、`PROVISION_SSL` 開啟時的憑證以及可用磁碟空間。它還會詢問 OneUptime 對自身的了解：PostgreSQL、ClickHouse 和 Valkey、遷移、佇列、版本，以及伺服器的設定步驟，例如電子郵件和探測器。`npm start` 結束時也會做同樣的檢查，只列出需要處理的問題。
+它會列出出錯的地方，最嚴重的排在最前，每行都附有確切的修正方法，最後顯示 **Everything looks right.** 或需要修正的問題數量。它會檢查每個容器，並顯示未執行容器日誌的最後幾行，還會檢查 `config.env`、`HOST` 能否到達這台伺服器、前方的代理伺服器是否傳遞了主機名稱和 `X-Forwarded-Proto`、`PROVISION_SSL` 開啟時的憑證以及可用磁碟空間。它還會詢問 OneUptime 對自身的了解：PostgreSQL、ClickHouse 和 Valkey、遷移、佇列、版本，以及伺服器的設定步驟，例如電子郵件和探測器。標記為 • 的行是值得了解的資訊，並非故障，也不計入數量：這台伺服器上關閉了哪些產品，以及是在哪裡設定的。如果 `SERVER_PRODUCTS` 中有 OneUptime 不認識的名稱，會標記為 ! 提醒你查看。`npm start` 結束時也會做同樣的檢查，只列出需要處理的問題。
 
 如需同時查看每個服務最近的錯誤（每條都標明服務名稱）：
 
@@ -526,7 +528,7 @@ npm run doctor
 npm run doctor -- --logs
 ```
 
-當有標記為 ✗ 的問題需要修正時，它以結束代碼 `1` 結束，因此可以在指令碼中執行。Admin Dashboard 會在 **OneUptime 健康狀態** 頁面頂端顯示 OneUptime 對自身的了解，在 Kubernetes 上則由 `HelmChart/Public/diagnose.sh` 輸出。
+當有標記為 ✗ 的問題需要修正時，它以結束代碼 `1` 結束，因此可以在指令碼中執行。Admin Dashboard 會在 **OneUptime 健康狀態** 頁面頂端顯示 OneUptime 對自身的了解，在 Kubernetes 上則由 `HelmChart/Public/diagnose.sh` 輸出，它還會檢查使用者開啟的位址及其憑證。
 
 ## 疑難排解
 

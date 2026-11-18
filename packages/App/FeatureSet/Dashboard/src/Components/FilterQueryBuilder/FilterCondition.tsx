@@ -195,7 +195,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             }}
           />
           {operatorHint && (
-            <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+            <p className="mt-0.5 text-xs text-gray-500 leading-tight">
               {translator.translateText(operatorHint)}
             </p>
           )}
@@ -315,7 +315,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             }}
           />
           {operatorHint && (
-            <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+            <p className="mt-0.5 text-xs text-gray-500 leading-tight">
               {translator.translateText(operatorHint)}
             </p>
           )}
@@ -334,7 +334,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           }}
         />
         {operatorHint && (
-          <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
+          <p className="mt-0.5 text-xs text-gray-500 leading-tight">
             {translator.translateText(operatorHint)}
           </p>
         )}
@@ -369,7 +369,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           </div>
         ) : (
           <div
-            className={`flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${connectorBgColor} ${connectorColor}`}
+            className={`flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-bold border ${connectorBgColor} ${connectorColor}`}
           >
             {props.connector}
           </div>
@@ -404,7 +404,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           >
             {/* Field */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                 {translator.translateText("Field")}
               </label>
               <Dropdown
@@ -447,7 +447,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             {/* Custom attribute name */}
             {isAttributeField && (
               <div>
-                <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                   {translator.translateText("Attribute")}
                 </label>
                 <Input
@@ -466,7 +466,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
 
             {/* Operator */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                 {translator.translateText("Operator")}
               </label>
               <Dropdown
@@ -492,7 +492,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
 
             {/* Value */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                 {translator.translateText("Value")}
               </label>
               {renderValueInput()}

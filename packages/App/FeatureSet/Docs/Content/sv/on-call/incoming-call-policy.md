@@ -276,7 +276,7 @@ Kontot kan bara ändras medan policyn inte har några telefonnummer: sidan säge
 :::
 
 :::details Koden för en teknikers nummer kommer inte fram
-SMS måste vara påslaget för projektet. På OneUptime Cloud betalar ett projekt utan en egen standard-Twilio-konfiguration för SMS från sitt saldo, som måste vara över 1 USD. Koder kan ta en minut att komma fram; klicka på **Skicka en ny kod** för att skicka en ny, och **Projektinställningar** > **Aviseringar** > **Aviseringsloggar** visar vad som hände med den.
+SMS måste vara påslaget för projektet. På OneUptime Cloud betalar ett projekt utan en egen standard-Twilio-konfiguration för SMS från sitt saldo, som måste vara över 1 USD. Koder kan ta en minut att komma fram; klicka på **Skicka en ny kod** för att skicka en ny, och **Projektinställningar** > **Aviseringar** > **Aviseringsloggar** visar vad som hände med den. Den som får läsa loggarna får **Öppna Aviseringsloggar** i dialogen, som öppnar deras sms-flik.
 :::
 
 ## Nästa steg

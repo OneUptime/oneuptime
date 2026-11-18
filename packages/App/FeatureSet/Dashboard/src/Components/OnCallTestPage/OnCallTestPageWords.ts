@@ -399,10 +399,183 @@ export const WALK_UNREACHED_LEVELS: PluralTemplate = {
     "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.",
 };
 
+/*
+ * WHEN A TEST WOULD SEND NOTHING (#7529, #7259): Send is off, and one line
+ * under the preview says why and the one thing to do. For yourself, the page
+ * that puts it right (FIX_LINKS): a way to reach you to verify, or how you
+ * are reached for the severity. For a member or a policy, that the lines
+ * above say why - they are somebody else's to fix. For a policy whose first
+ * level reaches nobody while a later one can, walking every level, which
+ * the line turns on in one click (WALK_EVERY_LEVEL).
+ */
+export const REACHES_NOBODY_SENTENCES: Readonly<{
+  selfVerify: string;
+  selfChooseHow: string;
+  member: string;
+  memberUnnamed: string;
+  policy: string;
+  firstLevelOnly: string;
+}> = {
+  selfVerify: translationKey(
+    "This test would send you nothing yet. Verify a way to reach you, then send it.",
+  ),
+  selfChooseHow: translationKey(
+    "This test would send you nothing yet. Choose how you are reached for this severity, then send it.",
+  ),
+  member: translationKey(
+    "This test would send {{name}} nothing yet. The line above says why.",
+  ),
+  memberUnnamed: translationKey(
+    "This test would send them nothing yet. The line above says why.",
+  ),
+  policy: translationKey(
+    "This test would send nothing yet: nobody it pages can receive it right now. Each line above says why.",
+  ),
+  firstLevelOnly: translationKey(
+    "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.",
+  ),
+};
+
+/*
+ * What the line's button says: the walk's own name, as the box above it
+ * says it - pressing it ticks that box.
+ */
+export const WALK_EVERY_LEVEL: string = translationKey(
+  "Walk every escalation level",
+);
+
+/*
+ * A MONITOR'S FIRE DRILL (#7012): one test of each on-call policy the
+ * failure picked pages, said plainly before it starts - that it is a test,
+ * which policies it pages and who each pages - and each policy's result
+ * after.
+ */
+export const FIRE_DRILL_WORDS: Readonly<{
+  button: string;
+  title: string;
+  description: string;
+  whatFails: string;
+  start: string;
+  policyYouCantSee: string;
+  cantTestPolicy: string;
+  reachesNobody: string;
+  firstLevelsReachNobody: string;
+  walkDescription: string;
+  declaredIncident: string;
+  declaredNow: string;
+  declaredNowHiddenRule: string;
+  started: string;
+}> = {
+  button: translationKey("Run Fire Drill"),
+  title: translationKey("Fire Drill"),
+  description: translationKey(
+    "Tests everyone this monitor's failure would page. Every message says TEST. No incident or alert is created, and no status page or channel is told.",
+  ),
+  whatFails: translationKey("What fails"),
+  start: translationKey("Start Fire Drill"),
+  policyYouCantSee: translationKey("An on-call policy you can't see"),
+  cantTestPolicy: translationKey(
+    "You can't test this policy, so who it pages is not shown.",
+  ),
+  reachesNobody: translationKey(
+    "This fire drill would send nothing yet: nobody these policies page can receive it right now. Each line above says why.",
+  ),
+  /*
+   * Nobody on any policy's first level can receive it, and a later level of
+   * one can (#9385): walking every level, in one click, as a policy's own
+   * test offers it (#7259).
+   */
+  firstLevelsReachNobody: translationKey(
+    "Nobody on these policies' first levels can receive this fire drill right now, so it would send nothing. A later level can.",
+  ),
+  // Under Walk every escalation level, folded under More fields (#9385).
+  walkDescription: translationKey(
+    "Pages each level of every policy in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages each policy's first level only.",
+  ),
+  /*
+   * The incident an alert incident rule declares from an alert of the
+   * criteria (#9397), as the picker offers it: "Slow · An incident
+   * (Critical) declared from its alert".
+   */
+  declaredIncident: translationKey(
+    "An incident ({{severity}}) declared from its alert",
+  ),
+  declaredNow: translationKey(
+    "Alert incident rule {{rule}} declares this incident from the alert right away.",
+  ),
+  declaredNowHiddenRule: translationKey(
+    "An alert incident rule you can't see declares this incident from the alert right away.",
+  ),
+  started: translationKey(
+    "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.",
+  ),
+};
+
+/*
+ * The incident an alert incident rule declares once its alert has been open
+ * a while (#9397): by the rule, or one the reader can't see - and that the
+ * drill does not wait for it.
+ */
+export const FIRE_DRILL_DECLARED_AFTER: PluralTemplate = {
+  one: "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minute. The fire drill tests it now, without the wait.",
+  other:
+    "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.",
+};
+
+export const FIRE_DRILL_DECLARED_AFTER_HIDDEN_RULE: PluralTemplate = {
+  one: "An alert incident rule you can't see declares this incident from the alert if it's still open after {{count}} minute. The fire drill tests it now, without the wait.",
+  other:
+    "An alert incident rule you can't see declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.",
+};
+
+/*
+ * Why a fire drill can't start: a policy of it the reader may not test. It
+ * tests every policy, or none - a drill that skipped one would say all is
+ * well.
+ */
+export const FIRE_DRILL_CANT_TEST: PluralTemplate = {
+  one: "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policy's owners.",
+  other:
+    "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.",
+};
+
+/*
+ * A MONITOR'S LAST FIRE DRILL (#9386), on its When this goes down card:
+ * the failure it rehearsed, then when and by whom - "Offline · An incident
+ * (Critical) · Started 2 hours ago by Ana Lopez" - how many of its tests
+ * were acknowledged, and, folded until wanted, each policy's.
+ */
+export const FIRE_DRILL_LAST_WORDS: Readonly<{
+  title: string;
+  startedBy: string;
+  started: string;
+  walked: string;
+}> = {
+  title: translationKey("Last fire drill"),
+  startedBy: translationKey("Started {{time}} by {{name}}"),
+  // Who started it is gone.
+  started: translationKey("Started {{time}}"),
+  walked: translationKey("Each test walked every escalation level."),
+};
+
+// How many of its tests were acknowledged: the drill is over.
+export const FIRE_DRILL_LAST_ACKNOWLEDGED: PluralTemplate = {
+  one: "{{acknowledged}} of {{count}} test acknowledged.",
+  other: "{{acknowledged}} of {{count}} tests acknowledged.",
+};
+
+// The same while a test of it still waits for somebody.
+export const FIRE_DRILL_LAST_ACKNOWLEDGED_SO_FAR: PluralTemplate = {
+  one: "{{acknowledged}} of {{count}} test acknowledged so far.",
+  other: "{{acknowledged}} of {{count}} tests acknowledged so far.",
+};
+
 // What a test costs, in a sentence: the first level's, or a walk's at most.
 export const COST_SENTENCES: Readonly<{
   firstLevel: { withAmount: string; withoutAmount: string };
   walk: { withAmount: string; withoutAmount: string };
+  fireDrill: { withAmount: string; withoutAmount: string };
+  fireDrillWalk: { withAmount: string; withoutAmount: string };
 }> = {
   firstLevel: {
     withAmount: translationKey(
@@ -418,6 +591,24 @@ export const COST_SENTENCES: Readonly<{
     ),
     withoutAmount: translationKey(
       "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+  // A fire drill's: every policy's first level together.
+  fireDrill: {
+    withAmount: translationKey(
+      "This fire drill sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "This fire drill sends {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+  // A fire drill's that walks every level of each policy (#9385), at most.
+  fireDrillWalk: {
+    withAmount: translationKey(
+      "If nobody acknowledges them, walking every level of each policy sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "If nobody acknowledges them, walking every level of each policy sends up to {{items}}, paid from this project's SMS and call balance.",
     ),
   },
 };

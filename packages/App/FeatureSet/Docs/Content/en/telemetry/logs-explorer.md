@@ -36,7 +36,7 @@ The explorer has five tabs:
 
 ## Before you begin
 
-- **Logs arriving.** Send them with [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) or [Syslog](/docs/telemetry/syslog). The **Setup Guide** tab shows the configuration for your language or collector.
+- **Logs arriving.** Send them with [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) or [Syslog](/docs/telemetry/syslog). The **Setup Guide** tab shows the configuration for your language or collector. Until the first data arrives, this page offers **Guided setup**, which takes you from your first logs, metrics and traces to alerts on them, beside **Send your first logs**, the setup guide alone. To check the endpoint and your key before you set up an app, open **Send a test log** in the guide's first step: it sends one log from the service `oneuptime-test`, which you can delete afterwards.
 - **A role that reads telemetry.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member or Telemetry Viewer, or a custom role with the Read Logs permission. Its scope decides whose logs you see: see [Telemetry](/docs/permissions/index#telemetry).
 
 ## Find a log line

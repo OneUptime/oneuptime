@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "../Button/ButtonStates";
+import TableSkeleton from "../Skeleton/TableSkeleton";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -55,7 +56,6 @@ import TelemetryResultTotal from "./components/TelemetryResultTotal";
 import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Icon from "../Icon/Icon";
 import TelemetryLoadErrorMessage from "./components/TelemetryLoadErrorMessage";
 import TelemetryLoadErrorUtil, {
@@ -592,12 +592,11 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const viewer: ReactElement = (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/*
-       * Toolbar. Its own width is what a button in it may ask about
-       * (@container): the Traces page's Create monitor says its words only
-       * where the row has room for them.
+       * Toolbar. It wraps: a button that does not fit beside the search goes
+       * onto a row of its own, with its words, never a bare icon (#9455).
        */}
       <div
-        className="flex flex-wrap items-center gap-2 [container-type:inline-size]"
+        className="flex flex-wrap items-center gap-2"
         data-testid={TELEMETRY_VIEWER_TOOLBAR_TEST_ID}
       >
         {/*
@@ -918,7 +917,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             <div className="min-h-0 flex-1 overflow-y-auto">
               {props.isLoading && props.items.length === 0 ? (
                 <div className="flex h-48 items-center justify-center">
-                  <ComponentLoader />
+                  <TableSkeleton rows={4} hasHeader={false} />
                 </div>
               ) : props.items.length === 0 ? (
                 props.emptyContent !== undefined ? (

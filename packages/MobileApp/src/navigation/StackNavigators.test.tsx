@@ -203,12 +203,24 @@ jest.mock("../screens/CreateOnCallOverrideScreen", () => {
   return mockScreenStub("screen-create-on-call-override");
 });
 
+jest.mock("../screens/EditOnCallOverrideScreen", () => {
+  return mockScreenStub("screen-edit-on-call-override");
+});
+
 jest.mock("../screens/MyOnCallPagesScreen", () => {
   return mockScreenStub("screen-my-on-call-pages");
 });
 
 jest.mock("../screens/OnCallCalendarFeedScreen", () => {
   return mockScreenStub("screen-on-call-calendar-feed");
+});
+
+jest.mock("../screens/TestPageScreen", () => {
+  return mockScreenStub("screen-test-page");
+});
+
+jest.mock("../screens/GetReadyScreen", () => {
+  return mockScreenStub("screen-get-ready");
 });
 
 jest.mock("../screens/SettingsScreen", () => {
@@ -396,10 +408,30 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     title: "New Override",
 
     /*
-     * The one route in this stack presented as a modal rather than pushed. A
+     * One of the two routes in this stack presented as a modal, not pushed. A
      * sheet that re-expanded into a large title on scroll would read as a
      * pushed screen, so it keeps the compact header.
      */
+    keepsIosLargeTitle: false,
+  },
+
+  // Editing one override (#7897): a sheet too, as the form it mirrors.
+  EditOnCallOverride: {
+    testID: "screen-edit-on-call-override",
+    params: {
+      override: {
+        _id: "override-1",
+        projectId: "project-1",
+        projectName: "Project",
+        overrideUser: { _id: "user-1", name: "Alex" },
+        routeAlertsToUser: { _id: "user-2", name: "Sam" },
+        onCallDutyPolicy: null,
+        startsAt: "2026-11-13T08:00:00.000Z",
+        endsAt: "2026-11-14T08:00:00.000Z",
+        createdAt: "2026-11-01T00:00:00.000Z",
+      },
+    },
+    title: "Edit Override",
     keepsIosLargeTitle: false,
   },
   MyOnCallPages: {
@@ -417,6 +449,27 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     testID: "screen-on-call-calendar-feed",
     title: "Calendar Feed",
     keepsIosLargeTitle: true,
+  },
+
+  /*
+   * A test page's own screen (#7014), where its push lands: a sheet, as the
+   * override forms are, so it keeps the compact header.
+   */
+  TestPage: {
+    testID: "screen-test-page",
+    params: { messageId: "message-1", projectId: "project-1" },
+    title: "Test Page",
+    keepsIosLargeTitle: false,
+  },
+
+  /*
+   * The app's first steps (#7041): a sheet, opened by itself on a new
+   * install's first launch, so it keeps the compact header.
+   */
+  GetReady: {
+    testID: "screen-get-ready",
+    title: "Get Ready for On-Call",
+    keepsIosLargeTitle: false,
   },
 };
 
@@ -463,6 +516,16 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
   CriticalAlertSound: {
     testID: "screen-critical-alert-sound",
     title: "Alarm Sound",
+    keepsIosLargeTitle: true,
+  },
+
+  /*
+   * The app's first steps (#7041), pushed from Settings' On-Call row: the
+   * same screen the On-Call stack opens as a sheet on a first launch.
+   */
+  GetReady: {
+    testID: "screen-get-ready",
+    title: "Get Ready for On-Call",
     keepsIosLargeTitle: true,
   },
 };

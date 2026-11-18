@@ -1,38 +1,61 @@
 import { ADMIN_EMAIL_SETTINGS_ROUTE } from "../../../Utils/ServerEmail";
 import RelativeTime from "../../EpisodeView/RelativeTime";
+import FireDrillButton from "../../OnCallTestPage/FireDrillButton";
+import LastFireDrill from "../../OnCallTestPage/LastFireDrill";
+import { hasOnCallFireDrill } from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
 import {
   getNotPagedLines,
   getReachedThroughWords,
 } from "../../OnCallTestPage/OnCallTestPageWords";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import WhoIsToldApi from "./WhoIsToldApi";
+import WhoIsToldApi, {
+  getWhoIsToldDraftBody,
+  WhoIsToldDraftInput,
+} from "./WhoIsToldApi";
 import {
   ADMIN_DASHBOARD_FIX_WORDS,
   FALLBACK_CHANNELS_NOTE,
+  LABEL_RULES_NOTE,
+  OWNER_NOT_EMAILED_WORDS,
+  PRIVATE_WORDS,
   WhoIsToldFixLink,
+  WhoIsToldOwnerFixLink,
+  WhoIsToldOwnerNotEmailed,
   getBreakSentence,
   getChannelName,
+  getDeclaresSentence,
   getFixLink,
+  getOwnerMatchSentence,
+  getOwnerNotEmailedFixLink,
+  getOwnerNotEmailedSentences,
+  getOwnersNotEmailed,
   getPagedOwnersSentence,
+  getPrivateSentences,
+  getStatusPageText,
   getWhoIsToldSeverityValue,
   getWhoIsToldSummary,
   OPENS_CHAIN_LINES,
 } from "./WhoIsToldWords";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import OneUptimeDate from "Common/Types/Date";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import {
   WhoIsToldBreak,
+  WhoIsToldBreakKind,
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerMatch,
   WhoIsToldOwners,
   WhoIsToldPerson,
   WhoIsToldPolicy,
   WhoIsToldResult,
+  WhoIsToldStatusPage,
 } from "Common/Types/Monitor/WhoIsTold";
 import ObjectID from "Common/Types/ObjectID";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -46,6 +69,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ProductEvents from "Common/UI/Utils/ProductEvents";
 import {
   formatList,
   getInlineSeparator,
@@ -60,6 +84,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -72,19 +97,64 @@ import React, {
  * policies it runs, and who each policy reaches right now, by what.
  *
  * One request (WhoIsToldApi), answered from a minute-old cache on the
- * server; Recheck works it out again.
+ * server; Recheck works it out again. A Recheck that fails keeps the last
+ * answer on the card and says so under it (#7308).
+ *
+ * The same card stands wherever the question is asked (#7055): a monitor's
+ * overview and its Criteria page (monitorId), Create Monitor's criteria,
+ * read for the monitor the form holds before it exists (draft), and the
+ * website guided setup. In a form or a summary it is embedded - no card of
+ * its own, no Checked line - and its fix links open in a new tab, so the
+ * form is never left behind.
  */
 
+// Where the card stands, as the analytics name it (#7079).
+export enum WhoIsToldPlace {
+  MonitorOverview = "monitor_overview",
+  MonitorCriteria = "monitor_criteria",
+  CreateMonitor = "create_monitor",
+  GuidedSetup = "guided_setup",
+}
+
 export interface ComponentProps {
-  monitorId: ObjectID;
+  // A saved monitor.
+  monitorId?: ObjectID | undefined;
+  /*
+   * A monitor being set up, worked out as it is (#7055): read again a
+   * moment after it last changes, the last answer kept on the card while it
+   * is.
+   */
+  draft?: WhoIsToldDraftInput | undefined;
   // Changes when the monitor is edited or refreshed: read again then.
   refreshToken?: number | string | undefined;
+  place?: WhoIsToldPlace | undefined;
+  variant?: WhoIsToldCardVariant | undefined;
 }
+
+/*
+ * How the card is drawn: a card of its own, with Checked and Recheck (a
+ * monitor's pages); a section of a form or a step, with its title over it
+ * and no Checked line (Create Monitor, the guided setup's Who step); or
+ * only what it says, under a summary's own label (the guided summary).
+ */
+export enum WhoIsToldCardVariant {
+  Card = "Card",
+  Section = "Section",
+  Plain = "Plain",
+}
+
+// How long a draft rests before it is read again.
+export const WHO_IS_TOLD_DRAFT_WAIT_IN_MS: number = 700;
 
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "loaded"; result: WhoIsToldResult };
+  | {
+      status: "loaded";
+      result: WhoIsToldResult;
+      // Why the last Recheck failed, while this answer is kept (#7308).
+      recheckError?: string | undefined;
+    };
 
 /*
  * THE CHAIN IS LAID OUT BY THE ROOM THE CARD HAS, not by the window's
@@ -114,6 +184,18 @@ const CHAIN_ROW_CLASS_NAME: string =
  */
 const ROW_LABEL_CLASS: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500 hyphens-auto [overflow-wrap:anywhere] [&_button]:uppercase [@container(min-width:28rem)]:w-40 [@container(min-width:28rem)]:shrink-0";
+
+const FIX_LINK_CLASS_NAME: string =
+  "text-sm font-medium text-indigo-700 hover:underline";
+
+// What the card's fix links do, as each place needs.
+interface FixContext {
+  // A monitor not created yet has no Criteria page.
+  monitorId: ObjectID | null;
+  // On a form: a fix opens in a new tab, so the form stays.
+  opensInNewTab: boolean;
+  onOpen: (data: { kind: string; fix: string }) => void;
+}
 
 // One line of the chain: what it is, then what it says.
 const ChainRow: FunctionComponent<{
@@ -326,6 +408,30 @@ function namesText(data: {
   );
 }
 
+// A row's sentences, each a line of its own in its own reading direction.
+const SentenceLines: FunctionComponent<{
+  lines: Array<string>;
+  testId?: string | undefined;
+}> = (props: {
+  lines: Array<string>;
+  testId?: string | undefined;
+}): ReactElement => {
+  return (
+    <div data-testid={props.testId}>
+      {props.lines.map((line: string, index: number): ReactElement => {
+        return (
+          <IsolatedLine
+            key={`line-${index}`}
+            as="p"
+            text={line}
+            className={index === 0 ? "" : "mt-0.5 text-xs text-gray-500"}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 const EventBlock: FunctionComponent<{
   event: WhoIsToldEvent;
   isFirstPolicyLabel: boolean;
@@ -341,6 +447,8 @@ const EventBlock: FunctionComponent<{
     event.owners,
     translator,
   );
+  const hiddenRuleName: string =
+    translator.translateText("A rule you can't see") || "";
 
   const policyLabel: ReactElement = props.isFirstPolicyLabel ? (
     <DefinedTerm term={GlossaryTerm.OnCallPolicy}>
@@ -350,35 +458,68 @@ const EventBlock: FunctionComponent<{
     <>{translator.translateText("On-call policy")}</>
   );
 
+  const opensRow: ReactElement = (
+    <ChainRow label={translator.translateText("Opens") || "Opens"}>
+      <span>
+        {/*
+         * Its severity in brackets, by its list: "An incident (Critical
+         * Incident)", never "A Critical Incident incident" (#7368).
+         */}
+        {translator.translateTemplate(
+          isAlert ? OPENS_CHAIN_LINES.alert : OPENS_CHAIN_LINES.incident,
+          { severity: getWhoIsToldSeverityValue(event) },
+          { setsValuesApart: true },
+        )}
+      </span>
+      {event.title ? (
+        <IsolatedLine
+          as="p"
+          text={event.title}
+          className="mt-0.5 text-xs text-gray-500 break-words"
+          dataTestId="who-is-told-title"
+        />
+      ) : (
+        <></>
+      )}
+    </ChainRow>
+  );
+
+  const privateRow: ReactElement = event.isPrivate ? (
+    <ChainRow
+      label={translator.translateText("Private") || "Private"}
+      testId="who-is-told-private"
+    >
+      <SentenceLines lines={getPrivateSentences(event, translator)} />
+    </ChainRow>
+  ) : (
+    <></>
+  );
+
+  /*
+   * A private record the reader won't be able to see once it exists
+   * (#7213): what opens, and that it is private - nothing of whom it tells.
+   */
+  if (event.isHidden) {
+    return (
+      <div
+        className="mt-1"
+        data-testid="who-is-told-event"
+        data-kind={event.kind}
+        data-hidden="true"
+      >
+        {opensRow}
+        {privateRow}
+      </div>
+    );
+  }
+
   return (
     <div
       className="mt-1"
       data-testid="who-is-told-event"
       data-kind={event.kind}
     >
-      <ChainRow label={translator.translateText("Opens") || "Opens"}>
-        <span>
-          {/*
-           * Its severity in brackets, by its list: "An incident (Critical
-           * Incident)", never "A Critical Incident incident" (#7368).
-           */}
-          {translator.translateTemplate(
-            isAlert ? OPENS_CHAIN_LINES.alert : OPENS_CHAIN_LINES.incident,
-            { severity: getWhoIsToldSeverityValue(event) },
-            { setsValuesApart: true },
-          )}
-        </span>
-        {event.title ? (
-          <IsolatedLine
-            as="p"
-            text={event.title}
-            className="mt-0.5 text-xs text-gray-500 break-words"
-            dataTestId="who-is-told-title"
-          />
-        ) : (
-          <></>
-        )}
-      </ChainRow>
+      {opensRow}
       <ChainRow label={translator.translateText("Emails") || "Emails"}>
         <span dir="auto">{ownersText(event.owners, translator)}</span>
         {/*
@@ -405,11 +546,34 @@ const EventBlock: FunctionComponent<{
           <span dir="auto">
             {namesText({
               items: event.ownerRules,
-              hiddenName:
-                translator.translateText("A rule you can't see") || "",
+              hiddenName: hiddenRuleName,
               translator: translator,
             })}
           </span>
+        </ChainRow>
+      ) : (
+        <></>
+      )}
+      {privateRow}
+      {/*
+       * Label rules run before on-call rules: named when a label one adds
+       * changes which on-call rules page it (#7212).
+       */}
+      {event.labelRules && event.labelRules.length > 0 ? (
+        <ChainRow
+          label={translator.translateText("Label Rules") || "Label Rules"}
+          testId="who-is-told-label-rules"
+        >
+          <span dir="auto">
+            {namesText({
+              items: event.labelRules,
+              hiddenName: hiddenRuleName,
+              translator: translator,
+            })}
+          </span>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {translator.translateText(LABEL_RULES_NOTE)}
+          </p>
         </ChainRow>
       ) : (
         <></>
@@ -418,14 +582,37 @@ const EventBlock: FunctionComponent<{
         label={translator.translateText("On-call rules") || "On-call rules"}
         testId="who-is-told-rules"
       >
-        {event.rules.length > 0
-          ? namesText({
-              items: event.rules,
-              hiddenName:
-                translator.translateText("A rule you can't see") || "",
-              translator: translator,
-            })
-          : translator.translateText("None match") || ""}
+        <>
+          {event.rules.length > 0
+            ? namesText({
+                items: event.rules,
+                hiddenName: hiddenRuleName,
+                translator: translator,
+              })
+            : translator.translateText("None match") || ""}
+          {/*
+           * An Alert Owner rule matches on who owns the alert (#9407):
+           * which owner made it match, a line each, as the label rules'
+           * note says why theirs did.
+           */}
+          {(event.ownerMatches || []).map(
+            (match: WhoIsToldOwnerMatch): ReactElement => {
+              return (
+                <IsolatedLine
+                  key={`owner-match-${match.ruleId}`}
+                  as="p"
+                  text={getOwnerMatchSentence({
+                    match: match,
+                    rules: event.rules,
+                    translator: translator,
+                  })}
+                  className="mt-0.5 text-xs text-gray-500"
+                  dataTestId="who-is-told-owner-match"
+                />
+              );
+            },
+          )}
+        </>
       </ChainRow>
       <ChainRow label={policyLabel}>
         {event.policies.length > 0 ? (
@@ -445,15 +632,54 @@ const EventBlock: FunctionComponent<{
           label={translator.translateText("Status pages") || ""}
           testId="who-is-told-status-pages"
         >
-          <span dir="auto">
-            {namesText({
-              items: event.statusPages,
-              hiddenName:
-                translator.translateText("A status page you can't see") || "",
-              translator: translator,
-            })}
+          {/*
+           * One wrapping line, each page with the group it shows the
+           * monitor through named after it (#7214).
+           */}
+          <IsolatedLine
+            as="span"
+            text={formatList(
+              event.statusPages.map((page: WhoIsToldStatusPage): string => {
+                return getStatusPageText(page, translator);
+              }),
+              translator,
+            )}
+          />
+        </ChainRow>
+      ) : event.isPrivateOffStatusPages ? (
+        <ChainRow
+          label={translator.translateText("Status pages") || ""}
+          testId="who-is-told-status-pages"
+        >
+          <span className="text-gray-600">
+            {translator.translateText(PRIVATE_WORDS.offStatusPages)}
           </span>
         </ChainRow>
+      ) : (
+        <></>
+      )}
+      {/*
+       * The incident an alert incident rule declares from it (#7216), told
+       * as any incident is, under the alert.
+       */}
+      {event.declares ? (
+        <div data-testid="who-is-told-declares">
+          <ChainRow
+            label={translator.translateText("Incident Rule") || "Incident Rule"}
+          >
+            <IsolatedLine
+              as="p"
+              text={getDeclaresSentence(event.declares, translator)}
+              dataTestId="who-is-told-declares-sentence"
+            />
+          </ChainRow>
+          <div className="ms-3 border-s-2 border-gray-100 ps-3">
+            <EventBlock
+              event={event.declares.incident}
+              isFirstPolicyLabel={false}
+            />
+          </div>
+        </div>
       ) : (
         <></>
       )}
@@ -528,15 +754,19 @@ const Chain: FunctionComponent<{ result: WhoIsToldResult }> = (props: {
 
 const BreakLine: FunctionComponent<{
   brk: WhoIsToldBreak;
-  monitorId: ObjectID;
-}> = (props: { brk: WhoIsToldBreak; monitorId: ObjectID }): ReactElement => {
+  context: FixContext;
+}> = (props: { brk: WhoIsToldBreak; context: FixContext }): ReactElement => {
   const translator: Translator = useTranslator();
   const fix: WhoIsToldFixLink | null = getFixLink({
     brk: props.brk,
-    monitorId: props.monitorId,
+    monitorId: props.context.monitorId,
     translator: translator,
   });
   const isServer: boolean = props.brk.fix === WhoIsToldFix.ServerSettings;
+
+  const onOpen: () => void = (): void => {
+    props.context.onOpen({ kind: props.brk.kind, fix: props.brk.fix });
+  };
 
   return (
     <li
@@ -555,8 +785,10 @@ const BreakLine: FunctionComponent<{
         {fix ? (
           <Link
             to={fix.route}
-            className="text-sm font-medium text-indigo-700 hover:underline"
+            className={FIX_LINK_CLASS_NAME}
             dataTestId="who-is-told-fix"
+            openInNewTab={props.context.opensInNewTab}
+            onClick={onOpen}
           >
             {fix.text}
           </Link>
@@ -569,8 +801,9 @@ const BreakLine: FunctionComponent<{
               ADMIN_EMAIL_SETTINGS_ROUTE,
             )}
             openInNewTab={true}
-            className="text-sm font-medium text-indigo-700 hover:underline"
+            className={FIX_LINK_CLASS_NAME}
             dataTestId="who-is-told-fix"
+            onClick={onOpen}
           >
             {translator.translateText(ADMIN_DASHBOARD_FIX_WORDS)}
           </Link>
@@ -582,6 +815,85 @@ const BreakLine: FunctionComponent<{
   );
 };
 
+/*
+ * AN OWNER NO CREATED EMAIL REACHES (#7572): why, where they are named, and
+ * the page that puts it right. Not a break - the email still goes out, to
+ * the owners it reaches or to the Project Owners - so it is said after the
+ * breaks, each once however many criteria name them.
+ */
+const OwnerNotEmailedLine: FunctionComponent<{
+  item: WhoIsToldOwnerNotEmailed;
+  context: FixContext;
+}> = (props: {
+  item: WhoIsToldOwnerNotEmailed;
+  context: FixContext;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [why, where] = getOwnerNotEmailedSentences(props.item, translator);
+  const fix: WhoIsToldOwnerFixLink | null = getOwnerNotEmailedFixLink({
+    item: props.item,
+    monitorId: props.context.monitorId,
+    translator: translator,
+  });
+
+  return (
+    <li
+      className="flex items-start gap-2 py-2"
+      data-testid="who-is-told-owner-not-emailed"
+      data-problem={props.item.owner.problem}
+      data-added-by={props.item.owner.addedBy}
+    >
+      <Icon
+        icon={IconProp.Alert}
+        className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+      />
+      <div className="min-w-0">
+        <IsolatedLine
+          as="p"
+          text={why || ""}
+          className="text-sm text-gray-900"
+        />
+        <IsolatedLine
+          as="p"
+          text={where || ""}
+          className="text-xs text-gray-500"
+        />
+        {fix ? (
+          <Link
+            to={fix.route}
+            className={FIX_LINK_CLASS_NAME}
+            dataTestId="who-is-told-owner-fix"
+            openInNewTab={props.context.opensInNewTab}
+            onClick={() => {
+              props.context.onOpen({
+                kind: "owner_not_emailed",
+                fix: fix.fix,
+              });
+            }}
+          >
+            {fix.text}
+          </Link>
+        ) : (
+          <></>
+        )}
+      </div>
+    </li>
+  );
+};
+
+// The kinds of break a chain names, each once, for the analytics (#7079).
+function getBreakKinds(breaks: ReadonlyArray<WhoIsToldBreak>): string {
+  const kinds: Array<WhoIsToldBreakKind> = [];
+
+  for (const brk of breaks) {
+    if (!kinds.includes(brk.kind)) {
+      kinds.push(brk.kind);
+    }
+  }
+
+  return kinds.join(".");
+}
+
 const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -589,48 +901,158 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [isChainOpen, setIsChainOpen] = useState<boolean>(false);
   const [isRechecking, setIsRechecking] = useState<boolean>(false);
+  // A changed draft being read: the last answer stays, marked busy.
+  const [isReadingDraft, setIsReadingDraft] = useState<boolean>(false);
+  /*
+   * Changes when a fire drill starts, its dialog closes or the card is
+   * checked again: the Last fire drill line reads the drill again (#9386).
+   */
+  const [fireDrillReads, setFireDrillReads] = useState<number>(0);
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
-  const monitorIdText: string = props.monitorId.toString();
+  // Whether a draft has been read: its first read waits for nothing.
+  const hasReadDraftRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const monitorIdText: string = props.monitorId?.toString() || "";
+  const place: WhoIsToldPlace = props.place || WhoIsToldPlace.MonitorOverview;
+  const variant: WhoIsToldCardVariant =
+    props.variant || WhoIsToldCardVariant.Card;
+  const isCard: boolean = variant === WhoIsToldCardVariant.Card;
+  const titleId: string = useId();
 
-  const load: (refresh: boolean) => Promise<void> = useCallback(
-    async (refresh: boolean): Promise<void> => {
+  /*
+   * The draft as the server reads it, so a change of anything the answer
+   * depends on - and nothing else - reads it again.
+   */
+  const draftKey: string = props.draft
+    ? JSON.stringify(getWhoIsToldDraftBody(props.draft))
+    : "";
+  const draftRef: React.MutableRefObject<WhoIsToldDraftInput | undefined> =
+    useRef<WhoIsToldDraftInput | undefined>(props.draft);
+  draftRef.current = props.draft;
+
+  /*
+   * Read the answer. keepsAnswer: a Recheck, which keeps the answer on the
+   * card when it fails and says why under it (#7308); anything else that
+   * fails says so in place of the answer, with Try again.
+   */
+  const load: (options: {
+    refresh: boolean;
+    keepsAnswer: boolean;
+  }) => Promise<void> = useCallback(
+    async (options: { refresh: boolean; keepsAnswer: boolean }) => {
       const request: number = ++requestRef.current;
 
       try {
-        const result: WhoIsToldResult = await WhoIsToldApi.getForMonitor({
-          monitorId: new ObjectID(monitorIdText),
-          refresh: refresh,
-        });
+        const draft: WhoIsToldDraftInput | undefined = draftRef.current;
+        const result: WhoIsToldResult = draft
+          ? await WhoIsToldApi.getForDraft({ draft: draft })
+          : await WhoIsToldApi.getForMonitor({
+              monitorId: new ObjectID(monitorIdText),
+              refresh: options.refresh,
+            });
 
         if (request === requestRef.current) {
           setState({ status: "loaded", result: result });
         }
       } catch (err) {
-        if (request === requestRef.current) {
-          setState({
-            status: "error",
-            message: err instanceof Error ? err.message : String(err),
-          });
+        if (request !== requestRef.current) {
+          return;
         }
+
+        const message: string =
+          err instanceof Error ? err.message : String(err);
+
+        setState((current: LoadState): LoadState => {
+          if (options.keepsAnswer && current.status === "loaded") {
+            return {
+              status: "loaded",
+              result: current.result,
+              recheckError: message,
+            };
+          }
+
+          return { status: "error", message: message };
+        });
       }
     },
     [monitorIdText],
   );
 
+  // A saved monitor: read now, and again when it changes.
   useEffect(() => {
-    void load(false);
+    if (draftRef.current) {
+      return;
+    }
+
+    // What a Recheck said is about the monitor as it was.
+    setState((current: LoadState): LoadState => {
+      return current.status === "loaded" && current.recheckError
+        ? { status: "loaded", result: current.result }
+        : current;
+    });
+    void load({ refresh: false, keepsAnswer: false });
   }, [load, props.refreshToken]);
+
+  /*
+   * A draft: read a moment after it last changed, keeping the last answer
+   * on the card meanwhile. Its first read shows the card loading.
+   */
+  useEffect(() => {
+    if (!draftKey) {
+      return;
+    }
+
+    let isActive: boolean = true;
+    const wait: number = hasReadDraftRef.current
+      ? WHO_IS_TOLD_DRAFT_WAIT_IN_MS
+      : 0;
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      hasReadDraftRef.current = true;
+      setIsReadingDraft(true);
+      void load({ refresh: false, keepsAnswer: false }).finally(() => {
+        if (isActive) {
+          setIsReadingDraft(false);
+        }
+      });
+    }, wait);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
+  }, [load, draftKey]);
+
+  const readFireDrillAgain: () => void = (): void => {
+    setFireDrillReads((count: number): number => {
+      return count + 1;
+    });
+  };
 
   const recheck: () => Promise<void> = async (): Promise<void> => {
     setIsRechecking(true);
-    await load(true);
+    readFireDrillAgain();
+    await load({ refresh: true, keepsAnswer: true });
     setIsRechecking(false);
   };
 
   // After a failed read: read it again, looking as it does while it loads.
   const tryAgain: () => void = (): void => {
     setState({ status: "loading" });
-    void load(false);
+    void load({ refresh: false, keepsAnswer: false });
+  };
+
+  const fixContext: FixContext = {
+    monitorId: props.draft
+      ? props.draft.monitorId || null
+      : props.monitorId || null,
+    opensInNewTab: Boolean(props.draft) || !isCard,
+    onOpen: (data: { kind: string; fix: string }): void => {
+      ProductEvents.send(ProductEventName.WhoIsToldFixOpened, {
+        place: place,
+        kind: data.kind,
+        fix: data.fix,
+      });
+    },
   };
 
   const getBody: () => ReactElement = (): ReactElement => {
@@ -679,9 +1101,14 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
 
     const result: WhoIsToldResult = state.result;
     const summary: string = getWhoIsToldSummary(result, translator);
+    const ownersNotEmailed: Array<WhoIsToldOwnerNotEmailed> =
+      getOwnersNotEmailed(result);
 
     return (
-      <div>
+      <div
+        aria-busy={isReadingDraft}
+        className={isReadingDraft ? "opacity-60 transition-opacity" : ""}
+      >
         {summary ? (
           <p
             className="text-sm text-gray-900"
@@ -706,7 +1133,7 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
                   <BreakLine
                     key={`${brk.kind}-${index}`}
                     brk={brk}
-                    monitorId={props.monitorId}
+                    context={fixContext}
                   />
                 );
               },
@@ -723,6 +1150,30 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
+        {ownersNotEmailed.length > 0 ? (
+          <ul
+            className="mt-2 divide-y divide-gray-100 border-t border-gray-100"
+            aria-label={translator.translateText(
+              OWNER_NOT_EMAILED_WORDS.listLabel,
+            )}
+            data-testid="who-is-told-owners-not-emailed"
+          >
+            {ownersNotEmailed.map(
+              (item: WhoIsToldOwnerNotEmailed, index: number): ReactElement => {
+                return (
+                  <OwnerNotEmailedLine
+                    key={`${item.owner.kind}-${item.owner.id}-${index}`}
+                    item={item}
+                    context={fixContext}
+                  />
+                );
+              },
+            )}
+          </ul>
+        ) : (
+          <></>
+        )}
+
         {result.criteria.length > 0 ? (
           <div className="mt-3 border-t border-gray-100 pt-3">
             <button
@@ -731,6 +1182,19 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
               aria-expanded={isChainOpen}
               data-testid="who-is-told-chain-toggle"
               onClick={() => {
+                if (!isChainOpen) {
+                  const event: JSONObject = {
+                    place: place,
+                    break_count: result.breaks.length,
+                    break_kinds: getBreakKinds(result.breaks),
+                    owners_not_emailed_count: ownersNotEmailed.length,
+                  };
+                  ProductEvents.send(
+                    ProductEventName.WhoIsToldChainOpened,
+                    event,
+                  );
+                }
+
                 setIsChainOpen(!isChainOpen);
               }}
             >
@@ -750,50 +1214,135 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
-          <span>
-            <TranslatedSentence
-              template="Checked {{time}}"
-              slots={{
-                time: (
-                  <RelativeTime
-                    date={OneUptimeDate.fromString(result.checkedAt)}
-                  />
-                ),
+        {!isCard ? (
+          <></>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
+            <span>
+              <TranslatedSentence
+                template="Checked {{time}}"
+                slots={{
+                  time: (
+                    <RelativeTime
+                      date={OneUptimeDate.fromString(result.checkedAt)}
+                    />
+                  ),
+                }}
+              />
+            </span>
+            <button
+              type="button"
+              className={`font-medium text-indigo-700 ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: isRechecking,
+                  hoverClassName: "hover:underline",
+                },
+              )}`}
+              disabled={isRechecking}
+              aria-busy={isRechecking}
+              data-testid="who-is-told-recheck"
+              onClick={() => {
+                void recheck();
               }}
-            />
-          </span>
-          <button
-            type="button"
-            className={`font-medium text-indigo-700 ${getHandDrawnButtonStateClassName(
-              {
-                isBusy: isRechecking,
-                hoverClassName: "hover:underline",
-              },
-            )}`}
-            disabled={isRechecking}
-            aria-busy={isRechecking}
-            data-testid="who-is-told-recheck"
-            onClick={() => {
-              void recheck();
-            }}
+            >
+              {isRechecking
+                ? translator.translateText("Checking...")
+                : translator.translateText("Recheck")}
+            </button>
+          </div>
+        )}
+
+        {/*
+         * A Recheck that failed (#7308): the answer above is the last one
+         * that worked, as Checked says, and why checking again failed is
+         * said under it until a read works or the monitor changes.
+         */}
+        {state.recheckError ? (
+          <p
+            className="mt-2 text-xs text-gray-600"
+            role="status"
+            data-testid="who-is-told-recheck-error"
           >
-            {isRechecking
-              ? translator.translateText("Checking...")
-              : translator.translateText("Recheck")}
-          </button>
-        </div>
+            <ErrorSentence
+              template="Couldn't check again. {{error}}"
+              error={state.recheckError}
+            />
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
+
+  if (variant === WhoIsToldCardVariant.Plain) {
+    return <div data-testid="monitor-who-is-told-card">{getBody()}</div>;
+  }
+
+  // In a form or a step: its title over it, in a box of its own.
+  if (variant === WhoIsToldCardVariant.Section) {
+    return (
+      <section
+        className="rounded-lg border border-gray-200 p-4"
+        aria-labelledby={titleId}
+        data-testid="monitor-who-is-told-card"
+      >
+        <h3 id={titleId} className="text-sm font-semibold text-gray-900">
+          {translator.translateText("When this goes down")}
+        </h3>
+        <p className="mb-3 text-xs text-gray-500">
+          {translator.translateText(
+            "Who is told when this monitor fails, and what would stop it.",
+          )}
+        </p>
+        {getBody()}
+      </section>
+    );
+  }
 
   return (
     <Card
       title="When this goes down"
       description="Who is told when this monitor fails, and what would stop it."
       headerLayout="stacked"
+      /*
+       * Run Fire Drill (#7012): rehearse a failure the card says pages an
+       * on-call policy, as a test of each policy it pages - of a saved
+       * monitor only: a drill reads the monitor as it is saved, never a
+       * draft the card is showing (#7055).
+       */
+      buttons={
+        !props.draft &&
+        monitorIdText &&
+        state.status === "loaded" &&
+        hasOnCallFireDrill(state.result)
+          ? [
+              <FireDrillButton
+                key="fire-drill"
+                monitorId={monitorIdText}
+                onStarted={readFireDrillAgain}
+                onClosed={readFireDrillAgain}
+              />,
+            ]
+          : undefined
+      }
     >
-      <div data-testid="monitor-who-is-told-card">{getBody()}</div>
+      <div data-testid="monitor-who-is-told-card">
+        {getBody()}
+        {/*
+         * Its last fire drill (#9386), once the card's answer is in: at the
+         * card's end, so nothing above moves when it comes. Of a saved
+         * monitor only, as Run Fire Drill is.
+         */}
+        {!props.draft && monitorIdText && state.status === "loaded" ? (
+          <LastFireDrill
+            monitorId={monitorIdText}
+            refreshToken={`${props.refreshToken ?? ""}|${fireDrillReads}`}
+          />
+        ) : (
+          <></>
+        )}
+      </div>
     </Card>
   );
 };

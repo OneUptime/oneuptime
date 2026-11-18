@@ -32,10 +32,10 @@ flowchart TB
 Ao criar uma política de plantão na página **Políticas de plantão**, o formulário pede o **Nome** dela e **Quem é acionado primeiro?**. A pergunta usa o mesmo seletor de **Notificar**: agendamentos de plantão, equipes e pessoas, quantos forem necessários. Quem você escolher vira a primeira regra de escalonamento da política, **Level 1**, que espera **30 minutos** por uma confirmação antes de acionar o próximo nível.
 
 :::steps
-1. Vá em **Plantão** > **Políticas de plantão** e clique em **Criar: Política de plantão**.
+1. Vá em **Plantão** > **Políticas de plantão** e clique em **Criar política de plantão**.
 2. Digite um **Nome**.
 3. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha os agendamentos de plantão, as equipes e as pessoas a acionar primeiro.
-4. Clique em **Criar: Política de plantão**. A nova política abre depois na página **Regras de escalonamento** dela, onde você pode adicionar mais níveis.
+4. Clique em **Criar política de plantão**. A nova política abre depois na página **Regras de escalonamento** dela, onde você pode adicionar mais níveis.
 :::
 
 **Quem é acionado primeiro?** é opcional. Se você deixar em branco, a política começa sem regras de escalonamento: não aciona ninguém até você adicionar uma, e a visão geral dela avisa isso. A descrição e os rótulos ficam em **Mais campos**. A pergunta só é feita a quem pode adicionar regras de escalonamento.
@@ -45,7 +45,7 @@ Ao criar uma política de plantão na página **Políticas de plantão**, o form
 :::steps
 ### Abra as regras de escalonamento da política
 
-Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral dela e clique em **Adicionar regra de escalonamento**. A caixa de diálogo é uma única página curta.
+Abra a política de plantão, escolha **Regras de escalonamento** no menu lateral dela e clique em **Adicionar regra de escalonamento**. A caixa de diálogo é uma única página curta. Ela diz qual nível da política a regra adiciona.
 
 ### Escolha quem notificar
 
@@ -61,6 +61,10 @@ Em **Notificar**, clique em **Adicionar destinatário**, pesquise e escolha quan
 ### Defina quanto esperar
 
 **Escalonar após (em minutos)** é quanto esperar por uma confirmação antes de acionar o próximo nível. Começa em **30 minutos**; ajuste ao que fizer sentido para o nível.
+
+![O diálogo "Adicionar regra de escalonamento" de uma política com um nível, com "Acionado após (em minutos)" destacado](screen:escalation-rule-paged-after)
+
+Uma regra adicionada depois da primeira pergunta em vez disso **Acionado após (em minutos)**: quanto o nível anterior espera por uma confirmação antes de este ser acionado. Começa na espera desse nível e é salvo como a espera dele; o novo nível espera 30 minutos até você adicionar outro depois dele. Quem pode adicionar regras, mas não alterá-las, vê **Escalonar após (em minutos)**, e a caixa de diálogo diz quando o novo nível é acionado.
 
 ### Dê um nome à regra, se quiser
 
@@ -190,7 +194,7 @@ Um nível pode acionar a próxima pessoa da rotação de um agendamento de plant
 
 :::steps
 1. Confirme que o primeiro nível da política, **Level 1**, notifica o agendamento de plantão.
-2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Criar regra**.
+2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Acionado após (em minutos)** e clique em **Criar regra**.
 3. Adicione mais um nível para a equipe ou o gerente que deve saber em seguida.
 :::
 

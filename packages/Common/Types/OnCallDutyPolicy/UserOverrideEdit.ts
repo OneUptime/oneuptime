@@ -53,6 +53,36 @@ export const USER_OVERRIDE_END_IN_PAST_REFUSAL: string = translationKey(
   "An override can't be moved to end in the past. To end it now, pick the current time.",
 );
 
+/*
+ * End Now (issue #7899) on an override that has not started: there is
+ * nothing to end yet. Deleting it calls it off.
+ */
+export const USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL: string = translationKey(
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.",
+);
+
+// End Now on an override that ends within the current minute anyway.
+export const USER_OVERRIDE_END_NOW_ENDS_THIS_MINUTE_REFUSAL: string =
+  translationKey(
+    "This override ends within the minute, so there is nothing left to end.",
+  );
+
+/*
+ * POST /on-call-duty-policy-user-override/:id/end-now: ends an override
+ * under way at the server's own now (getEndNow), so a phone or a browser
+ * whose clock is a minute out - or a request that crosses into the next
+ * minute - still ends it, where an end it worked out itself would be
+ * refused as in the past.
+ */
+export const USER_OVERRIDE_END_NOW_ROUTE: string = "/:id/end-now";
+
+// The route for one override, as the Dashboard and the mobile app call it.
+export const getUserOverrideEndNowRoute: (overrideId: string) => string = (
+  overrideId: string,
+): string => {
+  return `/${overrideId}/end-now`;
+};
+
 // The override as it is saved.
 export interface UserOverrideSavedTimes {
   startsAt: Date;
@@ -74,6 +104,65 @@ export default class UserOverrideEdit {
   // Under way, or over: when it starts is what happened.
   public static hasStarted(saved: UserOverrideSavedTimes, now: Date): boolean {
     return new Date(saved.startsAt).getTime() <= now.getTime();
+  }
+
+  // Started, and not ended yet: in force right now.
+  public static isUnderWay(saved: UserOverrideSavedTimes, now: Date): boolean {
+    return (
+      UserOverrideEdit.hasStarted(saved, now) &&
+      !UserOverrideEdit.hasEnded(saved, now)
+    );
+  }
+
+  /*
+   * END NOW (issue #7899): the end an override under way is given to end
+   * it at `now` - the start of the current minute, as a picker holds it,
+   * which getRefusal takes as an end. One that started in this very minute
+   * would then end as it starts, which is refused, so it ends at `now`
+   * itself. Null when End Now has nothing to do (getEndNowRefusal says
+   * why): one that has not started is called off by deleting it, one that
+   * has ended is history, and one that ends within this minute is as good
+   * as over - an end in the minute it is saved to is no change.
+   */
+  public static getEndNow(
+    saved: UserOverrideSavedTimes,
+    now: Date,
+  ): Date | null {
+    if (UserOverrideEdit.getEndNowRefusal(saved, now)) {
+      return null;
+    }
+
+    const minute: Date = OneUptimeDate.getStartOfMinute(new Date(now));
+
+    if (minute.getTime() > new Date(saved.startsAt).getTime()) {
+      return minute;
+    }
+
+    return new Date(now);
+  }
+
+  /*
+   * Why End Now may not end the override as it is saved, at `now`, or null
+   * when it may: one that has ended is history, one that has not started
+   * has nothing to end, and one that ends within this minute nothing left.
+   */
+  public static getEndNowRefusal(
+    saved: UserOverrideSavedTimes,
+    now: Date,
+  ): string | null {
+    if (UserOverrideEdit.hasEnded(saved, now)) {
+      return USER_OVERRIDE_ENDED_REFUSAL;
+    }
+
+    if (!UserOverrideEdit.hasStarted(saved, now)) {
+      return USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL;
+    }
+
+    if (UserOverrideEdit.isSameMinute(saved.endsAt, now)) {
+      return USER_OVERRIDE_END_NOW_ENDS_THIS_MINUTE_REFUSAL;
+    }
+
+    return null;
   }
 
   // Two times in the same minute.

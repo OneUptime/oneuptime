@@ -105,6 +105,8 @@ import UserOverrideOverlap, {
 } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
 import UserOverrideEdit, {
   USER_OVERRIDE_END_IN_PAST_REFUSAL,
+  USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL,
+  USER_OVERRIDE_END_NOW_ROUTE,
   USER_OVERRIDE_ENDED_REFUSAL,
   USER_OVERRIDE_START_IN_PAST_REFUSAL,
   USER_OVERRIDE_STARTED_REFUSAL,
@@ -2371,11 +2373,17 @@ describe("user overrides", () => {
         "Components/OnCallPolicy/UserOverrides/UserOverrideOverlapNotice.tsx",
       ),
     ).toContain('translationKey("Edit that override")');
+    // Skip until... says it beside its times too (issue #7898).
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx",
+      ),
+    ).toContain("<UserOverrideOverlapNotice");
 
     const page: string = english(USER_OVERRIDES);
 
     expect(page).toContain(
-      "Two overrides for the same person cannot overlap on the same policy, or when both are global. The form says so as soon as the times are picked, with **Edit that override** to change that one instead. One can end as the next one starts.",
+      "Two overrides for the same person cannot overlap on the same policy, or when both are global. The form, and **Skip until…** on a schedule's layers, say so beside the times as soon as they are picked, with **Edit that override** to change that one instead. One can end as the next one starts.",
     );
     expect(page).toContain(
       "So is one that overlaps another override for the same person on the same policy, or when both are global: the refusal names the one it overlaps.",
@@ -2422,6 +2430,29 @@ describe("user overrides", () => {
     expect(USER_OVERRIDE_OVERLAPS_LABEL).toBe("Overlaps");
     expect(english(USER_OVERRIDES)).toContain(
       "Overrides that overlapped before this rule are left as they are. Both are marked **Overlaps**, which says which one is used: one that names who covers over a skip, then the one that starts first, then the one added first.",
+    );
+
+    // Shortening one adds no time, so the rule does not hold it back.
+    expect(
+      UserOverrideOverlap.addsTime(
+        { startsAt: base.startsAt, endsAt: base.endsAt },
+        {
+          startsAt: base.startsAt,
+          endsAt: new Date("2026-12-22T12:00:00Z"),
+        },
+      ),
+    ).toBe(false);
+    expect(
+      UserOverrideOverlap.addsTime(
+        { startsAt: base.startsAt, endsAt: base.endsAt },
+        {
+          startsAt: base.startsAt,
+          endsAt: new Date("2026-12-22T18:00:00Z"),
+        },
+      ),
+    ).toBe(true);
+    expect(english(USER_OVERRIDES)).toContain(
+      "Either one can still be shortened, or ended with **End Now**: only a change that adds time is held to the rule.",
     );
   });
 
@@ -2534,7 +2565,7 @@ describe("user overrides", () => {
       "- **Who covers?** can change until the override ends. Set it back to **Next person in the rotation** to skip the person instead.",
     );
     expect(page).toContain(
-      "- **Starts** can move until the override starts, and then stays as it is. **Ends** can move until the override ends: set it to now to end the override early. Neither can be moved into the past.",
+      "- **Starts** can move until the override starts, and then stays as it is. **Ends** can move until the override ends: to end it now, use **End Now**. Neither can be moved into the past.",
     );
     expect(page).toContain(
       "- **Who is away?** cannot change. For somebody else, add a new override.",
@@ -2543,6 +2574,79 @@ describe("user overrides", () => {
       "An override that has ended cannot be changed: its **Edit** is locked and says why.",
     );
     expect(page).not.toContain("An override cannot be edited");
+  });
+
+  /*
+   * Issue #7899: End Now ends an override under way at once, from its
+   * row's menu, the schedule's list of overrides and its edit form, asking
+   * first. One that has not started has nothing to end; the API ends one
+   * at the server's clock.
+   */
+  it("ends an override under way early, as End Now, its route and the rule hold it", () => {
+    const now: Date = new Date("2026-12-22T12:00:30Z");
+    const inForce: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-22T09:00:00Z"),
+      endsAt: new Date("2026-12-22T17:00:00Z"),
+    };
+    const upcoming: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-23T09:00:00Z"),
+      endsAt: new Date("2026-12-23T17:00:00Z"),
+    };
+    const ended: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-21T09:00:00Z"),
+      endsAt: new Date("2026-12-21T17:00:00Z"),
+    };
+
+    // At the start of the current minute, which an edit may set too.
+    expect(UserOverrideEdit.getEndNow(inForce, now)?.toISOString()).toBe(
+      "2026-12-22T12:00:00.000Z",
+    );
+    expect(UserOverrideEdit.getEndNowRefusal(upcoming, now)).toBe(
+      USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL,
+    );
+    expect(UserOverrideEdit.getEndNowRefusal(ended, now)).toBe(
+      USER_OVERRIDE_ENDED_REFUSAL,
+    );
+    expect(USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL).toContain(
+      "To call it off, delete it.",
+    );
+
+    const endNow: string = readDashboardSource(
+      "Components/OnCallPolicy/UserOverrides/UserOverrideEndNow.tsx",
+    );
+    expect(endNow).toContain('translationKey("End Now")');
+    // In the row's menu, beside it on the schedule, under Ends in its form.
+    expect(USER_OVERRIDE_TABLE).toContain(
+      "title: USER_OVERRIDE_END_NOW_ACTION,",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx",
+      ),
+    ).toContain('dataTestId="active-override-end-now"');
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/UserOverrideFormModal.tsx",
+      ),
+    ).toContain('dataTestId="user-override-end-now"');
+
+    expect(USER_OVERRIDE_END_NOW_ROUTE).toBe("/:id/end-now");
+    expect(
+      readCommonSource("Server/API/OnCallDutyPolicyUserOverrideAPI.ts"),
+    ).toContain("USER_OVERRIDE_END_NOW_ROUTE");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain("## End an override early");
+    expect(page).toContain(
+      "To bring someone back before their override ends, click **End Now**: in the override's row menu on either **User Overrides** page, beside it in the list of user overrides on a schedule's **Layers** page, or under **Ends** in its edit form. It asks first,",
+    );
+    expect(page).toContain(
+      "**End Now** is offered only while an override is under way: one that has not started yet has nothing to end, so delete it instead.",
+    );
+    expect(page).toContain(
+      "To end an override that is under way, send `POST /api/on-call-duty-policy-user-override/<override-id>/end-now`. It ends at the server's clock, and the answer gives its new `endsAt`.",
+    );
   });
 
   it("follows only global overrides for a page sent without a policy", () => {
@@ -2690,7 +2794,7 @@ describe("user overrides", () => {
       "A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override**, **Edit** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
+      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
     );
     expect(
       readDashboardSource(
@@ -3031,13 +3135,46 @@ describe("readiness", () => {
     );
   });
 
-  it("does not let ready responders be ticked", () => {
-    expect(READINESS_PAGE).toContain("isItemSelectable={isRemindable}");
+  it("reminds a ready responder only of a phone method the project asks for", () => {
+    /*
+     * A ready responder is reminded only when the project asks people on
+     * call for a phone method and they have none (#7449); anybody may be
+     * ticked by someone who may apply the project's default ladder (#7450).
+     */
+    expect(READINESS_PAGE).toContain("isItemSelectable={isSelectable}");
+    /*
+     * The rule the reminder, Readiness and the bell share (#7040): anything
+     * but Ready, or a phone method the project asks for and they lack.
+     */
     expect(READINESS_PAGE).toContain(
-      "return row.status !== READINESS_STATUS_READY;",
+      "return hasNotificationSetupToFinish(row.readiness);",
+    );
+    expect(
+      readCommonSource("Types/OnCallDutyPolicy/NotificationSetupToFinish.ts"),
+    ).toContain(
+      "readiness.status !== READY_READINESS_STATUS ||\n    readiness.isMissingPhoneMethod === true",
+    );
+    expect(READINESS_PAGE).toContain(
+      "return isDefaultLadderOffered || isRemindable(row);",
+    );
+    expect(READINESS_PAGE).toContain(
+      "await sendSetupReminders(onClickProps.items.filter(isRemindable));",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
-      "Ready responders cannot be ticked: there is nothing to remind them about.",
+      "A ready responder is reminded only when they have **No phone method**: there is nothing else to remind them about.",
+    );
+  });
+
+  it("applies the default ladder from the same list, to the people ticked", () => {
+    expect(READINESS_PAGE).toContain("useApplyDefaultLadderBulkAction");
+    expect(READINESS_PAGE).toContain(
+      "defaultLadder.length > 0 && canApplyDefaultLadder();",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "2. Click **Apply Default Ladder**. The confirmation shows the ladder and names everyone it changes.",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "Applying it takes **Project Owner** or **Project Admin**, or **Edit User Notification Rules** in a custom role.",
     );
   });
 
@@ -3068,6 +3205,30 @@ describe("readiness", () => {
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "- Under **Users**, open a member, then **Readiness** in the **On-Call** section: their status, their methods and their coverage grid.",
+    );
+  });
+
+  /*
+   * The bell's own line (#7040): everyone a policy pages whose setup is not
+   * finished, by the rule the setup reminder and Readiness use
+   * (hasNotificationSetupToFinish), opening their checklist.
+   */
+  it("says the bell asks anyone on a policy to finish their own setup, by the rule Readiness uses", () => {
+    const nudge: string = readDashboardSource(
+      "Components/Header/NotificationSetupNudge.ts",
+    ).replace(/\s+/g, " ");
+
+    expect(nudge).toContain(
+      'title: translationKey("Finish setting up your notifications")',
+    );
+    expect(nudge).toContain(
+      "if (!hasNotificationSetupToFinish(readiness)) { return null; }",
+    );
+    expect(nudge).toContain(
+      "if (!readiness || readiness.reachedVia.length === 0) { return null; }",
+    );
+    expect(english(READINESS_AND_REPORTS)).toContain(
+      "- Anyone on a policy whose own setup is not finished sees **Finish setting up your notifications** in the bell at the top of every page, which opens their setup checklist.",
     );
   });
 });

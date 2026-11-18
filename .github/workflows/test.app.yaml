@@ -233,7 +233,7 @@ jobs:
   # groups, each 12 to 28 minutes one suite at a time, and 9 to 23 minutes two
   # at a time on 15.0.0's gate run (2026-11-17), the groups that held one long
   # suite and little else the slowest; there are twelve now, each about 21
-  # minutes.
+  # minutes, and a thirteenth that had room for a suite none of them had.
   #
   # The same group has taken a third longer on one run than on the next with
   # nothing changed but the runner (about 18 and 24 minutes), and on
@@ -332,19 +332,33 @@ jobs:
           # 23.4 each, past the 22 they are kept to). Each group lists its
           # suites slowest first, as they start. Until then each group carried
           # the history of the suites that joined and left it, one at a time;
-          # git log has it.
+          # git log has it. The same day the guided setups' suites took
+          # places: the on-call setup's (group 13's alone until then, #9418)
+          # in group 2, never beside the journeys, whose fixture server it
+          # shares, and the website setup's (#7056) in group 5. Four short
+          # suites moved to make room (Profiles to 1, Suite Helpers to 5,
+          # Exceptions AI to 10, Give Feedback to 11): each group 21.3 to
+          # 21.9 minutes. On 2026-11-18 How to Reach Me's suite (#7453, 1.2
+          # minutes: 54 s locally, times 1.26) joined group 8, and
+          # Infrastructure First Run moved to group 3 to make room: group 8
+          # 21.6 minutes, group 3 21.8. Group 13 came on the same day for
+          # the status page and telemetry setups' suite (#7143, 2.9 minutes:
+          # 138 s locally, times 1.26): no group had that left on a lane.
+          # The journeys' two guided journeys (#7141) took Journeys from 4.4
+          # to 4.9 minutes, so Product Onboarding moved from group 2 to group
+          # 13: group 2 21.4 minutes, group 13 2.9.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
               test-event-overview-ui
               test-exception-detail-ui
+              test-profiles-ui
               test-vmware-pages-ui
               test-traces-ai-ui
               test-llm-provider-test-ui
               test-dashboard-table-thresholds-ui
               test-openshift-pages-ui
               test-archivable-values-ui
-              test-suite-helpers-ui
               test-storage-array-pages-ui
               test-runbook-variables-ui
               test-first-on-call-policy-ui
@@ -358,10 +372,9 @@ jobs:
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-list-delete-ui
-              test-product-onboarding-ui
               test-host-collectors-ui
+              test-on-call-guided-setup-ui
               test-resource-onboarding-ui
-              test-give-feedback-ui
           - group: 3
             event_overview_shard: 3/3
             suites: >-
@@ -375,6 +388,7 @@ jobs:
               test-custom-roles-ui
               test-push-registration-ui
               test-label-rule-transfer-ui
+              test-infrastructure-first-run-ui
               test-pencil-button-ui
           - group: 4
             openstack_pages_shard: 1/3
@@ -387,7 +401,6 @@ jobs:
               test-proxmox-pages-ui
               test-bulk-actions-ui
               test-postmortems-ui
-              test-alerts-ui
               test-acknowledgement-timeout-ui
           - group: 5
             openstack_pages_shard: 2/3
@@ -397,8 +410,9 @@ jobs:
               test-openstack-pages-ui
               test-status-page-theme-ui
               test-home-overview-ui
-              test-exceptions-ai-ui
               test-security-hunts-ui
+              test-suite-helpers-ui
+              test-website-down-guided-setup-ui
               test-runbook-triggers-ui
               test-custom-field-files-ui
               test-custom-field-options-ui
@@ -443,8 +457,8 @@ jobs:
               test-asset-details-ui
               test-kubernetes-pages-ui
               test-network-first-run-ui
+              test-how-to-reach-me-ui
               test-runbooks-menu-ui
-              test-infrastructure-first-run-ui
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -465,10 +479,11 @@ jobs:
               test-cloud-connect-ui
               test-model-tables-ui
               test-metrics-ai-ui
-              test-profiles-ui
+              test-exceptions-ai-ui
               test-status-page-search-ui
               test-packet-capture-ui
               test-multi-device-snmp-walk-ui
+              test-alerts-ui
               test-external-mcp-servers-ui
               test-permissions-per-tab-ui
           - group: 11
@@ -482,6 +497,7 @@ jobs:
               test-owners-on-create-ui
               test-runbook-steps-ui
               test-test-page-ui
+              test-give-feedback-ui
           - group: 12
             model_tables_shard: 2/2
             monitor_overview_shard: 1/2
@@ -495,6 +511,12 @@ jobs:
               test-dashboard-value-widget-ui
               test-sign-in-options-ui
               test-side-by-side-pages-ui
+              test-server-setup-ui
+          - group: 13
+            suites: >-
+              test-admin-health-ui
+              test-status-page-telemetry-guided-setups-ui
+              test-product-onboarding-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -718,6 +740,8 @@ jobs:
             output/playwright/ai-insights-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
+            output/playwright/how-to-reach-me-ui/*.png
+            output/playwright/how-to-reach-me-ui/test-results
             output/playwright/resource-onboarding-ui/*.png
             output/playwright/resource-onboarding-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
@@ -734,6 +758,12 @@ jobs:
             output/playwright/owners-on-create-ui/test-results
             output/playwright/first-on-call-policy-ui/*.png
             output/playwright/first-on-call-policy-ui/test-results
+            output/playwright/on-call-guided-setup-ui/*.png
+            output/playwright/on-call-guided-setup-ui/test-results
+            output/playwright/website-down-guided-setup-ui/*.png
+            output/playwright/website-down-guided-setup-ui/test-results
+            output/playwright/status-page-telemetry-guided-setups-ui/*.png
+            output/playwright/status-page-telemetry-guided-setups-ui/test-results
             output/playwright/journeys-ui/*.md
             output/playwright/journeys-ui/*.json
             output/playwright/journeys-ui/test-results
@@ -751,6 +781,10 @@ jobs:
             output/playwright/docker-swarm-pages-ui/test-results
             output/playwright/side-by-side-pages-ui/*.png
             output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/server-setup-ui/*.png
+            output/playwright/server-setup-ui/test-results
+            output/playwright/admin-health-ui/*.png
+            output/playwright/admin-health-ui/test-results
             output/playwright/permissions-per-tab-ui/*.png
             output/playwright/permissions-per-tab-ui/test-results
             output/playwright/resource-overviews-ui/*.png

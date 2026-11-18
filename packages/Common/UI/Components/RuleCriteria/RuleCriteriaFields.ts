@@ -60,6 +60,13 @@ export const RULE_CRITERIA_PATTERN_OPERATORS: ReadonlyArray<RuleCriteriaOperator
   ];
 
 /*
+ * Who owns the record (#9353): one of the people and teams picked is an
+ * owner, or none is - as a workspace rule's owner condition compares them.
+ */
+export const RULE_CRITERIA_OWNER_OPERATORS: ReadonlyArray<RuleCriteriaOperator> =
+  [RuleCriteriaOperator.HasAnyOf, RuleCriteriaOperator.HasNoneOf];
+
+/*
  * Fields that take one syntax of their own rather than free text, so only the
  * pattern operators make sense: an IP range, and an SNMP object ID prefix.
  */
@@ -105,6 +112,17 @@ export const RULE_CRITERIA_ADDRESS_RANGE_OPERATOR_LABELS: Partial<
 };
 
 /*
+ * An owner condition is about who the owner is: "Alert Owner is any of
+ * Platform, Jane" - not "has any of", which reads as a list the owner holds.
+ */
+export const RULE_CRITERIA_OWNER_OPERATOR_LABELS: Partial<
+  Record<RuleCriteriaOperator, string>
+> = {
+  [RuleCriteriaOperator.HasAnyOf]: translationKey("Is any of"),
+  [RuleCriteriaOperator.HasNoneOf]: translationKey("Is none of"),
+};
+
+/*
  * Every sentence the builder and its validation can show, in English. The
  * dashboard looks each one up in its locale files by this text, so the i18n
  * test holds the whole list to all seventeen of them. "{{max}}" and
@@ -129,6 +147,7 @@ export const RuleCriteriaCopy: {
   readonly removeCondition: string;
   readonly fieldUnavailable: string;
   readonly selectOneOrMore: string;
+  readonly valueNotFound: string;
   readonly selectAValue: string;
   readonly enterText: string;
   readonly enterANumber: string;
@@ -172,6 +191,13 @@ export const RuleCriteriaCopy: {
   fieldUnavailable:
     "This field is no longer available. Choose another one or remove this condition.",
   selectOneOrMore: "Select one or more",
+  /*
+   * A value a condition still holds that names nothing now - a severity, a
+   * label, a monitor or a policy since deleted, a person who left (#7807):
+   * how every rule's form and card say so, in one key, so a workspace
+   * rule's Conditions step, its card and a rule's criteria builder agree.
+   */
+  valueNotFound: "No longer in this project",
   selectAValue: "Select a value",
   enterText: "Enter text",
   enterANumber: "Enter a number",
@@ -345,10 +371,26 @@ export function isRuleCriteriaAddressRangeField<TEntity>(
   );
 }
 
+/*
+ * A condition on who owns the record: its value is people and teams, picked
+ * as owners are (RuleCriteriaOwnersValue). A rule page lists one as a match
+ * field of the people picker's type, under the key its criteria store it by
+ * (RULE_CRITERIA_OWNER_FIELDS_BY_MODEL): no column of the rule holds it.
+ */
+export function isRuleCriteriaOwnerField<TEntity>(
+  field: Field<TEntity> | undefined,
+): boolean {
+  return field?.fieldType === FormFieldSchemaType.PeoplePicker;
+}
+
 export function getRuleCriteriaOperatorsForField<TEntity>(
   field: Field<TEntity>,
 ): Array<RuleCriteriaOperator> {
   const fieldName: string = getRuleCriteriaFieldName(field) || "";
+
+  if (isRuleCriteriaOwnerField(field)) {
+    return [...RULE_CRITERIA_OWNER_OPERATORS];
+  }
 
   if (PATTERN_ONLY_FIELD_NAMES.includes(fieldName)) {
     return [...RULE_CRITERIA_PATTERN_OPERATORS];
@@ -382,6 +424,15 @@ export function getRuleCriteriaOperatorLabel<TEntity>(
     }
   }
 
+  if (isRuleCriteriaOwnerField(field)) {
+    const label: string | undefined =
+      RULE_CRITERIA_OWNER_OPERATOR_LABELS[operator];
+
+    if (label) {
+      return label;
+    }
+  }
+
   return RULE_CRITERIA_OPERATOR_LABELS[operator] || operator;
 }
 
@@ -398,7 +449,10 @@ export function getLegacyRuleCriteriaOperator<TEntity>(
   const operators: Array<RuleCriteriaOperator> =
     getRuleCriteriaOperatorsForField(field);
 
-  if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown) {
+  if (
+    field.fieldType === FormFieldSchemaType.MultiSelectDropdown ||
+    isRuleCriteriaOwnerField(field)
+  ) {
     return RuleCriteriaOperator.HasAnyOf;
   }
 
@@ -686,6 +740,10 @@ export function createRuleCriteriaFilter<TEntity>(
  * "Monitors" to "Monitor Labels" cannot keep monitor ids.
  */
 function getValueKind<TEntity>(field: Field<TEntity>): unknown {
+  if (isRuleCriteriaOwnerField(field)) {
+    return "owners";
+  }
+
   if (field.dropdownModal) {
     return field.dropdownModal.type;
   }

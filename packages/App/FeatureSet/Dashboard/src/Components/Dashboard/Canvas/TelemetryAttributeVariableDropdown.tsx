@@ -2,6 +2,16 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -19,8 +29,8 @@ export interface ComponentProps {
  * Only Telemetry Attribute variables are offered because they are the only
  * kind whose selection the public dashboard route resolves from stored
  * config; a Custom List variable would work in the app and silently show
- * nothing to an anonymous viewer. Mirrors ProjectLabelVariableDropdown: a
- * native select, a "None" option that clears the binding, and an inline
+ * nothing to an anonymous viewer. Mirrors ProjectLabelVariableDropdown: the
+ * shared Dropdown, cleared to "None" to drop the binding, and an inline
  * explanation when the stored binding points at a variable that is gone.
  */
 const TelemetryAttributeVariableDropdown: FunctionComponent<ComponentProps> = (
@@ -52,32 +62,36 @@ const TelemetryAttributeVariableDropdown: FunctionComponent<ComponentProps> = (
     return variable.attributeKey ? `${name} (${variable.attributeKey})` : name;
   };
 
+  // A variable's name is drawn as it was written, never looked up.
+  const options: Array<DropdownOption> = [
+    ...(isMissing && props.value
+      ? [
+          getTranslatedDropdownOption(
+            props.value,
+            translator.translateText("Unavailable variable") ||
+              "Unavailable variable",
+          ),
+        ]
+      : []),
+    ...variables.map((variable: DashboardVariable): DropdownOption => {
+      return getNamedDropdownOption(variable.id, getOptionLabel(variable));
+    }),
+  ];
+
   return (
     <div>
-      <select
-        aria-label={translator.translateText("Follow Variable")}
-        className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700"
-        value={props.value || ""}
-        onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => {
-          props.onChange(event.target.value);
+      <Dropdown
+        options={options}
+        value={findDropdownOption(options, props.value)}
+        // Cleared, the widget follows no variable: "None".
+        placeholder={translator.translateText("None")}
+        isPlaceholderTranslated={true}
+        ariaLabel={translator.translateText("Follow Variable")}
+        isAriaLabelTranslated={true}
+        onChange={(next: DropdownValue | Array<DropdownValue> | null): void => {
+          props.onChange(readPickedDropdownValue(next) || "");
         }}
-      >
-        <option value="">{translator.translateText("None")}</option>
-        {isMissing ? (
-          <option value={props.value}>
-            {translator.translateText("Unavailable variable")}
-          </option>
-        ) : (
-          <></>
-        )}
-        {variables.map((variable: DashboardVariable): ReactElement => {
-          return (
-            <option key={variable.id} value={variable.id}>
-              {getOptionLabel(variable)}
-            </option>
-          );
-        })}
-      </select>
+      />
       {isMissing ? (
         <p role="alert" className="text-xs text-red-600 mt-1">
           {translator.translateText(

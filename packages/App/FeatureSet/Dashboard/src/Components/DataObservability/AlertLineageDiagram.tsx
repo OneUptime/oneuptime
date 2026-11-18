@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   LineageDiagramBody,
   LineageHighlightNote,
@@ -17,7 +18,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
@@ -192,7 +192,7 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (read.isLoading) {
-    body = <ComponentLoader />;
+    body = <ChartSkeleton hasLegend={false} />;
   } else if (read.error || !read.answer || !lineage) {
     body = (
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />

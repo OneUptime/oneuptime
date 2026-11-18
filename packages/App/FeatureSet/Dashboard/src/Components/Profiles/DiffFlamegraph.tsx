@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
@@ -486,11 +486,21 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
       let childOffset: number = 0;
 
       const shareDelta: number = getShareDelta(node);
+      const frameTitle: string = translator.translateTemplate(
+        "{{name}} ({{delta}}% of total)",
+        {
+          name: node.functionName,
+          delta: `${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}`,
+        },
+      );
 
       return (
         <React.Fragment key={`${node.functionName}-${depth}-${offsetFraction}`}>
-          <div
-            className={`absolute h-6 border border-white/30 cursor-pointer overflow-hidden text-xs text-white leading-6 px-1 truncate ${bgColor} hover:opacity-80`}
+          <button
+            type="button"
+            data-testid="diff-flamegraph-frame"
+            aria-label={frameTitle}
+            className={`absolute block h-6 border border-white/30 cursor-pointer overflow-hidden text-left text-xs text-white leading-6 px-1 truncate ${bgColor} hover:opacity-80 focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
             style={{
               left: `${offsetFraction * 100}%`,
               width: `${widthFraction * 100}%`,
@@ -503,18 +513,12 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
               handleMouseEnter(node, e);
             }}
             onMouseLeave={handleMouseLeave}
-            title={translator.translateTemplate(
-              "{{name}} ({{delta}}% of total)",
-              {
-                name: node.functionName,
-                delta: `${shareDelta >= 0 ? "+" : ""}${shareDelta.toFixed(1)}`,
-              },
-            )}
+            title={frameTitle}
           >
             {widthFraction > 0.03
               ? getShortProfileFunctionName(node.functionName)
               : ""}
-          </div>
+          </button>
           {node.children.map((child: DiffFlamegraphNode) => {
             const childMax: number = Math.max(
               child.baselineValue,
@@ -570,7 +574,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
   }, [activeRoot]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

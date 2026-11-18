@@ -84,6 +84,7 @@ import {
   getFoldedSectionItemsShown,
 } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
 import API from "../../../UI/Utils/API/API";
+import GlobalConfigUtil from "../../../UI/Utils/GlobalConfig";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -250,6 +251,10 @@ beforeEach(() => {
   jest.spyOn(API, "get").mockImplementation(async (): Promise<never> => {
     return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
   });
+  // The server's public settings: push on (the default ladder's editor asks).
+  jest
+    .spyOn(GlobalConfigUtil, "fetchVars")
+    .mockResolvedValue(GlobalConfigUtil.readVars({}));
 });
 
 afterEach(() => {
@@ -519,9 +524,14 @@ const PAGES: Array<MoreSettingsPage> = [
       return <NotificationSettings {...PAGE_PROPS} />;
     },
     sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
-    sectionTitles: ["Custom SMTP Configs", "Twilio Config"],
+    // How members are paged by default (#7449), then the two tables.
+    sectionTitles: [
+      "Default Ladder for New Members",
+      "Phone for People on Call",
+      "Custom SMTP Configs",
+      "Twilio Config",
+    ],
     namesSectionsByTitle: true,
-    // Both are tables.
     tableCount: 2,
   },
   /*

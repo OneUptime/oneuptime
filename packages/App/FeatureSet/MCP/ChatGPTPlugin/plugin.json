@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "oneuptime",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Work with your OneUptime project from ChatGPT: investigate and respond to incidents and alerts, check monitors and status pages, and query logs, metrics and traces.",
   "author": {
     "name": "OneUptime",
@@ -25,7 +25,7 @@
       "interface": {
         "displayName": "OneUptime",
         "shortDescription": "Incidents, monitors and alerts",
-        "longDescription": "OneUptime is an open-source observability and incident management platform. Connect your OneUptime project to ChatGPT to investigate and respond to incidents, check monitors and status pages, and query telemetry, with your own permissions.\n\nWhat you can do:\n- See open incidents and alerts with their severity, state and timeline, and acknowledge or resolve them.\n- Add internal notes to incidents and alerts, or post a public note to your status page.\n- Find monitors that are down or degraded, and create or change monitors, on-call policies, teams and labels.\n- Manage status pages, announcements and scheduled maintenance.\n- Query logs, metrics, traces, exceptions and other telemetry, read-only.\n- Read public OneUptime status pages.\n\nWho it is for: on-call engineers, SREs and support teams who use OneUptime Cloud.\n\nHow it works: you sign in with your OneUptime account and choose the project ChatGPT may work in, with read-only or read-and-write access. ChatGPT can do only what your role in that project allows, and it asks you before every change. You can disconnect it at any time in OneUptime under Project Settings, AI, MCP Server.\n\nRequirements and limits: a OneUptime Cloud account on the Growth plan or higher. A connection works with one project at a time. Billing and account settings are not available through the plugin.",
+        "longDescription": "OneUptime is an open-source observability and incident management platform. Connect your OneUptime project to ChatGPT to investigate and respond to incidents, check monitors and status pages, and query telemetry, with your own permissions.\n\nWhat you can do:\n- See open incidents and alerts with their severity, state and timeline, and acknowledge or resolve them.\n- Add internal notes to incidents and alerts, or post a public note to your status page.\n- Find monitors that are down or degraded, and create or change monitors, on-call policies, teams and labels.\n- Manage status pages, announcements and scheduled maintenance.\n- Query logs, metrics, traces, exceptions and other telemetry, read-only.\n- Read public OneUptime status pages.\n\nWho it is for: on-call engineers, SREs and support teams who use OneUptime Cloud.\n\nHow it works: you sign in with your OneUptime account and choose the project ChatGPT may work in, with read-only or read-and-write access. ChatGPT can do only what your role in that project allows, and it asks you before every change. You can disconnect it at any time in OneUptime under Project Settings, AI, MCP Server.\n\nRequirements and limits: a OneUptime Cloud account and a project that includes MCP access. A connection works with one project at a time, and account settings are not available through the plugin.",
         "developerName": "OneUptime",
         "category": "Developer Tools",
         "capabilities": [

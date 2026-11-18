@@ -60,7 +60,6 @@ const classesOf: (element: HTMLElement) => Array<string> = (
 const OUTLINE_STYLES: Array<[string, ButtonStyleType]> = [
   ["OUTLINE", ButtonStyleType.OUTLINE],
   ["HOVER_DANGER_OUTLINE", ButtonStyleType.HOVER_DANGER_OUTLINE],
-  ["HOVER_SUCCESS_OUTLINE", ButtonStyleType.HOVER_SUCCESS_OUTLINE],
   ["HOVER_PRIMARY_OUTLINE", ButtonStyleType.HOVER_PRIMARY_OUTLINE],
 ];
 
@@ -77,10 +76,7 @@ const ALL_STYLES: Array<[string, ButtonStyleType]> = Object.keys(
 // The filled styles, whose disabled look was a paler fill of their own.
 const FILLED_STYLES: Array<[string, ButtonStyleType]> = [
   ["PRIMARY", ButtonStyleType.PRIMARY],
-  ["SECONDARY", ButtonStyleType.SECONDARY],
   ["DANGER", ButtonStyleType.DANGER],
-  ["SUCCESS", ButtonStyleType.SUCCESS],
-  ["WARNING", ButtonStyleType.WARNING],
 ];
 
 // The classes no stylesheet in the repository defines.
@@ -158,11 +154,6 @@ describe("an outline button has a border, a fill, a hover and a focus ring", () 
       "HOVER_DANGER_OUTLINE",
       ButtonStyleType.HOVER_DANGER_OUTLINE,
       ["hover:bg-red-50", "hover:text-red-700"],
-    ],
-    [
-      "HOVER_SUCCESS_OUTLINE",
-      ButtonStyleType.HOVER_SUCCESS_OUTLINE,
-      ["hover:bg-green-50", "hover:text-green-700"],
     ],
     [
       "HOVER_PRIMARY_OUTLINE",

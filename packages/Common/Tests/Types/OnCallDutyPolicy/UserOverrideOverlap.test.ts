@@ -262,6 +262,159 @@ describe("the overlaps of one override among others", () => {
   });
 });
 
+/*
+ * AN EDIT THAT ONLY SHORTENS AN OVERRIDE CANNOT MAKE AN OVERLAP (issue
+ * #7899). An override that overlapped another before the rule could not
+ * be ended early - End Now, or an end moved sooner - since its shorter
+ * times still overlapped the other: the refusal said to change the times,
+ * which was what it did. An edit that adds time is still held to all of
+ * its new times, as an add is.
+ */
+describe("the time an edit adds", () => {
+  const saved: { startsAt: Date; endsAt: Date } = {
+    startsAt: at("09:00"),
+    endsAt: at("17:00"),
+  };
+
+  const times: (
+    windows: Array<{ startsAt: Date; endsAt: Date }>,
+  ) => Array<string> = (
+    windows: Array<{ startsAt: Date; endsAt: Date }>,
+  ): Array<string> => {
+    return windows.map((window: { startsAt: Date; endsAt: Date }): string => {
+      return `${window.startsAt.toISOString().slice(11, 16)}-${window.endsAt.toISOString().slice(11, 16)}`;
+    });
+  };
+
+  test("ended early, or started later, it adds none", () => {
+    expect(
+      UserOverrideOverlap.getAddedTimes(saved, {
+        startsAt: at("09:00"),
+        endsAt: at("12:00"),
+      }),
+    ).toEqual([]);
+    expect(
+      UserOverrideOverlap.getAddedTimes(saved, {
+        startsAt: at("10:00"),
+        endsAt: at("17:00"),
+      }),
+    ).toEqual([]);
+    expect(UserOverrideOverlap.getAddedTimes(saved, saved)).toEqual([]);
+  });
+
+  test("extended, it adds the time before its start and after its end", () => {
+    expect(
+      times(
+        UserOverrideOverlap.getAddedTimes(saved, {
+          startsAt: at("08:00"),
+          endsAt: at("19:00"),
+        }),
+      ),
+    ).toEqual(["08:00-09:00", "17:00-19:00"]);
+  });
+
+  test("moved clear of where it was, all of it is new", () => {
+    expect(
+      times(
+        UserOverrideOverlap.getAddedTimes(saved, {
+          startsAt: at("18:00"),
+          endsAt: at("20:00"),
+        }),
+      ),
+    ).toEqual(["18:00-20:00"]);
+    expect(
+      times(
+        UserOverrideOverlap.getAddedTimes(saved, {
+          startsAt: at("17:00"),
+          endsAt: at("18:00"),
+        }),
+      ),
+    ).toEqual(["17:00-18:00"]);
+  });
+
+  test("out of order, it adds nothing to ask about: the order is refused first", () => {
+    expect(
+      UserOverrideOverlap.getAddedTimes(saved, {
+        startsAt: at("12:00"),
+        endsAt: at("11:00"),
+      }),
+    ).toEqual([]);
+  });
+
+  test("an overlap saved before the rule never keeps it from being shortened", () => {
+    const edited: UserOverrideTimes = override({
+      id: "this",
+      from: "09:00",
+      until: "12:00",
+    });
+    const overlapping: Array<UserOverrideTimes> = [
+      override({ id: "other", cover: CAROL, from: "11:00", until: "20:00" }),
+    ];
+
+    // Asked of its whole times, as an add is, it still overlaps.
+    expect(UserOverrideOverlap.getConflicts(edited, overlapping)).toHaveLength(
+      1,
+    );
+    // As the edit it is, of what it was, it adds nothing.
+    expect(
+      UserOverrideOverlap.getConflicts(edited, overlapping, saved),
+    ).toEqual([]);
+  });
+
+  test("one that adds time is held to all of its new times, as an add is", () => {
+    const extended: UserOverrideTimes = override({
+      id: "this",
+      from: "09:00",
+      until: "18:00",
+    });
+
+    expect(UserOverrideOverlap.addsTime(saved, extended)).toBe(true);
+    expect(
+      UserOverrideOverlap.getConflicts(
+        extended,
+        [
+          override({
+            id: "evening",
+            cover: KIM,
+            from: "17:30",
+            until: "20:00",
+          }),
+          override({
+            id: "morning",
+            cover: KIM,
+            from: "06:00",
+            until: "10:00",
+          }),
+        ],
+        saved,
+      ).map((other: UserOverrideTimes): string => {
+        return other.id || "";
+      }),
+    ).toEqual(["morning", "evening"]);
+  });
+
+  test("whether an edit adds time", () => {
+    expect(
+      UserOverrideOverlap.addsTime(saved, {
+        startsAt: at("09:00"),
+        endsAt: at("12:00"),
+      }),
+    ).toBe(false);
+    expect(
+      UserOverrideOverlap.addsTime(saved, {
+        startsAt: at("09:00"),
+        endsAt: at("17:01"),
+      }),
+    ).toBe(true);
+    expect(
+      UserOverrideOverlap.addsTime(saved, {
+        startsAt: at("08:59"),
+        endsAt: at("17:00"),
+      }),
+    ).toBe(true);
+  });
+});
+
 describe("which of two is used where they overlap", () => {
   test("a policy's cover, a policy's skip, a global cover, a global skip, in that order", () => {
     const shuffled: Array<UserOverrideTimes> = [

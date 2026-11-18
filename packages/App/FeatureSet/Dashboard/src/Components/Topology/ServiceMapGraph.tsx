@@ -49,7 +49,17 @@ import {
   formatInline,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME } from "./TopologyToolbarPicker";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   getReadingDirection,
@@ -488,6 +498,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const [page, setPage] = useState<number>(0);
   const [connectionMetric, setConnectionMetric] =
     useState<ConnectionMetric>("none");
+  // The connection-label picker's choices, in the reader's language.
+  const connectionMetricOptions: Array<DropdownOption> = [
+    getTranslatedDropdownOption("none", t("On hover")),
+    getTranslatedDropdownOption("calls", t("Request rate")),
+    getTranslatedDropdownOption("errors", t("Error rate")),
+    getTranslatedDropdownOption("latency", t("Average latency")),
+  ];
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   /*
    * What the drawer is open on: usually a node of the map, but the drawer
@@ -1170,7 +1187,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               ? "Services reporting"
               : "Not connected to anything in this view",
           )}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({translator.formatNumber(unconnectedEntries.length)})
           </span>
         </h4>
@@ -1519,22 +1536,29 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 px-5 py-3">
-              <label className="flex items-center gap-2 text-xs text-gray-600">
-                {t("Connection labels")}
-                <select
-                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs"
-                  aria-label={t("Connection labels")}
-                  value={connectionMetric}
-                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                    setConnectionMetric(event.target.value as ConnectionMetric);
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span aria-hidden={true}>{t("Connection labels")}</span>
+                <Dropdown
+                  className={TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME}
+                  options={connectionMetricOptions}
+                  value={findDropdownOption(
+                    connectionMetricOptions,
+                    connectionMetric,
+                  )}
+                  isClearable={false}
+                  ariaLabel={t("Connection labels")}
+                  isAriaLabelTranslated={true}
+                  onChange={(
+                    next: DropdownValue | Array<DropdownValue> | null,
+                  ): void => {
+                    const picked: string | null = readPickedDropdownValue(next);
+
+                    if (picked !== null) {
+                      setConnectionMetric(picked as ConnectionMetric);
+                    }
                   }}
-                >
-                  <option value="none">{t("On hover")}</option>
-                  <option value="calls">{t("Request rate")}</option>
-                  <option value="errors">{t("Error rate")}</option>
-                  <option value="latency">{t("Average latency")}</option>
-                </select>
-              </label>
+                />
+              </div>
               <div className="ml-auto flex flex-wrap items-center gap-3">
                 <span
                   className="text-xs text-gray-500"

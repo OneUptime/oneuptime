@@ -36,7 +36,7 @@ flowchart TB
 
 ## 始める前に
 
-- **届いているログ。** [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd)、[Syslog](/docs/telemetry/syslog) のいずれかで送ります。**セットアップガイド** タブに、使っている言語やコレクター向けの設定が表示されます。
+- **届いているログ。** [OpenTelemetry](/docs/telemetry/open-telemetry)、[Fluent Bit](/docs/telemetry/fluentbit)、[Fluentd](/docs/telemetry/fluentd)、[Syslog](/docs/telemetry/syslog) のいずれかで送ります。**セットアップガイド** タブに、使っている言語やコレクター向けの設定が表示されます。 最初のデータが届くまで、このページには **ガイド付きセットアップ** が表示されます。最初のログ、メトリクス、トレースからそれらのアラートまでを案内します。その横の **最初のログを送信** は、セットアップガイドだけを開きます。 アプリを設定する前にエンドポイントとキーを確認するには、ガイドの最初のステップで **テストログを送信** を開きます。サービス `oneuptime-test` からログを1件送信します。このサービスは後で削除できます。
 - **テレメトリを読み取れるロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、テレメトリ管理者、テレメトリメンバー、テレメトリ閲覧者のいずれか、または Read Logs 権限を持つカスタムロール。ロールのスコープによって、誰のログが見えるかが決まります。[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## ログの行を探す

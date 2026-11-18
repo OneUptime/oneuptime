@@ -304,7 +304,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText(data.severity)}
           </span>
-          <span className="ml-1 text-xs text-gray-400">
+          <span className="ml-1 text-xs text-gray-500">
             ({translator.formatNumber(data.count)})
           </span>
         </div>
@@ -503,7 +503,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           <div className="space-y-3 rounded-md border border-gray-200 p-3">
             {willCreateAlerts ? (
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {translator.translateText("Alert severity")}
                 </p>
                 {renderSeverityRow({
@@ -539,7 +539,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
 
             {willCreateIncidents ? (
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {translator.translateText("Incident severity")}
                 </p>
                 {renderSeverityRow({

@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import MonitorStepElement from "./MonitorStep";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -8,7 +9,6 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -239,7 +239,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <ComponentLoader></ComponentLoader>;
+    return <CardListSkeleton count={2} lines={3} />;
   }
 
   if (!props.monitorSteps) {

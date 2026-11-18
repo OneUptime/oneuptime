@@ -180,7 +180,7 @@ const KubernetesEnvVarsTab: FunctionComponent<ComponentProps> = (
         return (
           <span className="font-mono text-gray-600">
             {item.value || (
-              <span className="text-gray-400 italic">
+              <span className="text-gray-500 italic">
                 {translator.translateText("empty")}
               </span>
             )}

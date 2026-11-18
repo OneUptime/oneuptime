@@ -36,7 +36,7 @@ import Card from "Common/UI/Components/Card/Card";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -242,7 +242,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
   }, [props.variableId.toString(), props.workflowId?.toString()]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error || !variable) {

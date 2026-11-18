@@ -1,11 +1,11 @@
 import Log from "Common/Models/AnalyticsModels/Log";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -278,7 +278,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
     if (isLoading || readKey !== shownReadKey) {
       return (
         <div className="flex h-16 items-center justify-center">
-          <ComponentLoader />
+          <TableSkeleton rows={2} hasHeader={false} />
         </div>
       );
     }
@@ -314,7 +314,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
                 {getPodLogGroupTitle(translator, group.position)}
               </h5>
               {group.position === "before" && result.isBeforeCut && (
-                <p className="mb-1 text-[11px] text-gray-500">
+                <p className="mb-1 text-xs text-gray-500">
                   {describePodLogCut({ translator, part: "before" })}
                 </p>
               )}
@@ -329,7 +329,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
           );
         })}
         {result.isAfterCut && (
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             {describePodLogCut({ translator, part: "fromStart" })}
           </p>
         )}
@@ -343,7 +343,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           aria-expanded={isAdvancedOpen}
-          className="inline-flex items-center gap-1 rounded text-[11px] font-medium text-gray-500 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="inline-flex items-center gap-1 rounded text-xs font-medium text-gray-500 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           data-testid="span-pod-logs-advanced"
           onClick={() => {
             setIsAdvancedOpen(!isAdvancedOpen);
@@ -357,7 +357,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
         </button>
         {isAdvancedOpen && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-gray-500">
+            <span className="text-xs text-gray-500">
               {translator.translateText(SPAN_POD_LOGS_LOOK_AROUND)}
             </span>
             <ExceptionSegmentedControl<string>
@@ -408,7 +408,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
       {isOpen && (
         <div id={bodyId} className="space-y-3">
           <p
-            className="text-[11px] leading-relaxed text-gray-500"
+            className="text-xs leading-relaxed text-gray-500"
             data-testid="span-pod-logs-window"
           >
             {describeSpanPodLogWindow({

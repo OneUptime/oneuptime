@@ -4,11 +4,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
@@ -147,7 +147,7 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
       ]}
     >
       <div className="mt-2">
-        {isLoading && <ComponentLoader />}
+        {isLoading && <TableSkeleton rows={3} columns={2} hasHeader={false} />}
 
         {!isLoading && error && <ErrorMessage message={error} />}
 

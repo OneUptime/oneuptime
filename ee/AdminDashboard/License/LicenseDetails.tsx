@@ -790,7 +790,7 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                           {host}
                         </span>
                         {isThisInstance && (
-                          <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
+                          <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-indigo-700">
                             {translator.translateText(
                               LicenseDetailsCopy.thisInstance,
                             )}
@@ -798,7 +798,7 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                         )}
                         {displayVersion && (
                           <span
-                            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+                            className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${
                               isInstanceOutdated
                                 ? "bg-amber-50 text-amber-800"
                                 : "bg-gray-100 text-gray-600"

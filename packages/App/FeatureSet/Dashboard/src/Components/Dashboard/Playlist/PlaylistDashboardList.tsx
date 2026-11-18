@@ -137,7 +137,7 @@ const PlaylistDashboardList: FunctionComponent<ComponentProps> = (
               </span>
               <div className="min-w-0">
                 {isLoading ? (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText("Loading...")}
                   </span>
                 ) : isAvailable ? (

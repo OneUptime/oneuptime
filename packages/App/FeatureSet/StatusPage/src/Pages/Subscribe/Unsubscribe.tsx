@@ -1,4 +1,5 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import AuthPage from "Common/UI/Components/AuthPage/AuthPage";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
@@ -23,7 +24,7 @@ import StatusPageSubscriberUnsubscribe, {
 } from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import React, {
   FunctionComponent,
@@ -204,7 +205,7 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
   };
 
   if (!statusPageId) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   /*
@@ -302,12 +303,7 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
   const renderBody: () => ReactElement = (): ReactElement => {
     switch (pageState) {
       case PageState.Loading:
-        return (
-          <PageLoader
-            isVisible={true}
-            className="flex w-full items-center justify-center py-4"
-          />
-        );
+        return <DetailListSkeleton fields={2} columns={1} />;
 
       case PageState.Confirm:
         return (

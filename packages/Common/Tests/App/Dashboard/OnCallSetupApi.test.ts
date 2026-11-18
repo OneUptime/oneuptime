@@ -7,6 +7,32 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+
+/*
+ * The team an invitation starts on (Utils/DefaultInviteTeam), as each test
+ * says: the project's members team, or none, and whether the person may
+ * invite to every team.
+ */
+let defaultInviteTeam: { id: string; name: string } | null = null;
+let mayInviteToEveryTeam: boolean = true;
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam",
+  () => {
+    return {
+      __esModule: true,
+      findDefaultInviteTeam: async (): Promise<{
+        id: string;
+        name: string;
+      } | null> => {
+        return defaultInviteTeam;
+      },
+      canSignedInUserInviteToEveryTeam: (): boolean => {
+        return mayInviteToEveryTeam;
+      },
+    };
+  },
+);
 import OnCallSetupApi, {
   MyReach,
   ProjectPhoneFacts,
@@ -17,6 +43,11 @@ import {
   ResponderReach,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
@@ -24,6 +55,7 @@ import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseMode
 import OnCallDutyPolicyEscalationRuleTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Project from "../../../Models/DatabaseModels/Project";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -39,6 +71,7 @@ import API from "../../../UI/Utils/API/API";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
+  ModelAction,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -901,6 +934,244 @@ describe("whether a page reaches people", () => {
     expect(
       String((apiGetSpy.mock.calls[0]![0] as unknown as { url: unknown }).url),
     ).toContain(`/on-call-readiness/policy/${POLICY_ID}`);
+  });
+});
+
+/*
+ * ISSUE #7150: "Invite by email" is the Users page's Invite User - a
+ * TeamMember created by address, on the team it starts on - so the server
+ * applies every check it applies there (who may invite, the plan's seats,
+ * SCIM, a server that cannot send email). The address alone is sent.
+ */
+describe("inviting someone by email (#7150)", () => {
+  const MEMBERS_TEAM: string = "80000000-0000-4000-8000-000000000001";
+  const INVITED_USER: string = "40000000-0000-4000-8000-0000000000c1";
+  const INVITATION: string = "90000000-0000-4000-8000-000000000001";
+
+  beforeEach(() => {
+    defaultInviteTeam = { id: MEMBERS_TEAM, name: "Members" };
+    mayInviteToEveryTeam = true;
+    createSpy.mockResolvedValue({
+      data: {
+        id: new ObjectID(INVITATION),
+        userId: new ObjectID(INVITED_USER),
+      },
+    });
+  });
+
+  test("invites by address alone, on the members team, and says who to page", async () => {
+    expect(await OnCallSetupApi.inviteByEmail("cara@acme.example")).toEqual({
+      teamMemberId: INVITATION,
+      userId: INVITED_USER,
+    });
+
+    const [call] = callsFor(createSpy, TeamMember);
+    const member: TeamMember = call!["model"] as TeamMember;
+
+    expect(member.teamId?.toString()).toBe(MEMBERS_TEAM);
+    expect(member.projectId?.toString()).toBe(PROJECT_ID);
+    // Never accepted for them, and no name asked or sent.
+    expect(member.hasAcceptedInvitation).toBeUndefined();
+    expect(call!["miscDataProps"]).toEqual({ email: "cara@acme.example" });
+  });
+
+  test("no members team to start on: nothing is sent, and Users is where to go", async () => {
+    defaultInviteTeam = null;
+
+    await expect(
+      OnCallSetupApi.inviteByEmail("cara@acme.example"),
+    ).rejects.toThrow(
+      "No team could be picked for them here. Invite them from Users, where you choose their team.",
+    );
+    expect(callsFor(createSpy, TeamMember)).toEqual([]);
+  });
+
+  test("the server's refusal - the plan's seats - comes back as it said it", async () => {
+    createSpy.mockRejectedValue(
+      new Error("This project has used all 5 of its seats."),
+    );
+
+    await expect(
+      OnCallSetupApi.inviteByEmail("cara@acme.example"),
+    ).rejects.toThrow("This project has used all 5 of its seats.");
+  });
+
+  test("an answer that names nobody is not taken for an invitation", async () => {
+    createSpy.mockResolvedValue({ data: { id: new ObjectID(INVITATION) } });
+
+    await expect(
+      OnCallSetupApi.inviteByEmail("cara@acme.example"),
+    ).rejects.toThrow("The invitation was created, but it can't be shown.");
+  });
+
+  test("is offered to whoever may invite to every team", () => {
+    const check: SpyInstance<typeof PermissionGate.check> = jest.spyOn(
+      PermissionGate,
+      "check",
+    );
+
+    check.mockReturnValue({ isAllowed: true });
+    expect(OnCallSetupApi.mayInviteByEmail()).toBe(true);
+    expect(check.mock.calls[0]![0]).toBeInstanceOf(TeamMember);
+    expect(check.mock.calls[0]![1]).toBe(ModelAction.Create);
+
+    // Invite New Members on owned teams only: the setup would pick no team.
+    mayInviteToEveryTeam = false;
+    expect(OnCallSetupApi.mayInviteByEmail()).toBe(false);
+
+    // No right to invite at all.
+    mayInviteToEveryTeam = true;
+    check.mockReturnValue({ isAllowed: false });
+    expect(OnCallSetupApi.mayInviteByEmail()).toBe(false);
+  });
+});
+
+/*
+ * ISSUE #7154: the order a page reaches each person the policy pages
+ * first, for the summary. It is "Test this policy"'s preview, asked for
+ * the severity the test dialog starts on - the project's most severe
+ * incident severity - never worked out a second time in the Dashboard.
+ */
+describe("the order a page reaches each person (#7154)", () => {
+  const CRITICAL: string = "50000000-0000-4000-8000-000000000001";
+  const MINOR: string = "50000000-0000-4000-8000-000000000002";
+  const HIGH_ALERT: string = "50000000-0000-4000-8000-000000000003";
+
+  let apiPostSpy: LooseSpy;
+
+  const severities: (incident: Array<string>, alert: Array<string>) => void = (
+    incident: Array<string>,
+    alert: Array<string>,
+  ): void => {
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === IncidentSeverity) {
+        return list(
+          incident.map((id: string) => {
+            return model(IncidentSeverity, { _id: id, name: id });
+          }),
+        );
+      }
+
+      if (args.modelType === AlertSeverity) {
+        return list(
+          alert.map((id: string) => {
+            return model(AlertSeverity, { _id: id, name: id });
+          }),
+        );
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+  };
+
+  const preview: Record<string, unknown> = {
+    kind: "Policy",
+    people: [
+      {
+        userId: USER_ID,
+        userName: "Ana Lopez",
+        methods: [
+          {
+            channel: OnCallPageChannel.SMS,
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+          {
+            channel: OnCallPageChannel.Call,
+            notifyAfterMinutes: 5,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+        hasNoRule: false,
+        isOptedOut: false,
+        warnings: [],
+      },
+    ],
+    notPaged: [],
+    cost: {
+      isPaid: false,
+      smsCount: 1,
+      callCount: 1,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    },
+  };
+
+  beforeEach(() => {
+    apiPostSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
+    apiPostSpy.mockResolvedValue(
+      new HTTPResponse(200, preview as never, {}) as never,
+    );
+  });
+
+  test("asks the policy's test preview for the most severe incident severity, and reads each person's steps", async () => {
+    severities([CRITICAL, MINOR], [HIGH_ALERT]);
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toEqual({
+      [USER_ID]: [
+        { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ],
+    });
+
+    expect(apiPostSpy).toHaveBeenCalledTimes(1);
+
+    const request: { url: unknown; data: Record<string, unknown> } = apiPostSpy
+      .mock.calls[0]![0] as unknown as {
+      url: unknown;
+      data: Record<string, unknown>;
+    };
+
+    expect(String(request.url)).toContain("/on-call-test-page/preview");
+    expect(request.data).toEqual({
+      recordKind: "Incident",
+      severityId: CRITICAL,
+      policyId: POLICY_ID,
+      walksEscalation: false,
+    });
+  });
+
+  test("a project with only alert severities asks for its first", async () => {
+    severities([], [HIGH_ALERT]);
+
+    await OnCallSetupApi.loadReachOrders(POLICY_ID);
+
+    expect(
+      (
+        apiPostSpy.mock.calls[0]![0] as unknown as {
+          data: Record<string, unknown>;
+        }
+      ).data,
+    ).toEqual(
+      expect.objectContaining({ recordKind: "Alert", severityId: HIGH_ALERT }),
+    );
+  });
+
+  test("no severity to stand in for: nothing is asked, and nothing is said", async () => {
+    severities([], []);
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toBeNull();
+    expect(apiPostSpy).not.toHaveBeenCalled();
+  });
+
+  test("a preview the server refuses - someone who may not test the policy - says nothing", async () => {
+    severities([CRITICAL], []);
+    apiPostSpy.mockResolvedValue(
+      new HTTPErrorResponse(
+        403,
+        {
+          message:
+            "You can test an on-call policy you can edit. Ask a Project Admin, or an owner of the policy.",
+        },
+        {},
+      ) as never,
+    );
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toBeNull();
   });
 });
 

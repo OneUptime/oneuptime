@@ -382,10 +382,6 @@ describe("the AI Investigation card in the dark theme", () => {
         "bg-white",
         "focus-within:border-indigo-500",
         "focus-within:ring-indigo-500",
-        "bg-indigo-600",
-        "hover:bg-indigo-500",
-        "bg-gray-900",
-        "hover:bg-gray-800",
       ]),
     );
     /*
@@ -455,18 +451,23 @@ describe("the AI Investigation card in the dark theme", () => {
     expect(isRemapped("text-lime-800")).toBe(false);
   });
 
-  test("the composer's dark stop button keeps its ground: both classes sit on one element", () => {
-    /*
-     * Theme.css re-colours a gray-900 control only as `.bg-gray-900.text-white`
-     * (a bare .bg-gray-900 would catch dark code blocks too), so the two
-     * must be on the same element or the button merges into the dark card.
-     */
-    expect(THEME_CSS).toContain("html.dark .bg-gray-900.text-white");
-    expect(
+  /*
+   * Send and Stop are the shared Button (#9195), whose styles the dark theme
+   * already draws: the composer gives them no colours of its own. Stop was a
+   * gray-900 button drawn by hand, which needed its own rule in Theme.css.
+   */
+  test("the composer's Send and Stop are the shared Button, with no colours of their own", () => {
+    const composer: string =
       getCardModules().get(
         "InvestigationConversation/ConversationComposer.tsx",
-      ),
-    ).toContain("bg-gray-900 text-white");
+      ) || "";
+
+    expect(composer).toContain("<Button");
+    expect(composer).toContain("ButtonStyleType.PRIMARY");
+    expect(composer).toContain("ButtonStyleType.NORMAL");
+    expect(composer).not.toContain("bg-indigo-600");
+    expect(composer).not.toContain("bg-gray-900");
+    expect(composer).not.toContain("<button");
   });
 
   test("the guard itself tells a remapped class from one that is not", () => {

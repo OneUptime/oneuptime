@@ -1,4 +1,5 @@
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageComponentProps from "../../PageComponentProps";
 import { SEVERITY_COLOR } from "../../../Components/DataSecurity/DataSecurityPills";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
@@ -18,7 +19,6 @@ import ObjectID from "Common/Types/ObjectID";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -251,7 +251,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
                       </span>
                     </>
                   ) : (
-                    <span className="font-normal text-gray-400">
+                    <span className="font-normal text-gray-500">
                       {translator.translateText("No issue")}
                     </span>
                   )}
@@ -555,7 +555,7 @@ const DataSecurityChecks: FunctionComponent<
   };
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <CardListSkeleton count={3} lines={3} />;
   }
 
   if (error) {

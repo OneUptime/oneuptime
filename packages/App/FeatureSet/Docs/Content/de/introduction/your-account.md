@@ -134,7 +134,7 @@ Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links
 
 ## Was jedes Projekt für Sie speichert
 
-**Benutzereinstellungen**, rechts in der Leiste unter der oberen Leiste, gehört nur Ihnen, und jedes Projekt hat seine eigenen. Öffnen Sie sie in jedem Projekt, in dem Sie Bereitschaft haben.
+**Benutzereinstellungen**, rechts in der Leiste unter der oberen Leiste, gehört nur Ihnen, und jedes Projekt hat seine eigenen. Öffnen Sie sie in jedem Projekt, in dem Sie Bereitschaft haben. Sie öffnen sich auf **Einrichtungs-Checkliste**, solange etwas einzurichten ist, und auf **Benachrichtigungsmethoden**, sobald nichts Wesentliches mehr fehlt.
 
 | Seite | Wofür sie da ist | Mehr dazu |
 | --- | --- | --- |

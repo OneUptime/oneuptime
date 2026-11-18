@@ -36,7 +36,7 @@ Der Explorer hat fünf Tabs:
 
 ## Bevor Sie beginnen
 
-- **Eintreffende Protokolle.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) oder [Syslog](/docs/telemetry/syslog). Der Tab **Einrichtungsanleitung** zeigt die Konfiguration für Ihre Sprache oder Ihren Collector.
+- **Eintreffende Protokolle.** Senden Sie sie mit [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) oder [Syslog](/docs/telemetry/syslog). Der Tab **Einrichtungsanleitung** zeigt die Konfiguration für Ihre Sprache oder Ihren Collector. Bis die ersten Daten eintreffen, bietet diese Seite **Geführte Einrichtung** an, das Sie von Ihren ersten Protokollen, Metriken und Traces bis zu Warnungen dazu führt, neben **Ihre ersten Protokolle senden**, der Einrichtungsanleitung allein. Um Endpunkt und Schlüssel zu prüfen, bevor Sie eine App einrichten, öffnen Sie im ersten Schritt der Anleitung **Ein Testprotokoll senden**: Es sendet ein Protokoll vom Dienst `oneuptime-test`, den Sie danach löschen können.
 - **Eine Rolle, die Telemetrie lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Telemetrie-Administrator, Telemetrie-Mitglied oder Telemetrie-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Logs. Ihr Bereich entscheidet, wessen Protokolle Sie sehen: siehe [Telemetrie](/docs/permissions/index#telemetrie).
 
 ## Eine Protokollzeile finden

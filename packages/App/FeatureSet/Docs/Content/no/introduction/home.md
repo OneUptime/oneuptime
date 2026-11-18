@@ -15,7 +15,7 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 
 1. Et søkefelt, med **Erklær hendelse** og **Opprett** ved siden av.
 2. Én linje som sier om noe er galt, over fem tall som teller det som trenger oppmerksomhet.
-3. **Velkommen til OneUptime 👋**, en sjekkliste for et nytt prosjekt, til den er fullført.
+3. **Velkommen til OneUptime 👋**, en sjekkliste for et nytt prosjekt, til den er fullført, og deretter **Mer å sette opp** så lenge noe gjenstår.
 4. **Krever oppmerksomhet**, hvert problem som er åpent akkurat nå, ved navn.
 5. **Prosjektet ditt**, hva prosjektet består av, og **Kommende vedlikehold** når noe er planlagt.
 6. **Utforsk OneUptime**, alle produktene, én kategori om gangen.
@@ -40,7 +40,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Hjem følger også med på det den teller, etter hvert som det endrer seg: når en hendelse, et varsel, en monitor, en vedlikeholdshendelse eller et SLO opprettes, endres eller slettes, tar linjen, tallene, **Krever oppmerksomhet** og **Kommende vedlikehold** det igjen i løpet av sekunder, uten å laste inn på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, med mindre sjekklisten under allerede tilbyr det steget. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
@@ -68,13 +68,17 @@ Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og 
 | **Opprett din første monitor** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette monitorer. |
 | **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
 | **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
-| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
+| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel eller en monitor kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
 | **Publiser en statusside** | En statusside viser en monitor. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
 | **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
 
-Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
+Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke er satt opp, ser administratorene i stedet serverens eget kort over sjekklisten, med **Fullfør oppsettet**, som åpner administrasjonsdashbordet.
 
 Hvert steg sier omtrent hvor lang tid det tar, sjekklisten omtrent hvor mye tid som er igjen, og det neste steget har sin egen knapp **Start**.
+
+Et steg der posten finnes, men ennå ikke virker, sier under seg hvorfor, med ordene fra **Oppsettets helse**: en statusside som ikke viser noen monitor, en monitor som ingenting sjekker, en vaktpolicy som ingenting kjører eller som ikke når noen, en invitasjon som ingen har godtatt. Steget åpner da siden som retter det, og når det er det neste, sier knappen hva som rettes, for eksempel **Legg til monitorer**.
+
+Når **Sett opp en vaktpolicy** er krysset av, og så lenge bare e-post kan kalle deg opp, blir **Få oppkall via SMS eller telefon** stående under det: Lenken åpner det veiledede oppsettet **Varsle rett person når noe går ned**, så du kan legge til telefonen din eller mobilappen. Bare de som har lov til å opprette vaktpolicyer, ser den.
 
 Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslutter med hva det har satt opp og hva du kan gjøre etterpå. Søk etter navnet for å åpne det igjen senere.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Ja"| hidden{"Skjult<br/>av deg?"}
     hidden -->|"Ja"| line["En linje for å<br/>vise den igjen"]
     hidden -->|"Nei"| done{"Alle steg<br/>ferdige?"}
-    done -->|"Ja"| gone["Ingen sjekkliste"]
+    done -->|"Ja"| gone["Mer å sette opp,<br/>så lenge noe gjenstår"]
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
 Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tidligere klikker du på **Skjul**: den er da bare skjult for deg, på alle enheter, og en linje blir stående med **Vis den** og **Slik fungerer OneUptime**. De som er invitert til prosjektet som medlemmer, ser ikke sjekklisten. **Slik fungerer OneUptime** er fortsatt ett klikk unna, i alle prosjekter: åpne det fra **Hjelp** eller med knappen ved siden av **Utforsk OneUptime**.
+
+Når sjekklisten er fullført, tar **Mer å sette opp** plassen dens under overskriften, som et kort blant de andre: de grunnleggende stegene målene dine ikke tok med, for eksempel en statusside og teamet ditt, hvert til det virker, med **Få oppkall via SMS eller telefon** først så lenge bare e-post kan kalle deg opp. Dens **Skjul** skjuler den for deg, uten at noen linje blir stående.
 
 **Slik fungerer OneUptime** åpner med **Slik henger det sammen**: de fire trinnene et problem går gjennom, **Oppdag**, **Reager**, **Kommuniser** og **Forbedre**, hvert med produktene som gjør det. Deretter kommer kategoriene i menyen **Produkter**, hver med sine produkter og hva hvert av dem er til: velg en, eller gå videre med piltastene eller **Neste**. Klikk på et produkt for å åpne det. Produkter som prosjektet ditt skjuler, er utelatt.
 
@@ -103,7 +109,7 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 ### Oppsettets helse
 
-Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som begynner med én linje i fargen til det alvorligste funnet: hvor mange problemer som ville hindre at folk blir varslet, hvor mange ting som er verdt å rette, eller **Ingenting å rette**. Under den viser siden hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor, et egendefinert domene der SSL-sertifikatet ikke kunne utstedes, en inntaksnøkkel som det aldri har kommet data inn med. Hvert funn sier i én setning hva som er galt, med navnene på monitorene, policyene og personene dine i fet skrift, monitorene eller policyene funnet rammer etter **Gjelder**, og rett under det knappen som åpner rettingen. To kan rettes rett der, etter at en dialog har sagt nøyaktig hva som endres: **Slå på SMS** (eller telefonanrop, WhatsApp eller Telegram) for den som kan slå det på, og **Opprett vaktregel**, som varsler vaktpolicyen du velger for en monitor som ikke varslet noen. Funnene for en monitor er bruddene som kortet **Når den går ned** nevner, og en vaktpolicy som ingenting kjører, eller et egendefinert domene som ikke åpner statussiden sin, sier det også øverst på policyens eller statussidens egen side. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
+Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som begynner med én linje i fargen til det alvorligste funnet: hvor mange problemer som ville hindre at folk blir varslet, hvor mange ting som er verdt å rette, eller **Ingenting å rette**. Under den viser siden hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor, et egendefinert domene der SSL-sertifikatet ikke kunne utstedes, en inntaksnøkkel som det aldri har kommet data inn med. Hvert funn sier i én setning hva som er galt, med navnene på monitorene, policyene og personene dine i fet skrift, monitorene eller policyene funnet rammer etter **Gjelder**, og rett under det knappen som åpner rettingen. To kan rettes rett der, etter at en dialog har sagt nøyaktig hva som endres: **Slå på SMS** (eller telefonanrop, WhatsApp eller Telegram) for den som kan slå det på, og **Opprett vaktregel**, som varsler vaktpolicyen du velger for en monitor som ikke varslet noen. Funnene for en monitor er bruddene som kortet **Når den går ned** nevner, og en vaktpolicy som ingenting kjører, eller et egendefinert domene som ikke åpner statussiden sin, sier det også øverst på policyens eller statussidens egen side. Hver eier som e-posten om opprettelsen ifølge kortet aldri når, er også et funn som er verdt å rette, med den samme siden for å rette det. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
 
 ### Prosjektet ditt
 
@@ -113,7 +119,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ### Utforsk OneUptime
 
-**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det. Produktene prosjektet ditt skjuler, er ikke med.
+**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det. Produktene prosjektet ditt skjuler, ligger under den siste fanen, **Flere produkter**, med en merknad om at de fortsatt virker.
 
 ## Finn frem
 
@@ -158,8 +164,10 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 
 - **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Slett prosjekt, Vaktplaner, Hendelsesalvor, dine egne Varslingsmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for å logge på* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
-- **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
+- **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. Opprett statusside, Opprett vaktpolicy, Opprett vaktplan, Opprett dashbord, Opprett arbeidsflyt og Inviter bruker åpner skjemaet på listen sin. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
+- **Personene i prosjektet ditt**, etter navn eller e-post, under Brukere: hver åpner siden til den personen. Du finner de personene som siden Brukere viser deg.
+- **En posts egne sider**: på en statusside åpner *sso* siden Enkel pålogging for den. Alle andre steder legger du til postens navn eller typen: *status page sso*, eller *acme subscribers* for abonnentene på en statusside som heter Acme. Bare poster du kan se, blir tilbudt, og en side som har fått nytt navn, finnes fortsatt under det gamle, for eksempel *advanced settings*.
 - **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
 
 Søket leser det du skriver slik du mener det:

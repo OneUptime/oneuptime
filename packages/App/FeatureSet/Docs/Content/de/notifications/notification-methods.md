@@ -188,7 +188,7 @@ Dieser Kanal ist in diesem Projekt ausgeschaltet. Die Karte sagt, wer ihn einsch
 :::
 
 :::details Der Code ist nie angekommen
-E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Neuen Code senden**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist.
+E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Neuen Code senden**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist. Wer diese Protokolle lesen darf, bekommt unter dem Code **Benachrichtigungsprotokolle öffnen**, das den Reiter der Nachricht öffnet; alle anderen werden gebeten, einen Projektinhaber oder Projektadministrator zu fragen.
 :::
 
 :::details Mein Slack-Konto lässt sich nicht hinzufügen
@@ -198,6 +198,10 @@ Verknüpfen Sie zuerst Ihr Konto unter **Benutzereinstellungen → Arbeitsbereic
 :::details Mein Telefon bekommt keine Push-Benachrichtigungen
 Prüfen Sie, ob das Telefon unter **Geräte für Push-Benachrichtigungen** aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**. Siehe [FAQ & Fehlerbehebung](/docs/mobile-desktop-apps/faq-troubleshooting#benachrichtigungen).
 :::
+
+### Die Seite meldet, dass dieser Server keine SMS senden kann
+
+Ihr Server hat gerade keinen funktionierenden Weg, SMS zu senden oder Anrufe zu tätigen: Es ist nichts eingerichtet, oder das Eingerichtete schlägt fehl. Bis es funktioniert, sagt die Seite das, und Sie können keine Nummer dafür hinzufügen. Fragen Sie den Administrator Ihres Servers, der stattdessen einen Link zu den Einstellungen sieht. Ein Projekt mit eigener Twilio-Konfiguration sendet darüber und ist nicht betroffen. Für E-Mail gilt dasselbe.
 
 ## Nächste Schritte
 

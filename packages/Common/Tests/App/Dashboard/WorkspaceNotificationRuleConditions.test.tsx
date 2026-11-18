@@ -1428,7 +1428,11 @@ describe("A saved SLO condition, on the rule's card", () => {
     );
   }
 
-  test("names the SLOs it picks, not their ids, and leaves out one since deleted", () => {
+  /*
+   * One since deleted is said to be gone, as a policy is, where it was
+   * left out (#7807): the rule still holds it, and its form shows it too.
+   */
+  test("names the SLOs it picks, not their ids, and says one since deleted is no longer in the project", () => {
     renderView({
       checkOn: NotificationRuleConditionCheckOn.Slos,
       conditionType: ConditionType.ContainsAny,
@@ -1440,8 +1444,13 @@ describe("A saved SLO condition, on the rule's card", () => {
     });
 
     expect(
-      screen.getByText("Checkout availability, Search latency"),
-    ).toBeInTheDocument();
+      screen.getByTestId("notification-rule-condition-named-values"),
+    ).toHaveTextContent(
+      "Checkout availability, Search latency, No longer in this project",
+    );
+    expect(
+      screen.getByTestId("notification-rule-condition-value-not-found"),
+    ).toHaveClass("italic");
     expect(screen.queryByText(new RegExp(CHECKOUT_SLO_ID))).toBeNull();
     expect(screen.queryByText(/d9000000/)).toBeNull();
   });

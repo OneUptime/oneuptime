@@ -387,6 +387,14 @@ function PolicyEscalationRules() {
   );
 }
 
+/*
+ * Where "Guided setup" leads (#7148): the on-call guided setup (the page
+ * itself is not here; Journeys/OnCallSetup draws it).
+ */
+function OnCallGuidedSetupOpened() {
+  return <div data-testid="on-call-guided-setup-opened" />;
+}
+
 const target = `/dashboard/${PROJECT_ID}/on-call-duty/policies`;
 
 if (!window.location.pathname.startsWith(target)) {
@@ -422,6 +430,10 @@ createRoot(document.getElementById("root")).render(
         <PageRoute
           path="/dashboard/:projectId/on-call-duty/policies/:modelId/escalation"
           element={<PolicyEscalationRules />}
+        />
+        <PageRoute
+          path="/dashboard/:projectId/on-call-duty/setup"
+          element={<OnCallGuidedSetupOpened />}
         />
       </PageRoute>
     </Routes>

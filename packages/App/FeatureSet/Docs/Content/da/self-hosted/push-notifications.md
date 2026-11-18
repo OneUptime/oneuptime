@@ -120,6 +120,10 @@ Enhedernes forbindelse er et særskilt krav. iOS-enheder har brug for adgang til
 
 For mobile pushes læser OneUptime også Expos leveringskvittering omkring 15 minutter efter hvert push: Et push, der aldrig nåede enheden, vises så som ikke leveret i push-loggen og, for en vagtalarm, på vagttidslinjen.
 
+## Afsendelse af et test-push
+
+En masteradministrator kan tjekke push fra serverens side: **Send test-push** under **Admin Dashboard > Indstillinger > Push-notifikationer** sender et test-push til de telefoner og browsere, vedkommende har registreret, og til ingen andre. Når intet kan sendes, siger den hvorfor: Push er slået fra, intet er registreret, eller serveren har ingen VAPID-nøgler til en browser.
+
 ## Deaktivering af push for hele serveren
 
 Hvis intet må forlade dit netværk via Expo, push-relayet eller en browsers push-tjeneste, kan en masteradministrator slå push fra under **Admin Dashboard > Indstillinger > Push-notifikationer**: Slå **Send push notifications** fra, og bekræft.
@@ -251,6 +255,10 @@ For at få enheden tilbage åbner du mobilappen på den, mens du er logget ind. 
 Gennem push-relayet (intet `EXPO_ACCESS_TOKEN`) virker det på samme måde: Relayet melder `DeviceNotRegistered`, når det sender et push, og læser de leveringskvitteringer, som din instans spørger om.
 
 Hvis intet af dette hjælper, så kontakt os på [hello@oneuptime.com](mailto:hello@oneuptime.com) med fejlene fra dine OneUptime-logs.
+
+### Admin Dashboard siger, at push fejler
+
+Admin Dashboard siger, at push fejler, når serverens egne push-notifikationer er holdt op med at blive sendt: push-relayet, Expo Push eller Web Push afviste dem eller kunne ikke nås. Det står, siden hvornår, og hvad der blev svaret. Et push, som én enhed afviste, f.eks. til en app, der er afinstalleret, tæller ikke. Så snart et push bliver sendt igen, står push som virkende. Send et test-push for at tjekke det.
 
 ## Næste trin
 

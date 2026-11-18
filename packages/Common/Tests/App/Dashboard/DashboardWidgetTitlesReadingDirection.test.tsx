@@ -953,7 +953,7 @@ describe("a Network Map widget's title", () => {
     );
 
     expect(lineOf(ENGLISH_TITLE)).toHaveClass("text-gray-400");
-    expect(summary).toHaveClass("text-gray-400");
+    expect(summary).toHaveClass("text-gray-500");
     expect(summary).not.toHaveClass("text-gray-300");
   });
 

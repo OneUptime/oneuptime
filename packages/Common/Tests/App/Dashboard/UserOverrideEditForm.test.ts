@@ -1,6 +1,6 @@
 import {
   USER_OVERRIDE_AWAY_LOCKED_TEXT,
-  USER_OVERRIDE_END_NOW_TEXT,
+  USER_OVERRIDE_ENDS_TEXT,
   USER_OVERRIDE_SAME_PERSON_MESSAGE,
   USER_OVERRIDE_START_LOCKED_TEXT,
   USER_OVERRIDE_START_MOVABLE_TEXT,
@@ -184,15 +184,20 @@ describe("the Edit form's rows", () => {
     }
   });
 
-  test("an override under way: its start is shown, not changed, and Ends says how to end it now", () => {
+  /*
+   * Ends no longer says to pick the current time to end it now: the
+   * dialog draws End Now under it (issue #7899, UserOverrideEndNow).
+   */
+  test("an override under way: its start is shown, not changed, and Ends says what its end does", () => {
     const fields: Array<OverrideField> = editFields(RUNNING);
 
     expect(byTitle(fields, "Starts").disabled).toBe(true);
     expect(byTitle(fields, "Starts").description).toBe(
       USER_OVERRIDE_START_LOCKED_TEXT,
     );
-    expect(byTitle(fields, "Ends").description).toBe(
-      USER_OVERRIDE_END_NOW_TEXT,
+    expect(byTitle(fields, "Ends").description).toBe(USER_OVERRIDE_ENDS_TEXT);
+    expect(String(byTitle(fields, "Ends").description)).not.toContain(
+      "pick the current time",
     );
   });
 

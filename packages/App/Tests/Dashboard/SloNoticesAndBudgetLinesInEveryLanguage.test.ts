@@ -110,6 +110,11 @@ const EVERY_NOTICE: Array<SloNotice> = [
     sloStatus: SloStatus.Misconfigured,
   }),
   getSloNotice({ ...BASE, sloStatus: SloStatus.Misconfigured }),
+  getSloNotice({
+    ...BASE,
+    sloStatus: SloStatus.Misconfigured,
+    isWaitingForFirstCheck: true,
+  }),
   getSloNotice({ ...BASE, sloStatus: SloStatus.Paused }),
   getSloNotice({ ...BASE, lastEvaluatedAt: null }),
 ].map((notice: SloNotice | null): SloNotice => {

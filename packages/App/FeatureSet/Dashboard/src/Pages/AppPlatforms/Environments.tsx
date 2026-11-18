@@ -25,7 +25,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
@@ -155,7 +155,7 @@ const AppPlatformEnvironments: FunctionComponent<
   }
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   /*
@@ -329,7 +329,7 @@ const AppPlatformEnvironments: FunctionComponent<
               const platform: string = (item.cloudPlatform as string) || "";
               if (!platform) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("unknown")}
                   </span>
                 );

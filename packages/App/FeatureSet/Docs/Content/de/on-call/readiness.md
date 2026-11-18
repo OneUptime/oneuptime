@@ -6,6 +6,7 @@ Die Einsatzbereitschaft beantwortet eine Frage, bevor ein Vorfall es tut: Würde
 - [Wie ein Status ermittelt wird](#wie-ein-status-ermittelt-wird): Bereit, Einrichtung erforderlich oder Nicht erreichbar, und warum.
 - [Die Seite Einsatzbereitschaft](#die-seite-einsatzbereitschaft): Jeder Bearbeiter im Projekt, in einer Liste.
 - [Personen ans Einrichten erinnern](#personen-ans-einrichten-erinnern): Eine E-Mail, die nennt, was fehlt.
+- [Den Standardablauf anwenden](#den-standardablauf-anwenden): Der Standardablauf des Projekts, für die Personen, die Sie auswählen.
 - [Bereitschaftszeit des Benutzers](#bereitschaftszeit-des-benutzers): Wie lange jede Person Bereitschaft hatte.
 :::
 
@@ -32,6 +33,8 @@ Ein Bearbeiter ist jede Person, die eine Bereitschaftsrichtlinie alarmieren kann
 
 Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfallepisoden, Warnungen oder Warnungsepisoden. Eine Regel, die einen Schweregrad bewusst abschaltet, ist keine Lücke. Eine Warnung, der auf eine Lücke trifft, erreicht die Person trotzdem über ihre verifizierten Methoden, es sei denn, das Projekt hat diesen Rückfall ausgeschaltet: siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 
+Verlangt das Projekt unter **Telefon für Personen im Bereitschaftsdienst** von allen im Bereitschaftsdienst eine Telefonmethode, wird ein Bearbeiter ohne verifizierte Nummer für SMS, Telefonanrufe oder WhatsApp außerdem mit **Keine Telefonmethode** markiert, unabhängig von seinem Status, und der Einrichtungsstatus nennt ihn. Niemand wird ausgesperrt: Ein Alarm erreicht ihn weiterhin über die Methoden, die er hat.
+
 ## Die Seite Einsatzbereitschaft
 
 Öffnen Sie **Bereitschaft → Einsatzbereitschaft**. Die Karte **Bereitschaftsfähigkeit** listet jede Person, die eine Bereitschaftsrichtlinie im Projekt erreichen kann, die Personen mit Handlungsbedarf zuerst. Jede Person im Projekt kann sie öffnen.
@@ -53,12 +56,24 @@ Eine Lücke ist ein Schweregrad ohne Regel, auf dem Tab für Vorfälle, Vorfalle
 Nur die Person selbst kann ihre Benachrichtigungsmethoden und Regeln hinzufügen und verifizieren, also besteht die Lösung darin, sie zu bitten.
 
 :::steps
-1. Markieren Sie auf der Seite Einsatzbereitschaft die Bearbeiter, die Sie erinnern möchten. Bereite Bearbeiter lassen sich nicht markieren: Es gibt nichts, woran man sie erinnern müsste.
+1. Markieren Sie auf der Seite Einsatzbereitschaft die Bearbeiter, die Sie erinnern möchten. Ein bereiter Bearbeiter wird nur erinnert, wenn er mit **Keine Telefonmethode** markiert ist: Es gibt sonst nichts, woran man ihn erinnern müsste.
 2. Klicken Sie auf **Einrichtungserinnerung senden**. Die Bestätigung nennt jede Person, der gleich eine E-Mail geschickt wird.
 3. Bestätigen Sie. Jede Person bekommt eine E-Mail, die nennt, was in ihrer eigenen Einrichtung fehlt, mit einem Link zu der Seite, auf der sie es behebt.
 :::
 
 Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlgeschlagen sind, und warum, für jede, die nicht gesendet wurde. Niemand wird öfter als einmal in 24 Stunden erinnert, und ein Durchgang erinnert höchstens 250 Personen. Erinnerungen senden dürfen **Projektinhaber**, **Projektadministrator** oder **Bereitschafts-Administrator**, oder wer in einer eigenen Rolle **Edit On-Call Policy** hat.
+
+## Den Standardablauf anwenden
+
+Hat das Projekt einen Standardablauf (siehe [Der Standardablauf](/docs/notifications/on-call-rules#der-standardablauf)), können Sie ihn Personen geben, die bereits eigene Regeln haben.
+
+:::steps
+1. Markieren Sie auf der Seite Einsatzbereitschaft die Bearbeiter.
+2. Klicken Sie auf **Standardablauf anwenden**. Die Bestätigung zeigt den Ablauf und nennt alle, die er ändert.
+3. Bestätigen Sie. Die Regeln jeder Person für jeden Schweregrad werden durch den Ablauf ersetzt, über die Methoden, die sie verifiziert hat.
+:::
+
+Ein Weg, den jemand nicht verifiziert hat, wird ausgelassen, und an seiner Stelle behält die Person ihre eigenen Schritte; wer keinen der Wege des Ablaufs verifiziert hat, bleibt, wie er war. Ein Banner sagt dann für jede Person, was angewendet wurde oder warum nicht, nach Kanal: Niemandes Nummern oder Adressen werden gezeigt. Jede Person, deren Regeln sich geändert haben, erhält eine E-Mail, und jede Änderung steht im Audit-Log des Projekts. Anwenden dürfen **Projektinhaber** oder **Projektadministrator**, oder wer in einer eigenen Rolle **Edit User Notification Rules** hat.
 
 ## Einsatzbereitschaft auf anderen Seiten
 
@@ -66,6 +81,7 @@ Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlge
 - Auf den **Eskalationsregeln** einer Richtlinie sagt eine Stufe auf ihrer Karte, wenn nicht alle ihre Bearbeiter alarmiert werden können. Siehe [Die Eskalationsübersicht](/docs/on-call/escalation-rules#die-eskalationsübersicht).
 - Öffnen Sie unter **Benutzer** ein Mitglied, dann **Einsatzbereitschaft** im Abschnitt **Bereitschaft**: sein Status, seine Methoden und sein Abdeckungsraster.
 - Für Ihre eigene Einrichtung führt Sie **Benutzereinstellungen → Einrichtungs-Checkliste** hindurch. Siehe [Die Einrichtungs-Checkliste](/docs/notifications/index#die-einrichtungs-checkliste).
+- Wer in einer Richtlinie steht und die eigene Einrichtung nicht fertig hat, sieht in der Glocke oben auf jeder Seite **Richten Sie Ihre Benachrichtigungen fertig ein**, das die eigene Einrichtungs-Checkliste öffnet.
 
 ## Die wöchentliche E-Mail zur Einsatzbereitschaft
 

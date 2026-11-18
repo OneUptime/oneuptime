@@ -764,8 +764,8 @@ describe("a list's count beside its title", () => {
   test("the count is drawn in its title's gray", () => {
     drawBase(12, "Fleet hosts");
 
-    expect(screen.getByText("Fleet hosts")).toHaveClass("text-gray-400");
-    expect(countBesideTitle()).toHaveClass("text-gray-400");
+    expect(screen.getByText("Fleet hosts")).toHaveClass("text-gray-500");
+    expect(countBesideTitle()).toHaveClass("text-gray-500");
     expect(countBesideTitle()).not.toHaveClass("text-gray-300");
   });
 });

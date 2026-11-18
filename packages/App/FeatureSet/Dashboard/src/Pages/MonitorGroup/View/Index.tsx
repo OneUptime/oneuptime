@@ -11,7 +11,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
@@ -378,7 +378,7 @@ const MonitorGroupView: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

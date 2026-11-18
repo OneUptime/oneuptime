@@ -1,10 +1,14 @@
 import UserOverrideEdit, {
   USER_OVERRIDE_ENDED_REFUSAL,
   USER_OVERRIDE_END_IN_PAST_REFUSAL,
+  USER_OVERRIDE_END_NOW_ENDS_THIS_MINUTE_REFUSAL,
+  USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL,
+  USER_OVERRIDE_END_NOW_ROUTE,
   USER_OVERRIDE_STARTED_REFUSAL,
   USER_OVERRIDE_START_IN_PAST_REFUSAL,
   UserOverrideSavedTimes,
   UserOverrideTimesChange,
+  getUserOverrideEndNowRoute,
 } from "../../../Types/OnCallDutyPolicy/UserOverrideEdit";
 import { describe, expect, test } from "@jest/globals";
 
@@ -191,6 +195,94 @@ describe("what the refusals say", () => {
     );
     expect(USER_OVERRIDE_END_IN_PAST_REFUSAL).toBe(
       "An override can't be moved to end in the past. To end it now, pick the current time.",
+    );
+  });
+});
+
+/*
+ * END NOW (issue #7899): an override under way ends at the start of the
+ * current minute, as a picker holds now - or at now itself, for one that
+ * started in this very minute, which would otherwise end as it starts.
+ * Nothing to end for one that has not started, has ended, or ends within
+ * this minute anyway.
+ */
+describe("End Now", () => {
+  test("ends an override under way at the start of the current minute", () => {
+    expect(UserOverrideEdit.getEndNow(RUNNING, NOW)?.toISOString()).toBe(
+      "2026-11-13T12:00:00.000Z",
+    );
+    expect(UserOverrideEdit.getEndNowRefusal(RUNNING, NOW)).toBeNull();
+  });
+
+  test("the end it gives is one the edit rule takes, and comes after the start", () => {
+    const endsAt: Date = UserOverrideEdit.getEndNow(RUNNING, NOW)!;
+
+    expect(refusalOf(RUNNING, { endsAt: endsAt })).toBeNull();
+    expect(endsAt.getTime()).toBeGreaterThan(RUNNING.startsAt.getTime());
+  });
+
+  test("one that started in this very minute ends at now itself, after its start", () => {
+    const startedThisMinute: UserOverrideSavedTimes = saved(
+      "12:00:10",
+      "20:00:00",
+    );
+    const endsAt: Date = UserOverrideEdit.getEndNow(startedThisMinute, NOW)!;
+
+    expect(endsAt.toISOString()).toBe(NOW.toISOString());
+    expect(endsAt.getTime()).toBeGreaterThan(
+      startedThisMinute.startsAt.getTime(),
+    );
+    expect(refusalOf(startedThisMinute, { endsAt: endsAt })).toBeNull();
+  });
+
+  test("one that has not started has nothing to end: delete it instead", () => {
+    expect(UserOverrideEdit.getEndNow(UPCOMING, NOW)).toBeNull();
+    expect(UserOverrideEdit.getEndNowRefusal(UPCOMING, NOW)).toBe(
+      USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL,
+    );
+  });
+
+  test("one that has ended is history", () => {
+    expect(UserOverrideEdit.getEndNow(ENDED, NOW)).toBeNull();
+    expect(UserOverrideEdit.getEndNowRefusal(ENDED, NOW)).toBe(
+      USER_OVERRIDE_ENDED_REFUSAL,
+    );
+  });
+
+  test("one that ends within this minute has nothing left to end", () => {
+    const endsThisMinute: UserOverrideSavedTimes = saved(
+      "08:00:00",
+      "12:00:50",
+    );
+
+    expect(UserOverrideEdit.getEndNow(endsThisMinute, NOW)).toBeNull();
+    expect(UserOverrideEdit.getEndNowRefusal(endsThisMinute, NOW)).toBe(
+      USER_OVERRIDE_END_NOW_ENDS_THIS_MINUTE_REFUSAL,
+    );
+  });
+
+  test("under way means started and not ended, this very moment included", () => {
+    expect(UserOverrideEdit.isUnderWay(RUNNING, NOW)).toBe(true);
+    expect(UserOverrideEdit.isUnderWay(UPCOMING, NOW)).toBe(false);
+    expect(UserOverrideEdit.isUnderWay(ENDED, NOW)).toBe(false);
+    expect(
+      UserOverrideEdit.isUnderWay(saved("12:00:30", "13:00:00"), NOW),
+    ).toBe(true);
+    expect(
+      UserOverrideEdit.isUnderWay(saved("08:00:00", "12:00:30"), NOW),
+    ).toBe(false);
+  });
+
+  test("its route, and what its refusals say", () => {
+    expect(USER_OVERRIDE_END_NOW_ROUTE).toBe("/:id/end-now");
+    expect(
+      getUserOverrideEndNowRoute("7899aaaa-0000-4000-8000-000000000001"),
+    ).toBe("/7899aaaa-0000-4000-8000-000000000001/end-now");
+    expect(USER_OVERRIDE_END_NOW_NOT_STARTED_REFUSAL).toBe(
+      "This override hasn't started yet, so there is nothing to end. To call it off, delete it.",
+    );
+    expect(USER_OVERRIDE_END_NOW_ENDS_THIS_MINUTE_REFUSAL).toBe(
+      "This override ends within the minute, so there is nothing left to end.",
     );
   });
 });

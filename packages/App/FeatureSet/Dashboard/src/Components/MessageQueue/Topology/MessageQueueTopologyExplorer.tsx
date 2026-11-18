@@ -16,6 +16,15 @@ import useResizableColumns, {
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -212,6 +221,22 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       windowSeconds: windowSeconds,
     });
   }, [props.data, windowSeconds]);
+
+  /*
+   * The broker picker's choices: each broker with its queue count, in the
+   * reader's language. Cleared, the picker shows every broker.
+   */
+  const brokerOptions: Array<DropdownOption> = baseModel.brokerGroups.map(
+    (group: MessageQueueTopologyBrokerGroup): DropdownOption => {
+      return getTranslatedDropdownOption(
+        group.key,
+        translator.translateTemplate("{{broker}} ({{count}})", {
+          broker: group.label,
+          count: String(group.queueCount),
+        }),
+      );
+    },
+  );
 
   // Folding by broker is for the whole map; a focus draws its own path.
   const isGrouped: boolean =
@@ -823,7 +848,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       >
         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {t("Without traced messages in this range")}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({unconnected.length})
           </span>
         </h4>
@@ -898,7 +923,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       >
         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {t("Your queues")}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({queues.length})
           </span>
         </h4>
@@ -1105,32 +1130,26 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                 />
               </div>
               {baseModel.brokerGroups.length > 1 ? (
-                <select
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-                  aria-label={t("Broker")}
+                <div
+                  className="w-full md:w-64"
                   data-testid="message-queue-topology-broker"
-                  value={brokerGroupKey || ""}
-                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                    setBrokerGroupKey(event.target.value || null);
-                  }}
                 >
-                  <option value="">{t("All brokers")}</option>
-                  {baseModel.brokerGroups.map(
-                    (group: MessageQueueTopologyBrokerGroup): ReactElement => {
-                      return (
-                        <option key={group.key} value={group.key}>
-                          {translator.translateTemplate(
-                            "{{broker}} ({{count}})",
-                            {
-                              broker: group.label,
-                              count: String(group.queueCount),
-                            },
-                          )}
-                        </option>
-                      );
-                    },
-                  )}
-                </select>
+                  <Dropdown
+                    className="relative w-full overflow-visible"
+                    options={brokerOptions}
+                    value={findDropdownOption(brokerOptions, brokerGroupKey)}
+                    placeholder={t("All brokers")}
+                    isPlaceholderTranslated={true}
+                    ariaLabel={t("Broker")}
+                    isAriaLabelTranslated={true}
+                    onChange={(
+                      next: DropdownValue | Array<DropdownValue> | null,
+                    ): void => {
+                      // Cleared, the map shows every broker again.
+                      setBrokerGroupKey(readPickedDropdownValue(next));
+                    }}
+                  />
+                </div>
               ) : (
                 <></>
               )}

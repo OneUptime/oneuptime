@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Log from "Common/Models/AnalyticsModels/Log";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -7,7 +8,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
   FunctionComponent,
@@ -92,7 +92,7 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
     return (
       <Card title="Logs" description="Finding the latest occurrence…">
         <div className="flex h-40 items-center justify-center">
-          <ComponentLoader />
+          <TableSkeleton rows={3} hasHeader={false} />
         </div>
       </Card>
     );

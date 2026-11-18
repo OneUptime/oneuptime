@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Kun Master Admin API",
       "masterAdminOnlyBody": "Dette API-et kan bare nås gjennom et Master API-token. Du kan opprette ett på admin-dashbordet. Legg tokenet til <code>ApiKey</code>-overskriften for å sende forespørselen."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Les lag",
+      "scheduleLayersReadIntro": "Dette endepunktet returnerer lagene i vaktplanen og personene i dem, slik de er lagret: hvert lag vaktplanen beholder, det med høyest prioritet først, hvert med personene sine i vaktrekkefølge, og versjonen de er på, som basedOnVersion. Det er en lagring som ikke endrer noe: endre den, og send den til Lagre lag.",
+      "scheduleLayersReadRequestTitle": "Forespørsel om å lese lag",
+      "scheduleIdDescription": "ID-en til vaktplanen",
+      "scheduleLayersSaveHeading": "Lagre lag",
+      "scheduleLayersSaveIntro": "Dette endepunktet lagrer på én gang hvem som tar vakter i lagene i vaktplanen, og lagenes prioritet, i én transaksjon: alt lagres, eller ingenting. Hvem som har vakt, regnes så ut én gang, og hver person det endrer noe for, får beskjed én gang. Det følger de samme tillatelsene og kontrollene som endepunktene for lag og personene i dem. Et lags egne innstillinger, som navn og rotasjon, er ikke en del av det.",
+      "scheduleLayersSaveRequestTitle": "Forespørsel om å lagre lag",
+      "basedOnVersionDescription": "Versjonen av lagene som endringene dine ble gjort på, slik Les lag returnerer den.",
+      "layersDescription": "Hvert lag vaktplanen beholder, det med høyest prioritet først, hvert som { layerId, users }. users er personene som tar vakter i det, i vaktrekkefølge: den som allerede er i laget, som { layerUserId, userId }, den som legges til, som { userId }. Den som utelates fra laget sitt, tas ut av det.",
+      "deletedLayerIdsDescription": "Lagene som skal slettes, med personene i dem. En vaktplan beholder minst ett lag.",
+      "refusalsHeading": "Avvisninger",
+      "scheduleLayersConflict": "409 Conflict: lagene ble endret etter at versjonen du sendte, ble lest, så ingenting lagres. Les lagene på nytt, og gjør endringen din på det som er der nå.",
+      "scheduleLayersBadRequest": "400 Bad Request: lagringen nevner ikke hvert lag i vaktplanen én gang, i layers eller deletedLayerIds, nevner et lag eller en persons rad som ikke hører til vaktplanen, eller sletter alle lagene.",
+      "userOverrideEndNowHeading": "Avslutt nå",
+      "userOverrideEndNowIntro": "Dette endepunktet avslutter en pågående overstyring etter serverens klokke: slutten blir nå, og fra da av er tilkallingene den fraværende personens igjen. Det krever samme tillatelse som en oppdatering og returnerer overstyringens nye endsAt.",
+      "userOverrideEndNowRequestTitle": "Forespørsel om å avslutte nå",
+      "userOverrideIdDescription": "ID-en til brukeroverstyringen",
+      "userOverrideEndNowRefused": "400 Bad Request: overstyringen har ikke startet ennå (slett den i stedet), er allerede avsluttet eller slutter uansett innen minuttet."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Datatype",

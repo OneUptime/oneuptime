@@ -662,6 +662,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
                 },
                 fieldType: FieldType.Text,
                 title: "Page Title",
+                // Without one, the page goes by its name (#7467).
+                placeholder: StatusPageBrandingCopy.pageTitleEmpty,
               },
               {
                 field: {

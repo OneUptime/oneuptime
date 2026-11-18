@@ -7,6 +7,7 @@ import {
   getExternalMcpServerStatus,
   readStoredExternalMcpServerTools,
 } from "./ExternalMcpServerCopy";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ExternalMcpServerStatus from "./ExternalMcpServerStatus";
 import ExternalMcpServerToolList from "./ExternalMcpServerToolList";
 import { getExternalMcpServerTestGate } from "./ExternalMcpServerTestApi";
@@ -20,7 +21,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -157,7 +157,7 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={4} columns={2} />;
     }
 
     if (error) {

@@ -281,16 +281,17 @@ describe("what an asset keeps", () => {
       ),
     ).toBe("n2-standard-8");
     expect(JSON.stringify(item)).not.toContain("s3cret");
+    // Its subnet first: the topology draws it in the first it runs in.
     expect(item!.relationships).toEqual([
-      {
-        kind: CloudRelationshipKind.RunsIn,
-        target: `//compute.googleapis.com/projects/${PROJECT}/global/networks/default`,
-        targetType: GCP_NETWORK_TYPE,
-      },
       {
         kind: CloudRelationshipKind.RunsIn,
         target: `//compute.googleapis.com/projects/${PROJECT}/regions/europe-west1/subnetworks/default`,
         targetType: "compute.googleapis.com/Subnetwork",
+      },
+      {
+        kind: CloudRelationshipKind.RunsIn,
+        target: `//compute.googleapis.com/projects/${PROJECT}/global/networks/default`,
+        targetType: GCP_NETWORK_TYPE,
       },
     ]);
     expect(item!.endpoints).toEqual(["10.132.0.2", "34.1.2.3"]);

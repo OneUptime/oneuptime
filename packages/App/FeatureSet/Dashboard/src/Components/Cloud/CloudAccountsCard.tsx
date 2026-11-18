@@ -182,7 +182,7 @@ const CloudAccountsCard: FunctionComponent<ComponentProps> = (
                           })}
                         </bdi>
                       </div>
-                      <div className="text-[11px] text-gray-500">
+                      <div className="text-xs text-gray-500">
                         {translator.translateText(SO_FAR_THIS_MONTH)}
                       </div>
                     </>

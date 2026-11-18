@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getCoverageWindowEnd } from "./CoverageWindow";
@@ -26,6 +27,9 @@ import {
   saveScheduleLayers,
 } from "./SaveScheduleLayers";
 import SkipLayerUserModal from "./SkipLayerUserModal";
+import UserOverrideFormModal, {
+  UserOverrideEditTarget,
+} from "../UserOverrides/UserOverrideFormModal";
 import {
   GlobalUserOverrideShortcut,
   GlobalUserOverrideShortcutKind,
@@ -73,7 +77,6 @@ import ScheduleShiftUtil, {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
@@ -252,6 +255,14 @@ const Layers: FunctionComponent<ComponentProps> = (
   } | null>(null);
 
   const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
+
+  /*
+   * The override whose Edit is open in the Skip until... dialog's place:
+   * "Edit that override" on a conflict said under its Ends (issue #7898),
+   * as the user overrides card on this page opens one.
+   */
+  const [overrideToEdit, setOverrideToEdit] =
+    React.useState<UserOverrideEditTarget | null>(null);
 
   /*
    * What "Skip until..." adds for the reader (GlobalUserOverrideLock). The
@@ -1410,7 +1421,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <CardListSkeleton count={2} lines={3} />;
   }
 
   if (error) {
@@ -1671,6 +1682,30 @@ const Layers: FunctionComponent<ComponentProps> = (
             setOverrideRefreshKey((key: number) => {
               return key + 1;
             });
+          }}
+          onEditOverride={(target: UserOverrideEditTarget) => {
+            setPersonToSkip(null);
+            setOverrideToEdit(target);
+          }}
+        />
+      )}
+
+      {overrideToEdit && (
+        <UserOverrideFormModal
+          key={overrideToEdit.id}
+          overrideToEdit={overrideToEdit}
+          timezone={scheduleTimezone}
+          onClose={() => {
+            setOverrideToEdit(null);
+          }}
+          onSaved={() => {
+            setOverrideToEdit(null);
+            setOverrideRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+          onEditOverride={(target: UserOverrideEditTarget) => {
+            setOverrideToEdit(target);
           }}
         />
       )}

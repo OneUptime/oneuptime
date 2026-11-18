@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -27,6 +28,22 @@ import Table from "../../../UI/Components/Table/Table";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 /*
  * The pagination control in another language, from the Dashboard's shipped
@@ -93,9 +110,7 @@ describe("the pagination control in German", () => {
   test("labels the page size", () => {
     renderPagination();
 
-    expect(screen.getByLabelText("Zeilen pro Seite")).toBe(
-      screen.getByTestId("pagination-items-on-page-select"),
-    );
+    expect(screen.getByLabelText("Zeilen pro Seite")).toBe(rowsPerPage());
     expect(screen.queryByText("Rows per page")).toBeNull();
   });
 

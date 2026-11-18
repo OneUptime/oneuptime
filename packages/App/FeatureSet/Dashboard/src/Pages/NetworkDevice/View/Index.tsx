@@ -340,7 +340,7 @@ const NetworkDeviceView: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("No site assigned")}
                     </span>
                   );

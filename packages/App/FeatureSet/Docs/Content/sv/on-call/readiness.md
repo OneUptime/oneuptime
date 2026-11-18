@@ -6,6 +6,7 @@ Beredskap besvarar en fråga innan en incident gör det: om något utlöstes jus
 - [Så avgörs en status](#så-avgörs-en-status): Klar, Needs setup eller Unreachable, och varför.
 - [Sidan Beredskap](#sidan-beredskap): Varje mottagare i projektet, i en lista.
 - [Påminn personer om att slutföra inställningarna](#påminn-personer-om-att-slutföra-inställningarna): Ett e-postmeddelande som säger vad som saknas.
+- [Använd standardordningen](#använd-standardordningen): Projektets standardordning, för de personer du väljer.
 - [Användarens jourtid](#användarens-jourtid): Hur länge varje person hade jour.
 :::
 
@@ -32,6 +33,8 @@ En mottagare är vem som helst som en jourpolicy kan larma: en person som nämns
 
 En lucka är en allvarlighetsgrad utan regel, på fliken för incidenter, incidentepisoder, larm eller larmepisoder. En regel som avsiktligt stänger av en allvarlighetsgrad är ingen lucka. En utlarmning som träffar en lucka når ändå personen på hens verifierade metoder, om inte projektet har stängt av den reservlösningen: se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 
+När projektet ber alla i jour om en telefonmetod, under **Telefon för personer i jour**, markeras en mottagare utan ett verifierat nummer för SMS, telefonsamtal eller WhatsApp också med **Ingen telefonmetod**, oavsett status, och Inställningarnas hälsa nämner hen. Ingen blir utelåst: ett larm når hen fortfarande på de metoder hen har.
+
 ## Sidan Beredskap
 
 Öppna **Jour → Beredskap**. Kortet **Jourberedskap** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
@@ -53,12 +56,24 @@ Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras
 Bara personen själv kan lägga till och verifiera sina aviseringsmetoder och regler, så lösningen är att be hen göra det.
 
 :::steps
-1. Markera mottagarna som ska påminnas på sidan Beredskap. Mottagare som är klara kan inte markeras: det finns inget att påminna dem om.
+1. Markera mottagarna som ska påminnas på sidan Beredskap. En mottagare som är klar påminns bara när hen är markerad med **Ingen telefonmetod**: det finns inget annat att påminna om.
 2. Klicka på **Skicka påminnelse om konfiguration**. Bekräftelsen nämner alla som är på väg att få ett e-postmeddelande.
 3. Bekräfta. Varje person får ett e-postmeddelande som säger vad som saknas i hens egna inställningar, med en länk till sidan där det åtgärdas.
 :::
 
 En banner visar sedan hur många påminnelser som skickades, hoppades över eller misslyckades, och varför för varje som inte skickades. Ingen påminns mer än en gång per 24 timmar, och en omgång påminner högst 250 personer. För att skicka påminnelser krävs **Projektägare**, **Projektadministratör** eller **Jouradministratör**, eller **Edit On-Call Policy** i en anpassad roll.
+
+## Använd standardordningen
+
+När projektet har en standardordning (se [Standardordningen](/docs/notifications/on-call-rules#standardordningen)) kan du ge den till personer som redan har egna regler.
+
+:::steps
+1. Markera mottagarna på sidan Beredskap.
+2. Klicka på **Använd standardordning**. Bekräftelsen visar ordningen och nämner alla som den ändrar.
+3. Bekräfta. Varje persons regler för varje allvarlighetsgrad ersätts av ordningen, på de metoder som personen har verifierat.
+:::
+
+Ett sätt som någon inte har verifierat utelämnas, och personen behåller sina egna steg i stället; den som inte har verifierat något av ordningens sätt förblir som förut. En banner visar sedan för varje person vad som tillämpades eller varför inte, per kanal: ingens nummer eller adresser visas. Varje person vars regler ändrades får ett e-postmeddelande, och varje ändring finns i projektets granskningslogg. För att använda den krävs **Projektägare** eller **Projektadministratör**, eller **Edit User Notification Rules** i en anpassad roll.
 
 ## Beredskap på andra sidor
 
@@ -66,6 +81,7 @@ En banner visar sedan hur många påminnelser som skickades, hoppades över elle
 - På en policys **Eskaleringsregler** säger en nivå det på sitt kort om inte alla dess mottagare kan larmas. Se [Eskaleringsöversikten](/docs/on-call/escalation-rules#eskaleringsöversikten).
 - Under **Användare** öppnar du en medlem, och sedan **Beredskap** i avsnittet **Jour**: personens status, metoder och rutnät över täckning.
 - För dina egna inställningar guidar **Användarinställningar → Checklista för konfiguration** dig igenom dem. Se [Checklistan för konfiguration](/docs/notifications/index#checklistan-för-konfiguration).
+- Alla i en policy vars egen konfiguration inte är klar ser **Slutför inställningen av dina aviseringar** i klockan högst upp på varje sida, som öppnar deras checklista för konfiguration.
 
 ## Det veckovisa e-postmeddelandet om beredskap
 

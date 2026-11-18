@@ -166,7 +166,7 @@ const MessageTime: FunctionComponent<{ date: Date | null }> = (props: {
     <time
       dateTime={props.date.toISOString()}
       title={OneUptimeDate.getDateAsLocalFormattedString(props.date)}
-      className="text-xs text-gray-400"
+      className="text-xs text-gray-500"
     >
       {OneUptimeDate.fromNow(props.date)}
     </time>
@@ -357,7 +357,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             {describeAuthor(message.author, viewerUserId, translator)}
           </span>
           {message.isOptimistic ? (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               {translator.translateText("Sending…")}
             </span>
           ) : (
@@ -730,7 +730,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             {AI_DISPLAY_NAME}
           </span>
           {!isViewer(message.author, viewerUserId) && message.author.name ? (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               {translator.translateTemplate("to {{name}}", {
                 name: message.author.name,
               })}

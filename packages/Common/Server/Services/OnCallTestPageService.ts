@@ -6,6 +6,9 @@ import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
+import OnCallTestPageAcknowledge, {
+  OnCallTestPageAnswer,
+} from "../Utils/OnCall/OnCallTestPageAcknowledge";
 import AlertSeverityService from "./AlertSeverityService";
 import BaseService from "./BaseService";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -22,6 +25,8 @@ import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecu
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
   NextInRotationInSchedule,
+  ScheduleLayerProps,
+  ScheduleLayerReads,
 } from "./OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -61,6 +66,10 @@ import ObjectID from "../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  getOnCallPolicyFirstLevel,
+  sortOnCallPolicyLevels,
+} from "../../Types/OnCallDutyPolicy/OnCallRunLevel";
+import {
   OnCallPageChannel,
   getOnCallPageChannelsOf,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -84,6 +93,7 @@ import {
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
+  OnCallTestPageResultSummary,
   OnCallTestPageStatus,
   OnCallTestPageStep,
   OnCallTestPageStepStatus,
@@ -176,8 +186,18 @@ export const ON_CALL_TEST_PAGE_RESULT_READ_PERMISSIONS: ReadonlyArray<Permission
 export const ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE: string =
   "You are not authorized to access this project's data.";
 
+/*
+ * A message the On-Call app asks about that is not one of the person's own
+ * of a test page (#7014), whatever else it is.
+ */
+export const ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE: string =
+  "This test page was not found. It may have been sent to you in another project, or to somebody else.";
+
 const PERSON_LIMIT_NAMESPACE: string = "oncall-test-page-person";
-const POLICY_LIMIT_NAMESPACE: string = "oncall-test-page-policy";
+// A policy's test's window: one a policy every five minutes, a drill's too.
+export const ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE: string =
+  "oncall-test-page-policy";
+const POLICY_LIMIT_NAMESPACE: string = ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE;
 const PROJECT_LIMIT_NAMESPACE: string = "oncall-test-page-project";
 
 /*
@@ -201,6 +221,17 @@ const readPrice: (setting: string) => number = (setting: string): number => {
   return Number.isFinite(value) && value > 0 ? value : 0;
 };
 
+/*
+ * One limit a test claims (claimLimits): a window of its own - a person's
+ * or a policy's - and the words that refuse a test inside it.
+ */
+export interface OnCallTestPageLimitKey {
+  namespace: string;
+  id: ObjectID;
+  intervalInSeconds: number;
+  tooSoonMessage: string;
+}
+
 // One target a test of a policy's level pages: who, and why them.
 interface PolicyLevelTarget {
   userId: ObjectID;
@@ -219,16 +250,6 @@ export interface PolicyLevel {
 
 // Why a target reaches nobody, before its English sentence is added.
 type NotPagedValues = Omit<OnCallTestPageNotPaged, "message">;
-
-// The escalation rule of a level, by its order: 1 for the first.
-function getRuleOfOrder(
-  rules: Array<OnCallDutyPolicyEscalationRule>,
-  order: number,
-): OnCallDutyPolicyEscalationRule | undefined {
-  return rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
-    return rule.order === order;
-  });
-}
 
 // Why them, when there is a name to say it with.
 function reachedThroughOf(
@@ -521,6 +542,83 @@ export class OnCallTestPageService extends BaseService {
   }
 
   /*
+   * ONE OF THE SIGNED-IN PERSON'S OWN MESSAGES OF A TEST PAGE, for the
+   * On-Call app (#7014): a row of their on-call timeline, in the project the
+   * request names. A message of somebody else's, of another project, of a
+   * real page or of nothing at all is answered alike - not found - so nobody
+   * learns of a message that is not theirs.
+   */
+  public async readOwnTestPageMessage(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<UserOnCallLogTimeline> {
+    const message: UserOnCallLogTimeline | null =
+      await UserOnCallLogTimelineService.findOneById({
+        id: data.userOnCallLogTimelineId,
+        select: {
+          _id: true,
+          projectId: true,
+          userId: true,
+          userNotificationEventType: true,
+          isAcknowledged: true,
+          userNotificationLogId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !message ||
+      !isOnCallTestPage(message) ||
+      message.projectId?.toString() !== data.projectId.toString() ||
+      message.userId?.toString() !== data.userId.toString()
+    ) {
+      throw new BadDataException(ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE);
+    }
+
+    return message;
+  }
+
+  /*
+   * Whether the person acknowledged the test page already - from this
+   * message or another of theirs: what the app's test page screen says
+   * when it opens.
+   */
+  public async isOwnTestPageAnswered(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<boolean> {
+    return await OnCallTestPageAcknowledge.isAnswered(
+      await this.readOwnTestPageMessage(data),
+    );
+  }
+
+  /*
+   * ACKNOWLEDGES A TEST PAGE FROM THE ON-CALL APP (#7014): "Acknowledge test
+   * page" under its push, or the button on its screen. The same rule, and
+   * the same write on the same row, as the link of any other message
+   * (OnCallTestPageAcknowledge): so its result says the person acknowledged
+   * it by push notification, and how fast.
+   */
+  @CaptureSpan()
+  public async acknowledgeOwnTestPage(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<OnCallTestPageAnswer> {
+    const message: UserOnCallLogTimeline =
+      await this.readOwnTestPageMessage(data);
+
+    return await OnCallTestPageAcknowledge.acknowledge({
+      userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+      message: message,
+    });
+  }
+
+  /*
    * HOW OFTEN TESTS ARE SENT: the person's or policy's own window first -
    * claimed with SET NX, so two clicks on two servers send once - then the
    * project's hour. A test the project's hour refuses hands its window
@@ -529,39 +627,72 @@ export class OnCallTestPageService extends BaseService {
    */
   public async claimLimits(data: {
     projectId: ObjectID;
-    key: {
-      namespace: string;
-      id: ObjectID;
-      intervalInSeconds: number;
-      tooSoonMessage: string;
-    };
+    key: OnCallTestPageLimitKey;
     now?: Date | undefined;
   }): Promise<void> {
-    const token: string = crypto.randomUUID();
-    const windowKey: string = `${data.projectId.toString()}:${data.key.id.toString()}`;
+    await this.claimLimitsOfEach({
+      projectId: data.projectId,
+      keys: [data.key],
+      now: data.now,
+    });
+  }
 
-    let claimed: boolean;
+  /*
+   * THE SAME LIMITS FOR SEVERAL TESTS SENT AT ONCE - an on-call fire drill's
+   * policies (#7012) - claimed all or nothing: each key's own window, then
+   * one of the project's hour for each key, in one add. A test any of them
+   * refuses hands back every window this call claimed, and counts nothing:
+   * a drill never pages some of its policies and is refused the rest.
+   */
+  public async claimLimitsOfEach(data: {
+    projectId: ObjectID;
+    keys: ReadonlyArray<OnCallTestPageLimitKey>;
+    now?: Date | undefined;
+  }): Promise<void> {
+    const claimed: Array<{ namespace: string; key: string; token: string }> =
+      [];
 
-    try {
-      claimed = await GlobalCache.setStringIfNotExists(
-        data.key.namespace,
-        windowKey,
-        token,
-        {
-          expiresInSeconds: data.key.intervalInSeconds,
-        },
-      );
-    } catch (err) {
-      logger.error(
-        `Could not read how often test pages are sent in project ${data.projectId.toString()}: ${err}`,
-      );
-      throw new TooManyRequestsException(
-        ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
-      );
+    const handBack: () => Promise<void> = async (): Promise<void> => {
+      for (const window of claimed) {
+        await this.releaseWindow(window.namespace, window.key, window.token);
+      }
+    };
+
+    for (const key of data.keys) {
+      const token: string = crypto.randomUUID();
+      const windowKey: string = `${data.projectId.toString()}:${key.id.toString()}`;
+
+      let isClaimed: boolean;
+
+      try {
+        isClaimed = await GlobalCache.setStringIfNotExists(
+          key.namespace,
+          windowKey,
+          token,
+          {
+            expiresInSeconds: key.intervalInSeconds,
+          },
+        );
+      } catch (err) {
+        logger.error(
+          `Could not read how often test pages are sent in project ${data.projectId.toString()}: ${err}`,
+        );
+        await handBack();
+        throw new TooManyRequestsException(
+          ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
+        );
+      }
+
+      if (!isClaimed) {
+        await handBack();
+        throw new TooManyRequestsException(key.tooSoonMessage);
+      }
+
+      claimed.push({ namespace: key.namespace, key: windowKey, token: token });
     }
 
-    if (!claimed) {
-      throw new TooManyRequestsException(data.key.tooSoonMessage);
+    if (claimed.length === 0) {
+      return;
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -576,20 +707,21 @@ export class OnCallTestPageService extends BaseService {
         {
           limit: ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
           expiresInSeconds: 60 * 60,
+          ...(claimed.length > 1 ? { by: claimed.length } : {}),
         },
       );
     } catch (err) {
       logger.error(
         `Could not count the test pages of project ${data.projectId.toString()}: ${err}`,
       );
-      await this.releaseWindow(data.key.namespace, windowKey, token);
+      await handBack();
       throw new TooManyRequestsException(
         ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
       );
     }
 
     if (count === null) {
-      await this.releaseWindow(data.key.namespace, windowKey, token);
+      await handBack();
       throw new TooManyRequestsException(
         ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE,
       );
@@ -614,8 +746,9 @@ export class OnCallTestPageService extends BaseService {
    * with no rule for it, the ones the project's fallback picks (#7262) -
    * and where to, for the person themselves; for a policy, the people its
    * first level pages right now, each with theirs - and the levels after it
-   * that a test walking every level pages before it ends (#7016). With what
-   * it costs on OneUptime Cloud: the first level's, and a walk's at most.
+   * that a test walking every level pages before it ends (#7016), which a
+   * fire drill that walks them reads too (#9385). With what it costs on
+   * OneUptime Cloud: the first level's, and a walk's at most.
    */
   @CaptureSpan()
   public async getPreview(data: {
@@ -696,6 +829,7 @@ export class OnCallTestPageService extends BaseService {
       const [cost]: Array<OnCallTestPageCost> = await this.getCosts({
         projectId: data.projectId,
         peopleOfEach: [people],
+        project: project,
       });
 
       return {
@@ -733,24 +867,28 @@ export class OnCallTestPageService extends BaseService {
      */
     const walkLevels: Array<OnCallTestPagePreviewLevel> = [];
     let walkUnreachedLevelCount: number = 0;
+    /*
+     * The levels in the order a run walks them: from the first, at the
+     * lowest place, which need not be 1 (#9369), each next one the next
+     * place, gaps and all - as OnCallEscalationAdvance moves a run on.
+     */
+    const levels: Array<OnCallDutyPolicyEscalationRule> =
+      sortOnCallPolicyLevels(rules);
     let previous: {
       rule: OnCallDutyPolicyEscalationRule | undefined;
       startsAfterMinutes: number;
       pagesAnybody: boolean;
     } = {
-      rule: getRuleOfOrder(rules, 1),
+      rule: levels[0],
       startsAfterMinutes: 0,
       pagesAnybody: people.length > 0,
     };
 
     if (previous.rule) {
-      for (let order: number = 2; ; order++) {
-        const rule: OnCallDutyPolicyEscalationRule | undefined = getRuleOfOrder(
-          rules,
-          order,
-        );
+      for (const rule of levels.slice(1)) {
+        const order: number = rule.order!;
 
-        if (!rule || !rule.id) {
+        if (!rule.id) {
           break;
         }
 
@@ -789,16 +927,16 @@ export class OnCallTestPageService extends BaseService {
         };
       }
 
+      // The levels after the first that the test ends before.
       walkUnreachedLevelCount = Math.max(
         0,
-        rules.filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
-          return typeof rule.order === "number" && rule.order > 1;
-        }).length - walkLevels.length,
+        levels.length - 1 - walkLevels.length,
       );
     }
 
     const [cost, walkCost]: Array<OnCallTestPageCost> = await this.getCosts({
       projectId: data.projectId,
+      project: project,
       peopleOfEach: [
         people,
         [
@@ -842,12 +980,34 @@ export class OnCallTestPageService extends BaseService {
 
   /*
    * What each of several tests costs - a policy's first level, and its walk
-   * - with the project's own Twilio accounts read once.
+   * - with the project's own Twilio accounts read once. A method on a
+   * channel the project turned off sends nothing and costs nothing (#7529):
+   * the project's switches are read here unless the caller hands them.
    */
   public async getCosts(data: {
     projectId: ObjectID;
     peopleOfEach: Array<Array<OnCallTestPagePreviewPerson>>;
+    project?: PreviewProject | undefined;
   }): Promise<Array<OnCallTestPageCost>> {
+    const project: PreviewProject =
+      data.project !== undefined
+        ? data.project
+        : await ProjectService.findOneById({
+            id: data.projectId,
+            select: {
+              enableSmsNotifications: true,
+              enableCallNotifications: true,
+              enableWhatsAppNotifications: true,
+              enableTelegramNotifications: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+    const channelsOff: Array<OnCallPageChannel> =
+      getChannelsOffInProject(project);
+
     const smsConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         data.projectId,
@@ -867,6 +1027,7 @@ export class OnCallTestPageService extends BaseService {
           isBillingEnabled: IsBillingEnabled,
           hasOwnTwilioForSms: Boolean(smsConfig),
           hasOwnTwilioForCalls: Boolean(callConfig),
+          channelsOff: channelsOff,
           prices: {
             smsInCents: readPrice(MESSAGING_PRICE_SETTINGS.sms),
             callPerMinuteInCents: readPrice(
@@ -1107,14 +1268,18 @@ export class OnCallTestPageService extends BaseService {
     });
   }
 
-  // The first level of these escalation rules: the one a run starts with.
+  /*
+   * The first level of these escalation rules: the one a run starts with,
+   * at the lowest place, which need not be 1 (#9369) - as
+   * OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy finds it.
+   */
   private async readFirstLevelOf(data: {
     projectId: ObjectID;
     policyId: ObjectID;
     rules: Array<OnCallDutyPolicyEscalationRule>;
   }): Promise<PolicyLevel & { levelCount: number }> {
-    const firstRule: OnCallDutyPolicyEscalationRule | undefined =
-      getRuleOfOrder(data.rules, 1);
+    const firstRule: OnCallDutyPolicyEscalationRule | null =
+      getOnCallPolicyFirstLevel(data.rules);
 
     if (!firstRule || !firstRule.id) {
       return {
@@ -1131,7 +1296,7 @@ export class OnCallTestPageService extends BaseService {
         projectId: data.projectId,
         policyId: data.policyId,
         ruleId: firstRule.id,
-        order: 1,
+        order: firstRule.order ?? 1,
       })),
       levelCount: data.rules.length,
     };
@@ -1228,6 +1393,15 @@ export class OnCallTestPageService extends BaseService {
         props: { isRoot: true },
       });
 
+    /*
+     * Each schedule's layers read once for the level, as its run reads them:
+     * its on-call person and the next in its rotation from the same read.
+     */
+    const layerReads: ScheduleLayerReads = new Map<
+      string,
+      Promise<ScheduleLayerProps>
+    >();
+
     for (const scheduleRow of schedules) {
       if (!scheduleRow.onCallDutyPolicyScheduleId) {
         continue;
@@ -1240,7 +1414,7 @@ export class OnCallTestPageService extends BaseService {
         const next: NextInRotationInSchedule | null =
           await OnCallDutyPolicyScheduleService.getNextInRotationInSchedule(
             scheduleRow.onCallDutyPolicyScheduleId,
-            { onCallDutyPolicyId: data.policyId },
+            { onCallDutyPolicyId: data.policyId, layerReads },
           );
 
         if (!next || !next.nextUserId) {
@@ -1266,7 +1440,7 @@ export class OnCallTestPageService extends BaseService {
       const onCall: CurrentOnCallInSchedule | null =
         await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
           scheduleRow.onCallDutyPolicyScheduleId,
-          { onCallDutyPolicyId: data.policyId },
+          { onCallDutyPolicyId: data.policyId, layerReads },
         );
 
       if (!onCall) {
@@ -1541,12 +1715,6 @@ export class OnCallTestPageService extends BaseService {
       },
     );
 
-    const acknowledgedFrom: UserOnCallLogTimeline | undefined =
-      this.getFirstAcknowledgedDelivery({
-        deliveries: deliveries,
-        acknowledgedByUserId: run.acknowledgedByUserId,
-      });
-
     const startedAt: Date = run.createdAt
       ? OneUptimeDate.fromString(run.createdAt)
       : OneUptimeDate.getCurrentDate();
@@ -1581,33 +1749,99 @@ export class OnCallTestPageService extends BaseService {
       result.statusMessageCode = runLine;
     }
 
-    if (run.acknowledgedAt) {
-      result.acknowledgedByName =
-        run.acknowledgedByUser?.name?.toString() ||
-        run.acknowledgedByUser?.email?.toString() ||
-        "";
+    return {
+      ...result,
+      ...getAcknowledgement({ run: run, deliveries: deliveries }),
+    };
+  }
 
-      const channel: OnCallPageChannel | undefined = acknowledgedFrom
-        ? getOnCallPageChannelsOf(acknowledgedFrom)[0]
-        : undefined;
+  /*
+   * WHAT BECAME OF SEVERAL TESTS, IN SHORT (#9386): each one's status, and
+   * who acknowledged it, by what and how fast - worked out as getResult
+   * works it out (getAcknowledgement), from the runs and only the messages
+   * they were acknowledged from: two reads, however many tests. A fire
+   * drill's results on its monitor's card, in the order the runs are
+   * handed in. Read as OneUptime: whoever asks has been checked already.
+   */
+  @CaptureSpan()
+  public async getResultSummaries(data: {
+    projectId: ObjectID;
+    runs: ReadonlyArray<OnCallDutyPolicyExecutionLog>;
+  }): Promise<Array<OnCallTestPageResultSummary>> {
+    const runIds: Array<ObjectID> = data.runs
+      .filter((run: OnCallDutyPolicyExecutionLog): boolean => {
+        return Boolean(run.id);
+      })
+      .map((run: OnCallDutyPolicyExecutionLog): ObjectID => {
+        return run.id!;
+      });
 
-      if (channel) {
-        result.acknowledgedChannel = channel;
-      }
+    const acknowledged: Array<UserOnCallLogTimeline> =
+      runIds.length === 0
+        ? []
+        : await UserOnCallLogTimelineService.findBy({
+            query: {
+              projectId: data.projectId,
+              onCallDutyPolicyExecutionLogId: QueryHelper.any(runIds),
+              isAcknowledged: true,
+            },
+            select: {
+              _id: true,
+              userId: true,
+              onCallDutyPolicyExecutionLogId: true,
+              createdAt: true,
+              acknowledgedAt: true,
+              isAcknowledged: true,
+              userCallId: true,
+              userSmsId: true,
+              userWhatsAppId: true,
+              userTelegramId: true,
+              userPushId: true,
+              userEmailId: true,
+              userSlackId: true,
+              userMicrosoftTeamsId: true,
+              userMattermostId: true,
+              userWebhookId: true,
+              customNotificationChannelId: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
 
-      if (acknowledgedFrom?.createdAt) {
-        result.acknowledgedAfterSeconds = Math.max(
-          0,
-          Math.round(
-            (OneUptimeDate.fromString(run.acknowledgedAt).getTime() -
-              OneUptimeDate.fromString(acknowledgedFrom.createdAt).getTime()) /
-              1000,
-          ),
-        );
-      }
-    }
+    return data.runs.map(
+      (run: OnCallDutyPolicyExecutionLog): OnCallTestPageResultSummary => {
+        const startedAt: Date = run.createdAt
+          ? OneUptimeDate.fromString(run.createdAt)
+          : OneUptimeDate.getCurrentDate();
 
-    return result;
+        return {
+          executionLogId: run.id?.toString() || "",
+          ...(run.onCallDutyPolicyId
+            ? {
+                policyId: run.onCallDutyPolicyId.toString(),
+                policyName: run.onCallDutyPolicy?.name?.toString() || "",
+              }
+            : {}),
+          status: getResultStatus(run),
+          startedAt: startedAt.toISOString(),
+          endsAt: getOnCallTestPageEndsAt(startedAt).toISOString(),
+          ...getAcknowledgement({
+            run: run,
+            deliveries: acknowledged.filter(
+              (delivery: UserOnCallLogTimeline): boolean => {
+                return (
+                  delivery.onCallDutyPolicyExecutionLogId?.toString() ===
+                  run.id?.toString()
+                );
+              },
+            ),
+          }),
+        };
+      },
+    );
   }
 
   /*
@@ -1674,8 +1908,15 @@ export class OnCallTestPageService extends BaseService {
       : OnCallTestPageKind.Self;
   }
 
-  private async readSeverityNameOf(
-    run: OnCallDutyPolicyExecutionLog,
+  /*
+   * The name of the severity a test ran at, read as OneUptime; empty when it
+   * is gone - a severity deleted afterwards leaves a test's history as it was.
+   */
+  public async readSeverityNameOf(
+    run: Pick<
+      OnCallDutyPolicyExecutionLog,
+      "testPageSeverityId" | "testPageRecordKind"
+    >,
   ): Promise<string> {
     if (!run.testPageSeverityId) {
       return "";
@@ -1747,30 +1988,6 @@ export class OnCallTestPageService extends BaseService {
     }
   }
 
-  // The message the test was first acknowledged from, by who acknowledged it.
-  private getFirstAcknowledgedDelivery(data: {
-    deliveries: Array<UserOnCallLogTimeline>;
-    acknowledgedByUserId: ObjectID | undefined;
-  }): UserOnCallLogTimeline | undefined {
-    const acknowledged: Array<UserOnCallLogTimeline> = data.deliveries
-      .filter((delivery: UserOnCallLogTimeline): boolean => {
-        return (
-          Boolean(delivery.isAcknowledged) &&
-          (!data.acknowledgedByUserId ||
-            delivery.userId?.toString() ===
-              data.acknowledgedByUserId.toString())
-        );
-      })
-      .sort((a: UserOnCallLogTimeline, b: UserOnCallLogTimeline): number => {
-        return (
-          new Date(a.acknowledgedAt || 0).getTime() -
-          new Date(b.acknowledgedAt || 0).getTime()
-        );
-      });
-
-    return acknowledged[0];
-  }
-
   // One line of the chain, with its messages.
   private toStep(data: {
     line: OnCallDutyPolicyExecutionLogTimeline;
@@ -1838,6 +2055,94 @@ export class OnCallTestPageService extends BaseService {
 
     return step;
   }
+}
+
+// The message a test was first acknowledged from, by who acknowledged it.
+export function getFirstAcknowledgedDelivery(data: {
+  deliveries: ReadonlyArray<UserOnCallLogTimeline>;
+  acknowledgedByUserId: ObjectID | undefined;
+}): UserOnCallLogTimeline | undefined {
+  const acknowledged: Array<UserOnCallLogTimeline> = data.deliveries
+    .filter((delivery: UserOnCallLogTimeline): boolean => {
+      return (
+        Boolean(delivery.isAcknowledged) &&
+        (!data.acknowledgedByUserId ||
+          delivery.userId?.toString() === data.acknowledgedByUserId.toString())
+      );
+    })
+    .sort((a: UserOnCallLogTimeline, b: UserOnCallLogTimeline): number => {
+      return (
+        new Date(a.acknowledgedAt || 0).getTime() -
+        new Date(b.acknowledgedAt || 0).getTime()
+      );
+    });
+
+  return acknowledged[0];
+}
+
+/*
+ * WHO ACKNOWLEDGED A TEST, BY WHAT AND HOW FAST, from its run and its
+ * messages: the person the run says, the channel of the message they first
+ * acknowledged it from, and how long after that message went out. Nothing
+ * while nobody has; the channel and the time are left out when no message
+ * of the test records the answer. What a test's result says (getResult),
+ * and a fire drill's results in short (getResultSummaries, #9386).
+ */
+export function getAcknowledgement(data: {
+  run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "acknowledgedAt" | "acknowledgedByUserId" | "acknowledgedByUser"
+  >;
+  deliveries: ReadonlyArray<UserOnCallLogTimeline>;
+}): Pick<
+  OnCallTestPageResult,
+  "acknowledgedByName" | "acknowledgedChannel" | "acknowledgedAfterSeconds"
+> {
+  const run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "acknowledgedAt" | "acknowledgedByUserId" | "acknowledgedByUser"
+  > = data.run;
+
+  if (!run.acknowledgedAt) {
+    return {};
+  }
+
+  const answer: Pick<
+    OnCallTestPageResult,
+    "acknowledgedByName" | "acknowledgedChannel" | "acknowledgedAfterSeconds"
+  > = {
+    acknowledgedByName:
+      run.acknowledgedByUser?.name?.toString() ||
+      run.acknowledgedByUser?.email?.toString() ||
+      "",
+  };
+
+  const acknowledgedFrom: UserOnCallLogTimeline | undefined =
+    getFirstAcknowledgedDelivery({
+      deliveries: data.deliveries,
+      acknowledgedByUserId: run.acknowledgedByUserId,
+    });
+
+  const channel: OnCallPageChannel | undefined = acknowledgedFrom
+    ? getOnCallPageChannelsOf(acknowledgedFrom)[0]
+    : undefined;
+
+  if (channel) {
+    answer.acknowledgedChannel = channel;
+  }
+
+  if (acknowledgedFrom?.createdAt) {
+    answer.acknowledgedAfterSeconds = Math.max(
+      0,
+      Math.round(
+        (OneUptimeDate.fromString(run.acknowledgedAt).getTime() -
+          OneUptimeDate.fromString(acknowledgedFrom.createdAt).getTime()) /
+          1000,
+      ),
+    );
+  }
+
+  return answer;
 }
 
 /*
@@ -2076,7 +2381,7 @@ export function getPreviewMethodsOfRule(data: {
 }
 
 // The project's preview of a person: the switches its warnings read.
-type PreviewProject = Pick<
+export type PreviewProject = Pick<
   Project,
   | "enableSmsNotifications"
   | "enableCallNotifications"
@@ -2084,6 +2389,54 @@ type PreviewProject = Pick<
   | "enableTelegramNotifications"
   | "disableOnCallNotificationFallback"
 > | null;
+
+/*
+ * The channels a project can switch off for on-call pages, and whether it
+ * has: what a preview warns of (getPreviewWarningCodes) and what a test's
+ * cost leaves out (getCosts), read from the same switches. A project that
+ * could not be read switches nothing off.
+ */
+export function getProjectChannelSwitches(project: PreviewProject): Array<{
+  channel: OnCallPageChannel;
+  projectChannel: ProjectNotificationChannel;
+  isOff: boolean;
+}> {
+  return [
+    {
+      channel: OnCallPageChannel.SMS,
+      projectChannel: ProjectNotificationChannel.SMS,
+      isOff: project?.enableSmsNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.Call,
+      projectChannel: ProjectNotificationChannel.Call,
+      isOff: project?.enableCallNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.WhatsApp,
+      projectChannel: ProjectNotificationChannel.WhatsApp,
+      isOff: project?.enableWhatsAppNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.Telegram,
+      projectChannel: ProjectNotificationChannel.Telegram,
+      isOff: project?.enableTelegramNotifications === false,
+    },
+  ];
+}
+
+// The channels the project turned off for on-call pages.
+export function getChannelsOffInProject(
+  project: PreviewProject,
+): Array<OnCallPageChannel> {
+  return getProjectChannelSwitches(project)
+    .filter((off: { isOff: boolean }): boolean => {
+      return off.isOff;
+    })
+    .map((off: { channel: OnCallPageChannel }): OnCallPageChannel => {
+      return off.channel;
+    });
+}
 
 // What a preview warns about before anything is sent, in English.
 export function getPreviewWarnings(data: {
@@ -2127,37 +2480,9 @@ export function getPreviewWarningCodes(data: {
     warnings.push(getNoRuleWarning(data));
   }
 
-  const offChannels: Array<{
-    channel: OnCallPageChannel;
-    projectChannel: ProjectNotificationChannel;
-    isOn: boolean | undefined;
-  }> = [
-    {
-      channel: OnCallPageChannel.SMS,
-      projectChannel: ProjectNotificationChannel.SMS,
-      isOn: data.project?.enableSmsNotifications,
-    },
-    {
-      channel: OnCallPageChannel.Call,
-      projectChannel: ProjectNotificationChannel.Call,
-      isOn: data.project?.enableCallNotifications,
-    },
-    {
-      channel: OnCallPageChannel.WhatsApp,
-      projectChannel: ProjectNotificationChannel.WhatsApp,
-      isOn: data.project?.enableWhatsAppNotifications,
-    },
-    {
-      channel: OnCallPageChannel.Telegram,
-      projectChannel: ProjectNotificationChannel.Telegram,
-      isOn: data.project?.enableTelegramNotifications,
-    },
-  ];
-
-  for (const off of offChannels) {
+  for (const off of getProjectChannelSwitches(data.project)) {
     if (
-      data.project &&
-      off.isOn === false &&
+      off.isOff &&
       data.methods.some((method: OnCallTestPagePreviewMethod): boolean => {
         return method.channel === off.channel;
       })

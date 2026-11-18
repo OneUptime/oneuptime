@@ -93,6 +93,49 @@ flowchart TB
 
 Pour voir comment une vérification a été jugée, ouvrez la **Vue d'ensemble** du moniteur : la carte **Résumé du moniteur** montre quel critère a correspondu et ce que chacun a fait, y compris un incident ignoré parce qu'un autre était déjà ouvert.
 
+## Qui est prévenu quand il tombe en panne
+
+**Quand il tombe en panne** dit en quelques phrases ce qui se passe quand le moniteur tombe en panne et qui est prévenu : le statut qu'il définit, l'incident ou l'alerte qu'il ouvre, qui reçoit un e-mail et qui il alerte, nommément. Chaque chose qui empêcherait quelqu'un d'être prévenu figure sur sa propre ligne, avec un lien vers la page qui la corrige. On le trouve dans la **Vue d'ensemble** d'un moniteur, sous ses critères sur sa page **Critères**, à l'étape des critères de **Créer un moniteur** pour le moniteur que vous configurez, et dans la configuration guidée d'un site web.
+
+Il établit la chaîne comme le fait un vrai incident ou une vraie alerte : avec les règles de propriétaire, les règles de confidentialité, les règles d'étiquettes et les règles d'astreinte de votre projet, la règle d'incident des alertes qui transforme une alerte en incident, et les personnes que la première règle d'escalade de chaque politique d'astreinte atteint en ce moment. Une règle d'astreinte qui porte sur le propriétaire d'une alerte (**Propriétaire de l'alerte**) est évaluée sur les propriétaires que l'alerte aura : les personnes et équipes que ses critères désignent, les propriétaires de l'équipement réseau que surveille le moniteur et ceux qu'ajoutent les règles de propriétaire. Une variable de titre que seule une vérification remplit est affichée telle qu'elle est écrite. **Afficher la chaîne** l'ouvre ligne par ligne :
+
+| Ligne | Ce qu'elle dit |
+| --- | --- |
+| **Statut** | Le statut que les critères définissent. |
+| **Ouvre** | L'incident ou l'alerte, sa gravité entre parenthèses et son titre. |
+| **E-mails** | Qui reçoit l'e-mail de création : ses propriétaires, ceux que les règles de propriétaire ajoutent, ou les Propriétaires du projet s'il n'en a aucun. Une personne que l'alerte d'astreinte atteint d'abord ne reçoit pas en plus l'e-mail de propriétaire. |
+| **Règles de propriétaire** | Les règles de propriétaire qui ajoutent ses propriétaires. |
+| **Privé** | Pourquoi il est privé : une règle de confidentialité ou les critères. Un incident privé n'apparaît sur aucune page de statut et ne prévient aucun abonné, et seuls ses propriétaires, les Propriétaires du projet et les Administrateurs du projet peuvent le voir. |
+| **Règles d'étiquettes** | Les règles d'étiquettes dont les étiquettes changent les règles d'astreinte qui alertent. |
+| **Règles d'astreinte** | Les règles d'astreinte qui lui correspondent. Pour une règle qui porte sur le propriétaire d'une alerte, la ligne dit quel propriétaire la fait correspondre. |
+| **Politique d'astreinte** | Chaque politique que ces règles déclenchent : qui sa première règle d'escalade atteint en ce moment et par quel moyen, et qui elle n'atteint pas, et pourquoi. |
+| **Pages de statut** | Les pages de statut qui l'affichent, chacune avec le groupe de moniteurs par lequel elle affiche le moniteur. |
+| **Règle d'incident** | Pour une alerte : la règle d'incident des alertes qui en déclare un incident, aussitôt ou une fois que l'alerte est restée ouverte, et cet incident, décrit comme tout incident. |
+
+### Ce qui empêche de prévenir
+
+| Ce qui l'empêche | Lien |
+| --- | --- |
+| Aucun critère ne change le statut ni n'ouvre d'incident ou d'alerte. | **Ouvrir les critères** |
+| Personne n'est alerté : aucune règle d'astreinte ne correspond, ou le projet n'a pas encore de politique d'astreinte. | **Configurer les alertes d'astreinte** |
+| Le moniteur ouvre des alertes, et seuls les incidents ont des règles d'astreinte. | **Configurer les alertes d'astreinte** |
+| Une politique d'astreinte n'a aucune règle d'escalade. | **Ouvrir la politique d'astreinte** |
+| Une politique d'astreinte n'atteint personne en ce moment. | **Ouvrir la politique d'astreinte** |
+| Une personne qu'une politique alerte est injoignable : elle s'est désinscrite, n'a aucune méthode vérifiée, ou n'a aucune règle pour la gravité dans un projet sans solution de repli. | **Ouvrir la disponibilité** |
+| Les SMS, les appels, WhatsApp ou Telegram sont désactivés dans le projet. | **Ouvrir les canaux de notification** |
+| Le projet n'a plus de solde pour les SMS et les appels (OneUptime Cloud). | **Ouvrir la facturation** |
+| Le serveur ne peut pas encore envoyer d'e-mails ni de SMS, ni passer d'appels. | **Ouvrir le tableau de bord admin**, pour les administrateurs du serveur |
+
+Une alerte qu'une règle d'incident des alertes transforme en un incident qui alerte quelqu'un n'est pas une rupture : ce sont les politiques de l'incident qui sont vérifiées.
+
+Les propriétaires qui ne reçoivent pas d'e-mail sont listés après les ruptures, chacun avec la raison et l'endroit où il est désigné : une personne qui n'est pas membre du projet, une équipe sans aucun membre du projet (**Ouvrir l'équipe**), ou une équipe d'un autre projet, désignée dans les critères (**Ouvrir les critères**), sur l'équipement réseau que surveille le moniteur (**Ouvrir l'équipement réseau**) ou par une règle de propriétaire (**Ouvrir les règles de propriétaire**). L'e-mail part quand même, aux propriétaires qu'il atteint ou aux Propriétaires du projet : ce ne sont donc pas des ruptures. La santé de la configuration les liste aussi, comme points à corriger.
+
+### Revérifier, et ce que vous voyez
+
+La réponse date au plus d'une minute, et **Revérifier** la recalcule. Quand une nouvelle vérification échoue, la carte garde la dernière réponse et indique pourquoi en dessous.
+
+La carte ne nomme que ce que vous pouvez lire. Une politique d'astreinte, une règle, une page de statut ou un groupe de moniteurs que vous ne pouvez pas voir garde sa place sans son nom, et un incident ou une alerte privés que vous ne pourrez pas voir indiquent seulement qu'ils s'ouvrent et qu'ils sont privés.
+
 ## Ce qu'un incident ou une alerte conserve de la vérification
 
 Un incident ou une alerte qu'un moniteur ouvre conserve la vérification qui l'a ouvert, pour que vous puissiez voir pourquoi bien après la disparition des journaux du moniteur. Sous sa cause racine, la section **Détails de l'évaluation** nomme le critère qui a correspondu et, pour chaque filtre qui a correspondu, ce que la vérification a trouvé. **Afficher les détails** ajoute le reste des éléments, les filtres qui n'ont pas correspondu et la vérification elle-même : la requête, quand elle a eu lieu, depuis quelle sonde et ce qui a été renvoyé. Ce qu'un filtre a trouvé peut être :

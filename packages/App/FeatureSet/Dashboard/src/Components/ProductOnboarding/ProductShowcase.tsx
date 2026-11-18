@@ -1,9 +1,17 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import {
+  GuidedSetupEntryPoint,
+  withGuidedSetupEntryPoint,
+} from "Common/UI/Utils/GuidedSetupEvents";
 import ResourceShowcaseCard, {
   ShowcaseAddButton,
+  ShowcaseSetupButton,
 } from "../ResourceShowcase/ResourceShowcaseCard";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { OnboardedProductKey, ProductOnboarding } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
 
@@ -53,6 +61,51 @@ export function getUnlockedButton(
   return button && !button.disabled ? button : undefined;
 }
 
+/*
+ * The product's guided setup as the explanation's button (#7148): for
+ * whoever may create what the setup makes - every record of it
+ * (ProductGuidedSetup.alsoCreates, #7142) - as Create is offered. It opens
+ * the setup's page, saying where it was opened from (`from`: the empty
+ * list or How it works, sent with guided_setup/started, #7054);
+ * `beforeOpen` closes what it is drawn in (a dialog).
+ */
+export function getProductGuidedSetupButton(data: {
+  onboarding: ProductOnboarding;
+  from: GuidedSetupEntryPoint;
+  beforeOpen?: (() => void) | undefined;
+}): ShowcaseSetupButton | undefined {
+  const setup: ProductOnboarding["guidedSetup"] = data.onboarding.guidedSetup;
+
+  if (
+    !setup ||
+    ![setup.modelType, ...(setup.alsoCreates || [])].every(
+      (modelType: { new (): BaseModel }): boolean => {
+        return PermissionGate.check(new modelType(), ModelAction.Create)
+          .isAllowed;
+      },
+    )
+  ) {
+    return undefined;
+  }
+
+  return {
+    title: setup.buttonTitle,
+    onClick: (): void => {
+      data.beforeOpen?.();
+      Navigation.navigate(
+        new Route(
+          withGuidedSetupEntryPoint(
+            RouteUtil.populateRouteParams(
+              RouteMap[setup.page] as Route,
+            ).toString(),
+            data.from,
+          ),
+        ),
+      );
+    },
+  };
+}
+
 const ProductShowcase: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -63,6 +116,10 @@ const ProductShowcase: FunctionComponent<ComponentProps> = (
       <ResourceShowcaseCard
         showcase={onboarding.showcase}
         addButton={props.startButton}
+        setupButton={getProductGuidedSetupButton({
+          onboarding: onboarding,
+          from: GuidedSetupEntryPoint.EmptyList,
+        })}
         docsRoute={onboarding.docsRoute}
         guideRoute={onboarding.guideRoute}
         hidesSteps={props.hidesSteps}

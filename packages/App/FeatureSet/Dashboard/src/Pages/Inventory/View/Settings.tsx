@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import {
   InventorySettingsPolicy,
@@ -10,7 +11,6 @@ import useInventoryItem, {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -42,7 +42,7 @@ const InventoryItemSettings: FunctionComponent<
     useInventoryItem(modelId);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error) {

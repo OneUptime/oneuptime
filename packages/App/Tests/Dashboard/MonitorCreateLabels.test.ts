@@ -86,10 +86,13 @@ const LABELS_FIELD_CALL: string = squash(`
 `);
 
 // The monitor type picker the step opens on (Utils/Form/Monitor/MonitorTypeFormField).
+/*
+ * The field's call, by its start: Create Monitor also hands it the footer
+ * that offers the guided setup for Website and API (#7054).
+ */
 const MONITOR_TYPE_FIELD_CALL: string = squash(`
   getMonitorTypeFormField<Monitor>({
     stepId: "monitor-info",
-  }),
 `);
 
 function sourceBetween(startMarker: string, endMarker: string): string {

@@ -825,6 +825,164 @@ describe("filterPaletteCommands", () => {
   });
 
   /*
+   * A command found only by its whole name (#7034): "Import from
+   * incident.io" is named for a tool whose name starts with Incidents'
+   * word, so "incident.io" and its near-exact forms find it - first - and
+   * "incident" and "incidents" never list it, so they open Incidents first,
+   * as they did while the import was left out of Search.
+   */
+  describe("a command found only by its whole name", () => {
+    const incidents: PaletteCommand = {
+      ...makeCommand("nav-incidents", "Incidents", "Essentials", [
+        "outage",
+        "downtime",
+      ]),
+      searchPriority: 2,
+    };
+    const allIncidents: PaletteCommand = makePage(
+      "page-all-incidents",
+      "All Incidents",
+      ["Incidents", "Overview"],
+    );
+    const incidentSettings: PaletteCommand = makePage(
+      "page-incident-settings",
+      "Settings",
+      ["Incidents", "Settings"],
+    );
+    const importIncidentIo: PaletteCommand = {
+      ...makePage(
+        "import-incident-io",
+        "Import from incident.io",
+        ["Project Settings", "Advanced", "Import from another tool"],
+        ["incident.io"],
+      ),
+      searchPenalty: 12,
+      foundOnlyByWholeName: ["incident.io"],
+    };
+    const importPagerDuty: PaletteCommand = {
+      ...makePage("import-pagerduty", "Import from PagerDuty", [
+        "Project Settings",
+      ]),
+      searchPenalty: 12,
+    };
+    const commands: Array<PaletteCommand> = [
+      importIncidentIo,
+      importPagerDuty,
+      incidents,
+      allIncidents,
+      incidentSettings,
+    ];
+
+    test.each([
+      "incident.io",
+      "incidentio",
+      "incident io",
+      "INCIDENT.IO",
+      "Incident.io",
+      "incident-io",
+      "  incident.io  ",
+      "import from incident.io",
+      "import incident.io",
+      "incident.io import",
+    ])("%p offers the import from incident.io first", (query: string) => {
+      expect(ids(filterPaletteCommands(commands, query))[0]).toBe(
+        "import-incident-io",
+      );
+    });
+
+    test.each(["incident", "incidents", "Incident", "INCIDENTS", "inc"])(
+      "%p opens Incidents first, and never lists the import",
+      (query: string) => {
+        const found: Array<string> = ids(
+          filterPaletteCommands(commands, query),
+        );
+
+        expect(found[0]).toBe("nav-incidents");
+        expect(found).not.toContain("import-incident-io");
+      },
+    );
+
+    test.each([
+      "incident i",
+      "incident.i",
+      "incidentoi",
+      "incidnet.io",
+      "incident settings",
+      "import from",
+      "io",
+    ])(
+      "%p is not its whole name: the import is not listed",
+      (query: string) => {
+        expect(ids(filterPaletteCommands(commands, query))).not.toContain(
+          "import-incident-io",
+        );
+      },
+    );
+
+    test("one command's whole-name rule is its own: another import is found by any start of its name", () => {
+      expect(ids(filterPaletteCommands(commands, "pager"))).toContain(
+        "import-pagerduty",
+      );
+      expect(ids(filterPaletteCommands(commands, "import from"))).toContain(
+        "import-pagerduty",
+      );
+    });
+
+    test("matching one command says the same as filtering: no match, not a weak one", () => {
+      expect(matchPaletteCommand(importIncidentIo, "incident")).toBeNull();
+      expect(rankPaletteCommand(importIncidentIo, "incidents")).toBeNull();
+      expect(
+        matchPaletteCommand(importIncidentIo, "incident.io"),
+      ).not.toBeNull();
+    });
+
+    test("without the rule, 'incident' would have listed the import", () => {
+      expect(
+        ids(
+          filterPaletteCommands(
+            [{ ...importIncidentIo, foundOnlyByWholeName: undefined }],
+            "incident",
+          ),
+        ),
+      ).toEqual(["import-incident-io"]);
+    });
+
+    test("an empty list, or names with no letter or digit, hold the command to nothing", () => {
+      for (const foundOnlyByWholeName of [[], ["..."], [" - "]]) {
+        expect(
+          ids(
+            filterPaletteCommands(
+              [{ ...importIncidentIo, foundOnlyByWholeName }],
+              "incident",
+            ),
+          ),
+        ).toEqual(["import-incident-io"]);
+      }
+    });
+
+    test("any one of several whole names lets it be found, by what it matches", () => {
+      const withTwoNames: PaletteCommand = {
+        ...importIncidentIo,
+        keywords: ["incident.io", "incident dot io"],
+        foundOnlyByWholeName: ["incident.io", "incident dot io"],
+      };
+
+      expect(
+        ids(filterPaletteCommands([withTwoNames], "incident dot io")),
+      ).toEqual(["import-incident-io"]);
+      expect(ids(filterPaletteCommands([withTwoNames], "incident"))).toEqual(
+        [],
+      );
+    });
+
+    test("browsing, with nothing typed, still lists it as before", () => {
+      expect(ids(filterPaletteCommands([importIncidentIo], ""))).toEqual([
+        "import-incident-io",
+      ]);
+    });
+  });
+
+  /*
    * A setting found by the name its card shows (the Dashboard's page index)
    * names the page it is on. "saml" is a word for the SSO page and the name
    * of its SAML card, which matches better on its own: the page still comes

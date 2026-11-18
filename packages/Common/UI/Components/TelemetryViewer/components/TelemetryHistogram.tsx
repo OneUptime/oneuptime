@@ -4,6 +4,7 @@ import React, {
   ReactNode,
   useMemo,
 } from "react";
+import ChartSkeleton from "../../Skeleton/ChartSkeleton";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
@@ -17,7 +18,6 @@ import {
 } from "recharts";
 import { HistogramBucket, HistogramSeriesOption } from "../types";
 import TelemetryHistogramTooltip from "./TelemetryHistogramTooltip";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import OneUptimeDate from "../../../../Types/Date";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
@@ -206,7 +206,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
         className="flex h-32 select-none items-center justify-center rounded-lg border border-gray-200 bg-white"
         {...selection.placeholderProps}
       >
-        <ComponentLoader />
+        <ChartSkeleton heightInPx={128} hasLegend={false} />
       </div>
     );
   }
@@ -298,9 +298,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                   className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: option.color }}
                 />
-                <span className="text-[11px] text-gray-500">
-                  {option.label}
-                </span>
+                <span className="text-xs text-gray-500">{option.label}</span>
               </div>
             );
           })}
@@ -313,7 +311,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
           {...selection.placeholderProps}
         >
           {props.isLoading ? (
-            <ComponentLoader />
+            <ChartSkeleton heightInPx={128} hasLegend={false} />
           ) : (
             translator.translateText(
               props.headerActions

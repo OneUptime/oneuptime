@@ -74,17 +74,17 @@ Opsætningen af webstedet har allerede oprettet **Standardvagtpolitik**, som til
 :::steps
 ### Åbn vagtopsætningen
 
-Tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning.
+Klik i oversigten i opsætningen af webstedet på **Få kald via SMS eller telefonopkald**: Linket åbner den guidede opsætning **Tilkalde den rette person, når noget går ned**. Vil du åbne den senere, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg den. Så længe tjeklisten ikke har markeret **Opsæt en vagtpolitik**, åbner det trin den samme guidede opsætning. Når den har, og så længe kun e-mail kan tilkalde dig, beholder Hjem **Få kald via SMS eller telefonopkald** under det.
 
 ### Vælg, hvordan du bliver kontaktet
 
 ![Trinnet »Hvordan skal vi nå dig?«, med »Slå sms og opkald til« fremhævet](screen:paging-reach-you)
 
-Under **Hvordan skal vi nå dig?** står din login-e-mail allerede. For push-notifikationer installerer du appen OneUptime On-Call fra App Store eller Google Play, logger ind og klikker på **Kontrollér igen**. Vil du også have sms og opkald, så klik på **Slå sms og opkald til**, indtast dit nummer i **Dit telefonnummer**, og klik på **Send mig en kode på sms**: På OneUptime Cloud betales sms og opkald af projektets saldo, så trinnet beder dig først om at fylde saldoen op. Klik på **Fortsæt**.
+Under **Hvordan skal vi nå dig?** står din login-e-mail allerede. For push-notifikationer installerer du appen OneUptime On-Call fra App Store eller Google Play, logger ind og klikker på **Kontrollér igen**. **Hent appen** viser en kode at scanne for hver butik, og **Brug denne browser** tilkalder også denne browser. Vil du også have sms og opkald, så klik på **Slå sms og opkald til**, indtast dit nummer i **Dit telefonnummer**, og klik på **Send mig en kode på sms**: På OneUptime Cloud betales sms og opkald af projektets saldo, så trinnet beder dig først om at fylde saldoen op. Klik på **Fortsæt**.
 
-### Vælg, hvem der ellers tilkaldes
+### Vælg, hvem der tilkaldes først
 
-Under **Hvem har ellers vagt?** beholder du **Standardvagtpolitik** under **Vagtpolitik**. Vil du tilkalde teammedlemmer sammen med dig, så tilføj dem under **Føj til den første eskaleringsregel**. Klik på **Gem og fortsæt**.
+Under **Hvem tilkaldes først?** beholder du **Standardvagtpolitik** under **Vagtpolitik**. Vil du tilkalde teammedlemmer samtidig med dig, så tilføj dem under **Føj til den første eskaleringsregel**, eller inviter dem med **Inviter via e-mail**. Klik på **Gem og fortsæt**.
 
 ### Beslut, hvad der sker, hvis ingen svarer
 
@@ -100,7 +100,7 @@ Under **Send et testkald** klikker du på **Test denne politik**, vælger en **A
 
 To vagtregler udløser politikken: en ved hver ny hændelse og en ved hver ny advarsel. For at se den første åbner du **Hændelser** fra menuen **Produkter**, folder **Regler** ud i sidemenuen og vælger **Vagtregler**: Den matcher **Alle hændelser**. For kun at udløse politikken ved nogle hændelser, for eksempel kritiske, redigerer du reglen der, eller klikker på **Opret Vagtregel for hændelser** for at tilføje din egen.
 
-Vil du i stedet bygge en politik felt for felt, så åbn **Vagt** fra menuen **Produkter**, og klik på **Opret Vagtpolitik**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
+Vil du i stedet bygge en politik felt for felt, så åbn **Vagt** fra menuen **Produkter**, og klik på **Opret vagtpolitik**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
 
 Vil du se hvert skærmbillede i opsætningen, og hvad du gør, når et kald ikke kommer frem, så følg [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 

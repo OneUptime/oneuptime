@@ -998,15 +998,13 @@ test.describe("an ESXi host's page", () => {
     await expect(page.getByTestId("vmware-host-busiest-vms")).toBeVisible();
     /*
      * ci-runner-01 waits 14.2% of the time for a CPU: amber, as Needs
-     * attention's "CPU ready 14%" just above it (the badge was red) - the
-     * shared Pill in its Warning tone since 88536f777a1, which works its
-     * words' amber out from the tone (an amber-700 class drew the hand-made
-     * chip before); its 64.1% CPU green, as the Virtual Machines tab draws
-     * it.
+     * attention's "CPU ready 14%" just above it (the badge was red); its
+     * 64.1% CPU green, as the Virtual Machines tab draws it.
      */
     const runner: Locator = page
       .getByTestId("vmware-host-busy-vm")
       .filter({ hasText: "ci-runner-01" });
+    // The shared Pill, in the warning tone (#9255).
     await expect(
       runner.getByTestId("vmware-host-busy-vm-cpu-ready"),
     ).toHaveAttribute("data-tone", "warning");
@@ -1029,17 +1027,18 @@ test.describe("an ESXi host's page", () => {
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveText(
       "Turn on 6 alerts",
     );
+    // Not set up reads grey, never six amber warnings.
     /*
-     * Not set up reads grey, never six amber warnings: the shared Pill in
-     * its Neutral tone since 88536f777a1, which works its words' grey out
-     * from the tone (a gray-600 class drew the hand-made chip before).
+     * Read by the shared Pill's tone (#9255), never the shade it paints:
+     * the Pill draws its words in a tone-derived colour of its own.
      */
-    const notSetUp: Locator = page
-      .getByTestId("vmware-host-alerts-item")
-      .first()
-      .getByTestId("pill");
-    await expect(notSetUp).toHaveText("Not set up");
-    await expect(notSetUp).toHaveAttribute("data-tone", "neutral");
+    await expect(
+      page
+        .getByTestId("vmware-host-alerts-item")
+        .first()
+        .getByTestId("pill")
+        .filter({ hasText: "Not set up" }),
+    ).toHaveAttribute("data-tone", "neutral");
     await page.getByTestId("vmware-host-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);

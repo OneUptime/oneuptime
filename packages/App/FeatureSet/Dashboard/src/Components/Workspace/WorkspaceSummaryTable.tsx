@@ -39,13 +39,23 @@ import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/N
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
 import {
   EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
+  EXISTING_CHANNELS_TEAM_DESCRIPTION,
   getMattermostTeamOptions,
   getMattermostTeamsNotJoined,
   MATTERMOST_TEAM_PLACEHOLDER,
   MATTERMOST_TEAM_TITLE,
   MattermostRuleTeams,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
+  TEAM_PLACEHOLDER,
+  TEAM_TITLE,
 } from "./NotificationRuleForm/NotificationRuleCopy";
+import {
+  fetchMicrosoftTeamsSummaryTeams,
+  getKeptMicrosoftTeamsTeam,
+  getMicrosoftTeamsTeamOptions,
+  isMicrosoftTeamsTeamPickerShown,
+  MicrosoftTeamsSummaryTeams,
+} from "./WorkspaceSummaryTeamsTeam";
 import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
 import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
@@ -80,7 +90,7 @@ import Recurring from "Common/Types/Events/Recurring";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OneUptimeDate from "Common/Types/Date";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -136,6 +146,24 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
    */
   const [mattermostConnection, setMattermostConnection] = React.useState<
     MattermostRuleTeams | undefined
+  >(undefined);
+
+  /*
+   * A Microsoft Teams project's teams, for a summary to pick the team of
+   * its channels from (WorkspaceSummaryTeamsTeam). Undefined for another
+   * workspace, or when they cannot be listed: the form then asks for the
+   * team's name as text, as it did.
+   */
+  const [microsoftTeamsTeams, setMicrosoftTeamsTeams] =
+    React.useState<MicrosoftTeamsSummaryTeams>(undefined);
+
+  /*
+   * The team the open form's summary held as it was typed: still offered,
+   * and the picker still shown, after another team is picked - changed
+   * and back too - until the form closes, for the next one.
+   */
+  const summaryTeamKeptAsTyped: MutableRefObject<string | undefined> = useRef<
+    string | undefined
   >(undefined);
 
   /*
@@ -336,6 +364,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       if (props.workspaceType === WorkspaceType.Mattermost) {
         setMattermostConnection(await fetchMattermostRuleTeams());
       }
+
+      // A Microsoft Teams summary picks its team among the connection's.
+      if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+        setMicrosoftTeamsTeams(await fetchMicrosoftTeamsSummaryTeams());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -349,7 +382,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {
@@ -479,6 +512,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         onCreateEditModalClose={() => {
           summaryTeamsNotJoined.current = [];
+          summaryTeamKeptAsTyped.current = undefined;
         }}
         isCreateable={true}
         cardProps={{
@@ -721,7 +755,63 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                 },
               ]
             : []),
-          ...(props.workspaceType === WorkspaceType.MicrosoftTeams
+          /*
+           * Microsoft Teams: the team its channels are in, picked from the
+           * connection's teams and kept as the team's id in teamName
+           * (WorkspaceSummaryTeamsTeam) - a typed name could be typed
+           * wrong, found out only from Send Test Now or the logs (#7118).
+           * One team needs no pick; a summary that holds a name typed
+           * before keeps it, offered as typed, until a team is picked.
+           * When the teams cannot be listed, the name is typed, as before.
+           */
+          ...(props.workspaceType === WorkspaceType.MicrosoftTeams &&
+          microsoftTeamsTeams
+            ? [
+                {
+                  field: {
+                    teamName: true,
+                  },
+                  stepId: "basic",
+                  title: TEAM_TITLE,
+                  description: EXISTING_CHANNELS_TEAM_DESCRIPTION,
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  required: false,
+                  placeholder: TEAM_PLACEHOLDER,
+                  dropdownOptions: getMicrosoftTeamsTeamOptions({
+                    teams: microsoftTeamsTeams,
+                    keptTeam: undefined,
+                    translator: translator,
+                  }),
+                  fetchDropdownOptions: async (
+                    values: FormValues<WorkspaceNotificationSummary>,
+                  ): Promise<Array<DropdownOption>> => {
+                    // Run each time the step opens, on the form's values.
+                    summaryTeamKeptAsTyped.current = getKeptMicrosoftTeamsTeam({
+                      teams: microsoftTeamsTeams,
+                      value: values.teamName,
+                      kept: summaryTeamKeptAsTyped.current,
+                    });
+
+                    return getMicrosoftTeamsTeamOptions({
+                      teams: microsoftTeamsTeams,
+                      keptTeam: summaryTeamKeptAsTyped.current,
+                      translator: translator,
+                    });
+                  },
+                  showIf: (
+                    values: FormValues<WorkspaceNotificationSummary>,
+                  ): boolean => {
+                    return isMicrosoftTeamsTeamPickerShown({
+                      teams: microsoftTeamsTeams,
+                      value: values.teamName,
+                      kept: summaryTeamKeptAsTyped.current,
+                    });
+                  },
+                },
+              ]
+            : []),
+          ...(props.workspaceType === WorkspaceType.MicrosoftTeams &&
+          !microsoftTeamsTeams
             ? [
                 {
                   field: {

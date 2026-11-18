@@ -396,7 +396,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
             />
           )}
         </div>
-        <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
+        <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">
           {translator.translatePlural(
             { one: "{{count}} row", other: "{{count}} rows" },
             visibleRows.length,

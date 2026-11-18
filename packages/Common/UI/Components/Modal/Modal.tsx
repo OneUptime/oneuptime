@@ -1,3 +1,4 @@
+import { isEscapePassedOn } from "../Dropdown/DropdownEscape";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -577,7 +578,14 @@ const Modal: FunctionComponent<ComponentProps> = (
     const handleKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      if (event.defaultPrevented || !isTopmostDialog()) {
+      /*
+       * A key something inside handled is its own - but not an Escape a
+       * closed Dropdown passed on, which react-select marks as handled.
+       */
+      if (
+        (event.defaultPrevented && !isEscapePassedOn(event)) ||
+        !isTopmostDialog()
+      ) {
         return;
       }
 

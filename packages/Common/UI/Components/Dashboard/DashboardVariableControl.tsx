@@ -8,6 +8,13 @@ import React, {
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
+import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "../Dropdown/DropdownChoices";
 import DashboardVariable, {
   DashboardVariableType,
   DashboardVariableOption,
@@ -117,7 +124,7 @@ const MultiSelectPopover: FunctionComponent<{
       </button>
       {open && (
         <div className="absolute z-30 mt-1 right-0 w-56 max-h-72 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1">
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 text-[11px] text-gray-500">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 text-xs text-gray-500">
             <span>
               {translator.translatePlural(
                 { one: "{{count}} selected", other: "{{count}} selected" },
@@ -222,7 +229,7 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
    * label can be deleted or disallowed. A telemetry attribute only lists the
    * first 100 values seen in the last day, and its default is free text, so
    * its value can be missing from the list and still match data. Skipped
-   * while those values load: the select reads "Loading…" until they arrive.
+   * while those values load: the picker reads "Loading…" until they arrive.
    */
   const isUnavailableSelection: boolean = Boolean(
     (isProjectLabel || (isTelemetryAttribute && !props.isLoadingOptions)) &&
@@ -231,6 +238,27 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
         return option.value === selectedValue;
       }),
   );
+
+  /*
+   * The single picker's choices: a value the list no longer holds first,
+   * named for what it is, then the list. Names are drawn as written.
+   */
+  const selectOptions: Array<DropdownOption> = [
+    ...(isUnavailableSelection
+      ? [
+          isProjectLabel
+            ? getTranslatedDropdownOption(
+                selectedValue,
+                translator.translateText("Unavailable label") ||
+                  "Unavailable label",
+              )
+            : getNamedDropdownOption(selectedValue, selectedValue),
+        ]
+      : []),
+    ...options.map((option: DashboardVariableOption): DropdownOption => {
+      return getNamedDropdownOption(option.value, option.label);
+    }),
+  ];
 
   const useSelect: boolean =
     isTelemetryAttribute || isCustomList || isProjectLabel;
@@ -261,52 +289,42 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
           }}
         />
       ) : useSelect ? (
-        <select
-          aria-label={label}
-          className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+        <Dropdown
+          className="relative w-40 max-w-full overflow-visible"
+          isCompact={true}
+          ariaLabel={label}
+          // The variable's name, as the person who made it wrote it.
+          isAriaLabelTranslated={true}
           /*
-           * `??`, not `||`: picking "All" stores selectedValue as "", which is
-           * a real selection and must not collapse back to defaultValue. Only
-           * an unset (undefined) selection falls through to the default — the
-           * same rule the query side applies in
-           * Common/Utils/Dashboard/VariableInterpolation.ts, so what the
-           * toolbar shows and what the widgets are filtered by stay in step.
+           * "All" is the placeholder: picking it stores selectedValue as "",
+           * which no option holds, and clearing the picker picks it.
+           * `??`, not `||`: that "" is a real selection and must not
+           * collapse back to defaultValue. Only an unset (undefined)
+           * selection falls through to the default — the same rule the
+           * query side applies in Common/Utils/Dashboard/VariableInterpolation.ts,
+           * so what the toolbar shows and what the widgets are filtered by
+           * stay in step.
            */
-          value={variable.selectedValue ?? variable.defaultValue ?? ""}
+          placeholder={translator.translateText(
+            props.isLoadingOptions ? "Loading…" : "All",
+          )}
+          isPlaceholderTranslated={true}
+          options={selectOptions}
+          value={findDropdownOption(selectOptions, selectedValue)}
           disabled={props.isLoadingOptions}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+          onChange={(next: DropdownValue | Array<DropdownValue> | null) => {
             props.onVariableValueChange(variable.id, {
-              selectedValue: e.target.value,
+              selectedValue: readPickedDropdownValue(next) ?? "",
             });
           }}
-        >
-          <option value="">
-            {translator.translateText(
-              props.isLoadingOptions ? "Loading…" : "All",
-            )}
-          </option>
-          {isUnavailableSelection && (
-            <option value={selectedValue}>
-              {isProjectLabel
-                ? translator.translateText("Unavailable label")
-                : selectedValue}
-            </option>
-          )}
-          {options.map((option: DashboardVariableOption) => {
-            return (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            );
-          })}
-        </select>
+        />
       ) : (
         <input
           data-unsaved-changes-ignore
           type="text"
           aria-label={label}
           className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 w-28 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-          // `??` so clearing the box stays cleared. See the select above.
+          // `??` so clearing the box stays cleared. See the picker above.
           value={variable.selectedValue ?? variable.defaultValue ?? ""}
           placeholder={variable.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

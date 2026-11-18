@@ -224,7 +224,7 @@ const ColumnNote: FunctionComponent<ColumnNoteProps> = (
         )}
         isTitleTranslated={true}
         className={`${
-          props.isCompact ? "text-[11px]" : "text-xs"
+          props.isCompact ? "text-xs" : "text-xs"
         } font-medium text-indigo-600 hover:text-indigo-800 hover:underline`}
       >
         {translator.translateText(NotificationSettingsWords.setUp)}
@@ -234,7 +234,7 @@ const ColumnNote: FunctionComponent<ColumnNoteProps> = (
 
   return (
     <span
-      className={`${props.isCompact ? "text-[11px]" : "text-xs"} text-gray-500`}
+      className={`${props.isCompact ? "text-xs" : "text-xs"} text-gray-500`}
     >
       {translator.translateText(NotificationSettingsWords.turnedOff)}
     </span>
@@ -517,7 +517,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                       }`}
                       size={SizeProp.Regular}
                     />
-                    <span className="text-[11px] font-medium text-gray-600">
+                    <span className="text-xs font-medium text-gray-600">
                       {translator.translateText(
                         getChannelWord(channel.definition),
                       )}

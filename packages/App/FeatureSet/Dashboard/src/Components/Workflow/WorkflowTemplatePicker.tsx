@@ -242,7 +242,7 @@ const WorkflowTemplateDetails: FunctionComponent<
                       {variable.required ? (
                         <></>
                       ) : (
-                        <span className="ms-1 text-gray-400">
+                        <span className="ms-1 text-gray-500">
                           ({tx("Optional")})
                         </span>
                       )}
@@ -269,7 +269,7 @@ const WorkflowTemplateDetails: FunctionComponent<
                       {ask.required ? (
                         <></>
                       ) : (
-                        <span className="ms-1 text-gray-400">
+                        <span className="ms-1 text-gray-500">
                           ({tx("Optional")})
                         </span>
                       )}

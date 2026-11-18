@@ -485,7 +485,7 @@ test.describe("Profiler → AI → Insights", () => {
    * squeezed the search to its icon and ran the last select past the bar:
    * the selects now go under the search where they do not fit.
    */
-  test("at a small laptop's width the search keeps room to type, and no select runs past the bar", async ({
+  test("at a small laptop's width the search keeps room to type, and no picker runs past the bar", async ({
     page,
   }: {
     page: Page;
@@ -511,7 +511,7 @@ test.describe("Profiler → AI → Insights", () => {
           let bar: Element | null = element;
 
           // The bar: the rounded box that holds the search and the selects.
-          while (bar && !bar.querySelector("select")) {
+          while (bar && !bar.querySelector(".ou-select__control")) {
             bar = bar.parentElement;
           }
 
@@ -523,9 +523,9 @@ test.describe("Profiler → AI → Insights", () => {
 
           return Math.max(
             0,
-            ...Array.from(bar.querySelectorAll("select")).map(
-              (select: Element): number => {
-                return select.getBoundingClientRect().right - right;
+            ...Array.from(bar.querySelectorAll(".ou-select__control")).map(
+              (picker: Element): number => {
+                return picker.getBoundingClientRect().right - right;
               },
             ),
           );

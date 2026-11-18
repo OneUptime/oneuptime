@@ -24,6 +24,7 @@ import {
 } from "Common/Types/Reminder/ReminderInterval";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type Field from "Common/UI/Components/Forms/Types/Field";
+import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type {
   CustomElementProps,
   FormFieldCollapsibleSection,
@@ -119,6 +120,45 @@ import {
  * Every step id is written out as a string literal on each field, so the
  * form step guards (Common/Tests/Helpers/FormStepsScan.ts) can place them.
  */
+
+// ---- Match fields ----------------------------------------------------------
+
+/*
+ * Under an owner condition: who counts as an owner. The words a workspace
+ * rule's owner condition says it in (#7583).
+ */
+export const OWNER_CONDITION_HINT: string =
+  "Matches the people and teams added as owners. Team membership does not count.";
+
+/*
+ * Who owns the alert (#9353), a match field of an alert on-call rule:
+ * people and teams, picked as owners are, compared with "Is any of" or "Is
+ * none of". It lives in the rule's criteria only - no column of the rule
+ * holds it (RULE_CRITERIA_OWNER_FIELDS_BY_MODEL) - so it names its key
+ * rather than a column. Matched against the alert's owners when the alert
+ * is created, and again when its owners change.
+ */
+export const getAlertOwnerConditionField: <
+  TEntity extends BaseModel,
+>() => ModelField<TEntity> = <
+  TEntity extends BaseModel,
+>(): ModelField<TEntity> => {
+  return {
+    /*
+     * The form lists a field by its key; no column of the rule answers for
+     * this one, so the form asks no column's permission of it. Whoever may
+     * write the rule's conditions may write this one (the criteria column).
+     */
+    overrideField: { alertOwners: true },
+    overrideFieldKey: "alertOwners",
+    showEvenIfPermissionDoesNotExist: true,
+    title: "Alert Owner",
+    description: OWNER_CONDITION_HINT,
+    stepId: "match-criteria",
+    fieldType: FormFieldSchemaType.PeoplePicker,
+    required: false,
+  };
+};
 
 // ---- Steps -----------------------------------------------------------------
 

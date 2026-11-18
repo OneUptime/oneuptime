@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -14,7 +15,6 @@ import {
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -236,7 +236,7 @@ const CampaignRow: FunctionComponent<{
             return (
               <span
                 key={kind}
-                className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-600"
+                className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs text-gray-600"
               >
                 {translator.translateText(getCampaignAttackKindLabel(kind))}
               </span>
@@ -255,7 +255,7 @@ const CampaignRow: FunctionComponent<{
 
         {campaign.sampleTargets.length > 0 && (
           <div
-            className="truncate font-mono text-[11px] text-gray-500"
+            className="truncate font-mono text-xs text-gray-500"
             title={campaign.sampleTargets.join("\n")}
           >
             {campaign.sampleTargets.join("  ·  ")}
@@ -349,7 +349,7 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <CardListSkeleton />;
   } else if (error) {
     body = (
       <ErrorMessage

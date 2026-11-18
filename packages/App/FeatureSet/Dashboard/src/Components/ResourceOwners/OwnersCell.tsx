@@ -101,7 +101,7 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
      */
     return (
       <p
-        className="text-gray-400"
+        className="text-gray-500"
         {...{ [TABLE_VALUE_LOADING_ATTRIBUTE]: "true" }}
       >
         {translator.translateText("Loading...")}
@@ -160,7 +160,7 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
       {hiddenOwners.length > 0 ? (
         <div className="relative -ml-1.5 transition-transform duration-150 hover:z-20 hover:-translate-y-0.5">
           <Tooltip richContent={overflowTooltip}>
-            <div className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-[10px] font-semibold text-gray-700 select-none cursor-default">
+            <div className="h-6 w-6 rounded-full bg-gray-100 ring-2 ring-white shadow-sm flex items-center justify-center text-xs font-semibold text-gray-700 select-none cursor-default">
               +{hiddenOwners.length}
             </div>
           </Tooltip>

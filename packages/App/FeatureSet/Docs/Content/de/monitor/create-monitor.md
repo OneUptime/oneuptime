@@ -2,6 +2,8 @@
 
 Ein Monitor prüft etwas, das Sie betreiben, etwa eine Website, eine API, einen Host oder einen Kubernetes-Cluster, und meldet sich, wenn es nicht mehr funktioniert. **Monitor erstellen** fragt zuerst, was überwacht werden soll, dann, was geprüft wird, und dann, wie oft. Bis auf den Typ, den Namen und das Prüfziel beginnt alles mit Standardwerten, die für die meisten Monitore passen.
 
+Für eine Website oder API führt Sie stattdessen eine geführte Einrichtung von ihrer Adresse bis zu einer Test-Alarmierung: Klicken Sie in der leeren Liste **Monitore** oder unter **So funktioniert es** auf **Geführte Einrichtung**. **Monitor erstellen** bietet sie auch an, sobald Sie **Website** oder **API** wählen. Siehe [Erfahren, wenn Ihre Website oder API ausfällt](/docs/guides/website-down).
+
 > [!NOTE]
 > Um einen Monitor zu erstellen, brauchen Sie die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 

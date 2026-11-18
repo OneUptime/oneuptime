@@ -230,6 +230,10 @@ const ADMIN_LABELS: Record<string, Record<string, string>> = {
   [PERMISSIONS_PAGE]: {
     "Add to Project": "pages.userProjects.addToProject",
   },
+  // The Push Notifications settings page's test (#7028), a flat English key.
+  [PUSH_PAGE]: {
+    "Send test push": "Send test push",
+  },
   [PRIVATE_NETWORK_PAGE]: {
     Settings: "breadcrumbs.settings",
     "Global LLM Providers": "breadcrumbs.globalLlmProviders",

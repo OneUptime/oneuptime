@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { settle } from "./HostTooltipHarness";
@@ -90,6 +96,26 @@ jest.mock("../../../UI/Utils/Project", () => {
 import HostServices from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Services";
 import HostSystemdUnits from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 // The Host pages read their ids from the route, not from these props.
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
@@ -214,10 +240,9 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     );
   }
 
-  function pageSizeSelect(): HTMLSelectElement {
-    return screen.getByTestId(
-      "pagination-items-on-page-select",
-    ) as HTMLSelectElement;
+  // The rows-per-page picker: the shared Dropdown's combobox (#9310).
+  function pageSizeSelect(): HTMLElement {
+    return rowsPerPage();
   }
 
   function nextButton(): HTMLElement {
@@ -225,7 +250,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
   }
 
   async function choosePageSize(size: number): Promise<void> {
-    fireEvent.change(pageSizeSelect(), { target: { value: String(size) } });
+    chooseDropdownOption(pageSizeSelect(), String(size));
     await settle();
   }
 
@@ -237,7 +262,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
   test("shows 25 rows a page", async () => {
     await renderList();
 
-    expect(pageSizeSelect()).toHaveValue("25");
+    expect(getShownDropdownValue(pageSizeSelect())).toBe("25");
     expect(visibleNames()).toEqual(list.names.slice(0, 25));
 
     await nextPage();
@@ -249,7 +274,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     await renderList();
     await choosePageSize(50);
 
-    expect(pageSizeSelect()).toHaveValue("50");
+    expect(getShownDropdownValue(pageSizeSelect())).toBe("50");
     // All thirty on one page, not the 25 the list opened with.
     expect(visibleNames()).toEqual(list.names);
     expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
@@ -289,7 +314,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
     await settle();
 
     // Fifteen workers match: ten on the first page, five on the next.
-    expect(pageSizeSelect()).toHaveValue("10");
+    expect(getShownDropdownValue(pageSizeSelect())).toBe("10");
     expect(visibleNames()).toEqual(list.names.slice(15, 25));
 
     await nextPage();

@@ -70,19 +70,19 @@ Ogni riunione viene creata a nome dell'account con cui accedi, che ne è l'host.
 
 Una connessione fatta effettuando l'accesso ha comunque le impostazioni che decidono chi aspetta: **Who can join** per Google Meet e **Who skips the lobby** per Microsoft Teams. Cambiale con **Modifica** nella riga della connessione.
 
-Una connessione Zoom creata con l'accesso prima che OneUptime leggesse le trascrizioni delle chiamate avvia le chiamate come prima, ma non può leggerne le trascrizioni finché non accede di nuovo: **Reconnect** sulla sua riga chiede a Zoom le autorizzazioni per le trascrizioni.
+Una connessione Zoom creata con l'accesso prima che OneUptime leggesse le trascrizioni delle chiamate non può leggerle. Una volta aggiornata l'app Zoom di OneUptime per leggerle, Zoom smette di accettare l'accesso di una tale connessione 90 giorni dopo, e la connessione smette di avviare chiamate. Da allora OneUptime ti chiede di farla accedere di nuovo: **Ricollega** sulla sua riga chiede a Zoom le autorizzazioni per le trascrizioni.
 
-Una connessione Microsoft Teams creata con l'accesso mentre l'opzione **Registra e trascrivi le chiamate degli incidenti** era disattivata avvia le chiamate come prima, senza registrarle. Una volta attivata l'opzione, **Reconnect** sulla sua riga chiede a Microsoft anche le autorizzazioni per il calendario e le trascrizioni.
+Una connessione Microsoft Teams creata con l'accesso mentre l'opzione **Registra e trascrivi le chiamate degli incidenti** era disattivata avvia le chiamate come prima, senza registrarle. Una volta attivata l'opzione, **Ricollega** sulla sua riga chiede a Microsoft anche le autorizzazioni per il calendario e le trascrizioni.
 
 ### Restare connessi
 
-OneUptime conserva il token di aggiornamento dell'accesso, cifrato, e lo rinnova almeno una volta a settimana, quindi non scade mai per inutilizzo, per quanto a lungo il progetto resti senza incidenti. Se l'accesso smette di funzionare (l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure i criteri della tua organizzazione gli chiedono di accedere di nuovo), la riga della connessione mostra **Non funziona** con il motivo il giorno in cui OneUptime se ne accorge, non al prossimo incidente. **Reconnect** nella riga effettua di nuovo l'accesso.
+OneUptime conserva il token di aggiornamento dell'accesso, cifrato, e lo rinnova almeno una volta a settimana, quindi non scade mai per inutilizzo, per quanto a lungo il progetto resti senza incidenti. Se l'accesso smette di funzionare (l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure i criteri della tua organizzazione gli chiedono di accedere di nuovo), la riga della connessione mostra **Non funziona** con il motivo il giorno in cui OneUptime se ne accorge, non al prossimo incidente. **Ricollega** nella riga effettua di nuovo l'accesso.
 
 Le connessioni che hanno effettuato l'accesso con lo stesso account condividono un solo accesso, in tutti i progetti: Zoom conserva un solo accesso per account, quindi collegare di nuovo lo stesso utente Zoom lo sostituisce per tutte.
 
 ### Ricollegare e rimuovere
 
-**Reconnect** nella riga di una connessione effettua di nuovo l'accesso, con lo stesso account o con un altro. Usalo dopo che l'account ha rimosso OneUptime, o per spostare le riunioni degli incidenti su un altro account.
+**Ricollega** nella riga di una connessione effettua di nuovo l'accesso, con lo stesso account o con un altro. Usalo dopo che l'account ha rimosso OneUptime, o per spostare le riunioni degli incidenti su un altro account.
 
 Eliminare una connessione revoca l'accesso di OneUptime presso Zoom e Google non appena nessun'altra connessione usa quell'accesso. Per Microsoft, rimuovi OneUptime in **My Apps** (myapps.microsoft.com) dell'account. Rimuovere OneUptime dal tuo account Zoom nello Zoom App Marketplace elimina il suo accesso da tutte le connessioni che lo usavano con quell'account, che mostrano **Non funziona** finché non vengono ricollegate.
 
@@ -135,13 +135,13 @@ Perché nessuno debba ricordarsi di registrare una chiamata o di ottenerne la tr
 
 L'opzione è disattivata per impostazione predefinita, perché registra delle persone: tutti i partecipanti a quelle chiamate vedono che vengono registrate o trascritte, quindi verifica che la tua organizzazione lo consenta. Zoom conserva una trascrizione solo quando l'account registra nel cloud con la trascrizione audio attiva, e Google Meet solo in un'edizione di Google Workspace che offre le trascrizioni. Gli huddle di Slack e i link di riunione non vengono registrati, e nemmeno le chiamate degli avvisi: aggiungi le loro trascrizioni a mano.
 
-Microsoft consente alle app di leggere solo le trascrizioni delle riunioni di Teams presenti in un calendario, quindi OneUptime mette ogni riunione di incidente nel calendario del suo organizzatore e attiva la registrazione e la trascrizione automatiche nelle opzioni della riunione. Per questo la connessione ha bisogno di altri due permessi di Microsoft Graph, `Calendars.ReadWrite` e `OnlineMeetingTranscript.Read.All`: aggiungili alla tua registrazione di app (vedi [Microsoft Teams](#microsoft-teams)), oppure usa **Reconnect** su una connessione creata con l'accesso. Il criterio per le riunioni di Teams dell'organizzatore deve consentire la registrazione nel cloud, la trascrizione e la registrazione automatica, e la tua organizzazione non deve aver disattivato l'accesso delle app alle trascrizioni. Una chiamata che OneUptime non riesce a mettere nel calendario parte comunque, senza registrazione, e la sua scheda **Video Call** dice perché.
+Microsoft consente alle app di leggere solo le trascrizioni delle riunioni di Teams presenti in un calendario, quindi OneUptime mette ogni riunione di incidente nel calendario del suo organizzatore e attiva la registrazione e la trascrizione automatiche nelle opzioni della riunione. Per questo la connessione ha bisogno di altri due permessi di Microsoft Graph, `Calendars.ReadWrite` e `OnlineMeetingTranscript.Read.All`: aggiungili alla tua registrazione di app (vedi [Microsoft Teams](#microsoft-teams)), oppure usa **Ricollega** su una connessione creata con l'accesso. Il criterio per le riunioni di Teams dell'organizzatore deve consentire la registrazione nel cloud, la trascrizione e la registrazione automatica, e la tua organizzazione non deve aver disattivato l'accesso delle app alle trascrizioni. Una chiamata che OneUptime non riesce a mettere nel calendario parte comunque, senza registrazione, e la sua scheda **Video Call** dice perché.
 
 ### Cosa conserva ogni provider
 
 | Chiamata | Come ottiene la sua trascrizione | Cosa le serve |
 | --- | --- | --- |
-| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Reconnect**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
+| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Ricollega**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
 | Google Meet | **Ottieni da Google Meet** | Trascrizioni attivate nella chiamata, in un'edizione di Google Workspace che le offre. Nient'altro da configurare: OneUptime legge le trascrizioni delle riunioni che ha creato. Google conserva una trascrizione leggibile dalle app per 30 giorni. |
 | Microsoft Teams | **Ottieni da Microsoft Teams** | Una riunione avviata da OneUptime mentre [ogni chiamata viene registrata e trascritta](#registrare-e-trascrivere-ogni-chiamata): Microsoft consente alle app di leggere solo le trascrizioni delle riunioni presenti in un calendario, e conserva una riunione per 60 giorni. Per qualsiasi altra riunione di Teams, **Aggiungi trascrizione**: in Teams, apri il riepilogo della riunione, poi la sua trascrizione, e scaricala come file `.vtt`. |
 | Link di riunione o huddle di Slack | **Aggiungi trascrizione** | La trascrizione che conservano lo strumento per riunioni o le note dell'huddle. |
@@ -291,7 +291,7 @@ Il provider ha rifiutato, e il feed ne indica il motivo. Nel frattempo avvia una
 :::
 
 :::details Una connessione mostra Non funziona
-Il suo accesso ha smesso di funzionare: l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure deve accedere di nuovo. Fai clic su **Reconnect** nella sua riga. Fino ad allora, le chiamate che dovrebbe avviare non possono partire.
+Il suo accesso ha smesso di funzionare: l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure deve accedere di nuovo. Fai clic su **Ricollega** nella sua riga. Fino ad allora, le chiamate che dovrebbe avviare non possono partire.
 :::
 
 :::details Le persone aspettano in una sala d'attesa
@@ -307,7 +307,7 @@ Al termine della chiamata, OneUptime la chiede a Zoom, a Google Meet o a Microso
 :::
 
 :::details Una chiamata Microsoft Teams non è stata registrata
-OneUptime non è riuscito a mettere la riunione nel calendario del suo organizzatore, quindi ha avviato la chiamata nel modo consueto, senza registrazione, e la scheda **Video Call** dice perché. Di solito alla connessione manca `Calendars.ReadWrite` o `OnlineMeetingTranscript.Read.All`: aggiungili alla registrazione di app e concedi il consenso amministratore, oppure usa **Reconnect** su una connessione creata con l'accesso. Le chiamate avviate dopo vengono registrate.
+OneUptime non è riuscito a mettere la riunione nel calendario del suo organizzatore, quindi ha avviato la chiamata nel modo consueto, senza registrazione, e la scheda **Video Call** dice perché. Di solito alla connessione manca `Calendars.ReadWrite` o `OnlineMeetingTranscript.Read.All`: aggiungili alla registrazione di app e concedi il consenso amministratore, oppure usa **Ricollega** su una connessione creata con l'accesso. Le chiamate avviate dopo vengono registrate.
 :::
 
 :::details OneUptime AI non è riuscita a leggere una trascrizione

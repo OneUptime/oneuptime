@@ -413,6 +413,8 @@ npm run backup
 
 Det ber om sudo-passordet ditt og skriver `Backups/db-<day of the month>.backup`, slik at daglige sikkerhetskopier erstatter dem fra en måned tidligere. Kjør det minst én gang om dagen.
 
+Hver kjøring forteller OneUptime hvordan det gikk, slik at Serveroppsett i Admin Dashboard viser når den siste sikkerhetskopien ble ferdig, og sier fra når en sikkerhetskopi mislyktes eller den siste er mer enn en uke gammel. En kjøring der dumpen mislyktes, sier det og slutter med en feil, slik at en cron-jobb merker det.
+
 ### Kopier sikkerhetskopiene bort fra serveren
 
 En sikkerhetskopi på samme disk som databasen overlever ikke at den disken går tapt.
@@ -518,7 +520,7 @@ Når noe ikke virker, kjør doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den lister opp hva som er galt, det alvorligste først, hver linje med den nøyaktige løsningen, og slutter med **Everything looks right.** eller antallet ting som må fikses. Den sjekker hver container og viser de siste linjene av loggen for dem som ikke kjører, `config.env`, at `HOST` når denne serveren, sertifikatet når `PROVISION_SSL` er slått på, og ledig diskplass. Den spør også OneUptime hva den ser av seg selv: PostgreSQL, ClickHouse og Valkey, migreringene, køene, versjonen og serverens oppsettstrinn, som e-post og sonder. `npm start` slutter med de samme sjekkene og nevner bare det som trenger oppmerksomhet.
+Den lister opp hva som er galt, det alvorligste først, hver linje med den nøyaktige løsningen, og slutter med **Everything looks right.** eller antallet ting som må fikses. Den sjekker hver container og viser de siste linjene av loggen for dem som ikke kjører, `config.env`, at `HOST` når denne serveren, og at en proxy foran den sender vertsnavnet og `X-Forwarded-Proto` videre, sertifikatet når `PROVISION_SSL` er slått på, og ledig diskplass. Den spør også OneUptime hva den ser av seg selv: PostgreSQL, ClickHouse og Valkey, migreringene, køene, versjonen og serverens oppsettstrinn, som e-post og sonder. Linjer merket med • er greie å vite, men ingen feil, og telles ikke med: hvilke produkter som er slått av på denne serveren, og hvor det ble valgt. Et navn i `SERVER_PRODUCTS` som OneUptime ikke kjenner, merkes med ! som verdt en titt. `npm start` slutter med de samme sjekkene og nevner bare det som trenger oppmerksomhet.
 
 For også å se de siste feilene fra hver tjeneste, hver med tjenestens navn:
 
@@ -526,7 +528,7 @@ For også å se de siste feilene fra hver tjeneste, hver med tjenestens navn:
 npm run doctor -- --logs
 ```
 
-Den avslutter med koden `1` når noe merket med ✗ må fikses, så et skript kan kjøre den. Admin Dashboard viser øverst på **OneUptime-tilstand** hva OneUptime ser av seg selv, og på Kubernetes skriver `HelmChart/Public/diagnose.sh` det ut.
+Den avslutter med koden `1` når noe merket med ✗ må fikses, så et skript kan kjøre den. Admin Dashboard viser øverst på **OneUptime-tilstand** hva OneUptime ser av seg selv, og på Kubernetes skriver `HelmChart/Public/diagnose.sh` det ut og sjekker deretter adressen folk åpner, og sertifikatet.
 
 ## Feilsøking
 

@@ -105,7 +105,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -1016,7 +1016,7 @@ const NetworkDevices: FunctionComponent<
   useRefreshProbesOnFocus(setProbes);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -1116,6 +1116,12 @@ const NetworkDevices: FunctionComponent<
          */
         searchableFields={["name", "description", "dnsName"]}
         /*
+         * The Vendor filter read `vendor` before it read the maker the
+         * server keeps (issue #9363): a link or a bookmark made then still
+         * filters by Vendor.
+         */
+        renamedFilterKeys={{ vendor: "manufacturer" }}
+        /*
          * Only what the chips cannot express — free text.
          *
          * Status, Last Seen, Interfaces, Site, Probe and Labels have all moved to
@@ -1140,8 +1146,15 @@ const NetworkDevices: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * The maker the Vendor / Model column shows (issue #9363), which
+             * the server keeps on each device: the vendor saved on it or read
+             * by its poll, or else what its SNMP identity, its controller or
+             * the Discovered Devices list names. The `vendor` column alone
+             * missed every device whose maker came from anywhere else.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
             title: "Vendor",
             type: FieldType.Text,
@@ -1726,9 +1739,22 @@ const NetworkDevices: FunctionComponent<
             hideOnMobile: true,
           },
           {
+            /*
+             * Sorted by the maker it shows (issue #9363): the server keeps
+             * on each device the maker its asset facts name, which is what
+             * the cell draws below and what the Vendor filter matches. Keyed
+             * by the `vendor` column, the header put every device whose
+             * maker came from discovery, its controller or its sysDescr
+             * where a device with none goes.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
+            /*
+             * The identity it had while keyed by `vendor`, so whoever hid or
+             * moved it with Customize Columns keeps it hidden or moved.
+             */
+            id: "vendor",
             title: "Vendor / Model",
             type: FieldType.Element,
             hideOnMobile: true,
@@ -1816,7 +1842,7 @@ const NetworkDevices: FunctionComponent<
                  */
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={translator.translateText(
                       "No role assigned — worked out from the device's SNMP identity.",
                     )}
@@ -1897,7 +1923,7 @@ const NetworkDevices: FunctionComponent<
               ) {
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={translator.translateText(
                       "Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them.",
                     )}
@@ -1950,7 +1976,7 @@ const NetworkDevices: FunctionComponent<
               if (hasNoSnmpInventory(item)) {
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={NO_SNMP_INTERFACES_LABEL.tooltip}
                   >
                     {NO_SNMP_INTERFACES_LABEL.text}
@@ -2012,7 +2038,7 @@ const NetworkDevices: FunctionComponent<
 
               if (!item.lastSeenAt) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Never")}
                   </span>
                 );
@@ -2088,6 +2114,12 @@ const NetworkDevices: FunctionComponent<
           ...DEVICE_BOUND_MONITOR_SELECT,
           interfacesDown: true,
           sysName: true,
+          /*
+           * What the Vendor / Model cell reads its maker and model from,
+           * through the asset facts. The column itself is keyed by the maker
+           * the server keeps (manufacturer), which it sorts by.
+           */
+          vendor: true,
           deviceModel: true,
           /*
            * What "Shorten Names to Hostname" plans its confirmation from and

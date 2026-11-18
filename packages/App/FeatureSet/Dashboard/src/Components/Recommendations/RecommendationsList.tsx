@@ -122,7 +122,7 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                   <Pill text="All handled" tone={PillTone.Success} />
                 )}
                 {handledInGroup > 0 && availableInGroup.length > 0 ? (
-                  <span className="max-sm:hidden text-xs text-gray-400 sm:inline">
+                  <span className="max-sm:hidden text-xs text-gray-500 sm:inline">
                     {translator.translateTemplate("{{count}} handled", {
                       count: translator.formatNumber(handledInGroup),
                     })}

@@ -4,7 +4,17 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME } from "../../Topology/TopologyToolbarPicker";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -145,6 +155,19 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The line-label picker's choices, in the reader's language.
+  const edgeLabelOptions: Array<DropdownOption> =
+    MESSAGE_QUEUE_TOPOLOGY_EDGE_LABEL_OPTIONS.map(
+      (option: {
+        value: MessageQueueTopologyEdgeLabel;
+        label: string;
+      }): DropdownOption => {
+        return getTranslatedDropdownOption(
+          option.value,
+          translator.translateText(option.label) || option.label,
+        );
+      },
+    );
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [panExtent, setPanExtent] = useState<FlowExtent>(UNBOUNDED_FLOW_EXTENT);
   const [drawingInView, setDrawingInView] = useState<boolean>(true);
@@ -354,33 +377,32 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="message-queue-topology-map">
       <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 px-5 py-3">
-        <label className="flex items-center gap-2 text-xs text-gray-600">
-          {translator.translateText("Line labels")}
-          <select
-            className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs"
-            aria-label={translator.translateText("Line labels") || ""}
-            data-testid="message-queue-topology-edge-label"
-            value={props.edgeLabel}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              props.onEdgeLabelChange(
-                event.target.value as MessageQueueTopologyEdgeLabel,
-              );
-            }}
-          >
-            {MESSAGE_QUEUE_TOPOLOGY_EDGE_LABEL_OPTIONS.map(
-              (option: {
-                value: MessageQueueTopologyEdgeLabel;
-                label: string;
-              }): ReactElement => {
-                return (
-                  <option key={option.value} value={option.value}>
-                    {translator.translateText(option.label)}
-                  </option>
-                );
-              },
-            )}
-          </select>
-        </label>
+        <div className="flex items-center gap-2 text-xs text-gray-600">
+          <span aria-hidden={true}>
+            {translator.translateText("Line labels")}
+          </span>
+          <div data-testid="message-queue-topology-edge-label">
+            <Dropdown
+              className={TOPOLOGY_LINE_LABEL_DROPDOWN_CLASS_NAME}
+              options={edgeLabelOptions}
+              value={findDropdownOption(edgeLabelOptions, props.edgeLabel)}
+              isClearable={false}
+              ariaLabel={translator.translateText("Line labels")}
+              isAriaLabelTranslated={true}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
+
+                if (picked !== null && picked !== props.edgeLabel) {
+                  props.onEdgeLabelChange(
+                    picked as MessageQueueTopologyEdgeLabel,
+                  );
+                }
+              }}
+            />
+          </div>
+        </div>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <span className="text-xs text-gray-500">
             {translator.translateText("Ctrl + scroll or pinch to zoom")}

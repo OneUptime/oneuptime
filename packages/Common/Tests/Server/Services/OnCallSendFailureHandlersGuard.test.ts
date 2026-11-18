@@ -762,10 +762,18 @@ const STATUS_WRITERS: Array<StatusWriter> = [
     file: "Common/Server/Services/UserOnCallLogTimelineService.ts",
     writes: { recordSendResult: 1 },
   },
-  // The person's answers: the acknowledge link, a call's 1, a test page's link.
+  // The person's answers: the acknowledge link and a call's 1.
   {
     file: "Common/Server/API/UserOnCallLogTimelineAPI.ts",
-    writes: { recordAcknowledgement: 3 },
+    writes: { recordAcknowledgement: 2 },
+  },
+  /*
+   * A test page's answer, from any of its messages (#7014): its link's page
+   * and the On-Call app's Acknowledge test page ask the one rule.
+   */
+  {
+    file: "Common/Server/Utils/OnCall/OnCallTestPageAcknowledge.ts",
+    writes: { recordAcknowledgement: 1 },
   },
   // A custom channel's (or a gateway's) Acknowledge.
   {
@@ -957,8 +965,13 @@ describe("nothing else writes a notification's status (issue #7082)", () => {
 
     visit(source);
 
+    /*
+     * `${since}` narrows the WHERE to the rows written or changed since a
+     * time (sinceCondition: "createdAt" / "updatedAt" alone), for the
+     * credentials job's second pass; it sets nothing.
+     */
     expect(statements).toEqual([
-      'UPDATE "UserOnCallLogTimeline" SET "statusMessage" = $1 WHERE "statusMessage" ~ $2',
+      '`UPDATE "UserOnCallLogTimeline" SET "statusMessage" = $1 WHERE "statusMessage" ~ $2${since}`',
     ]);
   });
 

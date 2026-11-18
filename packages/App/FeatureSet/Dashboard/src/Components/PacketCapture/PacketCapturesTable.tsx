@@ -3,6 +3,7 @@ import {
   PacketCaptureFile,
   stopPacketCapture,
 } from "./PacketCaptureApi";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import PacketCaptureReadinessNotice from "./PacketCaptureReadinessNotice";
 import {
   CaptureStatusDisplay,
@@ -39,7 +40,6 @@ import {
 import PacketCaptureStatus from "Common/Types/PacketCapture/PacketCaptureStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -373,7 +373,7 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
     return (
       <Card title="Packet Captures" description={cardDescription}>
         {hasPastCaptures === null ? (
-          <ComponentLoader />
+          <TableSkeleton />
         ) : (
           <PacketCaptureReadinessNotice
             readiness={

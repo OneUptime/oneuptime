@@ -1,8 +1,11 @@
 // UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { listScanRoots } from "../ForeignHiddenRuleGuard";
 import {
   FaintText,
-  FaintTextKind,
+  REPOSITORY_ROOT,
   findFaintText,
   scanDirectories,
 } from "../Helpers/FaintTextScan";
@@ -28,39 +31,43 @@ import {
  * So text a person reads is gray-500 or darker: gray-500 is 4.8:1 on white
  * (held below), and the dark theme paints gray-400 and gray-500 the same
  * slate (Theme.css), so the move changes nothing there. Body text reads
- * better at gray-600. And it is at least 11px: text-[10px] and smaller are
- * flagged.
+ * better at gray-600.
+ *
+ * And it is text-xs (12px) or larger (#9192). text-[10px] and smaller are
+ * flagged everywhere. 11px (text-[11px]) is kept for a short label that
+ * its shape makes legible: an eyebrow in capitals ("uppercase": "RECENT",
+ * "LAST 24 HOURS"), or a chip, a badge or a key that frames its word
+ * (rounded, on a ground or in a border of its own; a kbd). Those still meet
+ * 4.5:1, since their colour is held like any other. A hint, a value, a
+ * timestamp or a sentence at 11px is flagged: write text-xs.
  *
  * The scan (Tests/Helpers/FaintTextScan) reads every element whose className
- * names a resting text-gray-300/400 (or slate's), or text-[10px] and under,
- * and that holds words or a value. It leaves alone what nobody reads as
- * words: an icon (an Icon, an svg), an aria-hidden or sr-only element, a
- * lone separator or the quiet dash ("/", "·", "—"), an element on a dark
- * ground of its own (bg-gray-700 and darker), and a variant (hover:,
- * placeholder:, dark:). gray-400 stays right for those.
+ * names a resting text-gray-300/400 (or slate's), or a size under 12px, and
+ * that holds words or a value. It follows a class held in a const of the
+ * same file (className={FACET_COUNT_COLUMN_CLASS}). It leaves alone what
+ * nobody reads as words: an icon (an Icon, an svg), an aria-hidden or
+ * sr-only element, a lone separator, ellipsis or the quiet dash ("/", "·",
+ * "…", "—"), an element on a dark ground of its own (bg-gray-700 and
+ * darker), and a variant (hover:, placeholder:, dark:). gray-400 stays right
+ * for those.
  *
  * To fix one: write text-gray-500 (text-gray-600 for body text), and
- * text-xs for a tiny size. A use that truly is not read as words (a
+ * text-xs for a small size. A use that truly is not read as words (a
  * placeholder drawn by hand, a disabled row) goes in NOT_READ_AS_WORDS below
- * with why. The scan covers Common's components and the Dashboard's Logs,
- * Traces, Exceptions and On-Call screens; more of the Dashboard joins as it
- * is fixed.
+ * with why.
+ *
+ * Every app and the shared UI hold none (#9192 fixed the last of them).
  */
 
-const SCANNED_DIRECTORIES: ReadonlyArray<string> = [
-  "packages/Common/UI/Components",
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions",
-  "packages/App/FeatureSet/Dashboard/src/Components/Logs",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallDutySchedule",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallRule",
-  "packages/App/FeatureSet/Dashboard/src/Components/Span",
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Exceptions",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Logs",
-  "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Traces",
-];
+/*
+ * Every frontend is read: each feature set's browser source, the shared UI
+ * and the Enterprise screens when ee/ is there.
+ */
+const SCANNED_DIRECTORIES: ReadonlyArray<string> = listScanRoots(
+  REPOSITORY_ROOT,
+).map((directory: string): string => {
+  return path.relative(REPOSITORY_ROOT, directory).split(path.sep).join("/");
+});
 
 interface NotReadAsWords {
   file: string;
@@ -105,6 +112,37 @@ const NOT_READ_AS_WORDS: ReadonlyArray<NotReadAsWords> = [
     literal: "text-slate-300 whitespace-pre-wrap break-all",
     reason:
       "The viewer's content when it is handed elements, on the same bg-slate-900 panel.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetupModal.tsx",
+    literal: "text-gray-400",
+    reason:
+      "A check row's label while its checkbox is disabled: the look of a disabled control, with the enabled label in gray-800.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeComposer.tsx",
+    literal: "text-gray-300",
+    reason:
+      "The Add context menu's button while the context is locked (the menu isDisabled): a disabled control.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiConnectModal.tsx",
+    literal: "bg-white text-gray-400 ring-gray-200",
+    reason:
+      "A step of the connect dialog not reached yet: its button is disabled until the steps before it are done.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderParts.tsx",
+    literal: "text-gray-400",
+    reason:
+      "The punctuation a translated method label puts between the method's name and its identifier (': '), handed in by renderText, so the scan cannot see it is only a mark.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Settings/MobileApps.tsx",
+    literal:
+      "text-[11px] font-medium uppercase leading-tight tracking-[0.1em] text-gray-300",
+    reason:
+      "A store badge's small line (\"Download on the\") on the badge's gray-800 to gray-950 gradient, drawn by a component apart from the badge: gray-300 is about 10:1 there.",
   },
 ];
 
@@ -194,7 +232,55 @@ describe("the scan finds faint and tiny text", () => {
     expect(scan(`<span className="text-[9px]">{count}</span>`)).toEqual([
       "tiny-size text-[9px]",
     ]);
-    expect(scan(`<span className="text-[11px]">{count}</span>`)).toEqual([]);
+    expect(scan(`<span className="text-[10.5px]">{count}</span>`)).toEqual([
+      "tiny-size text-[10.5px]",
+    ]);
+  });
+
+  test("11px for a hint, a value or a sentence", () => {
+    expect(
+      scan(`<p className="text-[11px] text-gray-500">No values found.</p>`),
+    ).toEqual(["small-size text-[11px]"]);
+    expect(
+      scan(`<span className="font-mono text-[11px]">{timestamp}</span>`),
+    ).toEqual(["small-size text-[11px]"]);
+    // A hover ground is not a chip's: at rest it is bare words.
+    expect(
+      scan(
+        `<button className="rounded px-1.5 text-[11px] hover:bg-gray-100">Clear all</button>`,
+      ),
+    ).toEqual(["small-size text-[11px]"]);
+  });
+
+  test("a class held in a const of the file", () => {
+    expect(
+      scan(
+        `const COUNT_CLASS: string = "w-7 font-mono text-[10px]"; <span className={COUNT_CLASS}>{count}</span>`,
+      ),
+    ).toEqual(["tiny-size text-[10px]"]);
+    expect(
+      scan(
+        `const BASE = "truncate text-gray-400"; <span className={\`\${BASE} \${extra}\`}>{label}</span>`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+    expect(
+      scan(
+        `function Row() { const tone = on ? "text-gray-900" : "text-gray-400"; return <span className={tone}>{label}</span>; }`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+    expect(
+      scan(
+        `const STYLES = { label: "text-xs text-gray-400" } as const; <span className={STYLES.label}>{label}</span>`,
+      ),
+    ).toEqual(["faint-gray text-gray-400"]);
+  });
+
+  test("the nearest const of a name, as the language reads it", () => {
+    expect(
+      scan(
+        `const tone = "text-gray-400"; function Row() { const tone = "text-gray-700"; return <span className={tone}>{label}</span>; }`,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -216,6 +302,12 @@ describe("the scan leaves alone what nobody reads as words", () => {
     ).toEqual([]);
     expect(
       scan(`<span className="sr-only text-gray-400">{label}</span>`),
+    ).toEqual([]);
+    // A field's look drawn for the eye: its placeholder is not read.
+    expect(
+      scan(
+        `<div aria-hidden="true"><div className="rounded-md border"><span className="text-gray-400">{placeholder}</span></div></div>`,
+      ),
     ).toEqual([]);
   });
 
@@ -261,36 +353,36 @@ describe("the scan leaves alone what nobody reads as words", () => {
   });
 });
 
-describe("text people read is readable (#9127)", () => {
-  const found: Array<FaintText> = scanDirectories(SCANNED_DIRECTORIES);
+describe("text people read is readable (#9127, #9192)", () => {
+  const everything: Array<FaintText> = scanDirectories(SCANNED_DIRECTORIES);
 
-  test("the scan reads the shared components", () => {
+  test("the scan reads the shared UI and every app", () => {
+    for (const directory of [
+      "packages/Common/UI",
+      "packages/App/FeatureSet/Dashboard/src",
+      "packages/App/FeatureSet/StatusPage/src",
+      "packages/App/FeatureSet/AdminDashboard/src",
+      "packages/App/FeatureSet/Accounts/src",
+    ]) {
+      expect(SCANNED_DIRECTORIES).toContain(directory);
+    }
+
     // A path or a parser that went wrong would pass by finding nothing.
     expect(
-      found.filter((text: FaintText): boolean => {
-        return text.file.startsWith("packages/Common/UI/Components/");
-      }).length,
-    ).toBeGreaterThan(0);
+      everything.some((text: FaintText): boolean => {
+        return text.file.startsWith("packages/Common/UI/");
+      }),
+    ).toBe(true);
   });
 
-  test("no gray-300 or gray-400 text that is read as words", () => {
-    const faint: Array<string> = found
-      .filter((text: FaintText): boolean => {
-        return text.kind === FaintTextKind.FaintGray && !isNotReadAsWords(text);
-      })
-      .map(describeFinding);
-
-    expect(faint).toEqual([]);
-  });
-
-  test("no text smaller than 11px", () => {
-    const tiny: Array<string> = found
-      .filter((text: FaintText): boolean => {
-        return text.kind === FaintTextKind.TinySize;
-      })
-      .map(describeFinding);
-
-    expect(tiny).toEqual([]);
+  test("no faint or small text that is read as words, in any app", () => {
+    expect(
+      everything
+        .filter((text: FaintText): boolean => {
+          return !isNotReadAsWords(text);
+        })
+        .map(describeFinding),
+    ).toEqual([]);
   });
 
   test.each(
@@ -300,8 +392,16 @@ describe("text people read is readable (#9127)", () => {
   )(
     "each exception still matches a use: %s",
     (_file: string, entry: NotReadAsWords) => {
+      // The Enterprise screens are not in every copy of the repository.
+      if (
+        entry.file.startsWith("ee/") &&
+        !fs.existsSync(path.join(REPOSITORY_ROOT, entry.file))
+      ) {
+        return;
+      }
+
       expect(
-        found.some((text: FaintText): boolean => {
+        everything.some((text: FaintText): boolean => {
           return text.file === entry.file && text.literal === entry.literal;
         }),
       ).toBe(true);

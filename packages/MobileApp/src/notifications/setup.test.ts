@@ -8,10 +8,12 @@ import {
 import { CRITICAL_CHANNEL } from "./channels";
 import {
   ACKNOWLEDGE_PAGE_ACTION,
+  ACKNOWLEDGE_TEST_PAGE_ACTION,
   ESCALATE_PAGE_ACTION,
   MARK_PAGE_SEEN_ACTION,
   ON_CALL_OBSERVER_PAGE_CATEGORY,
   ON_CALL_PAGE_CATEGORY,
+  ON_CALL_TEST_PAGE_CATEGORY,
 } from "./categories";
 import logger from "../utils/logger";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
@@ -182,7 +184,7 @@ describe("setupNotificationCategories", () => {
   });
 
   test.each(["ios", "android"] as Array<"ios" | "android">)(
-    "on %s, registers the responder's category with Acknowledge and Escalate, and the observer's with I've seen it",
+    "on %s, registers the responder's category with Acknowledge and Escalate, the observer's with I've seen it, and the test page's with Acknowledge test page",
     async (os: "ios" | "android") => {
       setPlatform(os);
 
@@ -208,11 +210,12 @@ describe("setupNotificationCategories", () => {
           [ACKNOWLEDGE_PAGE_ACTION, ESCALATE_PAGE_ACTION],
         ],
         [ON_CALL_OBSERVER_PAGE_CATEGORY, [MARK_PAGE_SEEN_ACTION]],
+        [ON_CALL_TEST_PAGE_CATEGORY, [ACKNOWLEDGE_TEST_PAGE_ACTION]],
       ]);
     },
   );
 
-  test("a category the phone refuses leaves the other in place", async () => {
+  test("a category the phone refuses leaves the others in place", async () => {
     const errorSpy: jest.SpyInstance = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
@@ -222,8 +225,9 @@ describe("setupNotificationCategories", () => {
 
     await setupNotificationCategories();
 
-    expect(categorySpy).toHaveBeenCalledTimes(2);
+    expect(categorySpy).toHaveBeenCalledTimes(3);
     expect(categorySpy.mock.calls[1]![0]).toBe(ON_CALL_OBSERVER_PAGE_CATEGORY);
+    expect(categorySpy.mock.calls[2]![0]).toBe(ON_CALL_TEST_PAGE_CATEGORY);
     expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 

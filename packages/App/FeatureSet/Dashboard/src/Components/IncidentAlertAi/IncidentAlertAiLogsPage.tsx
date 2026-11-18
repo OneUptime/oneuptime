@@ -1,4 +1,5 @@
 import FixProductionVerdict from "../AI/FixProductionVerdict";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import PageComponentProps from "../../Pages/PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -56,7 +57,6 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -436,7 +436,7 @@ const IncidentAlertAiLogsPage: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     body = (
       <div data-testid="ai-logs-loading">
-        <PageLoader isVisible={true} />
+        <TableSkeleton />
       </div>
     );
   } else if (!logs) {

@@ -634,7 +634,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 )}
               </div>
               {!stats.isLoaded ? (
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-500">
                   {translator.translateText("Loading…")}
                 </div>
               ) : lastExec ? (

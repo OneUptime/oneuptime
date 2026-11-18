@@ -1,11 +1,11 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -186,7 +186,7 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
   if (isLoading) {
     return (
       <Card title="Archive" description="Loading…">
-        <ComponentLoader />
+        <DetailListSkeleton fields={2} columns={1} />
       </Card>
     );
   }

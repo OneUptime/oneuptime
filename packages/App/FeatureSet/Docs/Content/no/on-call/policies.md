@@ -12,15 +12,19 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 ## Opprett en policy
 
 :::steps
-1. Gå til **Vakt → Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt → Vaktpolicyer**, og klikk på **Opprett vaktpolicy**.
 2. Skriv inn et **Navn**, for eksempel "Betalinger primær".
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal tilkalles først.
-4. Klikk på **Opprett Vaktpolicy**. Policyen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
+4. Klikk på **Opprett vaktpolicy**. Policyen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
 :::
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller policyen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
-For den første policyen i et prosjekt spør skjemaet også **Utløs den ved hver nye hendelse og hvert nye varsel**, som starter slått på. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Bare folk som kan legge til vaktregler, får spørsmålet, så lenge prosjektet verken har en vaktpolicy eller en vaktregel.
+Skjemaet spør også **Utløs den ved hver nye hendelse og hvert nye varsel**, hvis du kan legge til vaktregler. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Den starter slått på for den første policyen i et prosjekt, så lenge prosjektet verken har en vaktpolicy eller en vaktregel, og slått av for senere policyer: å utløse to policyer ved hver nye hendelse og hvert nye varsel er et valg du må ta. Slått av tilkaller policyen ingen før en regel, en monitor eller en person kjører den.
+
+![Forklaringen på den tomme listen «Vaktpolicyer», med «Veiledet oppsett» uthevet](screen:on-call-policies-guided-setup)
+
+Vil du heller bli veiledet steg for steg, fra telefonen din til et testtilkall, klikker du på **Veiledet oppsett**: på den tomme listen **Vaktpolicyer** eller under **Slik fungerer det**. Se [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
 Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
@@ -96,6 +100,24 @@ Ingen går glipp av en tilkalling ved bare å bli tilkalt én gang. Den ene tilk
 Noen tilkallinger fortsetter etter at den er bekreftet, til noen de har tilkalt, svarer, eller den er løst: en ny varsling, en tilkalling til observatører, en tilkalling som noen har sendt til personer fra Slack eller Microsoft Teams, og en policy som er startet manuelt.
 
 En policy som er startet manuelt, er en som er startet med **Kjør vaktpolicy**, eller av en tilkalling fra Slack eller Microsoft Teams som nevner den. Den tilkaller nivå for nivå som enhver kjøring, med samtaler og gjentatte push-varsler, og at noen andre bekrefter hendelsen, stopper den ikke: slik tilkaller du et annet team til en hendelse som noen allerede jobber med. Den den har tilkalt, svarer fra meldingen i tilkallingen sin, en samtale eller en SMS, eller ved selv å bekrefte hendelsen; når hendelsen er bekreftet, tilbyr siden til hendelsen vedkommende **Bekreft igjen**. **Eskaler** sender den videre til neste nivå. På en hendelse, et varsel eller en episode som er løst, startes ingenting, og du får vite hvorfor: dashbordet slår av **Kjør vaktpolicy** og viser årsaken. Varslene fra den sier hvem som startet hvilken policy, og har med meldingen som ble sendt med en tilkalling fra Slack eller Microsoft Teams.
+
+## Test en policy
+
+**Test denne policyen**, i eskaleringsreglene til en policy, kaller opp det første nivået som en test, uten en hendelse bak: det står TEST i hver melding, og ingen statusside, abonnent eller kanal får beskjed. Slå på **Gå gjennom hvert eskaleringsnivå** for å kalle opp hvert nivå etter tur, høyst 2 minutter fra hverandre, til noen bekrefter. Før noe sendes, viser dialogen hvem testen kaller opp og hvordan, og hva den koster på OneUptime Cloud.
+
+**Send testoppkall** forblir slått av så lenge testen ikke ville nådd noen: alle den kaller opp, har valgt bort alvorlighetsgraden, har ingen regel for den og ingenting å falle tilbake på, eller har bare metoder som ikke er verifisert eller er slått av i prosjektet. En linje under listen sier hvorfor. Kan bare et senere nivå nås, tilbyr linjen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
+
+Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: lenken i en e-post, en SMS eller en chatmelding, 1 i et anrop eller push-varslingen i OneUptime On-Call-appen, i versjoner nyere enn 1.6.0. En policy kan testes én gang hvert 5. minutt, og et prosjekt sender høyst 20 tester i timen.
+
+### Hold en beredskapsøvelse for en monitor
+
+**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner, eller hendelsen som en hendelsesregel for varsler oppretter fra et slikt varsel. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå. For en opprettet hendelse nevner den også regelen og hvor lenge varselet først står åpent: øvelsen tester hendelsens policyer med en gang, uten den ventetiden.
+
+En øvelse kaller opp hver policys første nivå. Under **Flere felt** kan du slå på **Gå gjennom hvert eskaleringsnivå** for å kalle opp hver policys nivåer etter tur, høyst 2 minutter fra hverandre, til noen bekrefter: dialogen viser da hvert nivå hver policy når, og hva gjennomgangen høyst koster. Når ingen på de første nivåene kan nås, men et senere nivå kan, tilbyr linjen under listen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
+
+**Start beredskapsøvelse** forblir slått av så lenge en av de policyene er en du ikke kan teste, fordi du ikke kan redigere den, eller så lenge ingen de kaller opp, kan nås. Hver policy i en øvelse teller som en egen test: en policy som er testet de siste 5 minuttene, stopper hele øvelsen, og en øvelse med tre policyer bruker tre av prosjektets 20 tester i timen.
+
+Når dialogen er lukket, sier **Siste beredskapsøvelse** på kortet hvilken feil monitorens siste øvelse øvde på, når og av hvem den ble startet, og hvor mange av testene som ble bekreftet. **Vis detaljer** viser hver policys test: om den ble bekreftet, av hvem, hvordan og hvor raskt. Hver test blir værende i policyens utførelseslogger, merket som en beredskapsøvelse for monitoren. Resultatene av en øvelse vises for den som kan lese monitoren og hver av disse utførelsesloggene.
 
 ## Utførelseslogger
 

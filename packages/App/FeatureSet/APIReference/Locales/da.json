@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Kun Master Admin API",
       "masterAdminOnlyBody": "Dette API kan kun tilgås gennem et Master API-token. Du kan oprette et på Admin Dashboard. Tilføj venligst tokenet til <code>ApiKey</code>-headeren for at foretage anmodningen."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Læs lag",
+      "scheduleLayersReadIntro": "Dette endpoint returnerer vagtplanens lag og personerne i dem, som de er gemt: hvert lag, vagtplanen beholder, det med højest prioritet først, hvert med sine personer i vagtrækkefølge, og den version, de er på, som basedOnVersion. Det er en gemning, der ikke ændrer noget: ret den, og send den til Gem lag.",
+      "scheduleLayersReadRequestTitle": "Anmodning om at læse lag",
+      "scheduleIdDescription": "ID for vagtplanen",
+      "scheduleLayersSaveHeading": "Gem lag",
+      "scheduleLayersSaveIntro": "Dette endpoint gemmer på én gang, hvem der tager vagter i vagtplanens lag, og lagenes prioritet, i én transaktion: alt gemmes, eller intet gør. Hvem der har vagt, beregnes derefter én gang, og hver person, der får en ændring, får besked én gang. Det er underlagt de samme tilladelser og kontroller som endpointene for lag og deres personer. Et lags egne indstillinger, såsom navn og rotation, er ikke en del af det.",
+      "scheduleLayersSaveRequestTitle": "Anmodning om at gemme lag",
+      "basedOnVersionDescription": "Den version af lagene, som dine ændringer blev foretaget på, som Læs lag returnerer den.",
+      "layersDescription": "Hvert lag, vagtplanen beholder, det med højest prioritet først, hvert som { layerId, users }. users er de personer, der tager vagter i det, i vagtrækkefølge: den, der allerede er i laget, som { layerUserId, userId }, den, der tilføjes, som { userId }. Den, der udelades af sit lag, tages ud af det.",
+      "deletedLayerIdsDescription": "De lag, der skal slettes, med personerne i dem. En vagtplan beholder mindst ét lag.",
+      "refusalsHeading": "Afvisninger",
+      "scheduleLayersConflict": "409 Conflict: lagene blev ændret, efter at den version, du sendte, blev læst, så intet gemmes. Læs lagene igen, og foretag din ændring på det, der er der nu.",
+      "scheduleLayersBadRequest": "400 Bad Request: gemningen nævner ikke hvert lag i vagtplanen én gang, i layers eller deletedLayerIds, nævner et lag eller en persons række, der ikke hører til vagtplanen, eller sletter alle lag.",
+      "userOverrideEndNowHeading": "Afslut nu",
+      "userOverrideEndNowIntro": "Dette endpoint afslutter en igangværende tilsidesættelse efter serverens ur: dens slutning bliver nu, og fra da af er tilkaldene den fraværende persons igen. Det kræver samme tilladelse som en opdatering og returnerer tilsidesættelsens nye endsAt.",
+      "userOverrideEndNowRequestTitle": "Anmodning om at afslutte nu",
+      "userOverrideIdDescription": "ID for brugertilsidesættelsen",
+      "userOverrideEndNowRefused": "400 Bad Request: tilsidesættelsen er ikke startet endnu (slet den i stedet), er allerede slut eller slutter alligevel inden for minuttet."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Datatype",

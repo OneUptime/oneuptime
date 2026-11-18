@@ -211,7 +211,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
         <Icon icon={IconProp.ViewColumns} className="h-3.5 w-3.5" />
         <span>{translator.translateText("Columns")}</span>
         {hasSelection && (
-          <span className="rounded bg-indigo-100 px-1 text-[10px] font-semibold tabular-nums text-indigo-700">
+          <span className="rounded bg-indigo-100 px-1 text-xs font-semibold tabular-nums text-indigo-700">
             {selectedKeys.length}
           </span>
         )}
@@ -250,7 +250,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               {translator.translateText("Shown on rows")}
             </p>
 
@@ -281,7 +281,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                           <p className="truncate text-xs font-medium text-gray-900">
                             {column.label}
                           </p>
-                          <p className="break-all font-mono text-[10px] leading-snug text-gray-400">
+                          <p className="break-all font-mono text-xs leading-snug text-gray-500">
                             {column.key}
                           </p>
                         </div>
@@ -352,7 +352,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               {translator.translateText("Add an attribute")}
             </p>
 
@@ -399,7 +399,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                     <p className="break-all font-mono text-xs text-gray-700">
                       {typedKey}
                     </p>
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-xs text-gray-500">
                       {translator.translateText(
                         "Add this exact key as a column.",
                       )}
@@ -457,7 +457,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                         <p className="truncate text-xs font-medium text-gray-800">
                           {column.label}
                         </p>
-                        <p className="break-all font-mono text-[10px] leading-snug text-gray-400">
+                        <p className="break-all font-mono text-xs leading-snug text-gray-500">
                           {column.key}
                         </p>
                       </div>
@@ -481,7 +481,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
             </div>
 
             {searchResult.total > searchResult.keys.length && (
-              <p className="mt-2 text-[11px] text-gray-400">
+              <p className="mt-2 text-xs text-gray-500">
                 {translator.translateTemplate(
                   "Showing {{shown}} of {{total}} matching attributes. Keep typing to narrow.",
                   {

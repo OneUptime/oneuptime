@@ -1,5 +1,5 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FieldType from "../Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -267,7 +267,7 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
       </div>
       {props.showFilter && props.isFilterLoading && !props.filterError && (
         <div className="py-4">
-          <ComponentLoader />
+          <DetailListSkeleton fields={3} />
         </div>
       )}
 

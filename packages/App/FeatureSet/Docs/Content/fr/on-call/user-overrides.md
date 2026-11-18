@@ -6,6 +6,7 @@ Pendant l'absence de quelqu'un, un remplacement d'utilisateur envoie les alertes
 - [Comment un remplacement change une alerte](#comment-un-remplacement-change-une-alerte): Qui est alerté à la place, et quand.
 - [Ajouter un remplacement](#ajouter-un-remplacement): Qui est absent, qui remplace, à partir de quand et jusqu'à quand.
 - [Modifier un remplacement](#modifier-un-remplacement): Changer qui remplace, ou quand il commence et se termine.
+- [Terminer un remplacement plus tôt](#terminer-un-remplacement-plus-tôt): Faire revenir quelqu'un avant la fin de son remplacement.
 - [Toutes les politiques, ou une seule](#toutes-les-politiques-ou-une-seule): Où ajouter un remplacement, et lequel l'emporte.
 - [Autres façons d'en ajouter un](#autres-façons-den-ajouter-un): Depuis un planning, et depuis vos permanences à venir.
 :::
@@ -56,10 +57,16 @@ Chaque remplacement est une ligne : **Absent**, **Remplacé par**, **Commence** 
 Cliquez sur **Modifier** sur la ligne d'un remplacement, sur l'une ou l'autre page **Remplacements d'utilisateur**, ou dans la liste des remplacements d'utilisateur de la page **Couches** d'un planning. Le formulaire s'ouvre avec le remplacement tel qu'il a été enregistré : modifiez-le, puis cliquez sur **Enregistrer les modifications**.
 
 - **Qui remplace ?** peut changer jusqu'à la fin du remplacement. Remettez **Personne suivante de la rotation** pour sauter plutôt la personne.
-- **Commence** peut être déplacé jusqu'au début du remplacement, puis reste tel quel. **Se termine** peut être déplacé jusqu'à la fin du remplacement : réglez-le sur maintenant pour arrêter le remplacement plus tôt. Aucun des deux ne peut être déplacé dans le passé.
+- **Commence** peut être déplacé jusqu'au début du remplacement, puis reste tel quel. **Se termine** peut être déplacé jusqu'à la fin du remplacement : pour l'arrêter maintenant, utilisez **Terminer maintenant**. Aucun des deux ne peut être déplacé dans le passé.
 - **Qui est absent ?** ne peut pas changer. Pour quelqu'un d'autre, ajoutez un nouveau remplacement.
 
-Un remplacement terminé ne peut plus être modifié : son **Modifier** est verrouillé et dit pourquoi.
+Un remplacement terminé ne peut plus être modifié : son **Modifier** est verrouillé et dit pourquoi. L'application mobile OneUptime modifie les remplacements selon les mêmes règles.
+
+## Terminer un remplacement plus tôt
+
+Pour faire revenir quelqu'un avant la fin de son remplacement, cliquez sur **Terminer maintenant** : dans le menu de la ligne du remplacement, sur l'une ou l'autre page **Remplacements d'utilisateur**, à côté de lui dans la liste des remplacements d'utilisateur de la page **Couches** d'un planning, ou sous **Se termine** dans son formulaire de modification. Il demande d'abord confirmation et dit ce que devient le temps restant : la personne qui remplace cesse de remplacer, ou la personne cesse d'être sautée, et ses alertes lui reviennent dès lors. Le remplacement se termine alors aussitôt.
+
+**Terminer maintenant** n'est proposé que pendant qu'un remplacement est en cours : un remplacement qui n'a pas encore commencé n'a rien à terminer, supprimez-le plutôt. L'application mobile termine de la même façon un remplacement en cours.
 
 ## Toutes les politiques, ou une seule
 
@@ -68,11 +75,11 @@ Un remplacement terminé ne peut plus être modifié : son **Modifier** est verr
 | **Astreinte → Avancé → Remplacements d'utilisateur** | **Remplacements d'utilisateur globaux** | Toutes les politiques d'astreinte du projet |
 | **Remplacements d'utilisateur** d'une politique | **Remplacements d'utilisateurs de la politique d'astreinte** | Cette politique seulement |
 
-Deux remplacements pour la même personne ne peuvent pas se chevaucher sur la même politique, ni quand les deux sont globaux. Le formulaire le signale dès que les heures sont choisies, avec **Modifier ce remplacement** pour modifier plutôt celui-là. L'un peut se terminer quand le suivant commence.
+Deux remplacements pour la même personne ne peuvent pas se chevaucher sur la même politique, ni quand les deux sont globaux. Le formulaire, et **Passer son tour jusqu'au…** dans les couches d'un planning, le signalent à côté des heures dès qu'elles sont choisies, avec **Modifier ce remplacement** pour modifier plutôt celui-là. L'un peut se terminer quand le suivant commence.
 
 Le remplacement propre à une politique peut chevaucher un remplacement global de la même personne : sur cette politique, c'est le sien qui est utilisé tant que les deux s'appliquent, et le formulaire le signale. Une alerte envoyée sans politique, depuis un flux de travail ou depuis le chat, ne suit que les remplacements globaux.
 
-Les remplacements qui se chevauchaient avant cette règle restent tels quels. Les deux sont marqués **Chevauchement**, qui indique lequel est utilisé : celui qui désigne un remplaçant plutôt qu'un saut, puis celui qui commence en premier, puis celui ajouté en premier.
+Les remplacements qui se chevauchaient avant cette règle restent tels quels. Les deux sont marqués **Chevauchement**, qui indique lequel est utilisé : celui qui désigne un remplaçant plutôt qu'un saut, puis celui qui commence en premier, puis celui ajouté en premier. L'un comme l'autre peut toujours être raccourci, ou terminé avec **Terminer maintenant** : seule une modification qui ajoute du temps est soumise à la règle.
 
 ## Autres façons d'en ajouter un
 
@@ -85,7 +92,7 @@ Quand quelqu'un quitte le projet, chaque remplacement qui le nomme et qui n'est 
 
 **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent ajouter, modifier et supprimer des remplacements ; **Lecteur** et **Lecteur des astreintes** peuvent les voir. Dans un rôle personnalisé, les permissions sont **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** et **Read On-Call Policy User Override**. Sur la **Chronologie des astreintes**, seules les personnes qui peuvent lire les remplacements voient quelle permanence est remplacée.
 
-Un remplacement sur une politique suit la portée de la politique. Donnez à une équipe **Membre des astreintes** limité aux politiques qu'elle possède, ou à son étiquette, et ses membres ajoutent, modifient et suppriment des remplacements sur ces seules politiques. Un remplacement global s'applique à toutes les politiques, celles d'une autre équipe comprises, si bien que l'ajouter, le modifier ou le supprimer demande la permission des remplacements sur tout le projet. Avec une permission plus étroite, **Ajouter : Remplacement d'utilisateur**, **Modifier** et **Supprimer** dans **Astreinte → Avancé → Remplacements d'utilisateur** sont verrouillés et disent pourquoi. **Passer son tour jusqu'au…** dans les couches d'un planning et **Trouver un remplaçant** sur vos permanences à venir, qui ajoutent des remplacements globaux, proposent à la place les politiques sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, tout comme le remplacement dans l'application mobile ; là où vous n'en avez aucune, ils sont verrouillés et disent pourquoi. L'équipe ajoute ses remplacements sur la page **Remplacements d'utilisateur** de chaque politique. Il en va de même pour l'API : un remplacement sans `onCallDutyPolicyId` est refusé pour une permission limitée à des étiquettes ou aux politiques possédées.
+Un remplacement sur une politique suit la portée de la politique. Donnez à une équipe **Membre des astreintes** limité aux politiques qu'elle possède, ou à son étiquette, et ses membres ajoutent, modifient et suppriment des remplacements sur ces seules politiques. Un remplacement global s'applique à toutes les politiques, celles d'une autre équipe comprises, si bien que l'ajouter, le modifier ou le supprimer demande la permission des remplacements sur tout le projet. Avec une permission plus étroite, **Ajouter : Remplacement d'utilisateur**, **Modifier**, **Terminer maintenant** et **Supprimer** dans **Astreinte → Avancé → Remplacements d'utilisateur** sont verrouillés et disent pourquoi. **Passer son tour jusqu'au…** dans les couches d'un planning et **Trouver un remplaçant** sur vos permanences à venir, qui ajoutent des remplacements globaux, proposent à la place les politiques sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, tout comme le remplacement dans l'application mobile ; là où vous n'en avez aucune, ils sont verrouillés et disent pourquoi. L'équipe ajoute ses remplacements sur la page **Remplacements d'utilisateur** de chaque politique. Il en va de même pour l'API : un remplacement sans `onCallDutyPolicyId` est refusé pour une permission limitée à des étiquettes ou aux politiques possédées.
 
 Sur OneUptime Cloud, les remplacements d'utilisateur nécessitent l'offre **Growth**.
 
@@ -118,6 +125,8 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
 Un remplacement dont la personne absente et le remplaçant sont la même personne est refusé, tout comme un remplacement qui se termine avant de commencer. Il en va de même d'un remplacement qui en chevauche un autre de la même personne sur la même politique, ou quand les deux sont globaux : le refus nomme celui qu'il chevauche.
 
 Pour modifier un remplacement, envoyez `PUT /api/on-call-duty-policy-user-override/<override-id>` avec les champs à changer dans `data` : `routeAlertsToUserId` (`null` pour sauter plutôt la personne), `startsAt` et `endsAt`. `overrideUserId` et `onCallDutyPolicyId` ne peuvent pas changer. Un remplacement terminé ne peut pas être modifié, ni le début d'un remplacement déjà commencé, et une heure modifiée ne peut pas être déplacée dans le passé.
+
+Pour terminer un remplacement en cours, envoyez `POST /api/on-call-duty-policy-user-override/<override-id>/end-now`. Il se termine selon l'horloge du serveur, et la réponse donne son nouveau `endsAt`. Un remplacement qui n'a pas encore commencé, ou qui est déjà terminé, est refusé.
 
 ## Dépannage
 

@@ -760,7 +760,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.cpuUtilization === undefined
           ) {
             return (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translateText("N/A")}
               </span>
             );
@@ -799,7 +799,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.memoryUsageBytes === undefined
           ) {
             return (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translateText("N/A")}
               </span>
             );

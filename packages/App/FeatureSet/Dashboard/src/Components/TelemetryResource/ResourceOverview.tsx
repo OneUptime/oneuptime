@@ -575,7 +575,7 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
               {sublabel}
             </div>
           ) : (
-            <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+            <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
           )}
           {props.percent !== undefined && props.percent !== null && (
             <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
@@ -788,7 +788,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                 ) : (
                   <></>
                 )}
-                <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
+                <div className="mt-1 text-xs text-gray-500">{lastSeenText}</div>
               </div>
             </div>
             {props.controls ? (

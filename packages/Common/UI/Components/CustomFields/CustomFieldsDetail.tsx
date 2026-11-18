@@ -1,4 +1,5 @@
 import API from "../../Utils/API/API";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -9,7 +10,6 @@ import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Card, { CardButtonSchema, CardHeaderLayout } from "../Card/Card";
 import { useIsCardSection } from "../Card/CardSurface";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
@@ -556,7 +556,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
         className={getCustomFieldsDetailBodyClassName(isCardSection)}
         data-testid="custom-fields-detail-body"
       >
-        {isLoading && !loadError && <ComponentLoader />}
+        {isLoading && !loadError && <DetailListSkeleton />}
         {!isLoading && !loadError && schemaList.length === 0 && (
           <ErrorMessage
             message={props.emptyMessage || NO_CUSTOM_FIELDS_MESSAGE}

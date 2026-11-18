@@ -12,15 +12,19 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 ## Skapa en policy
 
 :::steps
-1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa jourpolicy**.
 2. Ange ett **Namn**, till exempel "Betalningar primär".
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
-4. Klicka på **Skapa Jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
+4. Klicka på **Skapa jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
 :::
 
 **Vem larmas först?** är valfritt och visas bara för personer som får lägga till eskaleringsregler: lämnas det tomt larmar policyn ingen förrän den har en regel. **Beskrivning** och **Etiketter** väntar under **Fler fält**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) för att lägga till nästa nivåer.
 
-För ett projekts första policy frågar formuläret också **Utlös den vid varje ny incident och varje nytt larm**, som är påslaget från början. Det lägger till en regel under **Incidenter → Regler → Jourregler** och en under **Larm → Regler → Jourregler**, som var och en matchar allt och kör den här policyn. Frågan ställs bara till personer som får lägga till jourregler, så länge projektet varken har en jourpolicy eller en jourregel.
+Formuläret frågar också **Utlös den vid varje ny incident och varje nytt larm**, om du får lägga till jourregler. Det lägger till en regel under **Incidenter → Regler → Jourregler** och en under **Larm → Regler → Jourregler**, som var och en matchar allt och kör den här policyn. Det är påslaget från början för ett projekts första policy, så länge projektet varken har en jourpolicy eller en jourregel, och avslaget för senare policyer: att utlösa två policyer vid varje ny incident och varje nytt larm är ett val att göra. Avslaget larmar policyn ingen förrän en regel, en övervakning eller en person kör den.
+
+![Förklaringen på den tomma listan ”Jourpolicyer”, med ”Guidad installation” markerad](screen:on-call-policies-guided-setup)
+
+Vill du hellre guidas steg för steg, från din telefon till ett testlarm, klickar du på **Guidad installation**: på den tomma listan **Jourpolicyer** eller under **Så fungerar det**. Se [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 
 Listan **Jourpolicyer** visar varje policys **Namn**, **Beskrivning**, **Etiketter** och **Ägare**. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
 
@@ -96,6 +100,24 @@ Ingen går miste om ett larm för att hen bara larmas en gång. Personens larm k
 Vissa larm fortsätter efter bekräftelsen, tills någon de har larmat svarar eller den är löst: ett nytt larm, ett larm till observatörer, ett larm som någon har skickat till personer från Slack eller Microsoft Teams, och en policy som har startats manuellt.
 
 En policy som har startats manuellt är en som startats med **Kör jourpolicy**, eller av ett larm från Slack eller Microsoft Teams som nämner den. Den larmar nivå för nivå som varje körning, med samtal och upprepade push-aviseringar, och att någon annan bekräftar incidenten stoppar den inte: så larmar du ytterligare ett team till en incident som någon redan arbetar med. Den som den har larmat svarar från meddelandet i sitt larm, ett samtal eller ett sms, eller genom att själv bekräfta incidenten; när incidenten är bekräftad erbjuder incidentens sida personen **Bekräfta igen**. **Eskalera** skickar den vidare till nästa nivå. På en incident, ett larm eller en episod som är löst startas ingenting, och du får veta varför: instrumentpanelen stänger av **Kör jourpolicy** och visar skälet. Dess aviseringar säger vem som startade vilken policy, och har med meddelandet som skickades med ett larm från Slack eller Microsoft Teams.
+
+## Testa en policy
+
+**Testa den här policyn**, i en policys eskaleringsregler, larmar dess första nivå som ett test, utan någon incident bakom: varje meddelande är märkt TEST, och ingen statussida, prenumerant eller kanal får veta något. Slå på **Gå igenom varje eskaleringsnivå** för att larma varje nivå i tur och ordning, högst 2 minuter isär, tills någon bekräftar. Innan något skickas visar dialogen vem testet larmar och hur, och vad det kostar på OneUptime Cloud.
+
+**Skicka testlarm** förblir avstängd så länge testet inte skulle nå någon: alla som det larmar har valt bort allvarlighetsgraden, har ingen regel för den och inget att falla tillbaka på, eller har bara metoder som inte är verifierade eller är avstängda i projektet. En rad under listan säger varför. Kan bara en senare nivå nås, erbjuder raden **Gå igenom varje eskaleringsnivå** med ett klick.
+
+Den som larmas bekräftar testet från vilket som helst av dess meddelanden: länken i ett e-postmeddelande, ett sms eller ett chattmeddelande, 1 i ett samtal eller pushnotisen i OneUptime On-Call-appen, i versioner nyare än 1.6.0. En policy kan testas en gång var 5:e minut, och ett projekt skickar högst 20 test i timmen.
+
+### Håll en beredskapsövning för en monitor
+
+**Håll en beredskapsövning**, på kortet **När den går ner** för en monitor, övar ett av dess fel: en incident eller ett larm som ett av dess kriterier öppnar, eller den incident som en incidentregel för larm skapar av ett sådant larm. Den testar varje jourpolicy som felet skulle larma, var och en som **Testa den här policyn** testar den, och inget offentligt händer: ingen incident eller inget larm skapas, och ingen statussida, prenumerant eller kanal får veta något. Innan något skickas namnger dialogen felet, varje policy och vem den policyn larmar just nu. För en skapad incident namnger den också regeln och hur länge larmet först står öppet: övningen testar incidentens policyer direkt, utan den väntetiden.
+
+En övning larmar varje policys första nivå. Under **Fler fält** kan du slå på **Gå igenom varje eskaleringsnivå** för att larma varje policys nivåer i tur och ordning, högst 2 minuter isär, tills någon bekräftar: dialogen visar då varje nivå som varje policy når, och vad genomgången som mest kostar. När ingen på de första nivåerna kan nås men en senare nivå kan, erbjuder raden under listan **Gå igenom varje eskaleringsnivå** med ett klick.
+
+**Starta beredskapsövning** förblir avstängd så länge en av de policyerna är en som du inte kan testa, eftersom du inte kan redigera den, eller så länge ingen som de larmar kan nås. Varje policy i en övning räknas som ett eget test: en policy som testats under de senaste 5 minuterna stoppar hela övningen, och en övning med tre policyer tar tre av projektets 20 test i timmen.
+
+När dialogen är stängd säger **Senaste beredskapsövning** på kortet vilket fel monitorns senaste övning övade, när och av vem den startades och hur många av dess test som bekräftades. **Visa detaljer** visar varje policys test: om det bekräftades, av vem, hur och hur snabbt. Varje test finns kvar i sin policys exekveringsloggar, märkt som en beredskapsövning för monitorn. En övnings resultat visas för den som kan läsa monitorn och var och en av de exekveringsloggarna.
 
 ## Exekveringsloggar
 

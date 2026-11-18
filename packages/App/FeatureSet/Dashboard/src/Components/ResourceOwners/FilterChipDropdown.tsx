@@ -14,7 +14,6 @@ import {
   FILTER_OPERATOR_LABELS,
 } from "./FilterChipDropdownTypes";
 import {
-  FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_PLACE_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
   FILTER_CHIP_TEXT_CLASSES,
@@ -24,6 +23,7 @@ import { COULD_NOT_LOAD_THIS_LIST } from "Common/UI/Components/Table/EmptyTableM
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import FilterChipButton from "./FilterChipButton";
+import FilterChipOperatorPicker from "./FilterChipOperatorPicker";
 import useChipPopoverShift from "./useChipPopoverShift";
 import {
   translatableTerm,
@@ -633,31 +633,14 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
           role="dialog"
         >
           {supportedOperators.length > 1 && (
-            <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">
-                {translator.translateTerm(props.label, { inSentence: true })}
-              </span>
-              <select
-                value={operator}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  if (props.onOperatorChange) {
-                    props.onOperatorChange(e.target.value as FilterOperator);
-                  }
-                }}
-                className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={translator.translateTemplate("{{label}} operator", {
-                  label: translatableTerm(props.label),
-                })}
-              >
-                {supportedOperators.map((op: FilterOperator) => {
-                  return (
-                    <option key={op} value={op}>
-                      {translator.translateText(FILTER_OPERATOR_LABELS[op])}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <FilterChipOperatorPicker
+              label={props.label}
+              operator={operator}
+              operators={supportedOperators}
+              onChange={(next: FilterOperator): void => {
+                props.onOperatorChange?.(next);
+              }}
+            />
           )}
           {!isEmptyOperator && (
             <div className="border-b border-gray-100 p-2">
@@ -747,7 +730,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                       searchText.trim() ? "No matches" : "Nothing to show",
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {translator.translateText(
                       searchText.trim()
                         ? "Try a different search term"
@@ -780,7 +763,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                      */}
                     {hasAnyGroup && section.group && (
                       <div
-                        className="sticky top-0 bg-white px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+                        className="sticky top-0 bg-white px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-500"
                         data-testid="filter-chip-group-heading"
                       >
                         {translator.translateText(section.group) ||
@@ -822,7 +805,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                               </span>
                               {option.sublabel && (
                                 <span
-                                  className="block truncate text-xs text-gray-400"
+                                  className="block truncate text-xs text-gray-500"
                                   onMouseEnter={showFullValueWhenCutShort}
                                 >
                                   {option.sublabel}

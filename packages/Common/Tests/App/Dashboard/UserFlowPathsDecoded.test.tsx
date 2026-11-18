@@ -19,6 +19,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { getShownDropdownValue, openDropdown } from "../../DropdownPicks";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -362,6 +363,26 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup();
 });
+
+// The page picker: the shared Dropdown in the User Flows toolbar.
+function anchorPicker(): HTMLElement {
+  return within(screen.getByTestId("user-flow-anchor-select")).getByRole(
+    "combobox",
+  );
+}
+
+// The labels of the page picker's options, where its open menu draws them.
+function anchorOptionLabels(): Array<HTMLElement> {
+  openDropdown(anchorPicker());
+
+  return screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): HTMLElement => {
+      return option.querySelector(
+        '[data-testid="dropdown-option-label"]',
+      ) as HTMLElement;
+    });
+}
 
 describe("the map draws a page in its own letters, from the left", () => {
   test("Arabic: a node is named '/الرئيسية', not its escapes, and keyed by its address", async () => {
@@ -762,26 +783,23 @@ describe("the User Flows page names a page in its own letters, and keeps its key
       )}&hide=${encodeURIComponent(ABOUT_KEY)}`,
     );
 
+    const homeLine: RegExp = new RegExp(`^${setApart(HOME)} \\(.+\\)$`);
+
+    // The picker shows the anchored page, named as a person reads it.
     await waitFor(() => {
-      expect(screen.getByTestId("user-flow-anchor-select")).toHaveValue(
-        HOME_KEY,
-      );
+      expect(getShownDropdownValue(anchorPicker())).toMatch(homeLine);
     });
 
-    const option: HTMLOptionElement | undefined = Array.from(
-      (screen.getByTestId("user-flow-anchor-select") as HTMLSelectElement)
-        .options,
-    ).find((candidate: HTMLOptionElement): boolean => {
-      return candidate.value === HOME_KEY;
-    });
+    const option: HTMLElement | undefined = anchorOptionLabels().find(
+      (candidate: HTMLElement): boolean => {
+        return homeLine.test(candidate.textContent || "");
+      },
+    );
 
     expect(option).toBeDefined();
-    expect(option?.textContent).toMatch(
-      new RegExp(`^${setApart(HOME)} \\(.+\\)$`),
-    );
     expect(option).toHaveAttribute("dir", "ltr");
     expect(
-      drawnFromTheLeft(option as HTMLOptionElement, "rtl").startsWith(
+      drawnFromTheLeft(option as HTMLElement, "rtl").startsWith(
         drawnPath(HOME_WORD),
       ),
     ).toBe(true);
@@ -813,10 +831,7 @@ describe("the User Flows page names a page in its own letters, and keeps its key
       ((hidden[0] as HTMLElement).firstElementChild as HTMLElement).textContent,
     ).toBe(CAFE);
 
-    for (const choice of Array.from(
-      (screen.getByTestId("user-flow-anchor-select") as HTMLSelectElement)
-        .options,
-    )) {
+    for (const choice of anchorOptionLabels()) {
       expect(choice.textContent).not.toMatch(ESCAPED_BYTE);
     }
   });
@@ -835,17 +850,18 @@ describe("the User Flows page names a page in its own letters, and keeps its key
     );
     expect(note.textContent).not.toMatch(ESCAPED_BYTE);
 
-    const select: HTMLSelectElement = screen.getByTestId(
-      "user-flow-anchor-select",
-    ) as HTMLSelectElement;
+    expect(
+      withoutIsolateMarks(getShownDropdownValue(anchorPicker()) || ""),
+    ).toContain(`/${MISSING_WORD}`);
 
-    expect(select).toHaveValue(MISSING_KEY);
-    expect(withoutIsolateMarks(select.options[0]?.textContent || "")).toContain(
+    const labels: Array<HTMLElement> = anchorOptionLabels();
+
+    expect(withoutIsolateMarks(labels[0]?.textContent || "")).toContain(
       `/${MISSING_WORD}`,
     );
 
     // An English page needs no dir for a path: it reads from the left already.
-    for (const option of Array.from(select.options)) {
+    for (const option of labels) {
       expect(option).not.toHaveAttribute("dir");
       expect(option.textContent).not.toMatch(ESCAPED_BYTE);
     }

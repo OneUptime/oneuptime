@@ -1,6 +1,10 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import React from "react";
 import { Edge, Node } from "reactflow";
 import EntityType from "../../../Types/Telemetry/EntityType";
@@ -1214,9 +1218,7 @@ describe("InfrastructureGraph traffic", () => {
 
   test("the label picker switches every line to another metric", () => {
     renderNode(aksNodeModel());
-    fireEvent.change(screen.getByLabelText("Line labels"), {
-      target: { value: "errors" },
-    });
+    chooseDropdownOption(screen.getByLabelText("Line labels"), 1);
     expect(
       trafficButtons()
         .map((button: HTMLElement): string => {
@@ -1224,9 +1226,7 @@ describe("InfrastructureGraph traffic", () => {
         })
         .sort(),
     ).toEqual(["0% errors", "0% errors", "0.5% errors", "10.0% errors"]);
-    fireEvent.change(screen.getByLabelText("Line labels"), {
-      target: { value: "hover" },
-    });
+    chooseDropdownOption(screen.getByLabelText("Line labels"), 3);
     expect(
       trafficButtons().every((button: HTMLElement): boolean => {
         return button.textContent === "";
@@ -1312,15 +1312,15 @@ describe("InfrastructureGraph traffic", () => {
       />,
     );
     expect(trafficButtons()).toHaveLength(8);
-    expect(screen.getByLabelText("Line labels")).toHaveValue("hover");
+    expect(getShownDropdownValue(screen.getByLabelText("Line labels"))).toBe(
+      "On hover",
+    );
     expect(
       trafficButtons().every((button: HTMLElement): boolean => {
         return button.textContent === "";
       }),
     ).toBe(true);
-    fireEvent.change(screen.getByLabelText("Line labels"), {
-      target: { value: "calls" },
-    });
+    chooseDropdownOption(screen.getByLabelText("Line labels"), 0);
     expect(
       trafficButtons().every((button: HTMLElement): boolean => {
         return button.textContent === "60/min";

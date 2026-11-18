@@ -3,6 +3,7 @@ import {
   MCP_OAUTH_CONSENT_DENY_API_URL,
   MCP_OAUTH_CONSENT_DETAILS_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import McpAuthorizeUtil, {
   McpConsentAccess,
   McpConsentDetails,
@@ -14,8 +15,15 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import API from "Common/UI/Utils/API/API";
 import McpOAuthPendingAuthorization from "Common/UI/Utils/McpOAuthPendingAuthorization";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -284,7 +292,7 @@ const McpAuthorize: () => JSX.Element = () => {
   };
 
   if (state.kind === "loading") {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   if (state.kind === "error") {
@@ -320,6 +328,26 @@ const McpAuthorize: () => JSX.Element = () => {
   const eligibleProjects: Array<McpConsentProject> =
     McpAuthorizeUtil.getEligibleProjects(details);
   const canAuthorize: boolean = Boolean(projectId) && !isSubmitting;
+  /*
+   * Each project by its name, drawn as written. One the person cannot
+   * connect is listed but never picked, its words saying why.
+   */
+  const projectOptions: Array<DropdownOption> = details.projects.map(
+    (project: McpConsentProject): DropdownOption => {
+      return {
+        value: project.id,
+        label: project.isEligible
+          ? project.name
+          : t(
+              `mcpAuthorize.projectRefusal.${McpAuthorizeUtil.toProjectRefusalKey(project.refusal)}`,
+              { name: inSentence(project.name) },
+            ),
+        isUserContent: true,
+        isInPageDirection: !project.isEligible,
+        isDisabled: !project.isEligible,
+      };
+    },
+  );
 
   return (
     <div
@@ -430,34 +458,21 @@ const McpAuthorize: () => JSX.Element = () => {
               >
                 {t("mcpAuthorize.projectLabel")}
               </label>
-              <select
-                id="mcp-authorize-project"
-                data-testid="mcp-authorize-project"
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                value={projectId}
-                disabled={isSubmitting}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                  setProjectId(event.target.value);
-                }}
-              >
-                <option value="">{t("mcpAuthorize.projectPlaceholder")}</option>
-                {details.projects.map((project: McpConsentProject) => {
-                  return (
-                    <option
-                      key={project.id}
-                      value={project.id}
-                      disabled={!project.isEligible}
-                    >
-                      {project.isEligible
-                        ? project.name
-                        : t(
-                            `mcpAuthorize.projectRefusal.${McpAuthorizeUtil.toProjectRefusalKey(project.refusal)}`,
-                            { name: inSentence(project.name) },
-                          )}
-                    </option>
-                  );
-                })}
-              </select>
+              <div data-testid="mcp-authorize-project">
+                <Dropdown
+                  inputId="mcp-authorize-project"
+                  options={projectOptions}
+                  value={findDropdownOption(projectOptions, projectId)}
+                  placeholder={t("mcpAuthorize.projectPlaceholder")}
+                  isPlaceholderTranslated={true}
+                  disabled={isSubmitting}
+                  onChange={(
+                    next: DropdownValue | Array<DropdownValue> | null,
+                  ): void => {
+                    setProjectId(readPickedDropdownValue(next) || "");
+                  }}
+                />
+              </div>
               <p className="mt-1 text-xs text-gray-500">
                 {t("mcpAuthorize.projectHelp")}
               </p>

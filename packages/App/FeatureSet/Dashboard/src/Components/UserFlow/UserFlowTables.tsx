@@ -427,7 +427,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                     >
                       {/* The row's place, in the digits its counts are written in. */}
                       <td
-                        className={`${CELL} text-gray-400`}
+                        className={`${CELL} text-gray-500`}
                         data-testid="user-flow-path-rank"
                       >
                         {translator.formatNumber(index + 1)}
@@ -462,7 +462,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                             <></>
                           )}
                           {path.pages.length === 1 ? (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-gray-500">
                               {translator.translateText(
                                 "(left without navigating)",
                               )}

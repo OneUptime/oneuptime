@@ -6,6 +6,7 @@ Gereedheid beantwoordt een vraag voordat een incident dat doet: als er nu iets a
 - [Hoe een status wordt bepaald](#hoe-een-status-wordt-bepaald): Gereed, Needs setup of Unreachable, en waarom.
 - [De pagina Gereedheid](#de-pagina-gereedheid): Elke responder in het project, in één lijst.
 - [Mensen herinneren hun instellingen af te ronden](#mensen-herinneren-hun-instellingen-af-te-ronden): Een e-mail die zegt wat er ontbreekt.
+- [De standaardreeks toepassen](#de-standaardreeks-toepassen): De standaardreeks van het project, voor de mensen die je kiest.
 - [Bereikbaarheidstijd gebruiker](#bereikbaarheidstijd-gebruiker): Hoe lang elke persoon dienst had.
 :::
 
@@ -32,6 +33,8 @@ Een responder is iedereen die een bereikbaarheidsbeleid kan oproepen: een persoo
 
 Een gat is een ernst zonder regel, op het tabblad voor incidenten, incidentepisodes, waarschuwingen of waarschuwingsepisodes. Een regel die een ernst bewust uitzet, is geen gat. Een oproep die op een gat stuit, bereikt de persoon toch via de geverifieerde methoden, tenzij het project die terugval heeft uitgezet: zie [Als geen regel past](/docs/notifications/index#als-geen-regel-past).
 
+Als het project iedereen met dienst om een telefoonmethode vraagt, onder **Telefoon voor mensen met dienst**, krijgt een responder zonder geverifieerd nummer voor sms, telefoongesprekken of WhatsApp ook de markering **Geen telefoonmethode**, wat de status ook is, en Inrichtingsstatus noemt hem. Niemand wordt buitengesloten: een oproep bereikt hem nog steeds via de methoden die hij heeft.
+
 ## De pagina Gereedheid
 
 Open **Bereikbaarheid → Gereedheid**. De kaart **Paraatheid van diensten** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
@@ -53,12 +56,24 @@ Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingest
 Alleen de persoon zelf kan de eigen meldingsmethoden en regels toevoegen en verifiëren, dus de oplossing is het die persoon te vragen.
 
 :::steps
-1. Vink op de pagina Gereedheid de responders aan die je wilt herinneren. Responders die gereed zijn, kun je niet aanvinken: er is niets om ze aan te herinneren.
+1. Vink op de pagina Gereedheid de responders aan die je wilt herinneren. Een responder die gereed is, wordt alleen herinnerd als hij de markering **Geen telefoonmethode** heeft: er is verder niets om hem aan te herinneren.
 2. Klik op **Herinnering voor instellingen sturen**. De bevestiging noemt iedereen die zo een e-mail krijgt.
 3. Bevestig. Elke persoon krijgt één e-mail die zegt wat er in de eigen instellingen ontbreekt, met een link naar de pagina die het oplost.
 :::
 
 Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mislukt, en waarom, voor elke herinnering die niet is verstuurd. Niemand wordt vaker dan één keer per 24 uur herinnerd, en één ronde herinnert hoogstens 250 mensen. Herinneringen versturen vraagt **Projecteigenaar**, **Projectbeheerder** of **Bereikbaarheidsbeheerder**, of **Edit On-Call Policy** in een aangepaste rol.
+
+## De standaardreeks toepassen
+
+Als het project een standaardreeks heeft (zie [De standaardreeks](/docs/notifications/on-call-rules#de-standaardreeks)), kun je die geven aan mensen die al eigen regels hebben.
+
+:::steps
+1. Vink op de pagina Gereedheid de responders aan.
+2. Klik op **Standaardreeks toepassen**. De bevestiging toont de reeks en noemt iedereen die ze verandert.
+3. Bevestig. De regels van elke persoon voor elke ernst worden vervangen door de reeks, op de methoden die die persoon heeft geverifieerd.
+:::
+
+Een manier die iemand niet heeft geverifieerd, wordt weggelaten, en die persoon houdt op die plek de eigen stappen; wie geen enkele manier van de reeks heeft geverifieerd, blijft zoals die was. Een banner zegt daarna per persoon wat is toegepast of waarom niet, per kanaal: niemands nummers of adressen worden getoond. Elke persoon van wie de regels veranderden, krijgt één e-mail, en elke wijziging staat in het auditlogboek van het project. Toepassen vraagt **Projecteigenaar** of **Projectbeheerder**, of **Edit User Notification Rules** in een aangepaste rol.
 
 ## Gereedheid op andere pagina's
 
@@ -66,6 +81,7 @@ Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mis
 - Op de **Escalatieregels** van een beleid zegt een niveau op zijn kaart wanneer niet al zijn responders kunnen worden opgeroepen. Zie [Het escalatieoverzicht](/docs/on-call/escalation-rules#het-escalatieoverzicht).
 - Open onder **Gebruikers** een lid, en dan **Gereedheid** in de sectie **Bereikbaarheid**: de status, de methoden en het dekkingsraster van die persoon.
 - Voor je eigen instellingen leidt **Gebruikersinstellingen → Instellingschecklist** je erdoorheen. Zie [De instellingschecklist](/docs/notifications/index#de-instellingschecklist).
+- Wie in een beleid staat en de eigen instellingen niet af heeft, ziet **Rond het instellen van je meldingen af** in de bel bovenaan elke pagina, die de eigen instellingschecklist opent.
 
 ## De wekelijkse e-mail over gereedheid
 

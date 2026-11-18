@@ -116,6 +116,9 @@ const SOURCES: Record<string, string> = {
   teamsApi: "Common/Server/API/MicrosoftTeamsAPI.ts",
   teamsSignInAuthority: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
   summaryTable: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
+  summaryTeamsTeam: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTeamsTeam.ts`,
+  ruleTestChannel: `${DASHBOARD}/Components/Workspace/WorkspaceRuleTestChannel.ts`,
+  ruleService: "Common/Server/Services/WorkspaceNotificationRuleService.ts",
   planLeftoverCopy: `${DASHBOARD}/Components/Billing/PlanLeftoverCopy.ts`,
   planLeftoverGate: `${DASHBOARD}/Components/Workspace/WorkspacePlanLeftoverGate.tsx`,
   slackCard: `${DASHBOARD}/Components/Slack/SlackIntegration.tsx`,
@@ -178,6 +181,7 @@ const SOURCES: Record<string, string> = {
   videoCallMessages: "Common/Server/Utils/VideoCall/VideoCallMessages.ts",
   videoCallTokenStore:
     "Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthTokenStore.ts",
+  zoomTranscriptReconnectNotice: `${DASHBOARD}/Components/VideoCall/ZoomTranscriptReconnectNotice.tsx`,
   videoCallKeepAliveJob:
     "App/FeatureSet/Workers/Jobs/VideoCall/KeepVideoCallSignInsAlive.ts",
   incidentPage: `${DASHBOARD}/Pages/Incidents/View/Index.tsx`,
@@ -322,6 +326,73 @@ function tableHeaded(
 }
 
 // The line of a piece of markdown that starts with the words given.
+/*
+ * A translated page's section at the place the English page has the
+ * section of this title: the same level-2 heading, counted from the top,
+ * up to the next one. Translated pages lay out their sections as the
+ * English page does, line for line.
+ */
+function sectionWhereEnglishHas(
+  language: string,
+  page: string,
+  englishTitle: string,
+): string {
+  const headings: (markdown: string) => Array<number> = (
+    markdown: string,
+  ): Array<number> => {
+    return markdown
+      .split("\n")
+      .map((line: string, index: number): number => {
+        return line.startsWith("## ") ? index : -1;
+      })
+      .filter((index: number): boolean => {
+        return index >= 0;
+      });
+  };
+
+  const english: Array<string> = englishPage(page).split("\n");
+  const englishAt: number = headings(englishPage(page)).findIndex(
+    (index: number): boolean => {
+      return english[index] === `## ${englishTitle}`;
+    },
+  );
+
+  expect({ page, englishTitle, found: englishAt >= 0 }).toEqual({
+    page,
+    englishTitle,
+    found: true,
+  });
+
+  const markdown: string = readPage(language, page);
+  const lines: Array<string> = markdown.split("\n");
+  const starts: Array<number> = headings(markdown);
+  const start: number = starts[englishAt] as number;
+  const end: number = starts[englishAt + 1] ?? lines.length;
+
+  return lines.slice(start + 1, end).join("\n");
+}
+
+// A translated page's line at the place the English page has this line.
+function lineAtEnglishLine(
+  language: string,
+  page: string,
+  englishStart: string,
+): string {
+  const index: number = englishPage(page)
+    .split("\n")
+    .findIndex((line: string): boolean => {
+      return line.startsWith(englishStart);
+    });
+
+  expect({ page, englishStart, found: index >= 0 }).toEqual({
+    page,
+    englishStart,
+    found: true,
+  });
+
+  return readPage(language, page).split("\n")[index] || "";
+}
+
 function lineStarting(markdown: string, start: string): string {
   const line: string | undefined = markdown
     .split("\n")
@@ -1092,11 +1163,163 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       expect(line).toContain("**Content** (**What to Include**)");
     }
 
-    // Teams asks which team each channel is in.
+    // Teams asks which team each channel is in: picked from a list (#7118).
     expect(
       lineStarting(englishPage(TEAMS), "The summary form has four steps: "),
-    ).toContain(
-      "**Basic Info** (its name, the channels and their **Team Name**)",
+    ).toContain("**Basic Info** (its name, the channels and their **Team**)");
+  });
+
+  /*
+   * #7118: a Microsoft Teams summary picks its team from the connection's
+   * teams, as a rule does, with the rule form's Team words; the typed
+   * Team Name is what the form asks for only when the teams cannot be
+   * listed. The page says both, and how a typed name is kept and matched.
+   */
+  it("says a Teams summary picks its Team from a list, and when it asks for a typed Team Name", () => {
+    const summaryTable: string = readSource("summaryTable");
+    const teamsTeam: string = readSource("summaryTeamsTeam");
+
+    expect(summaryTable).toContain("title: TEAM_TITLE,");
+    expect(summaryTable).toContain('title: "Team Name",');
+    expect(teamsTeam).toContain("/microsoft-teams/teams");
+    expect(readSource("ruleCopy")).toContain(
+      'export const TEAM_TITLE: string = translationKey("Team");',
+    );
+
+    const summaries: string = section(englishPage(TEAMS), 2, "Summaries");
+    const picker: string = lineStarting(summaries, "**Team** lists the teams");
+
+    expect(picker).toContain("shows when there is more than one");
+    expect(picker).toContain("keeps it, shown as typed, until you pick a team");
+    expect(picker).toContain("asks for the **Team Name** as text");
+    expect(picker).toContain("a name two teams share is refused");
+  });
+
+  /*
+   * #7117: Send Test Now's two answers and each channel's Notification
+   * Logs row, in every language's Slack and Microsoft Teams Summaries, as
+   * the Dashboard draws them; and Mattermost's summaries answer the same.
+   */
+  it("says what Send Test Now answers and where each channel's result is, in every language, as the Dashboard draws it", () => {
+    const summaryTable: string = readSource("summaryTable");
+    const logsTable: string = readSource("workspaceLogsTable");
+
+    expect(summaryTable).toContain('title: "Send Test Now",');
+    expect(summaryTable).toContain('translator.translateText("Summary Sent")');
+    expect(summaryTable).toContain("title={`Test Failed`}");
+    expect(logsTable).toContain('title: "Reason",');
+
+    for (const language of DOCS_LANGUAGES) {
+      const bold: (english: string) => string = (english: string): string => {
+        return `**${drawnDashboardLabel(language, english)}**`;
+      };
+
+      /*
+       * Where it is said: a chat page's Summaries section - the section
+       * a translation has where the English page has it - and the line of
+       * Mattermost's page that says how its rules and summaries are tested.
+       */
+      const places: Array<{ page: string; text: string }> = [
+        ...CHAT_PAGES.map((page: string): { page: string; text: string } => {
+          return {
+            page: page,
+            text: sectionWhereEnglishHas(language, page, "Summaries"),
+          };
+        }),
+        {
+          page: MATTERMOST,
+          text: lineAtEnglishLine(
+            language,
+            MATTERMOST,
+            "**Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.",
+          ),
+        },
+      ];
+
+      for (const place of places) {
+        for (const label of [
+          "Send Test Now",
+          "Summary Sent",
+          "Test Failed",
+          "Notification Logs",
+          "Reason",
+        ]) {
+          expect({ language, page: place.page, label, named: true }).toEqual({
+            language,
+            page: place.page,
+            label,
+            named: place.text.includes(bold(label)),
+          });
+        }
+      }
+
+      for (const place of places.slice(0, CHAT_PAGES.length)) {
+        for (const label of ["Success", "Error", "Last Sent"]) {
+          expect({ language, page: place.page, label, named: true }).toEqual({
+            language,
+            page: place.page,
+            label,
+            named: place.text.includes(bold(label)),
+          });
+        }
+      }
+    }
+
+    for (const page of CHAT_PAGES) {
+      const summaries: string = section(englishPage(page), 2, "Summaries");
+      const answers: string = lineStarting(
+        summaries,
+        "**Send Test Now** on a summary's row posts it at once.",
+      );
+
+      expect(answers).toContain("**Summary Sent** says every channel got it");
+      expect(answers).toContain(
+        "**Test Failed** says how many channels did not",
+      );
+      expect(answers).toContain("The channels that got the test keep it.");
+      expect(answers).toContain(
+        "**Project Settings** > **Notifications** > **Notification Logs**",
+      );
+      expect(answers).toContain("**Error** with why under **Reason**");
+      expect(answers).toContain(
+        "**Last Sent** moves only when at least one channel got the summary.",
+      );
+    }
+  });
+
+  /*
+   * #7265: testing a rule that creates channels creates a real one, named
+   * as the rule names them with random letters (WorkspaceChannelName
+   * .forTest), and invites the person testing - nobody else (testRule
+   * invites only testByUserId). The pages said it invited "the rule's
+   * people".
+   */
+  it("says testing a rule that creates channels creates a real one and invites you, as the server and the dialog do", () => {
+    const service: string = readSource("ruleService");
+    const testChannel: string = readSource("ruleTestChannel");
+
+    expect(service).toContain("userIds: [data.testByUserId],");
+    expect(service).toContain("WorkspaceChannelName.forTest({");
+    expect(testChannel).toContain(
+      'export const TEST_RULE_CHANNEL_EXAMPLE_LETTERS: string = "abcde";',
+    );
+
+    for (const page of CHAT_PAGES) {
+      const testing: string = section(englishPage(page), 2, "Testing a rule");
+
+      expect(testing).not.toContain("invites the rule's people");
+      expect(testing).toContain("`prod-abcde`");
+      expect(testing).toContain("the dialog says so before the test runs");
+      expect(testing).toContain(
+        "**Test Notification Sent** says where to look when the test went out, and **Test Failed** says why when it did not.",
+      );
+    }
+
+    expect(section(englishPage(SLACK), 2, "Testing a rule")).toContain(
+      "and invites you to it",
+    );
+    expect(section(englishPage(TEAMS), 2, "Testing a rule")).toContain(
+      "which everyone in the team can see",
     );
   });
 
@@ -2146,6 +2369,97 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       "If OneUptime is removed from the default workspace, the remaining workspace that comes first alphabetically becomes the default. It stays the default when OneUptime is added to the old workspace again.",
     );
   });
+
+  /*
+   * A new on-call rule starts on the key updates however it is made
+   * (#7971): the server gives one made through the API or with Terraform
+   * the list the Dashboard's form starts with, null asks for every update,
+   * and an edit that leaves the list out keeps the rule's. Each language's
+   * On-call messages line, and the upgrade guide's note, say it with the
+   * very JSON the server takes.
+   */
+  it("says a rule made through the API or with Terraform starts on the key updates, in every language, with the server's JSON", () => {
+    const keyUpdates: string = `\`${JSON.stringify(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ),
+    ).replace(/","/g, '", "')}\``;
+
+    expect(keyUpdates).toBe('`["OnCallNow", "NobodyOnCall"]`');
+
+    // What the server does with the JSON it is sent.
+    expect(
+      NotificationRuleUpdates.withNewRuleUpdates({
+        rule: {},
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      }),
+    ).toEqual({
+      updatesToPost: NotificationRuleUpdates.getNewRuleUpdatesToPost(
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ),
+    });
+    expect(
+      NotificationRuleUpdates.withNewRuleUpdates({
+        rule: { updatesToPost: null },
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      }),
+    ).toEqual({ updatesToPost: null });
+
+    for (const language of DOCS_LANGUAGES) {
+      const slack: string = readPage(language, SLACK);
+      const onCallLine: string | undefined = slack
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes('`"updatesToPost": null`');
+        });
+
+      expect({ language, found: Boolean(onCallLine) }).toEqual({
+        language,
+        found: true,
+      });
+      expect({ language, code: inlineCode(onCallLine || "") }).toEqual({
+        language,
+        code: ['"updatesToPost": null', "updatesToPost", "updatesToPost"],
+      });
+
+      const upgrading: string = readPage(language, "installation/upgrading");
+
+      expect({ language, says: upgrading.includes(keyUpdates) }).toEqual({
+        language,
+        says: true,
+      });
+    }
+  });
+
+  /*
+   * A value a rule's condition holds that names nothing now says "No longer
+   * in this project" on the card and the Conditions step (#7807), and an
+   * On-Call Policy Name condition switches to the policies it names (#7806):
+   * each language names the words and the button as its Dashboard draws
+   * them.
+   */
+  it("names the words for a deleted value and the switch to On-Call Policy as each Dashboard draws them", () => {
+    for (const language of DOCS_LANGUAGES) {
+      for (const page of [SLACK, TEAMS]) {
+        const markdown: string = readPage(language, page);
+
+        for (const label of [
+          "No longer in this project",
+          "Use On-Call Policy instead",
+          "On-Call Policy Name",
+        ]) {
+          const drawn: string = drawnDashboardLabel(language, label);
+
+          expect({
+            language,
+            page,
+            label,
+            named: markdown.includes(`**${drawn}**`),
+          }).toEqual({ language, page, label, named: true });
+        }
+      }
+    }
+  });
 });
 
 describe("Video Calls, against the Dashboard and the worker", () => {
@@ -2253,6 +2567,30 @@ describe("Video Calls, against the Dashboard and the worker", () => {
     );
     expect(markdown).toContain(
       "Every day the worker refreshes the sign-ins that are due, so it needs the same values as the app.",
+    );
+  });
+
+  /*
+   * Zoom expires a sign-in made before an app update that added scopes 90
+   * days after the update (#9269): the docs never say such a connection
+   * "starts calls as before" again, and say the 90 days the Video Calls
+   * page's notice says.
+   */
+  it("says a Zoom sign-in made before transcripts stops starting calls 90 days after the app's update, as the Video Calls page does", () => {
+    const markdown: string = englishPage(VIDEO_CALLS);
+    const oneClick: string = section(markdown, 2, "Connect in one click");
+
+    expect(readSource("zoomTranscriptReconnectNotice")).toContain(
+      "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.",
+    );
+    expect(oneClick).toContain(
+      "Once OneUptime's Zoom app is updated to read them, Zoom stops accepting such a connection's sign-in 90 days later, and it stops starting calls.",
+    );
+    expect(oneClick).toContain(
+      "From then on, OneUptime asks you to sign it in again: **Reconnect** on its row asks Zoom for the transcript permissions.",
+    );
+    expect(oneClick).not.toMatch(
+      /A Zoom connection[^.\n]*starts calls as before/,
     );
   });
 

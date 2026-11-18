@@ -384,7 +384,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
                 })
               : formatDurationFromSeconds(turn.coverageSeconds)}
           </span>
-          <span className="text-[11px] font-medium text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             {formatRelativeStart(turn.start, props.now)}
           </span>
         </div>
@@ -485,7 +485,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             </ol>
             {hasRestriction && (
               <p
-                className={`mt-2 text-[11px] leading-relaxed ${
+                className={`mt-2 text-xs leading-relaxed ${
                   isOffHoursUncovered ? "text-amber-700" : "text-gray-500"
                 }`}
               >

@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import AttributesJSONView from "Common/UI/Components/AttributesJSON/AttributesJSONView";
@@ -9,7 +10,6 @@ import {
   useAttributesView,
 } from "Common/UI/Components/AttributesJSON/AttributesJSONPreferences";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
@@ -66,7 +66,7 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
     if (props.isLoading && !props.instance) {
       return (
         <div className="flex h-24 items-center justify-center">
-          <ComponentLoader />
+          <DetailListSkeleton fields={4} />
         </div>
       );
     }

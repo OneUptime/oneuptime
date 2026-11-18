@@ -31,7 +31,7 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
             key={index}
             className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5"
           >
-            <div className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
               {stat.label}
             </div>
             <div className="mt-1 break-words text-lg font-semibold tabular-nums text-gray-900">
@@ -39,7 +39,7 @@ const StatCardsWidget: FunctionComponent<ComponentProps> = (
                 ? stat.value.toLocaleString(getReaderNumberLocale())
                 : stat.value}
               {stat.unit ? (
-                <span className="ml-1 text-xs font-normal text-gray-400">
+                <span className="ml-1 text-xs font-normal text-gray-500">
                   {stat.unit}
                 </span>
               ) : null}

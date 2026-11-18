@@ -11,7 +11,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Image from "Common/UI/Components/Image/Image";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Card from "Common/UI/Components/Card/Card";
@@ -81,7 +81,7 @@ const UserViewIndex: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

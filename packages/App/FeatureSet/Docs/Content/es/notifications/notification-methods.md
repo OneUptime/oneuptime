@@ -188,7 +188,7 @@ Ese canal está desactivado en este proyecto. La tarjeta dice quién puede activ
 :::
 
 :::details El código nunca llegó
-Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
+Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje. Quien puede leer esos registros ve **Abrir Registros de notificación** bajo el código, que abre la pestaña del mensaje; a los demás se les pide que pregunten a un Propietario del proyecto o Administrador del proyecto.
 :::
 
 :::details Falla al añadir mi cuenta de Slack
@@ -198,6 +198,10 @@ Vincula primero tu cuenta en **Ajustes de usuario → Espacio de trabajo → Sla
 :::details Mi teléfono no recibe notificaciones push
 Comprueba que el teléfono aparece en **Dispositivos de notificaciones push**, y envíale una **Notificación de prueba**. Consulta [Preguntas frecuentes y solución de problemas](/docs/mobile-desktop-apps/faq-troubleshooting#notificaciones).
 :::
+
+### La página dice que este servidor no puede enviar SMS
+
+Tu servidor no tiene ahora ninguna forma de enviar SMS, o de hacer llamadas, que funcione: no hay nada configurado, o lo configurado está fallando. Hasta que funcione, la página lo indica y no puedes añadir un número para ello. Pregunta al administrador de tu servidor, que en su lugar ve un enlace a los ajustes. Un proyecto con su propia configuración de Twilio envía a través de ella y no se ve afectado. Con el correo pasa lo mismo.
 
 ## Próximos pasos
 

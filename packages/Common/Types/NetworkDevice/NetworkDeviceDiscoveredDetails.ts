@@ -47,8 +47,9 @@ import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDns
  * four writers - the discovery engine (scan results), the ARP learner (MACs),
  * the poll pipeline (resolved addresses and the device's own MAC) and a
  * network controller connection (what the device's controller says it is and
- * what it says it is cabled to, under one key each) - each merge their own
- * keys with jsonb `||` in one statement
+ * what it says it is cabled to, under one key each), and the Discovered
+ * Devices list's sync (the maker and client name of the device's row, issue
+ * #9305) - each merge their own keys with jsonb `||` in one statement
  * (NetworkDeviceService.mergeDiscoveredDetails) and never overwrite one
  * another's.
  *
@@ -99,6 +100,17 @@ export enum NetworkDeviceDiscoveredField {
   SerialNumber = "serialNumber",
   FirmwareVersion = "firmwareVersion",
   SoftwareVersion = "softwareVersion",
+  /*
+   * What the Discovered Devices list knows about the device (OneUptime issue
+   * #9305): the maker its MAC address's prefix names (or its controller, or a
+   * person's correction on the list), and the name its network controller
+   * gives it. A device that is only pinged - a register, a camera - has no
+   * SNMP to say who made it, and the switch that saw it already did. Read
+   * from the list's row for the device, when it is imported from the list
+   * and by DiscoveredDeviceInventorySync while the two stay matched.
+   */
+  Vendor = "vendor",
+  ClientName = "clientName",
 }
 
 // How a value was read.
@@ -113,6 +125,11 @@ export enum NetworkDeviceDiscoveryMethod {
    * device is registered at to a MAC the way a router's ARP table does.
    */
   ControllerClientList = "controllerClientList",
+  /*
+   * The device's row on the Discovered Devices list (issue #9305): what the
+   * switch, router or controller that saw it, or a person, said it is.
+   */
+  DiscoveredDeviceList = "discoveredDeviceList",
 }
 
 // What read it.
@@ -127,6 +144,11 @@ export enum NetworkDeviceDiscoveryReaderType {
    * device. Only the controller reading below is read by one.
    */
   NetworkController = "networkController",
+  /*
+   * The device's row on the Discovered Devices list - a NetworkEndpoint - by
+   * its id, and the name the list shows it under (issue #9305).
+   */
+  DiscoveredDevice = "discoveredDevice",
 }
 
 export interface NetworkDeviceDiscoveryReader {
@@ -356,6 +378,8 @@ export const NETWORK_DEVICE_DISCOVERED_FIELDS: ReadonlyArray<NetworkDeviceDiscov
     NetworkDeviceDiscoveredField.SerialNumber,
     NetworkDeviceDiscoveredField.FirmwareVersion,
     NetworkDeviceDiscoveredField.SoftwareVersion,
+    NetworkDeviceDiscoveredField.Vendor,
+    NetworkDeviceDiscoveredField.ClientName,
   ];
 
 // The SNMP system group: the fields a discovery scan's SNMP query reads.
@@ -382,6 +406,16 @@ export const NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS: ReadonlyArray<NetworkDev
     NetworkDeviceDiscoveredField.SerialNumber,
     NetworkDeviceDiscoveredField.FirmwareVersion,
     NetworkDeviceDiscoveredField.SoftwareVersion,
+  ];
+
+/*
+ * What the Discovered Devices list knows about a device it matches (issue
+ * #9305): DiscoveredDeviceInventorySync's fields, and nobody else's.
+ */
+export const NETWORK_DEVICE_DISCOVERED_LIST_FIELDS: ReadonlyArray<NetworkDeviceDiscoveredField> =
+  [
+    NetworkDeviceDiscoveredField.Vendor,
+    NetworkDeviceDiscoveredField.ClientName,
   ];
 
 /*
@@ -419,6 +453,10 @@ const METHOD_BY_FIELD: Readonly<
     NetworkDeviceDiscoveryMethod.Snmp,
   [NetworkDeviceDiscoveredField.SoftwareVersion]:
     NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.Vendor]:
+    NetworkDeviceDiscoveryMethod.DiscoveredDeviceList,
+  [NetworkDeviceDiscoveredField.ClientName]:
+    NetworkDeviceDiscoveryMethod.DiscoveredDeviceList,
 };
 
 const READER_TYPE_BY_FIELD: Readonly<
@@ -454,6 +492,10 @@ const READER_TYPE_BY_FIELD: Readonly<
     NetworkDeviceDiscoveryReaderType.DiscoveryScan,
   [NetworkDeviceDiscoveredField.SoftwareVersion]:
     NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+  [NetworkDeviceDiscoveredField.Vendor]:
+    NetworkDeviceDiscoveryReaderType.DiscoveredDevice,
+  [NetworkDeviceDiscoveredField.ClientName]:
+    NetworkDeviceDiscoveryReaderType.DiscoveredDevice,
 };
 
 /*
@@ -482,6 +524,9 @@ export const MAX_DISCOVERED_VALUE_LENGTH: Readonly<
   [NetworkDeviceDiscoveredField.SerialNumber]: 100,
   [NetworkDeviceDiscoveredField.FirmwareVersion]: 100,
   [NetworkDeviceDiscoveredField.SoftwareVersion]: 100,
+  // As wide as NetworkEndpoint's vendor and hostname columns.
+  [NetworkDeviceDiscoveredField.Vendor]: 100,
+  [NetworkDeviceDiscoveredField.ClientName]: 100,
 };
 
 // A reader's id and name, cut to these.
@@ -809,6 +854,66 @@ function readDiscoveredValue(
   });
 
   return entry && entry.method === value["method"] ? entry : undefined;
+}
+
+/*
+ * What the Discovered Devices list knows about a device, as one row of it
+ * shows it (issue #9305).
+ */
+export interface DiscoveredDeviceListReading {
+  // The NetworkEndpoint row's id.
+  endpointId: string;
+  // The name the list shows the row under.
+  name?: string | undefined;
+  // The maker its MAC address's prefix names, or its controller, or a person.
+  vendor?: string | undefined;
+  // What its network controller calls it (NetworkEndpoint.hostname).
+  clientName?: string | undefined;
+}
+
+/**
+ * The entries a row of the Discovered Devices list gives the device it is,
+ * by field - only the ones it has a usable value for. Written when the device
+ * is imported from the list and kept up to date by
+ * DiscoveredDeviceInventorySync. Never the device's own columns: a value
+ * someone saved on the device always wins over these
+ * (NetworkDeviceAssetFacts).
+ */
+export function buildDiscoveredListEntries(data: {
+  reading: DiscoveredDeviceListReading;
+  readAt: unknown;
+}): Partial<
+  Record<NetworkDeviceDiscoveredField, NetworkDeviceDiscoveredValue>
+> {
+  const readBy: NetworkDeviceDiscoveryReader = {
+    type: NetworkDeviceDiscoveryReaderType.DiscoveredDevice,
+    id: data.reading.endpointId,
+    name: data.reading.name,
+  };
+  const entries: Partial<
+    Record<NetworkDeviceDiscoveredField, NetworkDeviceDiscoveredValue>
+  > = {};
+
+  const values: Array<[NetworkDeviceDiscoveredField, unknown]> = [
+    [NetworkDeviceDiscoveredField.Vendor, data.reading.vendor],
+    [NetworkDeviceDiscoveredField.ClientName, data.reading.clientName],
+  ];
+
+  for (const [field, value] of values) {
+    const entry: NetworkDeviceDiscoveredValue | undefined =
+      buildDiscoveredValue({
+        field: field,
+        value: value,
+        readBy: readBy,
+        readAt: data.readAt,
+      });
+
+    if (entry) {
+      entries[field] = entry;
+    }
+  }
+
+  return entries;
 }
 
 /**

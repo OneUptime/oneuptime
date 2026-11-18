@@ -4,6 +4,7 @@ import {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "./NotificationRuleCondition";
+import { doesConditionMatch } from "./NotificationRuleConditionMatch";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
 
 export class WorkspaceNotificationRuleUtil {
@@ -94,298 +95,29 @@ export class WorkspaceNotificationRuleUtil {
     return false;
   }
 
+  /*
+   * One condition against what the record holds: the comparison lives in
+   * doesConditionMatch, which the Dashboard asks too - an On-Call Policy
+   * Name condition says which policies it matches today by it (#7806).
+   */
   private static didConditionMatch(data: {
     value: string | Array<string> | undefined;
     condition: ConditionType;
     filterValue: string | Array<string> | undefined;
   }): boolean {
-    const value: string | Array<string> | undefined = data.value;
-    const condition: ConditionType = data.condition;
-    const filterValue: string | Array<string> | undefined = data.filterValue;
-
     logger.debug("Checking condition match:");
     logger.debug("Value:");
-    logger.debug(value);
+    logger.debug(data.value);
     logger.debug("Condition:");
-    logger.debug(condition);
+    logger.debug(data.condition);
     logger.debug("Filter value:");
-    logger.debug(filterValue);
+    logger.debug(data.filterValue);
 
-    if (value === undefined || filterValue === undefined) {
-      logger.debug(
-        "Value or filter value is undefined. Condition does not match.",
-      );
-      return false;
-    }
+    const result: boolean = doesConditionMatch(data);
 
-    switch (condition) {
-      case ConditionType.EqualTo: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
+    logger.debug(`${data.condition} condition result:`);
+    logger.debug(result);
 
-        const result: boolean = values.every((val: string) => {
-          return filterValues.every((fVal: string) => {
-            // if val and fVal can be  converted to numbers, compare them as numbers
-            if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
-              return Number(val) === Number(fVal);
-            }
-
-            return val === fVal;
-          });
-        });
-        logger.debug("EqualTo condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.NotEqualTo: {
-        const result: boolean =
-          Array.isArray(value) && Array.isArray(filterValue)
-            ? !value.every((val: string) => {
-                return filterValue.includes(val);
-              })
-            : value !== filterValue;
-        logger.debug("NotEqualTo condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.GreaterThan: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        const result: boolean = values.every((val: string) => {
-          return filterValues.every((fVal: string) => {
-            // if val and fVal can be  converted to numbers, compare them as numbers
-            if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
-              return Number(val) > Number(fVal);
-            }
-
-            return val > fVal;
-          });
-        });
-        logger.debug("GreaterThan condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.LessThan: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        const result: boolean = values.every((val: string) => {
-          return filterValues.every((fVal: string) => {
-            // if val and fVal can be  converted to numbers, compare them as numbers
-            if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
-              return Number(val) < Number(fVal);
-            }
-
-            return val < fVal;
-          });
-        });
-        logger.debug("LessThan condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.GreaterThanOrEqualTo: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        const result: boolean = values.every((val: string) => {
-          return filterValues.every((fVal: string) => {
-            // if val and fVal can be  converted to numbers, compare them as numbers
-            if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
-              return Number(val) >= Number(fVal);
-            }
-
-            return val >= fVal;
-          });
-        });
-        logger.debug("GreaterThanOrEqualTo condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.LessThanOrEqualTo: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        const result: boolean = values.every((val: string) => {
-          return filterValues.every((fVal: string) => {
-            // if val and fVal can be  converted to numbers, compare them as numbers
-            if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
-              return Number(val) <= Number(fVal);
-            }
-
-            return val <= fVal;
-          });
-        });
-
-        logger.debug("LessThanOrEqualTo condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.ContainsAny:
-      case ConditionType.Contains: {
-        const result: boolean = false;
-
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        logger.debug("Values:");
-        logger.debug(values);
-        logger.debug("Filter values:");
-        logger.debug(filterValues);
-
-        for (const val of values) {
-          for (const fVal of filterValues) {
-            if (val.includes(fVal)) {
-              logger.debug("ContainsAny condition result:");
-              logger.debug(true);
-              return true;
-            }
-          }
-        }
-
-        logger.debug("ContainsAny condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.NotContains: {
-        const result: boolean = true;
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        for (const val of values) {
-          for (const fVal of filterValues) {
-            if (val.includes(fVal)) {
-              logger.debug("NotContains condition result:");
-              logger.debug(false);
-              return false;
-            }
-          }
-        }
-
-        logger.debug("NotContains condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.StartsWith: {
-        const result: boolean = false;
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        for (const val of values) {
-          for (const fVal of filterValues) {
-            if (val.startsWith(fVal)) {
-              logger.debug("StartsWith condition result:");
-              logger.debug(true);
-              return true;
-            }
-          }
-        }
-
-        logger.debug("StartsWith condition result:");
-        logger.debug(result);
-
-        return result;
-      }
-
-      case ConditionType.EndsWith: {
-        const result: boolean = false;
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        for (const val of values) {
-          for (const fVal of filterValues) {
-            if (val.endsWith(fVal)) {
-              logger.debug("StartsWith condition result:");
-              logger.debug(true);
-              return true;
-            }
-          }
-        }
-
-        logger.debug("StartsWith condition result:");
-        logger.debug(result);
-
-        return result;
-      }
-
-      case ConditionType.IsEmpty: {
-        const result: boolean = Array.isArray(value)
-          ? value.length === 0
-          : value === "";
-        logger.debug("IsEmpty condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.IsNotEmpty: {
-        const result: boolean = Array.isArray(value)
-          ? value.length > 0
-          : value !== "";
-        logger.debug("IsNotEmpty condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.True: {
-        const result: boolean = value === "true";
-        logger.debug("True condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.False: {
-        const result: boolean = value === "false";
-        logger.debug("False condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      case ConditionType.ContainsAll: {
-        const values: string[] = Array.isArray(value) ? value : [value];
-        const filterValues: string[] = Array.isArray(filterValue)
-          ? filterValue
-          : [filterValue];
-
-        const result: boolean = filterValues.every((fVal: string) => {
-          return values.some((val: string) => {
-            return val.includes(fVal);
-          });
-        });
-        logger.debug("ContainsAll condition result:");
-        logger.debug(result);
-        return result;
-      }
-
-      default: {
-        logger.debug("Unknown condition type. Condition does not match.");
-        return false;
-      }
-    }
+    return result;
   }
 }

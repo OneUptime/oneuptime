@@ -62,14 +62,14 @@ import {
  * metrics a monitor can evaluate, the attributes an observed series is read
  * with, and how late a source's points arrive.
  *
- * Nothing lists or offers the templates themselves. The Database library's
- * templates reach people through the monitor Recommendations, and
- * MonitorRecommendationResourceType has no queue member, so a template's
- * getMonitorStep (the complete monitor it stands for: queries, breach and
- * recovery criteria, incident text) has no caller in the product. The tests
- * build it and evaluate it against broker-shaped rows through the real
- * metric criteria evaluator. Offering the templates would be a feature of
- * its own.
+ * The templates themselves reach people through a queue's Recommendations
+ * tab (#9307): MonitorRecommendationResourceType.MessageQueue offers each
+ * template whose metric the queue's broker has reported
+ * (getMessageQueueAlertTemplatesFor), and its getMonitorStep - the complete
+ * monitor it stands for: queries, breach and recovery criteria, incident
+ * text - is what "Create monitors" creates. The tests build it and evaluate
+ * it against broker-shaped rows through the real metric criteria
+ * evaluator.
  *
  * WHAT MAKES THEM THIS QUEUE'S MONITORS
  *
@@ -2113,6 +2113,61 @@ const ALL_MESSAGE_QUEUE_ALERT_TEMPLATES: Array<MessageQueueAlertTemplate> =
       return template !== null;
     },
   );
+
+// Every template, in catalog order.
+export function getAllMessageQueueAlertTemplates(): Array<MessageQueueAlertTemplate> {
+  return [...ALL_MESSAGE_QUEUE_ALERT_TEMPLATES];
+}
+
+/*
+ * The series a queue's broker reported for each of its metrics, by the
+ * catalog entry's id (getMessageQueueMetricId): what a queue's
+ * Recommendations read before offering anything.
+ */
+export type MessageQueueObservedSeriesByMetric = Readonly<
+  Record<string, ReadonlyArray<MessageQueueObservedAttributes>>
+>;
+
+/*
+ * The templates ONE queue is offered: those whose metric its broker has
+ * reported with a series that resolves to the queue, so getMonitorStep
+ * builds a monitor that reads it. A template over a metric nobody sends
+ * would never fire, and one over another queue's series would watch the
+ * wrong queue - neither is offered.
+ */
+export function getMessageQueueAlertTemplatesFor(data: {
+  observedSeriesByMetric?:
+    | MessageQueueObservedSeriesByMetric
+    | null
+    | undefined;
+  identity?: MessageQueueIdentity | null | undefined;
+}): Array<MessageQueueAlertTemplate> {
+  const observed: MessageQueueObservedSeriesByMetric =
+    data.observedSeriesByMetric || {};
+
+  return ALL_MESSAGE_QUEUE_ALERT_TEMPLATES.filter(
+    (template: MessageQueueAlertTemplate): boolean => {
+      const series: ReadonlyArray<MessageQueueObservedAttributes> =
+        observed[template.metricId] || [];
+
+      if (series.length === 0) {
+        return false;
+      }
+
+      return (
+        template.getMonitorStep({
+          observedSeries: series,
+          identity: data.identity,
+          onlineMonitorStatusId: ObjectID.getZeroObjectID(),
+          offlineMonitorStatusId: ObjectID.getZeroObjectID(),
+          defaultIncidentSeverityId: ObjectID.getZeroObjectID(),
+          defaultAlertSeverityId: ObjectID.getZeroObjectID(),
+          monitorName: "queue",
+        }) !== null
+      );
+    },
+  );
+}
 
 /**
  * The template of one catalog entry, or undefined when the entry has none:

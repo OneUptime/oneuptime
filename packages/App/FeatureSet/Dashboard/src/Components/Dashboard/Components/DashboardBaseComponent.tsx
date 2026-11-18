@@ -79,6 +79,8 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getWidgetTypeBadgeText } from "../Toolbar/WidgetCatalog";
 import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
@@ -278,6 +280,17 @@ export const WIDGET_TYPE_BADGE_TEST_ID: string = "dashboard-widget-type";
 export const WIDGET_TYPE_BADGE_BOX_CLASS_NAME: string =
   "pointer-events-none absolute right-1.5 top-8 z-20";
 
+export const WIDGET_EDIT_BUTTON_TEST_ID: string = "dashboard-widget-edit";
+
+/*
+ * While the board is edited, a widget's settings open from this button as
+ * well as from a click on the widget: Tab reaches it and Enter opens them
+ * (#9222). It sits in the drag bar's end, over the drag surface, and shows
+ * with the bar - or as soon as the keyboard is on it.
+ */
+export const WIDGET_EDIT_BUTTON_CLASS_NAME: string =
+  "absolute right-1 top-0.5 z-30 flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-gray-500 shadow-sm ring-1 ring-gray-200 transition-opacity hover:text-gray-900 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-indigo-500";
+
 interface ResizeHandleSpec {
   direction: ResizeDirection;
   style: React.CSSProperties;
@@ -422,6 +435,37 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           </svg>
         </div>
       </div>
+    );
+  };
+
+  const getEditButton: GetReactElementFunction = (): ReactElement => {
+    if (!props.isEditMode || isActive) {
+      return <></>;
+    }
+
+    const editWidget: string =
+      translator.translateText("Edit widget") || "Edit widget";
+
+    return (
+      <button
+        type="button"
+        data-testid={WIDGET_EDIT_BUTTON_TEST_ID}
+        aria-label={editWidget}
+        title={editWidget}
+        className={`${WIDGET_EDIT_BUTTON_CLASS_NAME} ${
+          showHandles ? "opacity-100" : "opacity-0"
+        }`}
+        onPointerDown={(event: React.PointerEvent) => {
+          // A press on the button is not the start of a drag.
+          event.stopPropagation();
+        }}
+        onClick={(event: React.MouseEvent) => {
+          event.stopPropagation();
+          props.onClick();
+        }}
+      >
+        <Icon icon={IconProp.Settings} className="h-3.5 w-3.5" />
+      </button>
     );
   };
 
@@ -648,12 +692,6 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           ? "transform 0.15s ease"
           : "transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease",
       }}
-      onClick={(event: React.MouseEvent) => {
-        event.stopPropagation();
-        if (!props.isEditMode) {
-          props.onClick();
-        }
-      }}
       onMouseEnter={() => {
         setIsHovered(true);
       }}
@@ -663,6 +701,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     >
       {getEditOverlay()}
       {getHeaderBar()}
+      {getEditButton()}
       {getTypeBadge()}
 
       {/* Component content — keep padding constant in edit mode so the move

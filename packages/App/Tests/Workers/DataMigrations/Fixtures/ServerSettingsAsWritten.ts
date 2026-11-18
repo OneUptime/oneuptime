@@ -14,6 +14,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import Port from "Common/Types/Port";
 import EncryptGlobalConfigCredentials from "../../../../FeatureSet/Workers/DataMigrations/EncryptGlobalConfigCredentials";
+import { encryptInPlaceADayLater } from "./CredentialsAtRestPass";
+import { expect } from "@jest/globals";
 import {
   answerGlobalConfigSql,
   GlobalConfigSql,
@@ -28,8 +30,10 @@ import {
  * useServerSettings puts the row behind GlobalConfigService (an in-memory
  * table, InMemoryRepository), so every reader reads it through the service
  * as it reads Postgres, decrypting on the way. migrateServerSettings runs
- * the real EncryptGlobalConfigCredentials over the same rows, its SQL
- * answered as Postgres answers it (GlobalConfigCredentialsSql).
+ * the upgrade over the same rows - the real EncryptGlobalConfigCredentials,
+ * which changes nothing (#9266), then the CredentialsAtRest:EncryptInPlace
+ * job's real pass a day later, which encrypts them - its SQL answered as
+ * Postgres answers it (GlobalConfigCredentialsSql).
  */
 
 export const SERVER_SETTINGS_ID: string = ObjectID.getZeroObjectID().toString();
@@ -115,9 +119,11 @@ export function useServerSettings(row: SqlRow): ServerSettings {
 }
 
 /*
- * Runs the data migration over the table. Only while it runs does the
- * repository answer SQL, as Postgres's does: every other read and write
- * goes through the service's find and update, as before.
+ * Runs the upgrade over the table: the data migration, which leaves every
+ * value as a server of the release before reads it - held to that here -
+ * and the job's pass a day later, which encrypts them. Only while they run
+ * does the repository answer SQL, as Postgres's does: every other read and
+ * write goes through the service's find and update, as before.
  */
 export async function migrateServerSettings(
   settings: ServerSettings,
@@ -129,7 +135,13 @@ export async function migrateServerSettings(
   repository["manager"] = { query: settings.sql.query };
 
   try {
+    const asWritten: string = JSON.stringify(settings.table.rows);
+
     await new EncryptGlobalConfigCredentials().migrate();
+
+    expect(JSON.stringify(settings.table.rows)).toBe(asWritten);
+
+    await encryptInPlaceADayLater(new EncryptGlobalConfigCredentials().name);
   } finally {
     delete repository["metadata"];
     delete repository["manager"];

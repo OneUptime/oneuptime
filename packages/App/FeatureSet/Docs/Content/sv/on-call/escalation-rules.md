@@ -32,10 +32,10 @@ flowchart TB
 När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efter dess **Namn** och **Vem larmas först?**. Frågan använder samma väljare som **Avisera**: jourscheman, team och personer, så många du behöver. De du väljer blir policyns första eskaleringsregel, **Level 1**, som väntar **30 minuter** på en bekräftelse innan nästa nivå larmas.
 
 :::steps
-1. Gå till **Jour** > **Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour** > **Jourpolicyer** och klicka på **Skapa jourpolicy**.
 2. Ange ett **Namn**.
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
-4. Klicka på **Skapa Jourpolicy**. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
+4. Klicka på **Skapa jourpolicy**. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
 :::
 
 **Vem larmas först?** är valfritt. Lämnar du det tomt börjar policyn utan eskaleringsregler: den larmar ingen förrän du lägger till en, och dess översikt säger det. Beskrivningen och etiketterna finns under **Fler fält**. Frågan ställs bara till dem som får lägga till eskaleringsregler.
@@ -45,7 +45,7 @@ När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efte
 :::steps
 ### Öppna policyns eskaleringsregler
 
-Öppna jourpolicyn, välj **Eskaleringsregler** i dess sidomeny och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida.
+Öppna jourpolicyn, välj **Eskaleringsregler** i dess sidomeny och klicka på **Lägg till eskaleringsregel**. Dialogen är en kort sida. Den säger vilken nivå i policyn regeln lägger till.
 
 ### Välj vem som ska aviseras
 
@@ -61,6 +61,10 @@ Klicka på **Lägg till mottagare** under **Avisera**, sök och välj så många
 ### Ange hur länge det ska väntas
 
 **Eskalera efter (i minuter)** är hur länge det väntas på en bekräftelse innan nästa nivå larmas. Den börjar på **30 minuter**; ändra den till det som passar nivån.
+
+![Dialogen ”Lägg till eskaleringsregel” för en policy med en nivå, med ”Larmas efter (i minuter)” markerad](screen:escalation-rule-paged-after)
+
+En regel som läggs till efter den första frågar i stället **Larmas efter (i minuter)**: hur länge nivån före den väntar på en bekräftelse innan den här larmas. Den börjar på den nivåns väntetid och sparas som den; den nya nivån väntar själv 30 minuter tills du lägger till en efter den. Den som får lägga till regler men inte ändra dem får **Eskalera efter (i minuter)**, och dialogen säger när den nya nivån larmas.
 
 ### Ge regeln ett namn, om du vill
 
@@ -190,7 +194,7 @@ En nivå kan larma nästa person i ett jourschemas rotation: personen efter den 
 
 :::steps
 1. Se till att policyns första nivå, **Level 1**, aviserar jourschemat.
-2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Eskalera efter (i minuter)** och klicka på **Skapa regel**.
+2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Larmas efter (i minuter)** och klicka på **Skapa regel**.
 3. Lägg till ytterligare en nivå för teamet eller chefen som ska få veta härnäst.
 :::
 

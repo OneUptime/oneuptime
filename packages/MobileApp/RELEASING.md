@@ -401,8 +401,8 @@ in the same change for every language. The same goes for the actions under an
 on-call page's push (below): the FAQ's "Can I acknowledge a page from the
 notification?" still answers no, for the app the stores have, and
 `packages/App/Tests/FeatureSet/Docs/MobileDesktopDocsFacts.test.ts` fails
-once `app.json` moves past 1.6.0 until it names **Acknowledge** and
-**Escalate**.
+once `app.json` moves past 1.6.0 until it names **Acknowledge**,
+**Escalate**, **I've seen it** and **Acknowledge test page**.
 
 ### On-call pages: Acknowledge and Escalate under the push
 
@@ -470,6 +470,94 @@ Before the release, with a rule that pages a policy you are on as observers:
    Acknowledge and Escalate (repeat 1 to 4 of the section above).
 5. When `app.json` moves past 1.6.0, the FAQ's "Can I acknowledge a page
    from the notification?" names I've seen it for an observer's page too.
+
+### On-call test pages: Acknowledge test page under the push
+
+The same release registers a third category, `ON_CALL_TEST_PAGE`, with one
+action: **Acknowledge test page**. The server names it on the push of a test
+page (Test this policy, Send test page or Send me a test page, a monitor's
+fire drill), and nowhere else: a real page's push never carries it, and the
+app never answers a real page with it. It opens the app on the Test page
+screen - after the phone is unlocked and after the app's own biometric lock -
+and acknowledges the test there through
+`POST /api/on-call-test-page/acknowledge/<message id>`, the same rule and the
+same timeline line as the link in the test's email or text: the policy's
+execution log says the test was acknowledged by push notification and after
+how long. Tapping the push itself opens the same screen with an
+**Acknowledge test page** button, or says it was acknowledged already. A
+server older than this names no category for a test page and has no such
+route: the push has no action, and tapping it opens the app as before.
+
+Before the release, on an iPhone and an Android phone signed in to a project
+with an on-call policy that pages you by push:
+
+1. On the Dashboard, open the policy's escalation rules and press **Test this
+   policy**, then **Send test page**, with the phone locked. The push reads
+   "TEST page from OneUptime": under it is Acknowledge test page, and no
+   Acknowledge or Escalate.
+2. Tap Acknowledge test page: the phone asks to be unlocked, the app opens on
+   the Test page screen, and it says the test page was acknowledged. The
+   Dashboard's dialog and the policy's execution log say acknowledged by
+   push notification, once - Back or a second render never does it again.
+3. Send another test and tap the push itself: the screen offers Acknowledge
+   test page; press it. Tap the same push again: the screen says it was
+   acknowledged already, with no button.
+4. Answer a test from its email link first, then tap its push: the screen
+   says acknowledged already, and the log keeps the one answer.
+5. Page yourself for real on the same build: the push still has Acknowledge
+   and Escalate (repeat 1 and 2 of "On-call pages: Acknowledge and Escalate
+   under the push"), and acknowledging it acknowledges the incident, not a
+   test.
+6. On a monitor whose When this goes down card names an on-call policy you
+   are on, press **Run Fire Drill**, then **Start Fire Drill**: the push of
+   each policy's test carries Acknowledge test page, and no incident or alert
+   is created.
+7. On a self-hosted server that relays its pushes, repeat 1 and 2.
+
+### First steps: Get Ready for On-Call
+
+Since the release after 1.6.0 a new install opens **Get Ready for On-Call**
+by itself, once, the first time it is signed in to a project: allow
+notifications, ring through silent mode (Critical Alerts on an iPhone, Do Not
+Disturb access on Android), and send yourself a test page and acknowledge it
+- the same test page as the Dashboard's Send me a test page. Not Now puts it
+away; it never opens by itself again, and Settings > Get Ready for On-Call
+opens it any time. An update over a phone already registered for pushes never
+opens it by itself. Critical alerts asked for and allowed in the phone's
+settings (Android's Do Not Disturb access, iOS Settings after a refusal)
+turn on when the app comes back, here and on Settings' switch, without a
+second press. `src/onboarding/getReady.test.ts`,
+`src/onboarding/firstRun.test.ts`, `src/screens/GetReadyScreen.test.tsx`,
+`src/navigation/GetReadyFirstRun.test.tsx`,
+`src/hooks/useCriticalAlerts.test.tsx` and `tests/ui/get-ready.spec.js`
+cover the code paths and the screen; the phone's own prompts need a device.
+Before the release, on an iPhone and an Android phone, with a fresh install
+of the build, signed in to a project with an on-call policy that pages you
+by push:
+
+1. Sign in: the app opens Get Ready for On-Call over On-Call, with Allow
+   notifications as the step to do. Press **Allow Notifications**: the
+   system prompt appears; allow. The step reads done at once, and the phone
+   shows in User Settings > Notification Methods on the Dashboard as a push
+   device.
+2. On the iPhone, press **Turn On Critical Alerts**: iOS asks for Critical
+   Alerts; allow. On Android, the same button opens Do Not Disturb access;
+   turn it on for OneUptime On-Call and come back: the step reads done
+   without a second tap, and so does Settings > Critical On-Call Alerts.
+   On a second iPhone, refuse at the prompt, then allow Critical Alerts in
+   iOS Settings and come back: the step reads done by itself.
+3. Press **Send Test Page**, with the phone locked: the push reads "TEST
+   page from OneUptime". Acknowledge it from the push: back in the app, the
+   step reads acknowledged and the screen says you are ready. Press Done.
+4. Kill and reopen the app, and sign out and in: Get Ready for On-Call
+   never opens by itself again. Settings > Get Ready for On-Call opens it,
+   with the three steps still done.
+5. On a second fresh install, refuse notifications at the prompt: the step
+   says notifications are off in the phone's settings, and **Open Settings**
+   opens the app's own page there. Turn them on and come back: the step
+   reads done.
+6. Install this build over the previous release on a phone already signed
+   in and receiving pages: Get Ready for On-Call does not open by itself.
 
 ### Sessions: the idle timeout, signing out, and why the app signed out
 

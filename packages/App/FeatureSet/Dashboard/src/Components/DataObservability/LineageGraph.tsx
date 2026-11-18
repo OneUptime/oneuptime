@@ -710,7 +710,7 @@ const CardChips: FunctionComponent<CardChipsProps> = (
 };
 
 const HIDDEN_COUNT_CLASS_NAME: string =
-  "absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm";
+  "absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-600 shadow-sm";
 
 /*
  * A count's tap area: the pill (21px high, 27px wide for "+3") with an
@@ -952,7 +952,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         </span>
       ) : subtitle ? (
         <span
-          className="mt-0.5 block truncate text-[11px] text-gray-500"
+          className="mt-0.5 block truncate text-xs text-gray-500"
           title={subtitle}
         >
           {subtitle}

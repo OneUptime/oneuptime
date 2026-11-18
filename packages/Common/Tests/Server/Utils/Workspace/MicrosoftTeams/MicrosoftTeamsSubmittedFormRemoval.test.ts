@@ -198,6 +198,10 @@ import WorkspaceMemberActions, {
 import CustomFieldType from "../../../../../Types/CustomField/CustomFieldType";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  NO_MONITORS_SUBSCRIBERS_LINE,
+  stubSubscriberAudience,
+} from "../WorkspaceSubscriberAudienceTestHelpers";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 
@@ -822,7 +826,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       incidentDescription: "Payments time out after 30 seconds.",
       incidentSeverity: SEVERITY_ID,
     },
-    confirmation: `✅ Incident created successfully. [View incident](${INCIDENT_LINK})`,
+    confirmation: `✅ Incident created successfully. [View incident](${INCIDENT_LINK})\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`,
     failureReply: INCIDENT_CREATE_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const created: Incident = new Incident();
@@ -1730,6 +1734,8 @@ function errorLogCalls(): Array<Array<unknown>> {
 beforeEach((): void => {
   debugLog = jest.spyOn(logger, "debug").mockImplementation((): void => {});
   errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
+  // A declared incident is on no monitor.
+  stubSubscriberAudience();
 
   // Permissions are pinned in the action authorization tests.
   jest

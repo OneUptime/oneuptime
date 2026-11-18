@@ -61,7 +61,7 @@ Når du blir medlem av et prosjekt med en verifisert påloggings-e-post, setter 
 2. For hver alvorlighetsgrad, på hver av de fire fanene i **Slik når man meg**, sender en regel deg en e-post så snart du blir tilkalt.
 3. En rekke oppdateringer om det du eier, og om vaktene dine, er slått på via e-post. Se [Varslingsinnstillinger](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
 
-Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Slik når man meg](/docs/notifications/on-call-rules#reglene-du-starter-med).
+Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvorlighetsgrad, sendt så snart du blir tilkalt. Å verifisere et telefonnummer for SMS betyr altså at hver tilkalling også sender deg en SMS. Vil du bare ha SMS ved kritiske tilkallinger, sletter du SMS-reglene for de andre alvorlighetsgradene. Se [Slik når man meg](/docs/notifications/on-call-rules#reglene-du-starter-med). Når prosjektet ditt har en standardrekkefølge, følger e-posten din og hver metode du verifiserer den i stedet: se [Standardrekkefølgen](/docs/notifications/on-call-rules#standardrekkefølgen).
 
 ## Oppsettsjekklisten
 
@@ -84,6 +84,10 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 | **Noen ting må fortsatt settes opp** | En alvorlighetsgrad har ingen regel, eller et steg er ikke gjort ennå |
 | **Ingenting kan nå deg ennå** | Ingen av metodene dine kan brukes: ingen er verifisert, eller hver verifisert metode er på en kanal dette prosjektet har slått av |
 | **Du er satt opp og har ikke vakt akkurat nå** | Alt er klart for dagen en policy nevner deg |
+
+Så lenge et steg gjenstår, åpner **Brukerinnstillinger** på denne sjekklisten, og på **Varslingsmetoder** når ingenting vesentlig gjenstår. En lenke til en annen side i **Brukerinnstillinger** åpner fortsatt den siden.
+
+Når du står i en vaktpolicy og oppsettet ditt ikke er ferdig, viser bjellen øverst på hver side **Fullfør oppsettet av varslene dine**, og hvorfor: ingenting kan nå deg, en alvorlighetsgrad har ingen regel, eller prosjektet ditt ber om en telefonmetode du ikke har verifisert. Den åpner denne sjekklisten, eller **Slik når man meg** for telefonen. **Skjul i en uke** legger den bort i denne nettleseren, og den forsvinner av seg selv når oppsettet ditt er ferdig.
 
 ## Når ingen regel passer
 

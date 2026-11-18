@@ -2,6 +2,33 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import * as React from "react";
+
+/*
+ * The Recommendations entry counts what is left to set up, which it reads
+ * from the server; this suite is about where each entry sits and points,
+ * so the entry is drawn as the plain menu item it renders, with its icon.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsSideMenuItem",
+  () => {
+    const SideMenuItem: React.FunctionComponent<Record<string, unknown>> =
+      jest.requireActual(
+        "../../../UI/Components/SideMenu/SideMenuItem",
+      ).default;
+    const IconProp: Record<string, string> = jest.requireActual(
+      "../../../Types/Icon/IconProp",
+    ).default;
+
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        return (
+          <SideMenuItem link={props["link"]} icon={IconProp["Sparkles"]} />
+        );
+      },
+    };
+  },
+);
 import MessageQueueSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/SideMenu";
 import MessageQueueViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -208,6 +235,10 @@ describe("one queue's side menu", () => {
         title: "Topology",
         href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY),
       },
+      {
+        title: "Recommendations",
+        href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS),
+      },
     ]);
     expect(linksIn("Observability")).toEqual([
       { title: "Traces", href: queueRoute(PageMap.MESSAGE_QUEUE_VIEW_TRACES) },
@@ -260,9 +291,9 @@ describe("one queue's side menu", () => {
     );
 
     expect(developerHrefs).toHaveLength(4);
-    expect(viewPages).toHaveLength(9);
-    expect(hrefs).toHaveLength(9);
-    expect(new Set(hrefs).size).toBe(9);
+    expect(viewPages).toHaveLength(10);
+    expect(hrefs).toHaveLength(10);
+    expect(new Set(hrefs).size).toBe(10);
     for (const key of viewPages) {
       expect(hrefs).toContain(queueRoute(key));
     }
@@ -285,7 +316,7 @@ describe("one queue's side menu", () => {
   test("every entry carries an icon", async () => {
     await renderMenu(<MessageQueueViewSideMenu modelId={QUEUE_ID} />);
 
-    expect(iconCountIn("Basic")).toBe(2);
+    expect(iconCountIn("Basic")).toBe(3);
     expect(iconCountIn("Observability")).toBe(2);
     expect(iconCountIn("Settings")).toBe(3);
     expect(iconCountIn("Advanced")).toBe(2);
@@ -293,6 +324,7 @@ describe("one queue's side menu", () => {
 
   test.each([
     [PageMap.MESSAGE_QUEUE_VIEW_TOPOLOGY, "Topology", "Basic"],
+    [PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS, "Recommendations", "Basic"],
     [PageMap.MESSAGE_QUEUE_VIEW_TRACES, "Traces", "Observability"],
     [PageMap.MESSAGE_QUEUE_VIEW_METRICS, "Metrics", "Observability"],
     [PageMap.MESSAGE_QUEUE_VIEW_OWNERS, "Owners", "Settings"],

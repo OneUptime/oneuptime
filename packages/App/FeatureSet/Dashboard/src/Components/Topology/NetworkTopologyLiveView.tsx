@@ -92,7 +92,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
@@ -1047,7 +1047,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    * no way back until the next poll succeeded.
    */
   if (isLoading && topology.nodes.length === 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   /*
@@ -1091,7 +1091,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    * default and jump.
    */
   if (projectDefaultLayout === undefined && topology.nodes.length > 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error && topology.nodes.length === 0) {

@@ -194,6 +194,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import {
@@ -1709,6 +1710,24 @@ EXPLORER_SERVICES.forEach((service) => {
 fixture.dataset.services = EXPLORER_SERVICES.map((service) => {
   return { id: service.id, name: service.name };
 });
+
+/*
+ * The project's first traces, logs and metrics arrived long ago: the marks
+ * the Traces, Logs and Metrics pages read to know they have nothing to
+ * explain (Components/ProductOnboarding/TelemetryFirstRunShowcase).
+ */
+["first_traces_received", "first_logs_received", "first_metrics_received"]
+  .map((milestone, index) => {
+    return { milestone, number: index + 1 };
+  })
+  .forEach((mark) => {
+    insert(ProjectMilestone, {
+      _id: uuid("66000000", mark.number),
+      milestone: mark.milestone,
+      reachedAt: ago(190 * DAY),
+      wasBackfilled: false,
+    });
+  });
 
 // Read by the explorers' resource lists and saved views.
 table(DockerHost);

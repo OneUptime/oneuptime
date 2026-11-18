@@ -20,7 +20,11 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useActiveProject } from "../hooks/useProject";
 import { useProjectUsers } from "../hooks/useProjectUsers";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
-import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
+import {
+  findOverlapConflict,
+  useOnCallOverrides,
+} from "../hooks/useOnCallOverrides";
+import { isOverlapRefusal } from "../oncall/overrideEdit";
 import { useGlobalOverrideAccess } from "../hooks/useGlobalOverrideLock";
 import {
   useCoverPolicies,
@@ -56,7 +60,7 @@ import type {
   CreateOnCallOverrideParams,
   OnCallStackParamList,
 } from "../navigation/types";
-import type { ProjectUserItem } from "../api/types";
+import type { OnCallOverrideItem, ProjectUserItem } from "../api/types";
 
 type CreateOverrideNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
@@ -147,6 +151,12 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const [durationHours, setDurationHours] = useState<number>(4);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * The override a refusal for an overlap is about (#7897): offered to
+   * edit instead, in this sheet's place, rather than only named.
+   */
+  const [conflict, setConflict] = useState<OnCallOverrideItem | null>(null);
 
   /*
    * Cover for a policy-variant shift names its policy. Every other cover
@@ -266,6 +276,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
 
   const onSubmit: () => Promise<void> = async (): Promise<void> => {
     setError(null);
+    setConflict(null);
 
     if (lockReason) {
       setError(lockReason);
@@ -314,6 +325,9 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       return;
     }
 
+    // The policy an add is about when it fails: the one ticked, or the sheet's.
+    let failedPolicyId: string | null = result.input.onCallDutyPolicyId || null;
+
     try {
       if (isOnSomePolicies) {
         // One override on each policy ticked, one after another.
@@ -321,6 +335,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           if (savedPolicyIds.current.has(policy.policyId)) {
             continue;
           }
+
+          failedPolicyId = policy.policyId;
 
           try {
             await overrides.createOverride({
@@ -348,8 +364,28 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       successFeedback();
       navigation.goBack();
     } catch (err: unknown) {
-      setError(getFriendlyErrorMessage(err));
+      const message: string = getFriendlyErrorMessage(err);
+      setError(message);
       errorFeedback();
+
+      // Refused for an overlap: that override, to edit instead.
+      if (isOverlapRefusal(message) && projectId) {
+        setConflict(
+          await findOverlapConflict({
+            project: {
+              projectId: projectId,
+              projectName: projectList[0]?.name ?? "",
+            },
+            candidate: {
+              overrideUserId: result.input.overrideUserId,
+              routeAlertsToUserId: result.input.routeAlertsToUserId,
+              onCallDutyPolicyId: failedPolicyId,
+              startsAt: result.input.startsAt,
+              endsAt: result.input.endsAt,
+            },
+          }),
+        );
+      }
     }
   };
 
@@ -866,6 +902,16 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             testID="override-error"
             tone="danger"
             message={error}
+            actionLabel={conflict ? "Edit that override" : undefined}
+            onAction={
+              conflict
+                ? () => {
+                    navigation.replace("EditOnCallOverride", {
+                      override: conflict,
+                    });
+                  }
+                : undefined
+            }
             style={{ marginTop: spacing.lg }}
           />
         ) : null}

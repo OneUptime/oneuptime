@@ -94,7 +94,7 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 Legg til eiere på monitorene dine, eller en vaktpolicy under **Vakt** > **Vaktpolicyer** på hendelsene de åpner, slik at de riktige personene får vite det når noe går ned.
 
 ### Pek adressen til statussiden din mot OneUptime
-Åpne siden under **Statussider**, legg til domenet ditt under **Egendefinerte domener**, og endre deretter DNS-oppføringen. Da kommer besøkende og abonnenter til den nye siden.
+Åpne siden under **Statussider**, legg til domenet ditt under **Egendefinerte domener**, og endre deretter DNS-oppføringen. Da kommer besøkende og abonnenter til den nye siden. Inntil da viser rapporten hvor hver overførte side er live på OneUptime, med **Kopier lenke**.
 
 ### Slå av kontrollene i Better Stack
 Når OneUptime kontrollerer de samme tingene, setter du dem på pause i Better Stack, så ingen får beskjed to ganger.

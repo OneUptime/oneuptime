@@ -37,7 +37,9 @@ import { StateListType } from "../../Utils/StateOrder";
  *     and is left out of the on-call counts (on-call reports count pages
  *     about records only).
  *   - ACKNOWLEDGING WORKS: from an email's, a text's or a chat message's
- *     link, or a call's 1. The run then says who
+ *     link, a call's 1, or "Acknowledge test page" under its push in the
+ *     On-Call app (#7014) - one rule for all of them
+ *     (OnCallTestPageAcknowledge). The run then says who
  *     acknowledged it, by what, and how long after their message went out
  *     ("Test page acknowledged by Ana Lopez by SMS after 14 seconds.").
  *   - IT ENDS ON ITS OWN: when somebody acknowledges it, or
@@ -334,10 +336,10 @@ export function getOnCallTestPageAcknowledgedMessage(data: {
 
 /*
  * THE CHANNELS A TEST PAGE CAN BE ACKNOWLEDGED FROM: every one whose message
- * carries a link or a call's 1. The others still prove the message arrives:
+ * carries a link or a call's 1 - and a push (#7014): the On-Call app draws
+ * "Acknowledge test page" under it, and a browser's push opens the link.
+ * The others still prove the message arrives:
  *
- *   - a push is answered in the mobile app by acknowledging the record it is
- *     about, and a test has none (a browser's push opens the link);
  *   - WhatsApp's words are a template Meta approved, with no link for a test;
  *   - a webhook and a custom channel get the documented test event, with
  *     nothing to act on, so a tool built for pages needs nothing new.
@@ -347,6 +349,7 @@ export const ON_CALL_TEST_PAGE_ACKNOWLEDGEABLE_CHANNELS: ReadonlyArray<OnCallPag
     OnCallPageChannel.Call,
     OnCallPageChannel.SMS,
     OnCallPageChannel.Telegram,
+    OnCallPageChannel.Push,
     OnCallPageChannel.Email,
     OnCallPageChannel.Slack,
     OnCallPageChannel.MicrosoftTeams,
@@ -375,6 +378,16 @@ export const ON_CALL_TEST_PAGE_ANSWERED_TITLE: string =
 
 export const ON_CALL_TEST_PAGE_ANSWERED_MESSAGE: string =
   "You acknowledged this test page. It works: on-call pages reach you. You can close this page.";
+
+/*
+ * The page's words when the acknowledgement could not be written: the
+ * message kept changing under every try. It never says the test works.
+ */
+export const ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE: string =
+  "Test page not acknowledged";
+
+export const ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_MESSAGE: string =
+  "OneUptime could not acknowledge this test page. Open its link again to try once more.";
 
 // A message of a test page, once the person acknowledged the test from it.
 export const ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE: string =
@@ -756,6 +769,25 @@ export interface OnCallTestPageResult {
 }
 
 /*
+ * WHAT BECAME OF A TEST, IN SHORT (#9386): where it stands, and who
+ * acknowledged it, by what and how fast - each policy's test of a fire
+ * drill, on its monitor's card - without each message's line. Worked out
+ * as the full result works it out (OnCallTestPageService.getAcknowledgement).
+ */
+export type OnCallTestPageResultSummary = Pick<
+  OnCallTestPageResult,
+  | "executionLogId"
+  | "policyId"
+  | "policyName"
+  | "status"
+  | "startedAt"
+  | "endsAt"
+  | "acknowledgedByName"
+  | "acknowledgedChannel"
+  | "acknowledgedAfterSeconds"
+>;
+
+/*
  * Whether a result is final: a test that was acknowledged, ended or failed
  * changes no more, so whoever shows it stops asking.
  */
@@ -1018,13 +1050,17 @@ export function isOnCallTestPageWalkLevelReached(
  * for its SMS and calls itself; WhatsApp and Telegram are always paid from
  * the balance where billing is on. It counts what is sent, and beside it
  * what the balance pays for (#7263): a sentence that says "paid from this
- * project's SMS and call balance" lists only that.
+ * project's SMS and call balance" lists only that. A method on a channel the
+ * project turned off (`channelsOff`) sends nothing, as a real page's does
+ * not, so it is neither counted nor priced: the dialog said "This test sends
+ * 1 SMS" for an SMS the switch stops (#7529).
  */
 export function getOnCallTestPageCost(data: {
   people: ReadonlyArray<Pick<OnCallTestPagePreviewPerson, "methods">>;
   isBillingEnabled: boolean;
   hasOwnTwilioForSms: boolean;
   hasOwnTwilioForCalls: boolean;
+  channelsOff?: ReadonlyArray<OnCallPageChannel> | undefined;
   prices?:
     | {
         smsInCents: number;
@@ -1041,7 +1077,7 @@ export function getOnCallTestPageCost(data: {
 
   for (const person of data.people) {
     for (const method of person.methods) {
-      if (!method.isVerified) {
+      if (!method.isVerified || data.channelsOff?.includes(method.channel)) {
         continue;
       }
 

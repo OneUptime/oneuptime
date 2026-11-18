@@ -1,3 +1,7 @@
+import {
+  getAllRepresentativeRecommendations,
+  getRepresentativeRecommendations,
+} from "./RepresentativeRecommendations";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
@@ -91,7 +95,7 @@ function getAllCriteriaAlerts(monitorStep: MonitorStep): Array<CriteriaAlert> {
 }
 
 const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
-  MonitorRecommendationCatalog.getAllRecommendations();
+  getAllRepresentativeRecommendations();
 
 /*
  * The resource types whose monitors are scoped by a telemetry filter rather
@@ -101,15 +105,17 @@ const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
 const FILTER_SCOPED_RESOURCE_TYPES: Set<MonitorRecommendationResourceType> =
   new Set<MonitorRecommendationResourceType>([
     MonitorRecommendationResourceType.CloudApp,
+    // A serverless function's spans carry its faas.name, not its row's id.
+    MonitorRecommendationResourceType.ServerlessFunction,
+    // A queue's broker metrics carry its destination, not its row's id.
+    MonitorRecommendationResourceType.MessageQueue,
   ]);
 
 // One representative recommendation per resource type, for the focused tests.
 const ONE_PER_RESOURCE_TYPE: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
     (definition: MonitorRecommendationResourceTypeDefinition) => {
-      return MonitorRecommendationCatalog.getAllPossibleRecommendations(
-        definition.resourceType,
-      )[0]!;
+      return getRepresentativeRecommendations(definition.resourceType)[0]!;
     },
   );
 
@@ -953,9 +959,7 @@ describe("MonitorRecommendationUtil", () => {
     it("works for every resource type, not just Kubernetes", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
         const recommendations: Array<MonitorRecommendation> =
-          MonitorRecommendationCatalog.getAllPossibleRecommendations(
-            definition.resourceType,
-          );
+          getRepresentativeRecommendations(definition.resourceType);
         const args: MonitorRecommendationArgs = buildArgs();
         const created: MonitorRecommendation = recommendations[0]!;
 

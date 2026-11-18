@@ -144,17 +144,44 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return { __esModule: true, default: mockRecorder("card-model-detail") };
 });
 
+// How members are paged by default (#7449): ProjectPagingDefaults tests them.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/DefaultPagingLadderCard",
+  () => {
+    return {
+      __esModule: true,
+      default: mockRecorder("default-ladder-card"),
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PhoneForOnCallCard",
+  () => {
+    return {
+      __esModule: true,
+      default: mockRecorder("phone-for-on-call-card"),
+    };
+  },
+);
+
 import NotificationSettings, {
+  NOTIFICATION_SETTINGS_MORE_DESCRIPTION,
   NOTIFICATION_SETTINGS_MORE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/NotificationSettings";
 import {
   CUSTOM_SMTP_CONFIGS_PLACE,
   CUSTOM_SMTP_CONFIGS_TITLE,
   getOwnSendersFoldedItems,
-  OWN_SENDERS_MORE_DESCRIPTION,
   TWILIO_CONFIG_PLACE,
   TWILIO_CONFIG_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/OwnSendersFold";
+import {
+  DEFAULT_LADDER_PLACE,
+  DEFAULT_LADDER_TITLE,
+  PHONE_FOR_ON_CALL_PLACE,
+  PHONE_FOR_ON_CALL_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
@@ -241,10 +268,12 @@ describe.each([false, true])(
       billingEnabledForTest = isBillingOn;
     });
 
-    test("the channel switches stay on the page; the two tables wait in More settings, last", async () => {
+    test("the channel switches stay on the page; how members are paged by default, then the two tables, wait in More settings, last", async () => {
       await renderPage();
 
       expect(cardsIn(fold())).toEqual([
+        "default-ladder-card",
+        "phone-for-on-call-card",
         "custom-smtp-table",
         "twilio-config-table",
       ]);
@@ -274,11 +303,13 @@ describe.each([false, true])(
       expect(fold()).toContainElement(all[all.length - 1]!);
     });
 
-    test("folded, it names the two tables, and nothing is set before they list anything", async () => {
+    test("folded, it names the default ladder, the phone ask and the two tables, and nothing is set before they say so", async () => {
       await renderPage();
 
       expect(header()).toHaveAttribute("aria-expanded", "false");
       expect(listedNames(header())).toEqual([
+        DEFAULT_LADDER_TITLE,
+        PHONE_FOR_ON_CALL_TITLE,
         CUSTOM_SMTP_CONFIGS_TITLE,
         TWILIO_CONFIG_TITLE,
       ]);
@@ -287,7 +318,33 @@ describe.each([false, true])(
       fireEvent.click(header());
 
       expect(header()).toHaveAttribute("aria-expanded", "true");
-      expect(fold()).toHaveTextContent(OWN_SENDERS_MORE_DESCRIPTION);
+      expect(fold()).toHaveTextContent(NOTIFICATION_SETTINGS_MORE_DESCRIPTION);
+    });
+
+    test("a default ladder says how many steps it has, and the phone ask On, folded (#7449)", async () => {
+      await renderPage();
+
+      const onStepCountChange: (count: number) => void = latestPropsOf(
+        "default-ladder-card",
+      )["onStepCountChange"] as (count: number) => void;
+      const onChange: (isOn: boolean) => void = latestPropsOf(
+        "phone-for-on-call-card",
+      )["onChange"] as (isOn: boolean) => void;
+
+      await act(async () => {
+        onStepCountChange(3);
+        onChange(true);
+      });
+
+      expect(setChips(fold())).toEqual([
+        `${DEFAULT_LADDER_TITLE}: 3`,
+        `${PHONE_FOR_ON_CALL_TITLE}: On`,
+      ]);
+      // Both cards are this project's.
+      expect(String(latestPropsOf("default-ladder-card")["projectId"])).toBe(
+        PROJECT_ID,
+      );
+      expect(header()).toHaveAttribute("aria-expanded", "false");
     });
 
     test("each table that lists a config says how many, folded", async () => {
@@ -313,6 +370,8 @@ describe.each([false, true])(
     });
 
     test.each([
+      [DEFAULT_LADDER_PLACE, "default-ladder-for-new-members"],
+      [PHONE_FOR_ON_CALL_PLACE, "phone-for-people-on-call"],
       [CUSTOM_SMTP_CONFIGS_PLACE, "custom-smtp-configs"],
       [TWILIO_CONFIG_PLACE, "twilio-config"],
     ])("opened at #%s, it opens there", async (place: string, name: string) => {

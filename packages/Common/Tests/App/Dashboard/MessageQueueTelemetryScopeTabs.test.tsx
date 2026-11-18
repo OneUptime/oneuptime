@@ -152,11 +152,11 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-jest.mock("../../../UI/Components/Loader/PageLoader", () => {
+jest.mock("../../../UI/Components/Page/PageSkeleton", () => {
   return {
     __esModule: true,
     default: () => {
-      return <div data-testid="page-loader" />;
+      return <div data-testid="page-skeleton" />;
     },
   };
 });
@@ -467,7 +467,7 @@ describe.each(TABS)("the queue's %s tab", (_name: string, tab: TabCase) => {
 
     render(<tab.Page {...PAGE_PROPS} />);
 
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(tab.viewerMock).not.toHaveBeenCalled();
   });
 });

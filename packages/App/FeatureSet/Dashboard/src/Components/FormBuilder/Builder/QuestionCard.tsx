@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import {
   FormFieldIssue,
   findCustomFieldDefinition,
@@ -37,7 +38,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
 import Dropdown, {
   DropdownOption,
@@ -262,7 +262,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
     );
 
     if (!records) {
-      return <ComponentLoader />;
+      return <InlineValueSkeleton />;
     }
 
     const options: Array<DropdownOption> = records.map(
@@ -571,7 +571,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span
                 className={`text-sm font-medium [overflow-wrap:anywhere] ${
-                  field.label.trim() ? "text-gray-900" : "italic text-gray-400"
+                  field.label.trim() ? "text-gray-900" : "italic text-gray-500"
                 }`}
               >
                 {label}

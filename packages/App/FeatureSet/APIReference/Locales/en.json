@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Master Admin API Only",
       "masterAdminOnlyBody": "This API can only be accessed through a Master API Token. You can create one on the Admin Dashboard. Please add the token to the <code>ApiKey</code> header to make the request."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Read Layers",
+      "scheduleLayersReadIntro": "This endpoint answers the schedule's layers and the people in them, as they are saved: every layer the schedule keeps, the highest priority first, each with its people in turn order, and the version they are at as basedOnVersion. It is a save that changes nothing: change it and send it to Save Layers.",
+      "scheduleLayersReadRequestTitle": "Read Layers Request",
+      "scheduleIdDescription": "ID of the on-call schedule",
+      "scheduleLayersSaveHeading": "Save Layers",
+      "scheduleLayersSaveIntro": "This endpoint saves who takes turns in the schedule's layers, and the layers' priority, all at once, in one transaction: all of it is saved or none of it. Who is on call is then worked out once, and each person it changes for hears it once. It is held to the same permissions and checks as the layer and layer user endpoints. A layer's own settings, such as its name and rotation, are not part of it.",
+      "scheduleLayersSaveRequestTitle": "Save Layers Request",
+      "basedOnVersionDescription": "The version of the layers your changes were made to, as Read Layers answers it.",
+      "layersDescription": "Every layer the schedule keeps, the highest priority first, each as { layerId, users }. users are the people who take turns in it, in turn order: someone already in the layer as { layerUserId, userId }, someone added as { userId }. Someone left out of their layer is taken out of it.",
+      "deletedLayerIdsDescription": "The layers to delete, with the people in them. A schedule keeps at least one layer.",
+      "refusalsHeading": "Refusals",
+      "scheduleLayersConflict": "409 Conflict: the layers changed after the version you sent was read, so nothing is saved. Read the layers again and make your change to what is there now.",
+      "scheduleLayersBadRequest": "400 Bad Request: the save does not name every layer of the schedule once, in layers or deletedLayerIds, names a layer or a person's row that is not the schedule's, or deletes every layer.",
+      "userOverrideEndNowHeading": "End Now",
+      "userOverrideEndNowIntro": "This endpoint ends an override that is under way, at the server's clock: its end becomes now, and the pages are the away person's again from then on. It takes the same permission as an update, and answers the override's new endsAt.",
+      "userOverrideEndNowRequestTitle": "End Now Request",
+      "userOverrideIdDescription": "ID of the user override",
+      "userOverrideEndNowRefused": "400 Bad Request: the override has not started yet (delete it instead), has already ended, or ends within the minute anyway."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Data Type",

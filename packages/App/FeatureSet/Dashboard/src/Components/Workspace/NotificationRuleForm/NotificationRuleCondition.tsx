@@ -26,6 +26,7 @@ import {
 } from "Common/UI/Components/RuleCriteria/RuleCriteriaRowLayout";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import joinAriaIds from "Common/UI/Utils/AriaIds";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import React, {
   FunctionComponent,
@@ -34,6 +35,7 @@ import React, {
   useEffect,
   useId,
   useRef,
+  useState,
 } from "react";
 import NotificationRuleCondition, {
   ConditionType,
@@ -41,6 +43,9 @@ import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import PolicyNameConditionSwitch, {
+  PolicyNameConditionMatch,
+} from "Common/Types/Workspace/NotificationRules/PolicyNameConditionSwitch";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -59,6 +64,9 @@ import {
   getConditionFieldHint,
   getConditionOperatorWords,
   getConditionValueHint,
+  getPolicyNameMatchSentence,
+  POLICY_NAME_SWITCH_ACTION,
+  VALUE_NOT_FOUND_NAME,
 } from "./NotificationRuleConditionWords";
 
 /*
@@ -87,6 +95,17 @@ import {
  *     already stays, marked Archived, so it can be kept or taken out;
  *   - people and teams, for who owns the record (#7554, #7583), picked as
  *     owners are picked everywhere else (PeoplePicker), with their avatars.
+ *
+ * A value the condition holds that names nothing now - a severity, a label,
+ * a monitor or a policy since deleted, a person who left - shows as a chip
+ * of its own, "No longer in this project", in the muted italics the rule's
+ * card says it in (#7807). It can be kept or taken out, and is never
+ * offered for a new pick. Saving keeps or drops it as it was left.
+ *
+ * Under an On-Call Policy Name condition, a line says which policies its
+ * words name today, and "Use On-Call Policy instead" turns it into an
+ * On-Call Policy condition holding those policies, in place (#7806): the
+ * rule is saved only when the form is.
  *
  * It was a grey box of three labelled dropdowns - "Filter Type", "Filter
  * Condition", "Value" - and a "Delete Filter" button, with the operator
@@ -127,6 +146,14 @@ export interface ComponentProps {
 // Picked as owners are everywhere: people and teams, in one search list.
 const OWNERS_PICKER_CONFIG: PeoplePickerFieldConfig =
   getOwnersPeoplePickerConfig();
+
+// The project's lists a condition's value is picked from, by its field.
+type ConditionValueLists = Omit<
+  Parameters<
+    typeof NotificationRuleConditionUtil.getDropdownOptionsByCheckOn
+  >[0],
+  "keptIds"
+>;
 
 const toLowerCaseIds: (ids: Array<string>) => Set<string> = (
   ids: Array<string>,
@@ -173,11 +200,26 @@ const NotificationRuleConditionFormElement: FunctionComponent<
   const translator: Translator = useTranslator();
   const rowId: string = useId();
   const hintId: string = `${rowId}-hint`;
+  const policyNameMatchId: string = `${rowId}-policy-name-match`;
   const valueLabelId: string = `${rowId}-value-label`;
   const number: number = (props.index || 0) + 1;
 
   const [notificationRuleCondition, setNotificationRuleCondition] =
     React.useState<NotificationRuleCondition | undefined>(props.initialValue);
+
+  /*
+   * A name condition switched to the policies it names: its picker takes
+   * the focus the switch's button had, which is gone with the words.
+   */
+  const [isValueFocusedOnDraw, setIsValueFocusedOnDraw] =
+    useState<boolean>(false);
+
+  // Once: the picker drawn after the switch took it; later ones do not.
+  useEffect(() => {
+    if (isValueFocusedOnDraw) {
+      setIsValueFocusedOnDraw(false);
+    }
+  }, [isValueFocusedOnDraw]);
 
   // Teams picked while the form is open, which the page's list may not have.
   const pickedTeamIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
@@ -258,6 +300,28 @@ const NotificationRuleConditionFormElement: FunctionComponent<
   const hint: string | undefined = checkOn
     ? getConditionValueHint(checkOn)
     : undefined;
+
+  /*
+   * What an On-Call Policy Name condition's words name today, among the
+   * project's policies, and the On-Call Policy condition that keeps
+   * matching exactly those (#7806). Nothing while the words are empty, or
+   * when the policies could not be read.
+   */
+  const policyNameMatch: PolicyNameConditionMatch | null =
+    PolicyNameConditionSwitch.getMatch({
+      condition: notificationRuleCondition,
+      policies: props.onCallDutyPolicies,
+    });
+
+  const policyCondition: NotificationRuleCondition | null = policyNameMatch
+    ? PolicyNameConditionSwitch.toPolicyCondition(policyNameMatch)
+    : null;
+
+  // What the value is read with: its hint, and what a name's words name.
+  const valueDescribedBy: string | undefined = joinAriaIds(
+    hint ? hintId : undefined,
+    policyNameMatch ? policyNameMatchId : undefined,
+  );
 
   const changeValue: (value: string | Array<string> | undefined) => void = (
     value: string | Array<string> | undefined,
@@ -345,8 +409,13 @@ const NotificationRuleConditionFormElement: FunctionComponent<
               addButtonText={OWNERS_PICKER_CONFIG.addButtonText}
               searchPlaceholder={OWNERS_PICKER_CONFIG.searchPlaceholder}
               emptyText={OWNERS_PICKER_CONFIG.emptyText}
+              /*
+               * A person who left or a team since deleted, in the card's
+               * words, not the picker's "Unknown user" (#7807).
+               */
+              unknownName={VALUE_NOT_FOUND_NAME}
               ariaLabelledby={valueLabelId}
-              ariaDescribedby={hint ? hintId : undefined}
+              ariaDescribedby={valueDescribedBy}
               dataTestId={`notification-rule-condition-people-${props.index || 0}`}
             />
           </div>
@@ -355,24 +424,49 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     }
 
     if (isDropdownValue) {
-      const options: Array<DropdownOption> =
-        NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
-          checkOn: checkOn,
-          monitors: props.monitors,
-          labels: props.labels,
-          alertStates: props.alertStates,
-          incidentStates: props.incidentStates,
-          scheduledMaintenanceStates: props.scheduledMaintenanceStates,
-          securityCasePriorities: props.securityCasePriorities,
-          securityCaseStatuses: props.securityCaseStatuses,
-          serviceLevelObjectives: props.serviceLevelObjectives,
-          onCallDutyPolicies: props.onCallDutyPolicies,
-          monitorStatus: props.monitorStatus,
-          alertSeverities: props.alertSeverities,
-          incidentSeverities: props.incidentSeverities,
+      const lists: ConditionValueLists = {
+        checkOn: checkOn,
+        monitors: props.monitors,
+        labels: props.labels,
+        alertStates: props.alertStates,
+        incidentStates: props.incidentStates,
+        scheduledMaintenanceStates: props.scheduledMaintenanceStates,
+        securityCasePriorities: props.securityCasePriorities,
+        securityCaseStatuses: props.securityCaseStatuses,
+        serviceLevelObjectives: props.serviceLevelObjectives,
+        onCallDutyPolicies: props.onCallDutyPolicies,
+        monitorStatus: props.monitorStatus,
+        alertSeverities: props.alertSeverities,
+        incidentSeverities: props.incidentSeverities,
+      };
+
+      /*
+       * A value the condition holds that names no record of the project's
+       * any more - deleted since it was picked - is a chip of its own, in
+       * the card's words (#7807): there while the condition holds it, and
+       * never offered for a pick.
+       */
+      const notFoundOptions: Array<DropdownOption> =
+        NotificationRuleConditionUtil.getIdsNotFound({
+          ids: valueIds,
+          records: NotificationRuleConditionUtil.getRecordsByCheckOn(lists),
+        }).map((id: string): DropdownOption => {
+          return {
+            value: id,
+            label: VALUE_NOT_FOUND_NAME,
+            isNotFound: true,
+            isDisabled: true,
+          };
+        });
+
+      const options: Array<DropdownOption> = [
+        ...NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
+          ...lists,
           // An archived value the condition holds stays, marked Archived.
           keptIds: valueIds,
-        });
+        }),
+        ...notFoundOptions,
+      ];
 
       const picked: Set<string> = toLowerCaseIds(valueIds);
 
@@ -389,7 +483,8 @@ const NotificationRuleConditionFormElement: FunctionComponent<
             className="relative w-full"
             ariaLabel={valueAriaLabel}
             isAriaLabelTranslated={true}
-            ariaDescribedby={hint ? hintId : undefined}
+            ariaDescribedby={valueDescribedBy}
+            autoFocus={isValueFocusedOnDraw}
             isMultiSelect={true}
             placeholder={RuleCriteriaCopy.selectOneOrMore}
             options={options}
@@ -417,7 +512,7 @@ const NotificationRuleConditionFormElement: FunctionComponent<
       <Input
         outerDivClassName="relative w-full rounded-md shadow-sm"
         ariaLabel={valueAriaLabel}
-        ariaDescribedby={hint ? hintId : undefined}
+        ariaDescribedby={valueDescribedBy}
         dataTestId={`notification-rule-condition-text-${props.index || 0}`}
         placeholder={RuleCriteriaCopy.enterText}
         value={notificationRuleCondition?.value?.toString()}
@@ -531,6 +626,44 @@ const NotificationRuleConditionFormElement: FunctionComponent<
           >
             {translator.translateText(hint)}
           </p>
+        ) : (
+          <></>
+        )}
+        {/*
+         * Under a policy's name: which policies the words name today, and
+         * the switch to those policies themselves (#7806). Words that name
+         * none say so, with nothing to switch to.
+         */}
+        {policyNameMatch ? (
+          <div
+            className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1"
+            data-testid={`notification-rule-condition-policy-name-match-${props.index || 0}`}
+          >
+            <p
+              id={policyNameMatchId}
+              className="text-xs leading-5 text-gray-500"
+              data-testid={`notification-rule-condition-policy-name-matches-${props.index || 0}`}
+            >
+              {getPolicyNameMatchSentence({
+                match: policyNameMatch,
+                translator: translator,
+              })}
+            </p>
+            {policyCondition ? (
+              <Button
+                title={POLICY_NAME_SWITCH_ACTION}
+                buttonStyle={ButtonStyleType.LINK}
+                buttonSize={ButtonSize.Small}
+                dataTestId={`notification-rule-condition-use-policy-${props.index || 0}`}
+                onClick={() => {
+                  setIsValueFocusedOnDraw(true);
+                  setNotificationRuleCondition(policyCondition);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <></>
         )}

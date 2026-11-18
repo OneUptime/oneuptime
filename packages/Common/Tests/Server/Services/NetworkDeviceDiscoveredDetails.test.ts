@@ -192,9 +192,9 @@ describe("mergeDiscoveredDetails - the one write after create", () => {
               readAt: READ_AT,
             },
             // Not a key of the column.
-            vendor: sysNameEntry("Cisco"),
+            hardwareVendor: sysNameEntry("Cisco"),
           },
-          unset: ["vendor", "sysLocation", "name", "sysName"],
+          unset: ["hardwareVendor", "sysLocation", "name", "sysName"],
         },
       ],
     });

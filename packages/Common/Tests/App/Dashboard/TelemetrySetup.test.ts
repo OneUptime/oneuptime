@@ -2,14 +2,18 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  TELEMETRY_RECOMMENDATION_MILESTONES,
+  TELEMETRY_RECOMMENDED_TEMPLATES,
   TELEMETRY_RECOMMENDED_TEMPLATE_IDS,
   TELEMETRY_SETUP,
+  TelemetryRecommendedTemplate,
   TELEMETRY_SETUP_COPY,
   TELEMETRY_SETUP_STEPS,
   TelemetrySetupProgressFacts,
   describeWhoIsToldAboutAlerts,
   getAlertDoneLine,
   getInitialPick,
+  getTelemetryRecommendedTemplateIds,
   getTelemetrySetupProgress,
   isAlertDone,
   isTelemetrySetupFinished,
@@ -22,6 +26,8 @@ import {
   ServiceAlertTemplate,
   getServiceAlertTemplateById,
 } from "../../../Types/Monitor/ServiceAlertTemplates";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import { Translator, createTranslator } from "../../../Types/Translator";
 
 /*
@@ -87,6 +93,128 @@ describe("the monitors offered", () => {
         templateId,
         language: undefined,
       });
+    }
+  });
+
+  /*
+   * #7146: each reads one kind of data, and is offered once the project's
+   * first data of that kind arrived; a monitor of data the service never
+   * sends never fires.
+   */
+  test("each is a template of every service, and reads the data its monitor type counts", () => {
+    const kindsOfMonitor: Record<string, Array<ActivationMilestone>> = {
+      [MonitorType.Traces]: [ActivationMilestone.FirstTracesReceived],
+      [MonitorType.Metrics]: [ActivationMilestone.FirstMetricsReceived],
+      [MonitorType.Logs]: [ActivationMilestone.FirstLogsReceived],
+      // Exceptions come with traces and with logs.
+      [MonitorType.Exceptions]: [
+        ActivationMilestone.FirstExceptionsReceived,
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ],
+    };
+
+    expect(
+      TELEMETRY_RECOMMENDED_TEMPLATES.map(
+        (template: TelemetryRecommendedTemplate): string => {
+          return template.templateId;
+        },
+      ),
+    ).toEqual([
+      "service-error-burst",
+      "service-latency-p95",
+      "service-unhandled-exceptions",
+      "service-error-log-spike",
+    ]);
+
+    for (const recommended of TELEMETRY_RECOMMENDED_TEMPLATES) {
+      const template: ServiceAlertTemplate | undefined =
+        getServiceAlertTemplateById(recommended.templateId);
+
+      expect(template).toBeDefined();
+      expect(template!.language).toBeUndefined();
+      expect({
+        templateId: recommended.templateId,
+        reads: [...recommended.readsFirstDataOf].sort(),
+      }).toEqual({
+        templateId: recommended.templateId,
+        reads: [...kindsOfMonitor[template!.monitorType]!].sort(),
+      });
+    }
+  });
+
+  test("are read from the first logs, traces, metrics and exceptions, each once", () => {
+    expect([...TELEMETRY_RECOMMENDATION_MILESTONES].sort()).toEqual(
+      [
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstExceptionsReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ].sort(),
+    );
+  });
+
+  test.each([
+    [
+      "logs only",
+      [ActivationMilestone.FirstLogsReceived],
+      ["service-unhandled-exceptions", "service-error-log-spike"],
+    ],
+    [
+      "traces only",
+      [ActivationMilestone.FirstTracesReceived],
+      ["service-error-burst", "service-unhandled-exceptions"],
+    ],
+    [
+      "metrics only",
+      [ActivationMilestone.FirstMetricsReceived],
+      ["service-latency-p95"],
+    ],
+    [
+      "exceptions only",
+      [ActivationMilestone.FirstExceptionsReceived],
+      ["service-unhandled-exceptions"],
+    ],
+    [
+      "every kind",
+      [
+        ActivationMilestone.FirstProfilesReceived,
+        ActivationMilestone.FirstLogsReceived,
+        ActivationMilestone.FirstExceptionsReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstTracesReceived,
+      ],
+      [
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+        "service-error-log-spike",
+      ],
+    ],
+  ])(
+    "%s: offered in the setup's order",
+    (
+      _name: string,
+      reached: Array<ActivationMilestone>,
+      expected: Array<string>,
+    ) => {
+      expect(getTelemetryRecommendedTemplateIds(reached)).toEqual(expected);
+    },
+  );
+
+  test("nothing known - not read, none kept, or only profiles - offers the setup's three", () => {
+    for (const reached of [
+      null,
+      undefined,
+      [],
+      [ActivationMilestone.FirstProfilesReceived],
+      [ActivationMilestone.FirstMonitorCreated],
+    ]) {
+      expect(getTelemetryRecommendedTemplateIds(reached)).toEqual([
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+      ]);
     }
   });
 

@@ -19,6 +19,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
@@ -271,13 +272,16 @@ function errorsThrownBy(gesture: () => void): Array<unknown> {
   return errors;
 }
 
+// What stands in for a chart while it loads: the chart's skeleton (#9220).
+const CHART_LOADER_TEST_ID: string = "chart-skeleton";
+
 /*
  * The loader's box: what stands where the chart will be while it loads,
- * around the spinner.
+ * around the skeleton.
  */
 function loaderBox(): HTMLElement {
   const box: HTMLElement | null =
-    screen.getByTestId("component-loader").parentElement;
+    screen.getByTestId(CHART_LOADER_TEST_ID).parentElement;
   if (!box) {
     throw new Error("the loader stands in no box");
   }
@@ -811,7 +815,7 @@ interface LoaderRaceEnding {
 }
 
 function spinner(): HTMLElement {
-  return screen.getByTestId("component-loader");
+  return screen.getByTestId(CHART_LOADER_TEST_ID);
 }
 
 const LOADER_RACE_ENDINGS: Array<LoaderRaceEnding> = [
@@ -836,7 +840,7 @@ const LOADER_RACE_ENDINGS: Array<LoaderRaceEnding> = [
 
 // The chart took the loader's place: the spinner is gone, the chart drawn.
 function expectChartInTheLoadersPlace(chartArea: HTMLElement): void {
-  expect(screen.queryByTestId("component-loader")).toBeNull();
+  expect(screen.queryByTestId(CHART_LOADER_TEST_ID)).toBeNull();
   expect(chartRootIn(chartArea)).toBeInTheDocument();
 }
 
@@ -921,7 +925,7 @@ for (const histogram of HISTOGRAMS) {
 
         waitOutTheDoubleClickWindow();
         expect(onTimeRangeSelect).not.toHaveBeenCalled();
-        expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+        expect(screen.getByTestId(CHART_LOADER_TEST_ID)).toBeInTheDocument();
       });
 
       test("with no zoom offered at all: a double-click on the loader throws nothing", () => {
@@ -933,7 +937,7 @@ for (const histogram of HISTOGRAMS) {
             waitOutTheDoubleClickWindow();
           }),
         ).toEqual([]);
-        expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+        expect(screen.getByTestId(CHART_LOADER_TEST_ID)).toBeInTheDocument();
       });
     });
 
@@ -1451,11 +1455,19 @@ async function waitForTimeseries(view: AnalyticsViewUnderTest): Promise<void> {
   });
 }
 
+// The names the "Chart" control lists each chart by.
+const CHART_NAMES: Record<string, string> = {
+  timeseries: "Timeseries",
+  toplist: "Top List",
+  table: "Table",
+};
+
 // The reader picks another chart in the view's "Chart" control.
 function switchChartTo(chartType: string): void {
-  fireEvent.change(screen.getByDisplayValue("Timeseries"), {
-    target: { value: chartType },
-  });
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Chart" }),
+    CHART_NAMES[chartType]!,
+  );
 }
 
 const NOT_TIME_CHARTS: Array<[string, string]> = [

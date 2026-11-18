@@ -117,7 +117,7 @@ export interface ReplayRailDetailProps {
  * page's lang), or anywhere when the language has no hyphenation rules.
  */
 export const REPLAY_RAIL_FACT_LABEL_CLASS_NAME: string =
-  "w-24 shrink-0 hyphens-auto break-words text-gray-400";
+  "w-24 shrink-0 hyphens-auto break-words text-gray-500";
 
 const Fact: FunctionComponent<{
   label: string;
@@ -224,7 +224,7 @@ const ActionButton: FunctionComponent<{
 const Note: FunctionComponent<{ children: React.ReactNode }> = (props: {
   children: React.ReactNode;
 }): ReactElement => {
-  return <p className="text-[11px] text-gray-500">{props.children}</p>;
+  return <p className="text-xs text-gray-500">{props.children}</p>;
 };
 
 function shortId(id: string): string {
@@ -371,7 +371,7 @@ const BackendForRequest: FunctionComponent<{
                 );
               })}
               {errorLogs.length > 5 && (
-                <li className="text-gray-400">
+                <li className="text-gray-500">
                   {translator.translatePlural(
                     {
                       one: "and {{count}} more on this trace",
@@ -464,7 +464,7 @@ const BackendForRequest: FunctionComponent<{
 
   return (
     <div className="rounded border border-gray-200 bg-gray-50 p-2">
-      <div className="mb-1 text-[11px] font-semibold text-gray-700">
+      <div className="mb-1 text-xs font-semibold text-gray-700">
         {translator.translateText("Backend for this request")}
       </div>
       {body}
@@ -576,7 +576,7 @@ const NetworkDetail: FunctionComponent<{
         <Fact label="Request" mono={true}>
           {detail.method}{" "}
           {detail.origin && (
-            <span className="text-gray-400">{detail.origin}</span>
+            <span className="text-gray-500">{detail.origin}</span>
           )}
           <span className="text-gray-900">{detail.path || detail.url}</span>
         </Fact>
@@ -761,7 +761,7 @@ const NavigationDetail: FunctionComponent<{
                     {vital.title}
                     {vital.subtitle ? ` ${vital.subtitle}` : ""}
                     {updatedVitalIds.has(vital.id) && (
-                      <span className="text-gray-400">
+                      <span className="text-gray-500">
                         <InlineSeparator />
                         {translator.translateText("updated later")}
                       </span>
@@ -1446,7 +1446,7 @@ const TraceDetail: FunctionComponent<{
             >
               <button
                 type="button"
-                className={`min-w-0 flex-1 truncate text-start font-mono text-[11px] ${
+                className={`min-w-0 flex-1 truncate text-start font-mono text-xs ${
                   span.hasError ? "text-rose-700" : "text-gray-700"
                 }`}
                 title={translator.translateTemplate("Seek to {{time}}", {
@@ -1471,7 +1471,7 @@ const TraceDetail: FunctionComponent<{
               >
                 {span.name}
                 {span.serviceName ? (
-                  <span className="text-gray-400"> {span.serviceName}</span>
+                  <span className="text-gray-500"> {span.serviceName}</span>
                 ) : null}
               </button>
               <div
@@ -1485,7 +1485,7 @@ const TraceDetail: FunctionComponent<{
                   style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                 />
               </div>
-              <span className="w-12 shrink-0 text-end font-mono text-[10px] text-gray-400">
+              <span className="w-12 shrink-0 text-end font-mono text-xs text-gray-500">
                 {formatSignalDuration(span.durationMs)}
               </span>
               {/*
@@ -1935,10 +1935,7 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
   return (
     <div data-testid="rail-detail" data-signal-kind={signal.kind}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <div
-          data-testid="rail-detail-moment"
-          className="text-[11px] text-gray-500"
-        >
+        <div data-testid="rail-detail-moment" className="text-xs text-gray-500">
           {describeDetailMoment(translator, {
             signal: signal,
             wallClock: wallClock,

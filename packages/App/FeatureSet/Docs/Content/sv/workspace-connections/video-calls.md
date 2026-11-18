@@ -70,19 +70,19 @@ Varje möte skapas som det konto du loggar in med, som är värd för det. Logga
 
 En anslutning som har gjorts genom inloggning har fortfarande de inställningar som avgör vem som väntar: **Who can join** för Google Meet och **Who skips the lobby** för Microsoft Teams. Ändra dem med **Redigera** på anslutningens rad.
 
-En Zoom-anslutning som loggades in innan OneUptime läste transkriptioner av samtal startar samtal som förut, men kan inte läsa deras transkriptioner förrän den loggas in igen: **Reconnect** på dess rad ber Zoom om behörigheterna för transkriptioner.
+En Zoom-anslutning som loggades in innan OneUptime läste transkriptioner av samtal kan inte läsa dem. När OneUptimes Zoom-app har uppdaterats för att läsa dem slutar Zoom att godta en sådan anslutnings inloggning 90 dagar senare, och den slutar starta samtal. Från och med då ber OneUptime dig att logga in den igen: **Anslut igen** på dess rad ber Zoom om behörigheterna för transkriptioner.
 
-En Microsoft Teams-anslutning som loggades in medan inställningen **Spela in och transkribera incidentsamtal** var avstängd startar samtal som förut, utan inspelning. När inställningen är påslagen ber **Reconnect** på dess rad Microsoft om behörigheterna för kalender och transkriptioner också.
+En Microsoft Teams-anslutning som loggades in medan inställningen **Spela in och transkribera incidentsamtal** var avstängd startar samtal som förut, utan inspelning. När inställningen är påslagen ber **Anslut igen** på dess rad Microsoft om behörigheterna för kalender och transkriptioner också.
 
 ### Förbli inloggad
 
-OneUptime sparar inloggningens uppdateringstoken, krypterad, och förnyar den minst en gång i veckan, så att den aldrig går ut av brist på användning, hur länge projektet än går utan en incident. Om inloggningen slutar fungera (kontot tog bort OneUptime, togs bort eller stängdes av, eller organisationens policy kräver att det loggar in igen) visar anslutningens rad **Fungerar inte** med skälet samma dag som OneUptime märker det, inte vid nästa incident. **Reconnect** på raden loggar in igen.
+OneUptime sparar inloggningens uppdateringstoken, krypterad, och förnyar den minst en gång i veckan, så att den aldrig går ut av brist på användning, hur länge projektet än går utan en incident. Om inloggningen slutar fungera (kontot tog bort OneUptime, togs bort eller stängdes av, eller organisationens policy kräver att det loggar in igen) visar anslutningens rad **Fungerar inte** med skälet samma dag som OneUptime märker det, inte vid nästa incident. **Anslut igen** på raden loggar in igen.
 
 Anslutningar som är inloggade som samma konto delar en inloggning, i alla projekt: Zoom behåller bara en inloggning per konto, så att ansluta samma Zoom-användare igen ersätter den för alla.
 
 ### Anslut igen och ta bort
 
-**Reconnect** på en anslutnings rad loggar in igen, som samma konto eller ett annat. Använd den efter att kontot har tagit bort OneUptime, eller för att flytta incidentmöten till ett annat konto.
+**Anslut igen** på en anslutnings rad loggar in igen, som samma konto eller ett annat. Använd den efter att kontot har tagit bort OneUptime, eller för att flytta incidentmöten till ett annat konto.
 
 Att ta bort en anslutning drar tillbaka OneUptimes åtkomst hos Zoom och Google så snart ingen annan anslutning använder inloggningen. För Microsoft tar du bort OneUptime under kontots **My Apps** (myapps.microsoft.com). Att ta bort OneUptime från ditt Zoom-konto i Zoom App Marketplace tar bort dess inloggning från alla anslutningar som är inloggade som det kontot, och de visar **Fungerar inte** tills de ansluts igen.
 
@@ -135,13 +135,13 @@ Så att ingen behöver komma ihåg att spela in ett samtal eller hämta dess tra
 
 Inställningen är avstängd som standard, eftersom den spelar in människor: alla i de samtalen ser att de spelas in eller transkriberas, så kontrollera att din organisation tillåter det. Zoom sparar bara en transkription när kontot spelar in i molnet med ljudtranskription påslagen, och Google Meet bara i en Google Workspace-utgåva som har transkriptioner. Slack-huddles och möteslänkar spelas inte in, och inte heller samtal för larm: lägg till deras transkriptioner för hand.
 
-Microsoft låter appar läsa transkriptioner bara av Teams-möten som finns i en kalender, så OneUptime lägger varje incidentmöte i organisatörens kalender och slår på automatisk inspelning och transkribering i mötets alternativ. För det behöver anslutningen ytterligare två Microsoft Graph-behörigheter, `Calendars.ReadWrite` och `OnlineMeetingTranscript.Read.All`: lägg till dem i din appregistrering (se [Microsoft Teams](#microsoft-teams)), eller klicka på **Reconnect** för en anslutning som har gjorts genom inloggning. Organisatörens Teams-mötesprincip måste tillåta molninspelning, transkribering och automatisk inspelning, och din organisation får inte ha stängt av appars åtkomst till transkriptioner. Ett samtal som OneUptime inte kan lägga i kalendern startar ändå, utan inspelning, och dess kort **Video Call** säger varför.
+Microsoft låter appar läsa transkriptioner bara av Teams-möten som finns i en kalender, så OneUptime lägger varje incidentmöte i organisatörens kalender och slår på automatisk inspelning och transkribering i mötets alternativ. För det behöver anslutningen ytterligare två Microsoft Graph-behörigheter, `Calendars.ReadWrite` och `OnlineMeetingTranscript.Read.All`: lägg till dem i din appregistrering (se [Microsoft Teams](#microsoft-teams)), eller klicka på **Anslut igen** för en anslutning som har gjorts genom inloggning. Organisatörens Teams-mötesprincip måste tillåta molninspelning, transkribering och automatisk inspelning, och din organisation får inte ha stängt av appars åtkomst till transkriptioner. Ett samtal som OneUptime inte kan lägga i kalendern startar ändå, utan inspelning, och dess kort **Video Call** säger varför.
 
 ### Vad varje leverantör sparar
 
 | Samtal | Hur det får sin transkription | Vad det behöver |
 | --- | --- | --- |
-| Zoom | **Hämta från Zoom** | Ett möte inspelat i molnet med ljudtranskription påslagen, eller med AI Companions mötessammanfattning påslagen. Anslutningen behöver scopen för transkriptioner (se [Zoom](#zoom)), och en som loggades in före dem behöver **Reconnect**. Zoom tar fram en transkription efter mötet, oftast inom dubbla mötestiden. |
+| Zoom | **Hämta från Zoom** | Ett möte inspelat i molnet med ljudtranskription påslagen, eller med AI Companions mötessammanfattning påslagen. Anslutningen behöver scopen för transkriptioner (se [Zoom](#zoom)), och en som loggades in före dem behöver **Anslut igen**. Zoom tar fram en transkription efter mötet, oftast inom dubbla mötestiden. |
 | Google Meet | **Hämta från Google Meet** | Transkriptioner påslagna i samtalet, i en Google Workspace-utgåva som har dem. Inget annat att ställa in: OneUptime läser transkriptionerna av de möten den skapade. Google sparar en transkription som appar kan läsa i 30 dagar. |
 | Microsoft Teams | **Hämta från Microsoft Teams** | Ett möte som OneUptime startade medan [varje samtal spelas in och transkriberas](#spela-in-och-transkribera-varje-samtal): Microsoft låter appar läsa transkriptioner bara av möten som finns i en kalender, och sparar ett möte i 60 dagar. För alla andra Teams-möten gäller **Lägg till transkription**: i Teams öppnar du mötets sammanfattning, sedan dess transkription, och laddar ned den som en `.vtt`-fil. |
 | Möteslänk eller Slack-huddle | **Lägg till transkription** | Transkriptionen som mötesverktyget, eller huddlens anteckningar, sparar. |
@@ -291,7 +291,7 @@ Leverantören avvisade, och feeden anger skälet. Starta under tiden ett samtal 
 :::
 
 :::details En anslutning visar Fungerar inte
-Dess inloggning slutade fungera: kontot tog bort OneUptime, togs bort eller stängdes av, eller måste logga in igen. Klicka på **Reconnect** på dess rad. Tills dess kan de samtal som den skulle starta inte starta.
+Dess inloggning slutade fungera: kontot tog bort OneUptime, togs bort eller stängdes av, eller måste logga in igen. Klicka på **Anslut igen** på dess rad. Tills dess kan de samtal som den skulle starta inte starta.
 :::
 
 :::details Personer väntar i en lobby eller ett väntrum
@@ -307,7 +307,7 @@ OneUptime frågar Zoom, Google Meet eller Microsoft Teams efter den med några m
 :::
 
 :::details Ett Microsoft Teams-samtal spelades inte in
-OneUptime kunde inte lägga mötet i organisatörens kalender, så den startade samtalet på vanligt sätt, utan inspelning, och kortet **Video Call** säger varför. Oftast saknar anslutningen `Calendars.ReadWrite` eller `OnlineMeetingTranscript.Read.All`: lägg till dem i appregistreringen och ge administratörsmedgivande, eller klicka på **Reconnect** för en anslutning som har gjorts genom inloggning. Samtal som startas efter det spelas in.
+OneUptime kunde inte lägga mötet i organisatörens kalender, så den startade samtalet på vanligt sätt, utan inspelning, och kortet **Video Call** säger varför. Oftast saknar anslutningen `Calendars.ReadWrite` eller `OnlineMeetingTranscript.Read.All`: lägg till dem i appregistreringen och ge administratörsmedgivande, eller klicka på **Anslut igen** för en anslutning som har gjorts genom inloggning. Samtal som startas efter det spelas in.
 :::
 
 :::details OneUptime AI kunde inte läsa en transkription

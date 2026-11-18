@@ -1057,17 +1057,18 @@ test.describe("a node's page", () => {
     await expect(page.getByTestId("proxmox-node-alerts-turn-on")).toHaveText(
       "Turn on 5 alerts",
     );
+    // Not set up reads grey, never five amber warnings.
     /*
-     * Not set up reads grey, never five amber warnings: the shared Pill in
-     * its Neutral tone since 88536f777a1, which works its words' grey out
-     * from the tone (a gray-600 class drew the hand-made chip before).
+     * Read by the shared Pill's tone (#9255), never the shade it paints:
+     * the Pill draws its words in a tone-derived colour of its own.
      */
-    const notSetUp: Locator = page
-      .getByTestId("proxmox-node-alerts-item")
-      .first()
-      .getByTestId("pill");
-    await expect(notSetUp).toHaveText("Not set up");
-    await expect(notSetUp).toHaveAttribute("data-tone", "neutral");
+    await expect(
+      page
+        .getByTestId("proxmox-node-alerts-item")
+        .first()
+        .getByTestId("pill")
+        .filter({ hasText: "Not set up" }),
+    ).toHaveAttribute("data-tone", "neutral");
     await page.getByTestId("proxmox-node-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);

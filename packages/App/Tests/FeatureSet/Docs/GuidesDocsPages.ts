@@ -115,6 +115,27 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Send another test",
       "Skip the test",
       "I did not get it",
+      // The ways in from Monitors itself (#7054).
+      "Monitors",
+      "Guided setup",
+      "How it works",
+      "Create Monitor",
+      "Website",
+      "API",
+      // A teammate's monitor for the address (#7254).
+      "Create my own monitor",
+      // Step 2's link, and the test page dialog's line (#7757, #7756).
+      "How to Reach Me",
+      // Step 4, where the project has a status page (#7053).
+      "Show it to customers?",
+      "Status page",
+      "Add to status page",
+      "Not now",
+      "Show it on a status page",
+      // The summary's way to paging by phone (#7370).
+      "What next",
+      "Get paged by SMS or phone call",
+      "Page the right person when something breaks",
     ],
     referencePages: ["monitor/website-monitor", "monitor/api-monitor"],
     quickstartSection: "Monitor your website",
@@ -136,6 +157,12 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Welcome to OneUptime 👋",
       "What do you want to do first?",
       "Continue",
+      // On-Call's own way to the setup (#7148).
+      "On-Call",
+      "Guided setup",
+      // Push from the step itself (#7149).
+      "Get the app",
+      "Use this browser",
       "Recheck",
       "Mobile app or browser",
       "How should we reach you?",
@@ -146,9 +173,13 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Your phone number",
       "Text me a code",
       "Verify",
-      "Who else is on call?",
+      // Step 2, named for whom it pages: everyone in it at once (#7372).
+      "Who is paged first?",
       "Paged first",
       "Add teammates",
+      // Someone not in the project yet (#7150).
+      "Invite by email",
+      "Send invitation",
       "Save and continue",
       // The policy the step makes, named as the reader's setup names it (#8329).
       "Default on-call policy",
@@ -211,6 +242,17 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Status page name",
       "What it shows",
       "Select all",
+      // The ways in from Status Pages itself (#7142).
+      "Status Pages",
+      "Guided setup",
+      "How it works",
+      // A project's own page, offered first (#7517).
+      "On the page",
+      "Status page",
+      "Make a new status page instead",
+      // A busy project's list (#7147).
+      "Search by name",
+      "All labels",
       "Create the status page",
       "This is what your customers see",
       "Public link",

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   Area,
   AreaChart,
@@ -31,7 +32,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
 import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -380,7 +380,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
                   className="inline-block h-2 w-2 rounded-[2px]"
                   style={{ backgroundColor: color.fill }}
                 />
-                <span className="text-[10px] text-gray-500">
+                <span className="text-xs text-gray-500">
                   {color.label || severity}
                 </span>
               </div>
@@ -405,7 +405,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
       >
         {isLoading && buckets.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
+            <ChartSkeleton hasLegend={false} fillsHeight={true} />
           </div>
         )}
         {!isLoading &&

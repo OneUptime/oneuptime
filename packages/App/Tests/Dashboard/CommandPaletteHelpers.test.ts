@@ -6,6 +6,7 @@ import {
   buildGlossaryTermDescriptors,
   buildNavigationCommandDescriptors,
   buildProjectSwitchDescriptors,
+  canSearchMembers,
   canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
@@ -13,14 +14,18 @@ import {
   getVisibleActionIds,
   isQuestion,
   isRoutePathNavigable,
+  PALETTE_ACTION_PRODUCTS,
   PALETTE_ENTITY_SEARCH_LIMIT,
+  PALETTE_LIST_CREATE_ACTIONS,
   PALETTE_RECENTS_STORAGE_KEY,
   PaletteActionId,
   PaletteCreateActionGates,
+  PaletteListCreateAction,
   PaletteEntitySearchSpec,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
   slugifyPaletteCommandId,
+  withoutActionsOfProductsOff,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -37,6 +42,8 @@ import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import ProductKey from "Common/Types/Product/ProductKey";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
@@ -399,6 +406,328 @@ describe("getVisibleActionIds", () => {
     });
 
     expect(new Set(actionIds).size).toBe(actionIds.length);
+  });
+});
+
+/*
+ * The lists' create forms (#7035): Create Status Page, Create On-Call
+ * Policy, Create On-Call Schedule, Create Dashboard, Create Workflow and
+ * Invite User. Each is offered only to someone who may create the list's
+ * record - the rule the server and the list's own Create button follow -
+ * and only in a project, where its list's address can be filled in.
+ */
+describe("the lists' create forms in Search (#7035)", () => {
+  const LIST_CREATE_IDS: Array<PaletteActionId> = [
+    "action-create-status-page",
+    "action-create-on-call-policy",
+    "action-create-on-call-schedule",
+    "action-create-dashboard",
+    "action-create-workflow",
+    "action-invite-user",
+  ];
+
+  // The record each action's form creates.
+  const MODEL_OF: Record<string, BaseModel> = {
+    "action-create-status-page": new StatusPage(),
+    "action-create-on-call-policy": new OnCallDutyPolicy(),
+    "action-create-on-call-schedule": new OnCallDutyPolicySchedule(),
+    "action-create-dashboard": new Dashboard(),
+    "action-create-workflow": new Workflow(),
+    "action-invite-user": new TeamMember(),
+  };
+
+  const noGates: PaletteCreateActionGates = {
+    canCreateIncident: false,
+    canCreateMonitor: false,
+    canCreateAlert: false,
+    canCreateScheduledMaintenance: false,
+    canCreateAnnouncement: false,
+  };
+
+  test("there are six, each opening its own list, with an id of its own", () => {
+    expect(
+      PALETTE_LIST_CREATE_ACTIONS.map((action: PaletteListCreateAction) => {
+        return [action.id, action.title, action.page];
+      }),
+    ).toEqual([
+      ["action-create-status-page", "Create Status Page", PageMap.STATUS_PAGES],
+      [
+        "action-create-on-call-policy",
+        "Create On-Call Policy",
+        PageMap.ON_CALL_DUTY_POLICIES,
+      ],
+      [
+        "action-create-on-call-schedule",
+        "Create On-Call Schedule",
+        PageMap.ON_CALL_DUTY_SCHEDULES,
+      ],
+      ["action-create-dashboard", "Create Dashboard", PageMap.DASHBOARDS],
+      ["action-create-workflow", "Create Workflow", PageMap.WORKFLOWS],
+      ["action-invite-user", "Invite User", PageMap.USERS],
+    ]);
+  });
+
+  test("a master admin, and a Project Owner, may run every one", () => {
+    for (const gates of [
+      computeCreateActionGates({ held: null, isMasterAdmin: true }),
+      computeCreateActionGates({
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
+        isMasterAdmin: false,
+      }),
+    ]) {
+      for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+        expect({ id: action.id, open: gates[action.gate] }).toEqual({
+          id: action.id,
+          open: true,
+        });
+      }
+    }
+  });
+
+  test("with no permission snapshot, or an empty one, none is offered", () => {
+    for (const held of [null, HeldPermissionsUtil.fromPermissions([])]) {
+      const gates: PaletteCreateActionGates = computeCreateActionGates({
+        held: held,
+        isMasterAdmin: false,
+      });
+
+      for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+        expect(gates[action.gate]).toBe(false);
+      }
+    }
+  });
+
+  test("a member who may only read sees none of them", () => {
+    const gates: PaletteCreateActionGates = computeCreateActionGates({
+      held: HeldPermissionsUtil.fromPermissions([
+        Permission.Viewer,
+        Permission.ReadProjectStatusPage,
+        Permission.ReadDashboard,
+        Permission.ReadWorkflow,
+      ]),
+      isMasterAdmin: false,
+    });
+
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      expect({ id: action.id, open: gates[action.gate] }).toEqual({
+        id: action.id,
+        open: false,
+      });
+    }
+  });
+
+  test.each([
+    [Permission.CreateProjectStatusPage, "action-create-status-page"],
+    [Permission.CreateProjectOnCallDutyPolicy, "action-create-on-call-policy"],
+    [
+      Permission.CreateProjectOnCallDutyPolicySchedule,
+      "action-create-on-call-schedule",
+    ],
+    [Permission.CreateDashboard, "action-create-dashboard"],
+    [Permission.CreateWorkflow, "action-create-workflow"],
+    [Permission.InviteProjectTeamMembers, "action-invite-user"],
+  ] as Array<[Permission, PaletteActionId]>)(
+    "%p opens %p and no other of them",
+    (permission: Permission, opened: PaletteActionId) => {
+      const gates: PaletteCreateActionGates = computeCreateActionGates({
+        held: HeldPermissionsUtil.fromPermissions([permission]),
+        isMasterAdmin: false,
+      });
+
+      for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+        expect({ id: action.id, open: gates[action.gate] }).toEqual({
+          id: action.id,
+          open:
+            action.id === opened ||
+            MODEL_OF[action.id]!.getCreatePermissions().includes(permission),
+        });
+      }
+
+      // The model's own create rule is what opens it.
+      expect(MODEL_OF[opened]!.getCreatePermissions()).toContain(permission);
+    },
+  );
+
+  test("a team's block on the permission takes the action away", () => {
+    const gates: PaletteCreateActionGates = computeCreateActionGates({
+      held: {
+        ...HeldPermissionsUtil.fromPermissions([
+          Permission.CreateProjectStatusPage,
+        ]),
+        blocked: [Permission.CreateProjectStatusPage],
+      },
+      isMasterAdmin: false,
+    });
+
+    expect(gates.canCreateStatusPage).toBe(false);
+  });
+
+  test("with a project and their gates open, every one is offered, after the five that have pages of their own", () => {
+    const actionIds: Array<PaletteActionId> = getVisibleActionIds({
+      ...noGates,
+      canCreateAnnouncement: true,
+      canCreateStatusPage: true,
+      canCreateOnCallPolicy: true,
+      canCreateOnCallSchedule: true,
+      canCreateDashboard: true,
+      canCreateWorkflow: true,
+      canInviteUser: true,
+      hasProjectSelected: true,
+      isMasterAdmin: false,
+    });
+
+    expect(
+      actionIds.filter((id: PaletteActionId): boolean => {
+        return LIST_CREATE_IDS.includes(id);
+      }),
+    ).toEqual(LIST_CREATE_IDS);
+    expect(actionIds.indexOf("action-create-status-page")).toBe(
+      actionIds.indexOf("action-create-announcement") + 1,
+    );
+    expect(new Set(actionIds).size).toBe(actionIds.length);
+  });
+
+  test("a closed gate hides exactly its own action, and a gate left out is closed", () => {
+    const actionIds: Array<PaletteActionId> = getVisibleActionIds({
+      ...noGates,
+      canCreateStatusPage: true,
+      canCreateOnCallPolicy: false,
+      canCreateDashboard: true,
+      hasProjectSelected: true,
+      isMasterAdmin: false,
+    });
+
+    expect(actionIds).toContain("action-create-status-page");
+    expect(actionIds).toContain("action-create-dashboard");
+    expect(actionIds).not.toContain("action-create-on-call-policy");
+    // Left out: not offered.
+    expect(actionIds).not.toContain("action-create-on-call-schedule");
+    expect(actionIds).not.toContain("action-create-workflow");
+    expect(actionIds).not.toContain("action-invite-user");
+  });
+
+  test("without a project none is offered: its list's address cannot be filled in", () => {
+    const actionIds: Array<PaletteActionId> = getVisibleActionIds({
+      ...noGates,
+      ...computeCreateActionGates({ held: null, isMasterAdmin: true }),
+      hasProjectSelected: false,
+      isMasterAdmin: true,
+    });
+
+    for (const id of LIST_CREATE_IDS) {
+      expect(actionIds).not.toContain(id);
+    }
+  });
+
+  test("each belongs to its list's product: switched off on the server, it goes with it", () => {
+    expect(
+      LIST_CREATE_IDS.map((id: PaletteActionId) => {
+        return [id, PALETTE_ACTION_PRODUCTS[id]];
+      }),
+    ).toEqual([
+      ["action-create-status-page", ProductKey.StatusPages],
+      ["action-create-on-call-policy", ProductKey.OnCall],
+      ["action-create-on-call-schedule", ProductKey.OnCall],
+      ["action-create-dashboard", ProductKey.Dashboards],
+      ["action-create-workflow", ProductKey.Workflows],
+      ["action-invite-user", ProductKey.Users],
+    ]);
+
+    const left: Array<PaletteActionId> = withoutActionsOfProductsOff(
+      LIST_CREATE_IDS,
+      [ProductKey.OnCall, ProductKey.Workflows],
+    );
+
+    expect(left).toEqual([
+      "action-create-status-page",
+      "action-create-dashboard",
+      "action-invite-user",
+    ]);
+  });
+
+  test("each is found by what people type to make one, in English", () => {
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      expect(action.keywords).toEqual(expect.arrayContaining(["new", "add"]));
+      expect(action.where.length).toBeGreaterThan(0);
+      // Title Case, the verb first, as a button says it (Docs/ux/README.md#tone-capitals-and-buttons).
+      expect(action.title).toMatch(/^(Create|Invite) [A-Z]/);
+    }
+  });
+});
+
+/*
+ * The project's people in Search (#7036): only for someone who may see them
+ * as the Users page lists them, by the rule the server holds the search to.
+ */
+describe("canSearchMembers", () => {
+  test.each([
+    [Permission.ProjectOwner],
+    [Permission.ProjectAdmin],
+    [Permission.ProjectMember],
+    [Permission.Viewer],
+    [Permission.ReadProjectTeam],
+    // What every member of a project holds, whatever their role.
+    [Permission.ProjectUser],
+  ])("someone holding %p may", (permission: Permission) => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([permission]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    [[Permission.ReadService]],
+    [[Permission.CreateProjectIncident, Permission.ReadService]],
+    // Their own memberships only: never the project's people.
+    [[Permission.CurrentUser]],
+  ])("someone holding only %p may not", (permissions: Array<Permission>) => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions(permissions),
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("a team's block on what would let them takes it away", () => {
+    expect(
+      canSearchMembers({
+        held: {
+          ...HeldPermissionsUtil.fromPermissions([Permission.ReadProjectTeam]),
+          blocked: [Permission.ReadProjectTeam],
+        },
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("a master admin may; a snapshot not read yet leaves it to the server", () => {
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([Permission.ReadService]),
+        isMasterAdmin: true,
+      }),
+    ).toBe(true);
+    expect(canSearchMembers({ held: null, isMasterAdmin: false })).toBe(true);
+    expect(
+      canSearchMembers({
+        held: HeldPermissionsUtil.fromPermissions([]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("the rule is the user column's own read, which leaves out the reader's own memberships", () => {
+    const userColumnReaders: Array<Permission> =
+      new TeamMember().getColumnAccessControlFor("user")?.read || [];
+
+    expect(userColumnReaders).toContain(Permission.ReadProjectTeam);
+    expect(userColumnReaders).not.toContain(Permission.CurrentUser);
+    expect(new TeamMember().getReadPermissions()).toContain(
+      Permission.CurrentUser,
+    );
   });
 });
 

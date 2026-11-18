@@ -491,7 +491,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                     {translator.translateText(section.group.label)}
                   </span>
                   {section.group.hint && (
-                    <span className="truncate text-[11px] text-gray-500">
+                    <span className="truncate text-xs text-gray-500">
                       {translator.translateText(section.group.hint)}
                     </span>
                   )}
@@ -538,7 +538,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                           before it is cut itself.
                         */}
                         {isColumnKeyInformative(column) && (
-                          <span className="max-sm:hidden min-w-0 flex-1 truncate font-mono text-[11px] text-gray-500">
+                          <span className="max-sm:hidden min-w-0 flex-1 truncate font-mono text-xs text-gray-500">
                             {column.id}
                           </span>
                         )}

@@ -92,8 +92,10 @@ import GcpInventoryClient, {
   GCP_INVENTORY_TYPES,
   GcpAsset,
   GcpAssetListing,
-  GcpInventoryType,
-  addGcpTopicEdges,
+  addGcpInventoryEdges,
+  buildGcpInventoryContext,
+  getGcpInventoryResourceType,
+  GcpInventoryContext,
   buildGcpInventoryItem,
 } from "./GcpInventory";
 import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
@@ -1092,10 +1094,16 @@ export default class GcpCloudConnector implements CloudConnector {
       const assets: Map<CloudInventoryItem, GcpAsset> = new Map();
       const projectItems: Array<CloudInventoryItem> = [];
 
+      const context: GcpInventoryContext = buildGcpInventoryContext({
+        projectId,
+        assets: listing.assets,
+      });
+
       for (const asset of listing.assets) {
-        const item: CloudInventoryItem | null = buildGcpInventoryItem(asset, {
-          projectId,
-        });
+        const item: CloudInventoryItem | null = buildGcpInventoryItem(
+          asset,
+          context,
+        );
 
         if (item) {
           projectItems.push(item);
@@ -1103,18 +1111,18 @@ export default class GcpCloudConnector implements CloudConnector {
         }
       }
 
-      addGcpTopicEdges({ items: projectItems, assets });
+      addGcpInventoryEdges({
+        items: projectItems,
+        assets,
+        listed: listing.assets,
+      });
       items.push(...projectItems);
 
       if (listing.complete) {
         completelyListed.push({
           accountId: projectId,
           resourceTypes: Array.from(
-            new Set(
-              GCP_INVENTORY_TYPES.map((type: GcpInventoryType): string => {
-                return type.monitoredType || type.assetType;
-              }),
-            ),
+            new Set(GCP_INVENTORY_TYPES.map(getGcpInventoryResourceType)),
           ),
         });
       } else {

@@ -101,7 +101,7 @@ const AttackCoverageTactics: FunctionComponent<ComponentProps> = (
                   <span className="text-sm font-semibold text-gray-900">
                     {view.tactic.name}
                   </span>
-                  <span className="font-mono text-xs text-gray-400">
+                  <span className="font-mono text-xs text-gray-500">
                     {view.tactic.id}
                   </span>
                 </span>
@@ -170,7 +170,7 @@ const AttackCoverageTactics: FunctionComponent<ComponentProps> = (
                             className={`h-3 w-3 flex-shrink-0 rounded border ${TECHNIQUE_CELL_CLASS_NAMES[group.coverage]}`}
                           />
                           <span>{label}</span>
-                          <span className="tabular-nums text-gray-400">
+                          <span className="tabular-nums text-gray-500">
                             {translator.formatNumber(group.techniques.length)}
                           </span>
                         </p>

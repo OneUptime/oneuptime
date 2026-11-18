@@ -1,6 +1,4 @@
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "../../../Models/DatabaseModels/Team";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -9,9 +7,8 @@ import {
   NotificationRuleConditionCheckOn,
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
-import TeamMemberService from "../../Services/TeamMemberService";
-import TeamService from "../../Services/TeamService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import findProjectOwnerIds from "../Rules/ProjectOwnerIds";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
 } from "../../Types/Database/UUIDColumnFilter";
@@ -316,55 +313,10 @@ export default class NotificationRuleConditionIds {
       return;
     }
 
-    const found: Set<string> = new Set(
-      (
-        await TeamService.findBy({
-          query: {
-            projectId: data.projectId,
-            _id: QueryHelper.any(Array.from(data.ids.keys())),
-          },
-          select: {
-            _id: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        })
-      ).map((team: Team): string => {
-        return toCanonicalId(team._id?.toString() || "");
-      }),
-    );
-
-    const notTeams: Array<string> = Array.from(data.ids.keys()).filter(
-      (id: string): boolean => {
-        return !found.has(id);
-      },
-    );
-
-    if (notTeams.length > 0) {
-      const members: Array<TeamMember> = await TeamMemberService.findBy({
-        query: {
-          projectId: data.projectId,
-          userId: QueryHelper.any(notTeams),
-        },
-        select: {
-          userId: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      for (const member of members) {
-        if (member.userId) {
-          found.add(toCanonicalId(member.userId.toString()));
-        }
-      }
-    }
+    const found: Set<string> = await findProjectOwnerIds({
+      projectId: data.projectId,
+      ids: Array.from(data.ids.keys()),
+    });
 
     for (const [id, checkOn] of data.ids) {
       if (!found.has(id)) {

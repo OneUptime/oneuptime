@@ -687,10 +687,26 @@ describe("saving a rule's updates through the API", () => {
   test("an update that writes no list reads nothing more", async () => {
     await expect(update({ name: "Renamed" })).resolves.toBeTruthy();
     await expect(
-      update({ notificationRule: baseRule({}) }),
+      update({
+        eventType: NotificationRuleEventType.Incident,
+        notificationRule: baseRule({}),
+      }),
     ).resolves.toBeTruthy();
 
     expect(heldRowsRead).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A JSON written without a list, by an update that does not say the
+   * rule's kind, reads the rule: an on-call policy rule keeps the updates
+   * it posts (#7971, WorkspaceNotificationRuleNewOnCallUpdates).
+   */
+  test("an update that writes no list and does not say the rule's kind reads the rule, to keep an on-call rule's updates", async () => {
+    await expect(
+      update({ notificationRule: baseRule({}) }),
+    ).resolves.toBeTruthy();
+
+    expect(heldRowsRead).toHaveBeenCalledTimes(1);
   });
 
   /*
@@ -768,8 +784,24 @@ describe("saving a rule's updates through the API", () => {
         }),
       ).resolves.toBeTruthy();
 
-      // Sent with the update: not read again.
-      expect(heldRowsRead).toHaveBeenCalledTimes(2);
+      /*
+       * Sent with the update: the kind is not read again. (An on-call
+       * rule's JSON written without updatesToPost is read for the updates
+       * it keeps, #7971: those reads ask for the JSON too.)
+       */
+      expect(
+        heldRowsRead.mock.calls.filter(
+          (
+            call: Parameters<
+              typeof WorkspaceNotificationRuleService.findRowsAndHoldUpdateToThem
+            >,
+          ): boolean => {
+            return !(
+              "notificationRule" in (call[1] as Record<string, unknown>)
+            );
+          },
+        ),
+      ).toHaveLength(2);
     });
   });
 });

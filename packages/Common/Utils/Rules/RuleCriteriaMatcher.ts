@@ -70,6 +70,20 @@ export interface MatchesWithLegacyOptions<
   emptyResult: boolean;
   matchesLegacyRule: (rule: RuleType) => Promise<boolean> | boolean;
   correlation?: LegacyFilterCorrelation<RuleType, CorrelationCandidateType>;
+  /*
+   * Conditions on what the record holds that no column of the rule does -
+   * who owns an alert (RULE_CRITERIA_OWNER_FIELDS_BY_MODEL) - each answered
+   * by its own function, by field. A rule with no such condition never
+   * calls one, so what they read is read only for a rule that asks.
+   */
+  recordFields?:
+    | Readonly<
+        Record<
+          string,
+          (filter: RuleCriteriaFilter) => Promise<boolean> | boolean
+        >
+      >
+    | undefined;
 }
 
 export interface LegacyFilterCorrelation<
@@ -619,6 +633,19 @@ export class RuleCriteriaMatcher {
     },
   ): Promise<boolean> {
     try {
+      const matchesRecordField:
+        | ((filter: RuleCriteriaFilter) => Promise<boolean> | boolean)
+        | undefined = Object.prototype.hasOwnProperty.call(
+        options.recordFields || {},
+        options.filter.field,
+      )
+        ? options.recordFields![options.filter.field]
+        : undefined;
+
+      if (matchesRecordField) {
+        return await matchesRecordField(options.filter);
+      }
+
       if (!RuleCriteriaMatcher.isAllowedLegacyField(options)) {
         return false;
       }

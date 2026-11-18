@@ -10,6 +10,7 @@ import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { dropdownIn } from "../SuiteHelpers/Dropdowns";
 
 /*
  * Renders the real public and private note pages of incidents, alerts,
@@ -940,9 +941,9 @@ test.describe("previewing the notification", () => {
     ).toBe(true);
 
     // Escape closes the dialog, not the draft.
-    await dialog
-      .getByTestId("subscriber-notification-preview-page-select")
-      .focus();
+    await dropdownIn(
+      dialog.getByTestId("subscriber-notification-preview-page-select"),
+    ).focus();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(composer).toBeVisible();

@@ -899,9 +899,15 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     expect(hint).toHaveTextContent(
       "To keep matching a policy after it is renamed, use On-Call Policy.",
     );
+
+    // ...and with which policies its words match now (#7806).
+    const matches: HTMLElement = screen.getByTestId(
+      "notification-rule-condition-policy-name-matches-0",
+    );
+
     expect(
       screen.getByRole("textbox", { name: "Value for condition 1" }),
-    ).toHaveAttribute("aria-describedby", hint.id);
+    ).toHaveAttribute("aria-describedby", `${hint.id} ${matches.id}`);
   });
 
   test.each([

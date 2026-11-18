@@ -8,10 +8,11 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
-import MonitorPauseState, {
-  MONITOR_PAUSE_FLAGS_SELECT,
-} from "Common/Utils/Monitor/MonitorPauseState";
-import MonitorFirstCheck from "Common/Utils/Monitor/MonitorFirstCheck";
+import MonitorPauseState from "Common/Utils/Monitor/MonitorPauseState";
+import {
+  areSloMonitorsWaitingForFirstCheck,
+  SLO_MONITOR_FIRST_CHECK_SELECT,
+} from "Common/Utils/Slo/SloMonitorsFirstCheck";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -589,10 +590,11 @@ async function measureMonitorSlo(data: {
     },
     select: {
       _id: true,
-      ...MONITOR_PAUSE_FLAGS_SELECT,
-      // Whether something has checked it yet, for the no-data guard's reason.
-      monitorType: true,
-      firstMeasuredAt: true,
+      /*
+       * The pause flags, and whether something has checked it yet, for the
+       * no-data guard's reason.
+       */
+      ...SLO_MONITOR_FIRST_CHECK_SELECT,
     },
     skip: 0,
     limit: LIMIT_PER_PROJECT,
@@ -2357,19 +2359,12 @@ const SLO_MONITORS_NOT_CHECKED_YET_REASON: string =
 const SLO_NO_TIMELINE_DATA_REASON: string =
   "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.";
 
+/*
+ * The SLO page's banner reads the same rule (SloMonitorsFirstCheck), so it
+ * says "Waiting for the first check" exactly when this reason is given.
+ */
 function getNoTimelineDataReason(monitors: Array<Monitor>): string {
-  const monitorsNotPaused: Array<Monitor> = monitors.filter(
-    (monitor: Monitor): boolean => {
-      return !MonitorPauseState.isPaused(monitor);
-    },
-  );
-
-  if (
-    monitorsNotPaused.length > 0 &&
-    monitorsNotPaused.every((monitor: Monitor): boolean => {
-      return MonitorFirstCheck.isNeverMeasured(monitor);
-    })
-  ) {
+  if (areSloMonitorsWaitingForFirstCheck(monitors)) {
     return SLO_MONITORS_NOT_CHECKED_YET_REASON;
   }
 

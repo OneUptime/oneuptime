@@ -22,16 +22,19 @@
  * declared without notifying stays quiet
  * (PublicNoteSubscriberNotificationDefault).
  *
- * People also declare incidents where no box asks: Slack's and Microsoft
- * Teams' Declare Incident forms, and OneUptime AI when someone asks it to.
- * Those follow the switch too, as the box would have started
+ * Slack's and Microsoft Teams' Declare Incident forms ask too, their box
+ * starting the same way (Server/Utils/Workspace
+ * /WorkspaceIncidentSubscriberNotification, #7917). People also declare
+ * incidents where no box asks: OneUptime AI when someone asks it to, and a
+ * chat form opened before the chats asked. Those follow the switch, as the
+ * box would have started
  * (Server/Utils/StatusPage/NewIncidentSubscriberNotificationDefaultReader):
  * off, they are declared without notifying. Incidents nobody declares by
  * hand - by monitors, the API, Terraform, workflows or a public form - keep
  * their own value, which notifies unless they say otherwise.
  *
- * Shared by the dashboard, which starts the box from it, the server, which
- * declares the chat and AI incidents by it, and their tests.
+ * Shared by the dashboard and the chats, which start the box from it, the
+ * server, which declares the AI's incidents by it, and their tests.
  */
 
 // The Project column that says how the box starts.

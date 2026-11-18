@@ -370,7 +370,7 @@ describe("the offline fixtures' Dashboard locales", () => {
       localesLoadedBy(navigationSearch.entryPoint).map((locale) => {
         return `${locale.kind} ${locale.language}`;
       }),
-    ).toEqual(["static en", "dynamic de", "dynamic ar"]);
+    ).toEqual(["static en", "dynamic de", "dynamic ar", "dynamic fa"]);
   });
 
   test("no fixture imports a language but English whole", () => {

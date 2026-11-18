@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -20,7 +21,6 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -254,7 +254,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!apps) {
-    body = <PageLoader isVisible={true} />;
+    body = <TableSkeleton rows={4} />;
   } else if (apps.length === 0) {
     body = (
       <p className="text-sm text-gray-500" data-testid="environment-apps-empty">

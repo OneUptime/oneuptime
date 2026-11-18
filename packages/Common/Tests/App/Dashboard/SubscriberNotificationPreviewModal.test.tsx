@@ -16,6 +16,13 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+  hasDropdownClearControl,
+  listDropdownOptions,
+  openDropdown,
+} from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -231,6 +238,12 @@ afterEach(() => {
   cleanup();
 });
 
+// The status page the preview shows: the shared Dropdown's combobox.
+const pagePicker: () => HTMLElement = (): HTMLElement => {
+  return within(
+    screen.getByTestId("subscriber-notification-preview-page-select"),
+  ).getByRole("combobox", { hidden: true });
+};
 describe("the email frame", () => {
   test("grants neither allow-scripts nor allow-same-origin", async () => {
     await openModal();
@@ -294,24 +307,21 @@ describe("the preview", () => {
       'This status page\'s custom email template "Site 03 branded" is used.',
     );
 
-    const select: HTMLSelectElement = screen.getByTestId(
-      "subscriber-notification-preview-page-select",
-    ) as HTMLSelectElement;
+    const select: HTMLElement = pagePicker();
 
-    expect(
-      Array.from(select.options).map((option: HTMLOptionElement): string => {
-        return option.textContent || "";
-      }),
-    ).toEqual(["Site 03 (up to 41 email)", "Site 07 (up to 18 email, 2 SMS)"]);
+    expect(select).toHaveAccessibleName("Show the email for");
+    expect(getShownDropdownValue(select)).toBe("Site 03 (up to 41 email)");
+    expect(hasDropdownClearControl(select)).toBe(false);
+    expect(await listDropdownOptions(select)).toEqual([
+      "Site 03 (up to 41 email)",
+      "Site 07 (up to 18 email, 2 SMS)",
+    ]);
   });
 
   test("picking another page shows its email and its reason", async () => {
     await openModal();
 
-    fireEvent.change(
-      screen.getByTestId("subscriber-notification-preview-page-select"),
-      { target: { value: SITE_07 } },
-    );
+    chooseDropdownOption(pagePicker(), /^Site 07/);
 
     expect(frame().getAttribute("srcdoc")).toBe(
       getEmailPreviewDocument(HTML_07),
@@ -417,10 +427,7 @@ describe("Send test to me", () => {
   test("sends the shown page's email, naming the page and no address, and says where it went", async () => {
     await openModal();
 
-    fireEvent.change(
-      screen.getByTestId("subscriber-notification-preview-page-select"),
-      { target: { value: SITE_07 } },
-    );
+    chooseDropdownOption(pagePicker(), /^Site 07/);
 
     await act(async () => {
       fireEvent.click(
@@ -468,9 +475,7 @@ describe("Send test to me", () => {
 
     await openModal();
 
-    const select: HTMLElement = screen.getByTestId(
-      "subscriber-notification-preview-page-select",
-    );
+    const select: HTMLElement = pagePicker();
 
     await act(async () => {
       fireEvent.click(
@@ -488,7 +493,7 @@ describe("Send test to me", () => {
     });
 
     expect(select).not.toBeDisabled();
-    expect(select).toHaveValue(SITE_03);
+    expect(getShownDropdownValue(select)).toBe("Site 03 (up to 41 email)");
     expect(
       await screen.findByTestId(
         "subscriber-notification-preview-send-test-sent",
@@ -514,20 +519,21 @@ describe("Send test to me", () => {
       );
     });
 
-    // Changed anyway, as a script or an assistive technology could.
-    const select: HTMLSelectElement = screen.getByTestId(
-      "subscriber-notification-preview-page-select",
-    ) as HTMLSelectElement;
-    select.disabled = false;
-    fireEvent.change(select, { target: { value: SITE_07 } });
+    /*
+     * The picker is locked while the test is out, so the page cannot change
+     * under its answer: a pick is not taken.
+     */
+    expect(pagePicker()).toBeDisabled();
+    openDropdown(pagePicker());
+    expect(screen.queryByRole("option", { name: /^Site 07/ })).toBeNull();
 
     await act(async () => {
       answer(ok({ sentTo: "me@example.com" } as JSONObject));
     });
 
-    expect(
-      screen.queryByTestId("subscriber-notification-preview-send-test-sent"),
-    ).toBeNull();
+    expect(getShownDropdownValue(pagePicker())).toBe(
+      "Site 03 (up to 41 email)",
+    );
     expect(
       screen.getByTestId("subscriber-notification-preview-send-test"),
     ).not.toBeDisabled();
@@ -669,10 +675,8 @@ describe("inside the forms it opens from", () => {
 
       await screen.findByTestId("subscriber-notification-preview-body");
 
-      fireEvent.keyDown(
-        screen.getByTestId("subscriber-notification-preview-page-select"),
-        { key: "Escape" },
-      );
+      // From the page picker, its menu closed: the dialog's, as from a <select>.
+      fireEvent.keyDown(pagePicker(), { key: "Escape" });
 
       expect(calls.onClose).toHaveBeenCalledTimes(1);
       expect(calls.onCancel).not.toHaveBeenCalled();

@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -113,7 +113,7 @@ const TopErrorsPanel: FunctionComponent<ComponentProps> = (
       <div className="mb-5">
         {header}
         <div className="rounded-xl border border-gray-200 bg-white p-10">
-          <ComponentLoader />
+          <TableSkeleton rows={5} hasHeader={false} />
         </div>
       </div>
     );

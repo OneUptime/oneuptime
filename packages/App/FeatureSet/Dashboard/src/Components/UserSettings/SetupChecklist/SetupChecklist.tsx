@@ -54,6 +54,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   userId: ObjectID | null;
   projectId: ObjectID | null;
+  /*
+   * The checklist just read by whoever opened the page (User Settings'
+   * forward, #7039): drawn at once, without a second read.
+   */
+  initialChecklist?: SetupChecklistData | null | undefined;
 }
 
 /*
@@ -145,6 +150,7 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
   const state: SetupChecklistState = useSetupChecklist({
     userId: props.userId,
     projectId: props.projectId,
+    initialChecklist: props.initialChecklist,
   });
 
   const reload: () => void = (): void => {

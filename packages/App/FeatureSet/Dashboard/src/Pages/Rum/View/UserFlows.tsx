@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,7 +34,6 @@ import {
   TableHeaderToolbar,
   renderTableHeaderMoreMenu,
 } from "Common/UI/Components/Table/TableHeaderControls";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -83,6 +83,16 @@ import {
   formatUserFlowCount,
   getUserFlowPathLineDirection,
 } from "../../../Components/UserFlow/UserFlowFormat";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -107,8 +117,14 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 
 type FlowMode = "start" | "forward" | "backward";
 
-const SELECT_CLASS: string =
-  "block rounded-md border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+/*
+ * The box around each of the toolbar's pickers. They are the shared
+ * Dropdown, so their height, border, focus ring, menu and dark look are
+ * every other picker's (#9294); each sets its own width, and none is wider
+ * than a phone.
+ */
+export const USER_FLOW_PICKER_CLASS_NAME: string =
+  "relative max-w-full overflow-visible";
 
 function modeOf(options: UserFlowOptions): FlowMode {
   if (!options.anchorPage) {
@@ -365,6 +381,80 @@ const RumApplicationUserFlows: FunctionComponent<
       }),
   );
 
+  /*
+   * The anchor's choices. A page nobody visited in the range is named in a
+   * sentence that is only drawn: the page is set apart from its words
+   * (setsValuesApart), so an Arabic or Persian option names "/2024", not
+   * "2024/". Each other page is drawn as a person reads it, from the left
+   * as a path does in the address bar: "/café (12)", not
+   * "/caf%C3%A9 (12)". Its value stays its key.
+   */
+  const anchorOptions: Array<DropdownOption> = [
+    ...(anchorMissing && options.anchorPage
+      ? [
+          getTranslatedDropdownOption(
+            options.anchorPage,
+            translator.translateTemplate(
+              "{{page}} (not visited in this range)",
+              { page: getUserFlowPageText(options.anchorPage) },
+              { setsValuesApart: true },
+            ),
+          ),
+        ]
+      : []),
+    ...pageOptions.map((page: UserFlowPageCount): DropdownOption => {
+      // Undefined where the page already reads a path's way.
+      const direction: "ltr" | "rtl" | undefined = getUserFlowPathLineDirection(
+        page.page,
+        translator.language,
+      );
+
+      return {
+        value: page.page,
+        label: `${getUserFlowPageText(page.page)} (${formatUserFlowCount(
+          page.sessions,
+          translator,
+        )})`,
+        isUserContent: true,
+        isInPageDirection: direction === undefined,
+        labelDirection: direction,
+      };
+    }),
+  ];
+  const stepOptions: Array<DropdownOption> = range(
+    USER_FLOW_MIN_STEPS,
+    USER_FLOW_MAX_STEPS,
+  ).map((value: number): DropdownOption => {
+    return getTranslatedDropdownOption(value, String(value));
+  });
+  const pagesPerStepOptions: Array<DropdownOption> = range(
+    USER_FLOW_MIN_PAGES_PER_STEP,
+    USER_FLOW_MAX_PAGES_PER_STEP,
+  ).map((value: number): DropdownOption => {
+    return getTranslatedDropdownOption(value, String(value));
+  });
+  const sessionFilterOptions: Array<DropdownOption> = [
+    getTranslatedDropdownOption(
+      "all",
+      translator.translateText("All sessions") || "All sessions",
+    ),
+    getTranslatedDropdownOption(
+      "errors",
+      translator.translateText("With errors") || "With errors",
+    ),
+    getTranslatedDropdownOption(
+      "frustration",
+      translator.translateText("With frustration signals") ||
+        "With frustration signals",
+    ),
+  ];
+  // A device type is drawn as the data names it ("mobile").
+  const deviceDropdownOptions: Array<DropdownOption> = deviceChoices.map(
+    (device: string): DropdownOption => {
+      return getNamedDropdownOption(device, device);
+    },
+  );
+
   const toolbar: ReactElement = (
     <div className="mb-4 flex flex-col gap-3" data-testid="user-flow-toolbar">
       <div className="flex flex-wrap items-center gap-3">
@@ -412,54 +502,30 @@ const RumApplicationUserFlows: FunctionComponent<
         </div>
 
         {mode !== "start" ? (
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            {translator.translateText("Page")}
-            <select
-              className={`${SELECT_CLASS} max-w-xs font-mono`}
-              data-testid="user-flow-anchor-select"
-              value={options.anchorPage || ""}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                updateOptions({ anchorPage: event.target.value || null });
-              }}
-            >
-              {/*
-               * A page nobody visited in the range, named in a sentence
-               * that is only drawn: the page is set apart from its words
-               * (setsValuesApart), so an Arabic or Persian option names
-               * "/2024", not "2024/".
-               */}
-              {anchorMissing && options.anchorPage ? (
-                <option value={options.anchorPage}>
-                  {translator.translateTemplate(
-                    "{{page}} (not visited in this range)",
-                    { page: getUserFlowPageText(options.anchorPage) },
-                    { setsValuesApart: true },
-                  )}
-                </option>
-              ) : (
-                <></>
-              )}
-              {/*
-               * Each page as a person reads it, from the left: "/café
-               * (12)", not "/caf%C3%A9 (12)". Its value stays its key.
-               */}
-              {pageOptions.map((page: UserFlowPageCount): ReactElement => {
-                return (
-                  <option
-                    key={page.page}
-                    value={page.page}
-                    dir={getUserFlowPathLineDirection(
-                      page.page,
-                      translator.language,
-                    )}
-                  >
-                    {getUserFlowPageText(page.page)} (
-                    {formatUserFlowCount(page.sessions, translator)})
-                  </option>
-                );
-              })}
-            </select>
-          </label>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <label htmlFor="user-flow-anchor">
+              {translator.translateText("Page")}
+            </label>
+            <div data-testid="user-flow-anchor-select">
+              <Dropdown
+                inputId="user-flow-anchor"
+                className={`${USER_FLOW_PICKER_CLASS_NAME} w-72`}
+                options={anchorOptions}
+                value={findDropdownOption(anchorOptions, options.anchorPage)}
+                // A flow before or after a page always names its page.
+                isClearable={false}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const picked: string | null = readPickedDropdownValue(next);
+
+                  if (picked !== null && picked !== options.anchorPage) {
+                    updateOptions({ anchorPage: picked });
+                  }
+                }}
+              />
+            </div>
+          </div>
         ) : (
           <></>
         )}
@@ -474,98 +540,114 @@ const RumApplicationUserFlows: FunctionComponent<
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
-        <label className="flex items-center gap-2">
-          {translator.translateText("Steps")}
-          <select
-            className={SELECT_CLASS}
-            data-testid="user-flow-steps-select"
-            value={options.steps}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              updateOptions({ steps: Number(event.target.value) });
-            }}
-          >
-            {range(USER_FLOW_MIN_STEPS, USER_FLOW_MAX_STEPS).map(
-              (value: number): ReactElement => {
-                return (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                );
-              },
-            )}
-          </select>
-        </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor="user-flow-steps">
+            {translator.translateText("Steps")}
+          </label>
+          <div data-testid="user-flow-steps-select">
+            <Dropdown
+              inputId="user-flow-steps"
+              className={`${USER_FLOW_PICKER_CLASS_NAME} w-24`}
+              options={stepOptions}
+              value={findDropdownOption(stepOptions, options.steps)}
+              isClearable={false}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
 
-        <label className="flex items-center gap-2">
-          {translator.translateText("Pages per step")}
-          <select
-            className={SELECT_CLASS}
-            data-testid="user-flow-per-step-select"
-            value={options.pagesPerStep}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              updateOptions({ pagesPerStep: Number(event.target.value) });
-            }}
-          >
-            {range(
-              USER_FLOW_MIN_PAGES_PER_STEP,
-              USER_FLOW_MAX_PAGES_PER_STEP,
-            ).map((value: number): ReactElement => {
-              return (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              );
-            })}
-          </select>
-        </label>
+                if (picked !== null) {
+                  updateOptions({ steps: Number(picked) });
+                }
+              }}
+            />
+          </div>
+        </div>
 
-        <label className="flex items-center gap-2">
-          {translator.translateText("Sessions")}
-          <select
-            className={SELECT_CLASS}
-            data-testid="user-flow-session-filter"
-            value={options.sessionFilter}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              updateOptions({
-                sessionFilter: event.target.value as UserFlowSessionFilter,
-              });
-            }}
-          >
-            <option value="all">
-              {translator.translateText("All sessions")}
-            </option>
-            <option value="errors">
-              {translator.translateText("With errors")}
-            </option>
-            <option value="frustration">
-              {translator.translateText("With frustration signals")}
-            </option>
-          </select>
-        </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor="user-flow-per-step">
+            {translator.translateText("Pages per step")}
+          </label>
+          <div data-testid="user-flow-per-step-select">
+            <Dropdown
+              inputId="user-flow-per-step"
+              className={`${USER_FLOW_PICKER_CLASS_NAME} w-24`}
+              options={pagesPerStepOptions}
+              value={findDropdownOption(
+                pagesPerStepOptions,
+                options.pagesPerStep,
+              )}
+              isClearable={false}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
+
+                if (picked !== null) {
+                  updateOptions({ pagesPerStep: Number(picked) });
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="user-flow-sessions">
+            {translator.translateText("Sessions")}
+          </label>
+          <div data-testid="user-flow-session-filter">
+            <Dropdown
+              inputId="user-flow-sessions"
+              className={`${USER_FLOW_PICKER_CLASS_NAME} w-60`}
+              options={sessionFilterOptions}
+              value={findDropdownOption(
+                sessionFilterOptions,
+                options.sessionFilter,
+              )}
+              // "All sessions" is a choice of its own, never a blank.
+              isClearable={false}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
+
+                if (picked !== null) {
+                  updateOptions({
+                    sessionFilter: picked as UserFlowSessionFilter,
+                  });
+                }
+              }}
+            />
+          </div>
+        </div>
 
         {analysis && deviceChoices.length > 0 ? (
-          <label className="flex items-center gap-2">
-            {translator.translateText("Device")}
-            <select
-              className={SELECT_CLASS}
-              data-testid="user-flow-device-filter"
-              value={options.deviceType}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                updateOptions({ deviceType: event.target.value });
-              }}
-            >
-              <option value="">
-                {translator.translateText("All devices")}
-              </option>
-              {deviceChoices.map((device: string): ReactElement => {
-                return (
-                  <option key={device} value={device}>
-                    {device}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="user-flow-device">
+              {translator.translateText("Device")}
+            </label>
+            <div data-testid="user-flow-device-filter">
+              <Dropdown
+                inputId="user-flow-device"
+                className={`${USER_FLOW_PICKER_CLASS_NAME} w-44`}
+                options={deviceDropdownOptions}
+                value={findDropdownOption(
+                  deviceDropdownOptions,
+                  options.deviceType,
+                )}
+                // Cleared, the map reads every device again.
+                placeholder={translator.translateText("All devices")}
+                isPlaceholderTranslated={true}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  updateOptions({
+                    deviceType: readPickedDropdownValue(next) || "",
+                  });
+                }}
+              />
+            </div>
+          </div>
         ) : (
           <></>
         )}
@@ -664,7 +746,7 @@ const RumApplicationUserFlows: FunctionComponent<
   let body: ReactElement;
 
   if (pageState === "loading") {
-    body = <ComponentLoader />;
+    body = <ChartSkeleton hasLegend={false} />;
   } else if (pageState === "error") {
     body = <ErrorMessage message={error} onRefreshClick={reload} />;
   } else if (pageState === "scope-empty" && scope) {

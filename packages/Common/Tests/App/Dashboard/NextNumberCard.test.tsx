@@ -757,7 +757,7 @@ describe.each(PAGES)(
 
       expect(
         await within(cardElement).findByTestId(
-          "component-loader",
+          "detail-skeleton",
           {},
           { timeout: WAIT_TIMEOUT },
         ),

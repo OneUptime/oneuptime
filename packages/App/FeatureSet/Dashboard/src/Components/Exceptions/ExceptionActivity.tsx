@@ -1,4 +1,5 @@
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import TelemetryExceptionActivity from "Common/Models/DatabaseModels/TelemetryExceptionActivity";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -6,7 +7,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
@@ -215,7 +215,7 @@ const ExceptionActivity: FunctionComponent<ComponentProps> = (
     if (isLoading) {
       return (
         <div className="flex h-20 items-center justify-center">
-          <ComponentLoader />
+          <TableSkeleton rows={2} hasHeader={false} />
         </div>
       );
     }

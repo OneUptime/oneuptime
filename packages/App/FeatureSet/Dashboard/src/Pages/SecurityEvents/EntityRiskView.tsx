@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
 import SecurityCaseApi, {
@@ -66,7 +67,6 @@ import {
 } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TableEmptyState, {
@@ -332,7 +332,7 @@ const SecurityEntityRiskViewPage: FunctionComponent<
       >
         <div className="border-t border-gray-100 px-4 py-4 sm:px-5">
           {!isRiskLoaded || !settings.isLoaded ? (
-            <ComponentLoader />
+            <DetailListSkeleton fields={4} />
           ) : riskError ? (
             <ErrorMessage
               message={riskError}

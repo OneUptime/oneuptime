@@ -10061,8 +10061,8 @@ test.describe("the Overview's Riskiest Entities", () => {
                 (item.querySelector("a")?.textContent || "").trim(),
                 (item.querySelector(".tabular-nums")?.textContent || "").trim(),
                 (
-                  item.querySelector('[class*="text-[11px]"]')?.textContent ||
-                  ""
+                  item.querySelector('[data-testid="ranked-bar-hint"]')
+                    ?.textContent || ""
                 ).trim(),
                 (
                   item.querySelector('[data-testid="entity-risk-level"]')
@@ -10200,7 +10200,7 @@ test.describe("the Overview's Riskiest Entities", () => {
       await hostRow.evaluate((row: Element): Array<string> => {
         const link: Element = row.querySelector("a") as Element;
         const parts: Array<Element> = [
-          row.querySelector('[class*="text-[11px]"]') as Element,
+          row.querySelector('[data-testid="ranked-bar-hint"]') as Element,
           row.querySelector(".tabular-nums") as Element,
           row.querySelector('[data-testid="ranked-bar-fill"]') as Element,
         ];

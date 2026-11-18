@@ -10,10 +10,20 @@ import { useActiveProject } from "./useProject";
 import {
   createOnCallOverride,
   deleteOnCallOverride,
+  endOnCallOverrideNow,
   fetchOnCallOverrides,
+  fetchOverlappingOverrides,
+  updateOnCallOverride,
+  type OnCallOverrideChange,
 } from "../api/onCallOverrides";
 import { getAuthorizedProjects, projectListKey } from "./authorizedProjects";
 import { isOverrideActive, isOverrideExpired } from "../oncall/duty";
+import {
+  getEndNow,
+  pickConflict,
+  type OverrideSavedTimes,
+  type OverrideScopeTimes,
+} from "../oncall/overrideEdit";
 import type { OnCallOverrideItem, ProjectItem } from "../api/types";
 
 export interface CreateOverrideInput {
@@ -50,6 +60,20 @@ export interface UseOnCallOverridesResult {
 
   cancelOverride: (override: OnCallOverrideItem) => Promise<void>;
   isCancelling: boolean;
+
+  /*
+   * Edits an override (#7897): who covers, and its times as far as they
+   * may still change (oncall/overrideEdit).
+   */
+  updateOverride: (
+    override: OnCallOverrideItem,
+    change: OnCallOverrideChange,
+  ) => Promise<void>;
+  isUpdating: boolean;
+
+  // Ends an override under way now, at the server's clock.
+  endOverrideNow: (override: OnCallOverrideItem) => Promise<void>;
+  isEnding: boolean;
 }
 
 /**
@@ -145,6 +169,49 @@ export function useOnCallOverrides(
       onSuccess: invalidate,
     });
 
+  const updateMutation: UseMutationResult<
+    void,
+    Error,
+    { override: OnCallOverrideItem; change: OnCallOverrideChange }
+  > = useMutation({
+    mutationFn: async (data: {
+      override: OnCallOverrideItem;
+      change: OnCallOverrideChange;
+    }): Promise<void> => {
+      if (data.override.projectId !== projectList[0]?._id) {
+        throw new Error(
+          "The selected project changed. Open coverage again before saving.",
+        );
+      }
+      await updateOnCallOverride(
+        data.override.projectId,
+        data.override._id,
+        data.change,
+      );
+    },
+    onSuccess: invalidate,
+  });
+
+  const endNowMutation: UseMutationResult<void, Error, OnCallOverrideItem> =
+    useMutation({
+      mutationFn: async (override: OnCallOverrideItem): Promise<void> => {
+        if (override.projectId !== projectList[0]?._id) {
+          throw new Error(
+            "The selected project changed. Open coverage again before ending it.",
+          );
+        }
+
+        const times: OverrideSavedTimes | null = toSavedTimes(override);
+
+        await endOnCallOverrideNow(
+          override.projectId,
+          override._id,
+          times ? getEndNow(times, new Date(Date.now())) : null,
+        );
+      },
+      onSuccess: invalidate,
+    });
+
   const grouped: {
     active: OnCallOverrideItem[];
     upcoming: OnCallOverrideItem[];
@@ -204,5 +271,86 @@ export function useOnCallOverrides(
       await cancelMutation.mutateAsync(override);
     },
     isCancelling: cancelMutation.isPending,
+    updateOverride: async (
+      override: OnCallOverrideItem,
+      change: OnCallOverrideChange,
+    ): Promise<void> => {
+      await updateMutation.mutateAsync({ override, change });
+    },
+    isUpdating: updateMutation.isPending,
+    endOverrideNow: async (override: OnCallOverrideItem): Promise<void> => {
+      await endNowMutation.mutateAsync(override);
+    },
+    isEnding: endNowMutation.isPending,
   };
+}
+
+// An override's times as saved, or null for one without both.
+export function toSavedTimes(
+  override: OnCallOverrideItem,
+): OverrideSavedTimes | null {
+  if (!override.startsAt || !override.endsAt) {
+    return null;
+  }
+
+  const startsAt: Date = new Date(override.startsAt);
+  const endsAt: Date = new Date(override.endsAt);
+
+  if (
+    !Number.isFinite(startsAt.getTime()) ||
+    !Number.isFinite(endsAt.getTime())
+  ) {
+    return null;
+  }
+
+  return { startsAt, endsAt };
+}
+
+/*
+ * The override the server named when it refused `candidate` for an
+ * overlap (#7897): read again from the server - the list on screen holds
+ * fifty at most - and picked as the server picks it (pickConflict). Null
+ * when none can be found, or the read fails: the refusal is shown alone.
+ */
+export async function findOverlapConflict(data: {
+  project: { projectId: string; projectName: string };
+  candidate: OverrideScopeTimes;
+}): Promise<OnCallOverrideItem | null> {
+  try {
+    const overrides: OnCallOverrideItem[] = await fetchOverlappingOverrides(
+      data.project,
+      {
+        overrideUserId: data.candidate.overrideUserId,
+        startsAt: data.candidate.startsAt,
+        endsAt: data.candidate.endsAt,
+      },
+    );
+
+    const weighed: Array<OverrideScopeTimes & { item: OnCallOverrideItem }> =
+      [];
+
+    overrides.forEach((override: OnCallOverrideItem) => {
+      const times: OverrideSavedTimes | null = toSavedTimes(override);
+
+      if (!times || !override.overrideUser?._id) {
+        return;
+      }
+
+      weighed.push({
+        item: override,
+        id: override._id,
+        overrideUserId: override.overrideUser._id,
+        routeAlertsToUserId: override.routeAlertsToUser?._id || null,
+        onCallDutyPolicyId:
+          override.onCallDutyPolicyId || override.onCallDutyPolicy?._id || null,
+        startsAt: times.startsAt,
+        endsAt: times.endsAt,
+        createdAt: override.createdAt ? new Date(override.createdAt) : null,
+      });
+    });
+
+    return pickConflict(data.candidate, weighed)?.item || null;
+  } catch {
+    return null;
+  }
 }

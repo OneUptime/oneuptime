@@ -351,7 +351,7 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
               </h3>
             )}
             {props.component.arguments.chartDescription && (
-              <p className="mt-0.5 text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-gray-500">
                 {props.component.arguments.chartDescription}
               </p>
             )}

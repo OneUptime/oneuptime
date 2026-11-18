@@ -12,7 +12,7 @@ describe("Skeleton", () => {
 
     const skeleton: HTMLElement = screen.getByTestId("skeleton");
     expect(skeleton).toBeInTheDocument();
-    expect(skeleton).toHaveClass("animate-pulse");
+    expect(skeleton).toHaveClass("motion-safe:animate-pulse");
     expect(skeleton).toHaveClass("rounded");
     expect(skeleton).toHaveClass("bg-gray-200");
   });

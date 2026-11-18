@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
@@ -92,7 +92,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
   }, [clusterName, containerId]);
 
   if (part.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (part.error) {
@@ -119,7 +119,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
     {
       name: "Overview",
       children: part.isLoadingRows ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : part.rowError ? (
         <ResourcePartReadError
           testId="docker-swarm-task-read-error"

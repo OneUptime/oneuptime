@@ -1,4 +1,5 @@
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -14,7 +15,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { Black } from "Common/Types/BrandColors";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FetchUsers from "../User/FetchUsers";
 import { RoleAssignment } from "../Incident/IncidentRoleFormField";
@@ -134,7 +134,7 @@ const FetchIncidentRoleAssignments: FunctionComponent<ComponentProps> = (
   }, [roleIdsKey]);
 
   if (!answer || answer.roleIdsKey !== roleIdsKey) {
-    return <ComponentLoader />;
+    return <InlineValueSkeleton />;
   }
 
   if (answer.error) {

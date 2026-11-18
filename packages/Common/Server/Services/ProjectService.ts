@@ -129,6 +129,11 @@ import {
 import ResolvedRecordRetention from "../Utils/Retention/ResolvedRecordRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
+import {
+  getPagingLadderDefaultProblem,
+  readPagingLadderDefault,
+  toPagingLadderDefaultJSON,
+} from "../../Types/NotificationRule/PagingLadderDefault";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import {
   AUDIT_LOG_DEFAULT_RETENTION_IN_DAYS,
@@ -935,6 +940,35 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The project's default ladder (Project.defaultPagingLadder, #7449): steps
+   * of a channel a default may name and a wait, within
+   * getPagingLadderDefaultProblem's limits, stored tidied (in paging order,
+   * a channel at one wait once) - or nothing, null or no steps, stored as
+   * null, which turns the default off. Anything else is refused with what is
+   * wrong, never stored for a verification to page somebody wrongly by later.
+   * A write that leaves it out is not judged on it.
+   */
+  public applyDefaultPagingLadderRules(data: {
+    defaultPagingLadder?: unknown;
+  }): void {
+    if (data.defaultPagingLadder === undefined) {
+      return;
+    }
+
+    const problem: string | null = getPagingLadderDefaultProblem(
+      data.defaultPagingLadder,
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    data.defaultPagingLadder = toPagingLadderDefaultJSON(
+      readPagingLadderDefault(data.defaultPagingLadder),
+    );
+  }
+
+  /*
    * The audit log retention a project sets (Project Settings > Audit Logs >
    * Settings, or the API): a whole number of days from 7 to 180
    * (Types/AuditLog/AuditLogRetention), the range the settings form checks,
@@ -1000,6 +1034,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
+    );
+    this.applyDefaultPagingLadderRules(
+      data.data as { defaultPagingLadder?: unknown },
     );
     this.applyAuditLogRetentionRules(
       data.data as { auditLogsRetentionInDays?: unknown },
@@ -1736,6 +1773,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },
+    );
+    this.applyDefaultPagingLadderRules(
+      updateBy.data as { defaultPagingLadder?: unknown },
     );
     this.applyAuditLogRetentionRules(
       updateBy.data as { auditLogsRetentionInDays?: unknown },

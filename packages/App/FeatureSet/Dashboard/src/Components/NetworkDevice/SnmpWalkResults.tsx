@@ -130,7 +130,7 @@ const SnmpWalkRowName: FunctionComponent<NameProps> = (
           {labels.title}
         </span>
         {labels.titleModule ? (
-          <span className="text-xs text-gray-400">{labels.titleModule}</span>
+          <span className="text-xs text-gray-500">{labels.titleModule}</span>
         ) : (
           <></>
         )}
@@ -224,7 +224,7 @@ export const SnmpWalkRowValue: FunctionComponent<PartProps> = (
   if (view.valueText === "") {
     return (
       <span
-        className="text-sm italic text-gray-400"
+        className="text-sm italic text-gray-500"
         data-testid="snmp-walk-row-value"
       >
         {props.translator.translateText("Empty")}

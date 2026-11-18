@@ -61,6 +61,18 @@ import URL from "Common/Types/API/URL";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallLookupFailedLine from "./OnCallLookupFailedLine";
 import CurrentOnCallPolicyModal from "../OnCallPolicy/CurrentOnCallPolicyModal";
+import useNotificationSetupNudge, {
+  NotificationSetupNudgeState,
+} from "./useNotificationSetupNudge";
+import {
+  NOTIFICATION_SETUP_NUDGE_COPY,
+  NOTIFICATION_SETUP_NUDGE_ITEM_ID,
+  getNotificationSetupPage,
+  getNotificationSetupReasonText,
+} from "./NotificationSetupNudge";
+import { NotificationBellSection } from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationItem";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -391,6 +403,19 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const currentProjectId: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
 
+  const translator: Translator = useTranslator();
+
+  /*
+   * "Finish setting up your notifications" (#7040): asked while the person
+   * is on an on-call policy in this project and OneUptime cannot fully
+   * reach them, by the rule the setup reminder and Readiness use.
+   */
+  const notificationSetup: NotificationSetupNudgeState =
+    useNotificationSetupNudge({
+      userId: User.getUserId()?.toString() || null,
+      projectId: currentProjectId || null,
+    });
+
   useEffect(() => {
     let isCancelled: boolean = false;
 
@@ -662,6 +687,31 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         });
       }
 
+      /*
+       * Under On-Call, beside the duty it is about: one click to the page
+       * that fixes it, and Hide puts it away for a week. It goes by itself
+       * once the person can be reached.
+       */
+      if (props.selectedProject && notificationSetup.reason) {
+        items.push({
+          id: NOTIFICATION_SETUP_NUDGE_ITEM_ID,
+          icon: IconProp.BellAlert,
+          title:
+            translator.translateText(NOTIFICATION_SETUP_NUDGE_COPY.title) ||
+            NOTIFICATION_SETUP_NUDGE_COPY.title,
+          description: translator.translateText(
+            getNotificationSetupReasonText(notificationSetup.reason),
+          ),
+          count: 1,
+          alertType: HeaderAlertType.WARNING,
+          section: NotificationBellSection.OnCall,
+          dismissTitle: translator.translateText(
+            NOTIFICATION_SETUP_NUDGE_COPY.hide,
+          ),
+          onDismiss: notificationSetup.hide,
+        });
+      }
+
       // Invitations - INFO type
       items.push({
         id: "invitations",
@@ -756,6 +806,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
           RouteUtil.populateRouteParams(RouteMap[PageMap.MY_ON_CALL_POLICIES]!),
         );
+        break;
+      case NOTIFICATION_SETUP_NUDGE_ITEM_ID:
+        if (notificationSetup.reason) {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[getNotificationSetupPage(notificationSetup.reason)]!,
+            ),
+          );
+        }
         break;
     }
   };

@@ -1,3 +1,4 @@
+import ObjectID from "Common/Types/ObjectID";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -292,6 +293,61 @@ export const TOOL_IMPORT_REPORT_COUNT_ORDER: ReadonlyArray<ToolImportOutcome> =
     ToolImportOutcome.Skipped,
     ToolImportOutcome.Failed,
   ];
+
+/*
+ * A OneUptime record an import left behind, by its name in the report:
+ * what the report's next steps act on (#7032) - an on-call policy to send a
+ * test page to, a status page whose address to show.
+ */
+export interface ToolImportReportRecord {
+  id: string;
+  name: string;
+}
+
+// The outcomes whose record is in OneUptime: created now, or found there.
+const OUTCOMES_WITH_A_RECORD: ReadonlyArray<ToolImportOutcome> = [
+  ToolImportOutcome.Created,
+  ToolImportOutcome.Matched,
+  ToolImportOutcome.AlreadyImported,
+];
+
+/*
+ * The records of one kind the import left in OneUptime, in the report's
+ * order: what it created first, then what it found, each by name. A record
+ * two items name (one matched to the other) is listed once, and an item
+ * that failed or was not brought over names none.
+ */
+export function getToolImportReportRecords(
+  report: ToolImportReport,
+  kind: ToolImportResourceKind,
+): Array<ToolImportReportRecord> {
+  const section: ToolImportReportSection | undefined =
+    getToolImportReportSections(report).find(
+      (candidate: ToolImportReportSection): boolean => {
+        return candidate.kind === kind;
+      },
+    );
+  const records: Array<ToolImportReportRecord> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const item of section ? section.items : []) {
+    const recordId: string | undefined = item.recordIds[0];
+
+    if (
+      !recordId ||
+      !ObjectID.isValidUUID(recordId) ||
+      !OUTCOMES_WITH_A_RECORD.includes(item.outcome) ||
+      seen.has(recordId)
+    ) {
+      continue;
+    }
+
+    seen.add(recordId);
+    records.push({ id: recordId, name: item.name });
+  }
+
+  return records;
+}
 
 // ---- Which run the page shows.
 

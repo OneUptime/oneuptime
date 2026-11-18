@@ -120,7 +120,7 @@ Fråga AI ställer från en mening in det som de guidade inställningarna ställ
 - **Vad som saknas.** Fråga AI lägger aldrig till ett telefonnummer eller mobilappen: du lägger till och verifierar dem själv under **Användarinställningar → Aviseringsmetoder**. Ber du om sms utan ett verifierat nummer säger kortet det, och svaret länkar till sidan. En del som Fråga AI inte kan skapa föreslås inte, till exempel när din roll inte tillåter det, adressen inte är en adress eller monitorerna inte finns: svaret säger vad som behövs.
 - **Vad varje del behöver.** En monitor behöver behörighet att skapa monitorer. Larmning behöver behörighet att skapa jourpolicyer, deras eskaleringsregler och jourregler för incidenter och larm. En statussida behöver behörighet att skapa statussidor och lägga till monitorer på dem. Projektets abonnemangsgränser gäller, som i de guidade inställningarna.
 - **Testa det sedan.** När planen har körts öppnar varje kort det som skapades, och **Testa den här policyn** (eller **Skicka ett testlarm till mig**, för en monitor ensam) under svaret skickar ett testlarm som du kvitterar från meddelandet. Om en del misslyckas säger svaret vad som skapades och vad som inte gjorde det.
-- **Vem som får veta.** Fråga "vem får veta när example.com ligger nere?" så svarar Fråga AI utifrån samma kedja som monitorns sida visar, och nämner varje brott.
+- **Vem som får veta.** Fråga "vem får veta när example.com ligger nere?" så svarar Fråga AI utifrån samma kedja som monitorns sida visar, och nämner varje brott. Det nämner också titeln på det som monitorn öppnar, de jourregler som matchar och vilken som kör varje policy, och varför någon inte kan larmas, med orden från monitorns sida, och utelämnar det du inte kan läsa.
 
 ## Styr ett samtal
 

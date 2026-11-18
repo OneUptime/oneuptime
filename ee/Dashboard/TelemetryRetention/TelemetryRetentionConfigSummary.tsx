@@ -119,12 +119,12 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
                   }}
                 />
               </div>
-              <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-slate-500">
+              <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-500">
                 {translator.translateText("Default")}
               </div>
             </>
           ) : (
-            <div className="max-w-[7rem] whitespace-normal text-xs italic text-gray-400 dark:text-slate-500">
+            <div className="max-w-[7rem] whitespace-normal text-xs italic text-gray-500 dark:text-slate-500">
               {translator.translateText("Uses default retention")}
             </div>
           )}
@@ -132,7 +132,7 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
       </div>
       {hasOverrides ? (
         <div className="mt-3 border-t border-gray-100 dark:border-slate-800 pt-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500 mb-2">
             {translator.translateText("Specific overrides")}
           </p>
           <div className="flex flex-wrap gap-1.5">

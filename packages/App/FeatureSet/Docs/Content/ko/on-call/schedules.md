@@ -86,7 +86,7 @@ flowchart TB
 
 ## 누군가 부재 중일 때
 
-누군가 휴가를 떠나면 돌아올 때까지 그 사람을 건너뛰세요. 스케줄의 **레이어** 페이지에서 레이어를 펼치고 이름 옆의 **날짜까지 건너뛰기…** 를 클릭합니다. 부재 등록 양식이 열리며 **누가 부재 중인가요?** 에는 그 사람이, **누가 대신하나요?** 에는 **로테이션의 다음 사람** 이, **시작** 에는 지금이 들어 있습니다. **종료** 를 돌아오는 시점으로 설정하고 저장하세요.
+누군가 휴가를 떠나면 돌아올 때까지 그 사람을 건너뛰세요. 스케줄의 **레이어** 페이지에서 레이어를 펼치고 이름 옆의 **날짜까지 건너뛰기…** 를 클릭합니다. 부재 등록 양식이 열리며 **누가 부재 중인가요?** 에는 그 사람이, **누가 대신하나요?** 에는 **로테이션의 다음 사람** 이, **시작** 에는 지금이 들어 있습니다. **종료** 를 돌아오는 시점으로 설정하고 저장하세요. 그때 이미 부재가 있으면, 시간을 고르는 동안 양식이 시간 옆에 이를 알려 주며, 대신 그 재정의를 바꿀 수 있도록 **해당 재정의 편집** 을 보여 줍니다.
 
 부재 중에는 다음과 같습니다.
 
@@ -97,7 +97,7 @@ flowchart TB
 
 대신 **누가 대신하나요?** 에서 누군가를 고르면, 로테이션이 순번을 넘겨받는 대신 그 사람이 모든 스케줄과 모든 정책에서 오는 호출을 모두 받습니다.
 
-이렇게 추가한 부재는 모든 온콜 정책에 적용되므로, 추가하려면 프로젝트 전체에 대한 재정의 권한이 필요합니다. 팀의 역할이 자기 정책이나 일부 라벨로 제한되어 있다면, 대신 이 스케줄의 정책 중 재정의를 추가할 수 있는 정책에 정책마다 하나씩 추가되며 각 정책 자체의 **사용자 재정의** 페이지에 표시됩니다. 여러 개이면 **온콜 정책** 에서 선택합니다. **날짜까지 건너뛰기…** 는 어느 정책에도 추가할 수 없을 때만 잠기고 그 이유를 알려 줍니다. **온콜** > **고급** > **사용자 재정의** 에 표시되며, 거기서 삭제하면 그 사람을 일찍 복귀시킬 수 있습니다. 한 정책에서만 건너뛰려면 그 정책의 **사용자 재정의** 페이지에서 재정의를 추가하고 **누가 대신하나요?** 는 그대로 두세요. [사용자 재정의](/docs/on-call/user-overrides) 를 참조하세요.
+이렇게 추가한 부재는 모든 온콜 정책에 적용되므로, 추가하려면 프로젝트 전체에 대한 재정의 권한이 필요합니다. 팀의 역할이 자기 정책이나 일부 라벨로 제한되어 있다면, 대신 이 스케줄의 정책 중 재정의를 추가할 수 있는 정책에 정책마다 하나씩 추가되며 각 정책 자체의 **사용자 재정의** 페이지에 표시됩니다. 여러 개이면 **온콜 정책** 에서 선택합니다. **날짜까지 건너뛰기…** 는 어느 정책에도 추가할 수 없을 때만 잠기고 그 이유를 알려 줍니다. **온콜** > **고급** > **사용자 재정의** 와 스케줄 **레이어** 페이지의 사용자 재정의 목록에 표시되며, 거기서 **지금 종료** 를 누르면 그 사람을 일찍 복귀시킬 수 있습니다. 한 정책에서만 건너뛰려면 그 정책의 **사용자 재정의** 페이지에서 재정의를 추가하고 **누가 대신하나요?** 는 그대로 두세요. [사용자 재정의](/docs/on-call/user-overrides) 를 참조하세요.
 
 API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 `routeAlertsToUserId` 없이 만들면 `overrideUserId` 의 사람을 `startsAt` 부터 `endsAt` 까지 건너뜁니다.
 
@@ -111,6 +111,8 @@ API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 
 - 이것들 없이 만든 스케줄에는 이전처럼 레이어가 없으며, Terraform의 스케줄 리소스는 이것들을 보내지 않습니다.
 - `rotation` 없이 만든 레이어는 늘 그래 왔듯이 매일 인계합니다.
 - API 또는 Terraform으로 스케줄의 레이어와 레이어의 사람을 바꾸면 하나의 변경으로 알립니다. 누가 당번인지는 레이어가 30초 동안 바뀌지 않은 뒤에 계산되므로, 당번이 되거나 당번에서 빠지거나 다음 차례인 사람은 기록된 레이어나 사람마다가 아니라 한 번만 알림을 받습니다. 호출은 각 변경이 저장되는 즉시 레이어가 당번으로 정한 사람에게 갑니다.
+- **레이어** 페이지의 **변경 사항 저장** 처럼 스케줄 레이어에서 차례를 맡는 사람을 한 번에 바꾸려면, `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 로 레이어를 읽고 바꾼 다음 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 로 다시 보냅니다. 여기에는 스케줄이 유지하는 모든 레이어가 우선순위가 높은 순서로, 각 레이어의 사람들이 차례 순서로 들어 있습니다. 이미 레이어에 있는 사람은 `layerUserId` 로, 추가하는 사람은 `userId` 만으로 지정합니다. `deletedLayerIds` 에는 삭제할 레이어를 넣습니다.
+- 저장은 전부 기록되거나 전혀 기록되지 않으며, 누가 당번인지는 한 번만, 즉시 계산됩니다. 다른 사람이 레이어를 바꾼 뒤에 한 저장은 그 `basedOnVersion` 이 더 이상 레이어의 것이 아니므로 409로 거부됩니다. 레이어를 다시 읽고 지금 있는 내용에 변경을 적용하세요. Terraform의 `oneuptime_on_call_schedule_layers` 리소스는 이 방식으로 스케줄의 레이어를 저장합니다.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

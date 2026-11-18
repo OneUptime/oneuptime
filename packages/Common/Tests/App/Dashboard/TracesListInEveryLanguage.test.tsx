@@ -18,6 +18,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption, listDropdownOptions } from "../../DropdownPicks";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -638,15 +639,11 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
   test("the chart names its measures and its statuses", async () => {
     await renderList(language);
 
-    const measure: HTMLSelectElement = screen.getByTitle(
-      asQuery(word(language, "Chart metric")),
-    ) as HTMLSelectElement;
+    const measure: HTMLElement = screen.getByRole("combobox", {
+      name: asQuery(word(language, "Chart metric")),
+    });
 
-    expect(
-      Array.from(measure.options).map((option: HTMLOptionElement) => {
-        return option.text;
-      }),
-    ).toEqual(
+    expect(await listDropdownOptions(measure)).toEqual(
       ["Count", "Avg Response Time", "Median (P50)", "P95"].map(
         (english: string): string => {
           return word(language, english);
@@ -660,7 +657,8 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
       ).toHaveTextContent(word(language, status.displayLabel));
     }
 
-    fireEvent.change(measure, { target: { value: "avgDuration" } });
+    // The second choice: Avg Response Time.
+    chooseDropdownOption(measure, 1);
     await settle();
 
     expect(

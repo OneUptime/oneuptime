@@ -29,7 +29,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *    lands on the list, where the button is locked with the reason (#3306).
  *  - Every other step opens today's page for its job: on-call, status pages,
  *    the importer (saying it was opened from here), Logs, Hosts.
- *  - The server's email opens the Admin Dashboard in a new tab.
+ *  - The server's email is no step (#7018): the Server setup card asks.
+ *  - A step whose record exists but does not work yet opens the page that
+ *    fixes it (#6938).
  *  - A step the plan holds back says so before the click, and opens Billing.
  *  - A step started from here is carried to the page its record lands on,
  *    with the step after it (WelcomeNextStep).
@@ -104,7 +106,6 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 import GettingStarted, {
   getStepAfter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
-import { ADMIN_SERVER_SETUP_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
 import { STEP_IN_PROGRESS_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeStepInProgress";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -133,7 +134,14 @@ function step(
   key: WelcomeStep,
   extra?: Partial<WelcomeChecklistStepState>,
 ): WelcomeChecklistStepState {
-  return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
+  return {
+    step: key,
+    isDone: false,
+    needsPlan: null,
+    isNext: false,
+    gap: null,
+    ...extra,
+  };
 }
 
 function answer(
@@ -154,8 +162,7 @@ function answer(
 // Every step there is, none done, so each can be clicked.
 const EVERY_STEP: WelcomeChecklistAnswer = answer(
   [
-    step(WelcomeStep.ServerEmail, { isNext: true }),
-    step(WelcomeStep.Import),
+    step(WelcomeStep.Import, { isNext: true }),
     step(WelcomeStep.Monitor),
     step(WelcomeStep.Infrastructure),
     step(WelcomeStep.Telemetry),
@@ -428,15 +435,24 @@ describe("every other step opens today's page for its job", () => {
     );
   });
 
-  test("the server's email opens the Admin Dashboard's server setup in a new tab", async () => {
+  /*
+   * The server's setup is the Server setup card's (#7018): no step opens
+   * the Admin Dashboard, and none opens anything in a new tab.
+   */
+  test("no step opens the Admin Dashboard, or a new tab", async () => {
     await renderGettingStarted();
-    click(WelcomeStep.ServerEmail);
 
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(String(navigateMock.mock.calls[0]![0])).toContain(
-      `/admin${ADMIN_SERVER_SETUP_ROUTE}`,
-    );
-    expect(navigateMock.mock.calls[0]![1]).toEqual({ openInNewTab: true });
+    for (const state of EVERY_STEP.steps) {
+      navigateMock.mockReset();
+      click(state.step);
+
+      expect(String(navigateMock.mock.calls[0]![0])).not.toContain("/admin");
+      expect(navigateMock.mock.calls[0]![1]).toBeUndefined();
+    }
+
+    expect(
+      screen.queryByTestId("getting-started-task-server_email"),
+    ).toBeNull();
   });
 });
 

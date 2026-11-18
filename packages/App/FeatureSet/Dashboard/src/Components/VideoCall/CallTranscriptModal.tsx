@@ -1,9 +1,9 @@
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import TranscriptText, {
   TranscriptLine,
 } from "Common/Utils/VideoCall/TranscriptText";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Input from "Common/UI/Components/Input/Input";
@@ -170,7 +170,7 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (lines === null) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={5} columns={2} hasHeader={false} />;
   } else if (lines.length === 0) {
     body = (
       <p className="text-sm text-gray-500">

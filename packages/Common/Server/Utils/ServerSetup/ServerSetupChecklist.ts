@@ -12,6 +12,7 @@ import {
   VapidPublicKey,
 } from "../../EnvironmentConfig";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../ServerSending/ServerChannelSetup";
+import { getServerInstallKind } from "./ServerInstallKind";
 import { toServerEmailSettings } from "../ServerEmailSettings";
 import ServerSendingStatus from "../ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -30,6 +31,7 @@ import {
   BackupRunKind,
   BackupRunStatus,
 } from "../../../Types/Backup/BackupRunTypes";
+import { readBackupScriptRun } from "../../../Types/Backup/BackupScriptRun";
 import CallAndSmsProviders from "../../../Types/CallAndSMS/CallAndSmsProvider";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import { JSONObject } from "../../../Types/JSON";
@@ -56,9 +58,11 @@ import ServerSetupChecklistUtil, {
  * says what each check is for and decides it from these): the email, SMS
  * and call channels as ServerSendingStatus words them - the same answer the
  * banner reads, so the two never disagree - HTTP_PROTOCOL, the sign-up
- * switch, the global probes, the update check, the last backup, VAPID keys,
- * the global LLM providers and single sign-on, and what admins chose
- * (GlobalConfig.serverSetupChoices).
+ * switch, the global probes, the update check, the last backup - the
+ * Enterprise Edition's, and the last run `npm run backup` told the server of
+ * (GlobalConfig.backupScriptLastRun, #7026) - how the server was installed
+ * (ServerInstallKind, #9378), VAPID keys, the global LLM providers and single
+ * sign-on, and what admins chose (GlobalConfig.serverSetupChoices).
  *
  * Every read is as OneUptime itself, and the answer is for master admins
  * only (GET /global-config/setup-checklist). `npm run doctor` (#6826) calls
@@ -74,6 +78,7 @@ export const SERVER_SETUP_CONFIG_SELECT: Select<GlobalConfig> = {
   updateCheckLastAttemptAt: true,
   updateCheckLastFailure: true,
   serverSetupChoices: true,
+  backupScriptLastRun: true,
 };
 
 /*
@@ -320,8 +325,11 @@ export default class ServerSetupChecklist {
         lastFailure: config?.updateCheckLastFailure || null,
       },
       lastBackup: lastBackup,
+      lastScriptBackup: readBackupScriptRun(config?.backupScriptLastRun),
       hasScheduledBackups: EnterpriseEdition.isLoaded(),
+      installKind: getServerInstallKind(process.env),
       isBrowserPushSetUp: Boolean(VapidPublicKey && VapidPrivateKey),
+      push: statusOf(ServerSendingChannel.Push),
       hasAiProvider: hasAiProvider,
       hasSingleSignOn: hasSingleSignOn,
       choices: ServerSetupChecklistUtil.readChoices(config?.serverSetupChoices),

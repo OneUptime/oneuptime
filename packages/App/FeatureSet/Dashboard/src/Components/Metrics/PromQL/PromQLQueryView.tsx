@@ -755,7 +755,7 @@ const PromQLTable: FunctionComponent<{
                 <td className="whitespace-nowrap px-4 py-2.5 text-end font-mono text-sm tabular-nums text-gray-900">
                   {point ? formatValue(point.value) : ""}
                   {props.isRangeVector && (
-                    <span className="ms-2 text-xs text-gray-400">
+                    <span className="ms-2 text-xs text-gray-500">
                       {translator.translatePlural(
                         {
                           one: "{{count}} sample",

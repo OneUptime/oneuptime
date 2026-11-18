@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   Area,
   AreaChart,
@@ -30,7 +31,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
 import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -431,7 +431,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
                     backgroundColor: colorForSeries(key, index),
                   }}
                 />
-                <span className="max-w-[180px] truncate text-[10px] text-gray-500">
+                <span className="max-w-[180px] truncate text-xs text-gray-500">
                   {labelForSeries(key)}
                 </span>
               </div>
@@ -462,7 +462,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
          */}
         {isLoading && (pivotedData.length === 0 || Boolean(error)) && (
           <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
+            <ChartSkeleton hasLegend={false} fillsHeight={true} />
           </div>
         )}
         {!isLoading &&

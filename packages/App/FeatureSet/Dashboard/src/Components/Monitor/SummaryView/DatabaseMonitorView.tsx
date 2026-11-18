@@ -466,7 +466,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                             <td
                               className={`px-4 py-2 text-sm ${
                                 formatted === NOT_COLLECTED
-                                  ? "text-gray-400 italic"
+                                  ? "text-gray-500 italic"
                                   : "text-gray-900 font-mono"
                               }`}
                             >

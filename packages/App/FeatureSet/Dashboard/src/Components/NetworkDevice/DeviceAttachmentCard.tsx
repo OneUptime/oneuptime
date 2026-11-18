@@ -3,6 +3,7 @@ import {
   DeviceAttachmentLookupResult,
   getDeviceAttachment,
 } from "./DeviceAttachmentLookupUtil";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import {
   DeviceNeighbourNames,
   getDeviceNeighbourNames,
@@ -27,7 +28,6 @@ import {
 } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -332,7 +332,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
 
   const getContent: GetContentFunction = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton />;
     }
 
     if (error) {

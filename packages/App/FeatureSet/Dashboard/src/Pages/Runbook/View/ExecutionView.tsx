@@ -17,7 +17,7 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { RUNBOOK_URL } from "Common/UI/Config";
@@ -583,7 +583,7 @@ const ExecutionView: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (!execution) {
@@ -941,7 +941,7 @@ const ExecutionView: FunctionComponent<
                                 className="text-white"
                               />
                             ) : (
-                              <span className="text-[10px] font-semibold">
+                              <span className="text-xs font-semibold">
                                 {idx + 1}
                               </span>
                             )}
@@ -972,7 +972,7 @@ const ExecutionView: FunctionComponent<
                               data-testid={`runbook-execution-step-${idx}-words`}
                             >
                               <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <span className="text-xs text-gray-400 font-medium">
+                                <span className="text-xs text-gray-500 font-medium">
                                   {translator.translateTemplate(
                                     "Step {{number}}",
                                     { number: idx + 1 },
@@ -1048,7 +1048,7 @@ const ExecutionView: FunctionComponent<
                                           }
                                         />
                                       ) : (
-                                        <span className="font-mono text-gray-400">
+                                        <span className="font-mono text-gray-500">
                                           {stepExec.approvedByUserId.slice(
                                             0,
                                             8,
@@ -1108,7 +1108,7 @@ const ExecutionView: FunctionComponent<
                                             }
                                           />
                                         ) : (
-                                          <span className="font-mono text-gray-400">
+                                          <span className="font-mono text-gray-500">
                                             {stepExec.completedByUserId.slice(
                                               0,
                                               8,

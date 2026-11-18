@@ -68,6 +68,8 @@ Depois, o aplicativo registra o celular em cada um dos seus projetos. Cada proje
 
 O aplicativo mostra um projeto por vez: toque no nome do projeto no topo de uma tela para trocar. Um projeto que exige login único aparece como **SSO Required** em **Settings → Manage Projects** até você tocar ali em **Authenticate with SSO**.
 
+Em uma instalação nova, o aplicativo abre depois **Get Ready for On-Call** uma vez: três etapas para que um acionamento chegue ao celular, mesmo à noite com o Não Perturbe ativado. Permita as notificações, toque em **Turn On Critical Alerts**, depois em **Send Test Page**, e confirme o acionamento de teste pela notificação dele. **Not Now** fecha a tela, e **Settings → Get Ready for On-Call** a abre de novo quando você quiser. Se o acesso ao Não Perturbe precisar ser permitido nas configurações do Android, os alertas críticos são ativados assim que você volta ao aplicativo.
+
 ## Verificar que os acionamentos chegam ao celular
 
 :::steps

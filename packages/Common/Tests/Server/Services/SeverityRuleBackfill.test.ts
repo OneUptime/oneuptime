@@ -1,5 +1,6 @@
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import logger from "../../../Server/Utils/Logger";
@@ -9,9 +10,11 @@ import Semaphore, {
 } from "../../../Server/Infrastructure/Semaphore";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Project from "../../../Models/DatabaseModels/Project";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import { JSONArray } from "../../../Types/JSON";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import {
   PagingLadderCell,
@@ -20,7 +23,12 @@ import {
   getPagingLadderCells,
   readPagingLadder,
 } from "../../../Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderDefaultStep,
+  toPagingLadderDefaultJSON,
+} from "../../../Types/NotificationRule/PagingLadderDefault";
 import PushNotificationLevel from "../../../Types/NotificationRule/PushNotificationLevel";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import ObjectID from "../../../Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "../../../Utils/CronTime";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -110,6 +118,7 @@ import {
   backfillSeveritiesUntilDeadline,
   buildResponderIntents,
   findRecentlyCreatedSeverities,
+  getNewSeverityEmailWaits,
   MirroredRule,
   NewSeverity,
   ResponderIntent,
@@ -284,6 +293,19 @@ let alertSeverityRows: Array<SeverityRow> = [];
 
 let incidentSeverityFindBySpy: jest.SpyInstance;
 let alertSeverityFindBySpy: jest.SpyInstance;
+
+/*
+ * The project's default ladder (#7449), as Project.defaultPagingLadder keeps
+ * it: null for none, which is every project's until an admin sets one. The
+ * job reads it through PagingLadderService.getProjectDefault, and a member's
+ * join through UserNotificationRuleService: both read this one row.
+ */
+let projectDefaultLadder: JSONArray | null = null;
+let projectFindOneByIdSpy: jest.SpyInstance;
+
+function givenProjectDefault(steps: Array<PagingLadderDefaultStep>): void {
+  projectDefaultLadder = toPagingLadderDefaultJSON(steps);
+}
 
 /*
  * A rule row as the responder (or an earlier default-rule pass) left it.
@@ -606,6 +628,18 @@ beforeEach(() => {
           },
         ),
       );
+    }) as never);
+
+  // No default ladder, as every project starts.
+  projectDefaultLadder = null;
+  projectFindOneByIdSpy = jest
+    .spyOn(ProjectService, "findOneById")
+    .mockImplementation(((): Promise<Project> => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      project.defaultPagingLadder = projectDefaultLadder || undefined;
+
+      return Promise.resolve(project);
     }) as never);
 
   // The job logs a failed row rather than throwing; keep the output clean.
@@ -1575,6 +1609,371 @@ describe("backfillSeverity falls back to the responder's verified email", () => 
       shapesCreatedFor(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
     ).toEqual([`userSmsId:${SMS_A.toString()}@0`]);
   });
+});
+
+/*
+ * ========================================================================= *
+ * #9444 - a responder who has said nothing follows the project's default.
+ *
+ * A project can have a default ladder (#7449): a member's sign-in email, and
+ * every method they verify, gets its on-call rules at the waits the default
+ * gives its channel, or none when the default leaves it out
+ * (UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod).
+ * The job still gave a responder with no rules on a tab "their verified
+ * email, at once" - what joining wrote before a project could have a
+ * default. It now writes what joining would have written: the default's
+ * email waits, or nothing when the default has no email step.
+ * =========================================================================
+ */
+
+describe("getNewSeverityEmailWaits", () => {
+  test("with no default ladder, email goes at once, as it always did", () => {
+    expect(getNewSeverityEmailWaits([])).toEqual([0]);
+  });
+
+  test("a default with email steps: each of their waits, in paging order", () => {
+    expect(
+      getNewSeverityEmailWaits([
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 15 },
+        { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 5 },
+      ]),
+    ).toEqual([5, 15]);
+  });
+
+  test("a default that leaves email out: never", () => {
+    expect(
+      getNewSeverityEmailWaits([
+        { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ]),
+    ).toEqual([]);
+  });
+
+  test("an email step said twice at one wait is one wait", () => {
+    expect(
+      getNewSeverityEmailWaits([
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 10 },
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 10 },
+      ]),
+    ).toEqual([10]);
+  });
+});
+
+describe("backfillSeverity gives a responder who has said nothing what the project's default ladder gives email (#9444)", () => {
+  test("with no default ladder, their verified email at once, as before", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(shapesCreatedFor(ruleType)).toEqual([
+        `userEmailId:${EMAIL_A.toString()}@0`,
+      ]);
+    }
+  });
+
+  test("a default with email steps: a rule at each of their waits, on both of the severity's tabs", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 5 },
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 15 },
+    ]);
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(shapesCreatedFor(ruleType)).toEqual([
+        `userEmailId:${EMAIL_A.toString()}@5`,
+        `userEmailId:${EMAIL_A.toString()}@15`,
+      ]);
+    }
+
+    for (const rule of createdRules) {
+      expect(idOf(rule.incidentSeverityId)).toBe(SEV_NEW.toString());
+      expect(rule.isOptOut).toBeUndefined();
+    }
+  });
+
+  test("a default that leaves email out: no rule, so the project's fallback is what reaches them", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+      { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+    ]);
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+    ];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(createdRules).toEqual([]);
+    expect(ruleCreateSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The default says which channels page and when; for somebody who has
+   * said nothing, the job only ever has their email. A push or an SMS step
+   * of the default is never a rule for a device or a number nobody gave.
+   */
+  test("the default only decides when their email goes, never adding a channel they have not verified", async () => {
+    givenProjectDefault([
+      {
+        channel: OnCallPageChannel.Push,
+        notifyAfterMinutes: 0,
+        pushNotificationLevel: PushNotificationLevel.Critical,
+        repeatEveryMinutes: 5,
+      },
+      { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 10 },
+    ]);
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdRules.map((rule: UserNotificationRule): string => {
+        return methodOf(rule).split(":")[0] as string;
+      }),
+    ).toEqual(["userEmailId", "userEmailId"]);
+    expect(
+      shapesCreatedFor(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
+    ).toEqual([`userEmailId:${EMAIL_A.toString()}@10`]);
+  });
+
+  test("a responder who has said something keeps their own choices, whatever the default says", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 10 },
+    ]);
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+    ];
+
+    // USER_A texts themselves at once on a severity they configured.
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userSmsId: SMS_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    const shapesFor: (userId: ObjectID) => Array<string> = (
+      userId: ObjectID,
+    ): Array<string> => {
+      return createdOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT)
+        .filter((rule: UserNotificationRule): boolean => {
+          return idOf(rule.userId) === userId.toString();
+        })
+        .map(shapeOf);
+    };
+
+    expect(shapesFor(USER_A)).toEqual([`userSmsId:${SMS_A.toString()}@0`]);
+    expect(shapesFor(USER_B)).toEqual([`userEmailId:${EMAIL_B.toString()}@10`]);
+  });
+
+  test("an alert severity follows it the same way, on the alert tabs only", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 30 },
+    ]);
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    for (const ruleType of ALERT_RULE_TYPES) {
+      expect(shapesCreatedFor(ruleType)).toEqual([
+        `userEmailId:${EMAIL_A.toString()}@30`,
+      ]);
+    }
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(shapesCreatedFor(ruleType)).toEqual([]);
+    }
+  });
+
+  test("the default is read once for the severity, root-privileged, however many responders there are", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 5 },
+    ]);
+    verifiedEmails = [];
+
+    for (let index: number = 0; index < 12; index++) {
+      verifiedEmails.push({
+        userId: new ObjectID(`default-user-${index}`),
+        emailId: new ObjectID(`default-user-email-${index}`),
+      });
+    }
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(createdRules).toHaveLength(24);
+    expect(projectFindOneByIdSpy).toHaveBeenCalledTimes(1);
+
+    const read: {
+      id: ObjectID;
+      select: Record<string, unknown>;
+      props: { isRoot?: boolean | undefined };
+    } = projectFindOneByIdSpy.mock.calls[0]![0] as {
+      id: ObjectID;
+      select: Record<string, unknown>;
+      props: { isRoot?: boolean | undefined };
+    };
+
+    expect(idOf(read.id)).toBe(PROJECT_ID.toString());
+    expect(read.select).toEqual({ defaultPagingLadder: true });
+    expect(read.props.isRoot).toBe(true);
+  });
+
+  /*
+   * A default the job cannot read could leave email out: writing "email at
+   * once" then would give a responder a rule joining never would have. The
+   * severity is left to the next sweep, which reads it again while it is
+   * still inside the lookback window.
+   */
+  test("a default that cannot be read writes nothing, leaving the severity to the next sweep", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    projectFindOneByIdSpy.mockImplementation(((): Promise<never> => {
+      return Promise.reject(new Error("The database is not reachable."));
+    }) as never);
+
+    await expect(backfillSeverity(incidentSeverity(SEV_NEW))).rejects.toThrow(
+      "The database is not reachable.",
+    );
+
+    expect(createdRules).toEqual([]);
+    expect(ruleCreateSpy).not.toHaveBeenCalled();
+  });
+
+  test("running the same severity again writes nothing more", async () => {
+    givenProjectDefault([
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 5 },
+      { channel: OnCallPageChannel.Email, notifyAfterMinutes: 15 },
+    ]);
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+    expect(createdRules).toHaveLength(4);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(createdRules).toHaveLength(4);
+  });
+
+  /*
+   * The issue's "done when": a severity added to a project with a default
+   * ladder gives a responder with no rules on that tab what their sign-in
+   * email would have got when they joined. Ana joined while the project had
+   * one severity, through the real join path; the severity added after her
+   * is backfilled for Ana and for Ben, who has said nothing on any tab. Ben's
+   * email on the new card goes when Ana's went on the card she joined with.
+   */
+  test.each([
+    ["no default ladder", [] as Array<PagingLadderDefaultStep>, [0]],
+    [
+      "a default with email after 5 and 15 minutes",
+      [
+        { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 5 },
+        { channel: OnCallPageChannel.Email, notifyAfterMinutes: 15 },
+      ] as Array<PagingLadderDefaultStep>,
+      [5, 15],
+    ],
+    [
+      "a default that leaves email out",
+      [
+        { channel: OnCallPageChannel.Push, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ] as Array<PagingLadderDefaultStep>,
+      [],
+    ],
+  ])(
+    "with %s, the new card emails somebody who said nothing when joining emailed them",
+    async (
+      _name: string,
+      defaultSteps: Array<PagingLadderDefaultStep>,
+      expectedWaits: Array<number>,
+    ) => {
+      givenProjectDefault(defaultSteps);
+
+      // Ana joins while the project has one incident severity and one alert one.
+      incidentSeverityRows = [{ id: SEV_1 }];
+      alertSeverityRows = [{ id: ALERT_SEV_1 }];
+
+      await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+        {
+          projectId: PROJECT_ID,
+          userId: USER_A,
+          notificationMethod: { userEmailId: EMAIL_A },
+        },
+      );
+
+      const waitsOn: (data: {
+        userId: ObjectID;
+        severityId: ObjectID;
+        ruleType: NotificationRuleType;
+      }) => Array<number> = (data: {
+        userId: ObjectID;
+        severityId: ObjectID;
+        ruleType: NotificationRuleType;
+      }): Array<number> => {
+        return ruleStore
+          .filter((rule: UserNotificationRule): boolean => {
+            return (
+              idOf(rule.userId) === data.userId.toString() &&
+              rule.ruleType === data.ruleType &&
+              idOf(rule.incidentSeverityId) === data.severityId.toString() &&
+              Boolean(rule.userEmailId)
+            );
+          })
+          .map((rule: UserNotificationRule): number => {
+            return Number(rule.notifyAfterMinutes);
+          })
+          .sort((a: number, b: number): number => {
+            return a - b;
+          });
+      };
+
+      // What joining gave Ana's email on the card she joined with.
+      for (const ruleType of INCIDENT_RULE_TYPES) {
+        expect(
+          waitsOn({ userId: USER_A, severityId: SEV_1, ruleType: ruleType }),
+        ).toEqual(expectedWaits);
+      }
+
+      // Then a severity is added, and the job runs for Ana and for Ben.
+      incidentSeverityRows = [{ id: SEV_1 }, { id: SEV_NEW }];
+      alertSeverityRows = [{ id: ALERT_SEV_1 }, { id: ALERT_SEV_NEW }];
+      verifiedEmails = [
+        { userId: USER_A, emailId: EMAIL_A },
+        { userId: USER_B, emailId: EMAIL_B },
+      ];
+
+      await backfillSeverity(incidentSeverity(SEV_NEW));
+
+      for (const ruleType of INCIDENT_RULE_TYPES) {
+        const joined: Array<number> = waitsOn({
+          userId: USER_A,
+          severityId: SEV_1,
+          ruleType: ruleType,
+        });
+
+        // Ben, who said nothing, is emailed on the new card as joining emailed Ana.
+        expect(
+          waitsOn({ userId: USER_B, severityId: SEV_NEW, ruleType: ruleType }),
+        ).toEqual(joined);
+
+        // Ana's own new card mirrors her card: the same waits again.
+        expect(
+          waitsOn({ userId: USER_A, severityId: SEV_NEW, ruleType: ruleType }),
+        ).toEqual(joined);
+      }
+    },
+  );
 });
 
 /*

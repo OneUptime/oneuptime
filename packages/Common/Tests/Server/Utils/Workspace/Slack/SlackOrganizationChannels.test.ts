@@ -33,6 +33,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceMessagePayload from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
+import WorkspaceRefusal from "../../../../../Utils/Workspace/WorkspaceRefusal";
 
 jest.mock("../../../../../Server/Utils/Logger");
 
@@ -533,7 +534,7 @@ describe("getAllWorkspaceChannels for an organization's installation", () => {
 
     await expect(listing).rejects.toBeInstanceOf(BadRequestException);
     await expect(listing).rejects.toThrow(
-      "Error from Slack team_access_not_granted",
+      WorkspaceRefusal.describeSlackRefusal("team_access_not_granted"),
     );
     expect(listedWorkspaces()).toEqual([WEST.id, EAST.id, NORTH.id]);
     expect(cacheWrites).toBe(0);
@@ -619,7 +620,7 @@ describe("getAllWorkspaceChannels for one workspace (as before)", () => {
         authToken: WORKSPACE_TOKEN,
         projectId: PROJECT_ID,
       }),
-    ).rejects.toThrow("Error from Slack invalid_auth");
+    ).rejects.toThrow(WorkspaceRefusal.describeSlackRefusal("invalid_auth"));
   });
 
   test("an organization given as null lists as one workspace", async () => {
@@ -1099,7 +1100,7 @@ describe("getWorkspaceChannelByName for one workspace (as before)", () => {
         channelName: "general",
         projectId: PROJECT_ID,
       }),
-    ).rejects.toThrow("Error from Slack invalid_auth");
+    ).rejects.toThrow(WorkspaceRefusal.describeSlackRefusal("invalid_auth"));
   });
 });
 
@@ -1659,7 +1660,9 @@ describe("sendMessage", () => {
       projectId: PROJECT_ID,
     });
 
-    expect(response.errors![0]!.error).toBe("Error from Slack is_archived");
+    expect(response.errors![0]!.error).toBe(
+      WorkspaceRefusal.describeSlackRefusal("is_archived"),
+    );
   });
 
   test("a project connected to one workspace refused team_access_not_granted: Slack's own words - there is no organization to name", async () => {
@@ -1674,7 +1677,7 @@ describe("sendMessage", () => {
     });
 
     expect(response.errors![0]!.error).toBe(
-      "Error from Slack team_access_not_granted",
+      WorkspaceRefusal.describeSlackRefusal("team_access_not_granted"),
     );
   });
 });

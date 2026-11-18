@@ -1,4 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
 import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
 import ResponseContentCard from "../../../Components/Monitor/ResponseContentCard";
@@ -9,7 +10,6 @@ import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
 import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -91,7 +91,7 @@ const MonitorCriteria: FunctionComponent<
     }
 
     if (!monitor?.monitorType || isLoading) {
-      return <ComponentLoader />;
+      return <PageSkeleton />;
     }
 
     return (

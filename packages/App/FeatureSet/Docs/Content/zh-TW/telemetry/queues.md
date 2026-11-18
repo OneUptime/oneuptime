@@ -967,6 +967,8 @@ service:
 
 佇列以基於其 broker 指標的 **指標** 監測器監看（請參閱 [指標監控](/docs/monitor/metrics-monitor)）。
 
+每個佇列的 **建議** 分頁會針對其代理程式在過去 7 天內回報的指標，提供這些現成的監測器：積壓、消費者延遲、最舊訊息存留時間、無效信件、錯誤和節流，每個都帶有初始閾值和時間範圍。選擇需要的監測器，一個步驟即可建立。代理程式未傳送的指標不會被建議，因為其監測器永遠不會觸發。
+
 **從佇列頁面。** **Broker 健康狀態** 中的每個量測值和每個每期計數都有 **建立監測器**：它會開啟一個基於該指標的新指標監測器，篩選條件為在該指標中指明此佇列的確切屬性值，並在指標所測量的內容有明顯不良方向時（積壓、無效信件、消費者落後、最舊訊息的存在時間、節流或錯誤）帶有起始閾值。其中四個起始時不帶閾值，因為固定閾值對它們會產生誤導：Kafka 的分割區落後量（`kafka.consumer_group.lag`），其消費者群組的落後量已經涵蓋它；ActiveMQ 的平均佇列時間（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），這是自 broker 啟動以來的平均值，在停滯之後很長時間仍保持偏高；以及 Pulsar 的積壓時間（`pulsar_storage_backlog_age_seconds`），在 broker 無法判斷時其值為 `-1`。計數器沒有監測器：它們的圖表顯示的是速率，而監測器沒有速率函式。
 
 **計數器。** RabbitMQ、Apache ActiveMQ 和 Apache RocketMQ 的計數器以累計總和送達 Collector，`cumulative_to_delta` 處理器（較舊的 Collector 中為 `cumulativetodelta`）會把它們轉換為監測器可以據以發出警示的差值。請在專屬的名稱下轉換一份複本，絕不要轉換計數器本身：佇列頁面把這些計數器都當作累計總數讀取，並繪製其成長速度，因此被轉換為差值的計數器在 **Broker 健康狀態** 下和 **指標** 分頁上繪製出的會是無意義的內容：穩定的流量會顯示為每秒 0 則訊息。Apache Kafka 的位移（`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`）以及 Apache Pulsar 的 `pulsar_in_messages_total` 和 `pulsar_out_messages_total` 以量測值送達，`cumulative_to_delta` 不會處理它們：請改為針對這些系統的落後量和積壓量測值設定警示。

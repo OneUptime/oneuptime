@@ -196,6 +196,16 @@ Hva hver side inneholder:
 - **Private notater** og **Offentlige notater** — hva teamet ditt og kundene dine fikk vite. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed).
 - **Egendefinerte felt**, **Innstillinger**, **Slett hendelse** — siden **Innstillinger** inneholder **Synlig på statussiden** og **Privat hendelse**, kortet **Statussideomfang** som begrenser hendelsen til noen statussider, og kortet **Påminnelser**, der bryteren **Send påminnelser** lagres så snart du slår den om og viser når neste påminnelse sendes.
 
+## Hvem fikk beskjed
+
+En hendelses **Oversikt** har et kort, **Hvem fikk beskjed**. Det viser hvem OneUptime ga beskjed om hendelsen, hvordan, og hva som mislyktes, lest fra det som skjedde: kjøringene av vaktpolicyene og hver Slack-, Microsoft Teams- eller Mattermost-melding, e-post, SMS, hvert anrop, hver push-varsling, WhatsApp- og Telegram-melding og webhook som er sendt om den.
+
+- De første ordene teller personene og kanalene som fikk beskjed, sier hvem som bekreftet hendelsen og hvor lenge etter den første tilkallingen, og hvor mange varslinger som mislyktes.
+- Hver person får én linje: hvordan tilkallingen nådde dem (vaktpolicyen, nivået, teamet eller vaktplanen), hvordan, og hvor de står: **Bekreftet**, **Varslet**, **Sender**, **Mislyktes** eller **Ikke kalt opp**. **Vis detaljer** viser hver tilkalling og hver varsling i tidsrekkefølge, med hvorfor en mislyktes, eller hvorfor noen ikke ble kalt opp.
+- Et team eller en vaktplan som ikke nådde noen, en policy som ikke har kalt opp ennå (for eksempel en som venter på arbeidstiden), kanalene det ble skrevet i og statussidens abonnenter får også én linje hver. En travel hendelse viser de første personene, og resten er ett klikk unna.
+- Så lenge hendelsen er åpen, leser kortet på nytt med noen sekunders mellomrom.
+- Det viser bare det du allerede kan lese: kortet til en privat hendelse er for dem som kan åpne hendelsen, og varslinger eller kjøringer av vaktpolicyer du ikke kan åpne, telles under listen og nevnes aldri. **Varslingslogger** har hver melding i sin helhet.
+
 ## Slik passer hendelser inn i resten av OneUptime
 
 - **Monitorer oppdager problemet; hendelser registrerer det.** En kriterieregel på en monitor kan erklære en hendelse automatisk og forhåndsutfylle tittel, alvorlighetsgrad, vaktpolicyer, eiere, etiketter og utbedringsnotater. Se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating) for variablene som er tilgjengelige der.

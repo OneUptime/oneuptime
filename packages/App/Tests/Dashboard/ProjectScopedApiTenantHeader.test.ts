@@ -725,18 +725,22 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
   /*
    * The user-level routes are left out above because they are still asked
    * for: a route that went away, or started naming a project, would leave a
-   * stale exception behind.
+   * stale exception behind. A browser is registered, and its subscription
+   * renewed, in one module (RegisterThisBrowser), for Push.tsx's Register
+   * Device and the on-call setup's "Use this browser" (#7149).
    */
+  const REGISTER_THIS_BROWSER: string = path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "NotificationMethods",
+    "RegisterThisBrowser.ts",
+  );
+
   test.each(USER_LEVEL_ROUTES)(
-    "Push.tsx still requests %s, and names no project in it",
+    "RegisterThisBrowser.ts still requests %s, and names no project in it",
     (userLevelRoute: string) => {
       const calls: Array<RawApiCall> = readRawApiCalls(
-        path.join(
-          DASHBOARD_SRC,
-          "Components",
-          "NotificationMethods",
-          "Push.tsx",
-        ),
+        REGISTER_THIS_BROWSER,
       ).filter((call: RawApiCall): boolean => {
         return call.body.includes(userLevelRoute);
       });
@@ -748,6 +752,65 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       }
     },
   );
+
+  test("RegisterThisBrowser.ts registers a browser in the project it is handed, and each caller hands it the current one", () => {
+    const registers: Array<RawApiCall> = readRawApiCalls(
+      REGISTER_THIS_BROWSER,
+    ).filter((call: RawApiCall): boolean => {
+      return call.body.includes("/user-push/register");
+    });
+
+    expect(registers).toHaveLength(1);
+    expect(registers[0]!.body).toContain("projectId: data.projectId");
+
+    // Each caller, and how it names the current project.
+    for (const [caller, project] of [
+      [
+        "Components/NotificationMethods/Push.tsx",
+        "projectId: ProjectUtil.getCurrentProjectId()!.toString()",
+      ],
+      [
+        "Components/GuidedSetup/OnCall/OnCallSetupApi.ts",
+        "projectId: currentProjectId().toString()",
+      ],
+    ] as Array<[string, string]>) {
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD_SRC, ...caller.split("/")),
+        "utf8",
+      );
+      const start: number = source.indexOf(
+        "await registerThisBrowserForPush({",
+      );
+
+      expect({ caller, registers: start !== -1 }).toEqual({
+        caller,
+        registers: true,
+      });
+
+      const call: string = source.slice(start, source.indexOf("})", start));
+
+      expect({ caller, namesTheProject: call.includes(project) }).toEqual({
+        caller,
+        namesTheProject: true,
+      });
+    }
+
+    // The setup's current project is the one the Dashboard has open.
+    expect(
+      fs.readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "GuidedSetup",
+          "OnCall",
+          "OnCallSetupApi.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(
+      "const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();",
+    );
+  });
 
   test.each([
     ["Email.tsx", "Email", "/user-email"],

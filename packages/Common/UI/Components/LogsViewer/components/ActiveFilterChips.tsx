@@ -266,7 +266,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
       {removableFilters.length > 1 && (
         <button
           type="button"
-          className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-600"
           onClick={props.onClearAll}
         >
           {translator.translateText("Clear all")}

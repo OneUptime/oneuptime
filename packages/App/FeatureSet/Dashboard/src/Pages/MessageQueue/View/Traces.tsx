@@ -2,7 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
@@ -36,7 +36,7 @@ const MessageQueueTraces: FunctionComponent<
     useMessageQueueTelemetryScope(modelId);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

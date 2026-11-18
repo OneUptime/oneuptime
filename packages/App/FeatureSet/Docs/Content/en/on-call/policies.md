@@ -20,7 +20,11 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 
 **Who gets paged first?** is optional, and asked only of people who may add escalation rules: left empty, the policy pages nobody until it has a rule. **Description** and **Labels** wait under **More fields**. To add the next levels, see [Escalation Rules](/docs/on-call/escalation-rules).
 
-A project's first policy is also asked **Page this policy for every new incident and alert**, which starts on. It adds a rule under **Incidents → Rules → On-Call Rules** and one under **Alerts → Rules → On-Call Rules**, each matching everything and running this policy. It is asked of people who may add on-call rules, while the project has no on-call policy and no on-call rule.
+The form also asks **Page this policy for every new incident and alert**, of people who may add on-call rules. It adds a rule under **Incidents → Rules → On-Call Rules** and one under **Alerts → Rules → On-Call Rules**, each matching everything and running this policy. It starts on for a project's first policy, while the project has no on-call policy and no on-call rule, and off for any later one: paging two policies for every new incident and alert is a choice to make. Left off, a policy pages nobody until a rule, a monitor or a person runs it.
+
+![The empty "On-Call Policies" list's explanation, with "Guided setup" ringed](screen:on-call-policies-guided-setup)
+
+To be walked through paging instead, from your phone to a test page, click **Guided setup**: on the empty **On-Call Policies** list, or under **How it works**. See [Get Paged by Phone, SMS or Push](/docs/guides/paging).
 
 The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
 
@@ -96,6 +100,24 @@ Nobody misses a page for being paged once. Their page can end without their answ
 Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: a page again, a page to observers, a page someone sent to people from Slack or Microsoft Teams, and a policy started by hand.
 
 A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it. It pages level by level as any run does, calls and repeated pushes included, and somebody else acknowledging the incident does not stop it: that is how you page another team into an incident somebody is already on. Whoever it paged answers from their page's message, a call or a text, or by acknowledging the incident themselves; once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.
+
+## Test a policy
+
+**Test this policy**, on a policy's escalation rules, pages its first level as a test, with no incident behind it: every message says TEST, and no status page, subscriber or channel is told. Turn on **Walk every escalation level** to page each level in turn, at most 2 minutes apart, until someone acknowledges it. Before anything is sent, the dialog lists who the test pages and how, and what it costs on OneUptime Cloud.
+
+**Send test page** stays off while the test would reach nobody: everybody it pages has opted out of the severity, has no rule for it and nothing to fall back to, or has only methods that are not verified or are switched off in the project. One line under the list says why. When only a later level can be reached, the line offers **Walk every escalation level** in one click.
+
+Whoever is paged acknowledges the test from any of its messages: an email's, a text's or a chat message's link, a call's 1, or its push notification in the OneUptime On-Call app, in versions newer than 1.6.0. A policy can be tested once every 5 minutes, and a project sends at most 20 tests an hour.
+
+### Run a fire drill on a monitor
+
+**Run Fire Drill**, on a monitor's **When this goes down** card, rehearses one of the monitor's failures: an incident or alert one of its criteria opens, or the incident an alert incident rule declares from such an alert. It tests every on-call policy that failure would page, each as **Test this policy** tests it, and nothing public happens: no incident or alert is created, and no status page, subscriber or channel is told. Before anything is sent, the dialog names the failure, each policy and who that policy pages now. For a declared incident, it names the rule too, and how long the alert stays open first: the drill tests the incident's policies at once, without that wait.
+
+A drill pages each policy's first level. Under **More fields**, turn on **Walk every escalation level** to page each policy's levels in turn, at most 2 minutes apart, until someone acknowledges it: the dialog then lists every level each policy reaches, and what the walk costs at most. When nobody on the first levels can be reached but a later level can, the line under the list offers **Walk every escalation level** in one click.
+
+**Start Fire Drill** stays off while one of those policies is one you can't test, because you can't edit it, or while nobody they page can be reached. Each policy of a drill counts as a test of its own: a policy tested in the last 5 minutes stops the whole drill, and a drill of three policies takes three of the project's 20 tests an hour.
+
+Once the dialog is closed, **Last fire drill** on the card says which failure the monitor's last drill rehearsed, when it was started and by whom, and how many of its tests were acknowledged. **Show details** lists each policy's test: whether it was acknowledged, by whom, by what and how fast. Each test stays in its policy's execution logs, marked as a fire drill of the monitor. A drill's results show to whoever can read the monitor and every one of those execution logs.
 
 ## Execution logs
 

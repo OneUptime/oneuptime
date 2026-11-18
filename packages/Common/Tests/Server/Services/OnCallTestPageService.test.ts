@@ -1,3 +1,4 @@
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "../../../Models/DatabaseModels/User";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -15,6 +16,7 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+  getAcknowledgement,
   getNotPagedMessage,
   getPreviewMethodsOfRule,
   getPreviewWarningCodes,
@@ -66,6 +68,7 @@ import {
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
+  OnCallTestPageResultSummary,
   OnCallTestPageStatus,
   OnCallTestPageStepStatus,
   OnCallTestPageWarningCode,
@@ -335,6 +338,167 @@ describe("how often tests are sent", () => {
     await expect(
       OnCallTestPageService.claimLimits({ projectId: PROJECT, key: KEY }),
     ).rejects.toBeInstanceOf(TooManyRequestsException);
+  });
+});
+
+/*
+ * A fire drill's policies (#7012) claim their limits together, all or
+ * nothing: a drill never pages some of its policies and is refused the
+ * rest, and a refused one counts nothing and hands back every window.
+ */
+describe("the limits of several tests sent at once", () => {
+  const POLICY_A: ObjectID = new ObjectID(
+    "7e5ae000-0000-4000-8000-0000000000f1",
+  );
+  const POLICY_B: ObjectID = new ObjectID(
+    "7e5ae000-0000-4000-8000-0000000000f2",
+  );
+  const POLICY_C: ObjectID = new ObjectID(
+    "7e5ae000-0000-4000-8000-0000000000f3",
+  );
+
+  function policyKey(id: ObjectID): {
+    namespace: string;
+    id: ObjectID;
+    intervalInSeconds: number;
+    tooSoonMessage: string;
+  } {
+    return {
+      namespace: "oncall-test-page-policy",
+      id: id,
+      intervalInSeconds: 300,
+      tooSoonMessage: `Policy ${id.toString()} was tested a moment ago.`,
+    };
+  }
+
+  const NOW: Date = new Date("2026-11-11T09:30:00.000Z");
+  const HOUR: number = Math.floor(NOW.getTime() / (60 * 60 * 1000));
+
+  test("claims each one's window, then one of the project's hour for each, in one add", async () => {
+    await OnCallTestPageService.claimLimitsOfEach({
+      projectId: PROJECT,
+      keys: [policyKey(POLICY_A), policyKey(POLICY_B), policyKey(POLICY_C)],
+      now: NOW,
+    });
+
+    expect(
+      setIfNotExists.mock.calls.map((call: Array<unknown>) => {
+        return [call[0], call[1], call[3]];
+      }),
+    ).toEqual(
+      [POLICY_A, POLICY_B, POLICY_C].map((id: ObjectID) => {
+        return [
+          "oncall-test-page-policy",
+          `${PROJECT.toString()}:${id.toString()}`,
+          { expiresInSeconds: 300 },
+        ];
+      }),
+    );
+    expect(incrementIfBelow).toHaveBeenCalledTimes(1);
+    expect(incrementIfBelow).toHaveBeenCalledWith(
+      "oncall-test-page-project",
+      `${PROJECT.toString()}:${HOUR}`,
+      {
+        limit: ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
+        expiresInSeconds: 3600,
+        by: 3,
+      },
+    );
+    expect(deleteIfValue).not.toHaveBeenCalled();
+  });
+
+  test("a window already taken refuses them all with its words, and hands back the ones claimed before it", async () => {
+    setIfNotExists
+      .mockResolvedValueOnce(true as never)
+      .mockResolvedValueOnce(false as never);
+
+    await expect(
+      OnCallTestPageService.claimLimitsOfEach({
+        projectId: PROJECT,
+        keys: [policyKey(POLICY_A), policyKey(POLICY_B), policyKey(POLICY_C)],
+        now: NOW,
+      }),
+    ).rejects.toThrow(
+      new TooManyRequestsException(policyKey(POLICY_B).tooSoonMessage),
+    );
+
+    // The third is never asked for, and nothing is counted.
+    expect(setIfNotExists).toHaveBeenCalledTimes(2);
+    expect(incrementIfBelow).not.toHaveBeenCalled();
+    expect(deleteIfValue).toHaveBeenCalledTimes(1);
+    expect(deleteIfValue.mock.calls[0]![1]).toBe(
+      `${PROJECT.toString()}:${POLICY_A.toString()}`,
+    );
+    expect(deleteIfValue.mock.calls[0]![2]).toBe(
+      setIfNotExists.mock.calls[0]![2],
+    );
+  });
+
+  test("a project hour without room for them all refuses them all, and hands back every window", async () => {
+    incrementIfBelow.mockResolvedValue(null as never);
+
+    await expect(
+      OnCallTestPageService.claimLimitsOfEach({
+        projectId: PROJECT,
+        keys: [policyKey(POLICY_A), policyKey(POLICY_B)],
+        now: NOW,
+      }),
+    ).rejects.toThrow(ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE);
+
+    expect(deleteIfValue).toHaveBeenCalledTimes(2);
+    expect(
+      deleteIfValue.mock.calls.map((call: Array<unknown>) => {
+        return call[1];
+      }),
+    ).toEqual([
+      `${PROJECT.toString()}:${POLICY_A.toString()}`,
+      `${PROJECT.toString()}:${POLICY_B.toString()}`,
+    ]);
+  });
+
+  test("a cache that cannot be read midway refuses them all, and hands back what it claimed", async () => {
+    setIfNotExists
+      .mockResolvedValueOnce(true as never)
+      .mockRejectedValueOnce(new Error("redis is down") as never);
+
+    await expect(
+      OnCallTestPageService.claimLimitsOfEach({
+        projectId: PROJECT,
+        keys: [policyKey(POLICY_A), policyKey(POLICY_B)],
+        now: NOW,
+      }),
+    ).rejects.toThrow(ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE);
+
+    expect(incrementIfBelow).not.toHaveBeenCalled();
+    expect(deleteIfValue).toHaveBeenCalledTimes(1);
+  });
+
+  test("one key is claimed exactly as a single test is: one add, with no `by`", async () => {
+    await OnCallTestPageService.claimLimitsOfEach({
+      projectId: PROJECT,
+      keys: [policyKey(POLICY_A)],
+      now: NOW,
+    });
+
+    expect(incrementIfBelow).toHaveBeenCalledWith(
+      "oncall-test-page-project",
+      `${PROJECT.toString()}:${HOUR}`,
+      {
+        limit: ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
+        expiresInSeconds: 3600,
+      },
+    );
+  });
+
+  test("no keys claims nothing", async () => {
+    await OnCallTestPageService.claimLimitsOfEach({
+      projectId: PROJECT,
+      keys: [],
+      now: NOW,
+    });
+
+    expect(setIfNotExists).not.toHaveBeenCalled();
+    expect(incrementIfBelow).not.toHaveBeenCalled();
   });
 });
 
@@ -795,7 +959,30 @@ describe("what a test will send, before it is sent", () => {
     expect(fallbackRead).not.toHaveBeenCalled();
   });
 
-  test("its cost counts the texts and calls it sends", async () => {
+  test("its cost counts the texts and calls it sends - never a call the project switched off, which sends nothing (#7529)", async () => {
+    const preview: OnCallTestPagePreview =
+      await OnCallTestPageService.getPreview({
+        projectId: PROJECT,
+        callerUserId: ANA,
+        recordKind: OnCallTestPageRecordKind.Incident,
+        severityId: SEVERITY,
+      });
+
+    // Calls are off in this project: Ana's call is listed, warned of, and not counted.
+    expect(preview.cost.smsCount).toBe(1);
+    expect(preview.cost.callCount).toBe(0);
+    expect(preview.cost.paidCallCount).toBe(0);
+  });
+
+  test("with calls on, the same call is counted", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+      disableOnCallNotificationFallback: false,
+    } as never);
+
     const preview: OnCallTestPagePreview =
       await OnCallTestPageService.getPreview({
         projectId: PROJECT,
@@ -806,6 +993,59 @@ describe("what a test will send, before it is sent", () => {
 
     expect(preview.cost.smsCount).toBe(1);
     expect(preview.cost.callCount).toBe(1);
+  });
+
+  test("the project's switches are read once for the preview: its cost reads the ones its warnings read", async () => {
+    const projectRead: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    projectRead.mockClear();
+
+    await OnCallTestPageService.getPreview({
+      projectId: PROJECT,
+      callerUserId: ANA,
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityId: SEVERITY,
+    });
+
+    expect(projectRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("a cost asked for on its own reads the project's switches itself", async () => {
+    const [cost]: Array<OnCallTestPagePreview["cost"]> =
+      await OnCallTestPageService.getCosts({
+        projectId: PROJECT,
+        peopleOfEach: [
+          [
+            {
+              userId: ANA.toString(),
+              userName: "Ana Lopez",
+              methods: [
+                {
+                  channel: OnCallPageChannel.Call,
+                  notifyAfterMinutes: 0,
+                  isVerified: true,
+                  canAcknowledge: true,
+                },
+                {
+                  channel: OnCallPageChannel.SMS,
+                  notifyAfterMinutes: 0,
+                  isVerified: true,
+                  canAcknowledge: true,
+                },
+              ],
+              hasNoRule: false,
+              isOptedOut: false,
+              warnings: [],
+            },
+          ],
+        ],
+      });
+
+    expect(cost!.callCount).toBe(0);
+    expect(cost!.smsCount).toBe(1);
   });
 });
 
@@ -1045,6 +1285,51 @@ describe("who a policy's first level pages right now", () => {
       scheduleName: "Primary rotation",
       message: "Nobody is next in the rotation of schedule Primary rotation.",
     });
+  });
+
+  test("a schedule paged as on call and as next in its rotation: both from one read of its layers (#9316)", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([
+        {
+          onCallDutyPolicyScheduleId: SCHEDULE,
+          onCallDutyPolicySchedule: { name: "Primary rotation" },
+          pageNextInRotation: false,
+        },
+        {
+          onCallDutyPolicyScheduleId: SCHEDULE,
+          onCallDutyPolicySchedule: { name: "Primary rotation" },
+          pageNextInRotation: true,
+        },
+      ] as never);
+    const onCall: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getCurrentOnCallInSchedule")
+      .mockResolvedValue({ userId: CARA } as never);
+    const next: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getNextInRotationInSchedule")
+      .mockResolvedValue({ nextUserId: ANA } as never);
+
+    await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    const onCallReads: unknown = (
+      onCall.mock.calls[0]![1] as { layerReads?: unknown }
+    ).layerReads;
+    const nextReads: unknown = (
+      next.mock.calls[0]![1] as { layerReads?: unknown }
+    ).layerReads;
+
+    expect(onCallReads).toBeInstanceOf(Map);
+    // The same reads: the schedule's layers are read once, for both.
+    expect(nextReads).toBe(onCallReads);
+    expect(onCall.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ onCallDutyPolicyId: POLICY }),
+    );
+    expect(next.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ onCallDutyPolicyId: POLICY }),
+    );
   });
 
   test("a first level that names nobody says so, as the first", async () => {
@@ -1554,6 +1839,200 @@ describe("what became of a test: the chain as it happened", () => {
   });
 });
 
+/*
+ * #9386: WHAT BECAME OF SEVERAL TESTS, IN SHORT - a fire drill's results on
+ * its monitor's card. Worked out as the full result works it out
+ * (getAcknowledgement): two reads however many tests, the runs handed in and
+ * only the messages they were acknowledged from.
+ */
+describe("what became of several tests, in short", () => {
+  const RUN_2: ObjectID = new ObjectID("7e5ae000-0000-4000-8000-000000000013");
+  const POLICY_2: ObjectID = new ObjectID(
+    "7e5ae000-0000-4000-8000-000000000012",
+  );
+
+  let readMessages: jest.SpyInstance;
+
+  function runOf(
+    id: ObjectID,
+    data: Partial<OnCallDutyPolicyExecutionLog> = {},
+  ): OnCallDutyPolicyExecutionLog {
+    return {
+      id: id,
+      status: OnCallDutyPolicyStatus.Executing,
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+      onCallDutyPolicyId: POLICY,
+      onCallDutyPolicy: { name: "Primary" },
+      ...data,
+    } as unknown as OnCallDutyPolicyExecutionLog;
+  }
+
+  beforeEach(() => {
+    readMessages = jest
+      .spyOn(UserOnCallLogTimelineService, "findBy")
+      .mockResolvedValue([
+        {
+          id: new ObjectID("7e5ae000-0000-4000-8000-000000000501"),
+          userId: ANA,
+          onCallDutyPolicyExecutionLogId: RUN,
+          createdAt: new Date("2026-11-11T09:00:02.000Z"),
+          acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+          isAcknowledged: true,
+          userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000502"),
+        },
+      ] as never);
+  });
+
+  test("each test's state, and who acknowledged it, by what and how fast - in the order the runs are handed in", async () => {
+    const summaries: Array<OnCallTestPageResultSummary> =
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [
+          runOf(RUN, {
+            status: OnCallDutyPolicyStatus.Completed,
+            acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+            acknowledgedByUserId: ANA,
+            acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+          }),
+          runOf(RUN_2, {
+            onCallDutyPolicyId: POLICY_2,
+            onCallDutyPolicy: { name: "Platform" } as never,
+          }),
+        ],
+      });
+
+    expect(summaries).toEqual([
+      {
+        executionLogId: RUN.toString(),
+        policyId: POLICY.toString(),
+        policyName: "Primary",
+        status: OnCallTestPageStatus.Acknowledged,
+        startedAt: "2026-11-11T09:00:00.000Z",
+        endsAt: "2026-11-11T09:15:00.000Z",
+        acknowledgedByName: "Ana Lopez",
+        acknowledgedChannel: OnCallPageChannel.Push,
+        acknowledgedAfterSeconds: 14,
+      },
+      {
+        executionLogId: RUN_2.toString(),
+        policyId: POLICY_2.toString(),
+        policyName: "Platform",
+        status: OnCallTestPageStatus.Paging,
+        startedAt: "2026-11-11T09:00:00.000Z",
+        endsAt: "2026-11-11T09:15:00.000Z",
+      },
+    ]);
+  });
+
+  test("reads only the messages acknowledged, of these runs and this project, once for all of them", async () => {
+    await OnCallTestPageService.getResultSummaries({
+      projectId: PROJECT,
+      runs: [runOf(RUN), runOf(RUN_2)],
+    });
+
+    expect(readMessages).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, unknown> = (
+      readMessages.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["projectId"]).toBe(PROJECT);
+    expect(query["isAcknowledged"]).toBe(true);
+    expect(JSON.stringify(query["onCallDutyPolicyExecutionLogId"])).toContain(
+      RUN_2.toString(),
+    );
+  });
+
+  test("no runs read nothing", async () => {
+    expect(
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [],
+      }),
+    ).toEqual([]);
+    expect(readMessages).not.toHaveBeenCalled();
+  });
+
+  test("a message of another run is never taken for this run's answer", async () => {
+    const [summary]: Array<OnCallTestPageResultSummary> =
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [
+          runOf(RUN_2, {
+            status: OnCallDutyPolicyStatus.Completed,
+            acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+            acknowledgedByUserId: ANA,
+            acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+          }),
+        ],
+      });
+
+    // Acknowledged, by whom - but no message of its own says by what.
+    expect(summary).toEqual(
+      expect.objectContaining({
+        status: OnCallTestPageStatus.Acknowledged,
+        acknowledgedByName: "Ana Lopez",
+      }),
+    );
+    expect(summary!.acknowledgedChannel).toBeUndefined();
+    expect(summary!.acknowledgedAfterSeconds).toBeUndefined();
+  });
+});
+
+describe("who acknowledged a test, by what and how fast", () => {
+  const sms: UserOnCallLogTimeline = {
+    userId: ANA,
+    isAcknowledged: true,
+    createdAt: new Date("2026-11-11T09:00:00.000Z"),
+    acknowledgedAt: new Date("2026-11-11T09:00:40.000Z"),
+    userSmsId: new ObjectID("7e5ae000-0000-4000-8000-000000000601"),
+  } as unknown as UserOnCallLogTimeline;
+
+  const call: UserOnCallLogTimeline = {
+    userId: ANA,
+    isAcknowledged: true,
+    createdAt: new Date("2026-11-11T09:00:05.000Z"),
+    acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+    userCallId: new ObjectID("7e5ae000-0000-4000-8000-000000000602"),
+  } as unknown as UserOnCallLogTimeline;
+
+  test("nothing while nobody has", () => {
+    expect(getAcknowledgement({ run: {}, deliveries: [sms] })).toEqual({});
+  });
+
+  test("the message they first acknowledged it from: its channel, and the time since it went out", () => {
+    expect(
+      getAcknowledgement({
+        run: {
+          acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+          acknowledgedByUserId: ANA,
+          acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+        },
+        deliveries: [sms, call],
+      }),
+    ).toEqual({
+      acknowledgedByName: "Ana Lopez",
+      acknowledgedChannel: OnCallPageChannel.Call,
+      acknowledgedAfterSeconds: 15,
+    });
+  });
+
+  test("by their email when they have no name; a message of somebody else's is not theirs", () => {
+    expect(
+      getAcknowledgement({
+        run: {
+          acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+          acknowledgedByUserId: BOB,
+          acknowledgedByUser: {
+            email: new Email("bob@example.com"),
+          } as never,
+        },
+        deliveries: [sms, call],
+      }),
+    ).toEqual({ acknowledgedByName: "bob@example.com" });
+  });
+});
+
 describe("the result's words, from the records", () => {
   test("where a test stands, from its run", () => {
     expect(
@@ -1598,7 +2077,7 @@ describe("the result's words, from the records", () => {
     ).toBe(OnCallTestPageStepStatus.Paged);
   });
 
-  test("a push can't be acknowledged from, and a skipped message says where it is fixed", () => {
+  test("a push can be acknowledged from - the On-Call app's Acknowledge test page (#7014) - and a skipped message says where it is fixed", () => {
     const push: UserOnCallLogTimeline = {
       id: new ObjectID("7e5ae000-0000-4000-8000-000000000501"),
       userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000502"),
@@ -1612,7 +2091,7 @@ describe("the result's words, from the records", () => {
     expect(toDelivery({ delivery: push, isDelivered: false })).toMatchObject({
       channel: OnCallPageChannel.Push,
       address: "Pixel",
-      canAcknowledge: false,
+      canAcknowledge: true,
       fix: OnCallTestPageFix.NotificationMethods,
       sentAt: "2026-11-11T09:00:00.000Z",
       // Its line as a code (#7260): a phone's app, not a browser.

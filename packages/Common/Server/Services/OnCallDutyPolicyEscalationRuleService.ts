@@ -26,6 +26,8 @@ import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecu
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
   NextInRotationInSchedule,
+  ScheduleLayerProps,
+  ScheduleLayerReads,
 } from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -36,6 +38,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
@@ -356,6 +359,41 @@ export const FREE_PLAN_ESCALATION_RULE_LIMIT_MESSAGE: string =
   "You can only create one escalation rule in free plan.";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
+  /*
+   * A POLICY'S FIRST ESCALATION RULE (#9369): the level a pass of it starts
+   * with - the lowest place, which need not be 1. Rules written through
+   * the API or by Terraform keep the place they are given, so a policy's
+   * only rule can be at 2 (ContiguousOrder moves nothing to fill a place
+   * no rule held), and a run that looked for order 1 found none and ended
+   * in "no escalation rules". A new run pages this rule, a page again with
+   * no place of its own starts over at it, and the test page, Readiness and
+   * When this goes down read who it reaches - by this rule, or, for levels
+   * already in hand, getOnCallPolicyFirstLevel, which picks the same one.
+   * Null when the policy has no escalation rules.
+   */
+  @CaptureSpan()
+  public async findFirstOfPolicy(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+      },
+      select: {
+        _id: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   /*
    * Who gets the pages of a person named on a rule, while a user override
    * names who covers them: the cover, or null when no override with a cover
@@ -1747,11 +1785,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       });
     }
 
+    /*
+     * Each schedule's layers and their people, read once for the level: a
+     * rule that pages a schedule's on-call person and the next in its
+     * rotation works both out from the same read, so a save of the layers
+     * landing between them cannot page one from the layers as they were
+     * and the other from the layers as saved (#9316).
+     */
+    const layerReads: ScheduleLayerReads = new Map<
+      string,
+      Promise<ScheduleLayerProps>
+    >();
+
     for (const scheduleId of data.scheduleIds) {
       const onCall: CurrentOnCallInSchedule | null =
         await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
           scheduleId,
-          { onCallDutyPolicyId: options.onCallPolicyId },
+          { onCallDutyPolicyId: options.onCallPolicyId, layerReads },
         );
 
       if (!onCall) {
@@ -1799,7 +1849,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       const next: NextInRotationInSchedule | null =
         await OnCallDutyPolicyScheduleService.getNextInRotationInSchedule(
           scheduleId,
-          { onCallDutyPolicyId: options.onCallPolicyId },
+          { onCallDutyPolicyId: options.onCallPolicyId, layerReads },
         );
 
       if (!next) {

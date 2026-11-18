@@ -203,7 +203,7 @@ describe.each(KEPT_CHARTS)(
         "<ChartRefetchFrame isRefetching={isLoading} refetchError={error}>",
       );
       expect(empty).toContain(
-        'className="flex select-none items-center justify-center text-sm text-gray-400" style={{ height: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset}',
+        'className="flex select-none items-center justify-center text-sm text-gray-500" style={{ height: `${heightInPx}px` }} onDoubleClick={zoom?.onTimeRangeReset}',
       );
     });
   },

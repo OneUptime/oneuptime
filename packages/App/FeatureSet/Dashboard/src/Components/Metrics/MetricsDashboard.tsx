@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import Service from "Common/Models/DatabaseModels/Service";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -18,7 +19,6 @@ import AnalyticsModelAPI, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -821,7 +821,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       <Fragment>
         {headerBar}
         <div className="rounded-xl border border-gray-200 bg-white p-12">
-          <ComponentLoader />
+          <ChartSkeleton />
         </div>
       </Fragment>
     );
@@ -1251,7 +1251,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
       <p className={`mt-2 text-3xl font-bold ${tone.valueText}`}>
         {props.value}
       </p>
-      <p className="mt-1 text-xs text-gray-400">{props.subtext}</p>
+      <p className="mt-1 text-xs text-gray-500">{props.subtext}</p>
     </div>
   );
 };

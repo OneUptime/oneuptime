@@ -10,14 +10,8 @@ import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNoti
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import {
-  Green,
-  Red,
-  Blue,
-  Purple,
-  Orange,
-  Yellow,
-} from "Common/Types/BrandColors";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import { Green, Blue, Purple, Orange, Yellow } from "Common/Types/BrandColors";
 import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNotificationActionType";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -37,6 +31,10 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import WorkspaceLogReason, {
+  getWorkspaceLogReason,
+  getWorkspaceLogStatusText,
+} from "./WorkspaceLogReason";
 
 export interface WorkspaceLogsTableProps {
   query?: Query<BaseModel>;
@@ -171,16 +169,56 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           return (
             <Pill
               isMinimal={false}
-              color={
+              tone={
                 item["status"] === WorkspaceNotificationStatus.Success
-                  ? Green
-                  : Red
+                  ? PillTone.Success
+                  : PillTone.Danger
               }
               text={item["status"] as string}
             />
           );
         }
         return <></>;
+      },
+    },
+    /*
+     * Why a post failed, in the row (#7121): the workspace's refusal in
+     * OneUptime's words, two lines at most and the whole of it under the
+     * pointer (WorkspaceLogReason). It was only under the row's ⋯ > View
+     * Status Message, so a page of Error rows could not be read for which
+     * were the same problem. A row that went out has none. On a narrow
+     * table, or a phone's card, it gives way first: under the row's
+     * Status.
+     */
+    {
+      field: { statusMessage: true },
+      title: "Reason",
+      type: FieldType.Element,
+      disableSort: true,
+      wrapContent: true,
+      hideBelowLargeScreen: true,
+      foldInto: "status",
+      getElement: (item: WorkspaceNotificationLog): ReactElement => {
+        return (
+          <WorkspaceLogReason
+            status={item.status}
+            statusMessage={item.statusMessage}
+            workspaceType={item.workspaceType}
+          />
+        );
+      },
+      getExportValue: (item: WorkspaceNotificationLog): string => {
+        return getWorkspaceLogReason({
+          status: item.status,
+          statusMessage: item.statusMessage,
+          workspaceType: item.workspaceType,
+        })
+          ? getWorkspaceLogStatusText({
+              status: item.status,
+              statusMessage: item.statusMessage,
+              workspaceType: item.workspaceType,
+            })
+          : "";
       },
     },
   ];
@@ -237,18 +275,23 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
             profilePictureId: true,
           },
         }}
+        /*
+         * Mattermost's posts are listed too: it said "Messages sent to
+         * Slack / Teams." Worded as the other logs' are ("Emails sent for
+         * this project.").
+         */
         cardProps={{
           title: "Workspace Logs",
           description: props.singularName
             ? translator.translateTemplate(
-                "Messages sent to Slack / Teams for this {{itemName}}.",
+                "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.",
                 {
                   itemName: translatableTerm(props.singularName, {
                     inSentence: true,
                   }),
                 },
               )
-            : "Messages sent to Slack / Teams.",
+            : "Slack, Microsoft Teams and Mattermost messages sent for this project.",
         }}
         noItemsMessage={
           props.singularName
@@ -288,7 +331,18 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
               item: WorkspaceNotificationLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setModalText(item["statusMessage"] as string);
+              /*
+               * The whole of it: a failure's reason with what the
+               * workspace answered after it - an old row's raw code said
+               * in words too (getWorkspaceLogStatusText).
+               */
+              setModalText(
+                getWorkspaceLogStatusText({
+                  status: item.status,
+                  statusMessage: item.statusMessage,
+                  workspaceType: item.workspaceType,
+                }),
+              );
               setModalTitle("Status Message");
               setShowModal(true);
               onCompleteAction();

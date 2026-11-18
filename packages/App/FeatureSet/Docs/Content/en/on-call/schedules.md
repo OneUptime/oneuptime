@@ -86,7 +86,7 @@ Each person keeps one colour everywhere, so you can follow them at a glance: on 
 
 ## When someone is away
 
-When someone goes on holiday, skip them until they are back. On the schedule's **Layers** page, expand a layer and click **Skip until…** beside their name. It opens the form for time away with them under **Who is away?**, **Next person in the rotation** under **Who covers?** and **Starts** at now: set **Ends** to when they are back, and save it.
+When someone goes on holiday, skip them until they are back. On the schedule's **Layers** page, expand a layer and click **Skip until…** beside their name. It opens the form for time away with them under **Who is away?**, **Next person in the rotation** under **Who covers?** and **Starts** at now: set **Ends** to when they are back, and save it. If they already have time away then, the form says so beside the times as you pick them, with **Edit that override** to change that one instead.
 
 While they are away:
 
@@ -97,7 +97,7 @@ While they are away:
 
 Pick someone under **Who covers?** instead, and that person gets all of their pages, from every schedule and every policy, rather than the rotation taking their turns.
 
-Time away added this way applies to every on-call policy, so it takes the override permission over the whole project. If your team's role is limited to its own policies or to some labels, it goes instead on the policies of this schedule you may cover, one override on each, listed on each policy's own **User Overrides** page; with several, you tick them under **On-call policies**. **Skip until…** is locked and says why only where you may cover none of them. It is listed under **On-Call** > **Advanced** > **User Overrides**, where you can delete it to bring them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is. See [User Overrides](/docs/on-call/user-overrides).
+Time away added this way applies to every on-call policy, so it takes the override permission over the whole project. If your team's role is limited to its own policies or to some labels, it goes instead on the policies of this schedule you may cover, one override on each, listed on each policy's own **User Overrides** page; with several, you tick them under **On-call policies**. **Skip until…** is locked and says why only where you may cover none of them. It is listed under **On-Call** > **Advanced** > **User Overrides**, and with the schedule's user overrides on its **Layers** page, where **End Now** brings them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is. See [User Overrides](/docs/on-call/user-overrides).
 
 With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
@@ -111,6 +111,8 @@ On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their la
 - A schedule created without them has no layers, as before; Terraform's schedule resource does not send them.
 - A layer created without a `rotation` hands off daily, as it always has.
 - A change to a schedule's layers and the people in them, made through the API or Terraform, is told as one change: who is on call is worked out once the layers have had no change for half a minute, and someone who goes on or off call, or is next, hears it once, not once for each layer or person written. Pages go to whoever the layers put on call as soon as each change is saved.
+- To change who takes turns in a schedule's layers all at once, as the **Layers** page's **Save changes** does, read the layers with `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` and send them back, changed, to `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. They list every layer the schedule keeps, the highest priority first, each with its people in turn order: someone already in a layer by their `layerUserId`, someone added by `userId` alone. `deletedLayerIds` lists the layers to delete.
+- A save is written all or nothing, and who is on call is worked out once, at once. One made after someone else changed the layers is refused with 409, as its `basedOnVersion` is no longer theirs: read the layers again and make the change to what is there now. Terraform's `oneuptime_on_call_schedule_layers` resource saves a schedule's layers this way.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

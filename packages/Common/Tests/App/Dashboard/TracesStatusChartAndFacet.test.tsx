@@ -7,15 +7,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -333,15 +327,23 @@ const includeFromSidebar: (
   });
 };
 
-// Picks a metric in the chart header's select, as a reader would.
+// The names the chart header's picker lists each metric by.
+const CHART_METRIC_NAMES: Record<string, string> = {
+  count: "Count",
+  p95Duration: "P95",
+};
+
+// Picks a metric in the chart header's picker, as a reader would.
 const switchChartMetric: (metric: string) => Promise<void> = async (
   metric: string,
 ): Promise<void> => {
-  await act(async (): Promise<void> => {
-    fireEvent.change(screen.getByTitle("Chart metric"), {
-      target: { value: metric },
-    });
-  });
+  // The menu opens and is picked from in acts of their own.
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Chart metric" }),
+    CHART_METRIC_NAMES[metric]!,
+  );
+  // What the pick sets off (the chart's new request) settles.
+  await act(async (): Promise<void> => {});
 };
 
 interface LegendEntry {

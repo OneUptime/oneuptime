@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -11,7 +12,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsageBar";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
@@ -224,7 +224,7 @@ const ClickhouseCapacitySummary: FunctionComponent = (): ReactElement => {
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <StatTilesSkeleton />;
     }
 
     if (error) {

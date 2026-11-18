@@ -97,6 +97,22 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import TimeRange from "../../../Types/Time/TimeRange";
 
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
+
 const NO_VALUES: string = "No values in this time range";
 
 function summaryOf(footer: HTMLElement): string {
@@ -140,9 +156,7 @@ describe("the list footer while nothing is on screen", () => {
     expect(footer).not.toHaveTextContent("No logs");
     // Nothing to page through yet.
     expect(within(footer).getByTestId("pagination-next-button")).toBeDisabled();
-    expect(
-      within(footer).getByTestId("pagination-items-on-page-select"),
-    ).toBeDisabled();
+    expect(rowsPerPage(footer)).toBeDisabled();
   });
 
   test("an answer with no logs still says so", () => {
@@ -228,12 +242,12 @@ describe("the logs explorer's list while it loads", () => {
     await screen.findByTestId(LOGS_VIEWER_TOOLBAR_TEST_ID);
   }
 
-  test("the first page: a loader with room for the rows, and a footer that says Loading...", async () => {
+  test("the first page: the rows' skeleton, and a footer that says Loading...", async () => {
     await renderLogs({ logs: [], isLoading: true });
 
     const table: HTMLElement = screen.getByTestId(LOGS_TABLE_TEST_ID);
-    expect(table).toHaveClass("min-h-48");
-    expect(within(table).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(table).getByTestId("table-skeleton")).toBeInTheDocument();
+    expect(within(table).queryByTestId("component-loader")).toBeNull();
     expect(within(table).queryByText("No logs found")).toBeNull();
     expect(summaryOf(screen.getByTestId("logs-pagination"))).toBe("Loading...");
   });
@@ -242,7 +256,7 @@ describe("the logs explorer's list while it loads", () => {
     await renderLogs({ logs: makeLogs(2), isLoading: true });
 
     const table: HTMLElement = screen.getByTestId(LOGS_TABLE_TEST_ID);
-    expect(table).not.toHaveClass("min-h-48");
+    expect(within(table).queryByTestId("table-skeleton")).toBeNull();
     expect(within(table).getByTestId("component-loader")).toBeInTheDocument();
     expect(summaryOf(screen.getByTestId("logs-pagination"))).toBe(
       "Showing 1-2 of 2 logs",
@@ -253,7 +267,7 @@ describe("the logs explorer's list while it loads", () => {
     await renderLogs({ logs: [], isLoading: false });
 
     const table: HTMLElement = screen.getByTestId(LOGS_TABLE_TEST_ID);
-    expect(table).not.toHaveClass("min-h-48");
+    expect(within(table).queryByTestId("table-skeleton")).toBeNull();
     expect(within(table).queryByTestId("component-loader")).toBeNull();
     expect(within(table).getByText("No logs found")).toBeInTheDocument();
     expect(summaryOf(screen.getByTestId("logs-pagination"))).toBe("No logs");
@@ -295,10 +309,10 @@ describe("the telemetry explorers' list while it loads", () => {
     );
   }
 
-  test("the first page: the loader, and a footer that says Loading...", () => {
+  test("the first page: the rows' skeleton, and a footer that says Loading...", () => {
     renderTelemetry({ items: [], isLoading: true });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(screen.queryByText("No exceptions found")).toBeNull();
     expect(summaryOf(screen.getByTestId("telemetry-pagination"))).toBe(
       "Loading...",

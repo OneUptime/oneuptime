@@ -36,7 +36,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **도착하는 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd), [Syslog](/docs/telemetry/syslog) 중 하나로 보냅니다. **설정 가이드** 탭에 사용하는 언어나 수집기에 맞는 구성이 표시됩니다.
+- **도착하는 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd), [Syslog](/docs/telemetry/syslog) 중 하나로 보냅니다. **설정 가이드** 탭에 사용하는 언어나 수집기에 맞는 구성이 표시됩니다. 첫 데이터가 도착할 때까지 이 페이지에는 **안내형 설정**이 표시됩니다. 첫 로그, 메트릭, 트레이스부터 그에 대한 경고까지 안내합니다. 옆의 **첫 로그 보내기**는 설정 가이드만 엽니다. 앱을 설정하기 전에 엔드포인트와 키를 확인하려면 가이드의 첫 단계에서 **테스트 로그 보내기**를 엽니다. `oneuptime-test` 서비스에서 로그 하나를 보내며, 이 서비스는 나중에 삭제할 수 있습니다.
 - **텔레메트리를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Logs 권한이 있는 사용자 지정 역할입니다. 역할의 범위에 따라 누구의 로그를 볼 수 있는지가 정해집니다. [텔레메트리](/docs/permissions/index#텔레메트리)를 참고하세요.
 
 ## 로그 줄 찾기

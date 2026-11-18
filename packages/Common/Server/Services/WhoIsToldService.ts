@@ -11,27 +11,58 @@ import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "../Utils/Monitor/SeriesResourceLinker";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import { InheritedOwnersCache } from "../Utils/Rules/InheritedOwners";
 import OwnerRulePlanBuilder, {
+  OwnerIdSets,
   OwnerRuleInheritSource,
   OwnerRulePlan,
   OwnerRulePlanEntry,
 } from "../Utils/Rules/OwnerRulePlan";
+import {
+  LabelInheritableResources,
+  LabelRulePlan,
+  LabelRulePlanEntry,
+  doLabelRulesInheritFromResources,
+  getLabelResourceIds,
+  getNoLabelRulePlan,
+} from "../Utils/Rules/LabelRulePlan";
+import {
+  PrivacyRulePlan,
+  getPrivacyRulesThatApply,
+} from "../Utils/Rules/PrivacyRulePlan";
+import {
+  canReadPrivateRecordWithOwners,
+  shouldBypassRecordPrivacy,
+} from "../Utils/PrivacyFilterUtil";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallRulePagingHoldUtil from "../Utils/OnCall/OnCallRulePagingHold";
+import AlertIncidentRuleEngineService, {
+  AlertIncidentRulePlan,
+} from "./AlertIncidentRuleEngineService";
+import AlertIncidentRuleService from "./AlertIncidentRuleService";
+import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
+import AlertLabelRuleService from "./AlertLabelRuleService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import AlertOwnerRuleService from "./AlertOwnerRuleService";
+import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
+import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertSeverityService from "./AlertSeverityService";
+import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
+import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
+import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
+import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentSeverityService from "./IncidentSeverityService";
+import MonitorGroupService from "./MonitorGroupService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceOwnerUserService, {
@@ -55,12 +86,17 @@ import UserNotificationRuleService, {
 } from "./UserNotificationRuleService";
 import UserService from "./UserService";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertIncidentRule from "../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
 import AlertOwnerRule from "../../Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "../../Models/DatabaseModels/AlertPrivacyRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentLabelRule from "../../Models/DatabaseModels/IncidentLabelRule";
 import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
 import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
+import IncidentPrivacyRule from "../../Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -82,22 +118,34 @@ import { CriteriaIncident } from "../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import {
   WHO_IS_TOLD_CACHE_TTL_IN_MS,
   WhoIsToldChannels,
   WhoIsToldCriteria,
   WhoIsToldEvent,
+  WhoIsToldMonitorGroup,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerIds,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerMatch,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnerRecipient,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
   WhoIsToldPolicy,
+  WhoIsToldProjectFacts,
   WhoIsToldResult,
   WhoIsToldRule,
   WhoIsToldStatusPage,
   getChannelsSwitchedOff,
   getWhoIsToldBreaks,
   getWhoIsToldPersonReach,
+  isWhoIsToldEventHidden,
   redactWhoIsTold,
 } from "../../Types/Monitor/WhoIsTold";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
@@ -176,14 +224,52 @@ interface ProjectContext {
    * a monitor that pages nobody is sent to the on-call guided setup (#7369).
    */
   projectHasOnCallPolicies: boolean;
-  // The project's enabled owner rules, as the engines read them.
+  /*
+   * The project's enabled owner rules, as the engines read them (kept
+   * between creates, RuleSetCache). Every record's owners are worked out,
+   * for breaks only too: an alert on-call rule can match on who owns the
+   * alert (#9407), who may read a private record is its owners (#9370), and
+   * Setup health lists the owners no Created email reaches (#9371).
+   */
   incidentOwnerRules: Array<IncidentOwnerRule>;
   alertOwnerRules: Array<AlertOwnerRule>;
+  /*
+   * Set when the whole project is resolved at once (resolveProject): who
+   * owns each network device its monitors watch, by device id in lower
+   * case, read in one go (readOwnersOfProject) - so no monitor reads its
+   * device's owners on its own. Null for one monitor, which reads them as
+   * MonitorIncident and MonitorAlert do.
+   */
+  deviceOwnersByDevice: Map<string, NetworkDeviceOwners> | null;
+  /*
+   * Set when the whole project is resolved at once: who owns the resources
+   * an owner rule inherits owners from, each read once for every record
+   * (InheritedOwnersCache) - every monitor's at once. Null for one monitor,
+   * whose owner rules read them as its create's do.
+   */
+  inheritedOwners: InheritedOwnersCache | null;
+  /*
+   * Its enabled privacy, label and alert incident rules, as the engines
+   * read them (#7212, #7213, #7216): what a new incident or alert is made
+   * private by, labelled with before its on-call rules match, and declared
+   * an incident from. Privacy is read for breaks only too: a private record
+   * that is not a reader's to see raises no break of theirs (#9370).
+   */
+  incidentPrivacyRules: Array<IncidentPrivacyRule>;
+  alertPrivacyRules: Array<AlertPrivacyRule>;
+  incidentLabelRules: Array<IncidentLabelRule>;
+  alertLabelRules: Array<AlertLabelRule>;
+  alertIncidentRules: Array<AlertIncidentRule>;
   projectHasIncidentOnCallRules: boolean;
   projectHasAlertOnCallRules: boolean;
   // People's and teams' names, by id, read once.
   userNames: Map<string, string>;
   teamNames: Map<string, string>;
+  /*
+   * Whether a team is the project's, by id, read with its name: a team of
+   * another project is named by nobody here (#7572).
+   */
+  projectTeams: Map<string, boolean>;
   /*
    * Who an owner's Created email reaches, by id, read once
    * (readOwnersReached): whether a person is a member of the project, and
@@ -220,9 +306,13 @@ interface ProjectContext {
    */
   matching: PreloadedMatching | null;
   /*
-   * Only the breaks are wanted (resolveProject): who is emailed as owners
-   * and the status pages an incident shows on are not read, as no break
-   * depends on them.
+   * What Setup health needs, and no more (resolveProject): the breaks, and
+   * every record's owners as ids - whom its Alert Owner rules match on
+   * (#9407), who may read it when it is private (#9370), and who no Created
+   * email reaches (#9371) - but not the names of those it reaches, the
+   * people its email is addressed to, the matched rules' owners by name,
+   * the label rules that change who is paged, nor the status pages an
+   * incident shows on: no finding depends on them.
    */
   isForBreaksOnly: boolean;
 }
@@ -236,6 +326,18 @@ interface PreloadedMatching {
 // What one resolve of one monitor reads once and hands every criteria.
 interface ResolveContext extends ProjectContext {
   monitor: Monitor;
+  /*
+   * The monitor as every rule engine's matching reads it - its name,
+   * description and labels - seeded with the monitor in hand: the project's
+   * shared cache for breaks only, else one of this resolve's own.
+   */
+  monitorCache: MonitorRuleCriteriaCache;
+  /*
+   * A monitor not created yet (getForDraft): who creates it, and so owns it
+   * as it is created (DatabaseService.autoOwnerOnCreate) - null for a saved
+   * monitor, or a creator who is no person. It is on no status page yet.
+   */
+  newMonitorCreatorId: string | null;
   // What a title can say before a check (buildStorageMapBeforeCheck).
   storageMap: JSONObject;
   // What an incident or alert from the monitor is about, read when needed.
@@ -287,6 +389,20 @@ interface FirstLevel {
   notPaged: Array<string>;
   notPagedCodes: Array<OnCallTestPageNotPaged>;
   levelCount: number;
+}
+
+/*
+ * A monitor someone is setting up (#7055): on Create Monitor, the form's
+ * name, type, labels and steps; editing a saved monitor's criteria, its id
+ * and the steps being edited.
+ */
+export interface WhoIsToldDraft {
+  monitorId?: ObjectID | undefined;
+  name: string;
+  description?: string | undefined;
+  monitorType: MonitorType;
+  monitorSteps: MonitorSteps;
+  labelIds: Array<ObjectID>;
 }
 
 // One criteria of a monitor, and the step it is checked in.
@@ -387,6 +503,60 @@ interface OwnerRuleAdditions {
 interface EventOwners {
   owners: WhoIsToldOwners;
   ownerRules: Array<WhoIsToldRule>;
+  // The ids of its owners as the record will have them (WhoIsToldOwnerIds).
+  ownerIds: WhoIsToldOwnerIds;
+}
+
+// The ids of a record's owners, people and teams in one list, as an owner condition reads them.
+function ownerIdsOf(owners: EventOwners): Array<string> {
+  return [...owners.ownerIds.userIds, ...owners.ownerIds.teamIds];
+}
+
+const NO_DEVICE_OWNERS: NetworkDeviceOwners = {
+  ownerUserIds: [],
+  ownerTeamIds: [],
+};
+
+/*
+ * The owners a record is given as it opens: the criteria's - or, for an
+ * incident declared from a private alert, the alert's - and what named
+ * them, for an owner no email reaches (#7572). Null when they are said
+ * elsewhere: the alert's owners an incident takes are the alert's to say.
+ */
+interface NamedOwners {
+  userIds: ReadonlyArray<ObjectID | string>;
+  teamIds: ReadonlyArray<ObjectID | string>;
+  addedBy: WhoIsToldOwnerAddedBy | null;
+}
+
+// A rule as the chain names it.
+function toWhoIsToldRule(rule: {
+  id?: ObjectID | null | undefined;
+  name?: string | null | undefined;
+}): WhoIsToldRule {
+  return { id: idText(rule.id), name: rule.name?.toString() || "" };
+}
+
+// Whether two matchings found the same rules.
+function sameRuleIds(
+  left: ReadonlyArray<{ id?: ObjectID | null | undefined }>,
+  right: ReadonlyArray<{ id?: ObjectID | null | undefined }>,
+): boolean {
+  const ids: (
+    rules: ReadonlyArray<{ id?: ObjectID | null | undefined }>,
+  ) => string = (
+    rules: ReadonlyArray<{ id?: ObjectID | null | undefined }>,
+  ): string => {
+    return uniqueIds(
+      rules.map((rule: { id?: ObjectID | null | undefined }): string => {
+        return idText(rule.id).toLowerCase();
+      }),
+    )
+      .sort()
+      .join("|");
+  };
+
+  return ids(left) === ids(right);
 }
 
 const NO_OWNER_RULE_ADDITIONS: OwnerRuleAdditions = {
@@ -512,6 +682,111 @@ export function canServerSendBy(
  * it sends them: each picked rule read as a test page's preview reads a
  * rule (getPreviewMethodsOfRule), each channel once.
  */
+// The resources a page lists that reach the monitor, by the page's id.
+function getPageResources(
+  reached: ResolvedIncidentStatusPages,
+  statusPageId: string,
+): Array<StatusPageResource> {
+  for (const [key, resources] of Object.entries(
+    reached.statusPageToResources,
+  )) {
+    if (key.toLowerCase() === statusPageId.toLowerCase()) {
+      return resources || [];
+    }
+  }
+
+  return [];
+}
+
+/*
+ * THE MONITOR GROUPS A STATUS PAGE SHOWS THE MONITOR THROUGH (#7214),
+ * each once, by name - none when the page lists the monitor itself: that
+ * resource is what people change first, whatever groups the monitor is in.
+ */
+export function getMonitorGroupsOfPage(data: {
+  monitorId: string;
+  resources: ReadonlyArray<StatusPageResource>;
+}): Array<WhoIsToldMonitorGroup> {
+  const monitorId: string = data.monitorId.toLowerCase();
+
+  const listsItself: boolean = data.resources.some(
+    (resource: StatusPageResource): boolean => {
+      return idText(resource.monitorId).toLowerCase() === monitorId;
+    },
+  );
+
+  if (listsItself) {
+    return [];
+  }
+
+  const groups: Array<WhoIsToldMonitorGroup> = [];
+
+  for (const resource of data.resources) {
+    const id: string = idText(
+      resource.monitorGroupId || resource.monitorGroup?.id,
+    );
+
+    if (
+      !id ||
+      groups.some((group: WhoIsToldMonitorGroup): boolean => {
+        return group.id.toLowerCase() === id.toLowerCase();
+      })
+    ) {
+      continue;
+    }
+
+    groups.push({
+      id: id,
+      name: resource.monitorGroup?.name?.toString() || "",
+    });
+  }
+
+  return groups;
+}
+
+/*
+ * Every incident and alert of an answer: each criteria's, and the incident
+ * an alert incident rule declares from an alert (#7216).
+ */
+export function getAllEvents(
+  result: Pick<WhoIsToldResult, "criteria">,
+): Array<WhoIsToldEvent> {
+  const events: Array<WhoIsToldEvent> = [];
+
+  for (const item of result.criteria) {
+    for (const event of item.events) {
+      events.push(event);
+
+      if (event.declares) {
+        events.push(event.declares.incident);
+      }
+    }
+  }
+
+  return events;
+}
+
+/*
+ * Whether the caller could read a record the criteria would open once it
+ * exists, private (#7213): by the private-record rule
+ * (canReadPrivateRecordWithOwners), on the owners the resolver worked out
+ * for it. One whose owners were not worked out is nobody's but those who
+ * see every private record.
+ */
+export function canReadPrivateRecord(data: {
+  props: DatabaseCommonInteractionProps;
+  ownerIds: WhoIsToldOwnerIds | undefined;
+  // The teams whose invitation the caller has accepted, by lower-cased id.
+  memberOfTeamIds: ReadonlySet<string>;
+}): boolean {
+  return canReadPrivateRecordWithOwners({
+    props: data.props,
+    ownerUserIds: data.ownerIds?.userIds || [],
+    ownerTeamIds: data.ownerIds?.teamIds || [],
+    callerAcceptedTeamIds: data.memberOfTeamIds,
+  });
+}
+
 export function getFallbackRuleChannels(
   rules: ReadonlyArray<FallbackRule>,
 ): Array<OnCallPageChannel> {
@@ -573,31 +848,213 @@ export class WhoIsToldService {
       refresh: data.refresh,
     });
 
+    return await this.getForCaller({
+      projectId: data.projectId,
+      props: data.props,
+      result: result,
+    });
+  }
+
+  /*
+   * WHO A MONITOR NOT SAVED YET WOULD TELL (#7055): the answer for the
+   * criteria someone is choosing - on Create Monitor, or editing a saved
+   * monitor's criteria - worked out by the same resolver as a saved
+   * monitor's, on the monitor held in memory, and handed to them as they
+   * may see it. Nothing is read from a cache or kept.
+   *
+   * A new monitor takes the name, type, labels and steps of the form; it
+   * is on no status page yet, and whoever creates it owns it as it is
+   * created (DatabaseService.autoOwnerOnCreate): its status changes email
+   * them, and an owner rule that inherits the monitor's owners adds them.
+   * Previewing it takes what creating it takes. A saved monitor's criteria
+   * take its own name, labels and status pages, and the steps being edited;
+   * previewing them takes reading it.
+   */
+  @CaptureSpan()
+  public static async getForDraft(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    draft: WhoIsToldDraft;
+  }): Promise<WhoIsToldResult> {
+    const monitor: Monitor = await this.getDraftMonitor(data);
+    const isNew: boolean = !data.draft.monitorId;
+
+    const project: ProjectContext = await this.readProjectContext({
+      projectId: data.projectId,
+      matching: null,
+      isForBreaksOnly: false,
+    });
+
+    const result: WhoIsToldResult = await this.resolveMonitor({
+      project: project,
+      monitor: monitor,
+      newMonitor: isNew
+        ? {
+            // As DatabaseService.autoOwnerOnCreate makes them its owner.
+            creatorUserId:
+              OwnedScopePermission.isCreatorMadeOwner(data.props) &&
+              OwnedScopePermission.hasOwnerTables(Monitor)
+                ? data.props.userId!.toString()
+                : null,
+          }
+        : undefined,
+    });
+
+    return await this.getForCaller({
+      projectId: data.projectId,
+      props: data.props,
+      result: { ...result, monitorId: isNew ? "" : result.monitorId },
+    });
+  }
+
+  /*
+   * The monitor a draft describes, held in memory: a saved one read as the
+   * resolver reads it (the caller must be able to read it), its steps those
+   * of the draft; or a new one, for a caller who may create a monitor, with
+   * an id of its own that names no saved monitor.
+   */
+  private static async getDraftMonitor(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    draft: WhoIsToldDraft;
+  }): Promise<Monitor> {
+    if (data.draft.monitorId) {
+      const readable: Monitor | null = await MonitorService.findOneBy({
+        query: {
+          _id: data.draft.monitorId.toString(),
+          projectId: data.projectId,
+        },
+        select: { _id: true },
+        props: data.props,
+      });
+
+      const saved: Monitor | null = readable
+        ? await MonitorService.findOneBy({
+            query: {
+              _id: data.draft.monitorId.toString(),
+              projectId: data.projectId,
+            },
+            select: WHO_IS_TOLD_MONITOR_SELECT,
+            props: { isRoot: true },
+          })
+        : null;
+
+      if (!saved) {
+        throw new BadDataException("Monitor not found.");
+      }
+
+      saved.monitorSteps = data.draft.monitorSteps;
+
+      return saved;
+    }
+
+    /*
+     * Seeing who a new monitor tells takes what creating it takes: the very
+     * checks its create runs, asked without creating it
+     * (DatabaseService.checkCallerMayCreate) - the table and every column
+     * it is written with, its labels, and what a grant limited to labels or
+     * to owned records reaches - refused as its create would be. Asked of a
+     * copy of its own, as the check stamps what it is handed.
+     */
+    await MonitorService.checkCallerMayCreate({
+      data: this.newMonitorOfDraft(data),
+      props: data.props,
+    });
+
+    const monitor: Monitor = this.newMonitorOfDraft(data);
+    monitor.id = ObjectID.generate();
+
+    return monitor;
+  }
+
+  // A new monitor as a draft describes it, as its create would be handed it.
+  private static newMonitorOfDraft(data: {
+    projectId: ObjectID;
+    draft: WhoIsToldDraft;
+  }): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor.projectId = data.projectId;
+    monitor.name = data.draft.name;
+    monitor.description = data.draft.description || "";
+    monitor.monitorType = data.draft.monitorType;
+    monitor.monitorSteps = data.draft.monitorSteps;
+    monitor.labels = uniqueIds(data.draft.labelIds).map((id: string): Label => {
+      const label: Label = new Label();
+      label._id = id;
+      return label;
+    });
+
+    return monitor;
+  }
+
+  /*
+   * An answer as one caller may see it (redactWhoIsTold): each policy,
+   * rule, status page and monitor group asked as they would list it, and
+   * each private record (#7213) theirs only when they could read it once it
+   * exists - as an owner of it, an accepted member of a team of its owners,
+   * or a Project Owner or Project Admin (canReadPrivateRecord).
+   */
+  private static async getForCaller(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    result: WhoIsToldResult;
+  }): Promise<WhoIsToldResult> {
+    const { projectId, props, result } = data;
+
     const policyIds: Set<string> = new Set<string>();
     const incidentRuleIds: Set<string> = new Set<string>();
     const alertRuleIds: Set<string> = new Set<string>();
     const incidentOwnerRuleIds: Set<string> = new Set<string>();
     const alertOwnerRuleIds: Set<string> = new Set<string>();
+    const incidentPrivacyRuleIds: Set<string> = new Set<string>();
+    const alertPrivacyRuleIds: Set<string> = new Set<string>();
+    const incidentLabelRuleIds: Set<string> = new Set<string>();
+    const alertLabelRuleIds: Set<string> = new Set<string>();
+    const alertIncidentRuleIds: Set<string> = new Set<string>();
     const statusPageIds: Set<string> = new Set<string>();
+    const monitorGroupIds: Set<string> = new Set<string>();
 
-    for (const item of result.criteria) {
-      for (const event of item.events) {
-        const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
+    for (const event of getAllEvents(result)) {
+      const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
 
-        for (const policy of event.policies) {
-          policyIds.add(policy.id);
+      for (const policy of event.policies) {
+        policyIds.add(policy.id);
+      }
+
+      for (const rule of event.rules) {
+        (isAlert ? alertRuleIds : incidentRuleIds).add(rule.id);
+      }
+
+      for (const rule of event.ownerRules) {
+        (isAlert ? alertOwnerRuleIds : incidentOwnerRuleIds).add(rule.id);
+      }
+
+      // An owner rule that adds only owners no email reaches is named too (#7572).
+      for (const owner of event.owners.notReached || []) {
+        if (owner.rule) {
+          (isAlert ? alertOwnerRuleIds : incidentOwnerRuleIds).add(
+            owner.rule.id,
+          );
         }
+      }
 
-        for (const rule of event.rules) {
-          (isAlert ? alertRuleIds : incidentRuleIds).add(rule.id);
-        }
+      for (const rule of event.privacyRules || []) {
+        (isAlert ? alertPrivacyRuleIds : incidentPrivacyRuleIds).add(rule.id);
+      }
 
-        for (const rule of event.ownerRules) {
-          (isAlert ? alertOwnerRuleIds : incidentOwnerRuleIds).add(rule.id);
-        }
+      for (const rule of event.labelRules || []) {
+        (isAlert ? alertLabelRuleIds : incidentLabelRuleIds).add(rule.id);
+      }
 
-        for (const page of event.statusPages) {
-          statusPageIds.add(page.id);
+      if (event.declares) {
+        alertIncidentRuleIds.add(event.declares.rule.id);
+      }
+
+      for (const page of event.statusPages) {
+        statusPageIds.add(page.id);
+
+        for (const group of page.groups || []) {
+          monitorGroupIds.add(group.id);
         }
       }
     }
@@ -608,11 +1065,11 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await OnCallDutyPolicyService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
         });
       },
     });
@@ -623,11 +1080,11 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await IncidentOnCallRuleService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
         });
       },
     });
@@ -638,11 +1095,11 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await AlertOnCallRuleService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
         });
       },
     });
@@ -653,11 +1110,11 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await IncidentOwnerRuleService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
         });
       },
     });
@@ -668,11 +1125,86 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await AlertOwnerRuleService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
+        });
+      },
+    });
+
+    const readableIncidentPrivacyRules: Set<string> = await this.readableIds({
+      ids: incidentPrivacyRuleIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await IncidentPrivacyRuleService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
+        });
+      },
+    });
+
+    const readableAlertPrivacyRules: Set<string> = await this.readableIds({
+      ids: alertPrivacyRuleIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await AlertPrivacyRuleService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
+        });
+      },
+    });
+
+    const readableIncidentLabelRules: Set<string> = await this.readableIds({
+      ids: incidentLabelRuleIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await IncidentLabelRuleService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
+        });
+      },
+    });
+
+    const readableAlertLabelRules: Set<string> = await this.readableIds({
+      ids: alertLabelRuleIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await AlertLabelRuleService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
+        });
+      },
+    });
+
+    const readableAlertIncidentRules: Set<string> = await this.readableIds({
+      ids: alertIncidentRuleIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await AlertIncidentRuleService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
         });
       },
     });
@@ -684,14 +1216,36 @@ export class WhoIsToldService {
         query: Array<ObjectID>,
       ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await StatusPageService.findBy({
-          query: { _id: QueryHelper.any(query), projectId: data.projectId },
+          query: { _id: QueryHelper.any(query), projectId: projectId },
           select: { _id: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
-          props: data.props,
+          props: props,
         });
       },
     });
+
+    // So are monitor groups (#7214).
+    const readableMonitorGroups: Set<string> = await this.readableIds({
+      ids: monitorGroupIds,
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
+        return await MonitorGroupService.findBy({
+          query: { _id: QueryHelper.any(query), projectId: projectId },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: props,
+        });
+      },
+    });
+
+    const canReadPrivateEvent: (event: WhoIsToldEvent) => boolean =
+      await this.readPrivateEventReader({
+        props: props,
+        results: [result],
+      });
 
     return redactWhoIsTold({
       result: result,
@@ -705,7 +1259,120 @@ export class WhoIsToldService {
         ...readableAlertOwnerRules,
       ]),
       readableStatusPageIds: readableStatusPages,
+      readableMonitorGroupIds: readableMonitorGroups,
+      readablePrivacyRuleIds: new Set<string>([
+        ...readableIncidentPrivacyRules,
+        ...readableAlertPrivacyRules,
+      ]),
+      readableLabelRuleIds: new Set<string>([
+        ...readableIncidentLabelRules,
+        ...readableAlertLabelRules,
+      ]),
+      readableAlertIncidentRuleIds: readableAlertIncidentRules,
+      canReadPrivateEvent: canReadPrivateEvent,
     });
+  }
+
+  /*
+   * WHICH PRIVATE RECORDS OF THESE ANSWERS THE CALLER COULD READ once they
+   * exist (#7213), by the private-record rule (canReadPrivateRecord) on the
+   * owners the resolver worked out: the owner teams whose invitation they
+   * have accepted are read once for all of them, and not at all when there
+   * is no private record, or they see every one. A monitor's card
+   * (getForCaller) and Setup health (readHiddenFromCaller, #9370) ask it the
+   * same way.
+   */
+  private static async readPrivateEventReader(data: {
+    props: DatabaseCommonInteractionProps;
+    results: ReadonlyArray<WhoIsToldResult>;
+  }): Promise<(event: WhoIsToldEvent) => boolean> {
+    const privateOwnerTeamIds: Set<string> = new Set<string>();
+
+    for (const result of data.results) {
+      for (const event of getAllEvents(result)) {
+        if (event.isPrivate) {
+          for (const teamId of event.ownerIds?.teamIds || []) {
+            privateOwnerTeamIds.add(teamId);
+          }
+        }
+      }
+    }
+
+    const memberOfTeamIds: Set<string> = await this.readCallerAcceptedTeamIds({
+      props: data.props,
+      teamIds: privateOwnerTeamIds,
+    });
+
+    return (event: WhoIsToldEvent): boolean => {
+      return canReadPrivateRecord({
+        props: data.props,
+        ownerIds: event.ownerIds,
+        memberOfTeamIds: memberOfTeamIds,
+      });
+    };
+  }
+
+  /*
+   * THE RECORDS THESE CHAINS WOULD OPEN THAT ARE HIDDEN FROM THE CALLER
+   * (#7213): private, and not theirs to see once they exist - as each
+   * monitor's card hides them from the same caller. Setup health lists no
+   * finding such a record alone raises (#9370): the chains come from
+   * resolveProject, which works out every private record's owners.
+   */
+  public static async readHiddenFromCaller(data: {
+    props: DatabaseCommonInteractionProps;
+    results: ReadonlyArray<WhoIsToldResult>;
+  }): Promise<(event: WhoIsToldEvent) => boolean> {
+    const canReadPrivateEvent: (event: WhoIsToldEvent) => boolean =
+      await this.readPrivateEventReader(data);
+
+    return (event: WhoIsToldEvent): boolean => {
+      return isWhoIsToldEventHidden(event, canReadPrivateEvent);
+    };
+  }
+
+  /*
+   * The teams among these whose invitation the caller has accepted: those
+   * through which a private record's owner team lets them read it, as
+   * PrivateRecordReadFilter reads the same TeamMember rows.
+   */
+  private static async readCallerAcceptedTeamIds(data: {
+    props: DatabaseCommonInteractionProps;
+    teamIds: Set<string>;
+  }): Promise<Set<string>> {
+    if (
+      data.teamIds.size === 0 ||
+      !data.props.userId ||
+      shouldBypassRecordPrivacy(data.props)
+    ) {
+      return new Set<string>();
+    }
+
+    const members: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        userId: data.props.userId,
+        teamId: QueryHelper.any(
+          Array.from(data.teamIds).map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+        hasAcceptedInvitation: true,
+      },
+      select: { teamId: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+
+    return new Set<string>(
+      members
+        .map((member: TeamMember): string => {
+          return idText(member.teamId).toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
   }
 
   /*
@@ -808,9 +1475,24 @@ export class WhoIsToldService {
    * `preloaded`); each policy's first level and each person's paging rules
    * are read once however many monitors reach them; and `readiness` (the
    * project's, from OnCallReadinessService.getReadinessForProject) gives
-   * every responder's verified methods up front. Who is emailed as owners
-   * (names, a network device's owners, owner rules) and the status pages
-   * are not read: no break depends on them.
+   * every responder's verified methods up front. The status pages, and the
+   * names of the owners an email reaches, are not read: no finding depends
+   * on them.
+   *
+   * EVERY RECORD'S OWNERS, as ids, as the card works them out: the people
+   * and teams its criteria names, the owners of the network device the
+   * monitor watches, and whom the owner rules add. An alert on-call rule
+   * can match on them (Alert Owner, #9407), a private record is theirs to
+   * read (#9370: a reader who may not is told none of the breaks it raises,
+   * readHiddenFromCaller), and Setup health lists the owners no Created
+   * email reaches (#9371). They are read for the project at once
+   * (readOwnersOfProject): the owner rules once; every device's owners in
+   * one read; every monitor's own owners in one, when an owner rule
+   * inherits them; and whether each person and team named anywhere is
+   * reached, in one. A project that names nobody reads none of it. Only an
+   * owner rule that inherits from a monitor's hosts, clusters or services
+   * reads what each monitor is about, as label rules that inherit from them
+   * do.
    *
    * Not cached: its reader keeps its own answer (SetupHealthService).
    */
@@ -855,6 +1537,11 @@ export class WhoIsToldService {
         this.verifiedChannelsOf(person),
       );
     }
+
+    await this.readOwnersOfProject({
+      project: project,
+      monitors: data.monitors,
+    });
 
     const results: Array<WhoIsToldResult> = [];
 
@@ -908,16 +1595,31 @@ export class WhoIsToldService {
       statuses: await this.readStatuses(data.projectId),
       policyNames: policies.names,
       projectHasOnCallPolicies: policies.hasPolicyInService,
-      /*
-       * Owners are not worked out for breaks only (getUnreadOwners), so the
-       * owner rules are not read then.
-       */
-      incidentOwnerRules: data.isForBreaksOnly
-        ? []
-        : await IncidentOwnerRuleEngineService.getEnabledRules(data.projectId),
-      alertOwnerRules: data.isForBreaksOnly
-        ? []
-        : await AlertOwnerRuleEngineService.getEnabledRules(data.projectId),
+      // Every record's owners are worked out, for breaks only too (#9407).
+      incidentOwnerRules: await IncidentOwnerRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
+      alertOwnerRules: await AlertOwnerRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
+      deviceOwnersByDevice: null,
+      inheritedOwners: data.matching ? new InheritedOwnersCache() : null,
+      incidentPrivacyRules:
+        await IncidentPrivacyRuleEngineService.getEnabledRules(data.projectId),
+      alertPrivacyRules: await AlertPrivacyRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
+      // Labels change which on-call rules page, so breaks need them too.
+      incidentLabelRules: await IncidentLabelRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
+      alertLabelRules: await AlertLabelRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
+      // An alert that becomes an incident that pages is no break.
+      alertIncidentRules: await AlertIncidentRuleEngineService.getEnabledRules(
+        data.projectId,
+      ),
       projectHasIncidentOnCallRules: await this.hasEnabled(
         IncidentOnCallRuleService,
         data.projectId,
@@ -928,6 +1630,7 @@ export class WhoIsToldService {
       ),
       userNames: new Map<string, string>(),
       teamNames: new Map<string, string>(),
+      projectTeams: new Map<string, boolean>(),
       projectMembers: new Map<string, boolean>(),
       teamsWithMembers: new Map<string, boolean>(),
       teamMemberIds: new Map<string, Array<string>>(),
@@ -943,6 +1646,119 @@ export class WhoIsToldService {
       matching: data.matching,
       isForBreaksOnly: data.isForBreaksOnly,
     };
+  }
+
+  /*
+   * WHO EVERY MONITOR'S RECORDS ARE OWNED BY, READ FOR THE PROJECT AT ONCE
+   * (resolveProject, #9407, #9371), so that working out each record's
+   * owners reads nothing per monitor:
+   *
+   *   - the owners of every network device a monitor's step watches, in
+   *     one read (getDeviceOwnersForDevices);
+   *   - every monitor's own owners, in one read, when an owner rule
+   *     inherits a monitor's owners (InheritedOwnersCache);
+   *   - whether each person named anywhere - a criteria, a device, an owner
+   *     rule, a monitor's owners - is a member of the project, and each
+   *     team the project's and reached, in one read each (readOwnersReached,
+   *     readTeamNames).
+   *
+   * A project whose monitors watch no device, whose owner rules inherit
+   * from no monitor and that names nobody reads none of it.
+   */
+  private static async readOwnersOfProject(data: {
+    project: ProjectContext;
+    monitors: Array<Monitor>;
+  }): Promise<void> {
+    const project: ProjectContext = data.project;
+    const deviceIds: Array<ObjectID> = [];
+    const seenDevices: Set<string> = new Set<string>();
+    const userIds: Array<ObjectID | string> = [];
+    const teamIds: Array<ObjectID | string> = [];
+
+    for (const monitor of data.monitors) {
+      for (const item of getMonitorCriteria(monitor.monitorSteps)) {
+        const deviceId: ObjectID | null =
+          NetworkDeviceOwnerUserService.getDeviceIdForMonitor({
+            monitor: monitor,
+            monitorStepId: item.monitorStepId || undefined,
+          });
+        const key: string = idText(deviceId).toLowerCase();
+
+        if (deviceId && key && !seenDevices.has(key)) {
+          seenDevices.add(key);
+          deviceIds.push(deviceId);
+        }
+
+        const criteria: MonitorCriteriaInstance["data"] = item.instance.data;
+
+        for (const template of [
+          ...(criteria?.createIncidents ? criteria.incidents || [] : []),
+          ...(criteria?.createAlerts ? criteria.alerts || [] : []),
+        ]) {
+          userIds.push(...(template.ownerUserIds || []));
+          teamIds.push(...(template.ownerTeamIds || []));
+        }
+      }
+    }
+
+    project.deviceOwnersByDevice =
+      deviceIds.length > 0
+        ? await NetworkDeviceOwnerUserService.getDeviceOwnersForDevices({
+            projectId: project.projectId,
+            networkDeviceIds: deviceIds,
+          })
+        : new Map<string, NetworkDeviceOwners>();
+
+    for (const owners of project.deviceOwnersByDevice.values()) {
+      userIds.push(...owners.ownerUserIds);
+      teamIds.push(...owners.ownerTeamIds);
+    }
+
+    const ownerRules: Array<IncidentOwnerRule | AlertOwnerRule> = [
+      ...project.incidentOwnerRules,
+      ...project.alertOwnerRules,
+    ];
+
+    for (const rule of ownerRules) {
+      userIds.push(...OwnerRulePlanBuilder.idsOf(rule.ownerUsers));
+      teamIds.push(...OwnerRulePlanBuilder.idsOf(rule.ownerTeams));
+    }
+
+    const inheritsFromMonitors: boolean = ownerRules.some(
+      (rule: IncidentOwnerRule | AlertOwnerRule): boolean => {
+        return OwnerRulePlanBuilder.getInheritSources(rule).includes(
+          "monitors",
+        );
+      },
+    );
+
+    if (project.inheritedOwners && inheritsFromMonitors) {
+      await project.inheritedOwners.preload({
+        source: "monitors",
+        resourceIds: data.monitors
+          .map((monitor: Monitor): ObjectID | null => {
+            return monitor.id || null;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
+      const inherited: OwnerIdSets = project.inheritedOwners.getAllHeld();
+
+      userIds.push(...Array.from(inherited.userIds));
+      teamIds.push(...Array.from(inherited.teamIds));
+    }
+
+    const people: Array<string> = uniqueIds(userIds);
+    const teams: Array<string> = uniqueIds(teamIds);
+
+    await this.readOwnersReached({
+      context: project,
+      userIds: people,
+      teamIds: teams,
+    });
+    await this.readTeamNames({ context: project, teamIds: teams });
   }
 
   // Whether the project has an enabled rule of this kind.
@@ -969,20 +1785,34 @@ export class WhoIsToldService {
   private static async resolveMonitor(data: {
     project: ProjectContext;
     monitor: Monitor;
+    // A monitor not created yet, and who creates it (getForDraft).
+    newMonitor?: { creatorUserId: string | null } | undefined;
   }): Promise<WhoIsToldResult> {
     const monitorId: string = idText(data.monitor.id);
+
+    let monitorCache: MonitorRuleCriteriaCache | undefined =
+      data.project.matching?.monitorCache;
+
+    if (!monitorCache) {
+      // The monitor in hand, with the name, description and labels matching reads.
+      monitorCache = new MonitorRuleCriteriaCache();
+      monitorCache.seed(data.monitor);
+    }
 
     const context: ResolveContext = {
       ...data.project,
       monitor: data.monitor,
+      monitorCache: monitorCache,
+      newMonitorCreatorId: data.newMonitor?.creatorUserId || null,
       storageMap: MonitorTemplateUtil.buildStorageMapBeforeCheck({
         monitor: data.monitor,
       }),
       resources: null,
       deviceOwners: new Map<string, NetworkDeviceOwners>(),
       monitorOwnerNames: null,
+      // A monitor not created yet is on no status page.
       statusPages:
-        data.project.isForBreaksOnly || !monitorId
+        data.project.isForBreaksOnly || !monitorId || data.newMonitor
           ? []
           : await this.readStatusPages({
               projectId: data.project.projectId,
@@ -1006,6 +1836,12 @@ export class WhoIsToldService {
       }
     }
 
+    const facts: WhoIsToldProjectFacts = {
+      projectHasIncidentOnCallRules: context.projectHasIncidentOnCallRules,
+      projectHasAlertOnCallRules: context.projectHasAlertOnCallRules,
+      projectHasOnCallPolicies: context.projectHasOnCallPolicies,
+    };
+
     return {
       monitorId: monitorId,
       monitorName: data.monitor.name?.toString() || "",
@@ -1015,10 +1851,10 @@ export class WhoIsToldService {
       breaks: getWhoIsToldBreaks({
         criteria: criteria,
         channels: context.channels,
-        projectHasIncidentOnCallRules: context.projectHasIncidentOnCallRules,
-        projectHasAlertOnCallRules: context.projectHasAlertOnCallRules,
-        projectHasOnCallPolicies: context.projectHasOnCallPolicies,
+        ...facts,
       }),
+      // A reader's breaks are worked out again from these (redactWhoIsTold).
+      facts: facts,
     };
   }
 
@@ -1100,9 +1936,9 @@ export class WhoIsToldService {
   /*
    * The incident a criteria would open, held in memory, as MonitorIncident
    * makes it before a check reports anything: its rendered title and
-   * description, severity, labels and monitor - and the resources it is
-   * about, when an owner rule inherits from them. The on-call and owner
-   * rule engines are asked about it as they are asked about a real one.
+   * description, severity, labels and monitor - private when the criteria
+   * says so - and the resources it is about, when a rule inherits from
+   * them. It is then told as every new incident is (resolveIncidentRecord).
    */
   private static async resolveIncident(data: {
     context: ResolveContext;
@@ -1132,45 +1968,134 @@ export class WhoIsToldService {
     incident.monitors = [data.context.monitor];
     incident.labels = this.toLabels(data.template.labelIds);
 
-    const rules: Array<IncidentOnCallRule> = data.context.matching
-      ? await IncidentOnCallRuleEngineService.getMatchingRules(incident, {
-          rules: data.context.matching.incidentRules,
-          monitorCache: data.context.matching.monitorCache,
-        })
-      : await IncidentOnCallRuleEngineService.getMatchingRules(incident);
+    if (data.template.isPrivate === true) {
+      incident.isPrivate = true;
+    }
+
+    await this.attachResources({
+      context: data.context,
+      record: incident,
+      needsResources:
+        inheritsFromResources(data.context.incidentOwnerRules) ||
+        doLabelRulesInheritFromResources(data.context.incidentLabelRules),
+    });
+
+    return await this.resolveIncidentRecord({
+      context: data.context,
+      incident: incident,
+      templateId: data.template.id,
+      severityName: severity.name?.toString() || "",
+      onCallPolicyIds: data.template.onCallPolicyIds || [],
+      namedOwners: {
+        userIds: data.template.ownerUserIds || [],
+        teamIds: data.template.ownerTeamIds || [],
+        addedBy: WhoIsToldOwnerAddedBy.Criteria,
+      },
+      withDeviceOwners: true,
+      monitorStepId: data.monitorStepId,
+      showsOnStatusPages: data.template.showIncidentOnStatusPage !== false,
+    });
+  }
+
+  /*
+   * A NEW INCIDENT, TOLD AS ITS CREATE TELLS IT (IncidentService
+   * .onCreateSuccess), by each engine's own read-only plan of it, in the
+   * create's order:
+   *
+   *   1. privacy rules (unless it is private already): a private incident
+   *      shows on no status page (#7213);
+   *   2. owner rules;
+   *   3. label rules: their labels are the incident's when its on-call
+   *      rules match (#7212);
+   *   4. on-call rules.
+   *
+   * Used for what a criteria opens and for what an alert incident rule
+   * declares from an alert (#7216), whose owners are handed in.
+   */
+  private static async resolveIncidentRecord(data: {
+    context: ResolveContext;
+    incident: Incident;
+    // The criteria's template it is opened from; none for a declared one.
+    templateId: string | undefined;
+    severityName: string;
+    onCallPolicyIds: Array<ObjectID>;
+    namedOwners: NamedOwners;
+    // The owners of the network device the monitor watches are its owners too.
+    withDeviceOwners: boolean;
+    monitorStepId: string;
+    showsOnStatusPages: boolean;
+  }): Promise<WhoIsToldEvent> {
+    const { context, incident } = data;
+
+    const privacyRules: Array<WhoIsToldRule> = await this.planIncidentPrivacy({
+      context: context,
+      incident: incident,
+    });
 
     let ownerPlan: OwnerRulePlan<IncidentOwnerRule> | null = null;
 
-    if (data.context.incidentOwnerRules.length > 0) {
-      await this.attachResources({
-        context: data.context,
-        record: incident,
-        rules: data.context.incidentOwnerRules,
-      });
-
+    if (context.incidentOwnerRules.length > 0) {
       ownerPlan = await IncidentOwnerRuleEngineService.planRules({
         incident: incident,
-        rules: data.context.incidentOwnerRules,
+        rules: context.incidentOwnerRules,
         allowOwnerNotification: true,
+        monitorCache: context.monitorCache,
+        pendingOwners: this.getPendingOwners(context),
+        inheritedOwners: context.inheritedOwners || undefined,
       });
     }
 
-    return await this.makeEvent({
-      context: data.context,
+    const labelPlan: LabelRulePlan<IncidentLabelRule> =
+      await this.planIncidentLabels({ context: context, incident: incident });
+
+    const paging: {
+      rules: Array<IncidentOnCallRule>;
+      labelRules: Array<WhoIsToldRule>;
+    } = await this.matchWithLabels<IncidentOnCallRule, IncidentLabelRule>({
+      context: context,
+      record: incident,
+      labelPlan: labelPlan,
+      match: async (): Promise<Array<IncidentOnCallRule>> => {
+        return await IncidentOnCallRuleEngineService.getMatchingRules(
+          incident,
+          {
+            rules: context.matching?.incidentRules,
+            monitorCache: context.monitorCache,
+          },
+        );
+      },
+    });
+
+    const isPrivate: boolean = incident.isPrivate === true;
+
+    const event: WhoIsToldEvent = await this.makeEvent({
+      context: context,
       kind: OnCallTestPageRecordKind.Incident,
-      title: text.title,
-      severityId: severity.id,
-      severityName: severity.name?.toString() || "",
-      template: data.template,
-      monitorStepId: data.monitorStepId,
-      ownerRuleAdditions: getOwnerRuleAdditions(ownerPlan),
-      rules: rules,
+      templateId: data.templateId,
+      title: incident.title || "",
+      severityId: incident.incidentSeverityId!,
+      severityName: data.severityName,
+      onCallPolicyIds: data.onCallPolicyIds,
+      owners: await this.getEventOwners({
+        context: context,
+        namedOwners: data.namedOwners,
+        withDeviceOwners: data.withDeviceOwners,
+        monitorStepId: data.monitorStepId,
+        ownerRuleAdditions: getOwnerRuleAdditions(ownerPlan),
+      }),
+      rules: paging.rules,
       // A private incident, or one kept off status pages, shows on none.
       statusPages:
-        data.template.showIncidentOnStatusPage === false ||
-        data.template.isPrivate === true
-          ? []
-          : data.context.statusPages,
+        !data.showsOnStatusPages || isPrivate ? [] : context.statusPages,
+    });
+
+    return this.withRecordFacts({
+      event: event,
+      isPrivate: isPrivate,
+      privacyRules: privacyRules,
+      isPrivateOffStatusPages:
+        isPrivate && data.showsOnStatusPages && context.statusPages.length > 0,
+      labelRules: paging.labelRules,
     });
   }
 
@@ -1180,8 +2105,10 @@ export class WhoIsToldService {
     template: CriteriaAlert;
     monitorStepId: string;
   }): Promise<WhoIsToldEvent | null> {
+    const { context } = data;
+
     const severity: AlertSeverity | null = pickSeverity(
-      data.context.alertSeverities,
+      context.alertSeverities,
       data.template.alertSeverityId,
     );
 
@@ -1190,53 +2117,467 @@ export class WhoIsToldService {
     }
 
     const text: MonitorRecordTextResult = this.renderText({
-      context: data.context,
+      context: context,
       template: data.template,
     });
 
     const alert: Alert = new Alert();
-    alert.projectId = data.context.projectId;
+    alert.projectId = context.projectId;
     alert.alertSeverityId = severity.id;
     alert.title = text.title;
     alert.description = text.description;
-    alert.monitorId = data.context.monitor.id!;
+    alert.monitorId = context.monitor.id!;
     alert.labels = this.toLabels(data.template.labelIds);
 
-    const rules: Array<AlertOnCallRule> = data.context.matching
-      ? await AlertOnCallRuleEngineService.getMatchingRules(alert, {
-          rules: data.context.matching.alertRules,
-          monitorCache: data.context.matching.monitorCache,
-        })
-      : await AlertOnCallRuleEngineService.getMatchingRules(alert);
+    if (data.template.isPrivate === true) {
+      alert.isPrivate = true;
+    }
+
+    /*
+     * What the alert is about, when a rule inherits from it - an incident
+     * an alert incident rule declares takes the alert's resources, and its
+     * own rules may inherit from them.
+     */
+    await this.attachResources({
+      context: context,
+      record: alert,
+      needsResources:
+        inheritsFromResources(context.alertOwnerRules) ||
+        doLabelRulesInheritFromResources(context.alertLabelRules) ||
+        (context.alertIncidentRules.length > 0 &&
+          (inheritsFromResources(context.incidentOwnerRules) ||
+            doLabelRulesInheritFromResources(context.incidentLabelRules))),
+    });
+
+    // The alert's create, in its order (AlertService.onCreateSuccess).
+    const privacyRules: Array<WhoIsToldRule> = await this.planAlertPrivacy({
+      context: context,
+      alert: alert,
+    });
 
     let ownerPlan: OwnerRulePlan<AlertOwnerRule> | null = null;
 
-    if (data.context.alertOwnerRules.length > 0) {
-      await this.attachResources({
-        context: data.context,
-        record: alert,
-        rules: data.context.alertOwnerRules,
-      });
-
+    if (context.alertOwnerRules.length > 0) {
       ownerPlan = await AlertOwnerRuleEngineService.planRules({
         alert: alert,
-        rules: data.context.alertOwnerRules,
+        rules: context.alertOwnerRules,
         allowOwnerNotification: true,
+        monitorCache: context.monitorCache,
+        pendingOwners: this.getPendingOwners(context),
+        inheritedOwners: context.inheritedOwners || undefined,
       });
     }
 
-    return await this.makeEvent({
-      context: data.context,
-      kind: OnCallTestPageRecordKind.Alert,
-      title: text.title,
-      severityId: severity.id,
-      severityName: severity.name?.toString() || "",
-      template: data.template,
+    /*
+     * ITS OWNERS, BEFORE ITS ON-CALL RULES MATCH (#9407). An alert on-call
+     * rule can match on who owns the alert (Alert Owner), and the real
+     * alert's owners are in by then: the people and teams its criteria
+     * names and the network device's owners (MonitorAlert adds them as it
+     * is created), and whom its owner rules add, which run before its
+     * on-call rules (AlertService.onCreateSuccess) - an owner added later
+     * runs those rules again (AlertOnCallRulesOnOwnerChange). They are
+     * handed to the engine's matching as its owner rows will hold them.
+     */
+    const owners: EventOwners = await this.getEventOwners({
+      context: context,
+      namedOwners: {
+        userIds: data.template.ownerUserIds || [],
+        teamIds: data.template.ownerTeamIds || [],
+        addedBy: WhoIsToldOwnerAddedBy.Criteria,
+      },
+      withDeviceOwners: true,
       monitorStepId: data.monitorStepId,
       ownerRuleAdditions: getOwnerRuleAdditions(ownerPlan),
-      rules: rules,
-      statusPages: [],
     });
+
+    const labelPlan: LabelRulePlan<AlertLabelRule> = await this.planAlertLabels(
+      { context: context, alert: alert },
+    );
+
+    const paging: {
+      rules: Array<AlertOnCallRule>;
+      labelRules: Array<WhoIsToldRule>;
+    } = await this.matchWithLabels<AlertOnCallRule, AlertLabelRule>({
+      context: context,
+      record: alert,
+      labelPlan: labelPlan,
+      match: async (): Promise<Array<AlertOnCallRule>> => {
+        return await AlertOnCallRuleEngineService.getMatchingRules(
+          alert,
+          {
+            rules: context.matching?.alertRules,
+            monitorCache: context.monitorCache,
+          },
+          { ownerIds: ownerIdsOf(owners) },
+        );
+      },
+    });
+
+    const isPrivate: boolean = alert.isPrivate === true;
+
+    const event: WhoIsToldEvent = this.withRecordFacts({
+      event: await this.makeEvent({
+        context: context,
+        kind: OnCallTestPageRecordKind.Alert,
+        templateId: data.template.id,
+        title: text.title,
+        severityId: severity.id,
+        severityName: severity.name?.toString() || "",
+        onCallPolicyIds: data.template.onCallPolicyIds || [],
+        owners: owners,
+        rules: paging.rules,
+        statusPages: [],
+      }),
+      isPrivate: isPrivate,
+      privacyRules: privacyRules,
+      isPrivateOffStatusPages: false,
+      labelRules: paging.labelRules,
+    });
+
+    // The owners that make an on-call rule match, as the card says them.
+    const ownerMatches: Array<WhoIsToldOwnerMatch> = this.getOwnerMatches({
+      context: context,
+      rules: paging.rules,
+      owners: owners,
+    });
+
+    if (ownerMatches.length > 0) {
+      event.ownerMatches = ownerMatches;
+    }
+
+    // Last, as the create's last rules: the incident an alert incident rule declares.
+    const declares: WhoIsToldEvent["declares"] = await this.resolveDeclaration({
+      context: context,
+      alert: alert,
+      alertEvent: event,
+      monitorStepId: data.monitorStepId,
+    });
+
+    if (declares) {
+      event.declares = declares;
+    }
+
+    return event;
+  }
+
+  /*
+   * THE INCIDENT AN ALERT INCIDENT RULE DECLARES FROM THE ALERT (#7216), by
+   * the engine's own plan (planDeclaration, planIncident) of the alert as
+   * its create leaves it - its labels and privacy as its rules set them -
+   * then told as any new incident is: its own privacy, owner, label and
+   * on-call rules, its status pages. It names no on-call policy of the
+   * alert's (declaring must not page anyone its own rules do not), and a
+   * private one has the alert's owners as its own, as declaring copies
+   * them (IncidentAlertService.copyAlertOwnersToIncident). Undefined when no
+   * rule matches, or the project has no incident severity to give it.
+   */
+  private static async resolveDeclaration(data: {
+    context: ResolveContext;
+    alert: Alert;
+    alertEvent: WhoIsToldEvent;
+    monitorStepId: string;
+  }): Promise<WhoIsToldEvent["declares"]> {
+    const { context } = data;
+
+    if (context.alertIncidentRules.length === 0) {
+      return undefined;
+    }
+
+    const plan: AlertIncidentRulePlan | null =
+      await AlertIncidentRuleEngineService.planDeclaration({
+        alert: data.alert,
+        rules: context.alertIncidentRules,
+        monitorCache: context.monitorCache,
+      });
+
+    if (!plan) {
+      return undefined;
+    }
+
+    const incident: Incident | null =
+      await AlertIncidentRuleEngineService.planIncident({
+        alert: data.alert,
+        rule: plan.rule,
+      });
+
+    if (!incident?.incidentSeverityId) {
+      return undefined;
+    }
+
+    const severityId: string = idText(incident.incidentSeverityId);
+    const severity: IncidentSeverity | undefined =
+      context.incidentSeverities.find((item: IncidentSeverity): boolean => {
+        return idText(item.id) === severityId;
+      });
+
+    const copied: WhoIsToldOwnerIds | undefined =
+      incident.isPrivate === true ? data.alertEvent.ownerIds : undefined;
+
+    return {
+      rule: {
+        id: idText(plan.rule.id),
+        name: plan.rule.name?.toString() || "",
+      },
+      waitInMinutes: plan.waitInMinutes,
+      incident: await this.resolveIncidentRecord({
+        context: context,
+        incident: incident,
+        templateId: undefined,
+        severityName: severity?.name?.toString() || "",
+        onCallPolicyIds: [],
+        namedOwners: {
+          userIds: copied?.userIds || [],
+          teamIds: copied?.teamIds || [],
+          // The alert's owners, said there already: not again.
+          addedBy: null,
+        },
+        withDeviceOwners: false,
+        monitorStepId: data.monitorStepId,
+        showsOnStatusPages: incident.isVisibleOnStatusPage !== false,
+      }),
+    };
+  }
+
+  /*
+   * Whether the project's incident privacy rules make the incident private
+   * (#7213), and which: the engine's own plan, asked only when it is not
+   * private already - its create asks no rule then either. Empty when none
+   * does, or the criteria made it private.
+   */
+  private static async planIncidentPrivacy(data: {
+    context: ResolveContext;
+    incident: Incident;
+  }): Promise<Array<WhoIsToldRule>> {
+    if (
+      data.incident.isPrivate === true ||
+      data.context.incidentPrivacyRules.length === 0
+    ) {
+      return [];
+    }
+
+    const plan: PrivacyRulePlan<IncidentPrivacyRule> =
+      await IncidentPrivacyRuleEngineService.planRules({
+        incident: data.incident,
+        rules: data.context.incidentPrivacyRules,
+        monitorCache: data.context.monitorCache,
+      });
+
+    if (!plan.makesPrivate) {
+      return [];
+    }
+
+    data.incident.isPrivate = true;
+
+    return getPrivacyRulesThatApply(plan).map(toWhoIsToldRule);
+  }
+
+  // The same of an alert, by the alert privacy rules.
+  private static async planAlertPrivacy(data: {
+    context: ResolveContext;
+    alert: Alert;
+  }): Promise<Array<WhoIsToldRule>> {
+    if (
+      data.alert.isPrivate === true ||
+      data.context.alertPrivacyRules.length === 0
+    ) {
+      return [];
+    }
+
+    const plan: PrivacyRulePlan<AlertPrivacyRule> =
+      await AlertPrivacyRuleEngineService.planRules({
+        alert: data.alert,
+        rules: data.context.alertPrivacyRules,
+        monitorCache: data.context.monitorCache,
+      });
+
+    if (!plan.makesPrivate) {
+      return [];
+    }
+
+    data.alert.isPrivate = true;
+
+    return getPrivacyRulesThatApply(plan).map(toWhoIsToldRule);
+  }
+
+  /*
+   * What the project's incident label rules add (#7212), by the engine's
+   * own plan. A plan that cannot be read - which labels are the project's
+   * - adds nothing, as the create logs it and labels nothing.
+   */
+  private static async planIncidentLabels(data: {
+    context: ResolveContext;
+    incident: Incident;
+  }): Promise<LabelRulePlan<IncidentLabelRule>> {
+    if (data.context.incidentLabelRules.length === 0) {
+      return getNoLabelRulePlan<IncidentLabelRule>();
+    }
+
+    try {
+      return await IncidentLabelRuleEngineService.planRules({
+        incident: data.incident,
+        rules: data.context.incidentLabelRules,
+        monitorCache: data.context.monitorCache,
+      });
+    } catch (err) {
+      logger.debug(
+        `WhoIsTold: the incident label rules could not be planned: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return getNoLabelRulePlan<IncidentLabelRule>();
+    }
+  }
+
+  // The same of an alert, by the alert label rules, on the resources it holds.
+  private static async planAlertLabels(data: {
+    context: ResolveContext;
+    alert: Alert;
+  }): Promise<LabelRulePlan<AlertLabelRule>> {
+    if (data.context.alertLabelRules.length === 0) {
+      return getNoLabelRulePlan<AlertLabelRule>();
+    }
+
+    const resources: LabelInheritableResources = {
+      monitorIds: data.alert.monitorId ? [data.alert.monitorId] : [],
+      hostIds: getLabelResourceIds(data.alert.hosts),
+      kubernetesClusterIds: getLabelResourceIds(data.alert.kubernetesClusters),
+      dockerHostIds: getLabelResourceIds(data.alert.dockerHosts),
+      podmanHostIds: getLabelResourceIds(data.alert.podmanHosts),
+      serviceIds: getLabelResourceIds(data.alert.services),
+    };
+
+    try {
+      return (
+        (await AlertLabelRuleEngineService.planRules({
+          alert: data.alert,
+          rules: data.context.alertLabelRules,
+          monitorCache: data.context.monitorCache,
+          resources: resources,
+        })) || getNoLabelRulePlan<AlertLabelRule>()
+      );
+    } catch (err) {
+      logger.debug(
+        `WhoIsTold: the alert label rules could not be planned: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return getNoLabelRulePlan<AlertLabelRule>();
+    }
+  }
+
+  /*
+   * THE ON-CALL RULES THAT MATCH, ONCE THE LABEL RULES HAVE RUN (#7212):
+   * the record takes the labels the plan adds, as the label engine hands
+   * them to the on-call engine in the create's chain, and is matched then.
+   * The label rules that add a label it lacked are named only when they
+   * change which on-call rules page it - matched once more without their
+   * labels to know - and not for breaks only.
+   */
+  private static async matchWithLabels<
+    TOnCallRule extends IncidentOnCallRule | AlertOnCallRule,
+    TLabelRule extends IncidentLabelRule | AlertLabelRule,
+  >(data: {
+    context: ResolveContext;
+    record: Incident | Alert;
+    labelPlan: LabelRulePlan<TLabelRule>;
+    match: () => Promise<Array<TOnCallRule>>;
+  }): Promise<{ rules: Array<TOnCallRule>; labelRules: Array<WhoIsToldRule> }> {
+    const had: Set<string> = new Set<string>(
+      (data.record.labels || []).map((label: Label): string => {
+        return idText(label.id || label._id);
+      }),
+    );
+
+    const added: Array<string> = data.labelPlan.labelIds.filter(
+      (id: string): boolean => {
+        return !had.has(id);
+      },
+    );
+
+    if (added.length === 0) {
+      return { rules: await data.match(), labelRules: [] };
+    }
+
+    const before: Array<TOnCallRule> | null = data.context.isForBreaksOnly
+      ? null
+      : await data.match();
+
+    data.record.labels = [
+      ...(data.record.labels || []),
+      ...this.toLabels(
+        added.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        }),
+      ),
+    ];
+
+    const after: Array<TOnCallRule> = await data.match();
+
+    if (!before || sameRuleIds(before, after)) {
+      return { rules: after, labelRules: [] };
+    }
+
+    return {
+      rules: after,
+      labelRules: data.labelPlan.entries
+        .filter((entry: LabelRulePlanEntry<TLabelRule>): boolean => {
+          return entry.labelIds.some((id: string): boolean => {
+            return !had.has(id);
+          });
+        })
+        .map((entry: LabelRulePlanEntry<TLabelRule>): WhoIsToldRule => {
+          return toWhoIsToldRule(entry.rule);
+        }),
+    };
+  }
+
+  /*
+   * The owners the monitor will have once it is created (getForDraft): its
+   * creator, whom an owner rule that inherits the monitor's owners adds as
+   * it would once they own it. None for a saved monitor.
+   */
+  private static getPendingOwners(
+    context: ResolveContext,
+  ): Map<OwnerRuleInheritSource, OwnerIdSets> | undefined {
+    if (!context.newMonitorCreatorId) {
+      return undefined;
+    }
+
+    return new Map<OwnerRuleInheritSource, OwnerIdSets>([
+      [
+        "monitors",
+        {
+          userIds: new Set<string>([context.newMonitorCreatorId]),
+          teamIds: new Set<string>(),
+        },
+      ],
+    ]);
+  }
+
+  // An event, with what its record's own rules say of it.
+  private static withRecordFacts(data: {
+    event: WhoIsToldEvent;
+    isPrivate: boolean;
+    privacyRules: Array<WhoIsToldRule>;
+    isPrivateOffStatusPages: boolean;
+    labelRules: Array<WhoIsToldRule>;
+  }): WhoIsToldEvent {
+    const event: WhoIsToldEvent = data.event;
+
+    if (data.isPrivate) {
+      event.isPrivate = true;
+      event.privacyRules = data.privacyRules;
+    }
+
+    if (data.isPrivateOffStatusPages) {
+      event.isPrivateOffStatusPages = true;
+    }
+
+    if (data.labelRules.length > 0) {
+      event.labelRules = data.labelRules;
+    }
+
+    return event;
   }
 
   /*
@@ -1260,15 +2601,15 @@ export class WhoIsToldService {
    * The resources an incident or alert from the monitor is about - what its
    * configuration names, and what it was linked to by hand - attached as
    * MonitorIncident and MonitorAlert attach them. Read once, and only when
-   * an owner rule inherits owners from such a resource: no rule reads them
-   * otherwise.
+   * a rule inherits owners or labels from such a resource: no rule reads
+   * them otherwise.
    */
   private static async attachResources(data: {
     context: ResolveContext;
     record: Incident | Alert;
-    rules: ReadonlyArray<IncidentOwnerRule | AlertOwnerRule>;
+    needsResources: boolean;
   }): Promise<void> {
-    if (!inheritsFromResources(data.rules)) {
+    if (!data.needsResources) {
       return;
     }
 
@@ -1303,16 +2644,26 @@ export class WhoIsToldService {
       });
   }
 
-  // What one incident or alert template tells, and who.
+  // What one incident or alert tells, and who.
   private static async makeEvent(data: {
     context: ResolveContext;
     kind: OnCallTestPageRecordKind;
+    /*
+     * The criteria's incident or alert template it is opened from: what a
+     * fire drill asks for it by (#7012). None for an incident an alert
+     * incident rule declares, which is opened from no template of its own.
+     */
+    templateId: string | undefined;
     title: string;
     severityId: ObjectID;
     severityName: string;
-    template: CriteriaIncident | CriteriaAlert;
-    monitorStepId: string;
-    ownerRuleAdditions: OwnerRuleAdditions;
+    // The policies the record is given as it opens: its criteria's.
+    onCallPolicyIds: Array<ObjectID>;
+    /*
+     * Who it emails as owners, and the ids of its owners - who may read it
+     * once it is private (#9370) - as getEventOwners works them out.
+     */
+    owners: EventOwners;
     rules: Array<IncidentOnCallRule | AlertOnCallRule>;
     statusPages: Array<WhoIsToldStatusPage>;
   }): Promise<WhoIsToldEvent> {
@@ -1322,7 +2673,7 @@ export class WhoIsToldService {
     >();
     const order: Array<string> = [];
 
-    const namedIds: Array<string> = (data.template.onCallPolicyIds || [])
+    const namedIds: Array<string> = data.onCallPolicyIds
       .map((id: ObjectID): string => {
         return idText(id);
       })
@@ -1391,24 +2742,12 @@ export class WhoIsToldService {
       });
     }
 
-    /*
-     * For breaks only (resolveProject) who is emailed as an owner is not
-     * read - nor whether they are in the project - and no owner rule is.
-     */
-    const owners: EventOwners = data.context.isForBreaksOnly
-      ? {
-          owners: this.getUnreadOwners({ template: data.template }),
-          ownerRules: [],
-        }
-      : await this.getEventOwners({
-          context: data.context,
-          template: data.template,
-          monitorStepId: data.monitorStepId,
-          ownerRuleAdditions: data.ownerRuleAdditions,
-        });
+    const owners: EventOwners = data.owners;
 
     return {
       kind: data.kind,
+      id: data.templateId || "",
+      severityId: data.severityId.toString(),
       title: data.title,
       severityName: data.severityName,
       owners: owners.owners,
@@ -1416,6 +2755,8 @@ export class WhoIsToldService {
       rules: rules,
       policies: policies,
       statusPages: data.statusPages,
+      // Who may read it once it is private (redactWhoIsTold); never sent.
+      ownerIds: owners.ownerIds,
     };
   }
 
@@ -1446,27 +2787,50 @@ export class WhoIsToldService {
   }
 
   /*
-   * Who an incident or alert emails as its owners, read from its criteria
-   * alone - no names, no network device's owners, no owner rules: for an
-   * answer that only its breaks are read from (resolveProject), as no break
-   * depends on who is emailed as an owner.
+   * THE OWNERS THAT MAKE AN ALERT'S ON-CALL RULES MATCH (#9407): each
+   * matched rule whose Alert Owner condition picks one of the alert's
+   * owners (AlertOnCallRuleEngineService.getOwnersMakingRuleMatch), with
+   * those owners by name, as the card says a label rule's label made a rule
+   * match (#7212). A name is the person's or the team's - every owner the
+   * condition reads has a row, so a name read with the owners. Not for
+   * breaks only, whose answer names nobody.
    */
-  private static getUnreadOwners(data: {
-    template: CriteriaIncident | CriteriaAlert;
-  }): WhoIsToldOwners {
-    const namesSomebody: boolean =
-      uniqueIds([
-        ...(data.template.ownerUserIds || []),
-        ...(data.template.ownerTeamIds || []),
-      ]).length > 0;
+  private static getOwnerMatches(data: {
+    context: ResolveContext;
+    rules: Array<AlertOnCallRule>;
+    owners: EventOwners;
+  }): Array<WhoIsToldOwnerMatch> {
+    if (data.context.isForBreaksOnly) {
+      return [];
+    }
 
-    return {
-      source: namesSomebody
-        ? WhoIsToldOwnersSource.Named
-        : WhoIsToldOwnersSource.ProjectOwners,
-      userNames: [],
-      teamNames: [],
-    };
+    const ownerIds: Array<string> = ownerIdsOf(data.owners);
+    const matches: Array<WhoIsToldOwnerMatch> = [];
+
+    for (const rule of data.rules) {
+      const ownerNames: Array<string> = [];
+
+      for (const id of AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: rule,
+        ownerIds: ownerIds,
+      })) {
+        const key: string = id.toLowerCase();
+        const name: string =
+          (data.context.projectTeams.get(key) === true
+            ? data.context.teamNames.get(key)
+            : data.context.userNames.get(key)) || "";
+
+        if (name && !ownerNames.includes(name)) {
+          ownerNames.push(name);
+        }
+      }
+
+      if (ownerNames.length > 0) {
+        matches.push({ ruleId: idText(rule.id), ownerNames: ownerNames });
+      }
+    }
+
+    return matches;
   }
 
   // A policy: its levels, and who its first level reaches by a page of this severity.
@@ -1753,24 +3117,38 @@ export class WhoIsToldService {
    * left: OwnerRules; nobody: the project's owners. An owner rule that adds
    * only people and teams the email does not reach is not why anyone is
    * emailed, and is not listed.
+   *
+   * The others are kept, with why and what named them (notReached, #7572):
+   * a person who is not a member of the project, a team of the project with
+   * nobody in it who is, a team of another project. And the ids of the
+   * owners the record will have - its members and the project's teams -
+   * for who may read it once it is private (#7213), and whom an alert's
+   * Alert Owner rules match (#9407).
+   *
+   * For breaks only (resolveProject) the ids and those not reached are all
+   * that is worked out: who is reached was read for the project at once
+   * (readOwnersOfProject), and no name, recipient or Project Owner is read.
    */
   private static async getEventOwners(data: {
     context: ResolveContext;
-    template: CriteriaIncident | CriteriaAlert;
+    namedOwners: NamedOwners;
+    withDeviceOwners: boolean;
     monitorStepId: string;
     ownerRuleAdditions: OwnerRuleAdditions;
   }): Promise<EventOwners> {
-    const deviceOwners: NetworkDeviceOwners = await this.getDeviceOwners({
-      context: data.context,
-      monitorStepId: data.monitorStepId,
-    });
+    const deviceOwners: NetworkDeviceOwners = data.withDeviceOwners
+      ? await this.getDeviceOwners({
+          context: data.context,
+          monitorStepId: data.monitorStepId,
+        })
+      : { ownerUserIds: [], ownerTeamIds: [] };
 
     const namedUserIds: Array<string> = uniqueIds([
-      ...(data.template.ownerUserIds || []),
+      ...data.namedOwners.userIds,
       ...deviceOwners.ownerUserIds,
     ]);
     const namedTeamIds: Array<string> = uniqueIds([
-      ...(data.template.ownerTeamIds || []),
+      ...data.namedOwners.teamIds,
       ...deviceOwners.ownerTeamIds,
     ]);
 
@@ -1812,56 +3190,258 @@ export class WhoIsToldService {
         return addition.rule;
       });
 
-    if (userIds.length > 0 || teamIds.length > 0) {
-      const userNames: Array<string> = await this.readUserNames({
+    const allTeamIds: Array<string> = uniqueIds([
+      ...namedTeamIds,
+      ...data.ownerRuleAdditions.teamIds,
+    ]);
+
+    const isLean: boolean = data.context.isForBreaksOnly;
+
+    // Which teams are the project's, and their names, read once.
+    const userNames: Array<string> = isLean
+      ? []
+      : await this.readUserNames({
+          context: data.context,
+          userIds: userIds,
+        });
+    await this.readTeamNames({ context: data.context, teamIds: allTeamIds });
+    const teamNames: Array<string> = this.namesInOrder(
+      teamIds,
+      data.context.teamNames,
+    );
+
+    const isProjectTeam: (id: string) => boolean = (id: string): boolean => {
+      return data.context.projectTeams.get(id.toLowerCase()) === true;
+    };
+
+    const notReached: Array<WhoIsToldOwnerNotReached> =
+      this.getOwnersNotReached({
         context: data.context,
-        userIds: userIds,
-      });
-      const teamNames: Array<string> = await this.readTeamNames({
-        context: data.context,
-        teamIds: teamIds,
+        namedOwners: data.namedOwners,
+        deviceOwners: deviceOwners,
+        monitorStepId: data.monitorStepId,
+        ownerRuleAdditions: data.ownerRuleAdditions,
+        isUserReached: isUserReached,
+        isTeamReached: isTeamReached,
+        isProjectTeam: isProjectTeam,
       });
 
-      return {
-        owners: {
-          source:
-            reachedNamedUserIds.length > 0 || reachedNamedTeamIds.length > 0
-              ? WhoIsToldOwnersSource.Named
-              : WhoIsToldOwnersSource.OwnerRules,
-          userNames: userNames,
-          teamNames: teamNames,
-          recipients: await this.getOwnerRecipients({
-            context: data.context,
-            userIds: userIds,
-            teamIds: teamIds,
-          }),
-        },
-        ownerRules: ownerRules,
+    const ownerIds: WhoIsToldOwnerIds = {
+      userIds: userIds,
+      // Every team of the project named: each is an owner row, emailed or not.
+      teamIds: allTeamIds.filter(isProjectTeam),
+    };
+
+    if (userIds.length > 0 || teamIds.length > 0) {
+      const owners: WhoIsToldOwners = {
+        source:
+          reachedNamedUserIds.length > 0 || reachedNamedTeamIds.length > 0
+            ? WhoIsToldOwnersSource.Named
+            : WhoIsToldOwnersSource.OwnerRules,
+        userNames: userNames,
+        teamNames: isLean ? [] : teamNames,
       };
+
+      if (!isLean) {
+        owners.recipients = await this.getOwnerRecipients({
+          context: data.context,
+          userIds: userIds,
+          teamIds: teamIds,
+        });
+      }
+
+      if (notReached.length > 0) {
+        owners.notReached = notReached;
+      }
+
+      return { owners: owners, ownerRules: ownerRules, ownerIds: ownerIds };
+    }
+
+    if (isLean) {
+      const owners: WhoIsToldOwners = {
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: [],
+        teamNames: [],
+      };
+
+      if (notReached.length > 0) {
+        owners.notReached = notReached;
+      }
+
+      return { owners: owners, ownerRules: ownerRules, ownerIds: ownerIds };
     }
 
     const projectOwners: Array<{ id: string; name: string }> =
       await this.readProjectOwners(data.context);
 
-    return {
-      owners: {
-        source: WhoIsToldOwnersSource.ProjectOwners,
-        userNames: data.context.projectOwnerNames || [],
-        teamNames: [],
-        // The Project Owners stand in for owners: each is named (#8860).
-        recipients: projectOwners.map(
-          (owner: { id: string; name: string }): WhoIsToldOwnerRecipient => {
-            return {
-              userId: owner.id,
-              name: owner.name,
-              isNamed: true,
-              teamNames: [],
-            };
-          },
-        ),
-      },
-      ownerRules: ownerRules,
+    const owners: WhoIsToldOwners = {
+      source: WhoIsToldOwnersSource.ProjectOwners,
+      userNames: data.context.projectOwnerNames || [],
+      teamNames: [],
+      // The Project Owners stand in for owners: each is named (#8860).
+      recipients: projectOwners.map(
+        (owner: { id: string; name: string }): WhoIsToldOwnerRecipient => {
+          return {
+            userId: owner.id,
+            name: owner.name,
+            isNamed: true,
+            teamNames: [],
+          };
+        },
+      ),
     };
+
+    if (notReached.length > 0) {
+      owners.notReached = notReached;
+    }
+
+    return { owners: owners, ownerRules: ownerRules, ownerIds: ownerIds };
+  }
+
+  /*
+   * THE OWNERS NO CREATED EMAIL REACHES (#7572), each with why and what
+   * named it: the criteria, the network device the monitor watches, or an
+   * owner rule. A person who is not a member of the project is never named
+   * - the project's pages do not name them either - nor is a team of
+   * another project. One named in two places is said in each.
+   */
+  private static getOwnersNotReached(data: {
+    context: ResolveContext;
+    namedOwners: NamedOwners;
+    deviceOwners: NetworkDeviceOwners;
+    monitorStepId: string;
+    ownerRuleAdditions: OwnerRuleAdditions;
+    isUserReached: (id: string) => boolean;
+    isTeamReached: (id: string) => boolean;
+    isProjectTeam: (id: string) => boolean;
+  }): Array<WhoIsToldOwnerNotReached> {
+    const notReached: Array<WhoIsToldOwnerNotReached> = [];
+    const seen: Set<string> = new Set<string>();
+
+    const add: (item: {
+      kind: WhoIsToldOwnerKind;
+      id: string;
+      addedBy: WhoIsToldOwnerAddedBy;
+      rule?: WhoIsToldRule | undefined;
+      networkDeviceId?: string | undefined;
+    }) => void = (item: {
+      kind: WhoIsToldOwnerKind;
+      id: string;
+      addedBy: WhoIsToldOwnerAddedBy;
+      rule?: WhoIsToldRule | undefined;
+      networkDeviceId?: string | undefined;
+    }): void => {
+      const isUser: boolean = item.kind === WhoIsToldOwnerKind.User;
+
+      if (isUser ? data.isUserReached(item.id) : data.isTeamReached(item.id)) {
+        return;
+      }
+
+      const key: string = [
+        item.kind,
+        item.id.toLowerCase(),
+        item.addedBy,
+        item.rule?.id || "",
+      ].join("|");
+
+      if (seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+
+      const isProjectTeam: boolean = !isUser && data.isProjectTeam(item.id);
+
+      const owner: WhoIsToldOwnerNotReached = {
+        kind: item.kind,
+        id: item.id,
+        name: isProjectTeam
+          ? data.context.teamNames.get(item.id.toLowerCase()) || ""
+          : "",
+        problem: isUser
+          ? WhoIsToldOwnerProblem.NotInProject
+          : isProjectTeam
+            ? WhoIsToldOwnerProblem.TeamHasNobodyInProject
+            : WhoIsToldOwnerProblem.TeamOfAnotherProject,
+        addedBy: item.addedBy,
+      };
+
+      if (item.rule) {
+        owner.rule = item.rule;
+      }
+
+      if (item.networkDeviceId) {
+        owner.networkDeviceId = item.networkDeviceId;
+      }
+
+      notReached.push(owner);
+    };
+
+    // The alert's owners an incident takes are said on the alert.
+    if (data.namedOwners.addedBy) {
+      for (const id of uniqueIds(data.namedOwners.userIds)) {
+        add({
+          kind: WhoIsToldOwnerKind.User,
+          id: id,
+          addedBy: data.namedOwners.addedBy,
+        });
+      }
+
+      for (const id of uniqueIds(data.namedOwners.teamIds)) {
+        add({
+          kind: WhoIsToldOwnerKind.Team,
+          id: id,
+          addedBy: data.namedOwners.addedBy,
+        });
+      }
+    }
+
+    const networkDeviceId: string = idText(
+      NetworkDeviceOwnerUserService.getDeviceIdForMonitor({
+        monitor: data.context.monitor,
+        monitorStepId: data.monitorStepId || undefined,
+      }),
+    );
+
+    for (const id of uniqueIds(data.deviceOwners.ownerUserIds)) {
+      add({
+        kind: WhoIsToldOwnerKind.User,
+        id: id,
+        addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+        networkDeviceId: networkDeviceId,
+      });
+    }
+
+    for (const id of uniqueIds(data.deviceOwners.ownerTeamIds)) {
+      add({
+        kind: WhoIsToldOwnerKind.Team,
+        id: id,
+        addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+        networkDeviceId: networkDeviceId,
+      });
+    }
+
+    for (const addition of data.ownerRuleAdditions.rules) {
+      for (const id of addition.userIds) {
+        add({
+          kind: WhoIsToldOwnerKind.User,
+          id: id,
+          addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+          rule: addition.rule,
+        });
+      }
+
+      for (const id of addition.teamIds) {
+        add({
+          kind: WhoIsToldOwnerKind.Team,
+          id: id,
+          addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+          rule: addition.rule,
+        });
+      }
+    }
+
+    return notReached;
   }
 
   /*
@@ -1959,7 +3539,7 @@ export class WhoIsToldService {
    * here, and reaches nobody.
    */
   private static async readOwnersReached(data: {
-    context: ResolveContext;
+    context: ProjectContext;
     userIds: Array<string>;
     teamIds: Array<string>;
   }): Promise<void> {
@@ -2056,10 +3636,25 @@ export class WhoIsToldService {
     );
 
     if (!owners) {
-      owners = await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-        monitor: data.context.monitor,
-        monitorStepId: data.monitorStepId || undefined,
-      });
+      // The whole project at once: its devices' owners were read in one go.
+      const preloaded: Map<string, NetworkDeviceOwners> | null =
+        data.context.deviceOwnersByDevice;
+
+      if (preloaded) {
+        const deviceId: string = idText(
+          NetworkDeviceOwnerUserService.getDeviceIdForMonitor({
+            monitor: data.context.monitor,
+            monitorStepId: data.monitorStepId || undefined,
+          }),
+        ).toLowerCase();
+
+        owners = (deviceId && preloaded.get(deviceId)) || NO_DEVICE_OWNERS;
+      } else {
+        owners = await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+          monitor: data.context.monitor,
+          monitorStepId: data.monitorStepId || undefined,
+        });
+      }
 
       data.context.deviceOwners.set(data.monitorStepId, owners);
     }
@@ -2067,14 +3662,20 @@ export class WhoIsToldService {
     return owners;
   }
 
-  // Who a status change emails: the monitor's owners, or the project's.
+  /*
+   * Who a status change emails: the monitor's owners, or the project's. A
+   * monitor not created yet is owned by whoever creates it.
+   */
   private static async getMonitorOwners(
     context: ResolveContext,
   ): Promise<WhoIsToldOwners> {
     if (context.monitorOwnerNames === null) {
-      context.monitorOwnerNames = this.namesOf(
-        await MonitorService.findOwners(context.monitor.id!),
-      );
+      context.monitorOwnerNames = context.newMonitorCreatorId
+        ? await this.readUserNames({
+            context: context,
+            userIds: [context.newMonitorCreatorId],
+          })
+        : this.namesOf(await MonitorService.findOwners(context.monitor.id!));
     }
 
     if (context.monitorOwnerNames.length > 0) {
@@ -2111,7 +3712,7 @@ export class WhoIsToldService {
 
   // People's names (or emails), in the order of their ids, each read once.
   private static async readUserNames(data: {
-    context: ResolveContext;
+    context: ProjectContext;
     userIds: Array<string>;
   }): Promise<Array<string>> {
     const missing: Array<string> = data.userIds.filter(
@@ -2152,7 +3753,7 @@ export class WhoIsToldService {
 
   // Teams' names, in the order of their ids, each read once: the project's own only.
   private static async readTeamNames(data: {
-    context: ResolveContext;
+    context: ProjectContext;
     teamIds: Array<string>;
   }): Promise<Array<string>> {
     const missing: Array<string> = data.teamIds.filter(
@@ -2179,6 +3780,7 @@ export class WhoIsToldService {
 
       for (const id of missing) {
         data.context.teamNames.set(id.toLowerCase(), "");
+        data.context.projectTeams.set(id.toLowerCase(), false);
       }
 
       for (const team of teams) {
@@ -2186,6 +3788,8 @@ export class WhoIsToldService {
           idText(team.id).toLowerCase(),
           team.name?.toString() || "",
         );
+        // Read with the project's id: a team of another project is not found.
+        data.context.projectTeams.set(idText(team.id).toLowerCase(), true);
       }
     }
 
@@ -2305,7 +3909,13 @@ export class WhoIsToldService {
     const reached: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForDraftIncident({
         monitorIds: [data.monitorId],
-        resourceSelect: { statusPageId: true },
+        // How each page reaches the monitor: itself, or a group it is in (#7214).
+        resourceSelect: {
+          statusPageId: true,
+          monitorId: true,
+          monitorGroupId: true,
+          monitorGroup: { _id: true, name: true },
+        },
       });
 
     const projectId: string = idText(data.projectId).toLowerCase();
@@ -2328,6 +3938,10 @@ export class WhoIsToldService {
       pages.push({
         id: id,
         name: statusPage.name?.toString() || "",
+        groups: getMonitorGroupsOfPage({
+          monitorId: idText(data.monitorId),
+          resources: getPageResources(reached, id),
+        }),
       });
     }
 

@@ -133,8 +133,9 @@ const DetailSkeleton: FunctionComponent<ComponentProps> = (
       role="status"
       aria-live="polite"
       aria-label={translator.translateText("Loading")}
+      aria-busy={true}
       data-testid={DETAIL_SKELETON_TEST_ID}
-      className="animate-pulse"
+      className="motion-safe:animate-pulse"
     >
       <div
         aria-hidden="true"

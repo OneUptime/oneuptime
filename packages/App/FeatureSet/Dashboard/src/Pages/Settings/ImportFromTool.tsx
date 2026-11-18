@@ -1,4 +1,5 @@
 import ProductEvents from "Common/UI/Utils/ProductEvents";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import PageComponentProps from "../PageComponentProps";
 import {
@@ -40,7 +41,6 @@ import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -383,7 +383,7 @@ const ImportFromTool: FunctionComponent<
         );
       }
 
-      return <ComponentLoader />;
+      return <DetailListSkeleton />;
     }
 
     const run: ToolImportRunView = details.run;
@@ -447,7 +447,7 @@ const ImportFromTool: FunctionComponent<
       >
         <div data-testid="tool-import-page">
           {runs === null ? (
-            <ComponentLoader />
+            <DetailListSkeleton fields={3} columns={1} />
           ) : shownRunId ? (
             renderRun()
           ) : (

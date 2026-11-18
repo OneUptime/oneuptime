@@ -196,6 +196,16 @@ Che cosa contiene ciascuna:
 - **Note private** e **Note pubbliche** — che cosa è stato detto al vostro team e ai vostri clienti. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
 - **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Promemoria**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
 
+## Chi è stato avvisato
+
+La **Panoramica** di un incidente ha una scheda **Chi è stato avvisato**. Dice chi OneUptime ha avvisato dell'incidente, con quale mezzo e cosa non è riuscito, letto da ciò che è accaduto: le esecuzioni delle sue policy di reperibilità e ogni messaggio Slack, Microsoft Teams o Mattermost, e-mail, SMS, chiamata, notifica push, messaggio WhatsApp o Telegram e webhook inviato al riguardo.
+
+- Le sue prime parole contano le persone e i canali avvisati, dicono chi ha riconosciuto l'incidente e quanto tempo dopo la prima chiamata, e quante notifiche non sono riuscite.
+- Ogni persona ha una riga: come la chiamata l'ha raggiunta (la policy di reperibilità, il livello, il team o il turno), con quale mezzo e a che punto è: **Riconosciuto**, **Notificato**, **Invio in corso**, **Non riuscito** o **Non chiamato**. **Mostra dettagli** elenca ogni chiamata e ogni notifica in ordine di tempo, con il motivo per cui una non è riuscita o per cui qualcuno non è stato chiamato.
+- Un team o un turno che non ha raggiunto nessuno, una policy che non ha ancora chiamato (per esempio una che attende l'orario di lavoro), i canali in cui è stato pubblicato e gli iscritti alla pagina di stato hanno anch'essi una riga ciascuno. Un incidente affollato elenca le sue prime persone, e le altre sono a un clic.
+- Finché l'incidente è aperto, la scheda si rilegge a intervalli di pochi secondi.
+- Mostra solo ciò che puoi già leggere: la scheda di un incidente privato è per chi può aprire l'incidente, e le notifiche o le esecuzioni di policy di reperibilità che non puoi aprire sono contate sotto l'elenco, mai nominate. I **Log di notifica** contengono ogni messaggio per intero.
+
 ## Come si inseriscono gli incidenti nel resto di OneUptime
 
 - **I monitor individuano il problema; gli incidenti lo registrano.** Una regola dei criteri di un monitor può dichiarare un incidente automaticamente, precompilando titolo, gravità, policy di reperibilità, proprietari, etichette e note di rimedio. Vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating) per le variabili disponibili.

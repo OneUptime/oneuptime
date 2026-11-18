@@ -81,7 +81,7 @@ Then check your version again, as in the first step. If you have not reached you
 | Upgrade | What you must do |
 | --- | --- |
 | [15 → 16](#upgrading-from-oneuptime-15-16) | Upgrade the Terraform provider with the server, and take the SCIM bearer tokens, webhook addresses and SNMP credentials 16 no longer gives out of API reads. Update your Runners. Replace every server of 15 soon, and roll back only within a day. |
-| [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. |
+| [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. Replace every server of 14 soon. |
 | [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
 | [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
 | [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
@@ -194,9 +194,13 @@ and shown only when they are made. Webhook addresses and SNMP credentials are
 encrypted too, and webhook logs keep only an address's host. Upgrade from 15 —
 if you are still on 14, do 14 → 15 first.
 
-The upgrade encrypts and hashes the keys, addresses and credentials you have,
-so the probes, agents, devices, scripts, webhooks and identity providers that
-use them keep working, with nothing to set up again.
+The upgrade keeps the keys you have as they are, so a server of 15 still
+running while it rolls out keeps checking them, and a day later Workers
+encrypt or hash them in place. The upgrade to 16.0.0 encrypts the webhook
+addresses and SNMP credentials you have as it runs; from the release after
+16.0.0, the upgrade keeps them as written too, and Workers encrypt them a day
+later. The probes, agents, devices, scripts, webhooks and identity providers
+that use them keep working, with nothing to set up again.
 
 ### What you need to do for 16
 
@@ -216,11 +220,15 @@ use them keep working, with nothing to set up again.
 4. **Replace every server of 15 soon, and roll back only within a day.** A
    server of 15 still running during the upgrade refuses the keys made or
    reset on 16, and reads an encrypted webhook address or SNMP credential as
-   a broken one, so its sends and polls fail until it is replaced. A day
-   after the upgrade, Workers encrypt or hash the keys stored before: rolled
-   back after that, 15 cannot read them, so reset each key and give the new
-   one to whatever used the old one. See
-   [Other changes in 16](#other-changes-in-16).
+   a broken one, so the sends and polls that use it fail until it is
+   replaced. A day after the upgrade, Workers encrypt or hash the keys stored
+   before: rolled back after that, 15 cannot read them, so reset each key and
+   give the new one to whatever used the old one. The upgrade to 16.0.0
+   encrypts every webhook address and SNMP credential as it runs: rolled back
+   from it at any time, 15 cannot read them, so enter them again, or restore
+   the backup you took before the upgrade. From the release after 16.0.0, the
+   upgrade leaves them as written, and Workers encrypt them a day later, as
+   they do the keys. See [Other changes in 16](#other-changes-in-16).
 
 ### Other changes in 16
 
@@ -295,15 +303,60 @@ alerts.
   Microsoft Teams and webhook subscriptions, of webhook notification methods,
   of OpenStack project notices and of custom notification channels, a
   channel's signing secret, and the SNMP credentials of network devices and
-  discovery scans are stored encrypted. The upgrade encrypts the ones you
-  have, and every notification, poll, sweep and import goes on using them as
-  written. A project's webhook logs keep only an address's scheme and host
-  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
-  and an on-call log names the webhook a page was sent to rather than its
-  address. A server of the earlier release still running during the upgrade
-  reads an encrypted address or credential as a broken one, so its sends and
-  polls fail until it is replaced, and what it saves meanwhile is stored as
-  written until it is next saved.
+  discovery scans are stored encrypted. The upgrade to 16.0.0 encrypts the
+  ones you have as it runs, and the release after it a day after the
+  upgrade, as the next note says; every notification, poll, sweep and import
+  goes on using them as written. A project's webhook logs keep only an
+  address's scheme and host (`https://hooks.slack.com/•••`), the logs from
+  before the upgrade included, and an on-call log names the webhook a page
+  was sent to rather than its address. Upgrading to 16.0.0, a server of the
+  earlier release still running during the upgrade reads an encrypted
+  address or credential as a broken one, so its sends and polls fail until
+  it is replaced, and what it saves meanwhile is stored as written until it
+  is next saved, or until the release after 16.0.0 encrypts it.
+- **From the release after 16.0.0, webhook addresses and SNMP credentials are
+  encrypted a day after the upgrade, so a server of 15 keeps using them while
+  it rolls out.** Upgrading from 15 to such a release, the upgrade leaves the
+  ones you have as they were written: a server of 15 still running while it
+  rolls out (on Kubernetes the old pods serve while the migrations run) keeps
+  sending notifications and webhooks with them and polling devices. A day
+  later, Workers encrypt each one in place, those that server saved meanwhile
+  included, and keep only the host of a webhook address it logged. An
+  address or credential saved during that day is stored encrypted at once,
+  and a server of 15 cannot use it until it is replaced. Rolled back within
+  that day, 15 reads every address and credential stored before the upgrade;
+  rolled back after it, it cannot read them: restore the backup you took
+  before the upgrade, or enter each one again. On an install that upgraded
+  to 16.0.0, which encrypted them as it ran, the release after leaves every
+  ciphertext as it is, and Workers encrypt the ones a server of 15 saved as
+  written while 16.0.0 rolled out. Workers also encrypt the credentials and
+  certificate keys that a server of 14 saved as written while the upgrade to
+  15 rolled out. A network device whose SNMP v3 credentials were only in its
+  legacy `snmpV3Auth` object is walked again, not only pinged: the upgrade to
+  the release after 16.0.0 moves them into the device's v3 fields, where its
+  settings show them. A project's Twilio auth token can be up to 500
+  characters long again: one longer than about 350 was refused.
+- **A new on-call rule made through the API or with Terraform starts on Key
+  updates only.** A Slack, Microsoft Teams or Mattermost notification rule for
+  on-call policies started on who is on call now and when nobody is only when
+  it was made on its rules page; one made through the API or with Terraform
+  without `updatesToPost` posted every update. Now it starts on
+  `["OnCallNow", "NobodyOnCall"]` there too, and an edit that leaves
+  `updatesToPost` out keeps the updates the rule posts, so a Terraform
+  configuration that never sets it does not turn a rule to every update at
+  its next change. Rules that exist are not changed. To post every update from
+  a new rule, send `"updatesToPost": null`. See
+  [On-call messages](/docs/workspace-connections/slack#on-call-messages).
+- **The background check of Incoming Request monitors reads only the request
+  as it came.** An Incoming Request monitor keeps its latest request twice
+  since 14.0.106: as it came, which the check that runs every 30 seconds
+  judges again, and as the overview, the API and every other reader get it,
+  with secrets and personal data masked. The check read both, so that during
+  an upgrade it still judged, and masked, a request that a server older than
+  14.0.106 had kept once, as it came. It now reads the request as it came
+  alone, one copy where it read two, and judges it as before. Upgrading from
+  15 needs nothing: every release since 14.0.106 keeps each request both
+  ways.
 :::
 
 ## Upgrading from OneUptime 14 → 15
@@ -361,6 +414,17 @@ change.
    permission from the teams that own it and the people named as its owners,
    and workflow steps no longer see or change a private record. See
    [Other changes in 15](#other-changes-in-15).
+7. **Replace every server of 14 soon.** The upgrade to 15 encrypts, in place,
+   the credentials a project saved for mail, chat apps and webhooks, and
+   custom domains' certificate keys (from a 14 release before 14.1, the
+   server's own mail, SMS and call credentials too, and from one before
+   14.0.56 a project's Twilio auth token). A server of 14 still running
+   meanwhile reads them as broken values, so the email, SMS, calls, chat
+   messages and webhooks it sends fail, and a custom domain it serves can
+   lose its HTTPS, until it is replaced: on Kubernetes the old pods serve
+   until the new ones are ready, and with `migrate.hook: true` through every
+   migration as well. Rolled back to 14, the server cannot read them: restore
+   the backup you took before the upgrade, or enter them again.
 
 ### Other changes in 15
 

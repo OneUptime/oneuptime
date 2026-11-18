@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import FieldError from "../Forms/Fields/FieldError";
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -37,7 +38,6 @@ import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
-import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -182,6 +182,15 @@ export interface EntityDropdownProps {
    * connected yet." Unset, "Nothing to pick yet." (EntityDropdownEmptyList).
    */
   emptyListText?: string | undefined;
+  /*
+   * What a value the field holds reads as once looking it up found no such
+   * record - a monitor or a label a rule's condition names, since deleted
+   * (#7807): in English, to look up, drawn in muted italics as the rule's
+   * card draws it, and removable like any pick. Unset, such a value shows
+   * its id, as before: a form whose values the database keeps whole has
+   * none.
+   */
+  notFoundLabel?: string | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -467,6 +476,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const optionsCacheRef: React.MutableRefObject<Map<string, DropdownOption>> =
     useRef<Map<string, DropdownOption>>(new Map());
+
+  /*
+   * The values a finished look-up found no record for (notFoundLabel): a
+   * record since deleted. One still being looked up is not among them.
+   */
+  const notFoundKeysRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
 
   /*
    * Seed the cache *during render* rather than in a useEffect. A pure-effect
@@ -991,6 +1008,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             optionsCacheRef.current.set(valueKey(opt.value), opt);
           }
         }
+        // Asked for, and not there: no such record any more.
+        for (const key of missing) {
+          if (!optionsCacheRef.current.has(key)) {
+            notFoundKeysRef.current.add(key);
+          }
+        }
         // Force a re-render so chips pick up the resolved labels.
         setSelectedKeys((prev: Array<string>): Array<string> => {
           return [...prev];
@@ -1417,6 +1440,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (cached) {
         return cached;
       }
+      /*
+       * A value no record answers to any more says so, where the page asks
+       * (notFoundLabel), in words to look up - never as a name as written.
+       */
+      if (props.notFoundLabel && notFoundKeysRef.current.has(key)) {
+        return {
+          value: key,
+          label: props.notFoundLabel,
+          isUserContent: false,
+          isNotFound: true,
+        };
+      }
       return { value: key, label: key };
     });
     /*
@@ -1425,7 +1460,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
      * graph honest — when the parent hands us new options, this memo
      * recomputes against the freshly-seeded cache.
      */
-  }, [selectedKeys, initialFlat, inboundOptions]);
+  }, [selectedKeys, initialFlat, inboundOptions, props.notFoundLabel]);
 
   /*
    * Visual label color extracted from option.color (which can be either a
@@ -1577,7 +1612,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                  */}
                 <span
                   data-testid="entity-dropdown-chip-label"
-                  className="min-w-0 [overflow-wrap:anywhere]"
+                  data-not-found={opt.isNotFound ? "true" : undefined}
+                  className={`min-w-0 [overflow-wrap:anywhere] ${
+                    opt.isNotFound ? "font-normal italic text-gray-500" : ""
+                  }`}
                 >
                   {getOptionText(opt)}
                 </span>
@@ -1711,7 +1749,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     />
                   );
                 })()}
-                <span id={valueLabelId} className="font-medium text-gray-900">
+                <span
+                  id={valueLabelId}
+                  data-not-found={
+                    selectedOptions[0]!.isNotFound ? "true" : undefined
+                  }
+                  className={
+                    selectedOptions[0]!.isNotFound
+                      ? "font-normal italic text-gray-500"
+                      : "font-medium text-gray-900"
+                  }
+                >
                   {getOptionText(selectedOptions[0]!)}
                 </span>
                 {selectedOptions[0]!.isArchived && (
@@ -1981,7 +2029,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   </span>
                 )}
               </button>
-              <span className="ml-auto pr-1 text-[11px] text-gray-500">
+              <span className="ml-auto pr-1 text-xs text-gray-500">
                 {translator.translateText(
                   activeTab === "options"
                     ? "Pick individually"
@@ -2367,8 +2415,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
           {activeTab === "labels" && selectedLabelIds.length > 0 && (
             <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-2 py-1.5">
-              <button
-                type="button"
+              <Button
+                title="Clear"
+                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                buttonSize={ButtonSize.Small}
+                disabled={isApplyingLabels}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
@@ -2377,18 +2428,28 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 onClick={(): void => {
                   setSelectedLabelIds([]);
                 }}
-                disabled={isApplyingLabels}
-                className={`rounded px-2 py-1 text-xs font-medium text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-                  {
-                    isLocked: isApplyingLabels,
-                    hoverClassName: "hover:bg-white hover:text-gray-800",
-                  },
-                )}`}
-              >
-                {translator.translateText("Clear")}
-              </button>
-              <button
-                type="button"
+              />
+              {/*
+                The shared Button, kept from taking the focus as it is
+                pressed (onMouseDown): the search field above keeps it,
+                and the list stays open while the entries are added.
+              */}
+              <Button
+                title={
+                  isApplyingLabels
+                    ? translator.translateText("Adding...")
+                    : translator.translatePlural(
+                        {
+                          one: "Add entries from {{count}} label",
+                          other: "Add entries from {{count}} labels",
+                        },
+                        selectedLabelIds.length,
+                      )
+                }
+                isTitleTranslated={true}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonSize={ButtonSize.Small}
+                isLoading={isApplyingLabels}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
@@ -2397,47 +2458,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 onClick={(): void => {
                   void applyLabelSelection();
                 }}
-                disabled={isApplyingLabels}
-                className={`inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnButtonStateClassName(
-                  {
-                    isBusy: isApplyingLabels,
-                    hoverClassName: "hover:bg-indigo-700",
-                  },
-                )}`}
-              >
-                {isApplyingLabels && (
-                  <svg
-                    className="h-3.5 w-3.5 animate-spin"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                )}
-                {isApplyingLabels
-                  ? translator.translateText("Adding...")
-                  : translator.translatePlural(
-                      {
-                        one: "Add entries from {{count}} label",
-                        other: "Add entries from {{count}} labels",
-                      },
-                      selectedLabelIds.length,
-                    )}
-              </button>
+              />
             </div>
           )}
         </div>

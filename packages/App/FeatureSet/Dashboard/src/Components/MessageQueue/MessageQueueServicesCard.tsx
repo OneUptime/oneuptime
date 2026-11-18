@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ServiceCallsTable, {
   ServiceCallsTableRow,
@@ -13,7 +14,6 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import {
   Translator,
   translateTemplate,
@@ -159,7 +159,7 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
   return (
     <Card title={copy.title} description={props.description}>
       {props.isLoading ? (
-        <ComponentLoader />
+        <TableSkeleton rows={3} columns={3} hasHeader={false} />
       ) : props.services.length === 0 ? (
         <div
           data-testid={`message-queue-${props.side}-empty`}

@@ -2,7 +2,15 @@
 # (mpdev verify, and Google's own review): OneUptime's readiness endpoint must
 # answer 200 five times in a row - a backend still finishing its first
 # migration flaps - and the status and dashboard pages must load, all through
-# the nginx service a buyer reaches.
+# the nginx service a buyer reaches. It runs in the app's own image, which has
+# Node, as the deployer passes it: Google's copy, which its test cluster pulls.
+#
+# It asks for OneUptime by its own host (the domain name the deployment was
+# given, as a visitor's browser does), not by the Service's name: OneUptime
+# takes any other host for a status page's custom domain, so the dashboard and
+# accounts pages answer a host that no status page has with a 404 - which
+# failed Google's second validation, on 17 November 2026. Node's http module
+# sends the Host header as given; fetch may not.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -15,26 +23,38 @@ spec:
   restartPolicy: Never
   containers:
     - name: tester
-      image: "{{ .Values.testerImage }}"
+      image: "{{ .Values.image.overrides.app }}"
       imagePullPolicy: IfNotPresent
       env:
-        - name: ONEUPTIME_URL
-          value: "http://{{ .Release.Name }}-nginx.{{ .Release.Namespace }}.svc"
+        - name: ONEUPTIME_SERVICE
+          value: "{{ .Release.Name }}-nginx.{{ .Release.Namespace }}.svc"
+        - name: ONEUPTIME_HOST
+          value: {{ .Values.host | quote }}
       command:
         - node
         - -e
         - |
-          const base = process.env.ONEUPTIME_URL;
+          const http = require("node:http");
+          const service = process.env.ONEUPTIME_SERVICE;
+          const host = process.env.ONEUPTIME_HOST;
           const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const status = async (path) => {
-            try {
-              const response = await fetch(base + path, { redirect: "manual" });
-              return response.status;
-            } catch (err) {
-              return 0;
-            }
-          };
+          const status = (path) =>
+            new Promise((resolve) => {
+              const request = http.get(
+                { host: service, port: 80, path, headers: { host }, timeout: 30000 },
+                (response) => {
+                  response.resume();
+                  resolve(response.statusCode);
+                },
+              );
+              request.on("timeout", () => {
+                request.destroy();
+                resolve(0);
+              });
+              request.on("error", () => resolve(0));
+            });
           (async () => {
+            console.log("Checking OneUptime at " + service + " as " + host);
             const deadline = Date.now() + 25 * 60 * 1000;
             let consecutive = 0;
             while (consecutive < 5) {

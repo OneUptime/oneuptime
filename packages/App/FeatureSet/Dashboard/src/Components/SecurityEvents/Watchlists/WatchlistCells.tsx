@@ -121,7 +121,7 @@ export const WatchlistReaderKindWord: FunctionComponent<{
 
   return (
     <span
-      className="whitespace-nowrap text-gray-400"
+      className="whitespace-nowrap text-gray-500"
       data-testid={WATCHLISTS_TEST_IDS.readerKind}
     >
       {" "}
@@ -686,7 +686,7 @@ export const WatchlistReadByCell: FunctionComponent<WatchlistReadersState> = (
   if (props.hasError) {
     return (
       <span
-        className="text-sm text-gray-400"
+        className="text-sm text-gray-500"
         data-testid={WATCHLISTS_TEST_IDS.readByCell}
       >
         {translator.translateText(READ_BY_UNKNOWN)}
@@ -699,7 +699,7 @@ export const WatchlistReadByCell: FunctionComponent<WatchlistReadersState> = (
   if (readers.shown.length === 0) {
     return (
       <span
-        className="text-sm text-gray-400"
+        className="text-sm text-gray-500"
         data-testid={WATCHLISTS_TEST_IDS.readByCell}
       >
         {translator.translateText(READ_BY_NO_RULE)}

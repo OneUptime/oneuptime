@@ -61,7 +61,7 @@ Quando você entra em um projeto com um e-mail de login verificado, o OneUptime 
 2. Para cada gravidade, em cada uma das quatro abas de **Como me contatar**, uma regra envia um e-mail assim que você é acionado.
 3. Um conjunto de novidades sobre o que é seu, e sobre os seus turnos, fica ativado por e-mail. Veja [Configurações de notificação](/docs/notifications/notification-settings#o-que-fica-ativado-para-um-novo-membro).
 
-Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Como me contatar](/docs/notifications/on-call-rules#as-regras-com-que-você-começa).
+Cada método que você verificar depois recebe as mesmas regras: uma regra para cada gravidade, enviada assim que você é acionado. Então verificar um número de telefone para SMS significa que todo acionamento também manda um SMS para você. Para deixar o SMS só para acionamentos críticos, exclua as regras de SMS das outras gravidades. Veja [Como me contatar](/docs/notifications/on-call-rules#as-regras-com-que-você-começa). Quando o seu projeto tem uma sequência padrão, o seu e-mail e cada método que você verificar a seguem em vez disso: veja [A sequência padrão](/docs/notifications/on-call-rules#a-sequência-padrão).
 
 ## A lista de configuração
 
@@ -84,6 +84,10 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 | **Algumas coisas ainda precisam ser configuradas** | Uma gravidade não tem regra, ou um passo ainda não foi feito |
 | **Ainda não há como entrar em contato com você** | Nenhum dos seus métodos pode ser usado: nenhum está verificado, ou cada um verificado está em um canal que este projeto desativou |
 | **Você está configurado e não está de plantão agora** | Tudo está pronto para o dia em que uma política nomear você |
+
+Enquanto restar um passo, as **Configurações do usuário** abrem nesta lista, e em **Métodos de notificação** quando não restar nada essencial. Um link para qualquer outra página das **Configurações do usuário** continua abrindo essa página.
+
+Quando você está em uma política de plantão e a sua configuração não está concluída, o sino no topo de cada página mostra **Conclua a configuração das suas notificações**, e por quê: nada consegue chegar até você, uma gravidade não tem regra, ou o seu projeto pede um método de telefone que você não verificou. Ele abre esta lista, ou **Como me contatar** para o telefone. **Ocultar por uma semana** esconde o aviso neste navegador, e ele some sozinho assim que a sua configuração estiver concluída.
 
 ## Quando nenhuma regra corresponde
 

@@ -92,7 +92,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -624,7 +624,7 @@ const AIInsightViewPage: FunctionComponent<
   }, [driftMetricName, driftEntityId]);
 
   if (!hasLoadedOnce) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (insightError && !insight) {

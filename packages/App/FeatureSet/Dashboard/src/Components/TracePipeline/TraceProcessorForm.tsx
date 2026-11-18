@@ -1244,7 +1244,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
-                          <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                             {translator.translateText("Category name")}
                           </label>
                           <Input
@@ -1278,7 +1278,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                           {translator.translateText("When spans match")}
                         </label>
                         <FilterQueryBuilderField

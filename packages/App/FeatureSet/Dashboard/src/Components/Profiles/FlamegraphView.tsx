@@ -611,10 +611,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
 
       return (
         <React.Fragment key={`${node.name}-${depth}-${offsetFraction}`}>
-          <div
-            className={`absolute border ${style.border} ${style.bg} ${style.text} ${
+          <button
+            type="button"
+            data-testid="flamegraph-frame"
+            aria-label={node.name}
+            className={`absolute block border ${style.border} ${style.bg} ${style.text} ${
               dimmed ? "opacity-25" : "opacity-100"
-            } cursor-pointer overflow-hidden text-[11px] font-medium leading-[22px] px-1.5 truncate hover:brightness-110 transition-[opacity] duration-100`}
+            } cursor-pointer overflow-hidden text-left text-xs font-medium leading-[22px] px-1.5 truncate hover:brightness-110 transition-[opacity] duration-100 focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
             style={{
               left: `${offsetFraction * 100}%`,
               width: `${widthFraction * 100}%`,
@@ -631,7 +634,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             onMouseLeave={handleFrameMouseLeave}
           >
             {showLabel ? getFrameLabel(node, depth) : ""}
-          </div>
+          </button>
           {children.map((child: FlamegraphNode) => {
             const childWidth: number =
               node.totalValue > 0
@@ -861,7 +864,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   {getValueOrQuietDash(ProfileUtil.formatPercent(searchPct), {
                     isSmall: true,
                   })}
-                  <span className="ml-1.5 text-gray-400">
+                  <span className="ml-1.5 text-gray-500">
                     <InlineSeparator markOnly />{" "}
                     {translator.translatePlural(
                       {
@@ -876,7 +879,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             </div>
           </div>
 
-          <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
+          <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-gray-600">
             <span className="font-medium text-gray-700">
               {translator.translateText("Legend:")}
             </span>
@@ -905,7 +908,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 </span>
               );
             })}
-            <span className="ml-auto text-gray-400">
+            <span className="ml-auto text-gray-500">
               {translator.translateText("Click a frame to zoom · Esc to reset")}
             </span>
           </div>
@@ -1079,20 +1082,20 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           {/* The full name, when the frame shows a shorter one. */}
           {!hoveredNode.unnamedFrameCount &&
           hoveredShortName !== hoveredNode.name ? (
-            <div className="mt-0.5 break-all font-mono text-[11px] text-gray-300">
+            <div className="mt-0.5 break-all font-mono text-xs text-gray-300">
               {hoveredNode.name}
             </div>
           ) : (
             <></>
           )}
           {hoveredNode.fileName && (
-            <div className="text-gray-300 mt-0.5 break-all text-[11px]">
+            <div className="text-gray-300 mt-0.5 break-all text-xs">
               {ProfileUtil.formatFileName(hoveredNode.fileName, 64)}
               {hoveredNode.lineNumber > 0 ? `:${hoveredNode.lineNumber}` : ""}
             </div>
           )}
           {hoveredNode.unnamedFrameCount ? (
-            <div className="mt-1 text-[11px] leading-snug text-gray-300">
+            <div className="mt-1 text-xs leading-snug text-gray-300">
               {translator.translateText(FLAME_UNNAMED_EXPLAINED)}{" "}
               {translator.translatePlural(
                 FLAME_UNNAMED_FRAMES,
@@ -1108,7 +1111,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
            */}
           <dl className="mt-2 space-y-1">
             <div className="flex items-baseline gap-2">
-              <dt className="w-12 flex-none text-[10px] font-medium uppercase tracking-wider text-gray-400">
+              <dt className="w-12 flex-none text-xs font-medium uppercase tracking-wider text-gray-400">
                 {translator.translateText("Self")}
               </dt>
               <dd className="font-mono">
@@ -1122,12 +1125,12 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   )}
                 </span>
               </dd>
-              <dd className="ml-auto text-[10px] text-gray-400">
+              <dd className="ml-auto text-xs text-gray-400">
                 {translator.translateText(PANEL_SELF_HINT)}
               </dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt className="w-12 flex-none text-[10px] font-medium uppercase tracking-wider text-gray-400">
+              <dt className="w-12 flex-none text-xs font-medium uppercase tracking-wider text-gray-400">
                 {translator.translateText("Total")}
               </dt>
               <dd className="font-mono">
@@ -1143,7 +1146,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   )}
                 </span>
               </dd>
-              <dd className="ml-auto text-[10px] text-gray-400">
+              <dd className="ml-auto text-xs text-gray-400">
                 {translator.translateText(PANEL_TOTAL_HINT)}
               </dd>
             </div>
@@ -1156,7 +1159,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           hoveredNode.children.length === 0 ? (
             <></>
           ) : (
-            <div className="mt-2 text-[10px] text-gray-400">
+            <div className="mt-2 text-xs text-gray-400">
               {hoveredNode.children.length > 0
                 ? translator.translateTemplate(FLAME_CLICK_TO_ZOOM, {
                     category: translatableTerm(

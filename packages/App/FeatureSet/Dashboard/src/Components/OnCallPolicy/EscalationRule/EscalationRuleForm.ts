@@ -38,7 +38,9 @@ import type { ReactElement } from "react";
  *     whoever is on call, the backup from the same rotation - written as a
  *     fourth list (nextInRotationSchedules) to the same schedule join table.
  *   - Escalate after: how long to wait for an acknowledgement, 30 minutes
- *     unless changed.
+ *     unless changed. On a new rule after the first, "Paged after" instead:
+ *     when the new level is paged, saved as the wait of the level before it
+ *     (#7373).
  *
  * The name and the description wait under a folded Advanced section. A rule
  * nobody names is called after its level ("Level 3"), which the server fills
@@ -269,6 +271,16 @@ export const isEscalationRuleAdvancedConfigured: (
   );
 };
 
+/*
+ * The level a new rule is added after, as the rules list names it, and its
+ * wait: how long it waits for an acknowledgement before the new one is
+ * paged (#7373).
+ */
+export interface EscalationRulePreviousLevel {
+  name: string;
+  escalateAfterInMinutes: number;
+}
+
 export interface EscalationRuleFormOptions {
   // The level the rule is (edit) or will be (create): names it "Level N".
   level: number;
@@ -280,6 +292,15 @@ export interface EscalationRuleFormOptions {
    * after the first, when it is paged (#7373).
    */
   notifyFooterElement?: ReactElement | undefined;
+  /*
+   * A new rule after the first, added by someone who may change the level
+   * before it (#7373): the form asks when the new level is paged ("Paged
+   * after"), starting from the level before's wait, which is where it is
+   * saved. Its description names that level, so the page words it
+   * (pagedAfterDescriptionElement). Left out, the form asks "Escalate after".
+   */
+  previousLevel?: EscalationRulePreviousLevel | undefined;
+  pagedAfterDescriptionElement?: ReactElement | undefined;
 }
 
 // "Escalate after": how long THIS level has before the next one is paged.
@@ -288,8 +309,53 @@ export const ESCALATE_AFTER_DESCRIPTION: string = translationKey(
 );
 
 /*
+ * "PAGED AFTER": WHEN A NEW LEVEL IS PAGED, ASKED ON THE NEW LEVEL (#7373).
+ *
+ * The wait before a level belongs to the level before it: that level's
+ * "Escalate after" is how long it waits for an acknowledgement before the
+ * next one is paged. A new rule's form asked "Escalate after" too, and a
+ * newcomer adding a teammate to page "after 5 minutes" typed 5 there - the
+ * new level's own wait, before a level that did not exist - while the
+ * teammate was still paged 30 minutes after Level 1. A new rule after the
+ * first asks when it is paged instead, starting from the level before's
+ * wait, and the page saves the answer as that level's wait. The new level
+ * waits DEFAULT_ESCALATE_AFTER_IN_MINUTES itself until a level after it is
+ * added, which asks again; its Edit sets it any time.
+ */
+export const ESCALATION_RULE_PAGED_AFTER_KEY: string = "pagedAfterInMinutes";
+
+export const PAGED_AFTER_TITLE: string = translationKey(
+  "Paged after (in minutes)",
+);
+
+// Under it, naming the level before: "How long Level 1 waits ...".
+export const PAGED_AFTER_DESCRIPTION: string = translationKey(
+  "How long {{level}} waits for someone to acknowledge before this level is paged. Saved as the wait of {{level}}.",
+);
+
+// The minutes a "Paged after" answer holds, or null when it holds none.
+export const readPagedAfterInMinutes: (values: unknown) => number | null = (
+  values: unknown,
+): number | null => {
+  const record: Record<string, unknown> =
+    values && typeof values === "object"
+      ? (values as Record<string, unknown>)
+      : {};
+  const value: unknown = record[ESCALATION_RULE_PAGED_AFTER_KEY];
+
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const minutes: number = Number(value);
+
+  return Number.isFinite(minutes) && minutes >= 0 ? Math.floor(minutes) : null;
+};
+
+/*
  * The add and edit forms' fields, in order: Notify (with each schedule's
- * "Next in rotation" on offer), Escalate after, then the folded Advanced
+ * "Next in rotation" on offer), the wait - "Escalate after", or on a new
+ * rule after the first "Paged after" (#7373) - then the folded Advanced
  * section with the name and the description. No steps: two questions and a
  * folded section are one short page.
  */
@@ -307,6 +373,45 @@ export const getEscalationRuleFormFields: <TEntity>(
       },
     });
 
+  const escalateAfter: Field<TEntity> = {
+    field: { escalateAfterInMinutes: true } as SelectFormFields<TEntity>,
+    title: "Escalate after (in minutes)",
+    description: ESCALATE_AFTER_DESCRIPTION,
+    fieldType: FormFieldSchemaType.Number,
+    required: true,
+    placeholder: "30",
+    validation: {
+      minValue: 0,
+    },
+    defaultValue: options.isEditing
+      ? undefined
+      : DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+  };
+
+  // Not a column of the new rule: the page saves it on the level before.
+  const pagedAfter: Field<TEntity> = {
+    field: {
+      [ESCALATION_RULE_PAGED_AFTER_KEY]: true,
+    } as SelectFormFields<TEntity>,
+    showEvenIfPermissionDoesNotExist: true,
+    formOnly: true,
+    title: PAGED_AFTER_TITLE,
+    // Worded by the page, which names the level before (PAGED_AFTER_DESCRIPTION).
+    ...(options.pagedAfterDescriptionElement
+      ? { description: options.pagedAfterDescriptionElement }
+      : {}),
+    fieldType: FormFieldSchemaType.Number,
+    required: true,
+    placeholder: "30",
+    validation: {
+      minValue: 0,
+    },
+    defaultValue: options.previousLevel?.escalateAfterInMinutes,
+  };
+
+  const wait: Field<TEntity> =
+    options.previousLevel && !options.isEditing ? pagedAfter : escalateAfter;
+
   return [
     getEscalationRuleNotifyFormField<TEntity>(
       options.notifyFooterElement
@@ -316,20 +421,7 @@ export const getEscalationRuleFormFields: <TEntity>(
         offerNextInRotation: true,
       },
     ),
-    {
-      field: { escalateAfterInMinutes: true } as SelectFormFields<TEntity>,
-      title: "Escalate after (in minutes)",
-      description: ESCALATE_AFTER_DESCRIPTION,
-      fieldType: FormFieldSchemaType.Number,
-      required: true,
-      placeholder: "30",
-      validation: {
-        minValue: 0,
-      },
-      defaultValue: options.isEditing
-        ? undefined
-        : DEFAULT_ESCALATE_AFTER_IN_MINUTES,
-    },
+    wait,
     {
       field: { name: true } as SelectFormFields<TEntity>,
       title: "Name",

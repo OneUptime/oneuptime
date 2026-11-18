@@ -375,11 +375,11 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
                       {translator.translateText(BACKUP_STEP_COPY[step.key])}
                     </span>
                     {step.status === BackupStepStatus.Skipped ? (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-500">
                         {translator.translateText(BackupsCopy.stepsSkipped)}
                       </span>
                     ) : step.status === BackupStepStatus.Pending ? (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-500">
                         {translator.translateText(BackupsCopy.stepsWaiting)}
                       </span>
                     ) : (

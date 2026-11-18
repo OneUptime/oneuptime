@@ -166,7 +166,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
     marks.push(
       <span
         key="not-set-up"
-        className="text-xs text-gray-400"
+        className="text-xs text-gray-500"
         data-testid={`${props.dataTestId}-not-set-up`}
       >
         {translator.translateText(ProductsSettingsCopy.notSetUp)}
@@ -243,7 +243,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
           {status}
         </span>
         {props.isAlwaysShown ? (
-          <span className="mt-2 text-xs text-gray-400 sm:mt-0">
+          <span className="mt-2 text-xs text-gray-500 sm:mt-0">
             {translator.translateText(ProductsSettingsCopy.alwaysShown)}
           </span>
         ) : (

@@ -154,7 +154,7 @@ const CodeTaskChangesView: FunctionComponent<ComponentProps> = (
                   title={translator.translateText(
                     CODE_TASK_FILE_STATUS_LABELS[file.status],
                   )}
-                  className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded font-mono text-[10px] font-bold ${STATUS_MARK_CLASS_NAMES[file.status]}`}
+                  className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded font-mono text-xs font-bold ${STATUS_MARK_CLASS_NAMES[file.status]}`}
                 >
                   {CODE_TASK_FILE_STATUS_MARKS[file.status]}
                 </span>

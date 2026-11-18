@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../../Utils/ModelAPI";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenuComponent from "./SideMenu";
@@ -19,7 +20,6 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -166,7 +166,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
       sideMenu={<SideMenuComponent modelId={projectId} />}
     >
       <Fragment>
-        {isLoading && <PageLoader isVisible={true} />}
+        {isLoading && <PageSkeleton />}
         {!isLoading && error && <ErrorMessage message={error} />}
         {!isLoading && !error && user && (
           <Fragment>

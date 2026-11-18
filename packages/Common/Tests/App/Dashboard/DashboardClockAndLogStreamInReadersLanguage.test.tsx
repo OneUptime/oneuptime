@@ -483,8 +483,8 @@ describe("a Log stream's count, in the reader's language", () => {
   test("the count is drawn in its title's gray", async () => {
     const count: HTMLElement = await renderLogStream(2);
 
-    expect(screen.getByText("Checkout logs")).toHaveClass("text-gray-400");
-    expect(count).toHaveClass("text-gray-400");
+    expect(screen.getByText("Checkout logs")).toHaveClass("text-gray-500");
+    expect(count).toHaveClass("text-gray-500");
     expect(count).not.toHaveClass("text-gray-300");
   });
 

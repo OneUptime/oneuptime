@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import MultiDeviceSnmpWalkResults, {
   MultiDeviceSnmpWalkNotice,
 } from "./MultiDeviceSnmpWalkResults";
@@ -77,7 +78,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
 import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -1792,7 +1792,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (loadError) {

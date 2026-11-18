@@ -138,7 +138,7 @@ const DashboardWidgetFallback: FunctionComponent<ComponentProps> = (
         )}
         {props.isEditMode && !isPublic ? (
           <p
-            className="text-xs text-gray-400 max-w-xs"
+            className="text-xs text-gray-500 max-w-xs"
             data-testid="dashboard-widget-fallback-edit-hint"
           >
             {translator.translateText("Click it to edit or delete it.")}
@@ -190,7 +190,7 @@ const DashboardWidgetFallback: FunctionComponent<ComponentProps> = (
             className="max-w-full text-left"
             data-testid="dashboard-widget-fallback-details"
           >
-            <summary className="text-xs text-gray-400 cursor-pointer select-none text-center">
+            <summary className="text-xs text-gray-500 cursor-pointer select-none text-center">
               {translator.translateText("Details")}
             </summary>
             <pre className="mt-1 max-h-24 overflow-auto text-xs text-gray-500 whitespace-pre-wrap break-words">

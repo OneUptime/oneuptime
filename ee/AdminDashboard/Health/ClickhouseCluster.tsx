@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -9,7 +10,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
@@ -334,7 +334,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={4} />;
     }
 
     const connected: boolean = Boolean(data?.["connected"]);

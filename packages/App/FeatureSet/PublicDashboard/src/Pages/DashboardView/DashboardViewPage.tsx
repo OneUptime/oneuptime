@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DashboardCanvas from "../../Components/DashboardCanvas";
 import DashboardViewConfig, {
   AutoRefreshInterval,
@@ -20,7 +21,6 @@ import PublicDashboardWidgetContext from "../../Utils/WidgetContext";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -321,7 +321,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   /*

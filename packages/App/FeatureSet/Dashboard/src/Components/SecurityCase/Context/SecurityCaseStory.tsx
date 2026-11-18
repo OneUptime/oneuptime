@@ -1,4 +1,5 @@
 import AppLink from "../../AppLink/AppLink";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
@@ -66,7 +67,6 @@ import {
   filterStoryItems,
 } from "Common/Utils/SecurityCase/SecurityCaseStoryItems";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
@@ -594,7 +594,7 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
       </div>
     );
   } else if (!story || !counts) {
-    body = <ComponentLoader />;
+    body = <CardListSkeleton count={3} lines={1} />;
   } else if (story.items.length === 0) {
     body = (
       <div data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.storyEmpty}>
@@ -654,7 +654,7 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
                     {translator.translateText(STORY_FILTER_LABELS[option]) ||
                       STORY_FILTER_LABELS[option]}
                   </span>
-                  <span className="tabular-nums text-gray-400">
+                  <span className="tabular-nums text-gray-500">
                     {translator.formatNumber(counts[option])}
                   </span>
                 </button>

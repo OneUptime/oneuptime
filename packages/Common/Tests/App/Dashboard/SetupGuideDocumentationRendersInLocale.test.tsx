@@ -586,7 +586,7 @@ describe("Docker > Help > Documentation", () => {
   test("in English, the guide as it is written, at once, each block its own way", async () => {
     await drawIn("en", <DockerDocumentationPage {...PAGE_PROPS} />);
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
 
     const english: Array<string> = getSetupGuideWordPieces(dockerGuide());
     const drawn: string = drawnTexts().join("\n");
@@ -1949,7 +1949,7 @@ describe("the card while the reader's words are fetched", () => {
       );
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(mockDrawnMarkdown).toEqual([]);
 
     await act(async () => {
@@ -1958,7 +1958,7 @@ describe("the card while the reader's words are fetched", () => {
     });
     await settle();
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
     expect(drawnTexts()).toContain("Installieren Sie den Agenten.");
     expect(drawnTexts()).toContain("Führen Sie den Befehl aus.");
     expect(drawnTexts()).not.toContain("Install the agent.");
@@ -1989,7 +1989,7 @@ describe("the card while the reader's words are fetched", () => {
     });
     await settle();
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
     expect(drawnTexts()).toContain("Install the agent.");
     expect(drawnTexts()).toContain("Run the command.");
     for (const markdown of mockDrawnMarkdown) {
@@ -2014,7 +2014,7 @@ describe("the card while the reader's words are fetched", () => {
       );
     });
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
     expect(drawnTexts()).toContain("Install the agent.");
   });
 

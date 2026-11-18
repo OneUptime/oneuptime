@@ -278,6 +278,34 @@ describe("the ChatGPT plugin package", () => {
       }
     });
 
+    /*
+     * OpenAI's app submission guidelines: a subtitle or a description must
+     * "not advertise pricing, subscriptions, free trials, discounts, or
+     * promotions", and the directory's scan flags one that names a plan. It
+     * flagged 1.1.0's "a OneUptime Cloud account on the Growth plan or
+     * higher" with "Remove pricing, subscription offers, and temporary
+     * promotions from the description" (2026-11-17). The guidelines still let
+     * a plugin say, when it is used, that someone's plan lacks a feature: the
+     * server's own errors do. These are the words a person reads in the
+     * listing; the review test cases are for reviewers, and one names a plan.
+     */
+    test("names no price, plan, subscription, trial, discount or promotion", () => {
+      const pricing: RegExp =
+        /\b(?:prices?|priced|pricing|plans?|subscri\w*|trials?|discount\w*|promo\w*|billing|upgrade\w*|free)\b|\$\s?\d/i;
+      const texts: Array<string> = [
+        String(MANIFEST["description"]),
+        listing.shortDescription,
+        listing.longDescription,
+        ...(listing.capabilities || []),
+        ...(listing.defaultPrompt || []),
+        OPENAI.publication.release_notes,
+      ];
+
+      for (const text of texts) {
+        expect([text, text.match(pricing)?.[0] || null]).toEqual([text, null]);
+      }
+    });
+
     test("offers at most three starter prompts, each short, different and naming no app", () => {
       const prompts: Array<string> = listing.defaultPrompt || [];
 

@@ -588,7 +588,7 @@ class WorkspaceNotificationSummary extends BaseModel {
   @TableColumn({
     title: "Team Name",
     description:
-      "The team the summary's channels are in: for Microsoft Teams, the team's name; for Mattermost, the team's id - empty to look in the default team first, then in the bot's other teams. Not used for Slack.",
+      "The team the summary's channels are in: for Microsoft Teams, the team's id as picked from the connection's teams (a team's name, as summaries saved before held it, is matched too) - empty for the connection's only team; for Mattermost, the team's id - empty to look in the default team first, then in the bot's other teams. Not used for Slack.",
     required: false,
     unique: false,
     type: TableColumnType.LongText,

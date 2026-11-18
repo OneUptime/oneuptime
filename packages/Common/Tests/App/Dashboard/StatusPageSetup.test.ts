@@ -7,22 +7,30 @@ import {
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_EXTRAS,
   STATUS_PAGE_SETUP_STEPS,
+  NO_STATUS_PAGE_SETUP_FILTER,
   StatusPageSetupExtra,
   StatusPageSetupMonitor,
+  StatusPageSetupMonitorGroup,
   StatusPageSetupStep,
   describeExtraPlan,
   describeShownMonitors,
   getDefaultStatusPageName,
+  getExistingPagesLine,
+  getLabelsOfList,
   getPickDoneLine,
+  getPickedMonitorGroups,
   getPickedMonitors,
+  getShownItems,
   getStartOverStatusPageName,
   getStatusPageNameIdentity,
   getStatusPageSetupProgress,
   isPickDone,
   isSameStatusPageName,
   isStatusPageNameValid,
+  isStatusPageSetupFiltered,
   isStatusPageSetupFinished,
-  pickAllMonitors,
+  matchesStatusPageSetupFilter,
+  pickShownItems,
   togglePickedMonitor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
 import { WEBSITE_DOWN_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
@@ -283,8 +291,29 @@ describe("the monitors picked", () => {
   });
 
   test("Select all picks every monitor listed", () => {
-    expect(pickAllMonitors(MONITORS)).toEqual(["m-api", "m-web", "m-db"]);
-    expect(pickAllMonitors([])).toEqual([]);
+    expect(pickShownItems({ picked: [], shown: MONITORS })).toEqual([
+      "m-api",
+      "m-web",
+      "m-db",
+    ]);
+    expect(pickShownItems({ picked: [], shown: [] })).toEqual([]);
+  });
+
+  // #7147: what the list shows, after what was picked, never twice.
+  test("Select all picks what is shown, keeping what was picked before and what the page shows already out", () => {
+    expect(
+      pickShownItems({
+        picked: ["m-db"],
+        shown: [MONITORS[0]!, MONITORS[2]!],
+      }),
+    ).toEqual(["m-db", "m-api"]);
+    expect(
+      pickShownItems({
+        picked: [],
+        shown: MONITORS,
+        onThePage: ["m-web"],
+      }),
+    ).toEqual(["m-api", "m-db"]);
   });
 
   test("are put on the page in the order the list shows them, whatever order they were ticked in", () => {
@@ -372,6 +401,52 @@ describe("the summary's lines", () => {
     expect(
       getPickDoneLine({ translator: english, name: "Acme", monitorCount: 3 }),
     ).toBe('"Acme" shows 3 monitors.');
+  });
+
+  // #7147: a monitor group is a row of the page, and no monitor.
+  test("step 1's line says so once the page shows a monitor group", () => {
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 13,
+        hasMonitorGroups: true,
+      }),
+    ).toBe('"Acme" shows 13 monitors and monitor groups.');
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 1,
+        hasMonitorGroups: true,
+      }),
+    ).toBe('"Acme" shows 1 monitor group.');
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 2,
+        hasMonitorGroups: false,
+      }),
+    ).toBe('"Acme" shows 2 monitors.');
+
+    for (const language of ["ar", "fa", "de"]) {
+      const line: string = getPickDoneLine({
+        translator: dashboardTranslator(language),
+        name: "Acme Status",
+        monitorCount: 13,
+        hasMonitorGroups: true,
+      });
+
+      expect({ language, english: line.includes("monitor groups") }).toEqual({
+        language,
+        english: false,
+      });
+      expect({
+        language,
+        setApart: line.includes(isolated("Acme Status")),
+      }).toEqual({ language, setApart: language !== "de" });
+    }
   });
 
   /*
@@ -549,6 +624,12 @@ describe("the words", () => {
     '"{{name}}" shows {{count}} monitors.',
     '"{{name}}" shows {{count}} monitors._one',
     "{{count}} of {{total}} picked",
+    // A page that shows a monitor group (#7147).
+    '"{{name}}" shows {{count}} monitors and monitor groups.',
+    '"{{name}}" shows {{count}} monitors and monitor groups._one',
+    // The project's pages, counted (#7517).
+    "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.",
+    "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one",
   ].filter((word: string | undefined): word is string => {
     return Boolean(word);
   });
@@ -736,5 +817,159 @@ describe("the note that the name is one of the reader's pages (#7252)", () => {
         sibling: german[SIBLING],
       }),
     ).toEqual([expect.stringMatching(/^quoted ""/)]);
+  });
+});
+
+/*
+ * A BUSY PROJECT'S LIST (#7147): what the search and the label show, the
+ * labels to pick from, and the monitor groups picked.
+ */
+describe("what the list shows (#7147)", () => {
+  const PRODUCTION: { id: string; name: string } = {
+    id: "label-prod",
+    name: "production",
+  };
+  const STAGING: { id: string; name: string; color: string } = {
+    id: "label-staging",
+    name: "Staging",
+    color: "#f59e0b",
+  };
+  const ITEMS: Array<StatusPageSetupMonitor> = [
+    { id: "a", name: "Checkout API", labels: [PRODUCTION] },
+    { id: "b", name: "checkout   web", labels: [STAGING] },
+    { id: "c", name: "Café Status" },
+  ];
+
+  test("nothing typed and no label: everything, and nothing to say it is narrowed", () => {
+    expect(
+      getShownItems({ items: ITEMS, filter: NO_STATUS_PAGE_SETUP_FILTER }),
+    ).toEqual(ITEMS);
+    expect(isStatusPageSetupFiltered(NO_STATUS_PAGE_SETUP_FILTER)).toBe(false);
+    expect(isStatusPageSetupFiltered({ search: "   ", labelId: null })).toBe(
+      false,
+    );
+  });
+
+  test("the search finds a name in any case, however its spaces run, and accents composed or not", () => {
+    const names: (search: string) => Array<string> = (
+      search: string,
+    ): Array<string> => {
+      return getShownItems({
+        items: ITEMS,
+        filter: { search: search, labelId: null },
+      }).map((item: StatusPageSetupMonitor): string => {
+        return item.id;
+      });
+    };
+
+    expect(names("CHECKOUT")).toEqual(["a", "b"]);
+    expect(names("  checkout web ")).toEqual(["b"]);
+    // "é" typed decomposed finds the composed name.
+    expect(names("café")).toEqual(["c"]);
+    expect(names("payments")).toEqual([]);
+    expect(isStatusPageSetupFiltered({ search: "x", labelId: null })).toBe(
+      true,
+    );
+  });
+
+  test("a label shows what carries it; with a search, what carries it and matches", () => {
+    expect(
+      getShownItems({
+        items: ITEMS,
+        filter: { search: "", labelId: STAGING.id },
+      }),
+    ).toEqual([ITEMS[1]]);
+    expect(
+      matchesStatusPageSetupFilter({
+        item: ITEMS[0]!,
+        filter: { search: "api", labelId: STAGING.id },
+      }),
+    ).toBe(false);
+    expect(
+      matchesStatusPageSetupFilter({
+        item: ITEMS[2]!,
+        filter: { search: "", labelId: PRODUCTION.id },
+      }),
+    ).toBe(false);
+    expect(isStatusPageSetupFiltered({ search: "", labelId: "x" })).toBe(true);
+  });
+
+  test("the labels to pick from: each carried by a monitor or a group, once, by name", () => {
+    const groups: Array<StatusPageSetupMonitorGroup> = [
+      { id: "g", name: "Checkout", labels: [PRODUCTION, { id: "", name: "" }] },
+    ];
+
+    expect(getLabelsOfList({ monitors: ITEMS, monitorGroups: groups })).toEqual(
+      [PRODUCTION, STAGING],
+    );
+    expect(
+      getLabelsOfList({ monitors: [ITEMS[2]!], monitorGroups: [] }),
+    ).toEqual([]);
+  });
+
+  test("the groups picked, in the list's order", () => {
+    const groups: Array<StatusPageSetupMonitorGroup> = [
+      { id: "g1", name: "Checkout" },
+      { id: "g2", name: "Search" },
+    ];
+
+    expect(
+      getPickedMonitorGroups({ monitorGroups: groups, picked: ["g2", "g1"] }),
+    ).toEqual(groups);
+    expect(
+      getPickedMonitorGroups({ monitorGroups: groups, picked: ["gone"] }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * THE PROJECT'S PAGES, OFFERED (#7517): one page named, set apart in its
+ * sentence as every line naming a page is; several counted.
+ */
+describe("the project's pages, offered first (#7517)", () => {
+  test("one page is named, set apart, in the reader's language", () => {
+    expect(
+      getExistingPagesLine({
+        translator: english,
+        pages: [{ id: "1", name: "Walk Co Status" }],
+      }),
+    ).toBe(
+      'This project already has a status page, "Walk Co Status". The monitors you pick are added to it.',
+    );
+
+    for (const language of ["ar", "fa"]) {
+      const line: string = getExistingPagesLine({
+        translator: dashboardTranslator(language),
+        pages: [{ id: "1", name: "24/7 Status" }],
+      });
+
+      expect({
+        language,
+        setApart: line.includes(isolated("24/7 Status")),
+      }).toEqual({ language, setApart: true });
+      expect(withoutIsolateMarks(line)).toBe(
+        readDashboardLocale(language)[
+          STATUS_PAGE_SETUP_COPY.existingPageOne
+        ]!.replace("{{name}}", "24/7 Status"),
+      );
+    }
+  });
+
+  test("several are counted, in the reader's digits", () => {
+    const pages: Array<{ id: string; name: string }> = [
+      { id: "1", name: "A" },
+      { id: "2", name: "B" },
+      { id: "3", name: "C" },
+    ];
+
+    expect(getExistingPagesLine({ translator: english, pages })).toBe(
+      "This project already has 3 status pages. The monitors you pick are added to the one you choose.",
+    );
+    expect(
+      getExistingPagesLine({ translator: dashboardTranslator("fa"), pages }),
+    ).toContain("۳");
+    expect(
+      getExistingPagesLine({ translator: dashboardTranslator("de"), pages }),
+    ).not.toContain("status pages");
   });
 });

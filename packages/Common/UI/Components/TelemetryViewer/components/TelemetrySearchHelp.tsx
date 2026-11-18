@@ -101,7 +101,7 @@ const TelemetrySearchHelp: FunctionComponent<TelemetrySearchHelpProps> = (
                   </span>
                 </td>
                 <td className={TELEMETRY_SEARCH_HELP_EXAMPLE_CELL_CLASS_NAME}>
-                  <code className="font-mono text-[11px] text-gray-500">
+                  <code className="font-mono text-xs text-gray-500">
                     {row.example}
                   </code>
                 </td>

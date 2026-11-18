@@ -17,6 +17,11 @@ import {
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
+import {
+  chooseDropdownOption,
+  getShownDropdownPlaceholder,
+  listDropdownOptions,
+} from "../../DropdownPicks";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -727,17 +732,19 @@ describe("filters", () => {
     renderTimeline();
     await loaded();
 
-    const select: HTMLSelectElement = screen.getByTestId(
-      "timeline-team-filter",
-    ) as HTMLSelectElement;
+    const select: HTMLElement = within(
+      screen.getByTestId("timeline-team-filter"),
+    ).getByRole("combobox", { name: "Filter by team" });
 
-    expect(
-      Array.from(select.options).map((option: HTMLOptionElement) => {
-        return option.textContent;
-      }),
-    ).toEqual(["All teams", "My teams", "Payments", "SRE"]);
+    // "All teams" is the placeholder, and clearing the filter returns to it.
+    expect(getShownDropdownPlaceholder(select)).toBe("All teams");
+    expect(await listDropdownOptions(select)).toEqual([
+      "My teams",
+      "Payments",
+      "SRE",
+    ]);
 
-    fireEvent.change(select, { target: { value: "t-sre" } });
+    chooseDropdownOption(select, "SRE");
 
     // Only the chosen team's group, even though SRE primary is co-owned.
     expect(rowIds()).toEqual(["s-sre"]);
@@ -749,7 +756,7 @@ describe("filters", () => {
         }),
     ).toEqual(["SRE1Your team"]);
 
-    fireEvent.change(select, { target: { value: "t-pay" } });
+    chooseDropdownOption(select, "Payments");
 
     expect(rowIds()).toEqual(["s-pay", "s-sre"]);
   });
@@ -758,9 +765,10 @@ describe("filters", () => {
     renderTimeline();
     await loaded();
 
-    fireEvent.change(screen.getByTestId("timeline-team-filter"), {
-      target: { value: "__my_teams__" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("timeline-team-filter")).getByRole("combobox"),
+      "My teams",
+    );
 
     expect(rowIds()).toEqual(["s-sre"]);
     expect(

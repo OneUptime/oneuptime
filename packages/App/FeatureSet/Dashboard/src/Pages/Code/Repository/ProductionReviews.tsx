@@ -29,7 +29,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -101,7 +101,7 @@ const CodeRepositoryProductionReviews: FunctionComponent<
   }
 
   if (!repository) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const provider: string | undefined = repository.repository.provider;

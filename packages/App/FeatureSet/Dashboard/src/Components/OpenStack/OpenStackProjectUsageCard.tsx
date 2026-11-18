@@ -1,4 +1,5 @@
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -14,7 +15,6 @@ import { readOpenStackUsageQuantities } from "Common/Types/OpenStack/OpenStackPr
 import { OpenStackCostSource } from "Common/Types/OpenStack/OpenStackSpendSnapshot";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -114,7 +114,7 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
     }, [props.openStackCloudId.toString(), props.openStackProjectId]);
 
   if (read.isLoading && !read.data) {
-    return <ComponentLoader />;
+    return <ChartSkeleton />;
   }
 
   const data: ProjectUsageRead | null = read.data;

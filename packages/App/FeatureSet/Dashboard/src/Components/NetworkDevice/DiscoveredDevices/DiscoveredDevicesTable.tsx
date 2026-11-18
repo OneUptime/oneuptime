@@ -9,6 +9,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERED_DEVICE_PAGE_SIZE,
   DiscoveredDeviceCounts,
+  DiscoveredDeviceFilter,
   DiscoveredDeviceIdsResponse,
   DiscoveredDeviceListResponse,
   DiscoveredDeviceMapChange,
@@ -45,6 +46,7 @@ import Table from "Common/UI/Components/Table/Table";
 import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import {
+  TableEmptyStateAction,
   TableEmptyStateActionStyle,
   TableEmptyStateKind,
   TableEmptyStateProps,
@@ -86,6 +88,14 @@ import useActiveDiscoveryImports, {
   ActiveDiscoveryImports,
 } from "../DiscoveryImport/useActiveDiscoveryImports";
 import AddDiscoveredDevicesDialog from "./AddDiscoveredDevicesDialog";
+import DiscoveredDeviceFilterBar from "./DiscoveredDeviceFilterBar";
+import {
+  DiscoveredDeviceChip,
+  DiscoveredDeviceChipState,
+  EMPTY_DISCOVERED_DEVICE_CHIP_STATE,
+  getDiscoveredDeviceChips,
+  toDiscoveredDeviceFilters,
+} from "./DiscoveredDeviceFilters";
 import {
   hideDiscoveredDevicesFromMap,
   listDiscoveredDevices,
@@ -165,6 +175,9 @@ export const DISCOVERED_DEVICES_COPY: {
   siteHowToCollect: string;
   noMatch: string;
   noMatchHint: string;
+  noFilterMatch: string;
+  noFilterMatchHint: string;
+  clearFilters: string;
   matchesElsewhere: Record<
     Exclude<DiscoveredDeviceShow, DiscoveredDeviceShow.All>,
     string
@@ -213,6 +226,14 @@ export const DISCOVERED_DEVICES_COPY: {
   noMatchHint: translationKey(
     "Search by a name, an IP address, a MAC address with or without separators, or a vendor.",
   ),
+  // The chips over the table narrow the list too (issue #9304).
+  noFilterMatch: translationKey(
+    "No discovered device matches this search and these filters.",
+  ),
+  noFilterMatchHint: translationKey(
+    "Every filter must match. Clear one, or clear them all.",
+  ),
+  clearFilters: translationKey("Clear filters"),
   /*
    * The search matches, but not under the choice shown: a monitored device
    * looked for under Not monitored, which the list opens on.
@@ -324,6 +345,23 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
   const [show, setShow] = useState<DiscoveredDeviceShow>(
     DiscoveredDeviceShow.NotMonitored,
   );
+
+  /*
+   * The filter chips (issue #9304): the same chips the Devices list draws,
+   * each one the server applies with the search. A site's own list has no
+   * Site chip.
+   */
+  const chips: Array<DiscoveredDeviceChip> = useMemo(() => {
+    return getDiscoveredDeviceChips({ isSiteList: Boolean(props.siteId) });
+  }, [props.siteId]);
+  const [chipState, setChipState] = useState<DiscoveredDeviceChipState>(
+    EMPTY_DISCOVERED_DEVICE_CHIP_STATE,
+  );
+  const filters: Array<DiscoveredDeviceFilter> = useMemo(() => {
+    return toDiscoveredDeviceFilters(chips, chipState);
+  }, [chips, chipState]);
+  // What the requests depend on: the same filters are the same key.
+  const filtersKey: string = JSON.stringify(filters);
   const [sortBy, setSortBy] = useState<keyof DiscoveredDeviceItem | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -389,7 +427,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
   useEffect(() => {
     setCurrentPageNumber(1);
     clearSelection();
-  }, [debouncedSearch, show, props.siteId]);
+  }, [debouncedSearch, filtersKey, show, props.siteId]);
 
   const reload: () => void = useCallback((): void => {
     setReloadToken((token: number): number => {
@@ -406,6 +444,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
 
     listDiscoveredDevices({
       search: debouncedSearch,
+      filters: filters,
       show: show,
       ...(props.siteId ? { siteId: props.siteId } : {}),
       sort: sort.sort,
@@ -439,6 +478,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       });
   }, [
     debouncedSearch,
+    filtersKey,
     show,
     props.siteId,
     sort.sort,
@@ -1027,6 +1067,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       const matching: DiscoveredDeviceIdsResponse =
         await selectAllDiscoveredDevices({
           search: debouncedSearch,
+          filters: filters,
           show: show,
           ...(props.siteId ? { siteId: props.siteId } : {}),
           sort: sort.sort,
@@ -1112,12 +1153,8 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           onOpen={openSearch}
           dataTestId="discovered-devices-search-slot"
         >
-          <div
+          <label
             className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-            onClick={() => {
-              searchInputRef.current?.focus();
-            }}
-            role="presentation"
           >
             <Icon
               icon={IconProp.Search}
@@ -1171,7 +1208,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
             ) : (
               <></>
             )}
-          </div>
+          </label>
         </TableHeaderSearchSlot>
       }
     >
@@ -1186,27 +1223,67 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
       return undefined;
     }
 
+    const isFiltered: boolean = filters.length > 0;
     const kind: DiscoveredDeviceEmptyKind = getDiscoveredDeviceEmptyKind({
       search: debouncedSearch,
+      isFiltered: isFiltered,
       show: show,
       counts: counts,
     });
 
-    switch (kind) {
-      case DiscoveredDeviceEmptyKind.NoMatch:
-        return {
-          kind: TableEmptyStateKind.Filtered,
-          title: DISCOVERED_DEVICES_COPY.noMatch,
-          description: DISCOVERED_DEVICES_COPY.noMatchHint,
-          actions: [
+    // Clears what narrows the list: the search, the chips, or both.
+    const clearActions: Array<TableEmptyStateAction> = [
+      ...(debouncedSearch.trim()
+        ? [
             {
               title: DISCOVERED_DEVICES_COPY.clearSearch,
+              style: TableEmptyStateActionStyle.Link,
               onClick: () => {
                 setSearch("");
               },
               dataTestId: "discovered-devices-clear-search",
             },
-          ],
+          ]
+        : []),
+      ...(isFiltered
+        ? [
+            {
+              title: DISCOVERED_DEVICES_COPY.clearFilters,
+              style: TableEmptyStateActionStyle.Link,
+              onClick: () => {
+                setChipState(EMPTY_DISCOVERED_DEVICE_CHIP_STATE);
+              },
+              dataTestId: "discovered-devices-clear-filters",
+            },
+          ]
+        : []),
+    ];
+
+    switch (kind) {
+      case DiscoveredDeviceEmptyKind.NoMatch:
+        return {
+          kind: TableEmptyStateKind.Filtered,
+          title: isFiltered
+            ? DISCOVERED_DEVICES_COPY.noFilterMatch
+            : DISCOVERED_DEVICES_COPY.noMatch,
+          description: isFiltered
+            ? DISCOVERED_DEVICES_COPY.noFilterMatchHint
+            : DISCOVERED_DEVICES_COPY.noMatchHint,
+          // The first is the card's button, the rest links beside it.
+          actions: clearActions.map(
+            (
+              action: TableEmptyStateAction,
+              index: number,
+            ): TableEmptyStateAction => {
+              if (index > 0) {
+                return action;
+              }
+
+              const button: TableEmptyStateAction = { ...action };
+              delete button.style;
+              return button;
+            },
+          ),
           dataTestId: "discovered-devices-empty",
         };
       case DiscoveredDeviceEmptyKind.MatchesElsewhere:
@@ -1232,14 +1309,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
               },
               dataTestId: "discovered-devices-empty-show-all",
             },
-            {
-              title: DISCOVERED_DEVICES_COPY.clearSearch,
-              style: TableEmptyStateActionStyle.Link,
-              onClick: () => {
-                setSearch("");
-              },
-              dataTestId: "discovered-devices-clear-search",
-            },
+            ...clearActions,
           ],
           dataTestId: "discovered-devices-empty",
         };
@@ -1275,7 +1345,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           dataTestId: "discovered-devices-empty",
         };
     }
-  }, [counts, debouncedSearch, show, props.siteId, translator]);
+  }, [counts, debouncedSearch, filters, show, props.siteId, translator]);
 
   const runningImports: Array<DiscoveryImportView> =
     activeImports.fromDiscoveredDevices;
@@ -1350,6 +1420,12 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
               }}
             />
           </div>
+
+          <DiscoveredDeviceFilterBar
+            chips={chips}
+            state={chipState}
+            onChange={setChipState}
+          />
 
           {error && rows.length > 0 ? (
             <div className="mb-4">

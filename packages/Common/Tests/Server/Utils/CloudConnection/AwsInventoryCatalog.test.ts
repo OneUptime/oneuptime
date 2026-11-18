@@ -121,6 +121,12 @@ const SAMPLES: Array<{
     dimensions: { LoadBalancer: "app/checkout/50dc6c495c0c9188" },
   },
   {
+    type: "AWS::ElasticLoadBalancing::LoadBalancer",
+    listed: listed("legacy-web", { LoadBalancerName: "legacy-web" }),
+    namespace: "AWS/ELB",
+    dimensions: { LoadBalancerName: "legacy-web" },
+  },
+  {
     type: "AWS::ECS::Cluster",
     listed: listed("orders", {
       ClusterName: "orders",

@@ -180,7 +180,7 @@ const AskAiHistory: FunctionComponent<ComponentProps> = (
                   </span>
                   {/* The row's end makes room for the question. */}
                   {conversation.lastMessageAt && !isConfirming ? (
-                    <span className="flex-shrink-0 text-xs text-gray-400">
+                    <span className="flex-shrink-0 text-xs text-gray-500">
                       {OneUptimeDate.fromNow(conversation.lastMessageAt)}
                     </span>
                   ) : (

@@ -6,9 +6,15 @@ import Route from "Common/Types/API/Route";
 import {
   WhoIsToldBreak,
   WhoIsToldBreakKind,
+  WhoIsToldDeclaration,
   WhoIsToldEvent,
   WhoIsToldFix,
   WhoIsToldHeadline,
+  WhoIsToldMonitorGroup,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerMatch,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPagingState,
@@ -16,7 +22,9 @@ import {
   WhoIsToldPersonProblem,
   WhoIsToldPolicy,
   WhoIsToldResult,
+  WhoIsToldRule,
   WhoIsToldServerChannel,
+  WhoIsToldStatusPage,
   getReachablePeople,
   getWhoIsToldHeadline,
   getWhoIsToldPagingState,
@@ -27,6 +35,7 @@ import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTe
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import {
   composedValue,
+  formatList,
   PluralTemplate,
   TemplateValue,
   translationKey,
@@ -266,6 +275,172 @@ export const FALLBACK_CHANNELS_NOTE: string = translationKey(
   "Picked by the fallback: no on-call rule of theirs covers this severity",
 );
 
+/*
+ * A PRIVATE RECORD (#7213). A privacy rule - or the criteria - makes an
+ * incident or alert private as it is created: it shows on no status page,
+ * tells no subscriber, and only its owners, the Project Owners and the
+ * Project Admins can see it. A reader who will not be able to see it is
+ * told only that it opens, and that it is private.
+ */
+export const PRIVATE_WORDS: Readonly<{
+  hiddenSentence: string;
+  byCriteria: string;
+  byRules: PluralTemplate;
+  whoCanSee: string;
+  offStatusPages: string;
+}> = {
+  // The card's first words, and the chain, for a record the reader can't see.
+  hiddenSentence: translationKey(
+    "It's private, so you can't see who it tells.",
+  ),
+  byCriteria: translationKey("The criteria makes it private."),
+  byRules: {
+    one: "Privacy rule {{rules}} makes it private.",
+    other: "Privacy rules {{rules}} make it private.",
+  },
+  whoCanSee: translationKey(
+    "Only its owners, Project Owners and Project Admins can see it.",
+  ),
+  // The status pages that show the monitor show no private incident.
+  offStatusPages: translationKey("None: it's private"),
+};
+
+/*
+ * THE INCIDENT AN ALERT BECOMES (#7216): the first alert incident rule that
+ * matches the alert declares an incident from it - right away, or once the
+ * alert has stayed open for the rule's wait - and that incident is told as
+ * any incident is. One whole sentence for each: a rule the reader can't see
+ * is said as such, never by an empty name.
+ */
+export const DECLARES_WORDS: Readonly<{
+  now: string;
+  nowHiddenRule: string;
+  afterWait: PluralTemplate;
+  afterWaitHiddenRule: PluralTemplate;
+}> = {
+  now: translationKey(
+    "Alert incident rule {{rule}} declares an incident ({{severity}}) from it right away.",
+  ),
+  nowHiddenRule: translationKey(
+    "An alert incident rule you can't see declares an incident ({{severity}}) from it right away.",
+  ),
+  afterWait: {
+    one: "If it's still open after {{count}} minute, alert incident rule {{rule}} declares an incident ({{severity}}) from it.",
+    other:
+      "If it's still open after {{count}} minutes, alert incident rule {{rule}} declares an incident ({{severity}}) from it.",
+  },
+  afterWaitHiddenRule: {
+    one: "If it's still open after {{count}} minute, an alert incident rule you can't see declares an incident ({{severity}}) from it.",
+    other:
+      "If it's still open after {{count}} minutes, an alert incident rule you can't see declares an incident ({{severity}}) from it.",
+  },
+};
+
+/*
+ * THE LABEL RULES THAT CHANGE WHO IS PAGED (#7212): label rules run before
+ * on-call rules, so an on-call rule can match a label one of them adds. The
+ * chain names them only when they change which on-call rules page.
+ */
+export const LABEL_RULES_NOTE: string = translationKey(
+  "Their labels change which on-call rules page it.",
+);
+
+/*
+ * THE OWNERS THAT MAKE AN ON-CALL RULE MATCH (#9407): an alert on-call
+ * rule's Alert Owner condition matches on who owns the alert - whom its
+ * criteria names, the network device's owners and whom its owner rules add
+ * - so the chain says which owner made the rule match, as it names a label
+ * rule whose label did. A rule the reader can't see is said as such.
+ */
+export const OWNER_MATCH_WORDS: Readonly<{
+  sentence: string;
+  hiddenRuleSentence: string;
+}> = {
+  sentence: translationKey("It's owned by {{owners}}, so {{rule}} matches."),
+  hiddenRuleSentence: translationKey(
+    "It's owned by {{owners}}, so a rule you can't see matches.",
+  ),
+};
+
+// One owner match's sentence, the rule named as the event's rules name it.
+export function getOwnerMatchSentence(data: {
+  match: WhoIsToldOwnerMatch;
+  rules: ReadonlyArray<WhoIsToldRule>;
+  translator: Translator;
+}): string {
+  const ruleName: string =
+    data.rules.find((rule: WhoIsToldRule): boolean => {
+      return rule.id === data.match.ruleId;
+    })?.name || "";
+  const owners: TemplateValue = composedValue(
+    (sentence: Translator): string => {
+      return formatList(data.match.ownerNames, sentence);
+    },
+  );
+
+  return ruleName
+    ? data.translator.translateTemplate(
+        OWNER_MATCH_WORDS.sentence,
+        { owners: owners, rule: ruleName },
+        { setsValuesApart: true },
+      )
+    : data.translator.translateTemplate(
+        OWNER_MATCH_WORDS.hiddenRuleSentence,
+        { owners: owners },
+        { setsValuesApart: true },
+      );
+}
+
+/*
+ * A status page that shows the monitor through a monitor group (#7214): the
+ * group is what to edit, so it is named. A group the reader can't see keeps
+ * its place without its name.
+ */
+export const STATUS_PAGE_THROUGH_GROUPS: string = translationKey(
+  "{{page}} (through {{groups}})",
+);
+export const HIDDEN_MONITOR_GROUP: string = translationKey(
+  "a group you can't see",
+);
+
+/*
+ * OWNERS NO CREATED EMAIL REACHES (#7572): why each is not emailed, and
+ * where they are named - the criteria, the network device the monitor
+ * watches, or an owner rule. A person who is not a member of the project
+ * is never named, nor a team of another project; a team of the project is.
+ */
+export const OWNER_NOT_EMAILED_WORDS: Readonly<{
+  problems: Readonly<Record<WhoIsToldOwnerProblem, string>>;
+  addedBy: Readonly<{
+    criteria: string;
+    networkDevice: string;
+    ownerRule: string;
+    hiddenOwnerRule: string;
+  }>;
+  listLabel: string;
+}> = {
+  problems: {
+    [WhoIsToldOwnerProblem.NotInProject]: translationKey(
+      "Someone named as an owner isn't a member of this project, so isn't emailed.",
+    ),
+    [WhoIsToldOwnerProblem.TeamHasNobodyInProject]: translationKey(
+      "Team {{team}} has nobody in it who is a member of this project, so nobody is emailed through it.",
+    ),
+    [WhoIsToldOwnerProblem.TeamOfAnotherProject]: translationKey(
+      "A team of another project is named as an owner, so nobody is emailed through it.",
+    ),
+  },
+  addedBy: {
+    criteria: translationKey("Named in the criteria."),
+    networkDevice: translationKey(
+      "An owner of the network device this monitor watches.",
+    ),
+    ownerRule: translationKey("Added by owner rule {{rule}}."),
+    hiddenOwnerRule: translationKey("Added by an owner rule you can't see."),
+  },
+  listLabel: translationKey("Owners who aren't emailed"),
+};
+
 // "Ana Lopez", or "Someone" when the name is not known.
 function nameOr(name: string | undefined, translator: Translator): string {
   return name || translator.translateText("Someone") || "Someone";
@@ -387,11 +562,13 @@ const FIX_PAGES: Readonly<Partial<Record<WhoIsToldFix, PageMap>>> = {
 /*
  * The page of the Dashboard that puts a break right. The server's settings
  * are the Admin Dashboard's (the card links them for the server's admins
- * only); a policy the caller may not read gets the policies list.
+ * only); a policy the caller may not read gets the policies list. A monitor
+ * not created yet (monitorId null, #7055) has no Criteria page: its
+ * criteria are the form the card is on.
  */
 export function getFixLink(data: {
   brk: WhoIsToldBreak;
-  monitorId: ObjectID;
+  monitorId: ObjectID | null;
   translator: Translator;
 }): WhoIsToldFixLink | null {
   let pageMap: PageMap | undefined = FIX_PAGES[data.brk.fix];
@@ -403,6 +580,10 @@ export function getFixLink(data: {
   let modelId: ObjectID | undefined = undefined;
 
   if (data.brk.fix === WhoIsToldFix.MonitorCriteria) {
+    if (!data.monitorId) {
+      return null;
+    }
+
     modelId = data.monitorId;
   }
 
@@ -427,6 +608,11 @@ export function getFixLink(data: {
 
 export const ADMIN_DASHBOARD_FIX_WORDS: string =
   FIX_WORDS[WhoIsToldFix.ServerSettings];
+
+// The words of the link that puts a fix's break right, in English (the docs name them).
+export function getFixWords(fix: WhoIsToldFix): string {
+  return FIX_WORDS[fix];
+}
 
 // "Ana Lopez and Ben Ito", in the sentence's language.
 function nameList(
@@ -597,6 +783,389 @@ function getPagingSentence(
 }
 
 /*
+ * The sentence of the incident an alert incident rule declares from an
+ * alert (#7216): the rule, how long the alert must stay open first, and
+ * the incident's severity.
+ */
+export function getDeclaresSentence(
+  declaration: WhoIsToldDeclaration,
+  translator: Translator,
+): string {
+  const severity: TemplateValue = getWhoIsToldSeverityValue(
+    declaration.incident,
+  );
+  const isRuleHidden: boolean = !declaration.rule.name;
+
+  if (declaration.waitInMinutes > 0) {
+    return translator.translatePlural(
+      isRuleHidden
+        ? DECLARES_WORDS.afterWaitHiddenRule
+        : DECLARES_WORDS.afterWait,
+      declaration.waitInMinutes,
+      {
+        severity: severity,
+        ...(isRuleHidden ? {} : { rule: declaration.rule.name }),
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  return translator.translateTemplate(
+    isRuleHidden ? DECLARES_WORDS.nowHiddenRule : DECLARES_WORDS.now,
+    {
+      severity: severity,
+      ...(isRuleHidden ? {} : { rule: declaration.rule.name }),
+    },
+    { setsValuesApart: true },
+  );
+}
+
+/*
+ * Who what opens tells, after what opens is said: its owners and who it
+ * pages - or, for a private record the reader can't see, only that it is
+ * private (#7213). An alert an incident rule turns into an incident says
+ * that next, and who the incident pages (#7216); its own "Nobody is
+ * paged." is left out then, as nothing stops the incident's page.
+ */
+function getToldSentences(
+  event: WhoIsToldEvent,
+  translator: Translator,
+): Array<string> {
+  if (event.isHidden) {
+    return [translator.translateTemplate(PRIVATE_WORDS.hiddenSentence)];
+  }
+
+  const sentences: Array<string> = getOwnersSentences(event.owners, translator);
+
+  if (!event.declares) {
+    return [...sentences, getPagingSentence(event, translator)];
+  }
+
+  if (getWhoIsToldPagingState(event) !== WhoIsToldPagingState.Nobody) {
+    sentences.push(getPagingSentence(event, translator));
+  }
+
+  const incident: WhoIsToldEvent = event.declares.incident;
+
+  sentences.push(getDeclaresSentence(event.declares, translator));
+  sentences.push(
+    incident.isHidden
+      ? translator.translateTemplate(PRIVATE_WORDS.hiddenSentence)
+      : getPagingSentence(incident, translator),
+  );
+
+  return sentences;
+}
+
+/*
+ * Who is told, without what opens (#7055): the owners and paging sentences
+ * of what the card's first words describe, for a summary that says what
+ * opens in a row of its own (the website guided setup's). Empty when no
+ * criteria opens anything.
+ */
+export function getWhoIsToldToldSentences(
+  result: Pick<WhoIsToldResult, "criteria">,
+  translator: Translator,
+): Array<string> {
+  const headline: WhoIsToldHeadline | null = getWhoIsToldHeadline(result);
+
+  if (!headline || !headline.event) {
+    return [];
+  }
+
+  return getToldSentences(headline.event, translator);
+}
+
+/*
+ * Why a private record is private, and who can see it, for the chain's
+ * Private row (#7213): the privacy rules by name - one the reader can't
+ * see as such - or the criteria. A record the reader can't see says only
+ * that they can't see who it tells.
+ */
+export function getPrivateSentences(
+  event: WhoIsToldEvent,
+  translator: Translator,
+): Array<string> {
+  const rules: Array<WhoIsToldRule> = event.privacyRules || [];
+  const sentences: Array<string> = [];
+
+  if (rules.length > 0) {
+    sentences.push(
+      translator.translatePlural(PRIVATE_WORDS.byRules, rules.length, {
+        rules: composedValue((sentence: Translator): string => {
+          return nameList(
+            rules.map((rule: WhoIsToldRule): string => {
+              return (
+                rule.name ||
+                sentence.translateText("A rule you can't see") ||
+                "A rule you can't see"
+              );
+            }),
+            sentence,
+          );
+        }),
+      }),
+    );
+  } else if (!event.isHidden) {
+    sentences.push(translator.translateTemplate(PRIVATE_WORDS.byCriteria));
+  }
+
+  sentences.push(
+    translator.translateTemplate(
+      event.isHidden ? PRIVATE_WORDS.hiddenSentence : PRIVATE_WORDS.whoCanSee,
+    ),
+  );
+
+  return sentences;
+}
+
+/*
+ * A status page as the chain names it: "Payments Status (through
+ * Checkout)" when it shows the monitor through a monitor group (#7214), a
+ * group the reader can't see as such; a page they can't see as such.
+ */
+export function getStatusPageText(
+  page: WhoIsToldStatusPage,
+  translator: Translator,
+): string {
+  const name: string =
+    page.name ||
+    translator.translateText("A status page you can't see") ||
+    "A status page you can't see";
+  const groups: Array<WhoIsToldMonitorGroup> = page.groups || [];
+
+  if (groups.length === 0) {
+    return name;
+  }
+
+  return translator.translateTemplate(
+    STATUS_PAGE_THROUGH_GROUPS,
+    {
+      page: name,
+      groups: composedValue((sentence: Translator): string => {
+        return formatList(
+          groups.map((group: WhoIsToldMonitorGroup): string => {
+            return (
+              group.name ||
+              sentence.translateText(HIDDEN_MONITOR_GROUP) ||
+              HIDDEN_MONITOR_GROUP
+            );
+          }),
+          sentence,
+        );
+      }),
+    },
+    { setsValuesApart: true },
+  );
+}
+
+// An owner no Created email reaches, with what the chain says it of (#7572).
+export interface WhoIsToldOwnerNotEmailed {
+  owner: WhoIsToldOwnerNotReached;
+  // Of the incident or the alert that names them: whose owner rules to open.
+  recordKind: OnCallTestPageRecordKind;
+}
+
+/*
+ * Every owner no Created email reaches, of everything the chain opens that
+ * the reader may see - each once, though two criteria name them.
+ */
+export function getOwnersNotEmailed(
+  result: Pick<WhoIsToldResult, "criteria">,
+): Array<WhoIsToldOwnerNotEmailed> {
+  const items: Array<WhoIsToldOwnerNotEmailed> = [];
+  const seen: Set<string> = new Set<string>();
+
+  const add: (event: WhoIsToldEvent) => void = (
+    event: WhoIsToldEvent,
+  ): void => {
+    if (event.isHidden) {
+      return;
+    }
+
+    for (const owner of event.owners.notReached || []) {
+      const key: string = [
+        owner.kind,
+        owner.id,
+        owner.problem,
+        owner.addedBy,
+        owner.rule?.id || "",
+        owner.addedBy === WhoIsToldOwnerAddedBy.OwnerRule ? event.kind : "",
+      ].join("|");
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      items.push({ owner: owner, recordKind: event.kind });
+    }
+  };
+
+  for (const item of result.criteria) {
+    for (const event of item.events) {
+      add(event);
+
+      if (event.declares) {
+        add(event.declares.incident);
+      }
+    }
+  }
+
+  return items;
+}
+
+// Why an owner isn't emailed, then where they are named: two sentences.
+export function getOwnerNotEmailedSentences(
+  item: WhoIsToldOwnerNotEmailed,
+  translator: Translator,
+): Array<string> {
+  const owner: WhoIsToldOwnerNotReached = item.owner;
+  const why: string =
+    owner.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject
+      ? translator.translateTemplate(
+          OWNER_NOT_EMAILED_WORDS.problems[owner.problem],
+          { team: owner.name || "" },
+          { setsValuesApart: true },
+        )
+      : translator.translateTemplate(
+          OWNER_NOT_EMAILED_WORDS.problems[owner.problem],
+        );
+
+  let where: string;
+
+  switch (owner.addedBy) {
+    case WhoIsToldOwnerAddedBy.Criteria:
+      where = translator.translateTemplate(
+        OWNER_NOT_EMAILED_WORDS.addedBy.criteria,
+      );
+      break;
+    case WhoIsToldOwnerAddedBy.NetworkDevice:
+      where = translator.translateTemplate(
+        OWNER_NOT_EMAILED_WORDS.addedBy.networkDevice,
+      );
+      break;
+    default:
+      where = owner.rule?.name
+        ? translator.translateTemplate(
+            OWNER_NOT_EMAILED_WORDS.addedBy.ownerRule,
+            { rule: owner.rule.name },
+            { setsValuesApart: true },
+          )
+        : translator.translateTemplate(
+            OWNER_NOT_EMAILED_WORDS.addedBy.hiddenOwnerRule,
+          );
+  }
+
+  return [why, where];
+}
+
+// The words of each place an owner who isn't emailed is put right.
+export const OWNER_FIX_WORDS: Readonly<{
+  criteria: string;
+  networkDevice: string;
+  ownerRules: string;
+  team: string;
+}> = {
+  criteria: FIX_WORDS[WhoIsToldFix.MonitorCriteria],
+  networkDevice: translationKey("Open Network Device"),
+  ownerRules: translationKey("Open Owner Rules"),
+  team: translationKey("Open Team"),
+};
+
+// Where an owner who isn't emailed is put right, as the analytics name it.
+export enum WhoIsToldOwnerFix {
+  MonitorCriteria = "MonitorCriteria",
+  NetworkDevice = "NetworkDevice",
+  OwnerRules = "OwnerRules",
+  Team = "Team",
+}
+
+export interface WhoIsToldOwnerFixLink extends WhoIsToldFixLink {
+  fix: WhoIsToldOwnerFix;
+}
+
+/*
+ * The page that puts an owner who isn't emailed right: a team of the
+ * project with nobody in it, its members; else where they are named - the
+ * monitor's criteria (none for a monitor not created yet: the criteria are
+ * on the page), the network device's owners, or the owner rules of the
+ * incident or alert. Null when there is no such page to open.
+ */
+export function getOwnerNotEmailedFixLink(data: {
+  item: WhoIsToldOwnerNotEmailed;
+  monitorId: ObjectID | null;
+  translator: Translator;
+}): WhoIsToldOwnerFixLink | null {
+  const owner: WhoIsToldOwnerNotReached = data.item.owner;
+  const link: (
+    fix: WhoIsToldOwnerFix,
+    pageMap: PageMap,
+    text: string,
+    modelId?: ObjectID | undefined,
+  ) => WhoIsToldOwnerFixLink = (
+    fix: WhoIsToldOwnerFix,
+    pageMap: PageMap,
+    text: string,
+    modelId?: ObjectID | undefined,
+  ): WhoIsToldOwnerFixLink => {
+    const route: Route = RouteMap[pageMap] as Route;
+
+    return {
+      fix: fix,
+      route: modelId
+        ? RouteUtil.populateRouteParams(route, { modelId: modelId })
+        : RouteUtil.populateRouteParams(route),
+      text: data.translator.translateText(text) || text,
+    };
+  };
+
+  if (
+    owner.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject &&
+    ObjectID.isValidUUID(owner.id)
+  ) {
+    return link(
+      WhoIsToldOwnerFix.Team,
+      PageMap.TEAM_VIEW_MEMBERS,
+      OWNER_FIX_WORDS.team,
+      new ObjectID(owner.id),
+    );
+  }
+
+  switch (owner.addedBy) {
+    case WhoIsToldOwnerAddedBy.Criteria:
+      return data.monitorId
+        ? link(
+            WhoIsToldOwnerFix.MonitorCriteria,
+            PageMap.MONITOR_VIEW_CRITERIA,
+            OWNER_FIX_WORDS.criteria,
+            data.monitorId,
+          )
+        : null;
+    case WhoIsToldOwnerAddedBy.NetworkDevice:
+      return owner.networkDeviceId &&
+        ObjectID.isValidUUID(owner.networkDeviceId)
+        ? link(
+            WhoIsToldOwnerFix.NetworkDevice,
+            PageMap.NETWORK_DEVICE_VIEW_OWNERS,
+            OWNER_FIX_WORDS.networkDevice,
+            new ObjectID(owner.networkDeviceId),
+          )
+        : null;
+    case WhoIsToldOwnerAddedBy.OwnerRule:
+      return link(
+        WhoIsToldOwnerFix.OwnerRules,
+        data.item.recordKind === OnCallTestPageRecordKind.Alert
+          ? PageMap.ALERTS_SETTINGS_OWNER_RULES
+          : PageMap.INCIDENTS_SETTINGS_OWNER_RULES,
+        OWNER_FIX_WORDS.ownerRules,
+      );
+  }
+
+  return null;
+}
+
+/*
  * THE CARD'S FIRST WORDS: what happens when the monitor goes down, and who
  * is told, in two or three sentences. About the first criteria that opens
  * an incident or an alert (getWhoIsToldHeadline); with none, about the
@@ -660,8 +1229,7 @@ export function getWhoIsToldSentences(
       // A Latin name stays in order on a right-to-left page.
       { setsValuesApart: true },
     ),
-    ...getOwnersSentences(event.owners, translator),
-    getPagingSentence(event, translator),
+    ...getToldSentences(event, translator),
   ];
 
   const more: number = result.criteria.filter(

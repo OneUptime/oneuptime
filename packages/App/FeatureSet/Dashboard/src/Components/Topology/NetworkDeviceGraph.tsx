@@ -2872,7 +2872,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                 {renderLegendSwatch(entry)}
               </svg>
               <span>
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {translator.translateTemplate("{{group}}:", {
                     group: translatableTerm(entry.group),
                   })}{" "}
@@ -2897,7 +2897,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       <p
         role="status"
         data-testid="network-topology-visible-count"
-        className="mt-1 px-3 text-xs text-gray-400"
+        className="mt-1 px-3 text-xs text-gray-500"
       >
         {translator.translatePlural(
           {

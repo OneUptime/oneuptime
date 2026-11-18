@@ -63,8 +63,13 @@ function box(): HTMLTextAreaElement {
   return screen.getByRole("textbox") as HTMLTextAreaElement;
 }
 
+// The shared Button (#9195), named by what it does and its key.
 function send(): HTMLElement {
-  return screen.getByTitle("Send (Enter)");
+  return screen.getByRole("button", { name: "Send (Enter)" });
+}
+
+function stopButton(): HTMLElement {
+  return screen.getByRole("button", { name: "Stop generating" });
 }
 
 function frame(): HTMLElement {
@@ -191,7 +196,7 @@ describe("ConversationComposer — sending", () => {
       "opacity-50",
       "cursor-not-allowed",
     );
-    expect(send()).not.toHaveClass("hover:bg-indigo-500");
+    expect(send()).not.toHaveClass("hover:bg-indigo-700");
     expect(send()).not.toHaveClass("bg-gray-100");
 
     type("What changed?");
@@ -200,7 +205,7 @@ describe("ConversationComposer — sending", () => {
     expect(send()).toHaveClass(
       "bg-indigo-600",
       "text-white",
-      "hover:bg-indigo-500",
+      "hover:bg-indigo-700",
     );
     expect(send()).not.toHaveClass("opacity-50");
     expect(send()).not.toHaveClass("cursor-not-allowed");
@@ -214,7 +219,7 @@ describe("ConversationComposer — sending", () => {
     expect(send()).toBeDisabled();
     expect(send()).toHaveClass("bg-indigo-600", "text-white");
     expect(send()).not.toHaveClass("opacity-50");
-    expect(send()).not.toHaveClass("hover:bg-indigo-500");
+    expect(send()).not.toHaveClass("hover:bg-indigo-700");
   });
 });
 
@@ -246,15 +251,16 @@ describe("ConversationComposer — while an answer is being written", () => {
     const onStop: MockFunction = getJestMockFunction();
     render(<Harness isWorking={true} canSend={false} onStop={onStop} />);
 
-    expect(screen.queryByTitle("Send (Enter)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send (Enter)" })).toBeNull();
 
-    const stop: HTMLElement = screen.getByTitle("Stop generating");
+    const stop: HTMLElement = stopButton();
     fireEvent.click(stop);
 
     expect(onStop).toHaveBeenCalledTimes(1);
-    // A dark button with a square in it: unmistakably not Send.
-    expect(stop).toHaveClass("bg-gray-900", "text-white");
-    expect(stop.querySelector(".rounded-\\[2px\\]")).toHaveClass("bg-current");
+    // A plain button with its stop icon: unmistakably not Send.
+    expect(stop).not.toHaveClass("bg-indigo-600");
+    expect(stop).toHaveClass("border-gray-300", "bg-white");
+    expect(stop.querySelector("svg")).not.toBeNull();
   });
 
   test("Stop is locked, with a spinner, while the stop is on its way", () => {
@@ -268,28 +274,33 @@ describe("ConversationComposer — while an answer is being written", () => {
       />,
     );
 
-    const stop: HTMLElement = screen.getByTitle("Stop generating");
+    const stop: HTMLElement = stopButton();
     fireEvent.click(stop);
 
     expect(stop).toBeDisabled();
     expect(onStop).not.toHaveBeenCalled();
-    expect(stop.querySelector(".motion-safe\\:animate-spin")).not.toBeNull();
+    expect(stop.querySelector(".animate-spin")).not.toBeNull();
   });
 
   test("a send that is on its way shows a spinner in Send, not Stop", () => {
     // Working with nothing to stop yet: the question is still being sent.
     render(<Harness isWorking={true} canSend={false} initialValue="Hi" />);
 
-    expect(screen.queryByTitle("Stop generating")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Stop generating" }),
+    ).toBeNull();
     expect(send()).toBeDisabled();
-    expect(send().querySelector(".motion-safe\\:animate-spin")).not.toBeNull();
-    expect(send().querySelector("svg")).toBeNull();
+    // Its spinner in place of its arrow.
+    expect(send().querySelectorAll("svg")).toHaveLength(1);
+    expect(send().querySelector(".animate-spin")).not.toBeNull();
   });
 
   test("an idle composer offers Send even when a stop handler is supplied", () => {
     render(<Harness isWorking={false} onStop={() => {}} />);
 
-    expect(screen.queryByTitle("Stop generating")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Stop generating" }),
+    ).toBeNull();
     expect(send()).toBeInTheDocument();
   });
 });
@@ -450,8 +461,11 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
       "sm:min-w-0",
     );
     expect(caption.parentElement).toHaveClass("flex", "flex-wrap");
-    // Send keeps to the right end of the picker's row.
-    expect(send().parentElement).toHaveClass("ml-auto", "flex-shrink-0");
+    /*
+     * Send keeps to the right end of the picker's row.
+     * (A locked Send sits in the span that says why: Button's wrapper.)
+     */
+    expect(send().closest(".ml-auto")).toHaveClass("flex-shrink-0");
   });
 
   test("a remembered mode is what the composer opens with", () => {

@@ -2063,6 +2063,41 @@ test.describe("chevrons and arrows point the way the line reads", () => {
     });
   }
 
+  /*
+   * The Pill's icon (#9243): an escalation step's Forward arrow, which is
+   * not one of the icons that point along the line, turns round when the
+   * Pill is asked to; a clock beside it keeps its shape. The icon still
+   * starts the chip, on the right of its words in Arabic and Persian.
+   */
+  for (const language of ["en", ...RIGHT_TO_LEFT]) {
+    test(`${language}: a Pill's Forward arrow points the way the words run, and its clock keeps its shape`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+
+      const forward: Locator = page.getByTestId("pill-forward");
+      const icon: Locator = forward.locator("svg");
+
+      expect(await styleOf(icon, "scale")).toBe(
+        language === "en" ? "none" : "-1 1",
+      );
+      expect(
+        await styleOf(page.getByTestId("pill-clock").locator("svg"), "scale"),
+      ).toBe("none");
+
+      const iconBox: Box = await boxOf(icon);
+      const wordsBox: Box = await boxOf(forward.getByTestId("pill-text"));
+
+      if (language === "en") {
+        expect(iconBox.right).toBeLessThanOrEqual(wordsBox.left);
+      } else {
+        expect(iconBox.left).toBeGreaterThanOrEqual(wordsBox.right);
+      }
+    });
+  }
+
   test("fa: a folded section's chevron points left, and down once it is open", async ({
     page,
   }: {

@@ -85,6 +85,9 @@ Abre cada programación en **Guardia** > **Programaciones de guardia** y comprue
 ### Asegúrate de que se pueda avisar a todos
 Las personas invitadas aceptan su invitación y luego añaden un número de teléfono, una dirección de correo o la aplicación móvil para recibir los avisos. **Guardia** > **Preparación** muestra a quién todavía no se puede localizar.
 
+### Enviar un aviso de prueba
+En el informe, selecciona **Probar esta política** para avisar una vez a una política que trajiste, sin un incidente: cada mensaje dice PRUEBA. Si hay varias políticas, elige una primero.
+
 ### Continúa la numeración de tus incidentes
 Si tu equipo nombra los incidentes por su número, haz que los de OneUptime empiecen después del último que tuviste en Splunk On-Call: en **Incidentes** > **Ajustes** > **Numeración**, fija **Próximo número de incidente** en la tarjeta **Próximo número** al número que le sigue. Así un número nunca designa dos incidentes distintos.
 

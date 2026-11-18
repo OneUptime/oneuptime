@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
@@ -31,8 +32,7 @@ import React, {
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
@@ -1258,7 +1258,7 @@ const ProxmoxClusterOverview: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -1351,17 +1351,16 @@ const ProxmoxClusterOverview: FunctionComponent<
     ((cluster?.otelCollectorStatus as string) || "").toLowerCase(),
   );
 
-  const navigateToGuest: (externalId: string) => void = (
+  // A guest's own page: what its name and its tiles link to.
+  const getGuestRoute: (externalId: string) => Route = (
     externalId: string,
-  ): void => {
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL] as Route,
-        {
-          modelId: modelId,
-          subModelId: routeParamFromExternalId(externalId),
-        },
-      ),
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL] as Route,
+      {
+        modelId: modelId,
+        subModelId: routeParamFromExternalId(externalId),
+      },
     );
   };
 
@@ -1639,7 +1638,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                   <ResourceHeroDescription
                     text={cluster.description as string | undefined}
                   />
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2192,7 +2191,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                     : null;
                 const ageClass: string =
                   ageSeconds === null
-                    ? "text-gray-400"
+                    ? "text-gray-500"
                     : ageSeconds > REPLICATION_SYNC_DANGER_SECONDS
                       ? "text-red-700 font-medium"
                       : ageSeconds > REPLICATION_SYNC_WARN_SECONDS
@@ -2212,14 +2211,12 @@ const ProxmoxClusterOverview: FunctionComponent<
                     </td>
                     <td className="px-4 py-2.5 text-sm">
                       {guest ? (
-                        <span
-                          className="cursor-pointer font-medium text-gray-900 hover:text-indigo-700 hover:underline"
-                          onClick={() => {
-                            navigateToGuest(guest.externalId);
-                          }}
+                        <Link
+                          className="rounded font-medium text-gray-900 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          to={getGuestRoute(guest.externalId)}
                         >
                           {guest.name}
-                        </span>
+                        </Link>
                       ) : (
                         <span className="text-gray-500">
                           {job.guestVmid || <TableEmptyValue />}
@@ -2327,12 +2324,12 @@ const ProxmoxClusterOverview: FunctionComponent<
         title="Ceph Storage"
         description="This Proxmox cluster is linked to a Ceph cluster monitored by OneUptime. Ceph health does not affect the Proxmox health badge — it alerts separately."
       >
-        <div
-          onClick={() => {
-            Navigation.navigate(cephRoute);
-          }}
-          className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-gray-200 p-4 transition-all duration-200 hover:border-indigo-300 hover:shadow-md sm:flex-row sm:items-center"
-        >
+        {/*
+         * The card is not one link: its capacity's (i) is a control of its
+         * own, and a control inside a link is two at once. The cluster's
+         * name is the link (#9222).
+         */}
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3 min-w-0 sm:w-1/3">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
               <Icon
@@ -2340,7 +2337,11 @@ const ProxmoxClusterOverview: FunctionComponent<
                 className="h-5 w-5 text-slate-600"
               />
             </div>
-            <div className="min-w-0">
+            <Link
+              to={cephRoute}
+              dataTestId="proxmox-ceph-cluster-link"
+              className="group block min-w-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
               <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
                 {/*
                  * A cluster with no name is named by what it is, as a
@@ -2357,7 +2358,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               <div className="text-xs text-gray-500">
                 {translator.translateText("View Ceph cluster overview →")}
               </div>
-            </div>
+            </Link>
           </div>
           <div className="flex items-center gap-2 sm:w-1/6">
             <span
@@ -2409,7 +2410,7 @@ const ProxmoxClusterOverview: FunctionComponent<
   }): ReactElement => {
     if (params.rows.length === 0) {
       return (
-        <p className="text-gray-400 text-sm py-8 text-center">
+        <p className="text-gray-500 text-sm py-8 text-center">
           {translator.translateText("No usage data available.")}
         </p>
       );
@@ -2419,16 +2420,14 @@ const ProxmoxClusterOverview: FunctionComponent<
         {params.rows.map((row: TopGuestRow, index: number) => {
           const pct: number = Math.min(params.percentOf(row), 100);
           return (
-            <div
+            <Link
               key={row.externalId}
-              onClick={() => {
-                navigateToGuest(row.externalId);
-              }}
-              className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+              to={getGuestRoute(row.externalId)}
+              className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                  <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                     {index + 1}.
                   </span>
                   <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
@@ -2458,7 +2457,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -2472,7 +2471,7 @@ const ProxmoxClusterOverview: FunctionComponent<
         description="The guests using the most CPU and memory right now, each against what it was assigned."
       >
         {isInventoryLoading ? (
-          <ComponentLoader />
+          <TableSkeleton rows={5} columns={3} hasHeader={false} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
             <div className="p-5">

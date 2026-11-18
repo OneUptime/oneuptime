@@ -32,11 +32,19 @@ import path from "path";
  * from the middle of a page find the right section, in English and in two
  * other languages (German, French, and Japanese too).
  *
- * The phrase is not picked by hand: every 41st section long enough to have
+ * The phrase is not picked by hand: one section in 41 long enough to have
  * a middle gives the six words in its middle, and nine in ten of them must
  * open that very section among the first five results. (A phrase every
  * one of the eleven "Moving from" guides says word for word cannot tell
  * them apart, which is why it is nine in ten and not all.)
+ *
+ * Which sections are tried is decided by a hash of each one's address
+ * (page and anchor), not by counting sections in order: counted, a
+ * section added to one page moved every pick after it, so new docs
+ * anywhere could swap the whole sample (two sections added to
+ * on-call/policies made it every 41st section plus two, and the English
+ * share fell to 89 in 100 with no search worse). Hashed, a new section is
+ * tried or not on its own, and the other pages keep their picks.
  *
  * The index is the one Ask AI reads too (AIDocsReader), built from the
  * docs on disk.
@@ -176,6 +184,20 @@ const holdsEveryWord: (
     });
 };
 
+// FNV-1a of a section's address: the same 32-bit number for the same address, on every run.
+const hashOfAddress: (address: string) => number = (
+  address: string,
+): number => {
+  let hash: number = 0x811c9dc5;
+
+  for (let index: number = 0; index < address.length; index++) {
+    hash ^= address.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return hash;
+};
+
 // How many of the sampled middle-of-section phrases open their section in the first five.
 const phraseSweep: (
   language: string,
@@ -183,17 +205,14 @@ const phraseSweep: (
   language: string,
 ): Promise<{ tried: number; found: number; missed: Array<string> }> => {
   const index: AIDocsLanguageIndex = await DocsAIReader.getIndex(language);
-  let counter: number = 0;
   let tried: number = 0;
   let found: number = 0;
   const missed: Array<string> = [];
 
   for (const page of index.pages) {
     for (const section of page.sections) {
-      counter++;
-
       if (
-        counter % 41 !== 0 ||
+        hashOfAddress(`${page.page}#${section.anchor}`) % 41 !== 0 ||
         section.isOtherName ||
         section.text.length < 300
       ) {

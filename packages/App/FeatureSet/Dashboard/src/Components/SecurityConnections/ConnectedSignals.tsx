@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import SecurityCaseApi, {
   SecurityConnectionsRequest,
 } from "../SecurityCase/SecurityCaseApi";
@@ -82,7 +83,6 @@ import {
   SecurityEntityType,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
@@ -888,7 +888,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
       </div>
     );
   } else if (!connections) {
-    body = <ComponentLoader />;
+    body = <CardListSkeleton />;
   } else {
     const notFound: Array<SecurityEntity> = connections.unmatched;
     const state: ConnectedSignalsState = getConnectedSignalsState(connections);

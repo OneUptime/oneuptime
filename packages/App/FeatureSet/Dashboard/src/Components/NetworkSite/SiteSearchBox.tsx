@@ -469,7 +469,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
             event.preventDefault();
           }}
         >
-          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
             {translator.translateText("Anywhere in your network")}
           </p>
 
@@ -558,12 +558,12 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
                           {result.name}
                         </span>
                       </span>
-                      <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <span className="flex-shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-500">
                         {result.siteType}
                       </span>
                     </div>
                     {result.path ? (
-                      <div className="mt-0.5 truncate pl-3 text-[11px] leading-4 text-gray-500">
+                      <div className="mt-0.5 truncate pl-3 text-xs leading-4 text-gray-500">
                         {result.path}
                       </div>
                     ) : (
@@ -577,7 +577,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
 
           {isTruncated ? (
             <p
-              className="border-t border-gray-100 px-3 py-2 text-[11px] text-gray-500"
+              className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500"
               data-testid={`${testId}-truncated`}
             >
               {translator.translateText(

@@ -414,7 +414,7 @@ const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
           <span>{translator.translateText(copyButtonText(feedback))}</span>
         </button>
       </div>
-      <p className="text-[11px] text-gray-500">
+      <p className="text-xs text-gray-500">
         {explorerLabel
           ? translator.translateTemplate(
               "Paste into the {{explorer}} explorer search bar.",
@@ -445,7 +445,7 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
   return (
     <div className="space-y-2" data-testid="locked-filter-scope">
       <p
-        className="text-[11px] text-gray-600"
+        className="text-xs text-gray-600"
         data-testid="locked-filter-scope-summary"
       >
         {translator.translateText(props.summary || DEFAULT_SCOPE_SUMMARY)}
@@ -470,7 +470,7 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
                 </span>
               </div>
               {match.description ? (
-                <p className="text-[11px] text-gray-500">
+                <p className="text-xs text-gray-500">
                   {translator.translateText(match.description)}
                 </p>
               ) : (
@@ -556,7 +556,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
           signal={props.signal}
         />
       ) : (
-        <p className="text-[11px] text-gray-500">
+        <p className="text-xs text-gray-500">
           {translator.translateText(
             detail.searchTokenUnavailableReason || NO_SEARCH_SYNTAX_REASON,
           )}

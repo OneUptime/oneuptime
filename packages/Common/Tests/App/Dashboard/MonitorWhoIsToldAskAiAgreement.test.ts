@@ -5,12 +5,21 @@ import { describe, expect, test } from "@jest/globals";
  */
 import "../../../Server/Utils/AI/Toolbox/Index";
 import { describeWhoIsToldForModel } from "../../../Server/Utils/AI/Toolbox/WhoIsToldTools";
-import { getWhoIsToldSentences } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldWords";
 import {
+  getBreakSentence,
+  getWhoIsToldSentences,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldWords";
+import {
+  WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES,
+  WhoIsToldBreak,
+  WhoIsToldBreakKind,
   WhoIsToldCriteria,
+  WhoIsToldFix,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
+  WhoIsToldPersonProblem,
   WhoIsToldResult,
+  makeWhoIsToldBreak,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { createTranslator, Translator } from "../../../Types/Translator";
@@ -130,7 +139,8 @@ function toolSays(
   return (line || "").slice(lead.length, (line || "").length - tail.length);
 }
 
-const OPENS_LEAD: string = "  - opens an incident (Critical); emails ";
+const OPENS_LEAD: string =
+  '  - opens an incident (Critical) titled "example.com is offline"; emails ';
 const STATUS_LEAD: string =
   '- Criteria "Check if offline": sets status Offline; emails ';
 const STATUS_TAIL: string = " of the change";
@@ -262,4 +272,75 @@ describe("Ask AI's who_is_told and the When this goes down card", () => {
       "the owners added by owner rules (Dana Reyes)",
     );
   });
+});
+
+/*
+ * WHY A PERSON CAN'T BE PAGED, SAID ALIKE (#7525). The card says it in a
+ * break's sentence ("Ana Lopez has no verified notification method."), the
+ * server's break message and Ask AI's who_is_told in the same clause after
+ * the name (WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES) - the tool after the card's
+ * "Can't be paged" - so the model never answers in a code, nor in other
+ * words than the page.
+ */
+function unreachable(problem: WhoIsToldPersonProblem): WhoIsToldResult {
+  const result: WhoIsToldResult = opening(
+    owners(WhoIsToldOwnersSource.ProjectOwners, []),
+  );
+
+  result.criteria[0]!.events[0]!.policies = [
+    {
+      id: "p1",
+      name: "Default",
+      isHidden: false,
+      isNamedByCriteria: true,
+      ruleIds: [],
+      levelCount: 1,
+      people: [
+        {
+          userId: "u2",
+          name: "Ana Lopez",
+          channels: [],
+          isFallback: false,
+          isReachable: false,
+          problem: problem,
+        },
+      ],
+      notPaged: [],
+    },
+  ];
+
+  return result;
+}
+
+describe("Ask AI's who_is_told and the card: why someone can't be paged", () => {
+  test.each(
+    Object.values(WhoIsToldPersonProblem).map(
+      (problem: WhoIsToldPersonProblem): [WhoIsToldPersonProblem] => {
+        return [problem];
+      },
+    ),
+  )(
+    "%s: the card, the server's break and Ask AI say the same reason",
+    (problem: WhoIsToldPersonProblem) => {
+      const clause: string = WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES[problem];
+      const brk: WhoIsToldBreak = makeWhoIsToldBreak({
+        kind: WhoIsToldBreakKind.PersonUnreachable,
+        fix: WhoIsToldFix.OnCallReadiness,
+        policyId: "p1",
+        policyName: "Default",
+        userId: "u2",
+        userName: "Ana Lopez",
+        problem: problem,
+      });
+
+      // The card's sentence, in English.
+      expect(getBreakSentence(brk, english)).toBe(`Ana Lopez ${clause}.`);
+      // The server's own English break, for other readers of the API.
+      expect(brk.message.startsWith(`Ana Lopez ${clause}, `)).toBe(true);
+      // Ask AI, after the card's "Can't be paged".
+      expect(describeWhoIsToldForModel(unreachable(problem))).toContain(
+        `Ana Lopez: can't be paged, because Ana Lopez ${clause}`,
+      );
+    },
+  );
 });

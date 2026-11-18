@@ -134,7 +134,7 @@ Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venst
 
 ## Det, hvert projekt gemmer for dig
 
-**Brugerindstillinger**, til højre i bjælken under topbjælken, er kun dine, og hvert projekt har sine egne. Åbn dem i hvert projekt, hvor du har vagt.
+**Brugerindstillinger**, til højre i bjælken under topbjælken, er kun dine, og hvert projekt har sine egne. Åbn dem i hvert projekt, hvor du har vagt. De åbner på **Opsætningstjekliste**, så længe noget mangler at blive sat op, og på **Notifikationsmetoder**, når intet væsentligt mangler.
 
 | Side | Hvad den bruges til | Læs mere |
 | --- | --- | --- |

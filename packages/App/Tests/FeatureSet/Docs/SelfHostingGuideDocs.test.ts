@@ -689,9 +689,14 @@ describe("where people meet the Self-Hosting Guide", () => {
     );
     expect(chartReadme).toContain(guideUrl);
     // Email comes first in the checklist, before pinning versions.
-    expect(checklist.indexOf("## Reach people")).toBeGreaterThan(0);
-    expect(checklist.indexOf("## Reach people")).toBeLessThan(
-      checklist.indexOf("## Pin versions"),
+    expect(checklist.indexOf("\n### Reach people\n")).toBeGreaterThan(
+      checklist.indexOf("\n## 1. Before you go live\n"),
+    );
+    expect(checklist.indexOf("\n## 1. Before you go live\n")).toBeGreaterThan(
+      0,
+    );
+    expect(checklist.indexOf("\n### Reach people\n")).toBeLessThan(
+      checklist.indexOf("\n### Pin versions\n"),
     );
     expect(checklist).toContain("`https://<host>/admin/setup`");
     expect(checklist).toContain(guideUrl);

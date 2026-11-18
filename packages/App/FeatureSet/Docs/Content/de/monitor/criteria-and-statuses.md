@@ -93,6 +93,49 @@ flowchart TB
 
 Um zu sehen, wie eine Prüfung bewertet wurde, öffnen Sie die **Übersicht** des Monitors: Die Karte **Monitor-Zusammenfassung** zeigt, welches Kriterium zutraf und was jedes getan hat, einschließlich eines Vorfalls, der übersprungen wurde, weil schon einer offen war.
 
+## Wer benachrichtigt wird, wenn der Monitor ausfällt
+
+**Wenn das ausfällt** sagt in wenigen Sätzen, was passiert, wenn der Monitor ausfällt, und wer benachrichtigt wird: den Status, den er setzt, den Vorfall oder die Warnung, die er eröffnet, wer darüber eine E-Mail erhält und wen er alarmiert, mit Namen. Alles, was verhindern würde, dass jemand benachrichtigt wird, steht in einer eigenen Zeile, mit einem Link zu der Seite, auf der es sich beheben lässt. Sie finden es in der **Übersicht** eines Monitors, unter seinen Kriterien auf seiner Seite **Kriterien**, im Kriterienschritt von **Monitor erstellen** für den Monitor, den Sie gerade einrichten, und in der geführten Einrichtung für Websites.
+
+Es ermittelt die Kette so, wie ein echter Vorfall oder eine echte Warnung sie durchläuft: mit den Eigentümerregeln, Datenschutzregeln, Beschriftungsregeln und Bereitschaftsregeln Ihres Projekts, der Vorfallsregel für Warnungen, die aus einer Warnung einen Vorfall macht, und damit, wen die erste Eskalationsregel jeder Bereitschaftsrichtlinie gerade erreicht. Eine Bereitschaftsregel, die nach den Eigentümern einer Warnung fragt (**Eigentümer der Warnung**), wird mit den Eigentümern abgeglichen, die die Warnung haben wird: den Personen und Teams, die ihre Kriterien nennen, den Eigentümern des Netzwerkgeräts, das der Monitor überwacht, und denen, die Eigentümerregeln hinzufügen. Ein Platzhalter im Titel, den erst eine Prüfung füllt, wird so angezeigt, wie er geschrieben ist. **Kette anzeigen** öffnet sie Zeile für Zeile:
+
+| Zeile | Was sie sagt |
+| --- | --- |
+| **Status** | Der Status, den die Kriterien setzen. |
+| **Öffnet** | Der Vorfall oder die Warnung, der Schweregrad in Klammern und der Titel. |
+| **E-Mails** | Wen die E-Mail zur Erstellung erreicht: die Eigentümer, die Eigentümer, die Eigentümerregeln hinzufügen, oder die Projektinhaber, wenn es keine gibt. Wen die Alarmierung zuerst erreicht, der erhält nicht zusätzlich eine E-Mail als Eigentümer. |
+| **Eigentümerregeln** | Die Eigentümerregeln, die Eigentümer hinzufügen. |
+| **Privat** | Warum es privat ist: eine Datenschutzregel oder die Kriterien. Ein privater Vorfall erscheint auf keiner Statusseite und benachrichtigt keine Abonnenten, und nur seine Eigentümer, die Projektinhaber und die Projektadministratoren können ihn sehen. |
+| **Beschriftungsregeln** | Die Beschriftungsregeln, deren Beschriftungen ändern, welche Bereitschaftsregeln alarmieren. |
+| **Bereitschaftsregeln** | Die Bereitschaftsregeln, die darauf passen. Bei einer Regel, die auf die Eigentümer einer Warnung prüft, steht, welcher Eigentümer sie passen lässt. |
+| **Bereitschaftsrichtlinie** | Jede Richtlinie, die diese Regeln ausführen: wen ihre erste Eskalationsregel gerade erreicht und auf welchem Weg, und wen sie nicht erreicht, und warum. |
+| **Statusseiten** | Die Statusseiten, die es zeigen, jede mit der Monitor-Gruppe, über die sie den Monitor zeigt. |
+| **Vorfallsregel** | Bei einer Warnung: die Vorfallsregel für Warnungen, die daraus einen Vorfall eröffnet, sofort oder wenn die Warnung offen bleibt, und dieser Vorfall, beschrieben wie jeder Vorfall. |
+
+### Was verhindert, dass jemand benachrichtigt wird
+
+| Was es verhindert | Link |
+| --- | --- |
+| Keine Kriterien ändern den Status oder eröffnen einen Vorfall oder eine Warnung. | **Kriterien öffnen** |
+| Niemand wird alarmiert: Keine Bereitschaftsregel passt, oder das Projekt hat noch keine Bereitschaftsrichtlinie. | **Alarmierung einrichten** |
+| Der Monitor eröffnet Warnungen, und nur Vorfälle haben Bereitschaftsregeln. | **Alarmierung einrichten** |
+| Eine Bereitschaftsrichtlinie hat keine Eskalationsregeln. | **Bereitschaftsrichtlinie öffnen** |
+| Eine Bereitschaftsrichtlinie erreicht gerade niemanden. | **Bereitschaftsrichtlinie öffnen** |
+| Jemand, den eine Richtlinie alarmiert, ist nicht erreichbar: Er hat sich abgemeldet, hat keine verifizierte Methode oder hat keine Regel für den Schweregrad in einem Projekt ohne Rückfallebene. | **Einsatzbereitschaft öffnen** |
+| SMS, Anrufe, WhatsApp oder Telegram sind im Projekt ausgeschaltet. | **Benachrichtigungskanäle öffnen** |
+| Das Projekt hat kein Guthaben mehr für SMS und Anrufe (OneUptime Cloud). | **Abrechnung öffnen** |
+| Der Server kann noch keine E-Mails, SMS oder Anrufe senden. | **Admin-Dashboard öffnen**, für die Administratoren des Servers |
+
+Eine Warnung, die eine Vorfallsregel für Warnungen in einen Vorfall verwandelt, der jemanden alarmiert, ist keine Unterbrechung: Stattdessen werden die Richtlinien des Vorfalls geprüft.
+
+Eigentümer, die keine E-Mail erhalten, stehen nach den Unterbrechungen, jeweils mit dem Grund und der Stelle, an der sie genannt sind: jemand, der kein Mitglied des Projekts ist, ein Team, in dem niemand Mitglied ist (**Team öffnen**), oder ein Team eines anderen Projekts, genannt in den Kriterien (**Kriterien öffnen**), beim Netzwerkgerät, das der Monitor überwacht (**Netzwerkgerät öffnen**), oder durch eine Eigentümerregel (**Eigentümerregeln öffnen**). Die E-Mail geht trotzdem hinaus, an die Eigentümer, die sie erreicht, oder an die Projektinhaber, daher sind sie keine Unterbrechungen. Der Einrichtungsstatus listet sie ebenfalls auf, als Punkte, die behoben werden sollten.
+
+### Erneut prüfen, und was Sie sehen
+
+Die Antwort ist höchstens eine Minute alt, und **Erneut prüfen** ermittelt sie neu. Schlägt eine erneute Prüfung fehl, behält die Karte die letzte Antwort und sagt darunter, warum.
+
+Die Karte nennt nur, was Sie lesen dürfen. Eine Bereitschaftsrichtlinie, eine Regel, eine Statusseite oder eine Monitor-Gruppe, die Sie nicht sehen können, behält ihren Platz ohne ihren Namen, und ein privater Vorfall oder eine private Warnung, die Sie nicht sehen werden, sagt nur, dass er geöffnet wird und privat ist.
+
 ## Was ein Vorfall oder eine Warnung von der Prüfung behält
 
 Ein Vorfall oder eine Warnung, die ein Monitor öffnet, behält die Prüfung, die sie geöffnet hat, sodass Sie das Warum noch sehen, lange nachdem die eigenen Protokolle des Monitors gelöscht sind. Unter der Grundursache nennt der Abschnitt **Auswertungsdetails** das Kriterium, das zutraf, und für jeden Filter, der zutraf, was die Prüfung gefunden hat. **Details anzeigen** ergänzt den Rest der Belege, die Filter, die nicht zutrafen, und die Prüfung selbst: die Anfrage, wann sie lief, von welcher Sonde und was zurückkam. Was ein Filter gefunden hat, kann Folgendes sein:

@@ -4,7 +4,9 @@ import ObjectID from "../../Types/ObjectID";
 import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkDeviceOwnerTeamService from "./NetworkDeviceOwnerTeamService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceOwnerUser";
+import NetworkDeviceOwnerTeam from "../../Models/DatabaseModels/NetworkDeviceOwnerTeam";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface NetworkDeviceOwners {
@@ -57,18 +59,14 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Resolves the owner users/teams of the network device a monitor watches
-   * (if any). The device id lives on the monitor step config
-   * (step.data.networkDeviceMonitor.networkDeviceId). Prefer the step that
-   * produced the current probe response; fall back to the first step that
-   * references a device so callers without a step id still pick up owners.
-   * No-op (and no queries) for monitors that do not reference a device.
+   * The network device a monitor's step watches, as its owners are found
+   * (getDeviceOwnersForMonitor): the step's, or else the first step's that
+   * names one. Null for a monitor that watches no device. Reads nothing.
    */
-  @CaptureSpan()
-  public async getDeviceOwnersForMonitor(data: {
+  public getDeviceIdForMonitor(data: {
     monitor: Monitor;
     monitorStepId?: string | undefined;
-  }): Promise<NetworkDeviceOwners> {
+  }): ObjectID | null {
     const monitorSteps: Array<MonitorStep> =
       data.monitor.monitorSteps?.data?.monitorStepsInstanceArray || [];
 
@@ -89,14 +87,105 @@ export class Service extends ProjectReferencesService<Model> {
     const networkDeviceIdAsString: string | undefined =
       monitorStep?.data?.networkDeviceMonitor?.networkDeviceId;
 
-    if (!networkDeviceIdAsString) {
+    return networkDeviceIdAsString
+      ? new ObjectID(networkDeviceIdAsString)
+      : null;
+  }
+
+  /*
+   * THE OWNERS OF MANY NETWORK DEVICES OF ONE PROJECT AT ONCE (#9407,
+   * #9371), by device id in lower case: every device asked for is in the
+   * map, with no owners when nobody owns it. For a reader of every monitor
+   * of a project (WhoIsToldService.resolveProject), which would otherwise
+   * read each monitor's device on its own (getDeviceOwnersForMonitor): two
+   * reads, however many devices, scoped to the project as that one is.
+   */
+  @CaptureSpan()
+  public async getDeviceOwnersForDevices(data: {
+    projectId: ObjectID;
+    networkDeviceIds: Array<ObjectID>;
+  }): Promise<Map<string, NetworkDeviceOwners>> {
+    const owners: Map<string, NetworkDeviceOwners> = new Map();
+    const deviceIds: Array<ObjectID> = [];
+
+    for (const id of data.networkDeviceIds) {
+      const key: string = id.toString().trim().toLowerCase();
+
+      if (key && !owners.has(key)) {
+        owners.set(key, { ownerUserIds: [], ownerTeamIds: [] });
+        deviceIds.push(id);
+      }
+    }
+
+    if (deviceIds.length === 0) {
+      return owners;
+    }
+
+    const [users, teams]: [Array<Model>, Array<NetworkDeviceOwnerTeam>] =
+      await Promise.all([
+        this.findAllBy({
+          query: {
+            networkDeviceId: QueryHelper.any(deviceIds),
+            projectId: data.projectId,
+          },
+          select: { networkDeviceId: true, userId: true },
+          props: { isRoot: true },
+        }),
+        NetworkDeviceOwnerTeamService.findAllBy({
+          query: {
+            networkDeviceId: QueryHelper.any(deviceIds),
+            projectId: data.projectId,
+          },
+          select: { networkDeviceId: true, teamId: true },
+          props: { isRoot: true },
+        }),
+      ]);
+
+    for (const row of users) {
+      const device: NetworkDeviceOwners | undefined = owners.get(
+        row.networkDeviceId?.toString().toLowerCase() || "",
+      );
+
+      if (device && row.userId) {
+        device.ownerUserIds.push(row.userId);
+      }
+    }
+
+    for (const row of teams) {
+      const device: NetworkDeviceOwners | undefined = owners.get(
+        row.networkDeviceId?.toString().toLowerCase() || "",
+      );
+
+      if (device && row.teamId) {
+        device.ownerTeamIds.push(row.teamId);
+      }
+    }
+
+    return owners;
+  }
+
+  /*
+   * Resolves the owner users/teams of the network device a monitor watches
+   * (if any). The device id lives on the monitor step config
+   * (step.data.networkDeviceMonitor.networkDeviceId). Prefer the step that
+   * produced the current probe response; fall back to the first step that
+   * references a device so callers without a step id still pick up owners.
+   * No-op (and no queries) for monitors that do not reference a device.
+   */
+  @CaptureSpan()
+  public async getDeviceOwnersForMonitor(data: {
+    monitor: Monitor;
+    monitorStepId?: string | undefined;
+  }): Promise<NetworkDeviceOwners> {
+    const networkDeviceId: ObjectID | null = this.getDeviceIdForMonitor(data);
+
+    if (!networkDeviceId) {
       return {
         ownerUserIds: [],
         ownerTeamIds: [],
       };
     }
 
-    const networkDeviceId: ObjectID = new ObjectID(networkDeviceIdAsString);
     const projectId: ObjectID | undefined = data.monitor.projectId;
 
     return {

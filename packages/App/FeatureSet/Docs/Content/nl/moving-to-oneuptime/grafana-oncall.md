@@ -88,6 +88,9 @@ Open elk schema onder **Bereikbaarheid** > **Bereikbaarheidsschema's** en contro
 ### Zorg dat iedereen kan worden opgeroepen
 Uitgenodigde personen accepteren hun uitnodiging en voegen dan een telefoonnummer, een e-mailadres of de mobiele app toe om op te worden opgeroepen. **Bereikbaarheid** > **Gereedheid** laat zien wie nog niet bereikbaar is.
 
+### Een testoproep sturen
+Kies in het rapport **Dit beleid testen** om een overgenomen beleid één keer op te roepen, zonder incident: elk bericht zegt TEST. Bij meer dan één beleid kiest u er eerst een.
+
 ### Zet uw incidentnummers voort
 Als uw team incidenten bij nummer noemt, laat die van OneUptime dan beginnen na uw laatste in Grafana OnCall: stel onder **Incidenten** > **Instellingen** > **Nummering** op de kaart **Volgend nummer** het **Volgend incidentnummer** in op het nummer daarna. Een nummer staat dan nooit voor twee verschillende incidenten.
 

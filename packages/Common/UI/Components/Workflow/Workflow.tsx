@@ -1094,6 +1094,38 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   ) => void;
 
   /*
+   * The step the keyboard is on, when the key was pressed on the step itself,
+   * not something inside it or elsewhere on the canvas, and with no modifier.
+   */
+  const getFocusedStep: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => Node | undefined = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): Node | undefined => {
+    if (
+      event.defaultPrevented ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return undefined;
+    }
+
+    const target: HTMLElement = event.target as HTMLElement;
+
+    if (!target.classList || !target.classList.contains("react-flow__node")) {
+      return undefined;
+    }
+
+    const nodeId: string | null = target.getAttribute("data-id");
+
+    return nodesToRender.find((candidate: Node) => {
+      return candidate.id === nodeId;
+    });
+  };
+
+  /*
    * Enter on a step opens its settings, the way a click does. react-flow makes
    * every step a focusable button but only selects it on Enter, and a step
    * that was just added is focused for exactly this.
@@ -1101,29 +1133,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const onCanvasKeyDown: OnCanvasKeyDownFunction = (
     event: React.KeyboardEvent<HTMLDivElement>,
   ): void => {
-    if (
-      event.key !== "Enter" ||
-      event.defaultPrevented ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey
-    ) {
+    if (event.key !== "Enter") {
       return;
     }
 
-    const target: HTMLElement = event.target as HTMLElement;
-
-    // The step itself, not something inside it or elsewhere on the canvas.
-    if (!target.classList || !target.classList.contains("react-flow__node")) {
-      return;
-    }
-
-    const nodeId: string | null = target.getAttribute("data-id");
-
-    const node: Node | undefined = nodesToRender.find((candidate: Node) => {
-      return candidate.id === nodeId;
-    });
+    const node: Node | undefined = getFocusedStep(event);
 
     if (!node) {
       return;
@@ -1133,6 +1147,31 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
      * Otherwise the Enter carries on into the settings once they have opened
      * and focused their first box, and starts a new line in it.
      */
+    event.preventDefault();
+    refreshEdges();
+    onNodeClick(node.data as NodeDataProp);
+  };
+
+  /*
+   * Space presses a step too, as it presses any button (#9223). On its way
+   * up, not down: held down, Space is the canvas's pan key, which react-flow
+   * hears on the page and lets go of on this same key-up - opened on the way
+   * down, the settings would take that key-up away and leave the canvas
+   * panning under every pointer once they close.
+   */
+  const onCanvasKeyUp: OnCanvasKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    if (event.key !== " " && event.key !== "Spacebar") {
+      return;
+    }
+
+    const node: Node | undefined = getFocusedStep(event);
+
+    if (!node) {
+      return;
+    }
+
     event.preventDefault();
     refreshEdges();
     onNodeClick(node.data as NodeDataProp);
@@ -1241,6 +1280,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             onNodeClick(node.data as NodeDataProp);
           }}
           onKeyDown={onCanvasKeyDown}
+          onKeyUp={onCanvasKeyUp}
           proOptions={proOptions}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -1409,7 +1449,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               ...componentData,
               error: "",
             };
-            delete dataToStore.onClick;
             delete dataToStore.issueSummary;
 
             setNodes((nds: Array<Node>) => {

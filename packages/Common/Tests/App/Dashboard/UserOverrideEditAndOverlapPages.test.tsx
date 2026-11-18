@@ -180,7 +180,7 @@ import {
 import * as ScheduleOverrides from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverrides";
 import {
   USER_OVERRIDE_AWAY_LOCKED_TEXT,
-  USER_OVERRIDE_END_NOW_TEXT,
+  USER_OVERRIDE_ENDS_TEXT,
   USER_OVERRIDE_ROTATION_COVERS_TEXT,
   USER_OVERRIDE_START_LOCKED_TEXT,
   USER_OVERRIDE_START_MOVABLE_TEXT,
@@ -763,7 +763,8 @@ describe("Edit on a policy's User Overrides page", () => {
     expect(descriptionsOf(modal)).not.toContain(
       USER_OVERRIDE_START_LOCKED_TEXT,
     );
-    expect(descriptionsOf(modal)).not.toContain(USER_OVERRIDE_END_NOW_TEXT);
+    // Not under way: there is nothing for End Now to end (issue #7899).
+    expect(within(modal).queryByTestId("user-override-end-now")).toBeNull();
 
     const readsBefore: number = tableReads();
 
@@ -816,7 +817,11 @@ describe("Edit on a policy's User Overrides page", () => {
 
     expect(timeInput(modal, "Starts")).toHaveAttribute("readonly");
     expectDescribed(modal, USER_OVERRIDE_START_LOCKED_TEXT);
-    expectDescribed(modal, USER_OVERRIDE_END_NOW_TEXT);
+    // Under way: End Now, under Ends, ends it (issue #7899).
+    expectDescribed(modal, USER_OVERRIDE_ENDS_TEXT);
+    expect(
+      within(modal).getByTestId("user-override-end-now"),
+    ).toHaveTextContent("End Now");
     expect(timeInput(modal, "Ends")).not.toHaveAttribute("readonly");
 
     // Nobody covers: the rotation does.

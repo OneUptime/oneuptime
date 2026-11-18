@@ -277,7 +277,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
     return (
       <Card title={cardTitle} description={cardDescription}>
         <div className="py-10 flex items-center justify-center">
-          <div className="flex items-center gap-3 text-gray-400">
+          <div className="flex items-center gap-3 text-gray-500">
             <svg
               className="animate-spin h-4 w-4"
               xmlns="http://www.w3.org/2000/svg"
@@ -349,7 +349,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                             </div>
                           ) : (
                             <div
-                              className={`flex items-center justify-center rounded-full px-1 h-5 text-[9px] font-bold ring-1 ring-inset ${connectorBadgeStyle}`}
+                              className={`flex items-center justify-center rounded-full px-1 h-5 text-xs font-bold ring-1 ring-inset ${connectorBadgeStyle}`}
                             >
                               {connector}
                             </div>
@@ -373,7 +373,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
                                 getFieldLabel(condition.field, config),
                               )}
                             </span>
-                            <span className="text-xs text-gray-400 italic">
+                            <span className="text-xs text-gray-500 italic">
                               {translator.translateText(
                                 getOperatorLabel(condition.operator),
                               )}
@@ -447,7 +447,7 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
               <p className="text-sm font-medium text-gray-600">
                 {translator.translateText("No filter conditions")}
               </p>
-              <p className="text-xs text-gray-400 mt-1 max-w-xs">
+              <p className="text-xs text-gray-500 mt-1 max-w-xs">
                 {translator.translateTemplate(
                   "This rule matches all incoming {{entities}}. Add conditions to target specific {{entities}}.",
                   { entities },

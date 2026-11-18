@@ -12,15 +12,19 @@ Una política de guardia decide a quién se avisa por un incidente o una alerta,
 ## Crear una política
 
 :::steps
-1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear Política de guardia**.
+1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear política de guardia**.
 2. Escribe un **Nombre**, por ejemplo «Pagos principal».
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
-4. Haz clic en **Crear Política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
+4. Haz clic en **Crear política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
 :::
 
 **¿A quién se avisa primero?** es opcional y solo se pregunta a quien puede añadir reglas de escalado: si se deja vacío, la política no avisa a nadie hasta que tenga una regla. **Descripción** y **Etiquetas** esperan en **Más campos**. Para añadir los niveles siguientes, consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
-A la primera política de un proyecto, el formulario también le pregunta **Activarla con cada nuevo incidente y cada nueva alerta**, activado de entrada. Añade una regla en **Incidentes → Reglas → Reglas de guardia** y otra en **Alertas → Reglas → Reglas de guardia**, que coinciden con todo y ejecutan esta política. Solo se pregunta a quien puede añadir reglas de guardia, mientras el proyecto no tenga ninguna política de guardia ni ninguna regla de guardia.
+El formulario también pregunta **Activarla con cada nuevo incidente y cada nueva alerta** a quien puede añadir reglas de guardia. Añade una regla en **Incidentes → Reglas → Reglas de guardia** y otra en **Alertas → Reglas → Reglas de guardia**, que coinciden con todo y ejecutan esta política. Empieza activado para la primera política de un proyecto, mientras el proyecto no tenga ninguna política de guardia ni ninguna regla de guardia, y desactivado para las siguientes: activar dos políticas con cada nuevo incidente y cada nueva alerta es una decisión que hay que tomar. Si se deja desactivado, la política no avisa a nadie hasta que una regla, un monitor o una persona la ejecute.
+
+![La explicación de la lista «Políticas de guardia» vacía, con «Configuración guiada» resaltado](screen:on-call-policies-guided-setup)
+
+Para que te guíen paso a paso, desde tu teléfono hasta un aviso de prueba, haz clic en **Configuración guiada**: en la lista vacía de **Políticas de guardia** o en **Cómo funciona**. Consulta [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 
 La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios.
 
@@ -96,6 +100,24 @@ Nadie se pierde un aviso por recibir uno solo. Ese único aviso puede terminar s
 Algunos avisos siguen después del reconocimiento, hasta que responde alguien a quien avisaron o se resuelve: un nuevo aviso, un aviso a observadores, un aviso que alguien envió a personas desde Slack o Microsoft Teams y una política iniciada a mano.
 
 Una política iniciada a mano es la que se inicia con **Ejecutar política de guardia**, o con un aviso desde Slack o Microsoft Teams que la nombra. Avisa nivel por nivel como cualquier ejecución, con llamadas y notificaciones push repetidas incluidas, y que otra persona reconozca el incidente no la detiene: así se avisa a otro equipo para un incidente del que ya se ocupa alguien. Quien recibió su aviso responde desde el mensaje del aviso, una llamada o un SMS, o reconociendo el incidente en persona; cuando el incidente ya está reconocido, su página le ofrece **Reconocer de nuevo**. **Escalar** la pasa al siguiente nivel. En un incidente, una alerta o un episodio resuelto no se inicia nada, y se te explica por qué: el panel desactiva **Ejecutar política de guardia** y muestra el motivo. Sus notificaciones dicen quién inició qué política e incluyen el mensaje enviado con un aviso desde Slack o Microsoft Teams.
+
+## Probar una política
+
+**Probar esta política**, en las reglas de escalado de una política, avisa a su primer nivel como prueba, sin ningún incidente detrás: cada mensaje dice TEST, y no se informa a ninguna página de estado, suscriptor ni canal. Activa **Recorrer cada nivel de escalado** para avisar a cada nivel por turno, con 2 minutos de separación como mucho, hasta que alguien lo reconozca. Antes de enviar nada, el diálogo indica a quién avisa la prueba y cómo, y cuánto cuesta en OneUptime Cloud.
+
+**Enviar aviso de prueba** sigue desactivado mientras la prueba no llegaría a nadie: cada persona a la que avisa se dio de baja de esa gravedad, no tiene ninguna regla para ella ni nada a lo que recurrir, o solo tiene métodos sin verificar o desactivados en el proyecto. Una línea debajo de la lista indica por qué. Cuando solo se puede llegar a un nivel posterior, la línea ofrece **Recorrer cada nivel de escalado** con un clic.
+
+Quien recibe el aviso reconoce la prueba desde cualquiera de sus mensajes: el enlace de un correo, de un SMS o de un mensaje de chat, el 1 de una llamada, o su notificación push en la app OneUptime On-Call, en versiones posteriores a la 1.6.0. Una política se puede probar una vez cada 5 minutos, y un proyecto envía como mucho 20 pruebas por hora.
+
+### Hacer un simulacro en un monitor
+
+**Hacer un simulacro**, en la tarjeta **Cuando falla** de un monitor, ensaya uno de sus fallos: un incidente o una alerta que abre uno de sus criterios, o el incidente que una regla de incidentes de alertas declara a partir de esa alerta. Prueba cada política de guardia a la que avisaría ese fallo, cada una como la prueba **Probar esta política**, y no ocurre nada público: no se crea ningún incidente ni alerta, y no se informa a ninguna página de estado, suscriptor ni canal. Antes de enviar nada, el diálogo nombra el fallo, cada política y a quién avisa ahora esa política. Para un incidente declarado, nombra también la regla y cuánto tiempo sigue abierta la alerta antes: el simulacro prueba las políticas del incidente al momento, sin esa espera.
+
+Un simulacro avisa al primer nivel de cada política. En **Más campos**, activa **Recorrer cada nivel de escalado** para avisar a los niveles de cada política por turno, con 2 minutos de separación como mucho, hasta que alguien lo reconozca: el diálogo muestra entonces cada nivel al que llega cada política y lo que cuesta el recorrido como mucho. Cuando no se puede llegar a nadie de los primeros niveles pero sí a un nivel posterior, la línea bajo la lista ofrece **Recorrer cada nivel de escalado** con un clic.
+
+**Iniciar simulacro** sigue desactivado mientras una de esas políticas sea una que no puedes probar, porque no puedes editarla, o mientras no se pueda llegar a nadie de los que avisan. Cada política de un simulacro cuenta como una prueba propia: una política probada en los últimos 5 minutos detiene todo el simulacro, y un simulacro de tres políticas ocupa tres de las 20 pruebas por hora del proyecto.
+
+Una vez cerrado el diálogo, **Último simulacro** en la tarjeta dice qué fallo ensayó el último simulacro del monitor, cuándo y quién lo inició, y cuántas de sus pruebas se reconocieron. **Mostrar detalles** muestra la prueba de cada política: si se reconoció, quién, por qué medio y con qué rapidez. Cada prueba queda en los registros de ejecución de su política, marcada como simulacro del monitor. Los resultados de un simulacro los ve quien puede leer el monitor y cada uno de esos registros de ejecución.
 
 ## Registros de ejecución
 

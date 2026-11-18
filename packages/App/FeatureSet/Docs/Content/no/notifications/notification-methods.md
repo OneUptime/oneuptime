@@ -188,7 +188,7 @@ Den kanalen er slått av i dette prosjektet. Kortet sier hvem som kan slå den p
 :::
 
 :::details Koden kom aldri
-E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varslinger → Varslingslogger** viser hva som skjedde med meldingen.
+E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varslinger → Varslingslogger** viser hva som skjedde med meldingen. Den som kan lese loggene, får **Åpne Varslingslogger** under koden, som åpner fanen til meldingen; alle andre blir bedt om å spørre en Prosjekteier eller Prosjektadministrator.
 :::
 
 :::details Det mislykkes å legge til Slack-kontoen min
@@ -198,6 +198,10 @@ Koble først til kontoen din under **Brukerinnstillinger → Arbeidsområde → 
 :::details Telefonen min får ingen push-varslinger
 Sjekk at telefonen står under **Enheter for push-varslinger**, og send den en **Testvarsling**. Se [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting#varslinger).
 :::
+
+### Siden sier at denne serveren ikke kan sende SMS
+
+Serveren din har akkurat nå ingen fungerende måte å sende SMS eller ringe på: ingenting er satt opp, eller det som er satt opp, feiler. Til det virker, står det på siden, og du kan ikke legge til et nummer for det. Spør serverens administrator, som i stedet ser en lenke til innstillingene. Et prosjekt med sin egen Twilio-konfigurasjon sender gjennom den og berøres ikke. Det samme gjelder e-post.
 
 ## Neste steg
 

@@ -23,6 +23,14 @@ import {
 import StatTile, {
   StatTileGrid,
 } from "../../Components/OnCallPolicy/Readiness/StatTile";
+import {
+  canApplyDefaultLadder,
+  loadProjectDefaultLadder,
+  useApplyDefaultLadderBulkAction,
+} from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadder";
+import { APPLY_DEFAULT_LADDER_COPY } from "../../Components/OnCallPolicy/Readiness/ApplyDefaultLadderWords";
+import { PagingLadderDefaultStep } from "Common/Types/NotificationRule/PagingLadderDefault";
+import { hasNotificationSetupToFinish } from "Common/Types/OnCallDutyPolicy/NotificationSetupToFinish";
 import UserElement from "../../Components/User/User";
 import SendTestPageModal from "../../Components/OnCallTestPage/SendTestPageModal";
 import { canSendTestPageToMember } from "../../Components/OnCallTestPage/OnCallTestPageAccess";
@@ -42,7 +50,10 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkActionButtonSchema,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
@@ -799,12 +810,15 @@ const buildResponderRow: (readiness: UserReadinessWire) => ResponderRow = (
  * of. The server agrees - it answers SkippedNothingMissing for them rather than
  * mailing a claim they could disprove in ten seconds - so locking the checkbox
  * here is not a second rule, it is the same rule made visible before the click
- * instead of explained after it.
+ * instead of explained after it: hasNotificationSetupToFinish, which the
+ * reminder and the bell read too (#7040). Unless their project asks people on
+ * call for a phone method and they have none (#7449): that is something to
+ * set up, and the server reminds them of it.
  */
 const isRemindable: (row: ResponderRow) => boolean = (
   row: ResponderRow,
 ): boolean => {
-  return row.status !== READINESS_STATUS_READY;
+  return hasNotificationSetupToFinish(row.readiness);
 };
 
 const NOT_REMINDABLE_REASON: string = translationKey(
@@ -979,6 +993,14 @@ const OnCallReadinessPage: FunctionComponent<
    * silently drop off the list an admin is building.
    */
   const [selectedUserIds, setSelectedUserIds] = useState<Array<string>>([]);
+  /*
+   * The project's default ladder (#7450): with one, somebody who may change
+   * anybody's rules can apply it to the responders they tick - Ready ones
+   * too. A default that cannot be read is none: nothing is offered.
+   */
+  const [defaultLadder, setDefaultLadder] = useState<
+    Array<PagingLadderDefaultStep>
+  >([]);
   const [reminderFailure, setReminderFailure] =
     useState<SetupReminderFailure | null>(null);
   const [reminderReport, setReminderReport] =
@@ -1075,6 +1097,15 @@ const OnCallReadinessPage: FunctionComponent<
     fetchReadiness().catch(() => {
       // fetchReadiness already routes every failure into the error state.
     });
+
+    loadProjectDefaultLadder()
+      .then((steps: Array<PagingLadderDefaultStep>) => {
+        setDefaultLadder(steps);
+      })
+      .catch(() => {
+        // No default to apply: the page reads as it always did.
+        setDefaultLadder([]);
+      });
   }, []);
 
   /*
@@ -1296,13 +1327,26 @@ const OnCallReadinessPage: FunctionComponent<
    * reference changes; a fresh array on every render would put that effect into
    * a loop with itself.
    */
+  /*
+   * Who may be ticked: a responder to remind - or, for somebody who may
+   * apply the project's default ladder, anybody (#7450).
+   */
+  const isDefaultLadderOffered: boolean =
+    defaultLadder.length > 0 && canApplyDefaultLadder();
+
+  const isSelectable: (row: ResponderRow) => boolean = (
+    row: ResponderRow,
+  ): boolean => {
+    return isDefaultLadderOffered || isRemindable(row);
+  };
+
   const selectedRows: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
     const selectedIds: Set<string> = new Set<string>(selectedUserIds);
 
     return allRows.filter((row: ResponderRow): boolean => {
-      return selectedIds.has(row._id) && isRemindable(row);
+      return selectedIds.has(row._id) && isSelectable(row);
     });
-  }, [allRows, selectedUserIds]);
+  }, [allRows, selectedUserIds, isDefaultLadderOffered]);
 
   /*
    * Send, then tell the truth about what happened.
@@ -1362,12 +1406,42 @@ const OnCallReadinessPage: FunctionComponent<
     }
   };
 
+  /*
+   * Apply the project's default ladder to the responders ticked (#7450):
+   * offered only with a default, to somebody who may change anybody's
+   * rules. After it, the list is read again, as Refresh reads it.
+   */
+  const applyDefaultLadderAction: BulkActionButtonSchema<ResponderRow> | null =
+    useApplyDefaultLadderBulkAction<ResponderRow>({
+      translator: translator,
+      defaultSteps: isDefaultLadderOffered ? defaultLadder : [],
+      getUserId: (row: ResponderRow): string => {
+        return row._id;
+      },
+      getName: (row: ResponderRow): string => {
+        return row.responder;
+      },
+      onFinished: () => {
+        setSelectedUserIds([]);
+        fetchReadiness(true).catch(() => {
+          // fetchReadiness already routes every failure into the error state.
+        });
+      },
+    });
+
   const bulkActions: BulkActionProps<ResponderRow> = {
     buttons: [
       {
         title: "Send setup reminder",
         icon: IconProp.SendMessage,
         buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * Only responders with something to set up are reminded: with the
+         * default ladder to apply, a Ready one can be ticked too.
+         */
+        isVisible: (rows: Array<ResponderRow>): boolean => {
+          return rows.some(isRemindable);
+        },
         /*
          * The confirmation names every recipient, and it is not decoration.
          * Selection survives a filter change and a page change, so the rows an
@@ -1377,12 +1451,15 @@ const OnCallReadinessPage: FunctionComponent<
          * number.
          */
         confirmTitle: (rows: Array<ResponderRow>): string => {
-          return `Send a setup reminder to ${rows.length} ${
-            rows.length === 1 ? "responder" : "responders"
+          const remindable: Array<ResponderRow> = rows.filter(isRemindable);
+
+          return `Send a setup reminder to ${remindable.length} ${
+            remindable.length === 1 ? "responder" : "responders"
           }?`;
         },
         confirmMessage: (rows: Array<ResponderRow>): string => {
           const names: string = rows
+            .filter(isRemindable)
             .map((row: ResponderRow): string => {
               return row.readiness.userEmail
                 ? `${row.responder} (${row.readiness.userEmail})`
@@ -1395,9 +1472,10 @@ const OnCallReadinessPage: FunctionComponent<
         onClick: async (
           onClickProps: BulkActionOnClickProps<ResponderRow>,
         ): Promise<void> => {
-          await sendSetupReminders(onClickProps.items);
+          await sendSetupReminders(onClickProps.items.filter(isRemindable));
         },
       },
+      ...(applyDefaultLadderAction ? [applyDefaultLadderAction] : []),
     ],
   };
 
@@ -1503,10 +1581,29 @@ const OnCallReadinessPage: FunctionComponent<
       key: "status",
       type: FieldType.Element,
       getElement: (row: ResponderRow): ReactElement => {
-        return <StatusChip status={row.status} label={row.statusLabel} />;
+        /*
+         * The project asks people on call for a phone method and they have
+         * none (#7449): beside their status, which it does not change.
+         */
+        return row.readiness.isMissingPhoneMethod ? (
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            <StatusChip status={row.status} label={row.statusLabel} />
+            <span data-testid="readiness-no-phone-method">
+              <Pill
+                text={APPLY_DEFAULT_LADDER_COPY.noPhone}
+                tone={PillTone.Warning}
+                icon={IconProp.DevicePhoneMobile}
+              />
+            </span>
+          </span>
+        ) : (
+          <StatusChip status={row.status} label={row.statusLabel} />
+        );
       },
       getExportValue: (row: ResponderRow): string => {
-        return row.statusLabel;
+        return row.readiness.isMissingPhoneMethod
+          ? `${row.statusLabel}, No phone method`
+          : row.statusLabel;
       },
     },
     {
@@ -1744,7 +1841,11 @@ const OnCallReadinessPage: FunctionComponent<
       <div>
         {selectedRows.length === 0 && (
           <div className="mb-4 text-xs text-gray-500">
-            {translator.translateText(READINESS_TICK_HINT)}
+            {translator.translateText(
+              isDefaultLadderOffered
+                ? APPLY_DEFAULT_LADDER_COPY.tickHint
+                : READINESS_TICK_HINT,
+            )}
           </div>
         )}
 
@@ -1853,7 +1954,7 @@ const OnCallReadinessPage: FunctionComponent<
           bulkItemToString={(row: ResponderRow): string => {
             return row.responder;
           }}
-          isItemSelectable={isRemindable}
+          isItemSelectable={isSelectable}
           itemNotSelectableReason={(): string => {
             return translator.translateTemplate(NOT_REMINDABLE_REASON);
           }}
@@ -1880,7 +1981,7 @@ const OnCallReadinessPage: FunctionComponent<
            */
           onBulkSelectItemsOnCurrentPage={() => {
             const idsOnPage: Array<string> = rowsOnPage
-              .filter(isRemindable)
+              .filter(isSelectable)
               .map((row: ResponderRow): string => {
                 return row._id;
               });
@@ -1898,7 +1999,7 @@ const OnCallReadinessPage: FunctionComponent<
              */
             setSelectedUserIds(
               sortedRows
-                .filter(isRemindable)
+                .filter(isSelectable)
                 .map((row: ResponderRow): string => {
                   return row._id;
                 }),
@@ -1909,7 +2010,7 @@ const OnCallReadinessPage: FunctionComponent<
           onBulkClearAllItems={() => {
             setSelectedUserIds([]);
           }}
-          bulkSelectionTotalCount={sortedRows.filter(isRemindable).length}
+          bulkSelectionTotalCount={sortedRows.filter(isSelectable).length}
         />
       </div>
     );

@@ -1336,7 +1336,7 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
         histogramHeaderActions={
           volumeError && !isVolumeLoading ? undefined : (
             <span
-              className="whitespace-nowrap text-[11px] text-gray-500"
+              className="whitespace-nowrap text-xs text-gray-500"
               data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
             >
               {isVolumeLoading || !volume ? (

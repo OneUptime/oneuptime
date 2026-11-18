@@ -20,7 +20,11 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 **Wie wordt als eerste opgeroepen?** is optioneel en wordt alleen gevraagd aan wie escalatieregels mag toevoegen: blijft het leeg, dan roept het beleid niemand op tot het een regel heeft. **Beschrijving** en **Labels** staan onder **Meer velden**. Hoe je de volgende niveaus toevoegt, lees je bij [Escalatieregels](/docs/on-call/escalation-rules).
 
-Bij het eerste beleid van een project vraagt het formulier ook **Activeren bij elk nieuw incident en elke nieuwe waarschuwing**, dat in het begin aan staat. Het voegt een regel toe onder **Incidenten → Regels → Bereikbaarheidsregels** en een onder **Waarschuwingen → Regels → Bereikbaarheidsregels**, die elk bij alles passen en dit beleid uitvoeren. Het wordt alleen gevraagd aan wie bereikbaarheidsregels mag toevoegen, zolang het project geen bereikbaarheidsbeleid en geen bereikbaarheidsregel heeft.
+Het formulier vraagt ook **Activeren bij elk nieuw incident en elke nieuwe waarschuwing**, aan wie bereikbaarheidsregels mag toevoegen. Het voegt een regel toe onder **Incidenten → Regels → Bereikbaarheidsregels** en een onder **Waarschuwingen → Regels → Bereikbaarheidsregels**, die elk bij alles passen en dit beleid uitvoeren. Bij het eerste beleid van een project staat het aan, zolang het project geen bereikbaarheidsbeleid en geen bereikbaarheidsregel heeft, en bij elk later beleid uit: twee beleidsregels activeren bij elk nieuw incident en elke nieuwe waarschuwing is een bewuste keuze. Staat het uit, dan roept het beleid niemand op totdat een regel, een monitor of iemand het uitvoert.
+
+![De uitleg bij de lege lijst "Bereikbaarheidsbeleid", met "Begeleide installatie" omcirkeld](screen:on-call-policies-guided-setup)
+
+Wilt u liever stap voor stap begeleid worden, van uw telefoon tot een testoproep, klik dan op **Begeleide installatie**: in de lege lijst **Bereikbaarheidsbeleid** of onder **Hoe het werkt**. Zie [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
 De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
@@ -96,6 +100,24 @@ Eén keer opgeroepen worden betekent niet dat iemand een oproep mist. Die ene op
 Sommige oproepen gaan na de bevestiging door, tot iemand die ze opriepen antwoordt of het is opgelost: een nieuwe oproep, een oproep aan waarnemers, een oproep die iemand vanuit Slack of Microsoft Teams naar mensen stuurde, en een beleid dat met de hand is gestart.
 
 Een beleid dat met de hand is gestart, is gestart met **Bereikbaarheidsdienstbeleid uitvoeren**, of door een oproep vanuit Slack of Microsoft Teams die het noemt. Het roept niveau voor niveau op zoals elke uitvoering, met gesprekken en herhaalde pushmeldingen, en dat iemand anders het incident bevestigt, stopt het niet: zo roep je een ander team op voor een incident waar al iemand mee bezig is. Wie het opriep, antwoordt vanuit het bericht van zijn oproep, met een gesprek of een sms, of door zelf het incident te bevestigen; zodra het incident bevestigd is, biedt de pagina van het incident **Opnieuw bevestigen** aan. **Escaleren** geeft het door aan het volgende niveau. Bij een incident, waarschuwing of episode dat is opgelost, wordt niets gestart, en je krijgt te horen waarom: het dashboard zet **Bereikbaarheidsdienstbeleid uitvoeren** uit en noemt de reden. De meldingen ervan zeggen wie welk beleid heeft gestart, en bevatten het bericht dat met een oproep vanuit Slack of Microsoft Teams is meegestuurd.
+
+## Een beleid testen
+
+**Dit beleid testen**, bij de escalatieregels van een beleid, roept het eerste niveau op als test, zonder incident erachter: in elk bericht staat TEST, en geen statuspagina, abonnee of kanaal krijgt bericht. Zet **Elk escalatieniveau doorlopen** aan om elk niveau om de beurt op te roepen, hoogstens 2 minuten na elkaar, tot iemand bevestigt. Voordat er iets wordt verstuurd, toont het dialoogvenster wie de test oproept en hoe, en wat hij kost op OneUptime Cloud.
+
+**Testoproep sturen** blijft uit zolang de test niemand zou bereiken: iedereen die hij oproept heeft zich afgemeld voor die ernst, heeft er geen regel voor en niets om op terug te vallen, of heeft alleen methoden die niet geverifieerd zijn of in het project zijn uitgeschakeld. Een regel onder de lijst zegt waarom. Kan alleen een later niveau worden bereikt, dan biedt de regel **Elk escalatieniveau doorlopen** aan met één klik.
+
+Wie wordt opgeroepen, bevestigt de test via elk van zijn berichten: de link in een e-mail, een sms of een chatbericht, de 1 bij een oproep, of de pushmelding in de OneUptime On-Call-app, in versies nieuwer dan 1.6.0. Een beleid kan eens per 5 minuten worden getest, en een project verstuurt hoogstens 20 tests per uur.
+
+### Een alarmoefening houden voor een monitor
+
+**Alarmoefening houden**, op de kaart **Als dit uitvalt** van een monitor, oefent een van zijn storingen: een incident of waarschuwing die een van zijn criteria opent, of het incident dat een incidentregel voor waarschuwingen van zo'n waarschuwing maakt. Ze test elk bereikbaarheidsbeleid dat die storing zou oproepen, elk zoals **Dit beleid testen** het test, en er gebeurt niets openbaars: er wordt geen incident of waarschuwing gemaakt, en geen statuspagina, abonnee of kanaal krijgt bericht. Voordat er iets wordt verstuurd, noemt het dialoogvenster de storing, elk beleid en wie dat beleid nu oproept. Bij zo'n incident noemt het ook de regel en hoelang de waarschuwing eerst open blijft: de oefening test de beleidsregels van het incident meteen, zonder die wachttijd.
+
+Een oefening roept het eerste niveau van elk beleid op. Zet onder **Meer velden** de optie **Elk escalatieniveau doorlopen** aan om de niveaus van elk beleid om de beurt op te roepen, hoogstens 2 minuten na elkaar, tot iemand bevestigt: het dialoogvenster toont dan elk niveau dat elk beleid bereikt, en wat het doorlopen hoogstens kost. Als niemand op de eerste niveaus bereikbaar is maar een later niveau wel, biedt de regel onder de lijst **Elk escalatieniveau doorlopen** met één klik aan.
+
+**Alarmoefening starten** blijft uit zolang een van die beleidsregels er een is die u niet kunt testen, omdat u het niet kunt bewerken, of zolang niemand die ze oproepen kan worden bereikt. Elk beleid van een oefening telt als een eigen test: een beleid dat in de laatste 5 minuten is getest, houdt de hele oefening tegen, en een oefening van drie beleidsregels neemt drie van de 20 tests per uur van het project.
+
+Zodra het dialoogvenster dicht is, zegt **Laatste alarmoefening** op de kaart welke storing de laatste oefening van de monitor heeft geoefend, wanneer en door wie ze is gestart, en hoeveel van haar tests zijn bevestigd. **Details tonen** toont de test van elk beleid: of hij is bevestigd, door wie, waarmee en hoe snel. Elke test blijft in de uitvoeringslogboeken van zijn beleid, gemarkeerd als alarmoefening van de monitor. De resultaten van een oefening zijn te zien voor wie de monitor en elk van die uitvoeringslogboeken kan lezen.
 
 ## Uitvoeringslogboeken
 

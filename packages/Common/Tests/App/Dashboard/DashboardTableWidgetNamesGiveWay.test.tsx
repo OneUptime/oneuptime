@@ -361,7 +361,7 @@ describe("a metric Table's group cell", () => {
     const cell: HTMLElement = groupCell(word);
 
     expect(cell.firstElementChild?.tagName).toBe("DIV");
-    expect(cell.querySelector("div > span.text-gray-400")).toHaveTextContent(
+    expect(cell.querySelector("div > span.text-gray-500")).toHaveTextContent(
       word,
     );
     expect(cell).not.toHaveAttribute("title");

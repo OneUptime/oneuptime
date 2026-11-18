@@ -17,7 +17,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -1157,7 +1157,7 @@ const StorageArrayOverview: FunctionComponent<
                       {identity}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -1578,7 +1578,7 @@ const StorageArrayOverview: FunctionComponent<
   };
 
   if (isInitialLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (pageError) {

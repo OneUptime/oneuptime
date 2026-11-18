@@ -1,4 +1,5 @@
 import LayersPreview from "./LayersPreview";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   SCHEDULE_FINAL_SCHEDULE_DESCRIPTION,
   SCHEDULE_FINAL_SCHEDULE_TITLE,
@@ -17,7 +18,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
@@ -164,7 +164,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <ChartSkeleton hasLegend={false} />;
   }
 
   if (error) {

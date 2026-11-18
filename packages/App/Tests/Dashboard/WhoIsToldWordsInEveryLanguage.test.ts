@@ -293,8 +293,19 @@ describe("When this goes down's words in every language", () => {
     expect(unworded).toContain(
       "It emails the owners added by owner rules. (WhoIsToldWords.ts)",
     );
+    // A status page's words, through the group it shows the monitor (#7214).
     expect(unworded).toContain(
-      "A status page you can't see (MonitorWhoIsToldCard.tsx)",
+      "A status page you can't see (WhoIsToldWords.ts)",
+    );
+    // A Recheck that failed (#7308), a private record (#7213), an owner not emailed (#7572).
+    expect(unworded).toContain(
+      "Couldn't check again. {{error}} (MonitorWhoIsToldCard.tsx)",
+    );
+    expect(unworded).toContain(
+      "It's private, so you can't see who it tells. (WhoIsToldWords.ts)",
+    );
+    expect(unworded).toContain(
+      "Team {{team}} has nobody in it who is a member of this project, so nobody is emailed through it. (WhoIsToldWords.ts)",
     );
 
     // One key missing, or empty, fails it too.
@@ -303,7 +314,7 @@ describe("When this goes down's words in every language", () => {
     missing["A status page you can't see"] = " ";
 
     expect(getUnworded({ language: "da", locale: missing }).sort()).toEqual([
-      "A status page you can't see (MonitorWhoIsToldCard.tsx)",
+      "A status page you can't see (WhoIsToldWords.ts)",
       "Owner Rules (MonitorWhoIsToldCard.tsx)",
     ]);
   });

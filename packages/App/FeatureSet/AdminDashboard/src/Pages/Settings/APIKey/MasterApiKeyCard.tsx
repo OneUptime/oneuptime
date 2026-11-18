@@ -1,4 +1,5 @@
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import { createMasterApiKey, fetchMasterApiKeyState } from "./MasterApiKeyApi";
 import {
@@ -21,7 +22,6 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
@@ -205,7 +205,7 @@ const MasterApiKeyCard: FunctionComponent = (): ReactElement => {
     }
 
     if (!state) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     const facts: Array<string> = getMasterApiKeyFacts(state, translator);

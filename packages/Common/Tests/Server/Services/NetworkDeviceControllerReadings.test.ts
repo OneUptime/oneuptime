@@ -317,15 +317,28 @@ describe("a deleted connection's readings are forgotten", () => {
   let query: Mock<QueryFunction>;
   let service: NetworkDeviceServiceType;
 
+  // The devices the connection described, as the statement answers them.
+  const FORGOTTEN_IDS: Array<string> = [
+    DEVICE_ID.toString(),
+    "33333333-3333-4333-8333-333333333334",
+    "33333333-3333-4333-8333-333333333335",
+  ];
+
   beforeEach(() => {
     jest.restoreAllMocks();
     service = new NetworkDeviceServiceType();
-    query = jest.fn<QueryFunction>(async (): Promise<unknown> => {
-      return [[], 3];
+    query = jest.fn<QueryFunction>(async (sql: string): Promise<unknown> => {
+      return flat(sql).includes(`- 'controller' WHERE`)
+        ? FORGOTTEN_IDS.map((id: string) => {
+            return { _id: id };
+          })
+        : [[], 0];
     });
     jest
       .spyOn(service, "getRepository")
       .mockReturnValue({ manager: { query } } as never);
+    // What they are listed under is worked out again (NetworkDeviceManufacturer.test.ts).
+    jest.spyOn(service, "refreshManufacturer").mockResolvedValue(0);
   });
 
   test("the reading key comes off the devices that connection described, in its project", async () => {
@@ -343,6 +356,9 @@ describe("a deleted connection's readings are forgotten", () => {
     expect(sql).toContain(
       `AND (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $2`,
     );
+    // A SELECT of the devices it wrote: the answer is them, however many.
+    expect(sql).toContain('RETURNING nd."_id"');
+    expect(sql).toContain('SELECT "_id" FROM "forgotten"');
     expect(query.mock.calls[0]![1]).toEqual([
       PROJECT_ID.toString(),
       CONNECTION_ID.toString(),

@@ -8,6 +8,7 @@ import {
   describePageLanguages,
 } from "../SuiteHelpers/LocaleChunks";
 import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { dropdownControlOf } from "../SuiteHelpers/Dropdowns";
 
 /*
  * A resource's Overview drawn with ResourceOverview - a service's, a
@@ -936,9 +937,11 @@ test.describe("the hero: the description under the name, the controls at the row
       page.getByTestId("resource-overview-title-block"),
     );
     const select: Box = await boxOf(
-      page
-        .getByTestId("resource-overview-controls")
-        .getByRole("combobox", { name: "Auto-refresh" }),
+      dropdownControlOf(
+        page
+          .getByTestId("resource-overview-controls")
+          .getByRole("combobox", { name: "Auto-refresh" }),
+      ),
     );
     expect(select.y).toBeGreaterThanOrEqual(title.y + title.height);
     expect(row.x + row.width - (select.x + select.width)).toBeLessThanOrEqual(
@@ -964,9 +967,11 @@ test.describe("the hero: the description under the name, the controls at the row
         page.getByTestId("resource-overview-title-block"),
       );
       const select: Box = await boxOf(
-        page
-          .getByTestId("resource-overview-controls")
-          .getByRole("combobox", { name: "Auto-refresh" }),
+        dropdownControlOf(
+          page
+            .getByTestId("resource-overview-controls")
+            .getByRole("combobox", { name: "Auto-refresh" }),
+        ),
       );
 
       // Under the title, ending where the row ends.
@@ -1026,9 +1031,11 @@ test.describe("the hero: the description under the name, the controls at the row
       page.getByTestId("resource-overview-header-row"),
     );
     const select: Box = await boxOf(
-      page
-        .getByTestId("resource-overview-controls")
-        .getByRole("combobox", { name: "Auto-refresh" }),
+      dropdownControlOf(
+        page
+          .getByTestId("resource-overview-controls")
+          .getByRole("combobox", { name: "Auto-refresh" }),
+      ),
     );
     expect(Math.abs(select.x - row.x)).toBeLessThanOrEqual(1);
 

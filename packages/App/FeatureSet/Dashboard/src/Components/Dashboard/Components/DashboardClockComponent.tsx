@@ -312,7 +312,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
     <>
       {display.dateText ? (
         <div
-          className="text-[11px] text-gray-400 text-center truncate max-w-full"
+          className="text-xs text-gray-500 text-center truncate max-w-full"
           data-testid={CLOCK_DATE_TEST_ID}
         >
           {display.dateText}
@@ -321,14 +321,14 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
         <></>
       )}
       {display.zoneAbbreviation ? (
-        <div className="text-[11px] text-gray-400 text-center tabular-nums truncate max-w-full">
+        <div className="text-xs text-gray-500 text-center tabular-nums truncate max-w-full">
           {display.zoneAbbreviation}
         </div>
       ) : (
         <></>
       )}
       {display.isFallbackTimezone ? (
-        <div className="text-[10px] text-amber-500 text-center truncate max-w-full">
+        <div className="text-xs text-amber-500 text-center truncate max-w-full">
           {translator.translateText("Unknown timezone — showing yours")}
         </div>
       ) : (
@@ -386,7 +386,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
       >
         {display.meridiem && display.isMeridiemFirst ? (
           <span
-            className="text-gray-400 font-medium tracking-normal"
+            className="text-gray-500 font-medium tracking-normal"
             data-testid={CLOCK_MERIDIEM_TEST_ID}
             style={{
               fontSize: `${secondaryFontPx}px`,
@@ -416,7 +416,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
           </span>
           {display.seconds ? (
             <span
-              className="text-gray-400 font-medium"
+              className="text-gray-500 font-medium"
               style={{ fontSize: `${secondaryFontPx}px` }}
             >
               :{display.seconds}
@@ -427,7 +427,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
         </span>
         {display.meridiem && !display.isMeridiemFirst ? (
           <span
-            className="text-gray-400 font-medium tracking-normal"
+            className="text-gray-500 font-medium tracking-normal"
             data-testid={CLOCK_MERIDIEM_TEST_ID}
             style={{
               fontSize: `${secondaryFontPx}px`,

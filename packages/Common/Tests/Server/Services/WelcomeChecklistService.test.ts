@@ -19,8 +19,13 @@ import type { SpyInstance } from "jest-mock";
  *  - One answer for the project: a second member and another browser read
  *    the same steps; hiding is one member's own.
  *  - The plan and the edition: the Free plan's team step says what it
- *    needs; a master admin of a self-hosted server that cannot send email
- *    sees that first.
+ *    needs; the server's own email is the Server setup card's, never a
+ *    step (#7018).
+ *  - Who is told counts a monitor that pages a policy directly, as a rule
+ *    that runs one (#7017).
+ *  - A step whose record exists but does not work yet says why (#6938),
+ *    and a finished checklist offers what else to set up (#7986), with
+ *    whether a phone or the app pages the person asking (#9442).
  *  - A project that existed before is looked at once by the old rule.
  *  - Invited members get no steps, and nothing of the project's is read
  *    for them: only whether a test page has reached them, and, while
@@ -46,6 +51,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 import WelcomeChecklistService, {
+  MAX_MONITORS_READ,
   MAX_POLICIES_CHECKED_FOR_RESPONDERS,
   WelcomeChecklistCaller,
 } from "../../../Server/Services/WelcomeChecklistService";
@@ -62,6 +68,19 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import ToolImportRunService from "../../../Server/Services/ToolImportRunService";
 import logger from "../../../Server/Utils/Logger";
 import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
+import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
+import SetupHealthService from "../../../Server/Services/SetupHealthService";
+import {
+  SETUP_HEALTH_WORDS,
+  SetupHealthAnswer,
+  SetupHealthCheck,
+  SetupHealthFinding,
+  SetupHealthFix,
+  SetupHealthLevel,
+  SetupHealthRecordKind,
+  makeSetupHealthFinding,
+} from "../../../Types/SetupHealth/SetupHealth";
+import ProductKey from "../../../Types/Product/ProductKey";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubscriptionPlan, {
@@ -82,6 +101,7 @@ import ProjectGoal, {
   PROJECT_GOALS,
 } from "../../../Types/WelcomeChecklist/ProjectGoal";
 import {
+  WELCOME_GAP_INVITATION_NOT_ACCEPTED,
   WelcomeAudience,
   WelcomeChecklistStepState,
   WelcomeStep,
@@ -123,6 +143,18 @@ let legacyCounts: {
   onCallPolicies: number;
 };
 let serverCanSendEmail: boolean;
+// The policies each monitor's criteria page, and whether that criteria opens one (#7017).
+let monitorPolicies: Array<{ policyIds: Array<string>; opens: boolean }>;
+// The policies archived: they page no one.
+let archivedPolicies: Array<string>;
+// Setup health's findings, as the person asking is shown them (#6938).
+let findings: Array<SetupHealthFinding>;
+// Invitations sent and not accepted yet.
+let pendingInvitations: number;
+// The person asking's notification methods, as Readiness reads them (#9442).
+let myMethods: Array<{ methodType: string; isVerified: boolean }>;
+// The products switched off on the server.
+let offProducts: Array<ProductKey>;
 
 interface RecordedWrite {
   sql: string;
@@ -221,6 +253,13 @@ let milestonesSpy: SpyInstance<
 type LegacyCountSpy = SpyInstance<() => Promise<PositiveNumber>>;
 let legacyCountSpies: Array<LegacyCountSpy>;
 let canSendSpy: SpyInstance;
+let monitorsSpy: SpyInstance<typeof MonitorService.findBy>;
+let policiesSpy: SpyInstance<typeof OnCallDutyPolicyService.findBy>;
+let findingsSpy: SpyInstance<typeof SetupHealthService.getForCaller>;
+let invitationsSpy: SpyInstance;
+let myReadinessSpy: SpyInstance<
+  typeof OnCallReadinessService.getReadinessForUser
+>;
 
 function permission(value: Permission): UserPermission {
   return {
@@ -302,6 +341,12 @@ beforeEach(() => {
     onCallPolicies: 0,
   };
   serverCanSendEmail = true;
+  monitorPolicies = [];
+  archivedPolicies = [];
+  findings = [];
+  pendingInvitations = 0;
+  myMethods = [{ methodType: "Email", isVerified: true }];
+  offProducts = [];
   writes = [];
   rowLock = Promise.resolve();
   isRowThere = true;
@@ -391,9 +436,18 @@ beforeEach(() => {
     jest.spyOn(StatusPageService, "countBy").mockImplementation((async () => {
       return count(legacyCounts.statusPages);
     }) as never) as unknown as LegacyCountSpy,
-    jest.spyOn(TeamMemberService, "countBy").mockImplementation((async () => {
-      return count(legacyCounts.teamMembers);
-    }) as never) as unknown as LegacyCountSpy,
+    jest
+      .spyOn(TeamMemberService, "countBy")
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+      }) => {
+        // Invitations nobody accepted (#6938), or the old checklist's members.
+        return count(
+          options.query["hasAcceptedInvitation"] === false
+            ? pendingInvitations
+            : legacyCounts.teamMembers,
+        );
+      }) as never) as unknown as LegacyCountSpy,
     jest
       .spyOn(OnCallDutyPolicyService, "countBy")
       .mockImplementation((async () => {
@@ -405,6 +459,88 @@ beforeEach(() => {
     .spyOn(ServerSendingStatus, "canSendEmailPublicly")
     .mockImplementation((async (): Promise<boolean> => {
       return serverCanSendEmail;
+    }) as never);
+
+  // Each monitor's criteria, as monitorSteps stores them (#7017).
+  monitorsSpy = jest
+    .spyOn(MonitorService, "findBy")
+    .mockImplementation((async (): Promise<unknown> => {
+      return monitorPolicies.map(
+        (monitor: { policyIds: Array<string>; opens: boolean }) => {
+          return {
+            _id: ObjectID.generate(),
+            monitorSteps: {
+              monitorStepsInstanceArray: [
+                {
+                  monitorCriteria: {
+                    monitorCriteriaInstanceArray: [
+                      {
+                        name: "Down",
+                        createIncidents: monitor.opens,
+                        incidents: [{ onCallPolicyIds: monitor.policyIds }],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+        },
+      );
+    }) as never);
+
+  // The policies in service among those asked for: none archived.
+  policiesSpy = jest
+    .spyOn(OnCallDutyPolicyService, "findBy")
+    .mockImplementation((async (options: {
+      query: Record<string, unknown>;
+    }): Promise<unknown> => {
+      expect(options.query["projectId"]).toEqual(PROJECT_ID);
+      expect(options.query["isArchived"]).toBe(false);
+
+      // QueryHelper.any: a Raw operator holding the ids it was handed.
+      const operator: {
+        objectLiteralParameters?: Record<string, Array<string>>;
+      } = options.query["_id"] as {
+        objectLiteralParameters?: Record<string, Array<string>>;
+      };
+      const asked: Array<string> = Object.values(
+        operator.objectLiteralParameters || {},
+      ).flat();
+
+      return asked
+        .filter((id: string): boolean => {
+          return !archivedPolicies.includes(id);
+        })
+        .map((id: string) => {
+          return { _id: id };
+        });
+    }) as never);
+
+  findingsSpy = jest
+    .spyOn(SetupHealthService, "getForCaller")
+    .mockImplementation((async (): Promise<SetupHealthAnswer> => {
+      return {
+        findings: findings,
+        dismissed: [],
+        counts: {} as never,
+        monitorCount: 0,
+        checkedAt: new Date().toISOString(),
+      };
+    }) as never);
+
+  invitationsSpy = legacyCountSpies[2]! as unknown as SpyInstance;
+
+  myReadinessSpy = jest
+    .spyOn(OnCallReadinessService, "getReadinessForUser")
+    .mockImplementation((async (): Promise<unknown> => {
+      return { methods: myMethods };
+    }) as never);
+
+  jest
+    .spyOn(ServerProducts, "getOffProducts")
+    .mockImplementation((async (): Promise<Array<ProductKey>> => {
+      return offProducts;
     }) as never);
 
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
@@ -822,14 +958,19 @@ describe("one checklist for the project", () => {
     ]);
     expect(storedState().finishedBy).toBe(WelcomeChecklistFinishedBy.Outcomes);
 
-    milestonesSpy.mockClear();
+    incidentRulesSpy.mockClear();
+    importsSpy.mockClear();
 
     const later: WelcomeChecklistAnswer =
       await WelcomeChecklistService.getAnswer(ADMIN());
 
     expect(later.isFinished).toBe(true);
     expect(later.steps).toEqual([]);
-    expect(milestonesSpy).not.toHaveBeenCalled();
+    // A project that never chose goals had the four core steps already.
+    expect(later.moreSteps).toEqual([]);
+    // Nothing of the checklist's own is read again.
+    expect(incidentRulesSpy).not.toHaveBeenCalled();
+    expect(importsSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -873,7 +1014,12 @@ describe("the plan and the edition", () => {
     );
   });
 
-  test("a master admin of a self-hosted server that cannot send email sees that first", async () => {
+  /*
+   * The server's own email is the Server setup card's to ask for (#7018):
+   * its master admins see the card above the checklist, so a step saying
+   * the same would be a second prompt for one job.
+   */
+  test("a master admin of a self-hosted server that cannot send email gets no step for it: the Server setup card asks", async () => {
     serverCanSendEmail = false;
 
     const answer: WelcomeChecklistAnswer =
@@ -881,7 +1027,13 @@ describe("the plan and the edition", () => {
         caller(OWNER_ID, [Permission.ProjectOwner], { isMasterAdmin: true }),
       );
 
-    expect(stepsOf(answer)[0]).toBe("server_email:open:next");
+    expect(stepsOf(answer)).toEqual([
+      "monitor:open:next",
+      "on_call:open",
+      "status_page:open",
+      "team:open",
+    ]);
+    // The steps' words still say what the server cannot send.
     expect(answer.canSendEmail).toBe(false);
   });
 
@@ -907,10 +1059,10 @@ describe("the plan and the edition", () => {
     expect(canSendSpy).not.toHaveBeenCalled();
     expect(answer.canSendEmail).toBe(true);
     expect(
-      answer.steps.map((state: WelcomeChecklistStepState) => {
+      answer.steps.map((state: WelcomeChecklistStepState): string => {
         return state.step;
       }),
-    ).not.toContain(WelcomeStep.ServerEmail);
+    ).not.toContain("server_email");
   });
 });
 
@@ -1331,5 +1483,699 @@ describe("every person who acknowledges a test is noted", () => {
     ]);
     expect(storedState().goalsChosenByUserId).toBe(OWNER_ID.toString());
     expect(row.goals).toEqual([ProjectGoal.OnCall]);
+  });
+});
+
+/*
+ * THE MEMBERS WHO ACKNOWLEDGED A TEST PAGE BEFORE THE NOTE WAS KEPT (#7042):
+ * the one-off backfill's write. They go before the members noted since,
+ * each once, under the row's lock as every write; a project where every
+ * one of them is noted already is not written, nor locked.
+ */
+describe("members who acknowledged a test page before the note was kept", () => {
+  const EARLIER_ID: ObjectID = new ObjectID(
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+
+  const noteBefore: (userIds: Array<string>) => Promise<number> = (
+    userIds: Array<string>,
+  ): Promise<number> => {
+    return WelcomeChecklistService.noteTestPagesAcknowledgedBefore({
+      projectId: PROJECT_ID,
+      userIds: userIds,
+    });
+  };
+
+  test("are noted before the members noted since, and their first steps are done", async () => {
+    await WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: MEMBER_ID,
+    });
+    writes = [];
+
+    expect(
+      await noteBefore([EARLIER_ID.toString(), MEMBER_ID.toString()]),
+    ).toBe(1);
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.holdsRowLock).toBe(true);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      EARLIER_ID.toString(),
+      MEMBER_ID.toString(),
+    ]);
+    // What else the state held is kept.
+    expect(storedState().startedWithOutcomes).toBe(true);
+    expect(
+      (
+        await WelcomeChecklistService.getAnswer(
+          caller(EARLIER_ID, [Permission.ProjectMember]),
+        )
+      ).hasAcknowledgedTestPage,
+    ).toBe(true);
+  });
+
+  test("a second run notes nobody, and writes and locks nothing", async () => {
+    expect(await noteBefore([EARLIER_ID.toString()])).toBe(1);
+    writes = [];
+
+    let isLocked: boolean = false;
+
+    jest.spyOn(ProjectService, "getRepository").mockReturnValue({
+      manager: {
+        query: fakeQuery(null),
+        transaction: async (): Promise<unknown> => {
+          isLocked = true;
+          throw new Error("A run with nothing to note took the row's lock.");
+        },
+      },
+    } as never);
+
+    expect(await noteBefore([EARLIER_ID.toString().toUpperCase()])).toBe(0);
+    expect(writes).toHaveLength(0);
+    expect(isLocked).toBe(false);
+  });
+
+  test("a member noted live while the backfill writes is kept", async () => {
+    await Promise.all([
+      noteBefore([EARLIER_ID.toString()]),
+      WelcomeChecklistService.noteTestPageAcknowledged({
+        projectId: PROJECT_ID,
+        userId: MEMBER_ID,
+      }),
+    ]);
+
+    expect(
+      [...(storedState().testPageAcknowledgedByUserIds || [])].sort(),
+    ).toEqual([EARLIER_ID.toString(), MEMBER_ID.toString()].sort());
+    // The member noted before comes first, whichever write landed first.
+    expect(storedState().testPageAcknowledgedByUserIds![0]).toBe(
+      EARLIER_ID.toString(),
+    );
+  });
+
+  test("a project with no state yet takes its first list", async () => {
+    row.welcomeChecklistState = null;
+
+    expect(
+      await noteBefore([EARLIER_ID.toString(), MEMBER_ID.toString()]),
+    ).toBe(2);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      EARLIER_ID.toString(),
+      MEMBER_ID.toString(),
+    ]);
+  });
+
+  test("a project that is gone is not written: the caller hears so", async () => {
+    isRowThere = false;
+
+    await expect(noteBefore([EARLIER_ID.toString()])).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(writes).toHaveLength(0);
+  });
+});
+
+/*
+ * WHO IS TOLD, FROM WHAT RUNS A POLICY (#7017). A monitor whose criteria
+ * page an on-call policy directly runs it as surely as an on-call rule:
+ * Setup health counts it so, and now so does the checklist. An archived
+ * policy pages no one, whoever names it.
+ */
+describe("who is told counts a monitor that pages a policy directly", () => {
+  test("a monitor whose criteria page a policy with someone reachable ticks it, with no rule at all", async () => {
+    monitorPolicies = [{ policyIds: [POLICY_A], opens: true }];
+    reachableByPolicy = { [POLICY_A]: 1 };
+
+    expect(stepsOf(await WelcomeChecklistService.getAnswer(OWNER()))[1]).toBe(
+      "on_call:done",
+    );
+    expect(readinessSpy).toHaveBeenCalledWith(
+      new ObjectID(POLICY_A),
+      PROJECT_ID,
+    );
+  });
+
+  test("a policy a monitor pages that reaches nobody leaves it open", async () => {
+    monitorPolicies = [{ policyIds: [POLICY_A], opens: true }];
+    reachableByPolicy = { [POLICY_A]: 0 };
+
+    expect(stepsOf(await WelcomeChecklistService.getAnswer(OWNER()))[1]).toBe(
+      "on_call:open",
+    );
+  });
+
+  test("a policy named in a criteria that opens nothing pages nobody: it does not count", async () => {
+    monitorPolicies = [{ policyIds: [POLICY_A], opens: false }];
+    reachableByPolicy = { [POLICY_A]: 3 };
+
+    expect(stepsOf(await WelcomeChecklistService.getAnswer(OWNER()))[1]).toBe(
+      "on_call:open",
+    );
+    expect(readinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("only monitors that are checked are read, a bounded few", async () => {
+    await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(monitorsSpy).toHaveBeenCalledTimes(1);
+    expect(monitorsSpy.mock.calls[0]![0].query).toEqual({
+      projectId: PROJECT_ID,
+      disableActiveMonitoring: false,
+      isArchived: false,
+    });
+    expect(monitorsSpy.mock.calls[0]![0].limit).toBe(MAX_MONITORS_READ);
+  });
+
+  test("an archived policy pages no one, whoever runs it", async () => {
+    incidentRulePolicies = [[POLICY_A]];
+    monitorPolicies = [{ policyIds: [POLICY_A], opens: true }];
+    reachableByPolicy = { [POLICY_A]: 2 };
+    archivedPolicies = [POLICY_A];
+
+    expect(stepsOf(await WelcomeChecklistService.getAnswer(OWNER()))[1]).toBe(
+      "on_call:open",
+    );
+    expect(readinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("a policy a rule and a monitor both run is asked about once", async () => {
+    incidentRulePolicies = [[POLICY_A]];
+    monitorPolicies = [
+      { policyIds: [POLICY_A, POLICY_B], opens: true },
+      { policyIds: [POLICY_A], opens: true },
+    ];
+
+    await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(
+      readinessSpy.mock.calls.map((call: Array<unknown>): string => {
+        return String(call[0]);
+      }),
+    ).toEqual([POLICY_A, POLICY_B]);
+  });
+
+  test("once a milestone ticked it, no monitor is read", async () => {
+    milestones = [ActivationMilestone.FirstTestPageAcknowledged];
+
+    await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(monitorsSpy).not.toHaveBeenCalled();
+    expect(policiesSpy).not.toHaveBeenCalled();
+  });
+
+  test("monitors that cannot be read leave it open, never break the answer", async () => {
+    monitorsSpy.mockImplementation((async () => {
+      throw new Error("database restarting");
+    }) as never);
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(stepsOf(answer)[1]).toBe("on_call:open");
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHY A STEP IS NOT DONE ALTHOUGH ITS RECORD EXISTS (#6938): Setup health's
+ * finding about the step's record, as the person asking is shown it, or an
+ * invitation nobody accepted.
+ */
+describe("a step whose record exists but does not work yet says why", () => {
+  const STATUS_PAGE_ID: string = "88888888-8888-4888-8888-888888888888";
+
+  const emptyPage: () => SetupHealthFinding = (): SetupHealthFinding => {
+    return makeSetupHealthFinding({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: SetupHealthRecordKind.StatusPage,
+        id: STATUS_PAGE_ID,
+        name: "Acme status",
+      },
+      fix: SetupHealthFix.StatusPageResources,
+      fixRecordId: STATUS_PAGE_ID,
+      words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+      values: { statusPage: "Acme status" },
+    });
+  };
+
+  const notRun: () => SetupHealthFinding = (): SetupHealthFinding => {
+    return makeSetupHealthFinding({
+      check: SetupHealthCheck.PolicyNotRun,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: POLICY_A,
+        name: "Primary",
+      },
+      fix: SetupHealthFix.IncidentOnCallRules,
+      words: SETUP_HEALTH_WORDS.policyNotRun,
+      values: { policy: "Primary" },
+    });
+  };
+
+  const gapOf: (
+    answer: WelcomeChecklistAnswer,
+    step: WelcomeStep,
+  ) => WelcomeChecklistStepState["gap"] = (
+    answer: WelcomeChecklistAnswer,
+    step: WelcomeStep,
+  ): WelcomeChecklistStepState["gap"] => {
+    return (
+      answer.steps.find((state: WelcomeChecklistStepState): boolean => {
+        return state.step === step;
+      })?.gap || null
+    );
+  };
+
+  test("a status page that shows no monitor says so on its step, with the page that fixes it", async () => {
+    row.goals = [ProjectGoal.StatusPage];
+    findings = [emptyPage()];
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(gapOf(answer, WelcomeStep.StatusPage)).toEqual({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      finding: findings[0],
+    });
+    expect(gapOf(answer, WelcomeStep.StatusPage)?.finding?.fix).toBe(
+      SetupHealthFix.StatusPageResources,
+    );
+    expect(gapOf(answer, WelcomeStep.Monitor)).toBeNull();
+  });
+
+  test("an on-call policy nothing runs says so on who is told", async () => {
+    row.goals = [];
+    findings = [notRun(), emptyPage()];
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(gapOf(answer, WelcomeStep.OnCall)?.check).toBe(
+      SetupHealthCheck.PolicyNotRun,
+    );
+    expect(gapOf(answer, WelcomeStep.StatusPage)?.check).toBe(
+      SetupHealthCheck.StatusPageShowsNoMonitor,
+    );
+  });
+
+  test("the findings are read as the person asking is shown them, once", async () => {
+    row.goals = [];
+    const owner: WelcomeChecklistCaller = OWNER();
+
+    await WelcomeChecklistService.getAnswer(owner);
+
+    expect(findingsSpy).toHaveBeenCalledTimes(1);
+    expect(findingsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      props: owner.props,
+    });
+  });
+
+  test("an invitation nobody accepted says so on the team step", async () => {
+    row.goals = [];
+    pendingInvitations = 2;
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(gapOf(answer, WelcomeStep.Team)).toEqual({
+      check: WELCOME_GAP_INVITATION_NOT_ACCEPTED,
+      finding: null,
+    });
+    expect(invitationsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { projectId: PROJECT_ID, hasAcceptedInvitation: false },
+      }),
+    );
+  });
+
+  test("a done step has no gap, and nothing is read for it", async () => {
+    milestones = [
+      ActivationMilestone.FirstCheckResultReceived,
+      ActivationMilestone.FirstTestPageAcknowledged,
+      ActivationMilestone.FirstStatusPageMonitorAdded,
+    ];
+    findings = [notRun(), emptyPage()];
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(findingsSpy).not.toHaveBeenCalled();
+    expect(gapOf(answer, WelcomeStep.StatusPage)).toBeNull();
+    expect(gapOf(answer, WelcomeStep.OnCall)).toBeNull();
+  });
+
+  test("a team step the plan holds back has no gap, and asks about no invitation", async () => {
+    mockIsBillingEnabled = true;
+    row.planName = PlanType.Free;
+    row.goals = [ProjectGoal.OnCall];
+    pendingInvitations = 1;
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(gapOf(answer, WelcomeStep.Team)).toBeNull();
+    expect(invitationsSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { projectId: PROJECT_ID, hasAcceptedInvitation: false },
+      }),
+    );
+  });
+
+  test("nothing is read while the question is asked, or the card is hidden", async () => {
+    findings = [emptyPage()];
+
+    const asked: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(asked.shouldAskForGoals).toBe(true);
+    expect(findingsSpy).not.toHaveBeenCalled();
+
+    row.goals = [ProjectGoal.StatusPage];
+    await WelcomeChecklistService.setHiddenForCaller(OWNER(), true);
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).isHiddenForMe,
+    ).toBe(true);
+    expect(findingsSpy).not.toHaveBeenCalled();
+    expect(myReadinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("findings that cannot be read leave every step as it was", async () => {
+    row.goals = [ProjectGoal.StatusPage];
+    findingsSpy.mockImplementation((async () => {
+      throw new Error("setup health is down");
+    }) as never);
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(stepsOf(answer)).toEqual(["monitor:open:next", "status_page:open"]);
+    expect(
+      answer.steps.every((state: WelcomeChecklistStepState): boolean => {
+        return state.gap === null;
+      }),
+    ).toBe(true);
+    expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHAT ELSE TO SET UP, ONCE THE GOALS' STEPS ARE DONE (#7986). A project
+ * that came for its website finished its checklist after the website setup,
+ * and Home never offered it a status page or its team again.
+ */
+describe("what else to set up, once the goals' steps are done", () => {
+  const WEBSITE_DONE: Array<ActivationMilestone> = [
+    ActivationMilestone.FirstCheckResultReceived,
+    ActivationMilestone.FirstTestPageAcknowledged,
+  ];
+
+  const moreOf: (answer: WelcomeChecklistAnswer) => Array<string> = (
+    answer: WelcomeChecklistAnswer,
+  ): Array<string> => {
+    return answer.moreSteps.map((state: WelcomeChecklistStepState): string => {
+      return `${state.step}:${state.isDone ? "done" : "open"}${state.isNext ? ":next" : ""}${state.needsPlan ? `:needs-${state.needsPlan}` : ""}`;
+    });
+  };
+
+  test("the answer that finishes a website project already offers a status page and the team", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+
+    const finishing: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(finishing.isFinished).toBe(true);
+    expect(stepsOf(finishing)).toEqual(["monitor:done", "on_call:done"]);
+    expect(moreOf(finishing)).toEqual(["status_page:open", "team:open"]);
+  });
+
+  test("later visits offer them too, each until it works, for every member who set it up", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    row.welcomeChecklistState = {
+      startedWithOutcomes: true,
+      finishedAt: new Date().toISOString(),
+      finishedBy: WelcomeChecklistFinishedBy.Outcomes,
+    };
+    milestones = [...WEBSITE_DONE, ActivationMilestone.SecondMemberJoined];
+
+    const owner: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+    const admin: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(ADMIN());
+
+    expect(owner.isFinished).toBe(true);
+    expect(owner.steps).toEqual([]);
+    expect(moreOf(owner)).toEqual(["status_page:open"]);
+    expect(moreOf(admin)).toEqual(["status_page:open"]);
+
+    milestones = [
+      ...milestones,
+      ActivationMilestone.FirstStatusPageMonitorAdded,
+    ];
+
+    expect(moreOf(await WelcomeChecklistService.getAnswer(OWNER()))).toEqual(
+      [],
+    );
+    // Nothing is ever written for them: they are read, not kept.
+    expect(writes).toHaveLength(0);
+  });
+
+  test("who is told is offered to a status page project until a policy that reaches someone runs", async () => {
+    row.goals = [ProjectGoal.StatusPage];
+    row.welcomeChecklistState = {
+      startedWithOutcomes: true,
+      finishedAt: new Date().toISOString(),
+      finishedBy: WelcomeChecklistFinishedBy.Outcomes,
+    };
+
+    expect(moreOf(await WelcomeChecklistService.getAnswer(OWNER()))).toEqual([
+      "on_call:open",
+      "team:open",
+    ]);
+
+    alertRulePolicies = [[POLICY_A]];
+    reachableByPolicy = { [POLICY_A]: 1 };
+
+    expect(moreOf(await WelcomeChecklistService.getAnswer(OWNER()))).toEqual([
+      "team:open",
+    ]);
+  });
+
+  test("an offered step says why it is not done, as on the checklist", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+    pendingInvitations = 1;
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(
+      answer.moreSteps.find((state: WelcomeChecklistStepState): boolean => {
+        return state.step === WelcomeStep.Team;
+      })?.gap,
+    ).toEqual({ check: WELCOME_GAP_INVITATION_NOT_ACCEPTED, finding: null });
+  });
+
+  test("on the Free plan, the team says which plan it needs", async () => {
+    mockIsBillingEnabled = true;
+    row.planName = PlanType.Free;
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+
+    expect(moreOf(await WelcomeChecklistService.getAnswer(OWNER()))).toEqual([
+      "status_page:open",
+      "team:open:needs-Growth",
+    ]);
+  });
+
+  test("a product off on the server is never offered", async () => {
+    offProducts = [ProductKey.StatusPages];
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+
+    expect(moreOf(await WelcomeChecklistService.getAnswer(OWNER()))).toEqual([
+      "team:open",
+    ]);
+  });
+
+  test("hidden by the person asking: nothing is offered, and nothing is read for it", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+    await WelcomeChecklistService.setHiddenForCaller(OWNER(), true);
+    findingsSpy.mockClear();
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(answer.isFinished).toBe(true);
+    expect(answer.moreSteps).toEqual([]);
+    expect(answer.canBePagedByPhoneOrApp).toBeNull();
+    expect(myReadinessSpy).not.toHaveBeenCalled();
+    // Another member who set it up still sees them.
+    expect(moreOf(await WelcomeChecklistService.getAnswer(ADMIN()))).toEqual([
+      "status_page:open",
+      "team:open",
+    ]);
+  });
+
+  test("a project finished by the old checklist, or by what a browser remembered, is offered nothing", async () => {
+    row.goals = [ProjectGoal.Uptime];
+
+    for (const finishedBy of [
+      WelcomeChecklistFinishedBy.Legacy,
+      WelcomeChecklistFinishedBy.Browser,
+    ]) {
+      row.welcomeChecklistState = {
+        startedWithOutcomes: true,
+        finishedAt: new Date().toISOString(),
+        finishedBy: finishedBy,
+      };
+      milestonesSpy.mockClear();
+
+      const answer: WelcomeChecklistAnswer =
+        await WelcomeChecklistService.getAnswer(OWNER());
+
+      expect({ finishedBy, more: answer.moreSteps }).toEqual({
+        finishedBy,
+        more: [],
+      });
+      expect(milestonesSpy).not.toHaveBeenCalled();
+    }
+  });
+
+  test("an invited member is offered nothing", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    milestones = WEBSITE_DONE;
+    await WelcomeChecklistService.getAnswer(OWNER());
+
+    const member: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(MEMBER());
+
+    expect(member.audience).toBe(WelcomeAudience.InvitedMember);
+    expect(member.moreSteps).toEqual([]);
+  });
+});
+
+/*
+ * PAGED BY MORE THAN EMAIL (#9442). Once who is told is done, the answer
+ * says whether a verified phone number or push device pages the person
+ * asking, so Home keeps a way to the on-call guided setup while only email
+ * does.
+ */
+describe("whether a phone or the app pages the person asking", () => {
+  test("who is told done, and only email verified: Home is told so", async () => {
+    row.goals = [];
+    milestones = [ActivationMilestone.FirstTestPageAcknowledged];
+
+    const owner: WelcomeChecklistCaller = OWNER();
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(owner);
+
+    expect(answer.canBePagedByPhoneOrApp).toBe(false);
+    expect(myReadinessSpy).toHaveBeenCalledWith(OWNER_ID, PROJECT_ID);
+  });
+
+  test.each([
+    ["a verified SMS number", "SMS"],
+    ["a verified call number", "Call"],
+    ["a verified WhatsApp number", "WhatsApp"],
+    ["the app, or this browser", "Push"],
+  ])("%s pages them", async (_name: string, methodType: string) => {
+    row.goals = [];
+    milestones = [ActivationMilestone.FirstTestPageAcknowledged];
+    myMethods = [
+      { methodType: "Email", isVerified: true },
+      { methodType: methodType, isVerified: true },
+    ];
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).canBePagedByPhoneOrApp,
+    ).toBe(true);
+  });
+
+  test("a number not verified yet does not", async () => {
+    row.goals = [];
+    milestones = [ActivationMilestone.FirstTestPageAcknowledged];
+    myMethods = [
+      { methodType: "Email", isVerified: true },
+      { methodType: "SMS", isVerified: false },
+    ];
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).canBePagedByPhoneOrApp,
+    ).toBe(false);
+  });
+
+  test("while who is told is not done, it is not read: the step itself opens the setup", async () => {
+    row.goals = [];
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(OWNER());
+
+    expect(answer.canBePagedByPhoneOrApp).toBeNull();
+    expect(myReadinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finished website project reads it for the person asking", async () => {
+    row.goals = [ProjectGoal.Uptime];
+    row.welcomeChecklistState = {
+      startedWithOutcomes: true,
+      finishedAt: new Date().toISOString(),
+      finishedBy: WelcomeChecklistFinishedBy.Outcomes,
+    };
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(ADMIN())).canBePagedByPhoneOrApp,
+    ).toBe(false);
+    expect(myReadinessSpy).toHaveBeenCalledWith(ADMIN_ID, PROJECT_ID);
+  });
+
+  test("a finished project still offered who is told is not read: that step opens the setup", async () => {
+    row.goals = [ProjectGoal.StatusPage];
+    row.welcomeChecklistState = {
+      startedWithOutcomes: true,
+      finishedAt: new Date().toISOString(),
+      finishedBy: WelcomeChecklistFinishedBy.Outcomes,
+    };
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).canBePagedByPhoneOrApp,
+    ).toBeNull();
+    expect(myReadinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("on-call off on the server: never read", async () => {
+    offProducts = [ProductKey.OnCall];
+    row.goals = [ProjectGoal.Uptime];
+    row.welcomeChecklistState = {
+      startedWithOutcomes: true,
+      finishedAt: new Date().toISOString(),
+      finishedBy: WelcomeChecklistFinishedBy.Outcomes,
+    };
+
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER())).canBePagedByPhoneOrApp,
+    ).toBeNull();
+    expect(myReadinessSpy).not.toHaveBeenCalled();
+  });
+
+  test("somebody Readiness cannot read - a master admin who is no member - is never offered a phone", async () => {
+    row.goals = [];
+    milestones = [ActivationMilestone.FirstTestPageAcknowledged];
+    myReadinessSpy.mockImplementation((async () => {
+      throw new BadDataException("User is not a member of this project");
+    }) as never);
+
+    expect(
+      (
+        await WelcomeChecklistService.getAnswer(
+          caller(MEMBER_ID, [], { isMasterAdmin: true }),
+        )
+      ).canBePagedByPhoneOrApp,
+    ).toBeNull();
   });
 });

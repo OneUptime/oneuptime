@@ -30,7 +30,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
@@ -195,7 +195,7 @@ const DataSecurityOverviewPage: FunctionComponent<
   }
 
   if (isLoading || !overview) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const storeCount: number = countOf(overview.storeCount);

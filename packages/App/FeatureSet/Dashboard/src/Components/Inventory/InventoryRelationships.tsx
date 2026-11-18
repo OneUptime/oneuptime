@@ -1,6 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import AppLink from "../AppLink/AppLink";
@@ -475,7 +475,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
           {row.otherType ? (
             <InventoryTypeBadge entityType={row.otherType} />
           ) : null}
-          <span className="ml-auto text-xs text-gray-400">
+          <span className="ml-auto text-xs text-gray-500">
             {row.lastSeenAt
               ? OneUptimeDate.getDateAsLocalFormattedString(row.lastSeenAt)
               : ""}
@@ -670,7 +670,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
       current?.status === "ready" ? current.data : null;
 
     if (!data) {
-      return <ComponentLoader />;
+      return <CardListSkeleton count={3} lines={1} />;
     }
 
     if (!data.entity) {

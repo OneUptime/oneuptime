@@ -36,7 +36,7 @@ L'explorateur a cinq onglets :
 
 ## Avant de commencer
 
-- **Des journaux qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). L'onglet **Guide de configuration** montre la configuration pour votre langage ou votre collecteur.
+- **Des journaux qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). L'onglet **Guide de configuration** montre la configuration pour votre langage ou votre collecteur. Tant que les premières données ne sont pas arrivées, cette page propose **Configuration guidée**, qui vous mène de vos premiers journaux, métriques et traces jusqu'aux alertes sur ces données, à côté de **Envoyer vos premiers journaux**, le guide de configuration seul. Pour vérifier le point de terminaison et votre clé avant de configurer une application, ouvrez **Envoyer un journal de test** à la première étape du guide : cela envoie un journal du service `oneuptime-test`, que vous pourrez supprimer ensuite.
 - **Un rôle qui peut lire la télémétrie.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie ou Lecteur de la télémétrie, ou un rôle personnalisé avec la permission Read Logs. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
 
 ## Trouver une ligne de journal

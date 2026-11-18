@@ -1,6 +1,15 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -33,7 +42,7 @@ export interface ComponentProps {
   sortOptions: Array<InsightFilterOption>;
   sortValue: string;
   onSortChange: (value: string) => void;
-  // The sentinel value a select carries when it is not filtering anything.
+  // The value a filter carries when it narrows nothing: its placeholder.
   unfilteredValue: string;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
@@ -44,60 +53,68 @@ interface FilterSelectProps {
   options: Array<InsightFilterOption>;
   value: string;
   onChange: (value: string) => void;
-  isFiltering: boolean;
+  // The value that narrows nothing ("All types"), when the picker has one.
+  unfilteredValue?: string | undefined;
 }
 
-type GetSelectClassNameFunction = (isFiltering: boolean) => string;
-
 /*
- * A filtering select tints itself when it is actually narrowing the list —
- * otherwise "Latency Regression" hides in a toolbar that looks idle and the
- * empty list reads as "nothing found" rather than "nothing matches".
+ * One picker of the bar, the shared Dropdown. A filter's "All types" /
+ * "Any severity" is its placeholder, so a picker that narrows the list
+ * shows its choice and a clear (x) control, and clearing it lists every
+ * insight again. The order has no such choice and is never cleared.
  */
-const getSelectClassName: GetSelectClassNameFunction = (
-  isFiltering: boolean,
-): string => {
-  const base: string =
-    "h-9 w-full appearance-none rounded-lg border py-0 pl-3 pr-8 text-sm font-medium shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:w-auto";
-
-  if (isFiltering) {
-    return `${base} border-indigo-200 bg-indigo-50 text-indigo-700`;
-  }
-
-  return `${base} border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50`;
-};
-
-// One select of the bar, with the chevron its appearance-none styling hides.
 const FilterSelect: FunctionComponent<FilterSelectProps> = (
   props: FilterSelectProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const unfilteredChoice: InsightFilterOption | undefined =
+    props.unfilteredValue === undefined
+      ? undefined
+      : props.options.find((option: InsightFilterOption): boolean => {
+          return option.value === props.unfilteredValue;
+        });
+  const options: Array<DropdownOption> = props.options
+    .filter((option: InsightFilterOption): boolean => {
+      return option !== unfilteredChoice;
+    })
+    .map((option: InsightFilterOption): DropdownOption => {
+      return getTranslatedDropdownOption(
+        option.value,
+        translator.translateText(option.label) || option.label,
+      );
+    });
 
   return (
-    <div className="relative">
-      <select
-        aria-label={translator.translateText(props.ariaLabel)}
-        value={props.value}
-        onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-          props.onChange(event.target.value);
+    <div className="w-full sm:w-48">
+      <Dropdown
+        className="relative w-full overflow-visible"
+        ariaLabel={translator.translateText(props.ariaLabel)}
+        isAriaLabelTranslated={true}
+        options={options}
+        value={findDropdownOption(options, props.value)}
+        placeholder={
+          unfilteredChoice
+            ? translator.translateText(unfilteredChoice.label) ||
+              unfilteredChoice.label
+            : undefined
+        }
+        isPlaceholderTranslated={true}
+        isClearable={Boolean(unfilteredChoice)}
+        onChange={(next: DropdownValue | Array<DropdownValue> | null): void => {
+          const picked: string | null = readPickedDropdownValue(next);
+
+          if (picked === null) {
+            if (unfilteredChoice) {
+              props.onChange(unfilteredChoice.value);
+            }
+            return;
+          }
+
+          if (picked !== props.value) {
+            props.onChange(picked);
+          }
         }}
-        className={getSelectClassName(props.isFiltering)}
-      >
-        {props.options.map((option: InsightFilterOption) => {
-          return (
-            <option key={option.value} value={option.value}>
-              {translator.translateText(option.label)}
-            </option>
-          );
-        })}
-      </select>
-      <span
-        className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${
-          props.isFiltering ? "text-indigo-400" : "text-gray-400"
-        }`}
-      >
-        <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-      </span>
+      />
     </div>
   );
 };
@@ -116,11 +133,6 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const isFilteringByType: boolean = props.typeValue !== props.unfilteredValue;
-  const isFilteringBySeverity: boolean =
-    props.severityValue !== props.unfilteredValue;
-  const isFilteringBySeenWithin: boolean =
-    props.seenWithinValue !== props.unfilteredValue;
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
@@ -165,7 +177,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
             options={props.typeOptions}
             value={props.typeValue}
             onChange={props.onTypeChange}
-            isFiltering={isFilteringByType}
+            unfilteredValue={props.unfilteredValue}
           />
         )}
 
@@ -174,7 +186,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
           options={props.severityOptions}
           value={props.severityValue}
           onChange={props.onSeverityChange}
-          isFiltering={isFilteringBySeverity}
+          unfilteredValue={props.unfilteredValue}
         />
 
         <FilterSelect
@@ -182,7 +194,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
           options={props.seenWithinOptions}
           value={props.seenWithinValue}
           onChange={props.onSeenWithinChange}
-          isFiltering={isFilteringBySeenWithin}
+          unfilteredValue={props.unfilteredValue}
         />
 
         <FilterSelect
@@ -190,7 +202,6 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
           options={props.sortOptions}
           value={props.sortValue}
           onChange={props.onSortChange}
-          isFiltering={false}
         />
 
         {props.hasActiveFilters ? (

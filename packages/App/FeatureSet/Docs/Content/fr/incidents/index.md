@@ -196,6 +196,16 @@ Ce que contient chacune :
 - **Notes privées** et **Notes publiques** — ce qui a été dit à votre équipe et à vos clients. Voir [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed).
 - **Champs personnalisés**, **Paramètres**, **Supprimer l'incident** — la page **Paramètres** contient **Visible sur la page de statut** et **Incident privé**, la carte **Portée des pages de statut** qui limite l'incident à certaines pages de statut, et la carte **Rappels**, dont l'interrupteur **Envoyer des rappels** s'enregistre dès que vous le basculez et indique quand part le prochain rappel.
 
+## Qui a été prévenu
+
+La **Vue d'ensemble** d'un incident a une carte **Qui a été prévenu**. Elle dit qui OneUptime a prévenu de l'incident, par quel moyen et ce qui a échoué, lu dans ce qui s'est passé : les exécutions de ses politiques d'astreinte, et chaque message Slack, Microsoft Teams ou Mattermost, e-mail, SMS, appel, notification push, message WhatsApp ou Telegram et webhook envoyé à son sujet.
+
+- Ses premiers mots comptent les personnes et les canaux prévenus, disent qui a pris l'incident en compte et combien de temps après le premier appel, et combien de notifications ont échoué.
+- Chaque personne a une ligne : comment l'appel l'a jointe (la politique d'astreinte, le niveau, l'équipe ou le planning), par quel moyen, et où elle en est : **Pris en compte**, **Notifié**, **Envoi en cours**, **Échec** ou **Non appelé**. **Afficher les détails** liste chaque appel et chaque notification dans l'ordre chronologique, avec la raison d'un échec ou la raison pour laquelle quelqu'un n'a pas été appelé.
+- Une équipe ou un planning qui n'a joint personne, une politique qui n'a pas encore appelé (par exemple une qui attend les heures ouvrées), les canaux où il a été publié et les abonnés de la page de statut ont chacun une ligne aussi. Un incident chargé liste ses premières personnes, et les autres sont à un clic.
+- Tant que l'incident est ouvert, la carte se relit toutes les quelques secondes.
+- Elle ne montre que ce que vous pouvez déjà lire : la carte d'un incident privé est pour ceux qui peuvent ouvrir l'incident, et les notifications ou les exécutions de politiques d'astreinte que vous ne pouvez pas ouvrir sont comptées sous la liste, jamais nommées. Les **Journaux de notification** contiennent chaque message en entier.
+
 ## Comment les incidents s'articulent avec le reste de OneUptime
 
 - **Les moniteurs repèrent le problème ; les incidents le consignent.** Une règle de critères de moniteur peut déclarer un incident automatiquement, en préremplissant le titre, la gravité, les politiques d'astreinte, les propriétaires, les étiquettes et les notes de remédiation. Voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating) pour les variables disponibles.

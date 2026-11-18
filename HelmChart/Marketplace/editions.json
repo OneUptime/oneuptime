@@ -20,7 +20,7 @@
     "bundleRepository": "com.oneuptime.enterprise"
   },
   "google-cloud": {
-    "ready": false,
+    "ready": true,
     "registry": "us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise",
     "serviceName": "oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog"
   },

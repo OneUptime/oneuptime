@@ -122,6 +122,40 @@ function isRunLineShown(result: OnCallTestPageResult): boolean {
 }
 
 /*
+ * Who acknowledged a test, by what and how fast: "Ana Lopez acknowledged it
+ * by SMS after 14 seconds." - or, with no message of the test that records
+ * the answer, only who. The result's own sentence, and each policy's line of
+ * a monitor's last fire drill (#9386).
+ */
+export function getAcknowledgedSentence(
+  translator: Translator,
+  result: Pick<
+    OnCallTestPageResult,
+    "acknowledgedByName" | "acknowledgedChannel" | "acknowledgedAfterSeconds"
+  >,
+): string {
+  const name: string =
+    result.acknowledgedByName || translator.translateText("Someone") || "";
+
+  if (
+    result.acknowledgedChannel &&
+    typeof result.acknowledgedAfterSeconds === "number"
+  ) {
+    return translator.translateTemplate(
+      ACKNOWLEDGED_BY_SENTENCES[result.acknowledgedChannel],
+      {
+        name: name,
+        time: describeAnswerTime(translator, result.acknowledgedAfterSeconds),
+      },
+    );
+  }
+
+  return translator.translateTemplate("{{name}} acknowledged it.", {
+    name: name,
+  });
+}
+
+/*
  * The sentence under the result's headline. A test that ended or failed
  * says why, in the reader's words when the server sent the line's code.
  */
@@ -130,25 +164,7 @@ export function getResultSentence(
   result: OnCallTestPageResult,
 ): string {
   if (result.status === OnCallTestPageStatus.Acknowledged) {
-    const name: string =
-      result.acknowledgedByName || translator.translateText("Someone") || "";
-
-    if (
-      result.acknowledgedChannel &&
-      typeof result.acknowledgedAfterSeconds === "number"
-    ) {
-      return translator.translateTemplate(
-        ACKNOWLEDGED_BY_SENTENCES[result.acknowledgedChannel],
-        {
-          name: name,
-          time: describeAnswerTime(translator, result.acknowledgedAfterSeconds),
-        },
-      );
-    }
-
-    return translator.translateTemplate("{{name}} acknowledged it.", {
-      name: name,
-    });
+    return getAcknowledgedSentence(translator, result);
   }
 
   if (result.status === OnCallTestPageStatus.Paging) {

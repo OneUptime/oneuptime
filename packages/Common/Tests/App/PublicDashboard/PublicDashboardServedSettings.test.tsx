@@ -10,6 +10,7 @@ import {
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import { readDropdownOptions } from "../../DropdownPicks";
 import { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -230,16 +231,23 @@ interface Drawn {
   servedJson: string;
   // Widgets drawn as "This widget could not be shown".
   fallbacks: number;
+  /*
+   * What the toolbar's pickers offer: a shared Dropdown lists its choices
+   * only in its open menu, so each is opened and read.
+   */
+  choices: Array<string>;
 }
 
 /*
  * The page as drawn, with the names React makes up for each drawing - an
- * id (":r3:"), a table's column-width scope ("r3") - and a chart group's
- * random sync name set aside: they differ from one drawing to the next.
+ * id (":r3:"), a table's column-width scope ("r3"), a picker's
+ * ("react-select-4-input") - and a chart group's random sync name set aside:
+ * they differ from one drawing to the next.
  */
 function normalized(html: string): string {
   return html
     .replace(/:r[0-9a-z]+:/g, ":r:")
+    .replace(/react-select-[0-9]+-/g, "react-select-n-")
     .replace(/[=]"r[0-9a-z]{1,4}"/g, '="r"')
     .replace(/syncid="[^"]*"/g, 'syncid=""');
 }
@@ -289,7 +297,12 @@ async function drawPublicPage(stored: unknown, how: Serve): Promise<Drawn> {
     servedJson: servedJson,
     fallbacks: screen.queryAllByTestId(DASHBOARD_WIDGET_FALLBACK_TEST_ID)
       .length,
+    choices: [],
   };
+
+  for (const picker of screen.queryAllByRole("combobox")) {
+    drawn.choices.push(...readDropdownOptions(picker));
+  }
 
   cleanup();
 
@@ -875,7 +888,10 @@ describe("the variables, from the fields each type of variable is served", () =>
     }
 
     for (const choice of ["production", "staging", "Payments"]) {
-      expect([choice, drawn.now.html.includes(choice)]).toEqual([choice, true]);
+      expect([
+        choice,
+        drawn.now.html.includes(choice) || drawn.now.choices.includes(choice),
+      ]).toEqual([choice, true]);
     }
 
     // The attribute's values were asked for, as before.

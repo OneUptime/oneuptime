@@ -10,7 +10,7 @@ import { OpenStackMaintenancePartKind } from "Common/Types/OpenStack/OpenStackMa
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { percentOf } from "Common/Types/OpenStack/OpenStackHealthRules";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -449,7 +449,7 @@ export const OpenStackHostGroupPage: FunctionComponent<{
   }, [openStackCloudId.toString(), groupId, props.kind]);
 
   if (read.isLoading && !read.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && !read.data) {

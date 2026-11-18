@@ -295,7 +295,8 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
             <Button
               title="Approve"
               icon={IconProp.Check}
-              buttonStyle={ButtonStyleType.SUCCESS}
+              // What the waiting run asks for: the card's one main action.
+              buttonStyle={ButtonStyleType.PRIMARY}
               buttonSize={ButtonSize.Small}
               disabled={Boolean(approveDisabledReason) || isWorking}
               tooltip={approveDisabledReason}

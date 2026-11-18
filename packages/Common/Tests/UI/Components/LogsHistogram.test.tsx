@@ -104,7 +104,7 @@ describe("LogsHistogram", () => {
     test("shows the loader on the very first load", () => {
       render(<LogsHistogram buckets={[]} isLoading={true} />);
 
-      expect(screen.queryByTestId("component-loader")).not.toBeNull();
+      expect(screen.queryByTestId("chart-skeleton")).not.toBeNull();
     });
 
     /*
@@ -117,7 +117,7 @@ describe("LogsHistogram", () => {
         <LogsHistogram buckets={ONE_SEVERITY} isLoading={true} />,
       );
 
-      expect(screen.queryByTestId("component-loader")).toBeNull();
+      expect(screen.queryByTestId("chart-skeleton")).toBeNull();
       expect(screen.queryByText("Log Volume")).not.toBeNull();
       expect(barCount(container)).toBe(3);
     });

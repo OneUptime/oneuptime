@@ -73,9 +73,7 @@ describe("a locked button's wrapper takes the button's place in its row", () => 
     ["NORMAL", ButtonStyleType.NORMAL],
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["DANGER", ButtonStyleType.DANGER],
-    ["SUCCESS", ButtonStyleType.SUCCESS],
     ["OUTLINE", ButtonStyleType.OUTLINE],
-    ["SECONDARY", ButtonStyleType.SECONDARY],
     ["LINK", ButtonStyleType.LINK],
     ["ICON", ButtonStyleType.ICON],
   ])(

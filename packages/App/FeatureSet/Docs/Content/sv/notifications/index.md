@@ -61,7 +61,7 @@ När du går med i ett projekt med en verifierad inloggnings-e-post ställer One
 2. För varje allvarlighetsgrad, på var och en av de fyra flikarna i **Så når man mig**, skickar en regel ett e-postmeddelande till dig så snart du larmas.
 3. En rad uppdateringar om det du äger, och om dina jourpass, är påslagna via e-post. Se [Aviseringsinställningar](/docs/notifications/notification-settings#vad-som-är-påslaget-för-en-ny-medlem).
 
-Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Så når man mig](/docs/notifications/on-call-rules#reglerna-du-börjar-med).
+Varje metod som du verifierar senare får samma regler: en regel för varje allvarlighetsgrad, skickad så snart du larmas. Att verifiera ett telefonnummer för SMS betyder alltså att varje larm också skickar ett SMS till dig. Vill du bara ha SMS för kritiska larm tar du bort SMS-reglerna för de andra allvarlighetsgraderna. Se [Så når man mig](/docs/notifications/on-call-rules#reglerna-du-börjar-med). När ditt projekt har en standardordning följer din e-post och varje metod som du verifierar den i stället: se [Standardordningen](/docs/notifications/on-call-rules#standardordningen).
 
 ## Checklistan för konfiguration
 
@@ -84,6 +84,10 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 | **Några saker behöver fortfarande konfigureras** | En allvarlighetsgrad saknar regel, eller ett steg är inte gjort än |
 | **Inget kan nå dig än** | Ingen av dina metoder kan användas: ingen är verifierad, eller varje verifierad metod ligger på en kanal som det här projektet har stängt av |
 | **Du är konfigurerad och har inte jour just nu** | Allt är klart för den dag en policy nämner dig |
+
+Så länge ett steg återstår öppnas **Användarinställningar** på den här checklistan, och på **Aviseringsmetoder** när inget väsentligt återstår. En länk till en annan sida i **Användarinställningar** öppnar fortfarande den sidan.
+
+När du ingår i en jourpolicy och din konfiguration inte är klar visar klockan högst upp på varje sida **Slutför inställningen av dina aviseringar**, och varför: inget kan nå dig, en allvarlighetsgrad saknar regel, eller ditt projekt ber om en telefonmetod som du inte har verifierat. Den öppnar den här checklistan, eller **Så når man mig** för telefonen. **Dölj i en vecka** lägger undan den i den här webbläsaren, och den försvinner av sig själv när din konfiguration är klar.
 
 ## När ingen regel matchar
 

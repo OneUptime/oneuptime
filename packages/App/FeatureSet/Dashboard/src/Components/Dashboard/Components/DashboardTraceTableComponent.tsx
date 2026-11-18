@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import API from "Common/UI/Utils/API/API";
@@ -15,7 +16,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
@@ -74,7 +74,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 
 // The rank column's header; the sortable ones draw their own.
 const HEADER_CELL: string =
-  "px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-400";
+  "px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-500";
 
 // The metric columns, by their sort keys and header words.
 const METRIC_HEADERS: Array<{ key: string; label: string }> = [
@@ -345,7 +345,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                   key={index}
                   className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                 >
-                  <td className="px-3 py-2 font-mono text-[11px] text-gray-300">
+                  <td className="px-3 py-2 font-mono text-xs text-gray-500">
                     {index + 1}
                   </td>
                   {groupKeys.map((key: string) => {
@@ -369,7 +369,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                     className={`whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums ${
                       row.errorCount > 0
                         ? "font-semibold text-red-600"
-                        : "text-gray-400"
+                        : "text-gray-500"
                     }`}
                   >
                     {row.errorCount.toLocaleString(getReaderNumberLocale())}
@@ -456,7 +456,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
          */}
         {isLoading && (rows.length === 0 || Boolean(error)) && (
           <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
+            <TableSkeleton rows={5} />
           </div>
         )}
         {!isLoading &&

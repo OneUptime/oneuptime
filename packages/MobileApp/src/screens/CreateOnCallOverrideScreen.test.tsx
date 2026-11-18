@@ -35,7 +35,11 @@ import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
 import type { CoverPoliciesState } from "../hooks/useCoverPolicies";
 import type { CoverPolicy } from "../api/onCallOverrides";
 import type { CreateOnCallOverrideParams } from "../navigation/types";
-import type { ProjectItem, ProjectUserItem } from "../api/types";
+import type {
+  OnCallOverrideItem,
+  ProjectItem,
+  ProjectUserItem,
+} from "../api/types";
 
 /*
  * The only screen in the app that changes who gets woken up.
@@ -78,6 +82,14 @@ const mockCreateOverride: jest.Mock = jestGlobal.fn(
 ) as unknown as jest.Mock;
 
 const mockGoBack: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+const mockReplace: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+
+// The override a refusal for an overlap is about, as the server is read again for it.
+const mockFindOverlapConflict: jest.Mock = jestGlobal.fn(
+  async (): Promise<null> => {
+    return null;
+  },
+) as unknown as jest.Mock;
 
 const mockProjects: { current: ProjectItem[] } = { current: PROJECTS };
 const mockUsers: { current: ProjectUserItem[] } = { current: USERS };
@@ -92,7 +104,7 @@ const mockRouteParams: { current: CreateOnCallOverrideParams | undefined } = {
 jest.mock("@react-navigation/native", () => {
   return {
     useNavigation: () => {
-      return { goBack: mockGoBack, navigate: jest.fn() };
+      return { goBack: mockGoBack, navigate: jest.fn(), replace: mockReplace };
     },
     useRoute: () => {
       return { params: mockRouteParams.current };
@@ -262,6 +274,9 @@ jest.mock("../hooks/useOnCallOverrides", () => {
         cancelOverride: jest.fn(),
         isCancelling: false,
       };
+    },
+    findOverlapConflict: (...args: Array<unknown>) => {
+      return mockFindOverlapConflict(...args);
     },
   };
 });
@@ -557,6 +572,108 @@ describe("CreateOnCallOverrideScreen refusals", () => {
     await fireEvent.press(screen.getByTestId("submit-override"));
 
     expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * #7897: a refusal for an overlap no longer only names the other
+   * override. The app reads it again - the same person, the same scope,
+   * the times sent - and offers to edit it, in this sheet's place.
+   */
+  test("an overlap refusal offers that override's edit, in the sheet's place", async (): Promise<void> => {
+    const other: OnCallOverrideItem = {
+      _id: "override-other",
+      projectId: "project-1",
+      projectName: "Acme",
+      overrideUser: { _id: ME, name: "Ada Lovelace" },
+      routeAlertsToUser: { _id: TEAMMATE, name: "Priya Rao" },
+      onCallDutyPolicy: null,
+      onCallDutyPolicyId: null,
+      startsAt: "2026-11-20T09:00:00.000Z",
+      endsAt: "2026-11-20T17:00:00.000Z",
+      createdAt: "2026-11-01T00:00:00.000Z",
+    };
+
+    mockCreateOverride.mockRejectedValueOnce(
+      serverRefusal(EVERY_POLICY_OVERLAP_REFUSAL) as never,
+    );
+    mockFindOverlapConflict.mockResolvedValueOnce(other as never);
+    mockReplace.mockClear();
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await act(async (): Promise<void> => {
+      await fireEvent.press(screen.getByTestId("submit-override"));
+    });
+
+    // The read for it: the person away, the times sent, a global override.
+    const asked: {
+      project: { projectId: string };
+      candidate: {
+        overrideUserId: string;
+        routeAlertsToUserId: string | null;
+        onCallDutyPolicyId: string | null;
+        startsAt: Date;
+        endsAt: Date;
+      };
+    } = mockFindOverlapConflict.mock.calls[
+      mockFindOverlapConflict.mock.calls.length - 1
+    ]![0] as never;
+
+    expect(asked.project.projectId).toBe("project-1");
+    expect(asked.candidate.overrideUserId).toBe(ME);
+    expect(asked.candidate.routeAlertsToUserId).toBe(TEAMMATE);
+    expect(asked.candidate.onCallDutyPolicyId).toBeNull();
+    expect(asked.candidate.startsAt).toEqual(lastCreateInput().startsAt);
+    expect(asked.candidate.endsAt).toEqual(lastCreateInput().endsAt);
+
+    const banner: HostElement = screen.getByTestId("override-error");
+
+    expect(within(banner).getByText(EVERY_POLICY_OVERLAP_REFUSAL)).toBeTruthy();
+
+    await fireEvent.press(within(banner).getByText("Edit that override"));
+
+    expect(mockReplace).toHaveBeenCalledWith("EditOnCallOverride", {
+      override: other,
+    });
+    expect(mockGoBack).not.toHaveBeenCalled();
+  });
+
+  test("a refusal that is no overlap offers no edit, and reads nothing again", async (): Promise<void> => {
+    mockFindOverlapConflict.mockClear();
+    mockCreateOverride.mockRejectedValueOnce(
+      new Error("Start time must be before end time") as never,
+    );
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(screen.getByText("Start time must be before end time")).toBeTruthy();
+    expect(screen.queryByText("Edit that override")).toBeNull();
+    expect(mockFindOverlapConflict).not.toHaveBeenCalled();
+  });
+
+  test("an overlap whose override cannot be found is said alone", async (): Promise<void> => {
+    mockCreateOverride.mockRejectedValueOnce(
+      serverRefusal(EVERY_POLICY_OVERLAP_REFUSAL) as never,
+    );
+    mockFindOverlapConflict.mockResolvedValueOnce(null as never);
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await act(async (): Promise<void> => {
+      await fireEvent.press(screen.getByTestId("submit-override"));
+    });
+
+    expect(
+      within(screen.getByTestId("override-error")).getByText(
+        EVERY_POLICY_OVERLAP_REFUSAL,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Edit that override")).toBeNull();
   });
 });
 

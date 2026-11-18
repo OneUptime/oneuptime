@@ -133,7 +133,7 @@ describe("while the status loads", () => {
   test("shows a loader and none of the rows", () => {
     renderCard({ summary: makeSummary(), isLoading: true });
 
-    expect(within(card()).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(card()).getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection`),
     ).not.toBeInTheDocument();

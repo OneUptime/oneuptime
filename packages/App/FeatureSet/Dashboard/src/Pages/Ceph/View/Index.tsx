@@ -14,7 +14,7 @@ import CardGrid from "Common/UI/Components/Card/CardGrid";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -951,7 +951,7 @@ const CephClusterOverview: FunctionComponent<
                       {String(cluster.fsid)}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -1513,7 +1513,7 @@ const CephClusterOverview: FunctionComponent<
   };
 
   if (isInitialLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (pageError) {

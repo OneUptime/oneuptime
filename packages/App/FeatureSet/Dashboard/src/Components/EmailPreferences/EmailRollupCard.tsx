@@ -1,5 +1,5 @@
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { JSONObject } from "Common/Types/JSON";
@@ -178,7 +178,7 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
       bodyClassName="mt-5"
     >
       {isLoading ? (
-        <ComponentLoader />
+        <DetailListSkeleton fields={3} columns={1} />
       ) : (
         <Fragment>
           {error ? (

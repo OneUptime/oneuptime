@@ -113,6 +113,12 @@ import {
   getGcpSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getAwsInventoryRowTypes,
+  getAwsInventoryType,
+} from "Common/Server/Utils/CloudConnection/Aws/AwsInventoryCatalog";
+import { AZURE_LISTED_ONLY_TYPES } from "Common/Server/Utils/CloudConnection/Azure/AzureInventory";
+import { isInventoryOnlyCloudResourceType } from "Common/Types/Cloud/CloudResourceCatalog";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -327,6 +333,48 @@ describe("Connect a Cloud Account", () => {
         })
         .sort(),
     ).toEqual([...AWS_READ_ONLY_ACTIONS].sort());
+  });
+
+  it("says what an AWS connection lists in each Region and how it connects them, and that a role set up before lists more once its command runs again", () => {
+    const aws: string = section("Amazon Web Services");
+
+    // The types #9375 added, each listed by the inventory, each quiet when an older role is refused.
+    for (const [type, words] of [
+      ["AWS::EC2::Subnet", "subnets"],
+      ["AWS::EC2::SecurityGroup", "security groups"],
+      ["AWS::ElasticLoadBalancing::LoadBalancer", "Classic"],
+      ["AWS::EKS::Cluster", "EKS clusters"],
+    ] as Array<[string, string]>) {
+      expect(getAwsInventoryRowTypes()).toContain(type);
+      expect(getAwsInventoryType(type)?.quietWhenRefused).toBe(true);
+      expect(aws).toContain(words);
+    }
+
+    expect(aws).toContain(
+      "the subnet and VPC each resource runs in and the security groups that guard it, what each load balancer sends traffic to, and the network and node instances of each EKS cluster",
+    );
+    expect(aws).toContain("run the command again to list that type too");
+  });
+
+  it("says what an Azure connection lists in each subscription and how it connects them, with no role but Monitoring Reader", () => {
+    const azure: string = section("Microsoft Azure");
+
+    // Listed only (#9375): subnets out of their networks, and network security groups.
+    for (const type of AZURE_LISTED_ONLY_TYPES) {
+      expect(isInventoryOnlyCloudResourceType(CloudProvider.Azure, type)).toBe(
+        true,
+      );
+    }
+
+    expect(azure).toContain(
+      "and also each virtual network's subnets and every network security group, with its rules",
+    );
+    expect(azure).toContain(
+      "what each load balancer and application gateway sends traffic to, and the network and node scale sets of each AKS cluster",
+    );
+    expect(azure).toContain(
+      `**${AZURE_READ_ONLY_ROLE}** reads all of it, so there is nothing more to grant.`,
+    );
   });
 
   it("names the roles the Azure and Google Cloud commands grant", () => {

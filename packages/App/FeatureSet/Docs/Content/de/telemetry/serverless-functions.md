@@ -188,6 +188,7 @@ Sobald die Funktion einen Span, ein Log oder eine Metrik sendet, erscheint sie u
 - **Aufrufe**, **Fehlerrate** und **p95-Dauer**, berechnet aus Ihren Traces über einen von Ihnen gewählten Zeitraum, mit Trenddiagrammen.
 - **Instanzen**: eine Live-Liste der `faas.instance`-Werte, die die Funktion meldet.
 - Vollständige Seiten **Protokolle**, **Traces** und **Metriken**, auf diese Funktion eingegrenzt.
+- **Empfehlungen**: fertige Monitore für fehlgeschlagene Aufrufe und Fehlerhäufungen der Funktion, gelesen aus ihren eigenen Spans über ihren `faas.name`. Wählen Sie die gewünschten aus und erstellen Sie sie in einem Schritt.
 
 Eine Funktion zeigt **Empfängt Daten**, solange ihre Telemetrie eintrifft, und **Keine aktuellen Aufrufe** nach 15 Minuten ohne Telemetrie, was zwischen den Läufen normal ist: Eine Funktion sendet Telemetrie nur, während sie läuft. Eine über die API angelegte Funktion zeigt **Warten auf Daten**, bis ihre erste Telemetrie eintrifft.
 

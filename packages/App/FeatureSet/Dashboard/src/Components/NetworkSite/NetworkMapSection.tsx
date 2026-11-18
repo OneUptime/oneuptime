@@ -55,7 +55,7 @@ const NetworkMapSection: FunctionComponent<ComponentProps> = (
            * on the title's side.
            */}
           <span
-            className="ms-1.5 inline-block text-xs font-normal tabular-nums text-gray-400"
+            className="ms-1.5 inline-block text-xs font-normal tabular-nums text-gray-500"
             data-testid="network-map-section-count"
           >
             {translator.formatNumber(props.count)}

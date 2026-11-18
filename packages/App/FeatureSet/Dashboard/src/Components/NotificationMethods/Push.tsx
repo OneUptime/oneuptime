@@ -6,7 +6,6 @@ import { Blue500, Red500 } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
 import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDeviceType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -17,7 +16,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { TableEmptyStateActionStyle } from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL, VAPID_PUBLIC_KEY } from "Common/UI/Config";
+import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -34,20 +33,15 @@ import {
   BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
-  DASHBOARD_SERVICE_WORKER_URL,
-  askForNotificationPermission,
-  getBrowserPushProblem,
   getDefaultDeviceName,
-  getPushSubscription,
-  getServiceWorkerRegistration,
   getThisBrowserDeviceId,
   readBrowserIdentity,
-  readBrowserPushEnvironment,
-  replacePushSubscription,
-  sendPushConfigurationToServiceWorker,
-  setThisBrowserDeviceId,
-  waitForActiveServiceWorker,
 } from "./BrowserPushRegistration";
+import {
+  RegisteredBrowser,
+  getProblemBeforeAsking,
+  registerThisBrowserForPush,
+} from "./RegisterThisBrowser";
 import {
   CriticalAlertDeviceState,
   PUSH_DEVICE_PLATFORM_LABELS,
@@ -61,11 +55,6 @@ import PushDeviceCriticalAlertStatus from "./PushDeviceCriticalAlertStatus";
 import PushDeviceCriticalAlertSteps, {
   CriticalAlertTestDidNotRingHint,
 } from "./PushDeviceCriticalAlertSteps";
-
-interface RegisteredBrowser {
-  deviceId: string;
-  alreadyRegistered: boolean;
-}
 
 /*
  * A device's Critical Alerts cell in a CSV export: the words the cell shows,
@@ -165,65 +154,6 @@ export function canOfferCriticalAlertStepsAfterTest(
     device.platform !== PushDevicePlatform.Browser &&
     !device.isCriticalAlertEnabled
   );
-}
-
-const SUBSCRIPTION_NOT_RENEWED_MESSAGE: string =
-  "This browser's push subscription could not be renewed. Reload the page and register this browser again.";
-
-/*
- * Replaces a subscription the push service no longer accepts
- * (replacePushSubscription), and has the devices registered with it carry the
- * new one: what the service worker reports when the browser replaces a
- * subscription itself (sw.js.template). The error to show, or null.
- */
-async function renewGoneSubscription(data: {
-  registration: ServiceWorkerRegistration;
-  subscription: PushSubscription;
-}): Promise<string | null> {
-  const goneDeviceToken: string = JSON.stringify(data.subscription);
-
-  const subscription: PushSubscription = await replacePushSubscription({
-    pushManager: data.registration.pushManager,
-    subscription: data.subscription,
-    vapidPublicKey: VAPID_PUBLIC_KEY,
-  });
-
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post<JSONObject>({
-      url: URL.fromString(APP_API_URL.toString()).addRoute(
-        "/user-push/subscription-change",
-      ),
-      data: {
-        oldDeviceToken: goneDeviceToken,
-        newDeviceToken: JSON.stringify(subscription),
-      },
-    });
-
-  if (response.isFailure()) {
-    return API.getFriendlyMessage(response);
-  }
-
-  // No device took the new subscription: the one found still receives nothing.
-  if (
-    !((response as HTTPResponse<JSONObject>).data["devicesUpdated"] as number)
-  ) {
-    return SUBSCRIPTION_NOT_RENEWED_MESSAGE;
-  }
-
-  return null;
-}
-
-/*
- * What stops this browser from being registered, known before anything is
- * asked of the person: a server without push keys, an insecure page, a
- * browser without push, an iPhone that has not added OneUptime to its Home
- * Screen. Permission is asked for, and answered, on Register Device.
- */
-function getProblemBeforeAsking(): BrowserPushProblem | null {
-  return getBrowserPushProblem({
-    environment: readBrowserPushEnvironment(window),
-    vapidPublicKey: VAPID_PUBLIC_KEY,
-  });
 }
 
 const Push: () => JSX.Element = (): ReactElement => {
@@ -377,83 +307,19 @@ const Push: () => JSX.Element = (): ReactElement => {
     setIsLoading(true);
 
     try {
-      // First, while this is still the person's click: browsers only prompt then.
-      await askForNotificationPermission(window.Notification);
-
-      const registration: ServiceWorkerRegistration =
-        await getServiceWorkerRegistration(
-          window.navigator.serviceWorker,
-          DASHBOARD_SERVICE_WORKER_URL,
-        );
-
-      await waitForActiveServiceWorker(registration);
-
-      const subscription: PushSubscription = await getPushSubscription({
-        pushManager: registration.pushManager,
-        vapidPublicKey: VAPID_PUBLIC_KEY,
+      // Straight from the click: browsers only prompt then.
+      const registered: RegisteredBrowser = await registerThisBrowserForPush({
+        projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+        deviceName: name,
       });
 
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/user-push/register",
-          ),
-          data: {
-            // A string: the ObjectID itself is written as { _type, value }.
-            projectId: ProjectUtil.getCurrentProjectId()!.toString(),
-            deviceToken: JSON.stringify(subscription),
-            deviceType: PushDeviceType.Web,
-            deviceName: name,
-          },
-        });
-
-      if (response.isFailure()) {
-        setError(API.getFriendlyMessage(response));
-        return;
-      }
-
-      const result: JSONObject = (response as HTTPResponse<JSONObject>).data;
-      const deviceId: string = result["deviceId"]
-        ? result["deviceId"].toString()
-        : "";
-      let alreadyRegistered: boolean = result["alreadyRegistered"] === true;
-
-      /*
-       * Registered already, but the device no longer receives notifications:
-       * the push service stopped accepting the subscription this browser
-       * still holds. Registering it again as it is would change nothing.
-       */
-      if (alreadyRegistered && result["isVerified"] === false) {
-        const renewalError: string | null = await renewGoneSubscription({
-          registration: registration,
-          subscription: subscription,
-        });
-
-        if (renewalError) {
-          setError(renewalError);
-          return;
-        }
-
-        alreadyRegistered = false;
-      }
-
-      // So the worker can renew the subscription when the browser replaces it.
-      sendPushConfigurationToServiceWorker({
-        registration: registration,
-        vapidPublicKey: VAPID_PUBLIC_KEY,
-      });
-
-      if (deviceId) {
-        setThisBrowserDeviceId({ projectId: projectId, deviceId: deviceId });
-        setThisBrowserDeviceIdInState(deviceId);
+      if (registered.deviceId) {
+        setThisBrowserDeviceIdInState(registered.deviceId);
       }
 
       setShowRegisterDeviceModal(false);
       setTestNotificationError("");
-      setRegisteredBrowser({
-        deviceId: deviceId,
-        alreadyRegistered: alreadyRegistered,
-      });
+      setRegisteredBrowser(registered);
       setRefreshToggle(ObjectID.generate().toString());
     } catch (err: unknown) {
       setError(

@@ -150,7 +150,7 @@ export const getUptimeTileContent: (data: {
     value: (
       <span
         className={
-          presentation.kind === "NoData" ? "text-gray-400" : "text-gray-900"
+          presentation.kind === "NoData" ? "text-gray-500" : "text-gray-900"
         }
       >
         {presentation.valueText}

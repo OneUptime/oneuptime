@@ -317,3 +317,143 @@ describe("POST /on-call-duty-policy-schedule/:id/save-layers", () => {
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * GET /on-call-duty-policy-schedule/:id/layers (issue #9038): the layers
+ * as a save that changes nothing, with the version they are at, for an API
+ * caller or Terraform to change and send to save-layers. Behind a
+ * signed-in caller, in the request's project, as the caller.
+ */
+describe("GET /on-call-duty-policy-schedule/:id/layers", () => {
+  const READ_PATH: string = "/on-call-duty-policy-schedule/:id/layers";
+
+  let request: OneUptimeRequest;
+  let response: OneUptimeResponse;
+  let next: jest.Mock;
+  let props: DatabaseCommonInteractionProps;
+  let read: jest.SpyInstance;
+
+  async function get(scheduleId: string = SCHEDULE_ID): Promise<void> {
+    request.params = { id: scheduleId };
+
+    await mockRouter
+      .match("get", READ_PATH)
+      .handlerFunction(request, response, next as unknown as NextFunction);
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRouter.routes.length = 0;
+
+    new OnCallDutyPolicyScheduleAPI();
+
+    props = {
+      tenantId: PROJECT_ID,
+      userId: new ObjectID(USER_ID),
+      userType: UserType.User,
+    };
+
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockImplementation(async () => {
+        return props;
+      });
+
+    read = jest.spyOn(ScheduleLayersSave, "read").mockResolvedValue({
+      basedOnVersion: "1-1-1-abc-def",
+      layers: [
+        {
+          layerId: LAYER_ID,
+          users: [{ layerUserId: LAYER_USER_ID, userId: USER_ID }],
+        },
+      ],
+      deletedLayerIds: [],
+    } as never);
+
+    request = { headers: {}, params: {} } as unknown as OneUptimeRequest;
+    response = {
+      send: jest.fn(),
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    } as unknown as OneUptimeResponse;
+    next = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("sits under the schedule's own path, behind a signed-in caller", () => {
+    const route: { middlewares: Array<unknown> } | undefined =
+      mockRouter.routes.find(
+        (candidate: { method: string; uri: string }): boolean => {
+          return candidate.method === "GET" && candidate.uri === READ_PATH;
+        },
+      ) as { middlewares: Array<unknown> } | undefined;
+
+    expect(route).toBeDefined();
+    expect(route!.middlewares).toEqual([
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+    ]);
+  });
+
+  it("answers the layers as a save, as the caller reads them", async () => {
+    await get();
+
+    expect(read).toHaveBeenCalledTimes(1);
+
+    const asked: { scheduleId: ObjectID; props: unknown } = read.mock
+      .calls[0]![0] as { scheduleId: ObjectID; props: unknown };
+
+    expect(asked.scheduleId.toString()).toBe(SCHEDULE_ID);
+    expect(asked.props).toBe(props);
+    expect(Response.setNoCacheHeaders).toHaveBeenCalledWith(response);
+    expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+      request,
+      response,
+      {
+        basedOnVersion: "1-1-1-abc-def",
+        layers: [
+          {
+            layerId: LAYER_ID,
+            users: [{ layerUserId: LAYER_USER_ID, userId: USER_ID }],
+          },
+        ],
+        deletedLayerIds: [],
+      },
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("an API key reads as itself", async () => {
+    props = {
+      tenantId: PROJECT_ID,
+      apiKeyId: ObjectID.generate(),
+      userType: UserType.API,
+    };
+
+    await get();
+
+    expect(read).toHaveBeenCalledWith(
+      expect.objectContaining({ props: props }),
+    );
+  });
+
+  it("a request that names no project, or a schedule id that is no id, is refused before anything is read", async () => {
+    delete props.tenantId;
+    await get();
+
+    expect(read).not.toHaveBeenCalled();
+    expect((next.mock.calls[0]![0] as Error).message).toBe(
+      "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+    );
+
+    props.tenantId = PROJECT_ID;
+    next.mockClear();
+    await get("not-a-schedule");
+
+    expect(read).not.toHaveBeenCalled();
+    expect(next.mock.calls[0]![0]).toBeInstanceOf(BadDataException);
+  });
+});

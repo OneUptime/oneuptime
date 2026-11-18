@@ -276,7 +276,7 @@ Kontoen kan kun ændres, mens politikken ikke har nogen telefonnumre: siden sige
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send en ny kode** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
+SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send en ny kode** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den. Den, der må læse de logs, får **Åbn Notifikationslogs** i dialogen, som åbner deres SMS-fane.
 :::
 
 ## Næste trin

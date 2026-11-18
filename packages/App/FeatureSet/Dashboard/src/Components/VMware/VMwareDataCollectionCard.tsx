@@ -1,4 +1,5 @@
 import Probe from "Common/Models/DatabaseModels/Probe";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -7,7 +8,6 @@ import ObjectID from "Common/Types/ObjectID";
 import VMwareCollectionMethod from "Common/Types/VMware/VMwareCollectionMethod";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -106,7 +106,7 @@ const VMwareDataCollectionCard: FunctionComponent<ComponentProps> = (
   }, [props.modelId.toString()]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton />;
   }
 
   if (error) {

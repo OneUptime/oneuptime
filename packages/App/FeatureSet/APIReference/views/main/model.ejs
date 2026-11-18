@@ -496,6 +496,80 @@
       </div>
       <% } %>
 
+      <%#
+         The routes a resource answers beside its own operations, each in its
+         own section (Utils/ModelEndpoints): the schedule's layers read and
+         saved in one call, an override ended now.
+      -%>
+      <% (pageData.moreEndpoints || []).forEach(function(endpoint){ %>
+      <div class="mt-12">
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: [endpoint.method], path: endpoint.path }) -%>
+            <h2 id="<%= endpoint.id %>" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.modelEndpoints.' + endpoint.headingKey) %></h2>
+
+            <div class="space-y-8">
+               <div>
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.modelEndpoints.' + endpoint.introKey) %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requiredQueryParams') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
+                        <li class="m-0 px-4 py-3">
+                           <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <dt class="sr-only">ID</dt>
+                              <dd><code class="inline-code">id</code></dd>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
+                              <dd class="font-mono text-xs text-ink-subtle">text</dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.modelEndpoints.' + endpoint.idDescriptionKey) %></dd>
+                           </dl>
+                        </li>
+                     </ul>
+                  </div>
+                  <% if (endpoint.bodyFields.length > 0) { %>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
+                        <% endpoint.bodyFields.forEach(function(field){ %>
+                        <li class="m-0 px-4 py-3">
+                           <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <dt class="sr-only"><%= field.name %></dt>
+                              <dd><code class="inline-code"><%= field.name %></code></dd>
+                              <dt class="sr-only"><%= t('ui.srType') %></dt>
+                              <dd class="font-mono text-xs text-ink-subtle"><%= field.type %></dd>
+                              <dt class="sr-only"><%= t('ui.srDescription') %></dt>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.modelEndpoints.' + field.descriptionKey) %></dd>
+                           </dl>
+                        </li>
+                        <% }); %>
+                     </ul>
+                  </div>
+                  <% } %>
+                  <% if (endpoint.refusalKeys.length > 0) { %>
+                  <div class="rounded-xl border border-line bg-surface-soft p-4 sm:p-5 mt-6">
+                     <h4 class="font-semibold text-ink text-sm mb-2"><%= t('pages.modelEndpoints.refusalsHeading') %></h4>
+                     <% endpoint.refusalKeys.forEach(function(refusalKey){ %>
+                     <p class="text-ink-muted text-sm mb-2 last:mb-0"><%= t('pages.modelEndpoints.' + refusalKey) %></p>
+                     <% }); %>
+                  </div>
+                  <% } %>
+               </div>
+
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: t('pages.modelEndpoints.' + endpoint.requestTitleKey),
+                     requestUrl: endpoint.path,
+                     requestType: endpoint.method,
+                     codeExamples: endpoint.codeExamples
+                  }) -%>
+
+                  <% const moreEndpointResponseCode = JSON.stringify(endpoint.response, null, 4); %>
+                  <%- include('../partials/code', {title: t('pages.model.responseTitle'), code: moreEndpointResponseCode, requestType: "", requestUrl: "" }) -%>
+               </div>
+            </div>
+         </div>
+      </div>
+      <% }); %>
+
       <div class="mt-12 border-t border-line pt-10">
          <h2 class="text-xl font-semibold text-ink mb-4"><%= t('pages.model.permissionsHeading') %></h2>
 

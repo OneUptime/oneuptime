@@ -70,19 +70,19 @@ Hvert møde oprettes som den konto, du logger ind med, og som er vært for det. 
 
 En forbindelse, der er lavet ved at logge ind, har stadig de indstillinger, der bestemmer, hvem der venter: **Who can join** for Google Meet og **Who skips the lobby** for Microsoft Teams. Ændr dem med **Rediger** i forbindelsens række.
 
-En Zoom-forbindelse, der blev logget ind, før OneUptime læste transskriptioner af opkald, starter opkald som før, men kan ikke læse deres transskriptioner, før den logges ind igen: **Reconnect** på dens række beder Zoom om tilladelserne til transskriptioner.
+En Zoom-forbindelse, der blev logget ind, før OneUptime læste transskriptioner af opkald, kan ikke læse dem. Når OneUptimes Zoom-app er opdateret til at læse dem, holder Zoom op med at acceptere en sådan forbindelses login 90 dage senere, og den holder op med at starte opkald. Fra da af beder OneUptime dig om at logge den ind igen: **Forbind igen** på dens række beder Zoom om tilladelserne til transskriptioner.
 
-En Microsoft Teams-forbindelse, der blev logget ind, mens **Optag og transskribér hændelsesopkald** var slået fra, starter opkald som før, uden optagelse. Når indstillingen er slået til, beder **Reconnect** på dens række også Microsoft om tilladelserne til kalender og transskriptioner.
+En Microsoft Teams-forbindelse, der blev logget ind, mens **Optag og transskribér hændelsesopkald** var slået fra, starter opkald som før, uden optagelse. Når indstillingen er slået til, beder **Forbind igen** på dens række også Microsoft om tilladelserne til kalender og transskriptioner.
 
 ### Forbliv logget ind
 
-OneUptime gemmer loginets opdateringstoken, krypteret, og fornyer det mindst én gang om ugen, så det aldrig udløber på grund af manglende brug, uanset hvor længe projektet går uden en hændelse. Hvis loginet holder op med at virke (kontoen fjernede OneUptime, blev slettet eller suspenderet, eller din organisations politik beder den logge ind igen), viser forbindelsens række **Virker ikke** med begrundelsen den dag, OneUptime opdager det, ikke ved næste hændelse. **Reconnect** i rækken logger ind igen.
+OneUptime gemmer loginets opdateringstoken, krypteret, og fornyer det mindst én gang om ugen, så det aldrig udløber på grund af manglende brug, uanset hvor længe projektet går uden en hændelse. Hvis loginet holder op med at virke (kontoen fjernede OneUptime, blev slettet eller suspenderet, eller din organisations politik beder den logge ind igen), viser forbindelsens række **Virker ikke** med begrundelsen den dag, OneUptime opdager det, ikke ved næste hændelse. **Forbind igen** i rækken logger ind igen.
 
 Forbindelser, der er logget ind som samme konto, deler ét login, i alle projekter: Zoom gemmer kun ét login pr. konto, så at forbinde den samme Zoom-bruger igen erstatter det for dem alle.
 
 ### Forbind igen og fjern
 
-**Reconnect** i en forbindelses række logger ind igen, som samme konto eller en anden. Brug det, efter at kontoen har fjernet OneUptime, eller for at flytte hændelsesmøder til en anden konto.
+**Forbind igen** i en forbindelses række logger ind igen, som samme konto eller en anden. Brug det, efter at kontoen har fjernet OneUptime, eller for at flytte hændelsesmøder til en anden konto.
 
 At slette en forbindelse trækker OneUptimes adgang tilbage hos Zoom og Google, så snart ingen anden forbindelse bruger loginet. For Microsoft skal du fjerne OneUptime under kontoens **My Apps** (myapps.microsoft.com). At fjerne OneUptime fra din Zoom-konto i Zoom App Marketplace sletter dens login fra alle forbindelser, der er logget ind som den konto, og de viser **Virker ikke**, indtil de forbindes igen.
 
@@ -135,13 +135,13 @@ Så ingen skal huske at optage et opkald eller hente dets transskription, skal d
 
 Indstillingen er slået fra som standard, fordi den optager mennesker: alle i de opkald kan se, at de bliver optaget eller transskriberet, så tjek, at jeres organisation tillader det. Zoom gemmer kun en transskription, når kontoen optager i skyen med lydtransskription slået til, og Google Meet kun i en Google Workspace-udgave, der har transskriptioner. Slack-huddles og mødelinks optages ikke, og det gør advarslers opkald heller ikke: tilføj deres transskriptioner manuelt.
 
-Microsoft lader kun apps læse transskriptionerne af Teams-møder, der står i en kalender, så OneUptime sætter hvert hændelsesmøde i organisatorens kalender og slår automatisk optagelse og transskription til i mødets indstillinger. Til det skal forbindelsen have to Microsoft Graph-rettigheder mere, `Calendars.ReadWrite` og `OnlineMeetingTranscript.Read.All`: tilføj dem til jeres appregistrering (se [Microsoft Teams](#microsoft-teams)), eller brug **Reconnect** på en forbindelse, der er lavet ved at logge ind. Organisatorens Teams-mødepolitik skal tillade cloudoptagelse, transskription og automatisk optagelse, og jeres organisation må ikke have slået adgangen for apps til transskriptioner fra. Et opkald, som OneUptime ikke kan sætte i kalenderen, starter alligevel, uden optagelse, og dets kort **Video Call** siger hvorfor.
+Microsoft lader kun apps læse transskriptionerne af Teams-møder, der står i en kalender, så OneUptime sætter hvert hændelsesmøde i organisatorens kalender og slår automatisk optagelse og transskription til i mødets indstillinger. Til det skal forbindelsen have to Microsoft Graph-rettigheder mere, `Calendars.ReadWrite` og `OnlineMeetingTranscript.Read.All`: tilføj dem til jeres appregistrering (se [Microsoft Teams](#microsoft-teams)), eller brug **Forbind igen** på en forbindelse, der er lavet ved at logge ind. Organisatorens Teams-mødepolitik skal tillade cloudoptagelse, transskription og automatisk optagelse, og jeres organisation må ikke have slået adgangen for apps til transskriptioner fra. Et opkald, som OneUptime ikke kan sætte i kalenderen, starter alligevel, uden optagelse, og dets kort **Video Call** siger hvorfor.
 
 ### Hvad hver udbyder gemmer
 
 | Opkald | Hvordan det får sin transskription | Hvad det kræver |
 | --- | --- | --- |
-| Zoom | **Hent fra Zoom** | Et møde optaget i skyen med lydtransskription slået til, eller med AI Companions mødeopsummering slået til. Forbindelsen skal have scopes til transskriptioner (se [Zoom](#zoom)), og en, der blev logget ind før dem, skal bruge **Reconnect**. Zoom forbereder en transskription efter mødet, som regel inden for det dobbelte af mødets længde. |
+| Zoom | **Hent fra Zoom** | Et møde optaget i skyen med lydtransskription slået til, eller med AI Companions mødeopsummering slået til. Forbindelsen skal have scopes til transskriptioner (se [Zoom](#zoom)), og en, der blev logget ind før dem, skal bruge **Forbind igen**. Zoom forbereder en transskription efter mødet, som regel inden for det dobbelte af mødets længde. |
 | Google Meet | **Hent fra Google Meet** | Transskriptioner slået til i opkaldet, i en Google Workspace-udgave, der har dem. Intet andet at sætte op: OneUptime læser transskriptionerne af de møder, den har oprettet. Google gemmer en transskription, så apps kan læse den, i 30 dage. |
 | Microsoft Teams | **Hent fra Microsoft Teams** | Et møde, som OneUptime startede, mens [hvert opkald optages og transskriberes](#optag-og-transskribér-hvert-opkald): Microsoft lader kun apps læse transskriptionerne af møder, der står i en kalender, og gemmer et møde i 60 dage. Til ethvert andet Teams-møde **Tilføj transskription**: i Teams åbner du mødets opsummering, derefter dens transskription, og downloader den som en `.vtt`-fil. |
 | Mødelink eller Slack-huddle | **Tilføj transskription** | Den transskription, mødeværktøjet eller huddlens noter gemmer. |
@@ -291,7 +291,7 @@ Udbyderen afviste, og feedet giver begrundelsen. Start i mellemtiden et opkald f
 :::
 
 :::details En forbindelse viser Virker ikke
-Dens login holdt op med at virke: kontoen fjernede OneUptime, blev slettet eller suspenderet, eller skal logge ind igen. Klik på **Reconnect** i dens række. Indtil da kan de opkald, den skulle starte, ikke starte.
+Dens login holdt op med at virke: kontoen fjernede OneUptime, blev slettet eller suspenderet, eller skal logge ind igen. Klik på **Forbind igen** i dens række. Indtil da kan de opkald, den skulle starte, ikke starte.
 :::
 
 :::details Folk venter i en lobby eller et venterum
@@ -307,7 +307,7 @@ Når opkaldet er slut, spørger OneUptime Zoom, Google Meet eller Microsoft Team
 :::
 
 :::details Et Microsoft Teams-opkald blev ikke optaget
-OneUptime kunne ikke sætte mødet i organisatorens kalender, så den startede opkaldet på den sædvanlige måde, uden optagelse, og kortet **Video Call** siger hvorfor. Som regel mangler forbindelsen `Calendars.ReadWrite` eller `OnlineMeetingTranscript.Read.All`: tilføj dem til appregistreringen, og giv administratorsamtykke, eller brug **Reconnect** på en forbindelse, der er lavet ved at logge ind. Opkald, der startes derefter, bliver optaget.
+OneUptime kunne ikke sætte mødet i organisatorens kalender, så den startede opkaldet på den sædvanlige måde, uden optagelse, og kortet **Video Call** siger hvorfor. Som regel mangler forbindelsen `Calendars.ReadWrite` eller `OnlineMeetingTranscript.Read.All`: tilføj dem til appregistreringen, og giv administratorsamtykke, eller brug **Forbind igen** på en forbindelse, der er lavet ved at logge ind. Opkald, der startes derefter, bliver optaget.
 :::
 
 :::details OneUptime AI kunne ikke læse en transskription

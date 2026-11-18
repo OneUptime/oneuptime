@@ -36,7 +36,7 @@ flowchart TB
 
 ## 始める前に
 
-- **届いているメトリクス。** [OpenTelemetry](/docs/telemetry/open-telemetry) で送るか、[ホスト用 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) や [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) などのエージェントから送ります。
+- **届いているメトリクス。** [OpenTelemetry](/docs/telemetry/open-telemetry) で送るか、[ホスト用 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) や [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) などのエージェントから送ります。 最初のデータが届くまで、このページには **ガイド付きセットアップ** が表示されます。最初のログ、メトリクス、トレースからそれらのアラートまでを案内します。その横の **最初のメトリクスを送信** は、セットアップガイドだけを開きます。
 - **テレメトリを読み取れるロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、テレメトリ管理者、テレメトリメンバー、テレメトリ閲覧者のいずれか、または Read Metrics 権限を持つカスタムロール。ロールがどのメトリクスを読み取るかは、[テレメトリー](/docs/permissions/index#テレメトリー) を参照してください。
 
 ## メトリクスを探す

@@ -8,6 +8,10 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import {
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -282,6 +286,16 @@ afterEach(() => {
   cleanup();
 });
 
+// A toolbar picker, the shared Dropdown, by the box that holds it.
+function pickerIn(testId: string): HTMLElement {
+  return within(screen.getByTestId(testId)).getByRole("combobox");
+}
+
+// What that picker shows as chosen.
+function shownIn(testId: string): string | null {
+  return getShownDropdownValue(pickerIn(testId));
+}
+
 describe("the map and its numbers come first, for everyone and for one person", () => {
   test("everyone: the numbers and findings, then the map, then the tables", async () => {
     renderPage();
@@ -488,7 +502,7 @@ describe("filters that leave nothing", () => {
     expect(screen.getByTestId("user-flow-scope-name")).toHaveTextContent(
       "jane@example.com",
     );
-    expect(screen.getByTestId("user-flow-device-filter")).toHaveValue("tablet");
+    expect(shownIn("user-flow-device-filter")).toBe("tablet");
     expectTopToBottom([
       screen.getByTestId("user-flow-scope"),
       screen.getByTestId("user-flow-toolbar"),
@@ -508,8 +522,12 @@ describe("filters that leave nothing", () => {
 
     await waitForSections(["overview", "map", "journeys", "tables"]);
     expect(screen.getAllByTestId("user-flow-journey")).toHaveLength(3);
-    expect(screen.getByTestId("user-flow-device-filter")).toHaveValue("");
-    expect(screen.getByTestId("user-flow-session-filter")).toHaveValue("all");
+    // Cleared, the device picker shows its placeholder, every device.
+    expect(shownIn("user-flow-device-filter")).toBeNull();
+    expect(
+      getShownDropdownPlaceholder(pickerIn("user-flow-device-filter")),
+    ).toBe("All devices");
+    expect(shownIn("user-flow-session-filter")).toBe("All sessions");
     expect(screen.queryByTestId("user-flow-hidden-pages")).toBeNull();
     expect(window.location.search).not.toMatch(/device=|sessions=|hide=/);
     expect(window.location.search).toContain(`userKey=${JANE_KEY}`);
@@ -527,8 +545,8 @@ describe("filters that leave nothing", () => {
     fireEvent.click(screen.getByTestId("user-flow-filtered-empty-clear"));
 
     await waitForSections(["overview", "map", "journeys", "tables"]);
-    expect(screen.getByTestId("user-flow-anchor-select")).toHaveValue("/cart");
-    expect(screen.getByTestId("user-flow-steps-select")).toHaveValue("3");
+    expect(shownIn("user-flow-anchor-select")).toMatch(/^\/cart /);
+    expect(shownIn("user-flow-steps-select")).toBe("3");
   });
 
   test("for everyone too, and not taken for a missing install", async () => {
@@ -602,7 +620,7 @@ describe("loading and failed reads", () => {
       expect(flowReads).toHaveLength(1);
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(screen.getByTestId("user-flow-scope")).toBeInTheDocument();
     expect(screen.queryByTestId("user-flow-sections")).toBeNull();
 
@@ -612,7 +630,7 @@ describe("loading and failed reads", () => {
     });
 
     await waitForSections(["overview", "map", "journeys", "tables"]);
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("chart-skeleton")).toBeNull();
   });
 
   test("a refresh keeps the page on screen and says Updating on the map", async () => {

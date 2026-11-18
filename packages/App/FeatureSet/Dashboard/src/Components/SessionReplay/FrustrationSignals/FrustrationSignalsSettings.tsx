@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SessionReplayCustomSignal,
@@ -6,7 +7,6 @@ import {
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TableEmptyState, {
@@ -156,7 +156,7 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
             })}
           </div>
         ) : (
-          <ComponentLoader />
+          <TableSkeleton rows={4} hasHeader={false} />
         )}
       </div>
     </Card>
@@ -190,7 +190,7 @@ export const FrustrationSignalsView: FunctionComponent<ViewProps> = (
     >
       <div data-testid="frustration-signals-custom">
         {!settings ? (
-          <ComponentLoader />
+          <TableSkeleton rows={3} />
         ) : customSignals.length === 0 ? (
           /*
            * The product's empty list: what is true, and - to someone who

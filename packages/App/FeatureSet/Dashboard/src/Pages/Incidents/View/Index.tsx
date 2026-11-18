@@ -83,6 +83,8 @@ import {
   EventStatusFact,
 } from "../../../Components/EventView/EventStatusPanel";
 import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import WhoWasToldCard from "../../../Components/WhoWasTold/WhoWasToldCard";
+import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import IncidentSecurityCard from "../../../Components/SecurityConnections/IncidentSecurityCard";
 import CallSummarySection from "../../../Components/AI/CallSummary/CallSummarySection";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
@@ -1628,6 +1630,18 @@ const IncidentView: FunctionComponent<
             links={channelLinks}
             // Somebody added is a new feed entry.
             onChanged={refreshFeed}
+          />
+
+          {/*
+           * Who was told about the incident, by what, and what failed, as
+           * it happened (#7075): read again while it is open, and when the
+           * page does something that tells people.
+           */}
+          <WhoWasToldCard
+            recordKind={OnCallTestPageRecordKind.Incident}
+            recordId={modelId}
+            isLive={standing !== EventStanding.Resolved}
+            refreshToken={feedRefreshToken}
           />
 
           {/* Incident View  */}

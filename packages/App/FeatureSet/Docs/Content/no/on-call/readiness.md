@@ -6,6 +6,7 @@ Beredskap svarer på et spørsmål før en hendelse gjør det: hvis noe gikk av 
 - [Slik fastsettes en status](#slik-fastsettes-en-status): Klar, Needs setup eller Unreachable, og hvorfor.
 - [Siden Beredskap](#siden-beredskap): Hver mottaker i prosjektet, i én liste.
 - [Minn folk på å gjøre ferdig oppsettet](#minn-folk-på-å-gjøre-ferdig-oppsettet): En e-post som sier hva som mangler.
+- [Bruk standardrekkefølgen](#bruk-standardrekkefølgen): Prosjektets standardrekkefølge, for personene du velger.
 - [Brukerens vakttid](#brukerens-vakttid): Hvor lenge hver person hadde vakt.
 :::
 
@@ -32,6 +33,8 @@ En mottaker er alle en vaktpolicy kan tilkalle: en person som er nevnt i en eska
 
 Et hull er en alvorlighetsgrad uten regel, på fanen for hendelser, hendelsesepisoder, varsler eller varselepisoder. En regel som slår av en alvorlighetsgrad med vilje, er ikke et hull. En tilkalling som treffer et hull, når likevel personen på de verifiserte metodene, med mindre prosjektet har slått av den reserveløsningen: se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 
+Når prosjektet ber alle på vakt om en telefonmetode, under **Telefon for folk på vakt**, blir en mottaker uten et verifisert nummer for SMS, telefonsamtaler eller WhatsApp også merket med **Ingen telefonmetode**, uansett status, og Oppsettets helse nevner vedkommende. Ingen blir låst ute: en tilkalling når dem fortsatt på metodene de har.
+
 ## Siden Beredskap
 
 Åpne **Vakt → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktpolicy i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
@@ -53,12 +56,24 @@ Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Util
 Bare personen selv kan legge til og verifisere sine egne varslingsmetoder og regler, så løsningen er å be dem om det.
 
 :::steps
-1. Kryss av for mottakerne du vil minne på, på siden Beredskap. Mottakere som er klare, kan ikke krysses av: det er ingenting å minne dem på.
+1. Kryss av for mottakerne du vil minne på, på siden Beredskap. En mottaker som er klar, blir bare minnet på når vedkommende er merket med **Ingen telefonmetode**: det er ingenting annet å minne dem på.
 2. Klikk på **Send påminnelse om oppsett**. Bekreftelsen nevner alle den er i ferd med å sende e-post til.
 3. Bekreft. Hver person får én e-post som sier hva som mangler i deres eget oppsett, med en lenke til siden som retter det.
 :::
 
 Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller mislyktes, og hvorfor for hver som ikke ble sendt. Ingen blir minnet på mer enn én gang i løpet av 24 timer, og én runde minner høyst 250 personer. Å sende påminnelser krever **Prosjekteier**, **Prosjektadministrator** eller **Vaktadministrator**, eller **Edit On-Call Policy** i en egendefinert rolle.
+
+## Bruk standardrekkefølgen
+
+Når prosjektet har en standardrekkefølge (se [Standardrekkefølgen](/docs/notifications/on-call-rules#standardrekkefølgen)), kan du gi den til personer som allerede har egne regler.
+
+:::steps
+1. Kryss av for mottakerne på siden Beredskap.
+2. Klikk på **Bruk standardrekkefølge**. Bekreftelsen viser rekkefølgen og nevner alle den endrer.
+3. Bekreft. Hver persons regler for hver alvorlighetsgrad erstattes av rekkefølgen, på metodene de har verifisert.
+:::
+
+En måte noen ikke har verifisert, utelates, og de beholder sine egne trinn i stedet; den som ikke har verifisert noen av rekkefølgens måter, forblir som før. Et banner sier deretter for hver person hva som ble brukt, eller hvorfor ikke, etter kanal: ingens numre eller adresser vises. Hver person med endrede regler får én e-post, og hver endring står i prosjektets revisjonslogg. Å bruke den krever **Prosjekteier** eller **Prosjektadministrator**, eller **Edit User Notification Rules** i en egendefinert rolle.
 
 ## Beredskap på andre sider
 
@@ -66,6 +81,7 @@ Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller
 - På **Eskaleringsregler** for en policy sier et nivå fra på kortet sitt hvis ikke alle mottakerne kan tilkalles. Se [Eskaleringsoversikten](/docs/on-call/escalation-rules#eskaleringsoversikten).
 - Under **Brukere** åpner du et medlem, og deretter **Beredskap** i seksjonen **Vakt**: statusen, metodene og dekningsrutenettet til personen.
 - For ditt eget oppsett leder **Brukerinnstillinger → Oppsettsjekkliste** deg gjennom det. Se [Oppsettsjekklisten](/docs/notifications/index#oppsettsjekklisten).
+- Alle i en policy som ikke er ferdige med sitt eget oppsett, ser **Fullfør oppsettet av varslene dine** i bjellen øverst på hver side, som åpner oppsettsjekklisten deres.
 
 ## Den ukentlige e-posten om beredskap
 

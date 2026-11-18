@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -8,7 +9,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -187,7 +188,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
           {translator.translateText(props.sublabel)}
         </div>
       ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+        <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
       )}
       {props.percent !== undefined && props.percent !== null && (
         <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
@@ -680,7 +681,7 @@ const HostServiceView: FunctionComponent<
     if (isInitialLoading) {
       return (
         <div className="mb-6">
-          <PageLoader isVisible={true} />
+          <StatTilesSkeleton kind="golden" />
         </div>
       );
     }
@@ -980,7 +981,7 @@ const HostServiceView: FunctionComponent<
                       />
                       <StatusPill code={transition.toCode} />
                     </span>
-                    <span className="ml-auto text-xs text-gray-400">
+                    <span className="ml-auto text-xs text-gray-500">
                       {OneUptimeDate.fromNow(transition.time)}
                     </span>
                   </div>
@@ -1016,7 +1017,7 @@ const HostServiceView: FunctionComponent<
   };
 
   if (isInitialLoading && !host) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error && !host) {

@@ -70,19 +70,19 @@ flowchart TB
 
 通过登录建立的连接仍然有决定谁需要等待的设置：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在连接所在行使用 **编辑** 更改它们。
 
-在 OneUptime 读取通话转录之前登录的 Zoom 连接会像以前一样开始通话，但在重新登录之前无法读取通话的转录：其所在行的 **Reconnect** 会向 Zoom 请求转录权限。
+在 OneUptime 读取通话转录之前登录的 Zoom 连接无法读取这些转录。OneUptime 的 Zoom 应用更新为可读取转录后，Zoom 会在 90 天后不再接受此类连接的登录，该连接也将无法开始通话。从那时起，OneUptime 会请您重新登录：其所在行的 **重新连接** 会向 Zoom 请求转录权限。
 
-在 **录制并转录事件通话** 关闭期间登录的 Microsoft Teams 连接会像以前一样开始通话，但不会录制。开启该开关后，其所在行的 **Reconnect** 还会向 Microsoft 请求日历和转录权限。
+在 **录制并转录事件通话** 关闭期间登录的 Microsoft Teams 连接会像以前一样开始通话，但不会录制。开启该开关后，其所在行的 **重新连接** 还会向 Microsoft 请求日历和转录权限。
 
 ### 保持登录
 
-OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，因此无论项目多久没有发生事件，令牌都不会因闲置而过期。如果登录失效（账户移除了 OneUptime、账户被删除或停用，或您组织的策略要求重新登录），连接的行会在 OneUptime 发现的当天显示 **异常** 及原因，而不是等到下一个事件。行上的 **Reconnect** 会重新登录。
+OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，因此无论项目多久没有发生事件，令牌都不会因闲置而过期。如果登录失效（账户移除了 OneUptime、账户被删除或停用，或您组织的策略要求重新登录），连接的行会在 OneUptime 发现的当天显示 **异常** 及原因，而不是等到下一个事件。行上的 **重新连接** 会重新登录。
 
 以同一账户登录的连接在所有项目中共享一次登录：Zoom 每个账户只保留一次登录，因此再次连接同一个 Zoom 用户会替换所有这些连接的登录。
 
 ### 重新连接和删除
 
-连接所在行的 **Reconnect** 会以同一账户或其他账户重新登录。在账户移除 OneUptime 之后，或要把事件会议转到其他账户时使用它。
+连接所在行的 **重新连接** 会以同一账户或其他账户重新登录。在账户移除 OneUptime 之后，或要把事件会议转到其他账户时使用它。
 
 删除连接后，一旦没有其他连接使用该登录，OneUptime 在 Zoom 和 Google 的访问权限就会被撤销。对于 Microsoft，请在该账户的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中从您的 Zoom 账户移除 OneUptime，会从所有以该账户登录的连接中删除其登录，这些连接在重新连接之前都会显示 **异常**。
 
@@ -135,13 +135,13 @@ OneUptime 已读取的转录会保留在其事件上：删除连接会保留它�
 
 此功能默认关闭，因为它会录制人员：这些通话中的每个人都会看到自己正在被录制或转录，因此请确认您的组织允许这样做。只有当账户在开启音频转录的情况下录制到云端时，Zoom 才会保留转录；Google Meet 也只在支持转录的 Google Workspace 版本上保留转录。Slack huddle 和会议链接不会被录制，警报的通话也不会：请手动添加它们的转录。
 
-Microsoft 只允许应用读取日历上的 Teams 会议的转录，因此 OneUptime 会把每个事件会议添加到其组织者的日历中，并在会议选项中开启自动录制和转录。为此，连接还需要另外两个 Microsoft Graph 权限 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All`：请将它们添加到您的应用注册中（参见 [Microsoft Teams](#microsoft-teams)），或对通过登录建立的连接使用 **Reconnect** 。组织者的 Teams 会议策略必须允许云录制、转录和自动录制，并且您的组织不能关闭应用对转录的访问。OneUptime 无法添加到日历的通话仍会照常开始，但不会录制，其 **Video Call** 卡片会说明原因。
+Microsoft 只允许应用读取日历上的 Teams 会议的转录，因此 OneUptime 会把每个事件会议添加到其组织者的日历中，并在会议选项中开启自动录制和转录。为此，连接还需要另外两个 Microsoft Graph 权限 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All`：请将它们添加到您的应用注册中（参见 [Microsoft Teams](#microsoft-teams)），或对通过登录建立的连接使用 **重新连接** 。组织者的 Teams 会议策略必须允许云录制、转录和自动录制，并且您的组织不能关闭应用对转录的访问。OneUptime 无法添加到日历的通话仍会照常开始，但不会录制，其 **Video Call** 卡片会说明原因。
 
 ### 各提供商保留的内容
 
 | 通话 | 如何获得转录 | 需要什么 |
 | --- | --- | --- |
-| Zoom | **从 Zoom 获取** | 会议录制到云端且开启了音频转录，或开启了 AI Companion 的会议摘要。连接需要转录的权限范围（参见 [Zoom](#zoom)），在此之前登录的连接需要 **Reconnect** 。Zoom 会在会议结束后准备转录，通常在会议时长的两倍以内完成。 |
+| Zoom | **从 Zoom 获取** | 会议录制到云端且开启了音频转录，或开启了 AI Companion 的会议摘要。连接需要转录的权限范围（参见 [Zoom](#zoom)），在此之前登录的连接需要 **重新连接** 。Zoom 会在会议结束后准备转录，通常在会议时长的两倍以内完成。 |
 | Google Meet | **从 Google Meet 获取** | 通话中开启的转录，所用的 Google Workspace 版本需支持转录。无需其他设置：OneUptime 会读取它所创建会议的转录。Google 会将转录保留 30 天供应用读取。 |
 | Microsoft Teams | **从 Microsoft Teams 获取** | OneUptime 在 [每次通话都录制并转录](#录制并转录每次通话) 期间开始的会议：Microsoft 只允许应用读取日历上的会议的转录，并将会议保留 60 天。对于其他任何 Teams 会议，请使用 **添加转录** ：在 Teams 中，打开会议的回顾，再打开其转录，并将其下载为 `.vtt` 文件。 |
 | 会议链接或 Slack huddle | **添加转录** | 会议工具或 huddle 笔记中保存的转录。 |
@@ -291,7 +291,7 @@ OneUptime Cloud 拥有自己的 Zoom、Google 和 Microsoft 应用，用于一�
 :::
 
 :::details 连接显示 异常
-它的登录已失效：账户移除了 OneUptime、账户被删除或停用，或需要重新登录。在其所在行点击 **Reconnect**。在此之前，它本应开始的通话都无法开始。
+它的登录已失效：账户移除了 OneUptime、账户被删除或停用，或需要重新登录。在其所在行点击 **重新连接**。在此之前，它本应开始的通话都无法开始。
 :::
 
 :::details 有人在大厅或等候室中等待
@@ -307,7 +307,7 @@ Zoom 只会为录制到云端且开启了音频转录的会议，或开启了 AI
 :::
 
 :::details Microsoft Teams 通话没有被录制
-OneUptime 无法将会议添加到其组织者的日历中，因此以通常的方式开始了通话，没有录制，并且 **Video Call** 卡片会说明原因。通常是连接缺少 `Calendars.ReadWrite` 或 `OnlineMeetingTranscript.Read.All`：请将它们添加到应用注册中并授予管理员同意，或对通过登录建立的连接使用 **Reconnect** 。之后开始的通话都会被录制。
+OneUptime 无法将会议添加到其组织者的日历中，因此以通常的方式开始了通话，没有录制，并且 **Video Call** 卡片会说明原因。通常是连接缺少 `Calendars.ReadWrite` 或 `OnlineMeetingTranscript.Read.All`：请将它们添加到应用注册中并授予管理员同意，或对通过登录建立的连接使用 **重新连接** 。之后开始的通话都会被录制。
 :::
 
 :::details OneUptime AI 无法读取转录

@@ -13,6 +13,12 @@ import { getGlobalUserOverrideLock } from "../UserOverrides/GlobalUserOverrideLo
 import UserOverrideFormModal, {
   UserOverrideEditTarget,
 } from "../UserOverrides/UserOverrideFormModal";
+import UserOverrideEndNowModal, {
+  USER_OVERRIDE_END_NOW_ACTION,
+  USER_OVERRIDE_END_NOW_ARIA_LABEL,
+  UserOverrideEndNowTarget,
+  canEndUserOverrideNow,
+} from "../UserOverrides/UserOverrideEndNow";
 import UserOverrideOverlapsMark, {
   getUserOverrideOverlapsText,
 } from "../UserOverrides/UserOverrideOverlapsMark";
@@ -62,6 +68,12 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * for a reader whose permission covers only some policies, saying why
  * (GlobalUserOverrideLock). Two overrides saved before overlaps were
  * refused are marked "Overlaps", saying which is used (issue #7630).
+ *
+ * One in force has End Now beside its Edit (issue #7899,
+ * UserOverrideEndNow): one question, which says what happens to the time
+ * left and who is paged from then on, in the schedule's zone as the rows
+ * write their times; then it ends, and the schedules read their overrides
+ * again.
  */
 
 export interface ComponentProps {
@@ -87,8 +99,7 @@ export const MAX_SHOWN_OVERRIDE_ROWS: number = 4;
  * own case like every label of the Final schedule around this card
  * (SECTION_LABEL_CLASS_NAME): they were letter-spaced capitals.
  */
-export const OVERRIDE_PARTY_CAPTION_CLASS_NAME: string =
-  "text-[11px] font-medium";
+export const OVERRIDE_PARTY_CAPTION_CLASS_NAME: string = "text-xs font-medium";
 
 const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -97,6 +108,9 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
 
   // The override whose Edit is open, if any.
   const [editing, setEditing] = useState<UserOverrideEditTarget | null>(null);
+
+  // The override End Now is asking about, if any (issue #7899).
+  const [ending, setEnding] = useState<UserOverrideEndNowTarget | null>(null);
 
   if (props.rows.length === 0) {
     return null;
@@ -133,29 +147,68 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
 
     const lock: string | null = getEditLock(row);
 
+    const endNowTarget: UserOverrideEndNowTarget | null = canEndUserOverrideNow(
+      row,
+    )
+      ? {
+          id: row.overrideId,
+          startsAt: row.startsAt,
+          endsAt: row.endsAt,
+          awayName: row.originalName,
+          coverName: row.isSkip ? null : row.substituteName,
+        }
+      : null;
+
     return (
-      <Button
-        dataTestId="active-override-edit"
-        title="Edit"
-        ariaLabel={translator.translateTemplate(
-          "Edit the override for {{name}}",
-          { name: row.originalName },
+      <div className="ml-auto flex items-center gap-3">
+        {/*
+         * End Now, on an override in force (issue #7899): the change made
+         * most, one question away, beside its Edit and locked as it is.
+         */}
+        {endNowTarget ? (
+          <Button
+            dataTestId="active-override-end-now"
+            title={USER_OVERRIDE_END_NOW_ACTION}
+            ariaLabel={translator.translateTemplate(
+              USER_OVERRIDE_END_NOW_ARIA_LABEL,
+              { name: row.originalName },
+            )}
+            isAriaLabelTranslated={true}
+            buttonStyle={ButtonStyleType.LINK}
+            buttonSize={ButtonSize.ExtraSmall}
+            disabled={Boolean(lock)}
+            tooltip={lock || undefined}
+            onClick={() => {
+              setEnding(endNowTarget);
+            }}
+          />
+        ) : (
+          <></>
         )}
-        isAriaLabelTranslated={true}
-        buttonStyle={ButtonStyleType.LINK}
-        buttonSize={ButtonSize.ExtraSmall}
-        className="ml-auto"
-        disabled={Boolean(lock)}
-        tooltip={lock || undefined}
-        onClick={() => {
-          setEditing({
-            id: row.overrideId,
-            onCallDutyPolicyId: row.onCallDutyPolicyId || null,
-            startsAt: row.startsAt,
-            endsAt: row.endsAt,
-          });
-        }}
-      />
+        <Button
+          dataTestId="active-override-edit"
+          title="Edit"
+          ariaLabel={translator.translateTemplate(
+            "Edit the override for {{name}}",
+            { name: row.originalName },
+          )}
+          isAriaLabelTranslated={true}
+          buttonStyle={ButtonStyleType.LINK}
+          buttonSize={ButtonSize.ExtraSmall}
+          disabled={Boolean(lock)}
+          tooltip={lock || undefined}
+          onClick={() => {
+            setEditing({
+              id: row.overrideId,
+              onCallDutyPolicyId: row.onCallDutyPolicyId || null,
+              startsAt: row.startsAt,
+              endsAt: row.endsAt,
+              awayName: row.originalName,
+              coverName: row.isSkip ? null : row.substituteName,
+            });
+          }}
+        />
+      </div>
     );
   };
 
@@ -391,6 +444,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
         <UserOverrideFormModal
           key={editing.id}
           overrideToEdit={editing}
+          timezone={props.timezone}
           onClose={() => {
             setEditing(null);
           }}
@@ -400,6 +454,22 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           }}
           onEditOverride={(target: UserOverrideEditTarget) => {
             setEditing(target);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {ending ? (
+        <UserOverrideEndNowModal
+          target={ending}
+          timezone={props.timezone}
+          onClose={() => {
+            setEnding(null);
+          }}
+          onEnded={() => {
+            setEnding(null);
+            notifyScheduleUserOverridesChanged();
           }}
         />
       ) : (

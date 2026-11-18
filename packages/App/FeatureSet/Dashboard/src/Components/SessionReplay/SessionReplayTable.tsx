@@ -1456,7 +1456,7 @@ function getSessionReplayCells(
             </span>
             {trail.hiddenCount > 0 && (
               <span
-                className="ml-1 flex-none text-gray-400"
+                className="ml-1 flex-none text-gray-500"
                 data-testid="session-row-routes-more"
               >
                 +{trail.hiddenCount}
@@ -1496,7 +1496,7 @@ function getSessionReplayCells(
               </span>
             )}
             <span
-              className="font-mono text-[11px] text-gray-500"
+              className="font-mono text-xs text-gray-500"
               title={row.sessionId}
             >
               {getValueOrQuietDash(sessionIdText, { isSmall: true })}
@@ -1595,7 +1595,7 @@ function getSessionReplayCells(
          * counted every chunk. Before that the header carries chunk 0's
          * signals only.
          */
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-gray-500">
           {translateLine("Not counted yet", translator)}
         </span>
       )}

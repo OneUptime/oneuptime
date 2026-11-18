@@ -201,7 +201,7 @@ const StepIndicator: FunctionComponent<{
                       ? "font-semibold text-indigo-700"
                       : isDone
                         ? "text-gray-700"
-                        : "text-gray-400"
+                        : "text-gray-500"
                   }`}
                 >
                   <span

@@ -9,9 +9,13 @@ import AiFirstResponderRules, {
 } from "../Utils/AI/FirstResponder/AiFirstResponderRules";
 import DeleteBy from "../Types/Database/DeleteBy";
 import QueryHelper from "../Types/Database/QueryHelper";
-import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import RuleCriteriaOwnerIds from "../Utils/Rules/RuleCriteriaOwnerIds";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+
+// The rule kind whose owner conditions are checked (RuleCriteriaOwnerIds).
+const RULE_MODEL_NAME: string = "AlertOnCallRule";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -43,6 +47,79 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy: updateBy,
       options: { allowsOneUptimeAI: true },
     });
+  }
+
+  /*
+   * The people and teams an Alert Owner condition names are the project's
+   * own (RuleCriteriaOwnerIds), checked after the rule's other references.
+   * OneUptime's own writes, as root, name what they found themselves.
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (!createBy.props.isRoot && projectId) {
+      await RuleCriteriaOwnerIds.check({
+        projectId: projectId,
+        modelName: RULE_MODEL_NAME,
+        criteria: createBy.data.criteria,
+      });
+    }
+
+    return { createBy: createBy, carryForward: undefined };
+  }
+
+  /*
+   * Conditions written again: the people and teams they name now are the
+   * project's own, but for those each rule named already - one since
+   * removed from the project is kept.
+   */
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const criteria: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["criteria"];
+
+    if (
+      !updateBy.props.isRoot &&
+      RuleCriteriaOwnerIds.namesOwners({
+        modelName: RULE_MODEL_NAME,
+        criteria: criteria,
+      })
+    ) {
+      const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
+          projectId: true,
+          criteria: true,
+        },
+      );
+
+      for (const rule of rules) {
+        if (!rule.projectId) {
+          continue;
+        }
+
+        await RuleCriteriaOwnerIds.check({
+          projectId: rule.projectId,
+          modelName: RULE_MODEL_NAME,
+          criteria: criteria,
+          keptIds: RuleCriteriaOwnerIds.getIdsNamed({
+            modelName: RULE_MODEL_NAME,
+            criteria: rule.criteria,
+          }),
+        });
+      }
+    }
+
+    return { updateBy: updateBy, carryForward: null };
   }
 
   /*

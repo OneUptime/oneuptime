@@ -3,7 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
@@ -47,7 +47,7 @@ const UserViewNotificationRules: FunctionComponent<
     );
   }, []);
 
-  return <PageLoader isVisible={true} />;
+  return <PageSkeleton />;
 };
 
 export default UserViewNotificationRules;

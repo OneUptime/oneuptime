@@ -192,7 +192,7 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
 
     test("does not render the notes feed until the default is known", () => {
       expect(source).toContain(
-        "if (isNotifyingByDefault === null) { return <PageLoader isVisible={true} />; }",
+        "if (isNotifyingByDefault === null) { return <PageSkeleton />; }",
       );
       expect(
         indexOfOrFail(source, "if (isNotifyingByDefault === null)"),

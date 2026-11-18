@@ -10,21 +10,26 @@ import {
   STATUS_PAGE_SETUP_EXTRAS,
   StatusPageSetupExtra,
   StatusPageSetupMonitor,
+  StatusPageSetupMonitorGroup,
+  StatusPageSetupPage,
   StatusPageSetupProgressFacts,
   StatusPageSetupRunValue,
   StatusPageSetupStep,
+  STATUS_PAGE_SETUP_MONITOR_QUERY,
   describeExtraPlan,
   describeShownMonitors,
   getDefaultStatusPageName,
+  getExistingPagesLine,
+  getMonitorPickedOnOpen,
   getPickDoneLine,
+  getPickedMonitorGroups,
   getPickedMonitors,
   getStartOverStatusPageName,
   getStatusPageSetupProgress,
   isStatusPageNameValid,
   isStatusPageSetupFinished,
-  pickAllMonitors,
-  togglePickedMonitor,
 } from "./StatusPageSetup";
+import StatusPageSetupPicker from "./StatusPageSetupPicker";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
@@ -39,16 +44,21 @@ import {
   WelcomeStep,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getStatusPagePublicName } from "Common/Types/StatusPage/StatusPagePublicName";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
-import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { BILLING_ENABLED, STATUS_PAGE_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
@@ -57,9 +67,11 @@ import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
@@ -78,7 +90,12 @@ export interface ComponentProps {
 interface ShownMonitors {
   count: number;
   names: Array<string>;
+  // Which monitors and monitor groups they are (#7517), where read.
+  monitorIds?: Array<string> | undefined;
+  monitorGroupIds?: Array<string> | undefined;
 }
+
+const NOTHING_SHOWN: ShownMonitors = { count: 0, names: [] };
 
 const routeOf: (page: PageMap, modelId?: string | undefined) => Route = (
   page: PageMap,
@@ -129,8 +146,25 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   const [statusPage, setStatusPage] = useState<StatusPageSetupRecord | null>(
     null,
   );
-  const [shown, setShown] = useState<ShownMonitors>({ count: 0, names: [] });
+  const [shown, setShown] = useState<ShownMonitors>(NOTHING_SHOWN);
   const [monitors, setMonitors] = useState<Array<StatusPageSetupMonitor>>([]);
+  const [monitorGroups, setMonitorGroups] = useState<
+    Array<StatusPageSetupMonitorGroup>
+  >([]);
+  /*
+   * The project's status pages this person may change, newest first
+   * (#7517): step 1 goes on with one of them unless the person makes a new
+   * one (isNewPage). What the one picked shows already is marked on the
+   * list (chosenShown).
+   */
+  const [existingPages, setExistingPages] = useState<
+    Array<StatusPageSetupPage>
+  >([]);
+  const [isNewPage, setIsNewPage] = useState<boolean>(true);
+  const [chosenPageId, setChosenPageId] = useState<string>("");
+  // The page picked last, for a read of what it shows that arrives late.
+  const chosenPageIdRef: MutableRefObject<string> = useRef<string>("");
+  const [chosenShown, setChosenShown] = useState<ShownMonitors | null>(null);
   const [openStepKey, setOpenStepKey] = useState<string | null>(
     StatusPageSetupStep.Pick,
   );
@@ -143,6 +177,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   const [name, setName] = useState<string>(defaultName);
   const [nameError, setNameError] = useState<string>("");
   const [picked, setPicked] = useState<Array<string>>([]);
+  const [pickedGroups, setPickedGroups] = useState<Array<string>>([]);
   const [pickError, setPickError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
@@ -167,6 +202,36 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     setRun(store.save(values));
   };
 
+  /*
+   * The page the monitors go on, of the project's: what it shows already is
+   * read, to mark on the list. A read that fails marks nothing, and the add
+   * still skips what the page shows.
+   */
+  const choosePage: (pageId: string) => void = (pageId: string): void => {
+    chosenPageIdRef.current = pageId;
+    setChosenPageId(pageId);
+    setChosenShown(null);
+    setPickError("");
+    setSaveError("");
+
+    if (!pageId) {
+      return;
+    }
+
+    StatusPageSetupApi.loadShownMonitors(pageId)
+      .then((pageShown: ShownMonitors) => {
+        // A page picked again since: its own read draws its marks.
+        if (chosenPageIdRef.current === pageId) {
+          setChosenShown(pageShown);
+        }
+      })
+      .catch(() => {
+        if (chosenPageIdRef.current === pageId) {
+          setChosenShown(null);
+        }
+      });
+  };
+
   // Reads the run's records: what exists decides which step opens.
   useEffect(() => {
     let isActive: boolean = true;
@@ -175,7 +240,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       const stored: GuidedSetupRun = store.read();
       let nextRun: GuidedSetupRun = stored;
       let loadedPage: StatusPageSetupRecord | null = null;
-      let loadedShown: ShownMonitors = { count: 0, names: [] };
+      let loadedShown: ShownMonitors = NOTHING_SHOWN;
 
       const statusPageId: string | boolean | undefined =
         stored[StatusPageSetupRunValue.StatusPageId];
@@ -191,7 +256,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           loadedShown = await StatusPageSetupApi.loadShownMonitors(
             loadedPage.id,
           ).catch(() => {
-            return { count: 0, names: [] };
+            return NOTHING_SHOWN;
           });
         } else {
           // The page is gone: this run starts again.
@@ -200,8 +265,23 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         }
       }
 
-      const loadedMonitors: Array<StatusPageSetupMonitor> =
-        await StatusPageSetupApi.loadMonitors();
+      /*
+       * The monitor groups and the pages to offer are extras: a read that
+       * fails leaves the list to the monitors, and step 1 to a new page.
+       */
+      const [loadedMonitors, loadedGroups, loadedPages]: [
+        Array<StatusPageSetupMonitor>,
+        Array<StatusPageSetupMonitorGroup>,
+        Array<StatusPageSetupPage>,
+      ] = await Promise.all([
+        StatusPageSetupApi.loadMonitors(),
+        StatusPageSetupApi.loadMonitorGroups().catch(() => {
+          return [] as Array<StatusPageSetupMonitorGroup>;
+        }),
+        StatusPageSetupApi.loadEditableStatusPages().catch(() => {
+          return [] as Array<StatusPageSetupPage>;
+        }),
+      ]);
 
       if (!isActive) {
         return;
@@ -211,6 +291,22 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       setStatusPage(loadedPage);
       setShown(loadedShown);
       setMonitors(loadedMonitors);
+      setMonitorGroups(loadedGroups);
+      setExistingPages(loadedPages);
+      // A project with pages this person may change goes on with the newest.
+      setIsNewPage(loadedPages.length === 0);
+
+      if (!loadedPage && loadedPages[0]) {
+        choosePage(loadedPages[0].id);
+      }
+      setPicked(
+        getMonitorPickedOnOpen({
+          monitorId: Navigation.getQueryStringByName(
+            STATUS_PAGE_SETUP_MONITOR_QUERY,
+          ),
+          monitors: loadedMonitors,
+        }),
+      );
       setOpenStepKey(
         getFirstOpenStepKey(
           getStatusPageSetupProgress({
@@ -236,14 +332,17 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   }, [store]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {
     return <Alert type={AlertType.DANGER} title={loadError} />;
   }
 
-  if (!statusPage && !mayCreateStatusPage()) {
+  const mayCreate: boolean = mayCreateStatusPage();
+
+  // Someone who may neither make a page nor change one of the project's.
+  if (!statusPage && !mayCreate && existingPages.length === 0) {
     return (
       <div className="max-w-3xl" data-testid="guided-setup-not-allowed">
         <Alert
@@ -265,20 +364,71 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   /*
    * STEP 1: NAME IT, AND PICK WHAT IT SHOWS.
    */
+
+  // The project's page the monitors go on, while step 1 offers one (#7517).
+  const chosenPage: StatusPageSetupPage | null =
+    !statusPage && !isNewPage
+      ? existingPages.find((page: StatusPageSetupPage): boolean => {
+          return page.id === chosenPageId;
+        }) ||
+        existingPages[0] ||
+        null
+      : null;
+
+  // What the page picked shows already: marked on the list, never added twice.
+  const onThePageMonitorIds: Array<string> = chosenPage
+    ? chosenShown?.monitorIds || []
+    : [];
+  const onThePageGroupIds: Array<string> = chosenPage
+    ? chosenShown?.monitorGroupIds || []
+    : [];
+
+  const pickedMonitors: Array<StatusPageSetupMonitor> = getPickedMonitors({
+    monitors: monitors,
+    picked: picked.filter((monitorId: string): boolean => {
+      return !onThePageMonitorIds.includes(monitorId);
+    }),
+  });
+  const pickedMonitorGroups: Array<StatusPageSetupMonitorGroup> =
+    getPickedMonitorGroups({
+      monitorGroups: monitorGroups,
+      picked: pickedGroups.filter((groupId: string): boolean => {
+        return !onThePageGroupIds.includes(groupId);
+      }),
+    });
+  const hasNewPick: boolean =
+    pickedMonitors.length + pickedMonitorGroups.length > 0;
+
+  /*
+   * A page of the project's picked that shows something already, and
+   * nothing more to add: step 1 is done as it is, and goes on to step 2.
+   */
+  const goesOnAsItIs: boolean =
+    Boolean(chosenPage) && !hasNewPick && (chosenShown?.count || 0) > 0;
+
   const createAndAdd: () => Promise<void> = async (): Promise<void> => {
-    if (!statusPage && !isStatusPageNameValid(name)) {
+    if (!statusPage && !chosenPage && !isStatusPageNameValid(name)) {
       setNameError(
         translator.translateText(STATUS_PAGE_SETUP_COPY.nameError) || "",
       );
       return;
     }
 
-    const pickedMonitors: Array<StatusPageSetupMonitor> = getPickedMonitors({
-      monitors: monitors,
-      picked: picked,
-    });
+    if (goesOnAsItIs && chosenPage && chosenShown) {
+      setPickError("");
+      setSaveError("");
+      saveRun({ [StatusPageSetupRunValue.StatusPageId]: chosenPage.id });
+      setStatusPage({
+        id: chosenPage.id,
+        name: chosenPage.name,
+        pageTitle: chosenPage.pageTitle,
+      });
+      setShown(chosenShown);
+      setOpenStepKey(StatusPageSetupStep.Review);
+      return;
+    }
 
-    if (pickedMonitors.length === 0) {
+    if (!hasNewPick) {
       setPickError(
         translator.translateText(STATUS_PAGE_SETUP_COPY.nothingPicked) || "",
       );
@@ -292,22 +442,35 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
 
     try {
       let page: StatusPageSetupRecord | null = statusPage;
-      let foundPage: StatusPageSetupRecord | null = null;
+      /*
+       * A page that was there already: the project's page picked (#7517),
+       * or one of this person's with the name typed (#7252).
+       */
+      let pageThere: StatusPageSetupRecord | null = null;
+      let isFoundByName: boolean = false;
 
-      if (!page) {
+      if (!page && chosenPage) {
+        pageThere = {
+          id: chosenPage.id,
+          name: chosenPage.name,
+          pageTitle: chosenPage.pageTitle,
+        };
+        page = pageThere;
+      } else if (!page) {
         /*
          * A page this person already made with this name is this run's: a
          * run the browser lost (a private window, another device, storage
          * cleared) or a second tab makes no second page with the same name
          * (#7252). A look-up that fails throws, and nothing is made.
          */
-        foundPage = await StatusPageSetupApi.findOwnStatusPage({
+        pageThere = await StatusPageSetupApi.findOwnStatusPage({
           name: name,
           userId: userId,
         });
 
-        if (foundPage) {
-          page = foundPage;
+        if (pageThere) {
+          page = pageThere;
+          isFoundByName = true;
         } else {
           const statusPageId: string =
             await StatusPageSetupApi.createStatusPage(name);
@@ -320,25 +483,45 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       await StatusPageSetupApi.addMonitors({
         statusPageId: page.id,
         monitors: pickedMonitors,
+        ...(pickedMonitorGroups.length > 0
+          ? { monitorGroups: pickedMonitorGroups }
+          : {}),
       });
 
       /*
-       * The page found is the run's once it shows what was picked: a failed
-       * add leaves the step as it was, and the next try looks again.
+       * The page that was there is the run's once it shows what was picked:
+       * a failed add leaves the step as it was, and the next try looks
+       * again.
        */
-      if (foundPage) {
-        saveRun({ [StatusPageSetupRunValue.StatusPageId]: foundPage.id });
-        setStatusPage(foundPage);
-        setIsFoundStatusPage(true);
+      if (pageThere) {
+        saveRun({ [StatusPageSetupRunValue.StatusPageId]: pageThere.id });
+        setStatusPage(pageThere);
+        setIsFoundStatusPage(isFoundByName);
       }
 
+      const added: Array<string> = [
+        ...pickedMonitorGroups.map(
+          (group: StatusPageSetupMonitorGroup): string => {
+            return group.name;
+          },
+        ),
+        ...pickedMonitors.map((monitor: StatusPageSetupMonitor): string => {
+          return monitor.name;
+        }),
+      ];
+
+      /*
+       * A read that fails: what was added, after what the project's page
+       * picked showed already - never what a page picked before showed.
+       */
+      const shownBefore: ShownMonitors =
+        (chosenPage && chosenPage.id === page.id ? chosenShown : null) ||
+        NOTHING_SHOWN;
       const nextShown: ShownMonitors =
         await StatusPageSetupApi.loadShownMonitors(page.id).catch(() => {
           return {
-            count: pickedMonitors.length,
-            names: pickedMonitors.map((monitor: StatusPageSetupMonitor) => {
-              return monitor.name;
-            }),
+            count: shownBefore.count + added.length,
+            names: [...shownBefore.names, ...added],
           };
         });
 
@@ -355,102 +538,120 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   };
 
   const monitorList: ReactElement = (
-    <fieldset>
-      <legend className="block text-sm font-medium text-gray-700">
-        {translator.translateText(STATUS_PAGE_SETUP_COPY.monitorsLabel)}
-      </legend>
-      <p className="mt-1 text-sm text-gray-500">
-        {translator.translateText(STATUS_PAGE_SETUP_COPY.monitorsHelp)}
-      </p>
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <button
-          type="button"
-          className={linkClassName}
-          data-testid="guided-setup-select-all"
-          onClick={() => {
-            setPicked(pickAllMonitors(monitors));
-            setPickError("");
-          }}
-        >
-          {translator.translateText(STATUS_PAGE_SETUP_COPY.selectAll)}
-        </button>
-        {picked.length > 0 ? (
-          <button
-            type="button"
-            className={linkClassName}
-            data-testid="guided-setup-clear-all"
-            onClick={() => {
-              setPicked([]);
-            }}
-          >
-            {translator.translateText(STATUS_PAGE_SETUP_COPY.clearAll)}
-          </button>
-        ) : (
-          <></>
-        )}
-        <span
-          className="text-sm text-gray-500"
-          data-testid="guided-setup-picked-count"
-          aria-live="polite"
-        >
-          {translator.translatePlural(
-            {
-              one: "{{count}} of {{total}} picked",
-              other: "{{count}} of {{total}} picked",
-            },
-            picked.length,
-            { total: translator.formatNumber(monitors.length) },
-          )}
-        </span>
-      </div>
-      <ul
-        className="mt-2 max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200"
-        data-testid="guided-setup-monitors"
+    <StatusPageSetupPicker
+      monitors={monitors}
+      monitorGroups={monitorGroups}
+      picked={picked}
+      pickedGroups={pickedGroups}
+      onPick={(nextPicked: Array<string>, nextGroups: Array<string>) => {
+        setPicked(nextPicked);
+        setPickedGroups(nextGroups);
+        setPickError("");
+      }}
+      onThePageMonitorIds={onThePageMonitorIds}
+      onThePageGroupIds={onThePageGroupIds}
+      error={pickError || undefined}
+    />
+  );
+
+  const pageOptions: Array<DropdownOption> = existingPages.map(
+    (page: StatusPageSetupPage): DropdownOption => {
+      // A page's name as the project wrote it.
+      return { value: page.id, label: page.name, isUserContent: true };
+    },
+  );
+
+  // The project's pages, offered first (#7517): one named, several picked from.
+  const existingPagesOffer: ReactElement = (
+    <div className="space-y-3">
+      <p
+        className="break-words text-sm text-gray-700"
+        data-testid="guided-setup-existing-pages"
       >
-        {monitors.map((monitor: StatusPageSetupMonitor) => {
-          return (
-            <li
-              key={monitor.id}
-              className="flex items-center justify-between gap-3 px-3 py-2"
-            >
-              <CheckboxElement
-                title={monitor.name}
-                value={picked.includes(monitor.id)}
-                onChange={() => {
-                  setPicked(
-                    togglePickedMonitor({
-                      picked: picked,
-                      monitorId: monitor.id,
-                    }),
-                  );
-                  setPickError("");
-                }}
-                dataTestId={`guided-setup-monitor-${monitor.id}`}
-              />
-              {monitor.statusName ? (
-                <span className="flex-shrink-0 text-sm text-gray-500">
-                  {translateRecordName(
-                    translator,
-                    StateListType.MonitorStatus,
-                    monitor.statusName,
-                  )}
-                </span>
-              ) : (
-                <></>
-              )}
-            </li>
-          );
+        {getExistingPagesLine({
+          translator: translator,
+          pages: existingPages,
         })}
-      </ul>
-      {pickError ? (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {pickError}
-        </p>
+      </p>
+      {existingPages.length > 1 ? (
+        <div>
+          <label
+            htmlFor="guided-setup-existing-page"
+            className="block text-sm font-medium text-gray-700"
+          >
+            {translator.translateText(
+              STATUS_PAGE_SETUP_COPY.existingPagesLabel,
+            )}
+          </label>
+          <div className="mt-1" data-testid="guided-setup-existing-page">
+            <Dropdown
+              inputId="guided-setup-existing-page"
+              options={pageOptions}
+              value={pageOptions.find((option: DropdownOption): boolean => {
+                return option.value === chosenPage?.id;
+              })}
+              isClearable={false}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (typeof value === "string") {
+                  choosePage(value);
+                }
+              }}
+            />
+          </div>
+        </div>
       ) : (
         <></>
       )}
-    </fieldset>
+    </div>
   );
+
+  // The other way: a new page, or back to the project's (#7517).
+  const switchPageButton: ReactElement =
+    !statusPage && chosenPage && mayCreate ? (
+      <Button
+        title={STATUS_PAGE_SETUP_COPY.makeNewInstead}
+        buttonStyle={ButtonStyleType.LINK}
+        dataTestId="guided-setup-make-new-page"
+        onClick={() => {
+          setIsNewPage(true);
+          setPickError("");
+          setSaveError("");
+        }}
+      />
+    ) : !statusPage && !chosenPage && existingPages.length > 0 ? (
+      <Button
+        title={STATUS_PAGE_SETUP_COPY.useExistingInstead}
+        buttonStyle={ButtonStyleType.LINK}
+        dataTestId="guided-setup-use-existing-page"
+        onClick={() => {
+          setIsNewPage(false);
+          setNameError("");
+          setPickError("");
+          setSaveError("");
+
+          if (
+            !existingPages.some((page: StatusPageSetupPage): boolean => {
+              return page.id === chosenPageId;
+            }) &&
+            existingPages[0]
+          ) {
+            choosePage(existingPages[0].id);
+          }
+        }}
+      />
+    ) : (
+      <></>
+    );
+
+  const pickButtonTitle: string = statusPage
+    ? STATUS_PAGE_SETUP_COPY.addButton
+    : chosenPage
+      ? goesOnAsItIs
+        ? STATUS_PAGE_SETUP_COPY.continueButton
+        : STATUS_PAGE_SETUP_COPY.addButton
+      : STATUS_PAGE_SETUP_COPY.createButton;
 
   const pickContent: ReactElement =
     statusPage && shown.count > 0 ? (
@@ -461,6 +662,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             translator: translator,
             name: statusPage.name,
             monitorCount: shown.count,
+            hasMonitorGroups: (shown.monitorGroupIds || []).length > 0,
           })}
         </p>
         <div className={`${ACTIONS_CLASS_NAME} gap-x-4`}>
@@ -483,7 +685,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           </AppLink>
         </div>
       </div>
-    ) : monitors.length === 0 ? (
+    ) : monitors.length + monitorGroups.length === 0 ? (
       <div className="space-y-4" data-testid="guided-setup-no-monitors">
         <p className="text-sm text-gray-700">
           {translator.translateText(STATUS_PAGE_SETUP_COPY.noMonitors)}
@@ -518,6 +720,8 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
               STATUS_PAGE_NAME_SENTENCE,
             )}
           </p>
+        ) : chosenPage ? (
+          existingPagesOffer
         ) : (
           <div>
             <label
@@ -542,7 +746,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           </div>
         )}
         {monitorList}
-        {statusPage ? (
+        {statusPage || chosenPage ? (
           <></>
         ) : (
           <p
@@ -561,16 +765,13 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         )}
         <div className={ACTIONS_CLASS_NAME}>
           <Button
-            title={
-              statusPage
-                ? STATUS_PAGE_SETUP_COPY.addButton
-                : STATUS_PAGE_SETUP_COPY.createButton
-            }
+            title={pickButtonTitle}
             type={ButtonType.Submit}
             buttonStyle={ButtonStyleType.PRIMARY}
             isLoading={isSaving}
             dataTestId="guided-setup-create-status-page"
           />
+          {switchPageButton}
         </div>
       </form>
     );
@@ -627,7 +828,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       <p className="text-sm text-gray-500">
         {translator.translateText(STATUS_PAGE_SETUP_COPY.reviewHelp)}
       </p>
-      {/* The page as a visitor reads it: its name, then each monitor. */}
+      {/*
+       * The page as a visitor reads it: its name, then each monitor. Its
+       * name as the public page names itself, in its header and its tab:
+       * its Page Title, else its name (#7467).
+       */}
       <div
         className="rounded-lg border border-gray-200 bg-gray-50 p-4"
         data-testid="guided-setup-preview"
@@ -637,7 +842,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           className="break-words text-base font-semibold text-gray-900"
           data-testid="guided-setup-preview-name"
         >
-          {statusPage?.name}
+          {statusPage ? getStatusPagePublicName(statusPage) : ""}
         </p>
         <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
           {translator.translateText(STATUS_PAGE_SETUP_COPY.showsLabel)}
@@ -714,6 +919,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             translator: translator,
             name: statusPage.name,
             monitorCount: shown.count,
+            hasMonitorGroups: (shown.monitorGroupIds || []).length > 0,
           })
         : undefined,
       content: pickContent,
@@ -881,8 +1087,27 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             setRun({});
             setStatusPage(null);
             setIsFoundStatusPage(false);
-            setShown({ count: 0, names: [] });
+            setShown(NOTHING_SHOWN);
             setPicked([]);
+            setPickedGroups([]);
+            /*
+             * Another page is asked for: a new one, with the project's
+             * pages - the one just set up among them - one click away
+             * (#7517). Someone who may not make one goes on with those.
+             */
+            setIsNewPage(mayCreate);
+            choosePage("");
+            StatusPageSetupApi.loadEditableStatusPages()
+              .then((pages: Array<StatusPageSetupPage>) => {
+                setExistingPages(pages);
+
+                if (!mayCreate && pages[0]) {
+                  choosePage(pages[0].id);
+                }
+              })
+              .catch(() => {
+                // The pages offered stay as they were.
+              });
             // Another page needs a name of its own (#7252).
             setName(
               getStartOverStatusPageName({

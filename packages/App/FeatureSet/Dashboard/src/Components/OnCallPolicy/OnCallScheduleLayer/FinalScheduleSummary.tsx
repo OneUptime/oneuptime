@@ -64,7 +64,7 @@ export const SECTION_LABEL_CLASS_NAME: string =
  * indent that line.
  */
 export const HEADLINE_RELATIVE_TIME_CLASS_NAME: string =
-  "whitespace-nowrap text-gray-400";
+  "whitespace-nowrap text-gray-500";
 
 export const UPCOMING_HAND_OFFS_LIST_CLASS_NAME: string =
   "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white";
@@ -600,7 +600,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                   <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
                     {formatShiftDuration(shift.start, shift.end)}
                   </span>
-                  <span className="text-[11px] font-medium text-gray-500">
+                  <span className="text-xs font-medium text-gray-500">
                     {formatRelativeStart(shift.start, props.now)}
                   </span>
                 </div>

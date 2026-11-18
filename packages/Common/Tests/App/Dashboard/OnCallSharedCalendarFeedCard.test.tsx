@@ -878,7 +878,7 @@ describe("SharedCalendarFeedCard - a published link", () => {
     await waitFor(() => {
       expect(getMock).toHaveBeenCalledTimes(2);
     });
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-links"),
     ).toBeInTheDocument();
@@ -890,7 +890,7 @@ describe("SharedCalendarFeedCard - a published link", () => {
         screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
       ).toHaveTextContent("Disabled");
     });
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   });
 
   test("Enable link in the status writes isEnabled=true on the schedule feed model", async () => {

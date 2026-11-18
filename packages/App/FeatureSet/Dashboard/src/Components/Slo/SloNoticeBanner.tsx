@@ -28,6 +28,10 @@ import {
   SloNoticeActionTarget,
   SloNoticeType,
 } from "Common/Utils/Slo/SloHealth";
+import {
+  areSloMonitorsWaitingForFirstCheck,
+  SLO_MONITOR_FIRST_CHECK_SELECT,
+} from "Common/Utils/Slo/SloMonitorsFirstCheck";
 import React, {
   Fragment,
   FunctionComponent,
@@ -232,8 +236,13 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
               sliType: true,
               targetPercentage: true,
               lastEvaluatedAt: true,
+              /*
+               * Whether something has checked them yet, with the pause flags
+               * the worker reads beside it, for "Waiting for the first check".
+               */
               monitors: {
                 _id: true,
+                ...SLO_MONITOR_FIRST_CHECK_SELECT,
               },
               // What a request SLO measures: its services and threshold.
               services: {
@@ -268,12 +277,16 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
+  const monitors: Array<Monitor> =
+    (slo.monitors as Array<Monitor> | undefined) || [];
+
   const notice: SloNotice | null = getSloNotice({
     isArchived: slo.isArchived,
     isEnabled: slo.isEnabled,
     sloStatus: slo.sloStatus,
     sliType: slo.sliType,
-    monitorCount: ((slo.monitors as Array<Monitor> | undefined) || []).length,
+    monitorCount: monitors.length,
+    isWaitingForFirstCheck: areSloMonitorsWaitingForFirstCheck(monitors),
     serviceCount: ((slo.services as Array<Service> | undefined) || []).length,
     latencyThresholdInMilliseconds: slo.latencyThresholdInMilliseconds,
     metricQueryConfig: slo.metricQueryConfig,

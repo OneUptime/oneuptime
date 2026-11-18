@@ -84,6 +84,19 @@ export function useCriticalAlerts(): CriticalAlertsState {
     };
   }, []);
 
+  /*
+   * A turn-on the phone did not allow yet: the responder was sent to allow
+   * it - Android's Do Not Disturb access, or iOS Settings after a refusal at
+   * the prompt. Coming back with it allowed finishes what they asked for, so
+   * they never have to ask twice (#7041). Their next choice replaces it.
+   */
+  const turnOnWhenAllowedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // The latest setEnabled, for the foreground listener set up before it.
+  const setEnabledRef: React.MutableRefObject<
+    ((enabled: boolean) => Promise<void>) | null
+  > = useRef<((enabled: boolean) => Promise<void>) | null>(null);
+
   const applyStatus: (status: CriticalAlertStatus) => void = useCallback(
     (status: CriticalAlertStatus): void => {
       if (!isMountedRef.current) {
@@ -193,6 +206,12 @@ export function useCriticalAlerts(): CriticalAlertsState {
               isMountedRef.current
             ) {
               setError("");
+
+              // Allowed now, as they asked: turned on, and the server told.
+              if (turnOnWhenAllowedRef.current) {
+                turnOnWhenAllowedRef.current = false;
+                void setEnabledRef.current?.(true);
+              }
             }
           })
           .catch((refreshError: unknown): void => {
@@ -213,6 +232,7 @@ export function useCriticalAlerts(): CriticalAlertsState {
     async (enabled: boolean): Promise<void> => {
       setIsBusy(true);
       setError("");
+      turnOnWhenAllowedRef.current = false;
 
       try {
         const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
@@ -245,6 +265,9 @@ export function useCriticalAlerts(): CriticalAlertsState {
             setIsEnabled(false);
             setError(status.reason);
           }
+
+          turnOnWhenAllowedRef.current =
+            status.availability === CriticalAlertAvailability.Denied;
           return;
         }
 
@@ -303,6 +326,10 @@ export function useCriticalAlerts(): CriticalAlertsState {
     },
     [applyStatus, refresh],
   );
+
+  useEffect((): void => {
+    setEnabledRef.current = setEnabled;
+  }, [setEnabled]);
 
   /*
    * The phone's settings page that turns critical alerts back on. Coming

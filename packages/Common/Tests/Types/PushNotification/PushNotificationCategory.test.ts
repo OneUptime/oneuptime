@@ -1,6 +1,7 @@
 import {
   ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
   ON_CALL_PAGE_PUSH_CATEGORY,
+  ON_CALL_TEST_PAGE_PUSH_CATEGORY,
   PUSH_NOTIFICATION_CATEGORIES,
   getOnCallPagePushCategory,
   isPushNotificationCategory,
@@ -27,10 +28,21 @@ describe("PushNotificationCategory", () => {
     );
   });
 
-  test("the list is the two, the responder's first", () => {
+  test("a test page has a category of its own too (#7014), neither a responder's nor an observer's", () => {
+    expect(ON_CALL_TEST_PAGE_PUSH_CATEGORY).toBe("ON_CALL_TEST_PAGE");
+    expect(ON_CALL_TEST_PAGE_PUSH_CATEGORY).not.toBe(
+      ON_CALL_PAGE_PUSH_CATEGORY,
+    );
+    expect(ON_CALL_TEST_PAGE_PUSH_CATEGORY).not.toBe(
+      ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+    );
+  });
+
+  test("the list is the three, the responder's first", () => {
     expect([...PUSH_NOTIFICATION_CATEGORIES]).toEqual([
       "ON_CALL_PAGE",
       "ON_CALL_OBSERVER_PAGE",
+      "ON_CALL_TEST_PAGE",
     ]);
   });
 
@@ -39,6 +51,9 @@ describe("PushNotificationCategory", () => {
     expect(
       isPushNotificationCategory(ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY),
     ).toBe(true);
+    expect(isPushNotificationCategory(ON_CALL_TEST_PAGE_PUSH_CATEGORY)).toBe(
+      true,
+    );
   });
 
   test("anything else is not - the categories earlier app builds registered included", () => {
@@ -75,5 +90,13 @@ describe("getOnCallPagePushCategory", () => {
       );
     }
     expect(getOnCallPagePushCategory({})).toBe(ON_CALL_PAGE_PUSH_CATEGORY);
+  });
+
+  test("a real page is never given the test page's category", () => {
+    for (const isObserverPage of [true, false, null, undefined]) {
+      expect(getOnCallPagePushCategory({ isObserverPage })).not.toBe(
+        ON_CALL_TEST_PAGE_PUSH_CATEGORY,
+      );
+    }
   });
 });

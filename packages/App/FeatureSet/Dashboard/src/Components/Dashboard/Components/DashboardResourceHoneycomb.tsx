@@ -460,7 +460,7 @@ const HoneycombTooltip: FunctionComponent<{
       </div>
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-gray-400">
+          <span className="text-gray-500">
             {translator.translateText("Status")}
           </span>
           <span className="font-medium text-gray-700 truncate">
@@ -475,7 +475,7 @@ const HoneycombTooltip: FunctionComponent<{
               key={i}
               className="flex items-center justify-between gap-2 text-xs"
             >
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translateText(d.label)}
               </span>
               <DashboardWidgetLine
@@ -491,7 +491,7 @@ const HoneycombTooltip: FunctionComponent<{
          * tile's description to a screen reader too (aria-describedby).
          */}
         {state.tile.route && (
-          <div className="text-[10px] text-gray-400 pt-1.5 border-t border-gray-100 mt-1.5">
+          <div className="text-xs text-gray-500 pt-1.5 border-t border-gray-100 mt-1.5">
             {state.openedBy === "keyboard"
               ? translator.translateText("Press Enter to open")
               : translator.translateText("Click to open")}
@@ -712,7 +712,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: item.color }}
                 ></span>
-                <span className="text-[10px] text-gray-500">
+                <span className="text-xs text-gray-500">
                   {translator.translateText(item.label)}
                 </span>
               </div>

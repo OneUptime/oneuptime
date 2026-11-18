@@ -54,7 +54,11 @@ test("all labeled variants and sizes center the pencil without changing its butt
   const buttons: Locator = page.locator(
     '[data-testid="edit-project"], [data-testid^="variant-"], [data-testid^="size-"]',
   );
-  expect(await buttons.count()).toBe(24);
+  /*
+   * The project's Edit, a button for each of the ten styles but ICON, and
+   * the size buttons. #9195 and #9296 folded six styles away.
+   */
+  expect(await buttons.count()).toBe(19);
   for (const button of await buttons.all()) {
     const name: string | null = await button.getAttribute("data-testid");
     const result: Alignment = await alignment(button);
@@ -145,9 +149,9 @@ test("labeled and icon-only edit actions remain accessible to pointer and keyboa
   await page.keyboard.press("Enter");
   await page.keyboard.press("Space");
   await expect(page.getByRole("status")).toHaveText("Edits requested: 3");
-  for (const name of ["ICON", "ICON_LIGHT"]) {
+  {
     const button: Locator = page.getByRole("button", {
-      name: `Edit ${name}`,
+      name: "Edit ICON",
       exact: true,
     });
     await expect(button).toHaveText("");
@@ -168,7 +172,7 @@ test("labeled and icon-only edit actions remain accessible to pointer and keyboa
     await button.focus();
     await page.keyboard.press("Enter");
   }
-  await expect(page.getByRole("status")).toHaveText("Edits requested: 5");
+  await expect(page.getByRole("status")).toHaveText("Edits requested: 4");
   await expect(
     page.getByRole("button", { name: "Disabled edit" }),
   ).toBeDisabled();

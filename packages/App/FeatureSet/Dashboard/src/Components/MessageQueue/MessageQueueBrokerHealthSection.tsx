@@ -1,4 +1,5 @@
 import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonStates";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -59,7 +60,6 @@ import {
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -382,7 +382,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
         description={getMessageQueueSystemLabel(props.messagingSystem)}
       >
         <div data-testid="message-queue-broker-health-loading">
-          <ComponentLoader />
+          <StatTilesSkeleton />
         </div>
       </Card>
     );
@@ -502,7 +502,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
               <div className="mt-1 truncate text-xs text-gray-500">
                 {getMessageQueueBrokerMetricCaption(result.descriptor)}
               </div>
-              <div className="mt-1 truncate font-mono text-xs text-gray-400">
+              <div className="mt-1 truncate font-mono text-xs text-gray-500">
                 {result.descriptor.metricName}
               </div>
             </div>

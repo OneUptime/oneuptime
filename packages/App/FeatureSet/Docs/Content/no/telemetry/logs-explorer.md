@@ -36,7 +36,7 @@ Utforskeren har fem faner:
 
 ## Før du begynner
 
-- **Logger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Oppsettveiledning** viser konfigurasjonen for språket eller collectoren din.
+- **Logger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Oppsettveiledning** viser konfigurasjonen for språket eller collectoren din. Til de første dataene kommer, tilbyr denne siden **Veiledet oppsett**, som tar deg fra de første loggene, målingene og sporene dine til varsler på dem, ved siden av **Send de første loggene dine**, oppsettsguiden alene. For å sjekke endpointet og nøkkelen din før du setter opp en app, åpner du **Send en testlogg** i veiledningens første trinn: det sender én logg fra tjenesten `oneuptime-test`, som du kan slette etterpå.
 - **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Logs. Omfanget avgjør hvem sine logger du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Finn en logglinje

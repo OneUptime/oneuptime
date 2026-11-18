@@ -358,7 +358,7 @@ const renderValue: (
 ): ReactElement => {
   if (value === null || value === undefined || value === "") {
     return (
-      <span className="italic text-gray-400">
+      <span className="italic text-gray-500">
         {translator.translateText("empty")}
       </span>
     );
@@ -496,7 +496,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                       {humanizeFieldName(row.field)}
                     </span>
-                    <span className="text-[10px] font-mono text-gray-400">
+                    <span className="text-xs font-mono text-gray-500">
                       {row.field}
                     </span>
                   </div>
@@ -524,7 +524,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                   {showBoth ? (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">
                       <div>
-                        <div className="text-[10px] uppercase tracking-wide text-red-600 font-semibold mb-1">
+                        <div className="text-xs uppercase tracking-wide text-red-600 font-semibold mb-1">
                           {translator.translateText("Before")}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
@@ -539,7 +539,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                         />
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase tracking-wide text-emerald-600 font-semibold mb-1">
+                        <div className="text-xs uppercase tracking-wide text-emerald-600 font-semibold mb-1">
                           {translator.translateText("After")}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
@@ -550,7 +550,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                   ) : (
                     <div>
                       <div
-                        className={`text-[10px] uppercase tracking-wide font-semibold mb-1 ${
+                        className={`text-xs uppercase tracking-wide font-semibold mb-1 ${
                           isDelete ? "text-red-600" : "text-emerald-600"
                         }`}
                       >

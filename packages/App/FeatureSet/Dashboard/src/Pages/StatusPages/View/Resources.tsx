@@ -1,4 +1,6 @@
 import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ImportGroupsFromCsvModal from "../../../Components/StatusPage/ImportGroupsFromCsvModal";
 import StatusPageResourcePanel from "../../../Components/StatusPage/StatusPageResourcePanel";
 import {
@@ -21,7 +23,6 @@ import {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -993,7 +994,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
      * and read another's - which is the exact cost this page exists to avoid.
      */
     if (!hasChosenInitialSelection) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     const selectionKey: string =
@@ -1490,7 +1491,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
      * resources for no reason at all.
      */
     if (isLoading && groups.length === 0) {
-      return <ComponentLoader />;
+      return <CardListSkeleton count={4} lines={1} />;
     }
 
     /*

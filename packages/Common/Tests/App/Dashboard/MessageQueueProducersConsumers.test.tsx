@@ -665,7 +665,7 @@ describe("the Producers and Consumers cards", () => {
           />
         </MemoryRouter>,
       );
-      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
       expect(screen.queryByTestId(`message-queue-${side}-empty`)).toBeNull();
     },
   );

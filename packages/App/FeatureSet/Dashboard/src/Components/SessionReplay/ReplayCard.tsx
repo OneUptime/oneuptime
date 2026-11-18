@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   composedValue,
   formatList,
@@ -34,7 +35,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import AppLink from "../AppLink/AppLink";
 import {
   ReplayCardMoment,
@@ -532,7 +532,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   if (isLoading) {
     return (
       <div className={`mb-5 ${props.className || ""}`}>
-        <ComponentLoader />
+        <ChartSkeleton hasLegend={false} />
       </div>
     );
   }
@@ -709,7 +709,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
              * click, not after.
              */}
             <div
-              className="mt-1 text-[11px] text-gray-500"
+              className="mt-1 text-xs text-gray-500"
               data-testid="replay-card-masking"
             >
               {translator.translateTemplate("Masking when recorded: {{mode}}", {
@@ -718,7 +718,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             </div>
             {momentNote && (
               <div
-                className="mt-1 text-[11px] text-gray-500"
+                className="mt-1 text-xs text-gray-500"
                 data-testid="replay-card-moment-note"
               >
                 {momentNote}
@@ -839,7 +839,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             )}
             {isScopeTruncated && (
               <div
-                className="mt-1 text-[11px] text-amber-700"
+                className="mt-1 text-xs text-amber-700"
                 data-testid="replay-card-truncated"
               >
                 {translator.translateText(

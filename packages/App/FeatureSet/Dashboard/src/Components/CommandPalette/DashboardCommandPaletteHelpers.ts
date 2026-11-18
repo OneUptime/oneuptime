@@ -18,11 +18,17 @@ import HeldPermissionsUtil, {
   HeldPermissions,
 } from "Common/Types/HeldPermissions";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import {
   RecordNumberColumns,
   getNumberedRecordName,
@@ -51,15 +57,19 @@ export const PALETTE_ENTITY_SEARCH_LIMIT: number = 5;
  * then the palette's own actions and quick links. "pager" opens On-Call
  * Duty, then On-Call Policies, then My On-Call Policies; "monitor groups"
  * opens the Monitor Groups page, then the Feature Flags switch that turns
- * them on.
+ * them on. On a record's page, that record's own pages come before the
+ * pages of the same name that open without a record (#9204): "settings" on
+ * a status page opens its Settings before Project Settings' pages.
  */
 export const PALETTE_SEARCH_PRIORITY: {
   product: number;
+  recordPage: number;
   page: number;
   setting: number;
   action: number;
 } = {
   product: 2,
+  recordPage: 1.5,
   page: 1,
   setting: 0.5,
   action: 0,
@@ -217,6 +227,11 @@ export interface PageSearchCommandDescriptor {
    * (PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY).
    */
   isNamedForAnotherProduct?: boolean | undefined;
+  /*
+   * Found only by a query that holds one of these names whole: "Import from
+   * incident.io" by "incident.io", never by "incident" (#7034).
+   */
+  foundOnlyByWholeName?: Array<string> | undefined;
 }
 
 export interface BuildPageSearchCommandsInput {
@@ -539,6 +554,10 @@ export function buildPageSearchCommandDescriptors(
             ...(action.isNamedForAnotherProduct
               ? { isNamedForAnotherProduct: true }
               : {}),
+            ...(action.foundOnlyByWholeName &&
+            action.foundOnlyByWholeName.length > 0
+              ? { foundOnlyByWholeName: [...action.foundOnlyByWholeName] }
+              : {}),
           });
         }
 
@@ -590,16 +609,19 @@ export function buildPageSearchCommandDescriptors(
 /*
  * How a result of the page index ranks against the rest, as Search reads
  * it: between equally good matches a page before a setting on a page, and
- * a setting never before the page it is on. The palette and the tests that
- * search the index both read it here.
+ * a setting never before the page it is on; and what a query has to hold
+ * for it to be found at all. The palette and the tests that search the
+ * index both read it here.
  */
 export interface PageSearchCommandRanking {
   searchPriority: number;
   onPageCommandId?: string | undefined;
   searchPenalty?: number | undefined;
+  foundOnlyByWholeName?: Array<string> | undefined;
 }
 
-export const getPageSearchCommandRanking: (
+// Where a result of the page index ranks, between equally good matches.
+const getPageSearchCommandPlace: (
   descriptor: PageSearchCommandDescriptor,
 ) => PageSearchCommandRanking = (
   descriptor: PageSearchCommandDescriptor,
@@ -620,6 +642,20 @@ export const getPageSearchCommandRanking: (
     searchPriority: PALETTE_SEARCH_PRIORITY.setting,
     onPageCommandId: descriptor.onPageId,
   };
+};
+
+export const getPageSearchCommandRanking: (
+  descriptor: PageSearchCommandDescriptor,
+) => PageSearchCommandRanking = (
+  descriptor: PageSearchCommandDescriptor,
+): PageSearchCommandRanking => {
+  const ranking: PageSearchCommandRanking =
+    getPageSearchCommandPlace(descriptor);
+
+  // "Import from incident.io" is found only by its whole name (#7034).
+  return descriptor.foundOnlyByWholeName
+    ? { ...ranking, foundOnlyByWholeName: descriptor.foundOnlyByWholeName }
+    : ranking;
 };
 
 export interface PageSearchIndexEntry {
@@ -653,6 +689,12 @@ export type PaletteActionId =
   | "action-create-alert"
   | "action-create-scheduled-maintenance"
   | "action-create-announcement"
+  | "action-create-status-page"
+  | "action-create-on-call-policy"
+  | "action-create-on-call-schedule"
+  | "action-create-dashboard"
+  | "action-create-workflow"
+  | "action-invite-user"
   | "action-toggle-theme"
   | "action-system-theme"
   | "action-ask-ai"
@@ -672,6 +714,17 @@ export interface PaletteCreateActionGates {
   canCreateAlert: boolean;
   canCreateScheduledMaintenance: boolean;
   canCreateAnnouncement: boolean;
+  /*
+   * The actions that open a list's create form (#7035,
+   * PALETTE_LIST_CREATE_ACTIONS). Left out, they are not offered.
+   */
+  canCreateStatusPage?: boolean | undefined;
+  canCreateOnCallPolicy?: boolean | undefined;
+  canCreateOnCallSchedule?: boolean | undefined;
+  canCreateDashboard?: boolean | undefined;
+  canCreateWorkflow?: boolean | undefined;
+  // Invite User: a membership of the project's teams, created.
+  canInviteUser?: boolean | undefined;
 }
 
 // A model whose own permission list for an operation is asked about.
@@ -737,6 +790,12 @@ export function computeCreateActionGates(data: {
     canCreateAlert: canCreate(new Alert()),
     canCreateScheduledMaintenance: canCreate(new ScheduledMaintenance()),
     canCreateAnnouncement: canCreate(new StatusPageAnnouncement()),
+    canCreateStatusPage: canCreate(new StatusPage()),
+    canCreateOnCallPolicy: canCreate(new OnCallDutyPolicy()),
+    canCreateOnCallSchedule: canCreate(new OnCallDutyPolicySchedule()),
+    canCreateDashboard: canCreate(new Dashboard()),
+    canCreateWorkflow: canCreate(new Workflow()),
+    canInviteUser: canCreate(new TeamMember()),
   };
 }
 
@@ -771,6 +830,42 @@ export function canSearchRecordsOf(data: {
 }
 
 /*
+ * Whether Search looks for the project's people (#7036): only for someone
+ * who may see them as the Users page lists them - the project's memberships
+ * read with each one's user, which needs one of the user column's read
+ * permissions and no team's block on them (the server's own check,
+ * Server/Utils/Team/ProjectMemberSearch, holds anyone else to a refusal). A
+ * master admin sees everyone. A snapshot that holds nothing at all leaves it
+ * to the server, as canSearchRecordsOf does.
+ */
+export function canSearchMembers(data: {
+  // What the user holds, blocks included (PermissionGate.getHeldPermissions).
+  held: HeldPermissions | null;
+  isMasterAdmin: boolean;
+}): boolean {
+  if (data.isMasterAdmin || !data.held || data.held.allowed.length === 0) {
+    return true;
+  }
+
+  const membership: TeamMember = new TeamMember();
+
+  return (
+    canSearchRecordsOf({
+      model: membership,
+      held: data.held,
+      isMasterAdmin: data.isMasterAdmin,
+    }) &&
+    HeldPermissionsUtil.holdsColumnPermission(data.held, {
+      isOperationalResource: membership.isOperationalResource,
+      operation: "read",
+      tablePermissions: membership.getReadPermissions() || [],
+      columnPermissions:
+        membership.getColumnAccessControlFor("user")?.read || [],
+    })
+  );
+}
+
+/*
  * The same rule for the actions the page index offers: Delete Project needs
  * the project's delete permission (Project Owner or Delete Project), or a
  * master admin. A missing permission snapshot hides it.
@@ -794,6 +889,109 @@ export function canDeleteProject(data: {
     held: data.held,
   });
 }
+
+/*
+ * Search's actions that open a list's create form (#7035): Create Status
+ * Page, Create On-Call Policy, Create On-Call Schedule, Create Dashboard,
+ * Create Workflow and Invite User. Unlike Declare Incident or Create
+ * Monitor, none has a page of its own: each form opens on its list, so the
+ * action opens the list with ?create=1 (Common/UI/Utils/CreateFormAddress),
+ * which opens the form as the list's Create button does - for whoever that
+ * button is open to, the gate below being the same rule. Offered while
+ * searching ("create", "new", "invite", "status page"), so the list Search
+ * opens on stays as short as it was. Ask AI's page catalog sends people to
+ * the same addresses (AIDashboardPagesCatalog).
+ */
+export interface PaletteListCreateAction {
+  id: PaletteActionId;
+  /*
+   * In English, as the list's own Create button says it: a key every
+   * Dashboard locale words.
+   */
+  title: string;
+  // The list whose create form it opens.
+  page: PageMap;
+  // Where the list is, in English, as the menus name it.
+  where: Array<string>;
+  // Other words for it, in English, never shown.
+  keywords: Array<string>;
+  icon: IconProp;
+  iconColor: string;
+  // Whether the person may create there (computeCreateActionGates).
+  gate: keyof PaletteCreateActionGates;
+}
+
+export const PALETTE_LIST_CREATE_ACTIONS: ReadonlyArray<PaletteListCreateAction> =
+  [
+    {
+      id: "action-create-status-page",
+      title: "Create Status Page",
+      page: PageMap.STATUS_PAGES,
+      where: ["Status Pages"],
+      keywords: ["new", "add", "new status page", "public status page"],
+      icon: IconProp.CheckCircle,
+      iconColor: "emerald",
+      gate: "canCreateStatusPage",
+    },
+    {
+      id: "action-create-on-call-policy",
+      title: "Create On-Call Policy",
+      page: PageMap.ON_CALL_DUTY_POLICIES,
+      where: ["On-Call"],
+      keywords: ["new", "add", "new on-call policy", "escalation policy"],
+      icon: IconProp.Call,
+      iconColor: "stone",
+      gate: "canCreateOnCallPolicy",
+    },
+    {
+      id: "action-create-on-call-schedule",
+      title: "Create On-Call Schedule",
+      page: PageMap.ON_CALL_DUTY_SCHEDULES,
+      where: ["On-Call"],
+      keywords: ["new", "add", "new on-call schedule", "new rotation"],
+      icon: IconProp.Calendar,
+      iconColor: "stone",
+      gate: "canCreateOnCallSchedule",
+    },
+    {
+      id: "action-create-dashboard",
+      title: "Create Dashboard",
+      page: PageMap.DASHBOARDS,
+      where: ["Dashboards"],
+      keywords: ["new", "add", "new dashboard"],
+      icon: IconProp.ChartBar,
+      iconColor: "violet",
+      gate: "canCreateDashboard",
+    },
+    {
+      id: "action-create-workflow",
+      title: "Create Workflow",
+      page: PageMap.WORKFLOWS,
+      where: ["Workflows"],
+      keywords: ["new", "add", "new workflow", "automation"],
+      icon: IconProp.Workflow,
+      iconColor: "pink",
+      gate: "canCreateWorkflow",
+    },
+    {
+      id: "action-invite-user",
+      title: "Invite User",
+      page: PageMap.USERS,
+      where: ["Users"],
+      keywords: [
+        "new",
+        "add",
+        "add user",
+        "invite member",
+        "add member",
+        "invite teammate",
+        "add teammate",
+      ],
+      icon: IconProp.UserPlus,
+      iconColor: "blue",
+      gate: "canInviteUser",
+    },
+  ];
 
 export interface PaletteActionAvailability extends PaletteCreateActionGates {
   hasProjectSelected: boolean;
@@ -838,6 +1036,13 @@ export function getVisibleActionIds(
     }
     if (availability.canCreateAnnouncement) {
       actionIds.push("action-create-announcement");
+    }
+
+    // The lists' create forms (#7035), each for whoever may create there.
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      if (availability[action.gate]) {
+        actionIds.push(action.id);
+      }
     }
   }
 
@@ -891,6 +1096,12 @@ export const PALETTE_ACTION_PRODUCTS: Readonly<
   "action-create-alert": ProductKey.Alerts,
   "action-create-scheduled-maintenance": ProductKey.ScheduledMaintenance,
   "action-create-announcement": ProductKey.StatusPages,
+  "action-create-status-page": ProductKey.StatusPages,
+  "action-create-on-call-policy": ProductKey.OnCall,
+  "action-create-on-call-schedule": ProductKey.OnCall,
+  "action-create-dashboard": ProductKey.Dashboards,
+  "action-create-workflow": ProductKey.Workflows,
+  "action-invite-user": ProductKey.Users,
   "action-ask-ai": ProductKey.AIChat,
   "action-active-incidents": ProductKey.Incidents,
   "action-my-on-call-policies": ProductKey.OnCall,
@@ -912,8 +1123,11 @@ export function withoutActionsOfProductsOff(
 export interface PaletteEntitySearchSpec {
   /** Stable provider id, also used in the palette's section test ids. */
   id: string;
-  /** Which model column carries the human name of a row. */
-  titleField: "name" | "title";
+  /**
+   * Which model column carries the human name of a row: name or title, and
+   * an inventory item's displayName (RecordPageSearchModels).
+   */
+  titleField: string;
   /**
    * Columns the free-text search runs over. MUST be real entity property
    * names for the model — verified against each model class and the
@@ -933,6 +1147,12 @@ export interface PaletteEntitySearchSpec {
   icon: IconProp;
   /** Tailwind color name — matches the NavBar item for the same entity. */
   iconColor: string;
+  /**
+   * The rows of the model this kind is, where two products show one model:
+   * App Platforms' environments and Cloud's resources are both
+   * CloudResource rows (RecordPageSearchModels).
+   */
+  filter?: JSONObject | undefined;
 }
 
 // A numbered entity is found by its number too: "INC-18".
@@ -1100,6 +1320,7 @@ export function buildEntitySearchQuery(
   searchText: string,
 ): JSONObject {
   return {
+    ...(spec.filter || {}),
     _multiFieldSearch: new MultiSearch({
       fields: spec.searchFields,
       value: searchText.trim(),

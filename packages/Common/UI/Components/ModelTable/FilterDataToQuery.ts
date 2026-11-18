@@ -97,6 +97,56 @@ const sanitizeFilterData: SanitizeFilterDataFunction = <
 
 export { sanitizeFilterData };
 
+export type RenameFilterDataKeysFunction = <
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+>(data: {
+  filterData: FilterData<TBaseModel>;
+  // A filter's old key, by the key the table filters by now.
+  renamedKeys?: Readonly<Record<string, string>> | undefined;
+}) => FilterData<TBaseModel>;
+
+/**
+ * A filter snapshot made when a table keyed a filter by another field - a
+ * link someone shared, a bookmark - read under the key the table uses now,
+ * so it still filters by what it said (UX principle 8: nothing to relearn).
+ * The Devices list's Vendor filter read `vendor` before it read the maker
+ * the server keeps, `manufacturer` (#9363). A key the snapshot already holds
+ * under its new name keeps that value; an old key with no new name is left
+ * for sanitizeFilterData to drop.
+ */
+const renameFilterDataKeys: RenameFilterDataKeysFunction = <
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+>(data: {
+  filterData: FilterData<TBaseModel>;
+  renamedKeys?: Readonly<Record<string, string>> | undefined;
+}): FilterData<TBaseModel> => {
+  const renamedKeys: Readonly<Record<string, string>> = data.renamedKeys || {};
+  const renamed: FilterData<TBaseModel> = {};
+
+  for (const key in data.filterData || {}) {
+    const value: unknown = (data.filterData as any)[key];
+    const newKey: string | undefined = Object.prototype.hasOwnProperty.call(
+      renamedKeys,
+      key,
+    )
+      ? renamedKeys[key]
+      : undefined;
+
+    if (!newKey) {
+      (renamed as any)[key] = value;
+      continue;
+    }
+
+    if ((data.filterData as any)[newKey] === undefined) {
+      (renamed as any)[newKey] = value;
+    }
+  }
+
+  return renamed;
+};
+
+export { renameFilterDataKeys };
+
 export type BuildQueryFromFilterDataFunction = <
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 >(data: {

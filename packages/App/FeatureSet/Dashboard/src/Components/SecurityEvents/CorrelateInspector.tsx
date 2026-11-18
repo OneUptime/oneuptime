@@ -560,7 +560,7 @@ export const CorrelateObservablePivotPanel: FunctionComponent<
           data-testid="correlate-observable-fact-events"
           className="rounded-lg bg-gray-50 px-3 py-2"
         >
-          <dt className="text-[11px] text-gray-500">{t("Events")}</dt>
+          <dt className="text-xs text-gray-500">{t("Events")}</dt>
           <dd className="text-lg font-semibold tabular-nums text-gray-900">
             {props.eventCount}
             {props.countIsLowerBound ? "+" : ""}
@@ -570,7 +570,7 @@ export const CorrelateObservablePivotPanel: FunctionComponent<
           data-testid="correlate-observable-fact-classes"
           className="rounded-lg bg-gray-50 px-3 py-2"
         >
-          <dt className="text-[11px] text-gray-500">{t("Event classes")}</dt>
+          <dt className="text-xs text-gray-500">{t("Event classes")}</dt>
           <dd className="text-lg font-semibold tabular-nums text-gray-900">
             {props.classes.length}
           </dd>

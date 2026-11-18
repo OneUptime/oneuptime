@@ -1,5 +1,6 @@
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
 import { WhoIsToldMode } from "../WebsiteDown/WebsiteDownSetup";
+import ActivationMilestone from "Common/Types/Analytics/ActivationMilestone";
 import { Translator, translationKey } from "Common/Types/Translator";
 
 /*
@@ -12,13 +13,16 @@ import { Translator, translationKey } from "Common/Types/Translator";
  *      (a method, an ingestion key, install and configure), unchanged, and
  *      the wait the first-run dialog has, until a service reports. A
  *      project that has a reporting service already can pick it instead.
- *   2. Get alerted: three monitors from the Service catalog, for the
- *      service that reported - failing requests (Error Burst), slow ones
- *      (High Request Latency, p95) and unhandled exceptions - all ticked,
- *      created in one click, each opening an ALERT: for the team, never on
- *      a status page. The step says who is told, and that a monitor can be
- *      switched to an incident when customers should see it. "Not now"
- *      ends the setup too.
+ *      Data that arrives naming no service says so, and how to name one
+ *      (#7888): only a service finishes the step, as step 2 alerts on it.
+ *   2. Get alerted: monitors from the Service catalog for the service that
+ *      reported, each for data it sends (#7146) - failing requests (Error
+ *      Burst) for traces, slow ones (High Request Latency, p95) for
+ *      metrics, unhandled exceptions for traces or logs, and a spike in
+ *      error logs for logs - all ticked, created in one click, each opening
+ *      an ALERT: for the team, never on a status page. The step says who is
+ *      told, and that a monitor can be switched to an incident when
+ *      customers should see it. "Not now" ends the setup too.
  *
  * Then the summary, read from the records, with what to do next.
  *
@@ -42,13 +46,97 @@ export const TELEMETRY_SETUP_STEPS: ReadonlyArray<TelemetrySetupStep> = [
  * The monitors offered, by their Service catalog template ids
  * (Common/Types/Monitor/ServiceAlertTemplates), in this order: one for
  * each thing a newcomer asks first - is it failing, is it slow, is it
- * throwing. All three apply to every service, whatever its runtime.
+ * throwing - and a spike in its error logs. Each applies to every service,
+ * whatever its runtime, and reads one kind of data: a monitor of data the
+ * service never sends never fires, and the team believes it is covered
+ * (#7146). So each is offered once the project's first data of a kind it
+ * reads has arrived (`readsFirstDataOf`, the activation milestones):
+ *
+ *   - Error Burst counts error spans: traces;
+ *   - High Request Latency reads http.server.request.duration: metrics;
+ *   - Unhandled Exceptions counts exceptions, which come with traces and
+ *     with logs;
+ *   - Error Log Spike counts error logs: logs.
+ *
+ * The project's first data stands for the service's: a new project's first
+ * service is the only one that sent anything, and a busy project, which has
+ * every kind, is offered all four, as before. A project whose first data is
+ * not known (none kept, or the read failed) is offered the three the setup
+ * always offered.
  */
+export interface TelemetryRecommendedTemplate {
+  templateId: string;
+  readsFirstDataOf: ReadonlyArray<ActivationMilestone>;
+}
+
+export const TELEMETRY_RECOMMENDED_TEMPLATES: ReadonlyArray<TelemetryRecommendedTemplate> =
+  [
+    {
+      templateId: "service-error-burst",
+      readsFirstDataOf: [ActivationMilestone.FirstTracesReceived],
+    },
+    {
+      templateId: "service-latency-p95",
+      readsFirstDataOf: [ActivationMilestone.FirstMetricsReceived],
+    },
+    {
+      templateId: "service-unhandled-exceptions",
+      readsFirstDataOf: [
+        ActivationMilestone.FirstExceptionsReceived,
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ],
+    },
+    {
+      templateId: "service-error-log-spike",
+      readsFirstDataOf: [ActivationMilestone.FirstLogsReceived],
+    },
+  ];
+
+// What a project whose first data is not known is offered.
 export const TELEMETRY_RECOMMENDED_TEMPLATE_IDS: ReadonlyArray<string> = [
   "service-error-burst",
   "service-latency-p95",
   "service-unhandled-exceptions",
 ];
+
+// The first-data marks the offer is read from, each once.
+export const TELEMETRY_RECOMMENDATION_MILESTONES: ReadonlyArray<ActivationMilestone> =
+  Array.from(
+    new Set<ActivationMilestone>(
+      TELEMETRY_RECOMMENDED_TEMPLATES.flatMap(
+        (
+          template: TelemetryRecommendedTemplate,
+        ): ReadonlyArray<ActivationMilestone> => {
+          return template.readsFirstDataOf;
+        },
+      ),
+    ),
+  );
+
+/*
+ * The template ids offered, in the setup's order, for the project's first
+ * data (null: not known).
+ */
+export const getTelemetryRecommendedTemplateIds: (
+  reached: ReadonlyArray<ActivationMilestone> | null | undefined,
+) => Array<string> = (
+  reached: ReadonlyArray<ActivationMilestone> | null | undefined,
+): Array<string> => {
+  const offered: Array<string> = TELEMETRY_RECOMMENDED_TEMPLATES.filter(
+    (template: TelemetryRecommendedTemplate): boolean => {
+      return template.readsFirstDataOf.some(
+        (milestone: ActivationMilestone): boolean => {
+          return (reached || []).includes(milestone);
+        },
+      );
+    },
+  ).map((template: TelemetryRecommendedTemplate): string => {
+    return template.templateId;
+  });
+
+  return offered.length > 0 ? offered : [...TELEMETRY_RECOMMENDED_TEMPLATE_IDS];
+};
 
 export const TELEMETRY_SETUP_COPY: {
   pageTitle: string;

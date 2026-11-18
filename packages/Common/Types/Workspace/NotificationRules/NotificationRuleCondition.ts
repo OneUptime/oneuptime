@@ -151,6 +151,18 @@ export const OWNER_CHECK_ONS: ReadonlyArray<NotificationRuleConditionCheckOn> =
   ) as Array<NotificationRuleConditionCheckOn>;
 
 /*
+ * The fields picked from a fixed list every project shares, rather than
+ * from the project's own records (isRecordValueField): a value of one is
+ * never deleted.
+ */
+export const FIXED_LIST_CHECK_ONS: ReadonlyArray<NotificationRuleConditionCheckOn> =
+  [
+    NotificationRuleConditionCheckOn.MonitorType,
+    NotificationRuleConditionCheckOn.SecurityCaseSource,
+    NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+  ];
+
+/*
  * The words a condition's field is shown with, where they differ from the
  * value stored in the rule. The on-call fields were named when the product
  * was "On Call Duty"; it is On-Call now (#6817), but a rule saved with
@@ -510,6 +522,130 @@ export class NotificationRuleConditionUtil {
       .filter((item: string): boolean => {
         return item.length > 0;
       });
+  }
+
+  /*
+   * Whether a condition's values are records of the project, held by their
+   * ids - its states, severities, monitor statuses, labels, monitors, a
+   * security case's priorities and statuses, SLOs and on-call policies -
+   * rather than a fixed list every project shares (a monitor's type, what
+   * raised a security case, what moved in an error budget policy). A
+   * record can be deleted from under a condition; a fixed list's value
+   * cannot.
+   */
+  public static isRecordValueField(
+    checkOn: NotificationRuleConditionCheckOn | undefined,
+  ): boolean {
+    return (
+      Boolean(checkOn) &&
+      !FIXED_LIST_CHECK_ONS.includes(checkOn!) &&
+      NotificationRuleConditionUtil.isDropdownValueField({
+        checkOn: checkOn,
+        conditionType: ConditionType.ContainsAny,
+      })
+    );
+  }
+
+  /*
+   * The project's records a condition's values are picked from, by its
+   * field (isRecordValueField): the same lists the value dropdown is built
+   * from (getDropdownOptionsByCheckOn), archived ones among them. Undefined
+   * for a field of a fixed list, and for a list the page could not read -
+   * nothing is known to be gone from a list nobody read.
+   */
+  public static getRecordsByCheckOn(data: {
+    checkOn: NotificationRuleConditionCheckOn | undefined;
+    alertSeverities?: Array<AlertSeverity> | undefined;
+    alertStates?: Array<AlertState> | undefined;
+    incidentSeverities?: Array<IncidentSeverity> | undefined;
+    monitorStatus?: Array<MonitorStatus> | undefined;
+    incidentStates?: Array<IncidentState> | undefined;
+    scheduledMaintenanceStates?: Array<ScheduledMaintenanceState> | undefined;
+    labels?: Array<Label> | undefined;
+    monitors?: Array<Monitor> | undefined;
+    securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+    securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
+    serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+    onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  }): Array<BaseModel> | undefined {
+    switch (data.checkOn) {
+      case NotificationRuleConditionCheckOn.IncidentSeverity:
+      case NotificationRuleConditionCheckOn.IncidentEpisodeSeverity:
+        return data.incidentSeverities;
+      case NotificationRuleConditionCheckOn.AlertSeverity:
+      case NotificationRuleConditionCheckOn.AlertEpisodeSeverity:
+        return data.alertSeverities;
+      case NotificationRuleConditionCheckOn.MonitorStatus:
+        return data.monitorStatus;
+      case NotificationRuleConditionCheckOn.IncidentState:
+      case NotificationRuleConditionCheckOn.IncidentEpisodeState:
+        return data.incidentStates;
+      case NotificationRuleConditionCheckOn.AlertState:
+      case NotificationRuleConditionCheckOn.AlertEpisodeState:
+        return data.alertStates;
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceState:
+        return data.scheduledMaintenanceStates;
+      case NotificationRuleConditionCheckOn.MonitorLabels:
+      case NotificationRuleConditionCheckOn.IncidentLabels:
+      case NotificationRuleConditionCheckOn.AlertLabels:
+      case NotificationRuleConditionCheckOn.AlertEpisodeLabels:
+      case NotificationRuleConditionCheckOn.IncidentEpisodeLabels:
+      case NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels:
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels:
+      case NotificationRuleConditionCheckOn.SecurityCaseLabels:
+      case NotificationRuleConditionCheckOn.SloLabels:
+        return data.labels;
+      case NotificationRuleConditionCheckOn.Monitors:
+        return data.monitors;
+      case NotificationRuleConditionCheckOn.SecurityCasePriority:
+        return data.securityCasePriorities;
+      case NotificationRuleConditionCheckOn.SecurityCaseStatus:
+        return data.securityCaseStatuses;
+      case NotificationRuleConditionCheckOn.Slos:
+        return data.serviceLevelObjectives;
+      case NotificationRuleConditionCheckOn.OnCallDutyPolicies:
+        return data.onCallDutyPolicies;
+      default:
+        return undefined;
+    }
+  }
+
+  /*
+   * The ids a condition holds that name none of `records` - the project's
+   * records its values are picked from - any more: a severity, a label, a
+   * monitor or a policy since deleted (#7807). The rule still holds them
+   * and matches nothing for them; its card and its Conditions step say so,
+   * "No longer in this project", so it can be kept or taken out. Each once,
+   * in the order the condition holds them. Undefined records - a list that
+   * was not read - name nothing gone.
+   */
+  public static getIdsNotFound(data: {
+    ids: Array<string>;
+    records: Array<BaseModel> | undefined;
+  }): Array<string> {
+    if (!data.records) {
+      return [];
+    }
+
+    const known: Set<string> = new Set(
+      data.records.map((record: BaseModel): string => {
+        return (record._id?.toString() || "").toLowerCase();
+      }),
+    );
+
+    const notFound: Array<string> = [];
+    const seen: Set<string> = new Set();
+
+    for (const id of data.ids) {
+      const key: string = id.toLowerCase();
+
+      if (!known.has(key) && !seen.has(key)) {
+        seen.add(key);
+        notFound.push(id);
+      }
+    }
+
+    return notFound;
   }
 
   /*

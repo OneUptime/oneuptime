@@ -10,10 +10,19 @@
  * that drops it changes nothing):
  *   - seed=<a,b>   what earlier journeys left behind, so each journey can
  *                  start where a newcomer would: `monitor` (the website
- *                  monitor of the first journey)
+ *                  monitor of the first journey), and `busy`, a project in
+ *                  use (Fixture/NewProject.js lists them all)
  *   - as=member    signed in as Grace Hopper, a member invited a minute
  *                  ago, not as the project's owner
+ *   - as=admin     signed in as Ada, also the master admin of a self-hosted
+ *                  server that has no Twilio: no SMS and no calls
+ *   - as=viewer    signed in as Grace, a Project Viewer: reads everything,
+ *                  may create nothing
  *   - billing=on   OneUptime Cloud (server.js sets BILLING_ENABLED)
+ *   - theme=dark   the dark theme (server.js draws the light one otherwise)
+ *   - email=off    a server that cannot send email yet (its admin has not
+ *                  set it up): /global-config/vars says so
+ *   - test=unanswered  a test page nobody acknowledges: it keeps paging
  *
  * Recorded on window.__journeyFixture: every write (`writes`: creates,
  * updates and deletes, with the misc data sent beside a create), every API
@@ -38,6 +47,7 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import API from "Common/UI/Utils/API/API";
 import BaseAPI from "Common/Utils/API";
 import Realtime from "Common/UI/Utils/Realtime";
+import ThemeUtil from "Common/UI/Utils/Theme";
 import {
   createStore,
   installAnalyticsModelApi,
@@ -70,14 +80,25 @@ const project = seedNewProject({
     .split(",")
     .filter(Boolean),
   billing: params.billing === "on",
+  canSendEmail: params.email !== "off",
+  isTestPageAnswered: params.test !== "unanswered",
 });
 
-signIn(project, params.as === "member" ? "member" : "owner");
+signIn(
+  project,
+  ["member", "admin", "viewer"].includes(params.as) ? params.as : "owner",
+);
 
 installModelApi(ModelAPI, project.store, dashboardHooks(project));
 installAnalyticsModelApi(AnalyticsModelAPI, project.store);
 installApi([API, BaseAPI], project.store, dashboardRoutes(project));
 silenceRealtime(Realtime);
+
+/*
+ * The theme server.js kept for the tab (light, or ?theme=dark), drawn as
+ * the Dashboard's src/Index.tsx draws it before the first render.
+ */
+ThemeUtil.initialize();
 
 await i18nReady.catch(() => {});
 

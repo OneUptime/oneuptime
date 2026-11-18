@@ -48,6 +48,7 @@ import {
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
 import { PUBLIC_NOTE_APPROVAL_CHAT_WORDS } from "Common/Server/Utils/Workspace/WorkspacePublicNoteApproval";
 import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "Common/Server/Utils/Workspace/WorkspaceAffectedResources";
+import { WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT } from "Common/Server/Utils/Workspace/WorkspaceIncidentSubscriberNotification";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
   FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -212,10 +213,12 @@ const SEEDED_INCIDENT_ROLES: Array<string> = ["Incident Commander"];
 /*
  * The fields of the chats' Declare Incident forms that the pages name, as
  * the server writes them for Slack's modal and Microsoft Teams' card, in
- * English (WORKSPACE_AFFECTED_RESOURCES_TEXT).
+ * English (WORKSPACE_AFFECTED_RESOURCES_TEXT, and the box beside which the
+ * forms ask about status page subscribers, WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT).
  */
 const INCIDENT_FORM_FIELDS: Array<string> = [
   WORKSPACE_AFFECTED_RESOURCES_TEXT.label,
+  WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT.box,
 ];
 
 /*
@@ -580,6 +583,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // The incident form's Affected Resources, and an alert's own channel.
     "What the incident is about.",
     "In an alert's own channel.",
+    // The incident form's Notify Status Page Subscribers, and its answer.
+    "Status page subscribers.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -645,6 +650,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // The incident card's Affected Resources, and an alert's own channel.
     "What the incident is about.",
     "In an alert's own channel.",
+    // The incident card's Notify Status Page Subscribers, and its answer.
+    "Status page subscribers.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -818,8 +825,11 @@ const NUMBERS: Record<string, Array<string>> = {
    */
   [SLACK]: ["7", "15", "80", "40"],
   [TEAMS]: ["7", "15", "50", "30"],
-  // And the largest transcript file Add transcript takes, in MB.
-  [VIDEO]: ["40", "30", "5"],
+  /*
+   * And the largest transcript file Add transcript takes, in MB, and the
+   * days Zoom keeps accepting a sign-in made before its app was updated.
+   */
+  [VIDEO]: ["40", "30", "5", "90"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   /*
    * And, for a form's custom domains, how often they are checked, how often

@@ -219,12 +219,103 @@ function fakeFindOneById(
   };
 }
 
+// By order, then by id, as the snapshot's statement orders them (NULLs last).
+function byOrderThenId(a: FakeRow, b: FakeRow): number {
+  const left: number = Number(a["order"]);
+  const right: number = Number(b["order"]);
+  const leftMissing: boolean = a["order"] === null || a["order"] === undefined;
+  const rightMissing: boolean = b["order"] === null || b["order"] === undefined;
+
+  if (leftMissing !== rightMissing) {
+    return leftMissing ? 1 : -1;
+  }
+
+  if (!leftMissing && left !== right) {
+    return left - right;
+  }
+
+  const leftId: string = toKey(a["_id"]).toLowerCase();
+  const rightId: string = toKey(b["_id"]).toLowerCase();
+
+  return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+}
+
+/*
+ * The one-statement read of schedules' layers and their people
+ * (OnCallDutyPolicyScheduleService.readLayersOfSchedules,
+ * ScheduleLayersSnapshot), answered from `db` by the statement's rules: each
+ * schedule asked for that exists, its layers highest priority first, and
+ * each layer's people - of this schedule and this layer - in turn order.
+ */
+export function readFakeLayersOfSchedules(
+  db: FakeDb,
+  scheduleIds: Array<ObjectID>,
+): Map<
+  string,
+  { schedule: FakeRow; layers: Array<FakeRow>; layerUsers: Array<FakeRow> }
+> {
+  const read: Map<
+    string,
+    { schedule: FakeRow; layers: Array<FakeRow>; layerUsers: Array<FakeRow> }
+  > = new Map();
+
+  for (const scheduleId of scheduleIds) {
+    const key: string = scheduleId.toString().toLowerCase();
+
+    if (read.has(key)) {
+      continue;
+    }
+
+    const schedule: FakeRow | undefined = db.schedules.find((row: FakeRow) => {
+      return toKey(row["_id"]).toLowerCase() === key;
+    });
+
+    if (!schedule) {
+      continue;
+    }
+
+    const layers: Array<FakeRow> = db.layers
+      .filter((row: FakeRow) => {
+        return toKey(row["onCallDutyPolicyScheduleId"]).toLowerCase() === key;
+      })
+      .sort(byOrderThenId);
+
+    const layerUsers: Array<FakeRow> = [];
+
+    for (const layer of layers) {
+      const layerKey: string = toKey(layer["_id"]).toLowerCase();
+
+      layerUsers.push(
+        ...db.layerUsers
+          .filter((row: FakeRow) => {
+            return (
+              toKey(row["onCallDutyPolicyScheduleLayerId"]).toLowerCase() ===
+                layerKey &&
+              toKey(row["onCallDutyPolicyScheduleId"]).toLowerCase() === key
+            );
+          })
+          .sort(byOrderThenId),
+      );
+    }
+
+    read.set(key, { schedule, layers, layerUsers });
+  }
+
+  return read;
+}
+
 /*
  * Spy every read the resolver / materializer / roster path performs and
  * answer it from `db`. Call inside a test (or beforeEach); restore with
  * jest.restoreAllMocks().
  */
 export function installFakeDb(db: FakeDb): void {
+  jest
+    .spyOn(OnCallDutyPolicyScheduleService, "readLayersOfSchedules")
+    .mockImplementation((async (scheduleIds: Array<ObjectID>) => {
+      return readFakeLayersOfSchedules(db, scheduleIds);
+    }) as never);
+
   jest.spyOn(OnCallDutyPolicyScheduleService, "findBy").mockImplementation(
     fakeFindBy(() => {
       return db.schedules;

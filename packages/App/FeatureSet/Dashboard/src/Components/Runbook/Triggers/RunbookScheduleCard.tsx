@@ -1,4 +1,5 @@
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -28,7 +29,6 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import {
@@ -645,7 +645,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (error || !runbook) {

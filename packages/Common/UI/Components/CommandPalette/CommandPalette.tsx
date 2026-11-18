@@ -122,7 +122,7 @@ export const COMMAND_PALETTE_FOOTER_CLASS_NAME: string =
   "flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 px-4 py-2";
 
 export const COMMAND_PALETTE_HINT_CLASS_NAME: string =
-  "flex items-center gap-1.5 whitespace-nowrap text-[11px] text-gray-400";
+  "flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-500";
 
 type HasPendingSectionFunction = (
   sections: Array<PaletteSectionView>,
@@ -457,7 +457,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               description: result.description,
               icon: result.icon,
               iconColor: result.iconColor,
-              breadcrumb: undefined,
+              breadcrumb: result.breadcrumb,
               shortcut: undefined,
               recentCommandId: null,
               onSelect: result.onSelect,

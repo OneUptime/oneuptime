@@ -67,6 +67,15 @@ import {
   translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -136,6 +145,25 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [pollingRevision, setPollingRevision] = useState<number>(0);
   const [rangePreset, setRangePreset] = useState<string>("24");
+  // The historical import's windows, in the reader's language.
+  const rangeOptions: Array<DropdownOption> = [
+    getTranslatedDropdownOption(
+      "1",
+      translator.translateText("Last hour") || "Last hour",
+    ),
+    getTranslatedDropdownOption(
+      "24",
+      translator.translateText("Last 24 hours") || "Last 24 hours",
+    ),
+    getTranslatedDropdownOption(
+      "168",
+      translator.translateText("Last 7 days") || "Last 7 days",
+    ),
+    getTranslatedDropdownOption(
+      "custom",
+      translator.translateText("Custom range") || "Custom range",
+    ),
+  ];
   const [startTime, setStartTime] = useState<string>(() => {
     return localDateInput(new Date(Date.now() - 24 * 60 * 60_000));
   });
@@ -681,25 +709,23 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText("Time range")}
           </label>
-          <select
-            id="security-event-connection-range"
-            className="block w-full rounded-md border border-gray-300 bg-white p-2 text-sm"
-            value={rangePreset}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>): void => {
-              setPreset(event.target.value);
+          <Dropdown
+            inputId="security-event-connection-range"
+            className="relative w-full overflow-visible"
+            options={rangeOptions}
+            value={findDropdownOption(rangeOptions, rangePreset)}
+            // A window is always chosen: a preset or a range of its own.
+            isClearable={false}
+            onChange={(
+              next: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              const picked: string | null = readPickedDropdownValue(next);
+
+              if (picked !== null && picked !== rangePreset) {
+                setPreset(picked);
+              }
             }}
-          >
-            <option value="1">{translator.translateText("Last hour")}</option>
-            <option value="24">
-              {translator.translateText("Last 24 hours")}
-            </option>
-            <option value="168">
-              {translator.translateText("Last 7 days")}
-            </option>
-            <option value="custom">
-              {translator.translateText("Custom range")}
-            </option>
-          </select>
+          />
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label

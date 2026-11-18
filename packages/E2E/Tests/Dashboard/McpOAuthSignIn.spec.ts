@@ -14,6 +14,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { pickDropdownOption } from "../../SuiteHelpers/Dropdowns";
 import crypto from "crypto";
 
 /*
@@ -199,7 +200,15 @@ const authorizeInBrowser: AuthorizeInBrowserFunction = async (data: {
   const approve: Locator = page.getByTestId("mcp-authorize-approve");
   await expect(approve).toBeVisible({ timeout: 60000 });
 
-  await page.getByTestId("mcp-authorize-project").selectOption(data.projectId);
+  /*
+   * The project picker is the shared Dropdown, whose options are names: the
+   * member has the one project this suite made for them.
+   */
+  await pickDropdownOption(
+    page,
+    page.getByTestId("mcp-authorize-project").getByRole("combobox"),
+    /^MCP OAuth/,
+  );
 
   if (data.access) {
     await page.getByTestId(`mcp-authorize-access-${data.access}`).check();

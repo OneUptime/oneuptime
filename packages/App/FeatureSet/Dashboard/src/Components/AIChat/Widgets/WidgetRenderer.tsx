@@ -131,7 +131,7 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
               widget.description && (
                 <div
                   data-testid="ai-chat-widget-description"
-                  className="truncate text-[10px] text-gray-400"
+                  className="truncate text-xs text-gray-500"
                   title={widget.description}
                 >
                   {formatEvidenceLabel(widget.description)}
@@ -146,7 +146,7 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             onClick={() => {
               navigateToCitationTarget(link);
             }}
-            className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             {translator.translateText("Open")}
             <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />

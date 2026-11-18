@@ -42,6 +42,8 @@ const DASHBOARD: string = `/dashboard/${PROJECT}`;
 const ADA: string = "40000000-0000-4000-8000-000000000001";
 const GRACE: string = "40000000-0000-4000-8000-000000000002";
 const MONITOR: string = "50000000-0000-4000-8000-000000000001";
+// The service the first telemetry names (Fixture/NewProject.js' SERVICE_ID).
+const SERVICE: string = "50000000-0000-4000-8000-000000000002";
 // The code the fixture accepts in a Verify dialog.
 const VERIFICATION_CODE: string = "123456";
 const NOW: Date = new Date("2026-11-11T10:00:00.000Z");
@@ -401,7 +403,10 @@ journey(
 /*
  * 4. Publish a status page that shows the monitor: Status Pages, Create
  * Status Page with a name, then the monitor added from its Overview (the
- * Quickstart's "Publish a status page").
+ * Quickstart's "Publish a status page"), in a dialog right there, beside
+ * the link to the page. Add Monitors opened the page's Resources, where a
+ * second Add opened the picker, and the link was back on the Overview
+ * (#7466).
  */
 journey(
   "status-page",
@@ -415,9 +420,11 @@ journey(
     await person.type("Name", "Acme Status");
     await person.submit("Create Status Page");
     await person.press(/Add Monitors/);
-    await person.press("Add Monitor");
-    await person.pick(/^Monitor/, /Acme website/);
-    await person.submit("Add Monitor");
+    await person.pick(/^Monitors/, /Acme website/);
+    await person.submit("Add Monitors");
+    // Added: the Overview gives way to the link to the page.
+    await expect(page.getByTestId("status-page-first-step")).toHaveCount(0);
+    await expect(page.getByTestId("status-page-link")).toBeVisible();
   },
   (log: FixtureLog) => {
     const [statusPage] = writesTo(log, "StatusPage");
@@ -427,6 +434,46 @@ journey(
       idOf(statusPage?.data["_id"]),
     );
     expect(idOf(resource?.data["monitorId"])).toBe(MONITOR);
+  },
+);
+
+/*
+ * 4, guided (#6806, #7141): the same job in the guided setup "Publish a
+ * status page", from where the manual journey goes - Status Pages, from the
+ * products menu - whose empty list offers it as its one primary button
+ * (#7142). The name starts as the project's, the website monitor is
+ * ticked, and the page is made with it on it; then what customers see, and
+ * "Looks good". Ends on the summary.
+ */
+journey(
+  "status-page-guided",
+  async (person: Journey, page: Page) => {
+    await person.begin(
+      `${DASHBOARD}/home/?seed=monitor`,
+      page.getByRole("heading", { name: "Home" }),
+    );
+    await person.openProduct("Status Pages");
+    await person.press("Guided setup");
+    await person.tick("Acme website");
+    await person.submit("Create the status page");
+    await expect(page.getByTestId("guided-setup-preview")).toContainText(
+      "Acme website",
+    );
+    await person.press("Looks good");
+    await expect(page.getByTestId("guided-setup-summary")).toContainText(
+      "Acme Commerce Status",
+    );
+  },
+  (log: FixtureLog) => {
+    const [statusPage] = writesTo(log, "StatusPage");
+    const resources: Array<FixtureWrite> = writesTo(log, "StatusPageResource");
+    expect(writesTo(log, "StatusPage")).toHaveLength(1);
+    expect(statusPage?.data["name"]).toBe("Acme Commerce Status");
+    expect(resources).toHaveLength(1);
+    expect(idOf(resources[0]?.data["statusPageId"])).toBe(
+      idOf(statusPage?.data["_id"]),
+    );
+    expect(idOf(resources[0]?.data["monitorId"])).toBe(MONITOR);
   },
 );
 
@@ -461,6 +508,53 @@ journey(
     const [monitor] = writesTo(log, "Monitor");
     expect(monitor?.data["monitorType"]).toBe("Logs");
     expect(monitor?.data["name"]).toBe("Checkout errors");
+  },
+);
+
+/*
+ * 5, guided (#6806, #7141): the same job in the guided setup "Send logs,
+ * metrics and traces, then get alerted", from where the manual journey goes
+ * - Logs, from the products menu - whose first-run explanation offers it
+ * before the setup guide's dialog (#7142). The guide's ingestion key; the
+ * first data arrives (the person's app sends its traces, metrics and logs
+ * as the key is made) and the setup goes on by itself to the service that
+ * reported; the four monitors recommended for that data (#7146), ticked,
+ * made in one click. Ends on the summary.
+ */
+journey(
+  "first-telemetry-guided",
+  async (person: Journey, page: Page) => {
+    await person.begin(
+      `${DASHBOARD}/home/`,
+      page.getByRole("heading", { name: "Home" }),
+    );
+    await person.openProduct("Logs");
+    await person.press("Guided setup");
+    await person.press("Create Ingestion Key");
+    await person.submit("Create Ingestion Key");
+    // The step that waits checks every ten seconds, then step 2 opens.
+    await person.waitUntilShown("Create 4 monitors", 25);
+    await person.press("Create 4 monitors");
+    await expect(page.getByTestId("guided-setup-summary")).toContainText(
+      "checkout-api",
+    );
+  },
+  (log: FixtureLog) => {
+    expect(writesTo(log, "TelemetryIngestionKey")).toHaveLength(1);
+    const monitors: Array<FixtureWrite> = writesTo(log, "Monitor");
+    // Traces, metrics and logs arrived: one monitor for each, and exceptions.
+    expect(monitors).toHaveLength(4);
+    expect(
+      monitors
+        .map((monitor: FixtureWrite): unknown => {
+          return monitor.data["monitorType"];
+        })
+        .sort(),
+    ).toEqual(["Exceptions", "Logs", "Metrics", "Traces"]);
+    // Each watches the service that reported.
+    for (const monitor of monitors) {
+      expect(JSON.stringify(monitor.data["monitorSteps"])).toContain(SERVICE);
+    }
   },
 );
 
@@ -506,8 +600,8 @@ journey(
       "/admin",
       page.getByRole("heading", { name: "Finish setting up this server" }),
     );
+    // It opens Settings > Emails in the mail server's form (#7460).
     await person.press("Set up email");
-    await person.press("Edit SMTP Config");
     await person.type("Hostname", "smtp.acme-commerce.example");
     await person.type(/^Username/, "oneuptime@acme-commerce.example");
     await person.type(/^Password/, "smtp-app-password");

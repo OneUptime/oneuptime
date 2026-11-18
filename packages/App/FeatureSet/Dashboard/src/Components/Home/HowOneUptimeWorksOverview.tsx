@@ -575,7 +575,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
     return (
       <span
         data-testid={HOW_ONEUPTIME_WORKS_PLAN_TEST_ID}
-        className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-[10px] font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+        className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-xs font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
       >
         {translator.translateTemplate("{{planName}} Plan", {
           planName: item.neededPlan,
@@ -884,7 +884,7 @@ const HowOneUptimeWorksOverview: FunctionComponent<ComponentProps> = (
                   {section.kind === "category" ? (
                     <span
                       className={`text-xs tabular-nums ${
-                        isSelected ? "text-indigo-500" : "text-gray-400"
+                        isSelected ? "text-indigo-500" : "text-gray-500"
                       }`}
                     >
                       {translator.formatNumber(section.category.items.length)}

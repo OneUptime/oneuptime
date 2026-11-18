@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import BackupCodes from "../../../Components/TwoFactorAuth/BackupCodes";
 import WebAuthnCredentials from "../../../Components/TwoFactorAuth/WebAuthnCredentials";
 import TwoFactorStatus from "../../../Components/TwoFactorAuth/TwoFactorStatus";
@@ -20,7 +21,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import AuthenticatorAppSetupCode from "Common/UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -377,7 +377,7 @@ const TwoFactorAuth: FunctionComponent<
         >
           <div>
             {setupLoading ? (
-              <ComponentLoader />
+              <DetailListSkeleton fields={2} columns={1} />
             ) : selectedTotpAuth.twoFactorOtpUrl ? (
               <>
                 {/*

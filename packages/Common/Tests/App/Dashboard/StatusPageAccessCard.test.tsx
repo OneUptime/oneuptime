@@ -971,8 +971,8 @@ describe("under Only people who sign in", () => {
       }),
     ).toEqual([
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/private-users`,
-      // SAML and OIDC are one Single Sign-On page, a tab each (#9130).
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
+      // One Single Sign-On page since #9130: OIDC is its second tab.
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso?protocol=oidc`,
     ]);
   });

@@ -268,12 +268,8 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
 
   return (
     <div className="relative w-full" data-testid="session-search-bar">
-      <div
+      <label
         className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} transition-all duration-200 ${boxClassName}`}
-        onClick={(): void => {
-          inputRef.current?.focus();
-        }}
-        role="presentation"
       >
         <Icon
           icon={IconProp.Search}
@@ -384,7 +380,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
             /
           </kbd>
         )}
-      </div>
+      </label>
 
       {isHelpShown && (
         <TelemetrySearchHelp

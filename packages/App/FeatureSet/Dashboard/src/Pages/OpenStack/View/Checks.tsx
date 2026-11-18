@@ -3,7 +3,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -103,7 +103,7 @@ const OpenStackCloudChecks: FunctionComponent<
   }
 
   if (cloud.isLoading && !cloud.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (!cloud.data) {
@@ -125,7 +125,7 @@ const OpenStackCloudChecks: FunctionComponent<
   }
 
   if (check.isLoading && !check.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const canEdit: boolean = PermissionGate.check(

@@ -15,7 +15,11 @@ a user without the permission while the Danger Zone page is, that browsing
 lists actions and products rather than every page and a page opened from
 search comes back under Recent, that the arrow keys walk the results, and
 that a breadcrumb never scrolls the page sideways on a phone. Record search
-requests are answered with empty lists.
+requests are answered with empty lists, except the status page search, which
+answers with one status page, Acme Status, for a record's own pages (#9204):
+"status page sso" offers its Single Sign-On and opens it; on its page, "sso"
+and the old name "advanced settings" find its own pages first; and in Arabic
+the row stays inside the panel.
 
 The fixture builds the production `NavBarMenuModal` and Dashboard navigation
 catalog with the actual English translations. It supplies a synthetic project
@@ -116,6 +120,27 @@ the window; in the dark the menu is drawn dark. Help's menu and the profile
 menu are each named by their own button (no id twice on the page), open with
 Enter, and Escape puts them away with the focus back on the button.
 Screenshots are saved as `header-*.png`.
+
+`PaletteOnPhonesAndDesktops.spec.ts` (#7038) drives the phone menu and
+Search (Cmd/Ctrl+K) in a real browser at 390px and 1280px, light and dark,
+in German and Persian (right to left), on the desktop project. Its
+`?header=true&palette=true` page mounts the Dashboard's Search beside the
+production header and nav bar, as App.tsx does (`HeaderFixture.js`): the
+Glossary (`/docs/glossary/<lang>.json`), the docs search and the project's
+people (`POST /team-member/search-members`) are answered in the page,
+nothing is sent, and a new tab's and Ask AI's openings are counted on
+`window.__headerFixture`. `?as=admin` (a Project Admin, the default) or
+`?as=reader` (who reads services alone) is who is searching. On a phone the
+menu has Search at the top and Help folded at the bottom, which opens How
+OneUptime works; on a laptop the header's Help does, and the keys open
+Search. Search finds a Glossary term by its name in the reader's language
+and opens it on the Glossary page in a new tab, offers Ask AI a question
+nothing answers, offers a Project Admin Create Status Page (its list with
+`?create=1`, #7035) and finds a teammate under Users with their email
+(#7036), and offers someone who reads services alone neither, never asking
+for the people. Every panel stays inside the window with nothing scrolling
+sideways, and dark draws Search dark. Screenshots are saved as
+`palette-*.png`.
 
 `ProjectPickerSearch.spec.ts` searches the header's project list. Its
 `?header=true&projects=many` page lists six more projects after Acme Commerce

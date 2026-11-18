@@ -48,6 +48,14 @@ import InstallationHealthUtil, {
 } from "Common/Types/InstallationHealth/InstallationHealth";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  ServerProductsPreset,
+  getOffByPreset,
+} from "Common/Types/Product/ServerProducts";
+import {
+  ServerProductsAnswer,
+  ServerProductsSource,
+} from "Common/Types/Product/ServerProductsAnswer";
 import { ServerSetupChecklistAnswer } from "Common/Types/ServerSetup/ServerSetupChecklist";
 
 /*
@@ -131,8 +139,24 @@ const readers: (
     serverSetup: async (): Promise<ServerSetupChecklistAnswer> => {
       return EMPTY_CHECKLIST;
     },
+    serverProducts: async (): Promise<ServerProductsAnswer> => {
+      return MONITORING_ONLY;
+    },
     ...overrides,
   };
+};
+
+// A server an admin set to Monitoring and status pages on Settings > Products (#7481).
+const MONITORING_ONLY: ServerProductsAnswer = {
+  off: {},
+  switchedOff: getOffByPreset(ServerProductsPreset.MonitoringAndStatusPages),
+  preset: ServerProductsPreset.MonitoringAndStatusPages,
+  source: ServerProductsSource.Saved,
+  startingValue: "",
+  startingValueUnknownNames: [],
+  isTelemetryIngestionStopped: false,
+  shouldSuggestStoppingIngestion: false,
+  changedAt: "2026-11-10T09:30:00.000Z",
 };
 
 describe("the facts", () => {
@@ -157,7 +181,43 @@ describe("the facts", () => {
       { name: "Telemetry", waiting: 0 },
     ]);
     expect(facts.serverSetup).toEqual(EMPTY_CHECKLIST);
+    expect(facts.serverProducts).toEqual(MONITORING_ONLY);
     expect(InstallationHealthUtil.evaluate(facts)).toEqual([]);
+  });
+
+  test("the products switched off on the server are read, and are no finding: a choice is not a fault (#7481)", async () => {
+    const facts: InstallationHealthFacts =
+      await getInstallationHealthFacts(readers());
+
+    expect(InstallationHealthUtil.evaluate(facts)).toEqual([]);
+    expect(
+      InstallationHealthUtil.getAnswer({
+        facts: facts,
+        addressProof: null,
+        checkedAt: "2026-11-18T10:00:00.000Z",
+      }).products,
+    ).toEqual(
+      expect.objectContaining({
+        onCount: 5,
+        preset: ServerProductsPreset.MonitoringAndStatusPages,
+        presetTitle: "Monitoring and status pages",
+        source: ServerProductsSource.Saved,
+      }),
+    );
+  });
+
+  test("the products a reader could not read are none: the answer still comes, without them", async () => {
+    const facts: InstallationHealthFacts = await getInstallationHealthFacts(
+      readers({
+        serverProducts: async (): Promise<ServerProductsAnswer> => {
+          throw new Error("relation does not exist");
+        },
+      }),
+    );
+
+    expect(facts.serverProducts).toBe(null);
+    expect(facts.serverSetup).toEqual(EMPTY_CHECKLIST);
+    expect(logger.error).toHaveBeenCalled();
   });
 
   test("PostgreSQL down: what needs it is not asked, and the rest still is", async () => {
@@ -179,12 +239,17 @@ describe("the facts", () => {
           asked.push("latestVersion");
           return null;
         },
+        serverProducts: async (): Promise<ServerProductsAnswer> => {
+          asked.push("serverProducts");
+          return MONITORING_ONLY;
+        },
       }),
     );
 
     expect(asked).toEqual([]);
     expect(facts.migrations).toBe(null);
     expect(facts.serverSetup).toBe(null);
+    expect(facts.serverProducts).toBe(null);
     expect(facts.clickhouseDisks).toHaveLength(1);
     expect(
       InstallationHealthUtil.evaluate(facts).map(
@@ -541,6 +606,8 @@ describe("over HTTP", () => {
     );
     expect(result.answer!.addressProof).toBe("nonce.signature");
     expect(createProof).toHaveBeenCalledTimes(1);
+    // What an admin switched off is in PostgreSQL, which does not answer.
+    expect(result.answer!.products).toBe(null);
   });
 
   test("POST without the key is refused, a master admin's session and the master API key too", async () => {

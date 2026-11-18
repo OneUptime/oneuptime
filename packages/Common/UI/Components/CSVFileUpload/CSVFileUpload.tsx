@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
+import { translationKey } from "../../../Types/Translator";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
@@ -33,6 +34,34 @@ type DownloadTemplateFunction = () => void;
 type HandleFileChangeFunction = (
   event: React.ChangeEvent<HTMLInputElement>,
 ) => void;
+type ReadFileFunction = (file: File) => void;
+type DragHandlerFunction = (event: React.DragEvent<HTMLLabelElement>) => void;
+
+export const CSV_FILE_UPLOAD_AREA_TEST_ID: string = "csv-file-upload-area";
+export const CSV_FILE_UPLOAD_ERROR_TEST_ID: string = "csv-file-upload-error";
+
+// What the area says while a file is dragged over it.
+export const CSV_DROP_HERE_TEXT: string = translationKey(
+  "Drop the CSV file to upload it",
+);
+export const CSV_NOT_A_CSV_TEMPLATE: string = translationKey(
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.",
+);
+export const CSV_ONE_FILE_AT_A_TIME_TEXT: string = translationKey(
+  "Drop one CSV file at a time.",
+);
+
+// A file the area takes: what its own chooser offers (accept=".csv").
+export const isCsvFile: (file: File) => boolean = (file: File): boolean => {
+  return file.name.toLowerCase().endsWith(".csv");
+};
+
+// A drag that carries files, not text or a link dragged off the page.
+const isDraggingFiles: (event: React.DragEvent<HTMLElement>) => boolean = (
+  event: React.DragEvent<HTMLElement>,
+): boolean => {
+  return Array.from(event.dataTransfer?.types || []).includes("Files");
+};
 
 const parseCSV: ParseCSVFunction = (text: string): Array<Array<string>> => {
   const rows: Array<Array<string>> = [];
@@ -98,6 +127,13 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
   const [parsedRows, setParsedRows] = useState<Array<CSVRow>>([]);
   const [fileName, setFileName] = useState<string>("");
   /*
+   * A drag over the area lights it. dragenter and dragleave also fire for
+   * every element inside it, so it counts how deep the drag is and goes
+   * dark only once the drag has left the area itself.
+   */
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragDepthRef: React.MutableRefObject<number> = useRef<number>(0);
+  /*
    * The element type goes in T on its own: RefObject<T> already declares
    * `current` as `T | null`, and RefObject<HTMLInputElement | null> is a
    * structurally identical but non-assignable type, rejected on the `ref`
@@ -123,20 +159,21 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
     window.URL.revokeObjectURL(url);
   };
 
-  const handleFileChange: HandleFileChangeFunction = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ): void => {
+  /*
+   * One file, chosen in the file chooser or dropped on the area (#9224):
+   * the same checks, the same reading, the same preview.
+   */
+  const readFile: ReadFileFunction = (file: File): void => {
     setError("");
     setParsedRows([]);
     setFileName("");
 
-    const file: File | undefined = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      setError("Please upload a CSV file.");
+    if (!isCsvFile(file)) {
+      setError(
+        translator.translateTemplate(CSV_NOT_A_CSV_TEMPLATE, {
+          fileName: file.name,
+        }),
+      );
       return;
     }
 
@@ -257,9 +294,82 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
     };
 
     reader.readAsText(file);
+  };
+
+  const handleFileChange: HandleFileChangeFunction = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): void => {
+    const file: File | undefined = event.target.files?.[0];
+
+    if (file) {
+      readFile(file);
+    }
 
     // Reset the input so the same file can be re-uploaded
     event.target.value = "";
+  };
+
+  const onDragEnter: DragHandlerFunction = (
+    event: React.DragEvent<HTMLLabelElement>,
+  ): void => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  };
+
+  // Without this the browser takes the drop and opens the file itself.
+  const onDragOver: DragHandlerFunction = (
+    event: React.DragEvent<HTMLLabelElement>,
+  ): void => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const onDragLeave: DragHandlerFunction = (
+    event: React.DragEvent<HTMLLabelElement>,
+  ): void => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
+
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+
+    if (dragDepthRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const onDrop: DragHandlerFunction = (
+    event: React.DragEvent<HTMLLabelElement>,
+  ): void => {
+    if (!isDraggingFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+
+    const files: Array<File> = Array.from(event.dataTransfer.files || []);
+
+    if (files.length > 1) {
+      setParsedRows([]);
+      setFileName("");
+      setError(translator.translateText(CSV_ONE_FILE_AT_A_TIME_TEXT) || "");
+      return;
+    }
+
+    if (files[0]) {
+      readFile(files[0]);
+    }
   };
 
   return (
@@ -309,22 +419,46 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
        * File upload area: a label around the file input, so a click anywhere
        * on it opens the file chooser with no code of its own, and Tab reaches
        * the input inside, whose focus rings the whole area. It was a div that
-       * only a mouse could press (#9136).
+       * only a mouse could press (#9136). A file dropped on it is read as a
+       * chosen one is; while one is dragged over it, it lights up and says
+       * to drop it. It said "drag and drop" and took no drop at all, so the
+       * browser opened the file instead (#9224).
        */}
-      <label className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 bg-white px-6 py-8 cursor-pointer hover:border-indigo-400 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <Icon icon={IconProp.File} className="h-10 w-10 text-gray-400" />
+      <label
+        data-testid={CSV_FILE_UPLOAD_AREA_TEST_ID}
+        data-dragging={isDragging ? "true" : undefined}
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`flex w-full justify-center rounded-md border-2 border-dashed px-6 py-8 cursor-pointer transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500 ${
+          isDragging
+            ? "border-indigo-500 bg-indigo-50"
+            : "border-gray-300 bg-white hover:border-indigo-400"
+        }`}
+      >
+        <div className="pointer-events-none flex flex-col items-center space-y-2 text-center">
+          <Icon
+            icon={IconProp.File}
+            className={`h-10 w-10 ${isDragging ? "text-indigo-500" : "text-gray-400"}`}
+          />
           <div className="text-sm text-gray-600">
-            <TranslatedSentence
-              template="{{upload}} or drag and drop"
-              slots={{
-                upload: (
-                  <span className="font-medium text-indigo-600">
-                    {translator.translateText("Click to upload CSV")}
-                  </span>
-                ),
-              }}
-            />
+            {isDragging ? (
+              <span className="font-medium text-indigo-700">
+                {translator.translateText(CSV_DROP_HERE_TEXT)}
+              </span>
+            ) : (
+              <TranslatedSentence
+                template="{{upload}} or drag and drop"
+                slots={{
+                  upload: (
+                    <span className="font-medium text-indigo-600">
+                      {translator.translateText("Click to upload CSV")}
+                    </span>
+                  ),
+                }}
+              />
+            )}
           </div>
           <p className="text-xs text-gray-500">
             {translator.translateText("CSV files only")}
@@ -361,8 +495,13 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Error */}
+      {/* Said out loud as it shows: a refused drop has no other sign. */}
       {error && (
-        <div className="rounded-lg bg-red-50 p-3">
+        <div
+          role="alert"
+          data-testid={CSV_FILE_UPLOAD_ERROR_TEST_ID}
+          className="rounded-lg bg-red-50 p-3"
+        >
           <p className="text-sm text-red-700">
             {translator.translateText(error)}
           </p>

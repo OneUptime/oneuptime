@@ -981,7 +981,7 @@ const ReplayScreenshotActions: FunctionComponent<
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-semibold">{previewTitle}</div>
                 <div
-                  className="mt-0.5 truncate text-[11px] text-white/60"
+                  className="mt-0.5 truncate text-xs text-white/60"
                   title={preview.fileName}
                   data-testid="replay-screenshot-preview-detail"
                 >

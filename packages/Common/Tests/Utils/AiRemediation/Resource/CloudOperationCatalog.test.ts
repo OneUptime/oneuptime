@@ -37,6 +37,7 @@ import { tokenizeResourceCommand } from "../../../../Utils/AiRemediation/Resourc
 import {
   AWS_LOG_READ_ACTION_GROUP,
   AWS_READ_ONLY_ACTIONS,
+  isAwsActionGranted,
 } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
@@ -943,10 +944,11 @@ describe("the guides", () => {
  */
 describe("the reads' permissions", () => {
   test("every AWS permission a read names is granted to the read-only connection", () => {
-    const granted: Set<string> = new Set<string>([
+    // As IAM reads the policy: "elasticloadbalancing:Describe*" grants every Describe.
+    const granted: Array<string> = [
       ...AWS_READ_ONLY_ACTIONS,
       ...AWS_LOG_READ_ACTION_GROUP.actions,
-    ]);
+    ];
 
     for (const operation of CLOUD_OPERATIONS) {
       if (operation.runsOn !== "server") {
@@ -959,11 +961,11 @@ describe("the reads' permissions", () => {
         }
 
         for (const permission of kind.permissions) {
-          expect([operation.name, kind.kind, granted.has(permission)]).toEqual([
+          expect([
             operation.name,
             kind.kind,
-            true,
-          ]);
+            isAwsActionGranted(permission, granted),
+          ]).toEqual([operation.name, kind.kind, true]);
         }
       }
     }

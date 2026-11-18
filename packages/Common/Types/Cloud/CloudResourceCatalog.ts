@@ -1861,19 +1861,107 @@ export const GCP_MONITORED_RESOURCE_RULES: ReadonlyArray<GcpMonitoredResourceRul
  * ---- Listed only ---------------------------------------------------------
  *
  * Types a cloud connection's inventory lists (CloudInventory) that publish
- * no metrics of their own - the networks other resources run in, which an
- * account's topology draws them inside. No metric rule finds them, so they
- * are kept apart from the lists above, which every rule is held to.
+ * no metrics of their own - the networks and subnets other resources run
+ * in, which an account's topology draws them inside, and the firewall rules
+ * and security groups that guard them. No metric rule finds them, so they are kept apart from
+ * the lists above, which every rule is held to.
  */
 export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
   [
     descriptorOf(CloudProvider.AWS, "AWS::EC2::VPC", "VPC", IAAS, C.Networking),
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EC2::Subnet",
+      "VPC Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EC2::SecurityGroup",
+      "Security Group",
+      IAAS,
+      C.Networking,
+    ),
+    /*
+     * An EKS cluster: its Kubernetes metrics are the Kubernetes product's,
+     * as a GKE cluster's are, so the cluster is listed only (#9375).
+     */
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EKS::Cluster",
+      "EKS Cluster",
+      PAAS,
+      C.Containers,
+    ),
+    // Azure lists a subnet inside its virtual network (#9375).
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/virtualNetworks/subnets",
+      "Virtual Network Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/networkSecurityGroups",
+      "Network Security Group",
+      IAAS,
+      C.Networking,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",
       "VPC Network",
       IAAS,
       C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Subnetwork",
+      "VPC Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Firewall",
+      "VPC Firewall Rule",
+      IAAS,
+      C.Networking,
+    ),
+    // A load balancer's pieces that publish no metrics of their own.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/ForwardingRule",
+      "Forwarding Rule",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendService",
+      "Backend Service",
+      IAAS,
+      C.Networking,
+    ),
+    // A URL map whose load balancer's metrics OneUptime does not read yet.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/UrlMap",
+      "URL Map",
+      IAAS,
+      C.Networking,
+    ) /*
+     * A GKE cluster: its Kubernetes metrics are the Kubernetes product's
+     * (no k8s_ rule above), so the cluster is listed only.
+     */,
+    descriptorOf(
+      CloudProvider.GCP,
+      "container.googleapis.com/Cluster",
+      "GKE Cluster",
+      PAAS,
+      C.Containers,
     ),
   ];
 
@@ -1984,13 +2072,11 @@ function namedOnly(
 
 export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType> =
   [
-    // AWS: what an instance, a load balancer or a function runs in and behind.
-    namedOnly(CloudProvider.AWS, "AWS::EC2::Subnet", translationKey("Subnet")),
-    namedOnly(
-      CloudProvider.AWS,
-      "AWS::EC2::SecurityGroup",
-      translationKey("Security Group"),
-    ),
+    /*
+     * AWS: what an instance, a load balancer or a function is attached to
+     * and runs as. Its subnets and security groups are listed
+     * (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.AWS,
       "AWS::EC2::NetworkInterface",
@@ -2057,17 +2143,11 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "AWS::SecretsManager::Secret",
       translationKey("Secret"),
     ),
-    // Azure: what a virtual machine or an app runs in and behind.
-    namedOnly(
-      CloudProvider.Azure,
-      "Microsoft.Network/virtualNetworks/subnets",
-      translationKey("Subnet"),
-    ),
-    namedOnly(
-      CloudProvider.Azure,
-      "Microsoft.Network/networkSecurityGroups",
-      translationKey("Network Security Group"),
-    ),
+    /*
+     * Azure: what a virtual machine or an app runs behind and as. Its
+     * subnets and network security groups are listed
+     * (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.Azure,
       "Microsoft.Network/applicationSecurityGroups",
@@ -2098,17 +2178,10 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       "Microsoft.Compute/snapshots",
       translationKey("Disk Snapshot"),
     ),
-    // Google Cloud: what an instance runs in, and what guards and runs it.
-    namedOnly(
-      CloudProvider.GCP,
-      "compute.googleapis.com/Subnetwork",
-      translationKey("Subnet"),
-    ),
-    namedOnly(
-      CloudProvider.GCP,
-      "compute.googleapis.com/Firewall",
-      translationKey("Firewall Rule"),
-    ),
+    /*
+     * Google Cloud: what an instance is reached at and runs as. Its subnets
+     * and firewall rules are listed (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.GCP,
       "compute.googleapis.com/Address",
@@ -2123,6 +2196,22 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       CloudProvider.GCP,
       "compute.googleapis.com/InstanceGroup",
       translationKey("Instance Group"),
+    ),
+    // What a load balancer's backend services and addresses send to.
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/NetworkEndpointGroup",
+      translationKey("Network Endpoint Group"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendBucket",
+      translationKey("Backend Bucket"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/TargetPool",
+      translationKey("Target Pool"),
     ),
     namedOnly(
       CloudProvider.GCP,

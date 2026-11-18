@@ -28,7 +28,7 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
@@ -320,7 +320,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   });
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (firstRecordWatch.error) {
@@ -568,7 +568,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       {arch ? (
                         <>
                           {" "}
-                          <span className="font-mono text-gray-400">
+                          <span className="font-mono text-gray-500">
                             {arch}
                           </span>
                         </>

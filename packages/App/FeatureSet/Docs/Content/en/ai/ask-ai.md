@@ -120,7 +120,7 @@ Ask AI sets up what the guided setups set up, from a sentence: "Monitor example.
 - **What is missing.** Ask AI never adds a phone number or the mobile app: you add and verify them in **User Settings → Notification Methods**. If you ask to be texted and have no verified number, the card says so and the answer links the page. A part Ask AI can't make isn't proposed, for example when your role doesn't allow it, the address isn't one or the monitors don't exist: the answer says what is needed.
 - **What each part needs.** A monitor needs permission to create monitors. Paging needs permission to create on-call policies, their escalation rules, and incident and alert on-call rules. A status page needs permission to create status pages and to add monitors to them. The project's plan limits apply, as in the guided setups.
 - **Then test it.** Once the plan runs, each card opens what was created, and **Test this policy** (or **Send me a test page**, for a monitor alone) under the answer sends a test page you acknowledge from the message. If a part fails, the answer says what was created and what was not.
-- **Who is told.** Ask "who is told when example.com goes down?" and Ask AI answers from the same chain the monitor's page shows, naming every break.
+- **Who is told.** Ask "who is told when example.com goes down?" and Ask AI answers from the same chain the monitor's page shows, naming every break. It also names the title of what the monitor opens, the on-call rules that match it and which one runs each policy, and why someone can't be paged, in the words the monitor's page uses, and leaves out what you can't read.
 
 ## Steering a conversation
 

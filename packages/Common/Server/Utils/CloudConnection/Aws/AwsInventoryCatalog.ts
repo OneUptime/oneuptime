@@ -28,6 +28,8 @@ import {
   AwsListedResource,
 } from "./AwsCloudControl";
 import { listBeanstalkEnvironments } from "./AwsBeanstalkEnvironments";
+import { listClassicLoadBalancers } from "./AwsClassicLoadBalancers";
+import { listEksClusters } from "./AwsEksClusters";
 
 /*
  * WHAT AN AWS ACCOUNT'S INVENTORY LISTS, AND HOW EACH RESOURCE BECOMES ONE
@@ -89,6 +91,11 @@ export interface AwsInventoryType {
   name?: ((listed: AwsListedResource) => string) | undefined;
   // The dotted property paths it keeps (pickCloudProperties).
   properties: ReadonlyArray<string>;
+  /*
+   * Properties worked out from what was listed, kept beside it when
+   * `properties` names them: a security group's rules as one line each.
+   */
+  derivedProperties?: ((listed: AwsListedResource) => JSONObject) | undefined;
   relationships?:
     | ((
         listed: AwsListedResource,
@@ -194,6 +201,77 @@ function relations(
 const SUBNET: string = "AWS::EC2::Subnet";
 const VPC: string = "AWS::EC2::VPC";
 const SECURITY_GROUP: string = "AWS::EC2::SecurityGroup";
+const INSTANCE: string = "AWS::EC2::Instance";
+export const EKS_CLUSTER: string = "AWS::EKS::Cluster";
+
+// The tag keys EKS puts on the instances of a cluster's node groups.
+const EKS_CLUSTER_NAME_TAGS: ReadonlyArray<string> = [
+  "eks:cluster-name",
+  "aws:eks:cluster-name",
+];
+const KUBERNETES_CLUSTER_TAG_PREFIX: string = "kubernetes.io/cluster/";
+
+/*
+ * The EKS cluster an instance or an Auto Scaling group is a node of, from
+ * the tags EKS gives a node group's instances and groups: eks:cluster-name
+ * (aws:eks:cluster-name), or kubernetes.io/cluster/<name> = owned | shared,
+ * which a self-managed node group and Karpenter write. One name, or none
+ * when the tags name none or disagree. A cluster is named by its ARN,
+ * which is the instance's Region's.
+ */
+export function getEksClusterOfNode(
+  tags: Record<string, string>,
+  context: AwsInventoryContext,
+): string {
+  const names: Array<string> = [];
+
+  const add: (name: string) => void = (name: string): void => {
+    const trimmed: string = name.trim();
+
+    if (trimmed && !names.includes(trimmed)) {
+      names.push(trimmed);
+    }
+  };
+
+  for (const key of EKS_CLUSTER_NAME_TAGS) {
+    if (tags[key]) {
+      add(tags[key]!);
+    }
+  }
+
+  for (const key of Object.keys(tags)) {
+    const value: string = (tags[key] || "").trim().toLowerCase();
+
+    if (
+      key.startsWith(KUBERNETES_CLUSTER_TAG_PREFIX) &&
+      (value === "owned" || value === "shared")
+    ) {
+      add(key.slice(KUBERNETES_CLUSTER_TAG_PREFIX.length));
+    }
+  }
+
+  return names.length === 1 ? arnOf(context, "eks", `cluster/${names[0]}`) : "";
+}
+
+function partOfEksCluster(
+  listed: AwsListedResource,
+  context: AwsInventoryContext,
+): Array<CloudResourceRelationship> {
+  const cluster: string = getEksClusterOfNode(
+    normalizeCloudTags(listed.properties["Tags"]),
+    context,
+  );
+
+  return cluster
+    ? [
+        {
+          kind: CloudRelationshipKind.PartOf,
+          target: cluster,
+          targetType: EKS_CLUSTER,
+        },
+      ]
+    : [];
+}
 
 function inSubnets(
   props: JSONObject,
@@ -211,6 +289,62 @@ function guardedBy(
     textsAt(props, path),
     SECURITY_GROUP,
   );
+}
+
+// What a subnet or a security group is in: its VPC.
+function inVpc(props: JSONObject): Array<CloudResourceRelationship> {
+  return relations(CloudRelationshipKind.RunsIn, textsAt(props, "VpcId"), VPC);
+}
+
+/*
+ * A security group's rules, one line each, as the console reads them:
+ * "tcp:443 from 0.0.0.0/0", "all from sg-0abc", "udp:53 to 10.0.0.0/8".
+ * Protocol "-1" is every protocol, and a port range is "from-to". `peer`
+ * is "from" for the inbound rules and "to" for the outbound ones.
+ */
+export function securityGroupRules(
+  rules: unknown,
+  peer: "from" | "to",
+): Array<string> {
+  const prefix: string = peer === "from" ? "Source" : "Destination";
+  const lines: Array<string> = [];
+
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+      continue;
+    }
+
+    const props: JSONObject = rule as JSONObject;
+    const rawProtocol: string = textAt(props, "IpProtocol").toLowerCase();
+    const protocol: string =
+      rawProtocol === "-1" || rawProtocol === "" ? "all" : rawProtocol;
+    const from: string = textAt(props, "FromPort");
+    const to: string = textAt(props, "ToPort");
+    let ports: string = "";
+
+    if (protocol !== "all" && from && from !== "-1") {
+      ports = to && to !== from ? `${from}-${to}` : from;
+    }
+
+    const peers: Array<string> = [];
+
+    for (const value of [
+      textAt(props, "CidrIp"),
+      textAt(props, "CidrIpv6"),
+      textAt(props, `${prefix}SecurityGroupId`),
+      textAt(props, `${prefix}PrefixListId`),
+    ]) {
+      if (value && !peers.includes(value)) {
+        peers.push(value);
+      }
+    }
+
+    const what: string = ports ? `${protocol}:${ports}` : protocol;
+
+    lines.push(peers.length > 0 ? `${what} ${peer} ${peers.join(", ")}` : what);
+  }
+
+  return lines;
 }
 
 /*
@@ -319,7 +453,10 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
       "Monitoring",
       "SecurityGroupIds",
     ],
-    relationships: (listed: AwsListedResource) => {
+    relationships: (
+      listed: AwsListedResource,
+      context: AwsInventoryContext,
+    ) => {
       return [
         ...inSubnets(listed.properties, "SubnetId"),
         ...relations(
@@ -328,6 +465,8 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
           VPC,
         ),
         ...guardedBy(listed.properties, "SecurityGroupIds"),
+        // A node of an EKS cluster's node group (#9375).
+        ...partOfEksCluster(listed, context),
       ];
     },
     endpoints: (listed: AwsListedResource) => {
@@ -368,6 +507,69 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
     },
     properties: ["CidrBlock", "InstanceTenancy", "EnableDnsSupport"],
   },
+  /*
+   * A subnet and a security group publish no metrics: each is identified
+   * by its id, the way an instance, a load balancer, a function or a
+   * database names it, so what they name resolves to them (#9375). A role
+   * set up before they were listed may not read them (ec2:DescribeSubnets,
+   * ec2:DescribeSecurityGroups): it reads everything else as it did.
+   */
+  {
+    type: SUBNET,
+    inventoryId: {
+      dimension: "SubnetId",
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "ec2", `subnet/${id}`);
+      },
+    },
+    properties: [
+      "CidrBlock",
+      "Ipv6CidrBlocks",
+      "AvailabilityZone",
+      "AvailabilityZoneId",
+      "MapPublicIpOnLaunch",
+      "VpcId",
+    ],
+    relationships: (listed: AwsListedResource) => {
+      return inVpc(listed.properties);
+    },
+    quietWhenRefused: true,
+  },
+  {
+    type: SECURITY_GROUP,
+    inventoryId: {
+      dimension: "GroupId",
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "ec2", `security-group/${id}`);
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "GroupName");
+    },
+    properties: [
+      "GroupName",
+      "GroupDescription",
+      "VpcId",
+      "inbound",
+      "outbound",
+    ],
+    derivedProperties: (listed: AwsListedResource): JSONObject => {
+      return {
+        inbound: securityGroupRules(
+          listed.properties["SecurityGroupIngress"],
+          "from",
+        ),
+        outbound: securityGroupRules(
+          listed.properties["SecurityGroupEgress"],
+          "to",
+        ),
+      };
+    },
+    relationships: (listed: AwsListedResource) => {
+      return inVpc(listed.properties);
+    },
+    quietWhenRefused: true,
+  },
   {
     type: "AWS::EC2::NatGateway",
     metrics: {
@@ -404,12 +606,19 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
       "LaunchTemplate.Version",
       "TargetGroupARNs",
     ],
-    relationships: (listed: AwsListedResource) => {
-      return relations(
-        CloudRelationshipKind.RunsIn,
-        splitIds(textsAt(listed.properties, "VPCZoneIdentifier")),
-        SUBNET,
-      );
+    relationships: (
+      listed: AwsListedResource,
+      context: AwsInventoryContext,
+    ) => {
+      return [
+        ...relations(
+          CloudRelationshipKind.RunsIn,
+          splitIds(textsAt(listed.properties, "VPCZoneIdentifier")),
+          SUBNET,
+        ),
+        // An EKS node group's Auto Scaling group (#9375).
+        ...partOfEksCluster(listed, context),
+      ];
     },
   },
   {
@@ -447,6 +656,64 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
     type: "AWS::ElasticLoadBalancingV2::TargetGroup",
     isPlumbing: true,
     properties: [],
+  },
+  /*
+   * A classic load balancer (#9375): listed by Elastic Load Balancing's own
+   * API, as Cloud Control lists none, under the LoadBalancerName its AWS/ELB
+   * metrics name it by. It sends traffic to the instances registered with
+   * it, runs in its subnets and VPC, and is guarded by its security groups.
+   */
+  {
+    type: "AWS::ElasticLoadBalancing::LoadBalancer",
+    lister: listClassicLoadBalancers,
+    metrics: {
+      namespace: () => {
+        return "AWS/ELB";
+      },
+      dimensions: (listed: AwsListedResource) => {
+        return listed.identifier
+          ? { LoadBalancerName: listed.identifier }
+          : null;
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "LoadBalancerName");
+    },
+    properties: [
+      "Scheme",
+      "DNSName",
+      "VpcId",
+      "AvailabilityZones",
+      "Subnets",
+      "SecurityGroups",
+      "Listeners",
+      "HealthCheck.Target",
+    ],
+    relationships: (
+      listed: AwsListedResource,
+      context: AwsInventoryContext,
+    ) => {
+      return [
+        ...inSubnets(listed.properties, "Subnets"),
+        ...relations(
+          CloudRelationshipKind.RunsIn,
+          textsAt(listed.properties, "VpcId"),
+          VPC,
+        ),
+        ...guardedBy(listed.properties, "SecurityGroups"),
+        ...relations(
+          CloudRelationshipKind.RoutesTo,
+          textsAt(listed.properties, "Instances").map((id: string): string => {
+            return arnOf(context, "ec2", `instance/${id}`);
+          }),
+          INSTANCE,
+        ),
+      ];
+    },
+    endpoints: (listed: AwsListedResource) => {
+      return [listed.properties["DNSName"]];
+    },
+    quietWhenRefused: true,
   },
   {
     type: "AWS::ECS::Cluster",
@@ -520,6 +787,55 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
         ),
       ];
     },
+  },
+  /*
+   * An EKS cluster (#9375): listed by EKS's own API, which says what it
+   * runs in. Its Kubernetes metrics are the Kubernetes product's, so it is
+   * listed only, as a GKE cluster is. The instances and Auto Scaling groups
+   * of its node groups are part of it (getEksClusterOfNode).
+   */
+  {
+    type: EKS_CLUSTER,
+    lister: listEksClusters,
+    inventoryId: {
+      dimension: "ClusterName",
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "eks", `cluster/${id}`);
+      },
+    },
+    properties: [
+      "Version",
+      "Status",
+      "PlatformVersion",
+      "Endpoint",
+      "ResourcesVpcConfig.VpcId",
+      "ResourcesVpcConfig.SubnetIds",
+      "ResourcesVpcConfig.SecurityGroupIds",
+      "ResourcesVpcConfig.ClusterSecurityGroupId",
+      "ResourcesVpcConfig.EndpointPublicAccess",
+      "ResourcesVpcConfig.EndpointPrivateAccess",
+      "KubernetesNetworkConfig.ServiceIpv4Cidr",
+      "KubernetesNetworkConfig.IpFamily",
+    ],
+    relationships: (listed: AwsListedResource) => {
+      return [
+        ...inSubnets(listed.properties, "ResourcesVpcConfig.SubnetIds"),
+        ...relations(
+          CloudRelationshipKind.RunsIn,
+          textsAt(listed.properties, "ResourcesVpcConfig.VpcId"),
+          VPC,
+        ),
+        ...guardedBy(listed.properties, "ResourcesVpcConfig.SecurityGroupIds"),
+        ...guardedBy(
+          listed.properties,
+          "ResourcesVpcConfig.ClusterSecurityGroupId",
+        ),
+      ];
+    },
+    endpoints: (listed: AwsListedResource) => {
+      return [listed.properties["Endpoint"]];
+    },
+    quietWhenRefused: true,
   },
   {
     type: "AWS::Lambda::Function",
@@ -1152,7 +1468,12 @@ export function buildAwsInventoryItem(
     displayName: displayName || undefined,
     tags,
     properties: pickCloudProperties(
-      listed.properties,
+      inventoryType.derivedProperties
+        ? {
+            ...listed.properties,
+            ...inventoryType.derivedProperties(listed),
+          }
+        : listed.properties,
       inventoryType.properties,
     ),
     relationships: boundCloudRelationships(

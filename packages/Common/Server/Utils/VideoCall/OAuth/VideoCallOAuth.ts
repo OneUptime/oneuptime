@@ -69,6 +69,14 @@ export interface VideoCallOAuthSecrets {
   accessTokenExpiresAt?: string | undefined;
   // When the tokens were last issued or refreshed, ISO 8601.
   tokensRefreshedAt?: string | undefined;
+  /*
+   * When the account signed in, ISO 8601: the code exchange, which a
+   * refresh keeps. Unset on a sign-in stored before OneUptime recorded it.
+   * Tells a sign-in made before the provider's app gained a scope from one
+   * made after (ZoomTranscriptReconnect).
+   */
+  signedInAt?: string | undefined;
+  // The scopes granted, as the provider listed them on the last token response.
   scope?: string | undefined;
   apiBaseUrl?: string | undefined;
   externalUserId?: string | undefined;
@@ -275,6 +283,11 @@ export default class VideoCallOAuthUtil {
       .some(matches);
   }
 
+  /*
+   * What a connection stores: a sign-in's tokens and who signed in (with
+   * `account`, from a code exchange), or a refresh's tokens over the
+   * sign-in they renew (`previous`).
+   */
   public static toSecrets(data: {
     tokens: VideoCallOAuthTokens;
     account?: VideoCallOAuthAccount | undefined;
@@ -287,6 +300,7 @@ export default class VideoCallOAuthUtil {
       accessToken: data.tokens.accessToken,
       accessTokenExpiresAt: data.tokens.accessTokenExpiresAt.toISOString(),
       tokensRefreshedAt: now.toISOString(),
+      signedInAt: data.account ? now.toISOString() : data.previous?.signedInAt,
       scope: data.tokens.scope || data.previous?.scope,
       apiBaseUrl: data.tokens.apiBaseUrl || data.previous?.apiBaseUrl,
       externalUserId:
@@ -336,6 +350,7 @@ export default class VideoCallOAuthUtil {
       accessToken: read("accessToken"),
       accessTokenExpiresAt: read("accessTokenExpiresAt"),
       tokensRefreshedAt: read("tokensRefreshedAt"),
+      signedInAt: read("signedInAt"),
       scope: read("scope"),
       apiBaseUrl: read("apiBaseUrl"),
       externalUserId: read("externalUserId"),

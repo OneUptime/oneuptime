@@ -22,7 +22,7 @@ import Dropdown, {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
@@ -1028,7 +1028,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   /*
@@ -1301,7 +1301,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {translator.translateText(
             isManual ? MANUAL_INSTRUCTIONS_TITLE : "Description",
           )}
-          <span className="ml-2 text-[10px] font-normal text-gray-400">
+          <span className="ml-2 text-xs font-normal text-gray-500">
             {translator.translateText("Markdown supported")}
           </span>
         </label>

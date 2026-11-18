@@ -42,7 +42,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
@@ -308,7 +308,7 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }
 
   if (isLoading || !monitorState) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const { membership, enabledMonitorRuleCount } = monitorState;

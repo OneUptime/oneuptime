@@ -75,7 +75,11 @@ jest.mock("Common/UI/Utils/API/API", () => {
 
 import CreateWorkflowModal from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
 import { WHO_TO_PAGE_REQUIRED_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplateCreateUtil";
-import { WorkflowTemplateCollection } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
+import {
+  WorkflowTemplateCollection,
+  getWorkflowTemplatePickerViews,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
+import { openDropdown } from "../../DropdownPicks";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -199,9 +203,24 @@ function submit(): void {
 
 // Pick a template from All templates, use it, and go on from Name.
 function goToConfigure(templateId: string): void {
-  fireEvent.change(screen.getByTestId("workflow-template-view-select"), {
-    target: { value: String(WorkflowTemplateCollection.All) },
-  });
+  // All templates, the category picker's last choice (the shared Dropdown).
+  openDropdown(
+    within(screen.getByTestId("workflow-template-view-select")).getByRole(
+      "combobox",
+    ),
+  );
+  const menuOptions: Array<HTMLElement> = within(
+    document.querySelector(".ou-select__menu") as HTMLElement,
+  ).getAllByRole("option");
+  fireEvent.click(
+    menuOptions[
+      getWorkflowTemplatePickerViews().findIndex(
+        (info: { view: string }): boolean => {
+          return info.view === String(WorkflowTemplateCollection.All);
+        },
+      )
+    ]!,
+  );
   fireEvent.click(screen.getByTestId(`workflow-template-option-${templateId}`));
   submit();
   submit();

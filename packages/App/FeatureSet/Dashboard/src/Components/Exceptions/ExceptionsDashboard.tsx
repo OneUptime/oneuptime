@@ -17,7 +17,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
@@ -227,7 +227,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -242,7 +242,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   }
 
   if (!data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const {
@@ -709,7 +709,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               }}
                             />
                           </div>
-                          <span className="text-[11px] tabular-nums text-gray-500 shrink-0">
+                          <span className="text-xs tabular-nums text-gray-500 shrink-0">
                             {translator.translatePlural(
                               { one: "{{count}} hit", other: "{{count}} hits" },
                               summary.totalOccurrences,

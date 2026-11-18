@@ -32,10 +32,10 @@ flowchart TB
 Cuando creas una política de guardia en la página **Políticas de guardia**, el formulario pide su **Nombre** y **¿A quién se avisa primero?**. La pregunta usa el mismo selector que **Notificar**: programaciones de guardia, equipos y personas, tantos como necesites. Quienes elijas forman la primera regla de escalado de la política, **Level 1**, que espera **30 minutos** a que alguien reconozca el aviso antes de avisar al siguiente nivel.
 
 :::steps
-1. Ve a **Guardia** > **Políticas de guardia** y haz clic en **Crear Política de guardia**.
+1. Ve a **Guardia** > **Políticas de guardia** y haz clic en **Crear política de guardia**.
 2. Escribe un **Nombre**.
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
-4. Haz clic en **Crear Política de guardia**. La nueva política se abre después en su página **Reglas de escalado**, donde puedes añadir más niveles.
+4. Haz clic en **Crear política de guardia**. La nueva política se abre después en su página **Reglas de escalado**, donde puedes añadir más niveles.
 :::
 
 **¿A quién se avisa primero?** es opcional. Si lo dejas vacío, la política empieza sin reglas de escalado: no avisa a nadie hasta que añadas una, y su vista general lo indica. La descripción y las etiquetas esperan en **Más campos**. La pregunta solo se hace a quienes pueden añadir reglas de escalado.
@@ -45,7 +45,7 @@ Cuando creas una política de guardia en la página **Políticas de guardia**, e
 :::steps
 ### Abre las reglas de escalado de la política
 
-Abre la política de guardia, elige **Reglas de escalado** en su menú lateral y haz clic en **Añadir regla de escalado**. El diálogo es una sola página corta.
+Abre la política de guardia, elige **Reglas de escalado** en su menú lateral y haz clic en **Añadir regla de escalado**. El diálogo es una sola página corta. Indica qué nivel de la política añade la regla.
 
 ### Elige a quién notificar
 
@@ -61,6 +61,10 @@ En **Notificar**, haz clic en **Añadir destinatario**, busca y elige tantas pro
 ### Indica cuánto esperar
 
 **Escalar después de (en minutos)** es cuánto esperar a que alguien reconozca el aviso antes de avisar al siguiente nivel. Empieza en **30 minutos**; cámbialo a lo que convenga al nivel.
+
+![El diálogo «Añadir regla de escalado» de una política con un nivel, con «Avisado tras (en minutos)» resaltado](screen:escalation-rule-paged-after)
+
+Una regla que se añade después de la primera pregunta en cambio **Avisado tras (en minutos)**: cuánto espera el nivel anterior a que alguien reconozca antes de avisar a este. Empieza en la espera de ese nivel y se guarda como su espera; el nuevo nivel espera 30 minutos hasta que añadas otro después. Quien puede añadir reglas pero no cambiarlas ve **Escalar después de (en minutos)**, y el diálogo dice cuándo se avisa al nuevo nivel.
 
 ### Ponle nombre a la regla, si quieres
 
@@ -190,7 +194,7 @@ Un nivel puede avisar a la siguiente persona de la rotación de una programació
 
 :::steps
 1. Asegúrate de que el primer nivel de la política, **Level 1**, notifica a la programación de guardia.
-2. Haz clic en **Añadir regla de escalado**, luego en **Añadir destinatario**, y elige la misma programación en **Siguiente en la rotación**. Indica **Escalar después de (en minutos)** y haz clic en **Crear regla**.
+2. Haz clic en **Añadir regla de escalado**, luego en **Añadir destinatario**, y elige la misma programación en **Siguiente en la rotación**. Indica **Avisado tras (en minutos)** y haz clic en **Crear regla**.
 3. Añade un nivel más para el equipo o el responsable que deba enterarse a continuación.
 :::
 

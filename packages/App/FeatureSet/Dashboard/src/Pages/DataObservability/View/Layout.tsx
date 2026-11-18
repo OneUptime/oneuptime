@@ -8,7 +8,7 @@ import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/Da
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Page from "Common/UI/Components/Page/Page";
 import { nameRecordInTrail } from "Common/UI/Components/Page/RecordNameInTrail";
 import API from "Common/UI/Utils/API/API";
@@ -109,7 +109,7 @@ const StoreViewLayout: FunctionComponent<
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (!isLoaded) {
-      return <PageLoader isVisible={true} />;
+      return <PageSkeleton />;
     }
 
     if (loaded!.error) {

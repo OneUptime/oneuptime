@@ -41,7 +41,7 @@ export function describeSourceRows(
 
 // The same round pill the answer's marks are (CITATION_CHIP_CLASS_NAME).
 const ID_CLASS_NAME: string =
-  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none bg-gray-100 text-gray-600";
+  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-none bg-gray-100 text-gray-600";
 
 /*
  * What an answer in the AI Investigation card's conversation read, one line
@@ -94,7 +94,7 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
               </span>
               <span className="min-w-0 break-words">
                 {citation.label}
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {" "}
                   · {describeSourceRows(citation.rowCount, translator)}
                 </span>

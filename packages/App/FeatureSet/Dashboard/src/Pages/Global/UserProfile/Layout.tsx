@@ -1,9 +1,9 @@
 import PageMap from "../../../Utils/PageMap";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
@@ -66,7 +66,7 @@ const UserProfileLayout: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<SideMenu />}
     >
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <Outlet />
       </Suspense>
     </Page>

@@ -22,6 +22,13 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import { Mock, SpyInstance } from "jest-mock";
 import React from "react";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -291,16 +298,38 @@ const denyButton: ElementFunction = (): HTMLElement => {
   return screen.getByTestId("mcp-authorize-deny");
 };
 
-type SelectFunction = () => HTMLSelectElement;
+/*
+ * The project picker is the shared Dropdown (#9294): its input is what the
+ * label names, the project it shows is its single value, and its projects
+ * are the options of the menu it opens. A locked picker's input is no
+ * combobox, so it is found by its id.
+ */
+type SelectFunction = () => HTMLElement;
 
-const projectSelect: SelectFunction = (): HTMLSelectElement => {
-  return screen.getByTestId("mcp-authorize-project") as HTMLSelectElement;
+const projectSelect: SelectFunction = (): HTMLElement => {
+  return document.getElementById("mcp-authorize-project") as HTMLElement;
 };
 
-type OptionsFunction = () => Array<HTMLOptionElement>;
+type OptionsFunction = () => Array<HTMLElement>;
 
-const projectOptions: OptionsFunction = (): Array<HTMLOptionElement> => {
-  return Array.from(projectSelect().options);
+const projectOptions: OptionsFunction = (): Array<HTMLElement> => {
+  openDropdown(projectSelect());
+
+  return screen.getAllByRole("option");
+};
+
+type PickedFunction = () => string | null;
+
+// The project the picker shows as chosen, or null for its placeholder.
+const pickedProject: PickedFunction = (): string | null => {
+  return getShownDropdownValue(projectSelect());
+};
+
+type IsDisabledFunction = (option: HTMLElement) => boolean;
+
+// A project listed but never picked: react-select marks it so.
+const isOptionDisabled: IsDisabledFunction = (option: HTMLElement): boolean => {
+  return option.getAttribute("aria-disabled") === "true";
 };
 
 type RadioFunction = (level: "read" | "write") => HTMLInputElement | null;
@@ -323,12 +352,24 @@ const click: ClickFunction = async (element: HTMLElement): Promise<void> => {
 
 type ChooseProjectFunction = (projectId: string) => Promise<void>;
 
+const PROJECT_NAMES: Record<string, string> = {
+  [PRODUCTION_ID]: "Acme Production",
+  [STAGING_ID]: "Acme Staging",
+  [FINANCE_ID]: "Acme Finance",
+  [SIDE_PROJECT_ID]: "Side Project",
+};
+
+// Picks a project by its name, or clears the picker for "".
 const chooseProject: ChooseProjectFunction = async (
   projectId: string,
 ): Promise<void> => {
-  await act(async () => {
-    fireEvent.change(projectSelect(), { target: { value: projectId } });
-  });
+  if (projectId) {
+    chooseDropdownOption(projectSelect(), PROJECT_NAMES[projectId]!);
+  } else {
+    clearDropdown(projectSelect());
+  }
+
+  await act(async () => {});
 };
 
 type AsTheDashboardFunction = <T>(read: () => T) => T;
@@ -903,12 +944,22 @@ describe("choosing the project", () => {
     expect(screen.getByLabelText(say("projectLabel"))).toBe(projectSelect());
     expect(screen.getByText(say("projectHelp"))).toBeInTheDocument();
 
+    // The projects in the server's order, each option naming its project.
     expect(
-      projectOptions().map((option: HTMLOptionElement): string => {
-        return option.value;
+      projectOptions().map((option: HTMLElement): string | undefined => {
+        return Object.values(PROJECT_NAMES).find((name: string): boolean => {
+          return (option.textContent || "").includes(name);
+        });
       }),
-    ).toEqual(["", FINANCE_ID, PRODUCTION_ID, SIDE_PROJECT_ID, STAGING_ID]);
-    expect(projectOptions()[0]!.textContent).toBe(say("projectPlaceholder"));
+    ).toEqual([
+      "Acme Finance",
+      "Acme Production",
+      "Side Project",
+      "Acme Staging",
+    ]);
+    expect(getShownDropdownPlaceholder(projectSelect())).toBe(
+      say("projectPlaceholder"),
+    );
   });
 
   test("a project the server refused cannot be picked, and says why", async () => {
@@ -936,26 +987,26 @@ describe("choosing the project", () => {
 
     await renderPage();
 
-    const options: Array<HTMLOptionElement> = projectOptions();
+    const options: Array<HTMLElement> = projectOptions();
 
-    expect(options[1]!.textContent).toBe("Acme Production");
-    expect(options[1]!.disabled).toBe(false);
+    expect(options[0]!.textContent).toBe("Acme Production");
+    expect(isOptionDisabled(options[0]!)).toBe(false);
 
-    expect(options[2]!.textContent).toBe(
+    expect(options[1]!.textContent).toBe(
       say("projectRefusal.sso", { name: "Acme Finance" }),
     );
-    expect(options[3]!.textContent).toBe(
+    expect(options[2]!.textContent).toBe(
       say("projectRefusal.plan", { name: "Side Project" }),
     );
-    expect(options[4]!.textContent).toBe(
+    expect(options[3]!.textContent).toBe(
       say("projectRefusal.blocked", { name: "Locked Down" }),
     );
-    expect(options[5]!.textContent).toBe(
+    expect(options[4]!.textContent).toBe(
       say("projectRefusal.not-a-member", { name: "Left Behind" }),
     );
 
-    for (const option of options.slice(2)) {
-      expect(option.disabled).toBe(true);
+    for (const option of options.slice(1)) {
+      expect(isOptionDisabled(option)).toBe(true);
       // The reason is in the option itself, beside the project's name.
       expect(option.textContent).not.toContain("mcpAuthorize");
     }
@@ -985,14 +1036,23 @@ describe("choosing the project", () => {
 
     await renderPage();
 
-    expect(projectOptions()[2]!.textContent).toBe(
+    const options: Array<HTMLElement> = projectOptions();
+
+    expect(options[1]!.textContent).toBe(
       say("projectRefusal.not-a-member", { name: "Acme Finance" }),
     );
-    expect(projectOptions()[3]!.textContent).toBe(
+    expect(options[2]!.textContent).toBe(
       say("projectRefusal.not-a-member", { name: "Side Project" }),
     );
-    expect(projectSelect().textContent).not.toContain("quota_exceeded");
-    expect(projectSelect().textContent).not.toContain("projectRefusal");
+
+    const listed: string = options
+      .map((option: HTMLElement): string => {
+        return option.textContent || "";
+      })
+      .join(" ");
+
+    expect(listed).not.toContain("quota_exceeded");
+    expect(listed).not.toContain("projectRefusal");
   });
 
   test("the only project a client can be connected to is preselected, and Authorize is ready", async () => {
@@ -1008,7 +1068,7 @@ describe("choosing the project", () => {
 
     await renderPage();
 
-    expect(projectSelect().value).toBe(PRODUCTION_ID);
+    expect(pickedProject()).toBe("Acme Production");
     expect(approveButton()).toBeEnabled();
   });
 
@@ -1019,7 +1079,7 @@ describe("choosing the project", () => {
 
     await renderPage();
 
-    expect(projectSelect().value).toBe("");
+    expect(pickedProject()).toBeNull();
     expect(approveButton()).toBeDisabled();
 
     // Pressing it anyway sends nothing.
@@ -1028,7 +1088,7 @@ describe("choosing the project", () => {
 
     await chooseProject(STAGING_ID);
 
-    expect(projectSelect().value).toBe(STAGING_ID);
+    expect(pickedProject()).toBe("Acme Staging");
     expect(approveButton()).toBeEnabled();
 
     // Going back to the placeholder takes the choice away again.
@@ -1054,14 +1114,8 @@ describe("choosing the project", () => {
     ).toHaveTextContent(say("noEligibleProjects"));
     expect(screen.queryByTestId("mcp-authorize-no-projects")).toBeNull();
 
-    expect(projectSelect().value).toBe("");
-    expect(
-      projectOptions()
-        .slice(1)
-        .every((option: HTMLOptionElement): boolean => {
-          return option.disabled;
-        }),
-    ).toBe(true);
+    expect(pickedProject()).toBeNull();
+    expect(projectOptions().every(isOptionDisabled)).toBe(true);
 
     // There is nothing to grant access to, so the access choice is not asked.
     expect(screen.queryByTestId("mcp-authorize-access")).toBeNull();
@@ -1106,7 +1160,7 @@ describe("choosing the project", () => {
 
     const { container } = await renderPage();
 
-    expect(projectOptions()[1]!.textContent).toBe("<b>Acme</b> & Sons");
+    expect(projectOptions()[0]!.textContent).toBe("<b>Acme</b> & Sons");
     expect(container.querySelector("b")).toBeNull();
   });
 });
@@ -1741,26 +1795,40 @@ describe("every sentence on the screen comes from the locale", () => {
       say("title"),
     );
 
+    /*
+     * The project picker's options are in its menu, drawn over the page
+     * (the shared Dropdown): it is opened and walked too.
+     */
+    projectOptions();
+    const menu: Element = document.querySelector(".ou-select__menu")!;
+
     // Not vacuous: the walk really does see the screen's sentences.
-    expect(visibleTexts(container).length).toBeGreaterThanOrEqual(20);
+    expect(
+      visibleTexts(container).length + visibleTexts(menu).length,
+    ).toBeGreaterThanOrEqual(20);
     expect(visibleTexts(container)).toContain(say("permissionsNote"));
     expect(visibleTexts(container)).toContain(say("authorizeButton"));
+    expect(visibleTexts(menu)).toContain(
+      say("projectRefusal.sso", { name: "Acme Finance" }),
+    );
 
     // The verified host and the names of selectable projects are data.
-    expect(
-      unmarkedTexts(container, [
-        "claude.ai",
-        "Acme Production",
-        "Acme Staging",
-      ]),
-    ).toEqual([]);
-
-    // And without those allowances the same check does notice plain text.
-    expect(unmarkedTexts(container, [])).toEqual([
+    const allowed: Array<string> = [
       "claude.ai",
       "Acme Production",
       "Acme Staging",
-    ]);
+    ];
+
+    expect([
+      ...unmarkedTexts(container, allowed),
+      ...unmarkedTexts(menu, allowed),
+    ]).toEqual([]);
+
+    // And without those allowances the same check does notice plain text.
+    expect([
+      ...unmarkedTexts(container, []),
+      ...unmarkedTexts(menu, []),
+    ]).toEqual(["claude.ai", "Acme Production", "Acme Staging"]);
   });
 
   test("the consent form, for a client on this machine with nothing to connect to", async () => {
@@ -2010,7 +2078,7 @@ describe("read right to left", () => {
       );
 
       expect(
-        projectOptions().map((option: HTMLOptionElement): string => {
+        projectOptions().map((option: HTMLElement): string => {
           return option.textContent || "";
         }),
       ).toContain(

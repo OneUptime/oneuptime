@@ -27,7 +27,7 @@ export const FACET_VALUE_BAR_TEST_ID: string = "facet-value-bar";
  * fits, so the bars and counts of a section line up whatever they hold.
  */
 export const FACET_COUNT_COLUMN_CLASS: string =
-  "w-7 flex-none text-right font-mono text-[10px]";
+  "w-8 flex-none text-right font-mono text-xs";
 
 export interface TelemetryFacetValueRowProps {
   value: string;

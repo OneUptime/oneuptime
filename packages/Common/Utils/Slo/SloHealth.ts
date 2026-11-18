@@ -183,6 +183,13 @@ export interface SloNoticeData {
   metricQueryConfig?: unknown;
   /** Of the attached monitors, how many have active monitoring disabled. */
   disabledMonitorCount?: number | undefined | null;
+  /*
+   * Whether nothing has checked the attached monitors that are not paused
+   * yet (SloMonitorsFirstCheck.areSloMonitorsWaitingForFirstCheck), the
+   * reason the worker gives a Monitor Uptime SLO it marks Misconfigured for
+   * measuring no time (#9089). Unknown counts as no.
+   */
+  isWaitingForFirstCheck?: boolean | undefined | null;
   targetPercentage?: number | undefined | null;
   lastEvaluatedAt?: Date | string | undefined | null;
 }
@@ -341,6 +348,8 @@ const getRequestSetupNotice: GetRequestSetupNoticeFunction = (
  *   or no requests in its window -> Misconfigured
  *   monitorCount == 0    -> Misconfigured
  *   target outside (0,100) -> Misconfigured
+ *   no time measured, nothing has checked its monitors yet -> Misconfigured,
+ *                           said as "Waiting for the first check"
  *   all monitors disabled -> Paused
  */
 export type GetSloNoticeFunction = (data: SloNoticeData) => SloNotice | null;
@@ -458,6 +467,26 @@ export const getSloNotice: GetSloNoticeFunction = (
         action: {
           label: translationKey("View services"),
           target: SloNoticeActionTarget.Settings,
+        },
+      };
+    }
+
+    /*
+     * Nothing has checked its monitors yet (#9089): a monitor created a
+     * minute ago, or a self-hosted probe not connected yet. The SLO is set
+     * up right, and is measured from their first check, so it says so
+     * rather than sending the owner to look for a mistake.
+     */
+    if (data.isWaitingForFirstCheck === true) {
+      return {
+        type: SloNoticeType.Info,
+        title: translationKey("Waiting for the first check"),
+        body: translationKey(
+          "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
+        ),
+        action: {
+          label: translationKey("View monitors"),
+          target: SloNoticeActionTarget.Monitors,
         },
       };
     }

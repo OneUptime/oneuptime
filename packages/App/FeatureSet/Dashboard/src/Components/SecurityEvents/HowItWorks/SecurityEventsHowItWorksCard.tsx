@@ -212,7 +212,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
           <Icon icon={step.icon} className="h-4 w-4 text-indigo-600" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
             {translator.translateTemplate("Step {{number}}", {
               number: translator.formatNumber(index + 1),
             })}

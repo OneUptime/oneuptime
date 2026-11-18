@@ -188,6 +188,7 @@ Så snart funksjonen sender et span, en logg eller en måling, vises den under *
 - **Anrop**, **feilrate** og **p95-varighet**, beregnet ut fra sporene dine over et tidsrom du velger, med trenddiagrammer.
 - **Instanser**: en direkteliste over `faas.instance`-verdiene funksjonen rapporterer.
 - Fullstendige sider **Logger**, **Spor** og **Målinger**, avgrenset til denne funksjonen.
+- **Anbefalinger**: ferdige monitorer for funksjonens mislykkede kall og feiltopper, lest fra dens egne spans ut fra dens `faas.name`. Velg dem du vil ha, og opprett dem i ett trinn.
 
 En funksjon viser **Mottar data** mens telemetrien dens kommer, og **Ingen nylige anrop** etter 15 minutter uten telemetri, noe som er normalt mellom kjøringene: en funksjon sender bare telemetri mens den kjører. En funksjon som er lagt til via API-et, viser **Venter på data** til den første telemetrien kommer.
 

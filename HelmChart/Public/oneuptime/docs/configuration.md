@@ -617,8 +617,8 @@ Optional fixed-size deployment that owns all telemetry ClickHouse inserts.
 When enabled, app/worker pods ship their batched inserts to it over
 cluster-key-authenticated HTTP instead of inserting directly, so telemetry
 ingest workers can scale out without adding ClickHouse insert concurrency
-(which stays at `replicaCount × telemetryFanInMaxConcurrentInserts`). See the
-sizing guidance in [production-checklist.md](production-checklist.md).
+(which stays at `replicaCount × telemetryFanInMaxConcurrentInserts`). See
+[Sizing ClickHouse inserts](#sizing-clickhouse-inserts) below.
 
 | Parameter                                            | Description                                                                                          | Default |
 |------------------------------------------------------|------------------------------------------------------------------------------------------------------|---------|
@@ -631,6 +631,55 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
 | `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
 | `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
+
+### Sizing ClickHouse inserts
+
+Every pod that ingests telemetry (the `worker` pods, or the `app` pods while
+`worker.enabled` is false) gathers its rows into a few large inserts, so those
+pods can scale out without sending ClickHouse one insert per request. Each pod
+runs at most `telemetryFanInMaxConcurrentInserts` (4) inserts at once, so
+ClickHouse sees *pods × 4*. Keep that under about 60% of ClickHouse's
+`max_concurrent_queries`, so reads and background merges still get query
+slots. The chart's own ClickHouse allows 10000 queries at once; a ClickHouse of
+your own that allows 100 fits about 15 such pods at the defaults. Past that,
+lower `telemetryFanInMaxConcurrentInserts` as you add pods, or turn on the
+telemetry writer tier.
+
+With the writer tier on, the `worker` and `app` pods send their batches to it
+instead of inserting them, and ClickHouse sees
+`telemetryWriter.replicaCount × telemetryWriter.telemetryFanInMaxConcurrentInserts`
+inserts at once (2 × 4 by default) however many workers run, so the workers can
+autoscale without that limit. Size the tier to ClickHouse with the same 60%
+rule, and never scale it on queue depth: when it is full it answers 429, the
+workers back off and retry, and the backlog waits in the queue, where the
+worker's KEDA scaler, not ClickHouse, takes it. The tier has two autoscalers of
+its own, both off by default and both capped by `maxReplicas`, so keep
+`maxReplicas × telemetryFanInMaxConcurrentInserts` inside the same budget:
+
+- `telemetryWriter.autoscaling`, a plain CPU and memory HorizontalPodAutoscaler.
+  It needs `telemetryWriter.resources.requests`.
+- `telemetryWriter.keda`, which scales on how often the whole tier answers 429.
+  Steady 429s while ClickHouse is healthy mean the tier is too small. The rate
+  is served at `/metrics/telemetry-writer-shed-rate`.
+
+Also:
+
+- **Batches:** `worker.telemetryFanInMaxBatchRows` and
+  `worker.telemetryFanInMaxWaitMs` set how many rows a batch holds and how long
+  a row waits for one. With very large rows, such as log bodies of several KB,
+  lower `telemetryFanInMaxBatchRows`, so a batch sent to the writer tier stays
+  well under its 50 MB request limit.
+- **Writer memory:** `telemetryWriter.maxInflightRequests` bounds a writer
+  pod's memory. Raise the pod's resources together with it.
+- **ClickHouse pools:** `worker.clickhouseMaxOpenConnections` and
+  `worker.clickhouseIngestMaxOpenConnections` set each pod's ClickHouse
+  connections. The same keys exist under `app:` for installs that ingest on the
+  `app` pods.
+- **Durability:** ClickHouse acknowledges a telemetry insert once it has
+  buffered it, and writes the buffer to disk on its own, so a ClickHouse crash
+  in between loses that buffer. Set `telemetryWaitForAsyncInsert: true` to make
+  every insert wait for that write. Each insert in flight then holds a
+  ClickHouse query slot until its buffer is written.
 
 ## Private network access
 

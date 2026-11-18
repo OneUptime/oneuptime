@@ -2,10 +2,17 @@ import { mockRouter } from "./Helpers";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import {
   PAGING_LADDER_API_PATH,
+  readDefaultLadderUserIds,
   readLadderUserId,
 } from "../../../Server/API/PagingLadderAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import PagingLadderService from "../../../Server/Services/PagingLadderService";
+import PagingLadderService, {
+  PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+} from "../../../Server/Services/PagingLadderService";
+import {
+  MAX_PAGING_LADDER_DEFAULT_MEMBERS,
+  PAGING_LADDER_APPLY_DEFAULT_ROUTE,
+} from "../../../Types/NotificationRule/PagingLadderDefault";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -208,6 +215,159 @@ describe("POST /paging-ladder/apply", () => {
     const { thrown } = await apply({ steps: [] });
 
     expect((thrown as Error).message).toBe("A ladder needs at least one step.");
+  });
+});
+
+describe("POST /paging-ladder/apply-default (#7450)", () => {
+  let applyDefault: jest.SpyInstance;
+
+  const RESULTS: Array<JSONObject> = [
+    {
+      userId: BOB.toString(),
+      outcome: "Applied",
+      appliedSteps: [{ channel: "SMS", notifyAfterMinutes: 0 }],
+      leftOutChannels: ["Call"],
+      keptChannels: ["Email"],
+      changedRuleCount: 6,
+      message: "Applied.",
+    },
+  ];
+
+  async function applyDefaultTo(
+    body: JSONObject,
+  ): Promise<{ thrown: unknown; sent: unknown }> {
+    const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+      "POST",
+      `${PAGING_LADDER_API_PATH}/apply-default`,
+    );
+
+    let thrown: unknown = undefined;
+
+    await (route.handlerFunction as RouterFunction)(
+      { body: body, params: {}, headers: {} } as unknown as ExpressRequest,
+      {} as ExpressResponse,
+      ((err: unknown) => {
+        thrown = err;
+      }) as NextFunction,
+    );
+
+    const sendJson: jest.Mock =
+      Response.sendJsonObjectResponse as unknown as jest.Mock;
+
+    return { thrown: thrown, sent: sendJson.mock.calls[0]?.[2] };
+  }
+
+  beforeEach(() => {
+    applyDefault = jest
+      .spyOn(PagingLadderService, "applyDefaultLadderToMembers")
+      .mockResolvedValue(RESULTS as never);
+  });
+
+  test("is the route the Dashboard posts to, behind the user middleware", () => {
+    expect(PAGING_LADDER_APPLY_DEFAULT_ROUTE).toBe(
+      `${PAGING_LADDER_API_PATH}/apply-default`,
+    );
+
+    const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+      "POST",
+      PAGING_LADDER_APPLY_DEFAULT_ROUTE,
+    );
+
+    expect(route.middleware).toBe(UserMiddleware.getUserMiddleware);
+  });
+
+  test("applies the default to the members named, as the caller, and answers for each", async () => {
+    const { thrown, sent } = await applyDefaultTo({
+      userIds: [BOB.toString(), ` ${ANA.toString()} `, BOB.toString()],
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(applyDefault).toHaveBeenCalledTimes(1);
+
+    const call: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID>;
+      props: DatabaseCommonInteractionProps;
+    } = applyDefault.mock.calls[0]![0] as never;
+
+    expect(call.projectId.toString()).toBe(PROJECT.toString());
+    // Each once, in the order sent.
+    expect(
+      call.userIds.map((userId: ObjectID): string => {
+        return userId.toString();
+      }),
+    ).toEqual([BOB.toString(), ANA.toString()]);
+    expect(call.props.userId?.toString()).toBe(ANA.toString());
+    expect(call.props.isMultiTenantRequest).toBe(false);
+
+    expect(sent).toEqual({ results: RESULTS });
+  });
+
+  test("a caller who is not a member of the project applies nothing", async () => {
+    jest
+      .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+      .mockImplementation(() => {
+        throw new NotAuthorizedException("Sign in to a project first.");
+      });
+
+    const { thrown } = await applyDefaultTo({ userIds: [BOB.toString()] });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(applyDefault).not.toHaveBeenCalled();
+  });
+
+  test("a read-only credential applies nothing", async () => {
+    props = { userId: ANA, tenantId: PROJECT, isReadOnlyCredential: true };
+
+    const { thrown } = await applyDefaultTo({ userIds: [BOB.toString()] });
+
+    expect(thrown).toBeDefined();
+    expect(applyDefault).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["none", undefined],
+    ["an empty list", []],
+    ["a name", "bob"],
+    ["an id that is not one", ["not-a-user"]],
+    ["a number", [42]],
+    [
+      "more than a request may hold",
+      Array(MAX_PAGING_LADDER_DEFAULT_MEMBERS + 1).fill(BOB.toString()),
+    ],
+  ])(
+    "members named badly (%s) are refused, saying what to do",
+    async (_name: string, userIds: unknown) => {
+      const { thrown } = await applyDefaultTo({
+        userIds: userIds as never,
+      });
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Error).message).toMatch(/^[A-Z].*\.$/);
+      expect(applyDefault).not.toHaveBeenCalled();
+    },
+  );
+
+  test("as many as a request may hold are taken", () => {
+    expect(
+      readDefaultLadderUserIds(
+        Array(MAX_PAGING_LADDER_DEFAULT_MEMBERS).fill(BOB.toString()),
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("what the service refuses reaches the caller: a member may not apply it", async () => {
+    applyDefault.mockRejectedValue(
+      new NotAuthorizedException(
+        PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+      ) as never,
+    );
+
+    const { thrown } = await applyDefaultTo({ userIds: [BOB.toString()] });
+
+    expect((thrown as Error).message).toBe(
+      PAGING_LADDER_DEFAULT_NOT_ALLOWED_MESSAGE,
+    );
   });
 });
 

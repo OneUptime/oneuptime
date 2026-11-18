@@ -64,11 +64,15 @@ learned one can find their way around the next.
   a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
   same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
   that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
-  brings the rest of Home back, with the line that shows it again. Enforced by
+  brings the rest of Home back, with the line that shows it again; once finished, "More to set up" is
+  one card among Home's others while core steps no goal brought are left (#7986). Enforced by
   [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
-  setup. Not enforced: use judgement.
+  setup: Home's headline leaves out "Create your first monitor" while the Welcome card offers that
+  step (#7759). Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx) for Home; elsewhere, not
+  enforced: use judgement.
 - **A job that crosses products is a guided setup, on one page.** "Know when my website is down" needs a
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
@@ -145,6 +149,11 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
+- **Search finds a record's own pages too.** On a record's page, "sso" opens that status page's Single
+  Sign-On. Anywhere, a page's name with the record's name or its kind ("status page sso", "acme
+  subscribers") offers it for the matching records. A renamed page keeps its old title in
+  `formerTitles`. Add a new page of a record's menu to `RecordPageSearchIndex.ts`. Enforced by
+  [RecordPageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/RecordPageSearchIndexCoversMenus.test.tsx).
 - **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
@@ -280,6 +289,17 @@ work out, starts from a default for everything else, and folds what most people 
 
 - **One switch.** Every yes or no is the shared `Toggle` (`Common/UI/Components/Toggle`). Enforced by
   [ToggleUsageGuard](../../packages/Common/Tests/UI/Components/ToggleUsageGuard.test.ts).
+- **One picker.** A choice from a list is the shared `Dropdown` (`Common/UI/Components/Dropdown`),
+  never a raw `<select>`. Some forty raw selects each had their own size, border, focus ring and
+  dark look: small grey boxes on the topology maps, another size in RUM User Flows, borderless
+  text in every footer. No two pickers on a page matched (#9194, #9294). A value that must always
+  be set has no clear control (`isClearable={false}`). A choice that can be empty, such as "All
+  devices" or "None", is the placeholder, and clearing the picker picks it. A `<label htmlFor>`
+  names the picker through `inputId`. The `DropdownChoices` helpers build a fixed list's options.
+  A picker in a bar of small controls, such as a list's rows per page or a query builder's fields,
+  is `isCompact`: 28px tall, 44px under a finger, and otherwise the same picker (#9310).
+  Enforced by
+  [RawSelectGuard](../../packages/Common/Tests/UI/Components/RawSelectGuard.test.ts).
 - **One color picker:** named swatches first, a custom color for an exact code. Enforced by
   [OneColorPickerGuard](../../packages/Common/Tests/UI/Components/ColorPicker/OneColorPickerGuard.test.ts).
 - **One Owners field,** not an owner-teams dropdown beside an owner-users one. Enforced by
@@ -303,6 +323,14 @@ work out, starts from a default for everything else, and folds what most people 
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
   use judgement.
+- **A button keeps its words from a tablet to a wide screen.** A bell alone, named only by its
+  tooltip, is found by hovering: the Logs and Traces explorers drew Create monitor so from 768px
+  until their toolbars were 77rem wide, a service's Logs tab at 1280px too (#9455). A row with no
+  room for a button's words wraps, as the explorers' toolbars do, or folds its lesser actions into
+  ⋯, as a table's header does; it never hides the words at the middle widths to show them again
+  wider. On a phone a button may keep its icon alone beside what says what it does
+  (`isTitleHiddenOnPhone`). Enforced by
+  [ButtonWordsAtEveryWidthGuard](../../packages/Common/Tests/UI/ButtonWordsAtEveryWidthGuard.test.ts).
 - **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
   `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
   and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every
@@ -333,16 +361,31 @@ work out, starts from a default for everything else, and folds what most people 
   | `Danger` | It broke: Failed, Offline, Error. |
   | `Paused` | Someone chose to switch it off: Disabled, Paused, Archived. Grey with a hollow dot, never red ([Red is for what broke](#side-menus)). |
   | `Neutral` | A plain fact or a tag: Default, Beta, 3 rules. |
-- **Each button style has one job.** Not enforced: use judgement.
+- **Each button style has one job,** and every style `ButtonStyleType` has is in the table below.
+  There were six more: a pale indigo `SECONDARY`, a green `SUCCESS` and a yellow `WARNING` and
+  `WARNING_OUTLINE` (#9195), then `ICON_LIGHT` and `HOVER_SUCCESS_OUTLINE` (#9296). One page used
+  `SUCCESS`, a playbook run's Approve, which is now `PRIMARY`, and nothing used the rest. They were
+  more looks for jobs the styles below already do. A new
+  style needs a job no style here does, and a row here. Enforced by
+  [ButtonStyleTableGuard](../../packages/Common/Tests/UI/Components/ButtonStyleTableGuard.test.ts).
 
   | Style | Use it for |
   | --- | --- |
   | `PRIMARY` | The one thing the screen or dialog exists to do. At most one in view. |
   | `NORMAL` | A plain action the person came for. A table row or header keeps it in view when its other actions fold into More. |
   | `OUTLINE` | The same plain button, for a lesser action: one a table folds into More first, or one that adds a row to a builder. |
+  | `HOVER_PRIMARY_OUTLINE`, `HOVER_DANGER_OUTLINE` | The same plain button in a row of them, tinted under the pointer with what it does: indigo for View or Edit, red for Remove. |
+  | `SUCCESS_OUTLINE` | Proving or accepting something: Verify a number or a domain, Accept an invitation, Run Workflow. |
   | `DANGER`, `DANGER_OUTLINE` | Deleting or anything that cannot be undone: filled in its confirmation, outlined beside other actions. |
-  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more. |
+  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more or a picker's Clear. |
   | `ICON` | An icon with no box, named by its aria label. |
+
+  A button that needs more than its style still uses `Button`. It does not need to be drawn by
+  hand. `onMouseDown` keeps the focus in a search field above an open list (a label picker's
+  Apply). `shortcutHint` puts its keys in a chip after its words (a note's Post). `isTitleHiddenOnPhone`
+  hides its words on a phone and keeps them for a screen reader (a composer's Send beside its
+  pickers). `dataState` names its state (a player's Play). A `MoreMenu` takes a `Button` as its
+  trigger (the paging ladder's first step).
 
 ### Folds
 
@@ -572,9 +615,22 @@ work out, starts from a default for everything else, and folds what most people 
   in progress (a test being sent) is drawn in the action's colour, listed in the guard with its
   reason. Enforced by
   [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts).
-- **A new card that loads its own data draws the shape it will have.** Prefer the shared
-  components (a table, a list, a detail card), which already do; a card drawn by hand reserves its
-  height with a `Skeleton` of its content's size. Not enforced: use judgement.
+- **A card that loads its own data draws the shape it will have, not a bar.** Prefer the shared
+  components (a table, a list, a detail card), which already do. A card drawn by hand draws the
+  shared skeleton of its content: `PageSkeleton` for a page's content area (`shape="table"` or
+  `"chart"` when the page opens with one), `TableSkeleton` for rows, `DetailListSkeleton` for names
+  and values, `ChartSkeleton` for a chart (at the chart's height), `StatTilesSkeleton` for a row
+  of figures (in the tiles' own grid), `CardListSkeleton` for a list of cards,
+  `InlineValueSkeleton` for a value inside a field (a row of pills, a name) and
+  `AuthPageSkeleton` for a sign-in page's column and card. Each is a busy
+  status named "Loading" that pulses only without reduced motion. `PageLoader` and
+  `ComponentLoader` drew one grey bar whatever the card would show, so a card that loaded into rows
+  or a chart still grew when they arrived (#9220). A spinner that shows an action in progress (a
+  key being touched, a query being run, a session ending) is not content loading: it keeps its
+  loader and is listed in the guard with how many it draws and why. Every other `PageLoader` and
+  `ComponentLoader` is gone. Enforced by
+  [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts),
+  whose baseline of hand-drawn loaders (`HandDrawnLoadersBaseline.json`) is empty: a new one fails.
 
 ## Dialogs and confirmations
 
@@ -677,13 +733,18 @@ what was further down.
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Text people read is readable: at least 4.5:1.** A label, a description, a value, a hint or a
-  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and at least 11px, with
-  `text-xs` for small print. `text-gray-400` is 2.5:1 on white and `text-gray-300` 1.5:1: the logs'
+  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and `text-xs` (12px) or
+  larger for small print. 11px (`text-[11px]`) is kept only for a short label whose shape carries
+  it: an eyebrow in capitals (`uppercase`), or a chip, a badge or a key that frames its word (rounded,
+  on a ground or in a border of its own; a `kbd`), still at 4.5:1. A hint, a value, a count or a
+  sentence at 11px is `text-xs`, and nothing is smaller than 11px. `text-gray-400` is 2.5:1 on white
+  and `text-gray-300` 1.5:1: the logs'
   saved views said "No saved views yet." in it, a More menu's section headings, a drop filter's "Not
   configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
   theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
   nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
-  the quiet empty-value dash. Enforced by
+  the quiet empty-value dash. The guard reads every app, and a class held in a const of the same
+  file (#9192). Enforced by
   [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).

@@ -113,6 +113,8 @@ interface WriteHooks {
     onUpdate: unknown,
     updatedItemIds: Array<ObjectID>,
   ) => Promise<unknown>;
+  // End Now, which ends an override under way at the server's now.
+  endNow: (typeof OnCallDutyPolicyUserOverrideService)["endNow"];
 }
 
 interface Outcome {
@@ -1046,6 +1048,79 @@ describePostgres(
           "13:00-15:00 Bob Lee",
           "15:00-17:00 Bob Lee",
         ]);
+      }, 120000);
+    });
+
+    /*
+     * End Now (issue #7899), under the lock edits of an override's times
+     * are written under: an override that overlapped another before the
+     * rule is ended at the server's own now, though its shorter times still
+     * overlap the other - ended early, it adds no time - while an edit that
+     * adds time over the other is still refused.
+     */
+    describe("End Now", () => {
+      test("ends an override that overlapped another before the rule, at the start of the server's minute", async () => {
+        const first: OnCallDutyPolicyUserOverride = await add({
+          away: jane,
+          cover: bob,
+          policy: policyId,
+          from: "09:00",
+          until: "15:00",
+        });
+
+        // Saved before the rule: Carol covering Jane from 10:00 to 18:00.
+        const secondId: string = ObjectID.generate().toString();
+
+        await database.query(
+          `INSERT INTO "${schema}"."OnCallDutyPolicyUserOverride" ("_id", "version", "projectId", "onCallDutyPolicyId", "overrideUserId", "routeAlertsToUserId", "startsAt", "endsAt") VALUES ($1, 1, $2, $3, $4, $5, $6, $7)`,
+          [
+            secondId,
+            projectId,
+            policyId,
+            jane.id,
+            carol.id,
+            at("10:00"),
+            at("18:00"),
+          ],
+        );
+
+        // Half a minute into noon on the test's day: both are under way.
+        jest
+          .spyOn(OneUptimeDate, "getCurrentDate")
+          .mockReturnValue(new Date(at("12:00").getTime() + 30 * 1000));
+
+        const endsAt: Date = await service.endNow({
+          id: first.id!,
+          props: { isRoot: true, tenantId: new ObjectID(projectId) },
+        });
+
+        expect(endsAt.toISOString()).toBe(at("12:00").toISOString());
+        expect(
+          (await overridesOf({ away: jane, policy: policyId })).map(described),
+        ).toEqual(["09:00-12:00 Bob Lee", "10:00-18:00 Carol Ng"]);
+
+        /*
+         * Carol's, moved later, adds time, so it is held to all of its new
+         * times - which still overlap Jane's ended one, from 10:00 to noon.
+         */
+        const second: OnCallDutyPolicyUserOverride =
+          new OnCallDutyPolicyUserOverride(new ObjectID(secondId));
+
+        const outcome: Outcome = await settle([
+          edit(second, { until: "19:00" }),
+        ]);
+
+        expect(outcome.passed).toBe(0);
+        expect(outcome.refusals[0]).toContain(
+          "Change the times, or edit that override.",
+        );
+
+        // Ended early instead, it adds none, and is saved.
+        await edit(second, { until: "17:00" });
+
+        expect(
+          (await overridesOf({ away: jane, policy: policyId })).map(described),
+        ).toEqual(["09:00-12:00 Bob Lee", "10:00-17:00 Carol Ng"]);
       }, 120000);
     });
   },

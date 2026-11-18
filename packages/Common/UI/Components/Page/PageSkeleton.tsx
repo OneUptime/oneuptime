@@ -1,5 +1,7 @@
 import { CARD_FRAME_CLASS_NAME, CARD_PADDING_CLASS_NAME } from "../Card/Card";
 import { DETAIL_SKELETON_BAR_CLASS_NAME } from "../Detail/DetailSkeleton";
+import { ChartSkeletonBars } from "../Skeleton/ChartSkeleton";
+import { TableSkeletonBars } from "../Skeleton/TableSkeleton";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -15,8 +17,19 @@ import React, { FunctionComponent, ReactElement } from "react";
  * skeleton is a card in the card's own frame and padding, so the first card
  * opens where it was drawn.
  *
+ * A page whose first card is a table (a list of clusters, of hosts) draws
+ * the table's header and rows in it instead of fields (shape "table"), so
+ * its rows open where they were drawn (#9220).
+ *
  * It says "Loading" to a screen reader, as the bar did.
  */
+
+export type PageSkeletonShape = "fields" | "table" | "chart";
+
+export interface ComponentProps {
+  // What the page's first card holds: fields (the default), a table's rows or a chart.
+  shape?: PageSkeletonShape | undefined;
+}
 
 export const PAGE_SKELETON_TEST_ID: string = "page-skeleton";
 
@@ -37,7 +50,9 @@ const VALUE_WIDTH_CLASS_NAMES: ReadonlyArray<string> = [
   "w-48",
 ];
 
-const PageSkeleton: FunctionComponent = (): ReactElement => {
+const PageSkeleton: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
 
   const fields: Array<ReactElement> = [];
@@ -62,6 +77,7 @@ const PageSkeleton: FunctionComponent = (): ReactElement => {
     <div
       role="status"
       aria-live="polite"
+      aria-busy={true}
       aria-label={translator.translateText("Loading")}
       data-testid={PAGE_SKELETON_TEST_ID}
       className="w-full min-w-0"
@@ -77,9 +93,19 @@ const PageSkeleton: FunctionComponent = (): ReactElement => {
         <div className="mt-1 flex h-5 items-center">
           <div className={`h-3 w-72 ${DETAIL_SKELETON_BAR_CLASS_NAME}`} />
         </div>
-        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-          {fields}
-        </div>
+        {props.shape === "chart" ? (
+          <div className="mt-6" data-testid={`${PAGE_SKELETON_TEST_ID}-chart`}>
+            <ChartSkeletonBars />
+          </div>
+        ) : props.shape === "table" ? (
+          <div className="mt-6" data-testid={`${PAGE_SKELETON_TEST_ID}-table`}>
+            <TableSkeletonBars />
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+            {fields}
+          </div>
+        )}
       </div>
       <span className="sr-only">{translator.translateText("Loading...")}</span>
     </div>

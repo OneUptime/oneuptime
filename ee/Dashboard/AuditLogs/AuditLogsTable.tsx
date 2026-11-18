@@ -626,7 +626,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                   <span className="text-sm font-medium text-gray-900">
                     {OneUptimeDate.fromNow(createdDate)}
                   </span>
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-xs text-gray-500">
                     {OneUptimeDate.getDateAsLocalFormattedString(createdDate)}
                   </span>
                 </div>
@@ -675,7 +675,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const nameEl: ReactElement = (
                 <span className="text-sm font-medium text-gray-900 truncate">
                   {name || (
-                    <span className="italic text-gray-400">
+                    <span className="italic text-gray-500">
                       {translate(words.unnamed)}
                     </span>
                   )}
@@ -724,7 +724,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="flex flex-col min-w-0">
                     {linkedNameEl}
-                    <span className="text-[11px] text-gray-500">
+                    <span className="text-xs text-gray-500">
                       {translator.translateText(typeLabel) || typeLabel}
                     </span>
                   </div>
@@ -762,7 +762,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {apiName}
                       </span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {translate(words.apiRequest)}
                       </span>
                     </div>
@@ -794,7 +794,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-sm font-medium text-gray-900 truncate">
                         {workflowName}
                       </span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {translate(words.workflow)}
                       </span>
                     </div>
@@ -817,7 +817,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-sm font-medium text-gray-900">
                         {translate(words.system)}
                       </span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {translate(words.automatedChange)}
                       </span>
                     </div>
@@ -852,17 +852,17 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       {displayName}
                     </span>
                     {item.userEmail && item.userName ? (
-                      <span className="text-[11px] text-gray-500 truncate">
+                      <span className="text-xs text-gray-500 truncate">
                         {item.userEmail}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {translate(getActorTypeLabel(userType))}
                       </span>
                     )}
                     {credentialLabel ? (
                       <span
-                        className="text-[11px] text-violet-700 truncate"
+                        className="text-xs text-violet-700 truncate"
                         data-testid="audit-actor-credential"
                       >
                         {credentialLabel}
@@ -926,7 +926,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
 
               if (count === 0) {
                 return (
-                  <span className="text-xs text-gray-400 italic">
+                  <span className="text-xs text-gray-500 italic">
                     {translate(words.noFieldsRecorded)}
                   </span>
                 );

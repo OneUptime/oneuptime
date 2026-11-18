@@ -406,7 +406,7 @@ describe("reading a pipeline's lineage", () => {
 
     render(<PipelineLineageDiagram dataPipelineId={new ObjectID(ETL)} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(getPipelineLineageMock).toHaveBeenCalledTimes(1);
     expect(
       (getPipelineLineageMock.mock.calls[0]![0] as ObjectID).toString(),
@@ -423,7 +423,7 @@ describe("reading a pipeline's lineage", () => {
       answer.resolve(aLineage());
     });
 
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chart-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId("pipeline-lineage-diagram")).toBeInTheDocument();
     expect(screen.getByTestId("lineage-graph")).toHaveAttribute(
       "aria-label",

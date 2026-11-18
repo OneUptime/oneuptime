@@ -1,4 +1,5 @@
 import { fetchProjectMilestones } from "./ProjectMilestones";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import ActivationMilestone, {
   ACTIVATION_MILESTONE_DETAILS,
@@ -13,7 +14,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -74,7 +74,7 @@ const ProjectMilestonesCard: FunctionComponent<ComponentProps> = (
     }
 
     if (!milestones) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={4} hasHeader={false} />;
     }
 
     const reachedByMilestone: Map<ActivationMilestone, ProjectMilestone> =

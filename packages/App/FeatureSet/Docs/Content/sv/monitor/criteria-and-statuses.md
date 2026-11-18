@@ -93,6 +93,49 @@ flowchart TB
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
 
+## Vem som får besked när den går ner
+
+**När den går ner** berättar med några få meningar vad som händer när övervakningen fallerar och vem som får besked: statusen den sätter, incidenten eller larmet den öppnar, vem som får e-post och vem den larmar, med namn. Allt som skulle hindra någon från att få besked står på en egen rad, med en länk till sidan där det åtgärdas. Du hittar det i en monitors **Översikt**, under kriterierna på sidan **Kriterier**, i kriteriesteget i **Skapa monitor** för den monitor du håller på att skapa, och i den guidade konfigurationen för webbplatser.
+
+Det tar fram kedjan som en riktig incident eller ett riktigt larm gör: med projektets ägarregler, sekretessregler, etikettregler och jourregler, incidentregeln för larm som gör ett larm till en incident, och vem den första eskaleringsregeln i varje jourpolicy når just nu. En jourregel som frågar vem som äger ett larm (**Ägare av larm**) matchas mot de ägare larmet kommer att ha: de personer och team som kriterierna anger, ägarna till nätverksenheten som övervakningen bevakar, och dem som ägarregler lägger till. En platshållare i titeln som bara en kontroll fyller i visas som den är skriven. **Visa kedjan** öppnar den rad för rad:
+
+| Rad | Vad den säger |
+| --- | --- |
+| **Status** | Statusen som kriterierna sätter. |
+| **Öppnar** | Incidenten eller larmet, dess allvarlighetsgrad inom parentes och dess titel. |
+| **E-post** | Vem e-postmeddelandet om skapandet når: dess ägare, de ägare som ägarregler lägger till, eller Projektägarna när det inte finns några. Den som larmet når först får inte också e-post som ägare. |
+| **Ägarregler** | Ägarreglerna som lägger till dess ägare. |
+| **Privat** | Varför den är privat: en sekretessregel eller kriterierna. En privat incident visas inte på någon statussida och meddelar inga prenumeranter, och bara dess ägare, Projektägarna och Projektadministratörerna kan se den. |
+| **Etikettregler** | Etikettreglerna vars etiketter ändrar vilka jourregler som larmar. |
+| **Jourregler** | Jourreglerna som matchar den. För en regel som matchar vem som äger ett larm står det vilken ägare som får den att matcha. |
+| **Jourpolicy** | Varje policy som de reglerna kör: vem dess första eskaleringsregel når just nu och hur, och vem den inte når, och varför. |
+| **Statussidor** | Statussidorna som visar den, var och en med den monitorgrupp som sidan visar monitorn genom. |
+| **Incidentregel** | För ett larm: incidentregeln för larm som skapar en incident av det, genast eller när larmet har varit öppet en tid, och den incidenten, beskriven som vilken incident som helst. |
+
+### Vad som hindrar att någon får besked
+
+| Vad som hindrar det | Länk |
+| --- | --- |
+| Inga kriterier ändrar statusen eller öppnar en incident eller ett larm. | **Öppna kriterier** |
+| Ingen larmas: ingen jourregel matchar, eller så har projektet ingen jourpolicy än. | **Ställ in larm** |
+| Monitorn öppnar larm, och bara incidenter har jourregler. | **Ställ in larm** |
+| En jourpolicy har inga eskaleringsregler. | **Öppna jourpolicy** |
+| En jourpolicy når ingen just nu. | **Öppna jourpolicy** |
+| Någon som en policy larmar kan inte nås: personen har avböjt, har ingen verifierad metod eller har ingen regel för allvarlighetsgraden i ett projekt utan reservlösning. | **Öppna beredskap** |
+| SMS, samtal, WhatsApp eller Telegram är avstängda i projektet. | **Öppna aviseringskanaler** |
+| Projektet har inget saldo kvar för SMS och samtal (OneUptime Cloud). | **Öppna fakturering** |
+| Servern kan inte skicka e-post eller SMS eller ringa samtal än. | **Öppna administratörspanelen**, för serverns administratörer |
+
+Ett larm som en incidentregel för larm gör om till en incident som larmar någon är inget avbrott: då kontrolleras incidentens egna policyer i stället.
+
+Ägare som inte får e-post listas efter avbrotten, var och en med orsaken och platsen där de anges: någon som inte är medlem i projektet, ett team där ingen är medlem (**Öppna team**), eller ett team från ett annat projekt, angivet i kriterierna (**Öppna kriterier**), på nätverksenheten som monitorn bevakar (**Öppna nätverksenhet**) eller av en ägarregel (**Öppna ägarregler**). E-postmeddelandet skickas ändå, till de ägare det når eller till Projektägarna, så de är inga avbrott. Inställningarnas hälsa listar dem också, som något som är värt att åtgärda.
+
+### Kontrollera igen, och vad du kan se
+
+Svaret är högst en minut gammalt, och **Kontrollera igen** tar fram det på nytt. När en ny kontroll misslyckas behåller kortet det senaste svaret och säger under varför.
+
+Kortet nämner bara det du får läsa. En jourpolicy, en regel, en statussida eller en monitorgrupp som du inte kan se behåller sin plats utan sitt namn, och en privat incident eller ett privat larm som du inte kommer att kunna se säger bara att det öppnas och att det är privat.
+
 ## Vad en incident eller ett larm behåller av kontrollen
 
 En incident eller ett larm som en monitor öppnar behåller kontrollen som öppnade den, så att du kan se varför långt efter att monitorns egna loggar är borta. Under rotorsaken nämner **Utvärderingsdetaljer** kriteriet som matchade och, för varje filter som matchade, vad kontrollen hittade. **Visa detaljer** lägger till resten av bevisen, filtren som inte matchade och själva kontrollen: förfrågan, när den kördes, från vilken sond och vad som kom tillbaka. Det ett filter hittade kan vara:

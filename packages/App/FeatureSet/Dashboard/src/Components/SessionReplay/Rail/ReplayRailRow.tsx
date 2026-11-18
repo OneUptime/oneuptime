@@ -155,7 +155,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   const textClass: string = props.isActive
     ? "text-gray-900"
     : props.isFuture
-      ? "text-gray-400"
+      ? "text-gray-500"
       : "text-gray-700";
 
   const rowClass: string = props.isActive
@@ -215,7 +215,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 
           <span
             data-testid="rail-row-time"
-            className="w-12 shrink-0 font-mono text-[10px] tabular-nums text-gray-400"
+            className="w-12 shrink-0 font-mono text-xs tabular-nums text-gray-500"
           >
             {time}
           </span>
@@ -239,7 +239,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 
           {props.row.repeatCount > 1 && (
             <span
-              className="shrink-0 rounded bg-gray-200 px-1 font-mono text-[10px] font-semibold tabular-nums text-gray-700"
+              className="shrink-0 rounded bg-gray-200 px-1 font-mono text-xs font-semibold tabular-nums text-gray-700"
               title={translator.translatePlural(
                 {
                   one: "Repeated {{count}} time in a row",
@@ -253,14 +253,14 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           )}
 
           {tag && (
-            <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+            <span className="shrink-0 rounded bg-gray-100 px-1 text-xs font-medium uppercase tracking-wide text-gray-500">
               {translator.translateText(tag) || tag}
             </span>
           )}
 
           {props.counterpartNote && (
             <span
-              className="shrink-0 text-[10px] text-indigo-600"
+              className="shrink-0 text-xs text-indigo-600"
               title={props.counterpartNote}
             >
               {translator.translateText("linked")}
@@ -268,14 +268,14 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           )}
 
           {signal.subtitle && (
-            <span className="shrink-0 font-mono text-[10px] tabular-nums text-gray-400">
+            <span className="shrink-0 font-mono text-xs tabular-nums text-gray-500">
               {signal.subtitle}
             </span>
           )}
 
           {props.uncertaintyLabel && (
             <span
-              className="shrink-0 font-mono text-[10px] text-gray-400"
+              className="shrink-0 font-mono text-xs text-gray-500"
               title={translator.translateText(
                 "Server-stamped time; not anchored to the recording's clock",
               )}
@@ -319,7 +319,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           {props.link && (
             <AppLink
               to={props.link.route}
-              className="rounded px-1 text-[10px] font-medium text-indigo-600 hover:underline"
+              className="rounded px-1 text-xs font-medium text-indigo-600 hover:underline"
             >
               {translator.translateText(props.link.label) || props.link.label}
             </AppLink>

@@ -264,7 +264,7 @@ const ConnectionLine: FunctionComponent<ConnectionLineProps> = (
                       <span className="font-medium text-gray-800">
                         {step.title}
                       </span>{" "}
-                      <code className="break-all font-mono text-[11px] text-gray-500">
+                      <code className="break-all font-mono text-xs text-gray-500">
                         {step.componentId}
                       </code>
                       {index < steps.length - 1 ? (

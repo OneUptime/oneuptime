@@ -2,6 +2,8 @@
 
 En monitor sjekker noe du drifter, som et nettsted, et API, en vert eller en Kubernetes-klynge, og gir deg beskjed når det slutter å virke. **Opprett monitor** spør først hva som skal overvåkes, så hva som skal sjekkes, og deretter hvor ofte. Alt unntatt typen, navnet og hva som skal sjekkes, starter med standardverdier som passer for de fleste monitorer.
 
+For et nettsted eller API fører et veiledet oppsett deg i stedet fra adressen til et testoppkall: Klikk på **Veiledet oppsett** på den tomme listen **Monitorer** eller under **Slik fungerer det**. **Opprett monitor** tilbyr det også, så snart du velger **Nettsted** eller **API**. Se [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
+
 > [!NOTE]
 > For å opprette en monitor trenger du rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 

@@ -1,7 +1,10 @@
+import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import VideoCallAuthMethod from "Common/Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider, {
   isVideoCallProvider,
 } from "Common/Types/VideoCall/VideoCallProvider";
@@ -22,6 +25,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 
 export const VIDEO_CALL_CONNECTION_TEST_ROUTE: string =
   "/video-call-connection/test";
+
+// The project's Zoom connections to sign in again for call transcripts.
+export const ZOOM_TRANSCRIPT_RECONNECT_ROUTE: string =
+  "/video-call-connection/zoom-transcript-reconnect";
 
 // The one-click Connect's start routes: /video-call-oauth/<slug>/authorize-url.
 export const VIDEO_CALL_OAUTH_ROUTE_PREFIX: string = "/video-call-oauth";
@@ -99,6 +106,65 @@ export async function startVideoCallSignIn(data: {
   }
 
   Navigation.navigate(URL.fromString(authorizationUrl));
+}
+
+/*
+ * The project's Zoom connections made by signing in before this server's
+ * Zoom app could read call transcripts, once it can. The server decides
+ * from the sign-ins, which never reach a browser
+ * (ZoomTranscriptReconnect); each comes back as a connection the Reconnect
+ * dialog takes. A non-2xx answer is thrown.
+ */
+export async function fetchZoomConnectionsToReconnect(): Promise<
+  Array<VideoCallConnection>
+> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.get<JSONObject>({
+      url: URL.fromURL(APP_API_URL).addRoute(ZOOM_TRANSCRIPT_RECONNECT_ROUTE),
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  const items: JSONValue | undefined = response.data?.["connections"];
+
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const connections: Array<VideoCallConnection> = [];
+
+  for (const item of items) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const id: JSONValue | undefined = (item as JSONObject)["_id"];
+    const name: JSONValue | undefined = (item as JSONObject)["name"];
+    const account: JSONValue | undefined = (item as JSONObject)[
+      "connectedAccount"
+    ];
+
+    if (typeof id !== "string" || !ObjectID.isValidUUID(id)) {
+      continue;
+    }
+
+    const connection: VideoCallConnection = new VideoCallConnection();
+    connection.id = new ObjectID(id);
+    connection.name = typeof name === "string" ? name : "";
+    connection.provider = VideoCallProvider.Zoom;
+    connection.authMethod = VideoCallAuthMethod.OAuth;
+
+    if (typeof account === "string" && account) {
+      connection.connectedAccount = account;
+    }
+
+    connections.push(connection);
+  }
+
+  return connections;
 }
 
 // A catalog docs path ("/docs/workspace-connections/video-calls#zoom") on the docs site.

@@ -350,9 +350,9 @@ rules do.
    **Where this stands** (17 November 2026): Google approved the self-hosted
    Kubernetes app on 6 November, the `oneuptime-marketplace` project has the
    roles Google asks for, and the project info form (once per partner) went
-   in on 11 November with that product's listing type. Producer Portal is
-   pending: Google turns it on once we answer on its Partner Support Desk
-   case that the form and the roles are done, which we did on 17 November.
+   in on 11 November with that product's listing type. Producer Portal has
+   been on since 17 November, and has that product,
+   `oneuptime-enterprise`, as its only one.
    See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
    for the details. A SaaS product would go into the same project, created
    in Producer Portal next to the Kubernetes app with no new partner

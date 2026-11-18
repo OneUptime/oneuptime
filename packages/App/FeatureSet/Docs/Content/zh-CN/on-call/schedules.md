@@ -86,7 +86,7 @@ flowchart TB
 
 ## 有人不在岗时
 
-有人休假时，在其回来之前跳过此人。在计划的 **层** 页面上展开一个层，然后点击其姓名旁的 **跳过至…** 。这会打开离岗表单：此人位于 **谁不在岗？** ， **谁代班？** 为 **轮换中的下一个人** ， **开始** 为现在。将 **结束** 设为此人回来的时间，然后保存。
+有人休假时，在其回来之前跳过此人。在计划的 **层** 页面上展开一个层，然后点击其姓名旁的 **跳过至…** 。这会打开离岗表单：此人位于 **谁不在岗？** ， **谁代班？** 为 **轮换中的下一个人** ， **开始** 为现在。将 **结束** 设为此人回来的时间，然后保存。如果此人在那段时间已有离岗，表单会在您选择时间时于时间旁边说明这一点，并提供 **编辑那个覆盖** ，让您改为修改那个覆盖。
 
 此人不在岗期间：
 
@@ -97,7 +97,7 @@ flowchart TB
 
 如果改为在 **谁代班？** 中选择某人，则由该人接收此人来自所有计划和所有策略的全部呼叫，而不是由轮换接替其轮次。
 
-以这种方式添加的离岗适用于所有值班策略，因此添加它需要对整个项目的替班权限。如果您团队的角色限定为它自己的策略或某些标签，它会改为添加到此值班计划中您可以添加替班的策略上，每个策略各一条，并列在每个策略自己的 **用户覆盖** 页面上；有多个时，您在 **值班策略** 下勾选。只有在您一个都不能添加时， **跳过至…** 才会被锁定并说明原因。它列在 **值班** > **高级** > **用户覆盖** 下，您可以在那里删除它，让此人提前回来。若只想在一个策略中跳过某人，请在该策略的 **用户覆盖** 页面上添加替班，并保持 **谁代班？** 不变。请参阅 [用户覆盖](/docs/on-call/user-overrides)。
+以这种方式添加的离岗适用于所有值班策略，因此添加它需要对整个项目的替班权限。如果您团队的角色限定为它自己的策略或某些标签，它会改为添加到此值班计划中您可以添加替班的策略上，每个策略各一条，并列在每个策略自己的 **用户覆盖** 页面上；有多个时，您在 **值班策略** 下勾选。只有在您一个都不能添加时， **跳过至…** 才会被锁定并说明原因。它列在 **值班** > **高级** > **用户覆盖** 下，也列在值班计划 **层** 页面上的用户覆盖中，您可以在那里用 **立即结束** 让此人提前回来。若只想在一个策略中跳过某人，请在该策略的 **用户覆盖** 页面上添加替班，并保持 **谁代班？** 不变。请参阅 [用户覆盖](/docs/on-call/user-overrides)。
 
 通过 API 创建用户替班（ `/api/on-call-duty-policy-user-override` ）时，如果不带 `routeAlertsToUserId` ，就会跳过 `overrideUserId` 中的人，时间从 `startsAt` 到 `endsAt` 。
 
@@ -111,6 +111,8 @@ flowchart TB
 - 不带它们创建的计划和以前一样没有层；Terraform 的计划资源不会发送它们。
 - 不带 `rotation` 创建的层和以往一样每天交接。
 - 通过 API 或 Terraform 对计划的层和层中人员所做的更改会作为一次更改通知：在层半分钟内没有再更改后才计算谁在值班，开始值班、结束值班或下一个值班的人只会收到一次通知，而不是每写入一个层或一个人就通知一次。每项更改一保存，呼叫就会发给层所安排的值班人员。
+- 若要像 **层** 页面上的 **保存更改** 那样一次性更改谁在计划的各层中轮值，请用 `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 读取各层，修改后再发回 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 。其中按优先级从高到低列出计划保留的每一层，每层按轮值顺序列出其中的人员：已在某层中的人用其 `layerUserId` ，新加入的人只用 `userId` 。 `deletedLayerIds` 列出要删除的层。
+- 一次保存要么全部写入，要么完全不写入，谁在值班只计算一次，并且立即计算。在别人更改各层之后才进行的保存会以 409 被拒绝，因为它的 `basedOnVersion` 已不再是各层当前的版本：请重新读取各层，并在现有内容的基础上进行更改。Terraform 的 `oneuptime_on_call_schedule_layers` 资源就是这样保存计划的各层的。
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

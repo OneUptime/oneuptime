@@ -221,7 +221,7 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
             <div className="flex-shrink-0 border-b border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-400">
+                  <div className="mb-1 text-xs uppercase tracking-wider text-gray-500">
                     {translator.translateText("Callers & callees")}
                   </div>
                   <h2 className="break-all font-mono text-base font-semibold text-gray-900">
@@ -229,7 +229,7 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                       translator.translateText("(anonymous)")}
                   </h2>
                   {props.fileName && (
-                    <p className="mt-0.5 break-all font-mono text-[11px] text-gray-500">
+                    <p className="mt-0.5 break-all font-mono text-xs text-gray-500">
                       {ProfileUtil.formatFileName(props.fileName, 96)}
                     </p>
                   )}
@@ -375,7 +375,7 @@ const FocusStat: FunctionComponent<FocusStatProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-gray-400">
+      <div className="text-xs uppercase tracking-wider text-gray-500">
         {translator.translateText(props.label)}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-gray-900">

@@ -70,19 +70,19 @@ Elke vergadering wordt aangemaakt als het account waarmee je je aanmeldt, dat de
 
 Een koppeling die door aanmelden is gemaakt, heeft nog steeds de instellingen die bepalen wie wacht: **Who can join** voor Google Meet en **Who skips the lobby** voor Microsoft Teams. Wijzig ze met **Bewerken** in de rij van de koppeling.
 
-Een Zoom-verbinding die is aangemeld voordat OneUptime transcripties van gesprekken las, start gesprekken zoals voorheen, maar kan hun transcripties pas lezen als ze opnieuw is aangemeld: **Reconnect** op haar rij vraagt Zoom om de rechten voor transcripties.
+Een Zoom-verbinding die is aangemeld voordat OneUptime transcripties van gesprekken las, kan ze niet lezen. Zodra de Zoom-app van OneUptime is bijgewerkt om ze te lezen, accepteert Zoom de aanmelding van zo'n verbinding 90 dagen later niet meer, en start ze geen gesprekken meer. Vanaf dan vraagt OneUptime je om haar opnieuw aan te melden: **Opnieuw koppelen** op haar rij vraagt Zoom om de rechten voor transcripties.
 
-Een Microsoft Teams-verbinding die is aangemeld terwijl **Incidentgesprekken opnemen en transcriberen** uit stond, start gesprekken zoals voorheen, zonder opname. Zodra die instelling aan staat, vraagt **Reconnect** op haar rij Microsoft ook om de rechten voor de agenda en voor transcripties.
+Een Microsoft Teams-verbinding die is aangemeld terwijl **Incidentgesprekken opnemen en transcriberen** uit stond, start gesprekken zoals voorheen, zonder opname. Zodra die instelling aan staat, vraagt **Opnieuw koppelen** op haar rij Microsoft ook om de rechten voor de agenda en voor transcripties.
 
 ### Aangemeld blijven
 
-OneUptime bewaart het vernieuwingstoken van de aanmelding, versleuteld, en vernieuwt het minstens één keer per week, zodat het nooit verloopt door ongebruik, hoe lang het project ook zonder incident blijft. Als de aanmelding niet meer werkt (het account heeft OneUptime verwijderd, is verwijderd of geschorst, of het beleid van je organisatie vraagt om opnieuw aan te melden), toont de rij van de koppeling **Werkt niet** met de reden op de dag dat OneUptime het merkt, niet bij het volgende incident. **Reconnect** in de rij meldt opnieuw aan.
+OneUptime bewaart het vernieuwingstoken van de aanmelding, versleuteld, en vernieuwt het minstens één keer per week, zodat het nooit verloopt door ongebruik, hoe lang het project ook zonder incident blijft. Als de aanmelding niet meer werkt (het account heeft OneUptime verwijderd, is verwijderd of geschorst, of het beleid van je organisatie vraagt om opnieuw aan te melden), toont de rij van de koppeling **Werkt niet** met de reden op de dag dat OneUptime het merkt, niet bij het volgende incident. **Opnieuw koppelen** in de rij meldt opnieuw aan.
 
 Koppelingen die met hetzelfde account zijn aangemeld, delen één aanmelding, in elk project: Zoom bewaart maar één aanmelding per account, dus dezelfde Zoom-gebruiker opnieuw koppelen vervangt die voor allemaal.
 
 ### Opnieuw koppelen en verwijderen
 
-**Reconnect** in de rij van een koppeling meldt opnieuw aan, als hetzelfde account of een ander. Gebruik het nadat het account OneUptime heeft verwijderd, of om incidentvergaderingen naar een ander account te verplaatsen.
+**Opnieuw koppelen** in de rij van een koppeling meldt opnieuw aan, als hetzelfde account of een ander. Gebruik het nadat het account OneUptime heeft verwijderd, of om incidentvergaderingen naar een ander account te verplaatsen.
 
 Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in zodra geen andere koppeling de aanmelding gebruikt. Verwijder OneUptime bij Microsoft onder **My Apps** (myapps.microsoft.com) van het account. OneUptime uit je Zoom-account verwijderen in de Zoom App Marketplace verwijdert de aanmelding uit elke koppeling die met dat account is aangemeld, en die tonen **Werkt niet** tot ze opnieuw zijn gekoppeld.
 
@@ -135,13 +135,13 @@ Om te zorgen dat niemand eraan hoeft te denken een gesprek op te nemen of de tra
 
 De instelling staat standaard uit, omdat ze mensen opneemt: iedereen in die gesprekken ziet dat ze worden opgenomen of getranscribeerd, dus controleer of uw organisatie dat toestaat. Zoom bewaart alleen een transcriptie als het account in de cloud opneemt met de audiotranscriptie aan, en Google Meet alleen in een Google Workspace-editie die transcripties heeft. Slack-huddles en vergaderlinks worden niet opgenomen, en gesprekken van waarschuwingen evenmin: voeg hun transcripties handmatig toe.
 
-Microsoft laat apps alleen de transcripties lezen van Teams-vergaderingen die in een agenda staan, dus plaatst OneUptime elke incidentvergadering in de agenda van de organisator ervan en zet het automatisch opnemen en transcriberen aan in de opties van de vergadering. Daarvoor heeft de verbinding twee extra Microsoft Graph-rechten nodig, `Calendars.ReadWrite` en `OnlineMeetingTranscript.Read.All`: voeg ze toe aan uw appregistratie (zie [Microsoft Teams](#microsoft-teams)), of gebruik **Reconnect** bij een verbinding die door aanmelden is gemaakt. Het Teams-vergaderbeleid van de organisator moet cloudopnamen, transcriptie en automatisch opnemen toestaan, en uw organisatie mag de toegang van apps tot transcripties niet hebben uitgezet. Een gesprek dat OneUptime niet in de agenda kan plaatsen, start toch, zonder opname, en de kaart **Video Call** ervan zegt waarom.
+Microsoft laat apps alleen de transcripties lezen van Teams-vergaderingen die in een agenda staan, dus plaatst OneUptime elke incidentvergadering in de agenda van de organisator ervan en zet het automatisch opnemen en transcriberen aan in de opties van de vergadering. Daarvoor heeft de verbinding twee extra Microsoft Graph-rechten nodig, `Calendars.ReadWrite` en `OnlineMeetingTranscript.Read.All`: voeg ze toe aan uw appregistratie (zie [Microsoft Teams](#microsoft-teams)), of gebruik **Opnieuw koppelen** bij een verbinding die door aanmelden is gemaakt. Het Teams-vergaderbeleid van de organisator moet cloudopnamen, transcriptie en automatisch opnemen toestaan, en uw organisatie mag de toegang van apps tot transcripties niet hebben uitgezet. Een gesprek dat OneUptime niet in de agenda kan plaatsen, start toch, zonder opname, en de kaart **Video Call** ervan zegt waarom.
 
 ### Wat elke aanbieder bewaart
 
 | Gesprek | Hoe het zijn transcriptie krijgt | Wat het nodig heeft |
 | --- | --- | --- |
-| Zoom | **Ophalen uit Zoom** | Een vergadering die in de cloud is opgenomen met de audiotranscriptie aan, of met de vergadersamenvatting van AI Companion aan. De verbinding heeft de scopes voor transcripties nodig (zie [Zoom](#zoom)), en een die daarvoor is aangemeld heeft **Reconnect** nodig. Zoom maakt een transcriptie na de vergadering, meestal binnen twee keer de duur ervan. |
+| Zoom | **Ophalen uit Zoom** | Een vergadering die in de cloud is opgenomen met de audiotranscriptie aan, of met de vergadersamenvatting van AI Companion aan. De verbinding heeft de scopes voor transcripties nodig (zie [Zoom](#zoom)), en een die daarvoor is aangemeld heeft **Opnieuw koppelen** nodig. Zoom maakt een transcriptie na de vergadering, meestal binnen twee keer de duur ervan. |
 | Google Meet | **Ophalen uit Google Meet** | Transcripties die in het gesprek zijn aangezet, in een Google Workspace-editie die ze heeft. Verder niets in te stellen: OneUptime leest de transcripties van de vergaderingen die het heeft gemaakt. Google houdt een transcriptie 30 dagen leesbaar voor apps. |
 | Microsoft Teams | **Ophalen uit Microsoft Teams** | Een vergadering die OneUptime heeft gestart terwijl [elk gesprek wordt opgenomen en getranscribeerd](#elk-gesprek-opnemen-en-transcriberen): Microsoft laat apps alleen de transcripties lezen van vergaderingen die in een agenda staan, en bewaart een vergadering 60 dagen. Voor elke andere Teams-vergadering **Transcriptie toevoegen**: open in Teams de samenvatting van de vergadering, dan de transcriptie, en download die als `.vtt`-bestand. |
 | Vergaderlink of Slack-huddle | **Transcriptie toevoegen** | De transcriptie die de vergadertool, of de notities van de huddle, bewaren. |
@@ -291,7 +291,7 @@ De provider weigerde, en de feed geeft de reden. Start intussen een gesprek vana
 :::
 
 :::details Een koppeling toont Werkt niet
-De aanmelding ervan werkt niet meer: het account heeft OneUptime verwijderd, is verwijderd of geschorst, of moet zich opnieuw aanmelden. Klik op **Reconnect** in de rij. Tot dan kunnen de gesprekken die ze zou moeten starten, niet starten.
+De aanmelding ervan werkt niet meer: het account heeft OneUptime verwijderd, is verwijderd of geschorst, of moet zich opnieuw aanmelden. Klik op **Opnieuw koppelen** in de rij. Tot dan kunnen de gesprekken die ze zou moeten starten, niet starten.
 :::
 
 :::details Mensen wachten in een lobby of wachtkamer
@@ -307,7 +307,7 @@ Zodra het gesprek voorbij is, vraagt OneUptime Zoom, Google Meet of Microsoft Te
 :::
 
 :::details Een Microsoft Teams-gesprek is niet opgenomen
-OneUptime kon de vergadering niet in de agenda van de organisator ervan plaatsen, dus is het gesprek op de gewone manier gestart, zonder opname, en de kaart **Video Call** zegt waarom. Meestal mist de verbinding `Calendars.ReadWrite` of `OnlineMeetingTranscript.Read.All`: voeg ze toe aan de appregistratie en verleen beheerderstoestemming, of gebruik **Reconnect** bij een verbinding die door aanmelden is gemaakt. Gesprekken die daarna starten, worden opgenomen.
+OneUptime kon de vergadering niet in de agenda van de organisator ervan plaatsen, dus is het gesprek op de gewone manier gestart, zonder opname, en de kaart **Video Call** zegt waarom. Meestal mist de verbinding `Calendars.ReadWrite` of `OnlineMeetingTranscript.Read.All`: voeg ze toe aan de appregistratie en verleen beheerderstoestemming, of gebruik **Opnieuw koppelen** bij een verbinding die door aanmelden is gemaakt. Gesprekken die daarna starten, worden opgenomen.
 :::
 
 :::details OneUptime AI kon een transcriptie niet lezen

@@ -92,7 +92,11 @@ jest.mock("reactflow", () => {
       }, []);
 
       return (
-        <div data-testid="workflow-canvas" onKeyDown={props.onKeyDown}>
+        <div
+          data-testid="workflow-canvas"
+          onKeyDown={props.onKeyDown}
+          onKeyUp={props.onKeyUp}
+        >
           {(props.nodes || []).map((node: Node): ReactElement => {
             const data: NodeDataProp = node.data as NodeDataProp;
 
@@ -542,7 +546,7 @@ describe("Workflow builder: adding a step leaves its settings closed", () => {
       "write-log-1",
     );
     expect(getSettingsProps().workflowId).toEqual(harness.props.workflowId);
-    expect(findRenderedNode("write-log-1").data.onClick).toBeUndefined();
+    expect("onClick" in findRenderedNode("write-log-1").data).toBe(false);
   });
 
   test("choosing a trigger from the placeholder does not open its settings either", () => {
@@ -744,8 +748,64 @@ describe("Workflow builder: the keyboard reaches a new step", () => {
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
   });
 
+  test("Space on the focused step opens its settings, on its way up", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    renderBuilder({ initialNodes: [action] });
+    const element: HTMLElement = screen.getByTestId(
+      `workflow-node-${action.id}`,
+    );
+
+    // Held down, Space is the canvas's pan key: nothing opens yet.
+    pressKey(element, { key: " " });
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+
+    const notCancelled: boolean = fireEvent.keyUp(element, { key: " " });
+
+    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
+      "write-log-1",
+    );
+    expect(notCancelled).toBe(false);
+  });
+
+  test("Space on the trigger placeholder opens the trigger picker", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    renderBuilder({ initialNodes: [placeholder] });
+
+    fireEvent.keyUp(screen.getByTestId(`workflow-node-${placeholder.id}`), {
+      key: " ",
+    });
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+  });
+
   test.each([
-    ["Space", { key: " " }],
+    ["Space on the canvas", "workflow-canvas", { key: " " }],
+    ["Shift+Space on a step", "step", { key: " ", shiftKey: true }],
+    ["a letter's key-up on a step", "step", { key: "a" }],
+    ["Enter's key-up on a step", "step", { key: "Enter" }],
+  ])(
+    "%s opens nothing",
+    (
+      _label: string,
+      where: string,
+      init: { key: string } & Partial<KeyboardEventInit>,
+    ) => {
+      const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+      renderBuilder({ initialNodes: [action] });
+
+      fireEvent.keyUp(
+        screen.getByTestId(
+          where === "step" ? `workflow-node-${action.id}` : where,
+        ),
+        init,
+      );
+
+      expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    ["Space, held down", { key: " " }],
     ["a letter", { key: "a" }],
     ["Escape", { key: "Escape" }],
     ["Ctrl+Enter", { key: "Enter", ctrlKey: true }],
@@ -1155,7 +1215,7 @@ describe("Workflow builder: trigger setup and deletion", () => {
       getRenderedNodes().find((node: Node<WorkflowNodeRenderData>) => {
         return node.data.nodeType === NodeType.PlaceholderNode;
       });
-    expect(placeholder?.data.onClick).toBeUndefined();
+    expect("onClick" in (placeholder?.data || {})).toBe(false);
     expect(getRenderedNodes()).toHaveLength(3);
     expect(mockFlowProps?.edges).toEqual([expect.objectContaining(retained)]);
     fireEvent.click(screen.getByTestId(`workflow-node-${placeholder?.id}`));
@@ -1640,9 +1700,9 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     renderBuilder({ initialNodes: [action] });
 
     expect(action.data).toBe(originalData);
-    expect(action.data.onClick).toBeUndefined();
+    expect("onClick" in action.data).toBe(false);
     expect(JSON.stringify(action)).toBe(original);
-    expect(findRenderedNode("write-log-1").data.onClick).toBeUndefined();
+    expect("onClick" in findRenderedNode("write-log-1").data).toBe(false);
     fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
     expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
       "write-log-1",
@@ -1665,7 +1725,7 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     ).toEqual(['"Message" is required but empty.']);
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
-      expect(node.data.onClick).toBeUndefined();
+      expect("onClick" in node.data).toBe(false);
       expect(node.data.issueSummary).toBeUndefined();
     }
     expect(harness.onLint).toHaveBeenLastCalledWith(
@@ -1685,7 +1745,7 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     );
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
-      expect(node.data.onClick).toBeUndefined();
+      expect("onClick" in node.data).toBe(false);
       expect(node.data).not.toHaveProperty("issueSummary");
     }
   });

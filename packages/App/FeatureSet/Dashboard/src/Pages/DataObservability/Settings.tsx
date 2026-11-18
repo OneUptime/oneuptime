@@ -1,8 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -88,7 +88,7 @@ const DataObservabilitySettingsPage: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error) {

@@ -22,9 +22,11 @@ import path from "path";
  * SUBSCRIBERS BY DEFAULT" (#7606).
  *
  * The switch on Incidents -> Settings -> Subscriber Notifications says how
- * the box starts on Declare New Incident. Slack's and Microsoft Teams'
- * Declare Incident forms and OneUptime AI's create_incident ask nothing
- * about subscribers, so what the box would have started at is the answer:
+ * the box starts on Declare New Incident - and on Slack's and Microsoft
+ * Teams' Declare Incident forms, which ask too since #7917. OneUptime AI's
+ * create_incident asks nothing about subscribers, nor does a chat form
+ * opened before the chats asked, so what the box would have started at is
+ * the answer:
  *
  *   - off: the incident is declared without notifying them;
  *   - on, no value, no project: the incident is left as it is - its own
@@ -36,7 +38,7 @@ import path from "path";
  * whoever declares), for that one column. Each declare path's own suite
  * pins that it asks here (SlackDeclareIncidentAffectedResourcesRoute,
  * MicrosoftTeamsDeclareIncidentAffectedResources, IncidentWriteTools); the
- * scan at the end pins that those three, and only they, do.
+ * scan at the end pins who does.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -229,18 +231,31 @@ describe("NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclared
 });
 
 /*
- * Which declare paths ask: the three where a person declares an incident and
- * nothing asks about subscribers. A monitor's, a workflow's, the API's or a
- * public form's incidents keep their own value, so no other server file
- * calls it - and the Dashboard's form starts its box from the same rule
- * (useNewIncidentNotifyDefault), so the server never second-guesses it.
+ * Which declare paths ask: where a person declares an incident and nothing
+ * asks about subscribers - OneUptime AI's create_incident, and the chats'
+ * one helper for a Slack or Microsoft Teams form that did not ask
+ * (WorkspaceIncidentSubscriberNotification.applyToIncident, which the two
+ * Declare Incident forms write their answer through). A monitor's, a
+ * workflow's, the API's or a public form's incidents keep their own value,
+ * so no other server file calls it - and the Dashboard's form starts its box
+ * from the same rule (useNewIncidentNotifyDefault), so the server never
+ * second-guesses it.
  */
 describe("who asks", () => {
   const SERVER_ROOT: string = path.resolve(__dirname, "../../../../Server");
   const CALL: string = "applyToIncidentDeclaredWithoutBox(";
+  const CHAT_HELPER: string =
+    "Utils/Workspace/WorkspaceIncidentSubscriberNotification.ts";
+  const CHAT_CALL: string =
+    "WorkspaceIncidentSubscriberNotification.applyToIncident(";
 
   const EXPECTED: ReadonlyArray<string> = [
     "Utils/AI/Toolbox/IncidentWriteTools.ts",
+    CHAT_HELPER,
+  ];
+
+  // The forms that write their answer through the chats' helper.
+  const CHAT_FORMS: ReadonlyArray<string> = [
     "Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
     "Utils/Workspace/Slack/Actions/Incident.ts",
   ];
@@ -263,36 +278,66 @@ describe("who asks", () => {
     return files;
   }
 
-  test("Slack's and Microsoft Teams' Declare Incident forms and OneUptime AI's create_incident, and nothing else", () => {
-    const callers: Array<string> = serverFiles(SERVER_ROOT)
+  // Every server file but the reader itself whose source makes `call`.
+  function callersOf(call: string): Array<string> {
+    return serverFiles(SERVER_ROOT)
       .filter((file: string): boolean => {
         return (
           !file.endsWith("NewIncidentSubscriberNotificationDefaultReader.ts") &&
-          fs.readFileSync(file, "utf8").includes(CALL)
+          fs.readFileSync(file, "utf8").includes(call)
         );
       })
       .map((file: string): string => {
         return path.relative(SERVER_ROOT, file).split(path.sep).join("/");
       })
       .sort();
+  }
 
-    expect(callers).toEqual([...EXPECTED]);
+  test("OneUptime AI's create_incident and the chats' helper for a form that did not ask, and nothing else", () => {
+    expect(callersOf(CALL)).toEqual([...EXPECTED]);
   });
 
-  test.each(
-    EXPECTED.map((file: string): [string] => {
-      return [file];
-    }),
-  )("%s asks once, before it creates the incident", (file: string) => {
+  test("the chats' helper asks once, and only for a form that did not ask", () => {
     const source: string = fs.readFileSync(
-      path.join(SERVER_ROOT, file),
+      path.join(SERVER_ROOT, CHAT_HELPER),
       "utf8",
     );
     const asked: number = source.indexOf(CALL);
-    const created: number = source.indexOf("IncidentService.create(", asked);
 
     expect(source.split(CALL)).toHaveLength(2);
-    expect(asked).toBeGreaterThan(-1);
-    expect(created).toBeGreaterThan(asked);
+    // Inside the one branch for no answer.
+    expect(source.lastIndexOf("if (data.choice === null) {", asked)).toBe(
+      source.indexOf("if (data.choice === null) {"),
+    );
+    expect(source.indexOf("if (data.choice === null) {")).toBeGreaterThan(-1);
   });
+
+  test("Slack's and Microsoft Teams' Declare Incident forms write their answer through the helper, and nothing else does", () => {
+    expect(callersOf(CHAT_CALL)).toEqual([...CHAT_FORMS]);
+  });
+
+  test.each(
+    [
+      ["Utils/AI/Toolbox/IncidentWriteTools.ts", CALL],
+      ...CHAT_FORMS.map((file: string): [string, string] => {
+        return [file, CHAT_CALL];
+      }),
+    ].map((entry: Array<string>): [string, string] => {
+      return [entry[0]!, entry[1]!];
+    }),
+  )(
+    "%s asks once, before it creates the incident",
+    (file: string, call: string) => {
+      const source: string = fs.readFileSync(
+        path.join(SERVER_ROOT, file),
+        "utf8",
+      );
+      const asked: number = source.indexOf(call);
+      const created: number = source.indexOf("IncidentService.create(", asked);
+
+      expect(source.split(call)).toHaveLength(2);
+      expect(asked).toBeGreaterThan(-1);
+      expect(created).toBeGreaterThan(asked);
+    },
+  );
 });

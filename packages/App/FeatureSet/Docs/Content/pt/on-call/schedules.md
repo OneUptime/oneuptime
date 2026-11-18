@@ -86,7 +86,7 @@ Cada pessoa mantém uma única cor em todo lugar, para você acompanhá-la num r
 
 ## Quando alguém está ausente
 
-Quando alguém sai de férias, pule a pessoa até ela voltar. Na página **Camadas** do agendamento, expanda uma camada e clique em **Pular até…** ao lado do nome dela. Isso abre o formulário de ausência com a pessoa em **Quem está ausente?**, **Próxima pessoa da rotação** em **Quem cobre?** e **Começa** a partir de agora: defina **Termina** para quando ela volta e salve.
+Quando alguém sai de férias, pule a pessoa até ela voltar. Na página **Camadas** do agendamento, expanda uma camada e clique em **Pular até…** ao lado do nome dela. Isso abre o formulário de ausência com a pessoa em **Quem está ausente?**, **Próxima pessoa da rotação** em **Quem cobre?** e **Começa** a partir de agora: defina **Termina** para quando ela volta e salve. Se a pessoa já tem uma ausência nesses horários, o formulário avisa ao lado dos horários enquanto você os escolhe, com **Editar essa substituição** para alterar aquela em vez disso.
 
 Enquanto ela está ausente:
 
@@ -97,7 +97,7 @@ Enquanto ela está ausente:
 
 Se, em vez disso, você escolher alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos dela, de todo agendamento e de toda política, em vez de a rotação ficar com os turnos dela.
 
-Uma ausência adicionada assim vale para todas as políticas de plantão, então exige a permissão de substituições no projeto inteiro. Se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, ela é adicionada em vez disso nas políticas deste agendamento em que você pode adicionar substituições, com uma substituição por política, listada na página **Substituições de usuário** de cada política; se forem várias, você as marca em **Políticas de plantão**. **Pular até…** só fica bloqueado e diz por quê onde você não pode em nenhuma. Ela aparece em **Plantão** > **Avançado** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
+Uma ausência adicionada assim vale para todas as políticas de plantão, então exige a permissão de substituições no projeto inteiro. Se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, ela é adicionada em vez disso nas políticas deste agendamento em que você pode adicionar substituições, com uma substituição por política, listada na página **Substituições de usuário** de cada política; se forem várias, você as marca em **Políticas de plantão**. **Pular até…** só fica bloqueado e diz por quê onde você não pode em nenhuma. Ela aparece em **Plantão** > **Avançado** > **Substituições de usuário**, e entre as substituições de usuário do agendamento na página **Camadas** dele, onde **Encerrar agora** traz a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
@@ -111,6 +111,8 @@ Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; 
 - Um agendamento criado sem eles não tem camadas, como antes; o recurso de agendamento do Terraform não os envia.
 - Uma camada criada sem `rotation` passa o turno todo dia, como sempre.
 - Uma mudança nas camadas de um agendamento e nas pessoas nelas, feita com a API ou o Terraform, é avisada como uma única mudança: quem está de plantão é calculado quando as camadas ficam meio minuto sem mudanças, e quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por camada ou pessoa gravada. Os acionamentos vão para quem as camadas colocam de plantão assim que cada mudança é salva.
+- Para mudar de uma vez quem faz turnos nas camadas de um agendamento, como faz **Salvar alterações** na página **Camadas**, leia as camadas com `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` e envie-as de volta, alteradas, para `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Elas listam cada camada que o agendamento mantém, a de maior prioridade primeiro, cada uma com suas pessoas na ordem dos turnos: quem já está numa camada pelo seu `layerUserId`, quem é adicionado só pelo `userId`. `deletedLayerIds` lista as camadas a excluir.
+- Um salvamento é gravado por inteiro ou não é gravado, e quem está de plantão é calculado uma única vez, na hora. Um feito depois que outra pessoa mudou as camadas é recusado com 409, porque o `basedOnVersion` dele já não é o das camadas: leia as camadas de novo e faça a mudança sobre o que existe agora. O recurso `oneuptime_on_call_schedule_layers` do Terraform salva assim as camadas de um agendamento.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

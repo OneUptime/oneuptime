@@ -191,7 +191,7 @@ flowchart TB
 
 關閉期間，無論從事件清單、範本、警示還是監測器宣告事件，**宣告新事件** 上的核取方塊都預設不勾選，它的說明也會註明此專案中預設未勾選。只有宣告者勾選它，訂閱者才會收到通知。送出前的摘要上，它的 **否** 旁邊會有 **改為「是」**，不必回到 **受影響的資源** 就能勾選核取方塊。私人事件不會出現在任何狀態頁面上，因此不提供此項。這個開關只改變核取方塊的初始狀態：事件會記錄核取方塊最終的狀態，未通知就宣告的事件會保持安靜，詳見 [宣告事件](/docs/incidents/declaring-incidents)。
 
-從 Slack 或 Microsoft Teams 宣告的事件，以及請 OneUptime AI 宣告的事件，也遵循這個開關：那裡不會詢問是否通知訂閱者，所以開關關閉期間，事件宣告時不會通知訂閱者，你可以之後再用公開備註告知他們。以其他任何方式建立的事件——由監測器建立，或透過 API、Terraform 或工作流程建立——都保留各自的 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`，只要它不是 `false` 就會通知訂閱者。透過 API，這個開關是專案的 `notifyStatusPageSubscribersOfNewIncidentsByDefault`。
+Slack 和 Microsoft Teams 的事件表單也會詢問：其中的選項依開關的設定開始，事件依其保留的狀態宣告，確認事件的訊息會說明狀態頁面訂閱者是否會收到通知，並寫出狀態頁面的名稱，或說明原因。請 OneUptime AI 宣告的事件遵循這個開關：那裡不會詢問是否通知訂閱者，所以開關關閉期間，事件宣告時不會通知訂閱者，你可以之後再用公開備註告知他們。以其他任何方式建立的事件——由監測器建立，或透過 API、Terraform 或工作流程建立——都保留各自的 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`，只要它不是 `false` 就會通知訂閱者。透過 API，這個開關是專案的 `notifyStatusPageSubscribersOfNewIncidentsByDefault`。
 
 ## 事後分析範本
 

@@ -946,11 +946,11 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
           {tile.value}
         </div>
       ) : (
-        <div className="text-sm text-gray-400 text-center">{tile.value}</div>
+        <div className="text-sm text-gray-500 text-center">{tile.value}</div>
       )}
 
       {tile.subline ? (
-        <div className="text-[11px] text-gray-400 text-center tabular-nums truncate max-w-full">
+        <div className="text-xs text-gray-500 text-center tabular-nums truncate max-w-full">
           {tile.subline}
         </div>
       ) : (

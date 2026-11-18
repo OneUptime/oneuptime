@@ -6,6 +6,32 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * The shared Dropdown draws its open menu over the page, at the end of the
+ * document (menuPortalTarget), not inside the component that holds it. An
+ * option picked there is still a pick made inside that component - a filter
+ * chip's operator, say - so it never closes it.
+ */
+export const DROPDOWN_MENU_PORTAL_SELECTOR: string = ".ou-select__menu-portal";
+
+export function isInsideComponent(
+  component: Element | null | undefined,
+  target: EventTarget | null,
+): boolean {
+  if (!component || !(target instanceof Node)) {
+    return false;
+  }
+
+  if (component.contains(target)) {
+    return true;
+  }
+
+  const element: Element | null =
+    target instanceof Element ? target : target.parentElement;
+
+  return Boolean(element?.closest(DROPDOWN_MENU_PORTAL_SELECTOR));
+}
+
 type UseComponentOutsideClickFunction = (isVisible: boolean) => {
   ref: any;
   isComponentVisible: boolean;
@@ -44,9 +70,7 @@ const useComponentOutsideClick: UseComponentOutsideClickFunction = (
       return;
     }
 
-    didPointerDownInside.current = Boolean(
-      ref.current && ref.current.contains(event.target),
-    );
+    didPointerDownInside.current = isInsideComponent(ref.current, event.target);
   };
 
   const handleClickOutside: MouseEventHandler = (event: MouseEvent) => {
@@ -69,7 +93,7 @@ const useComponentOutsideClick: UseComponentOutsideClickFunction = (
       return;
     }
 
-    if (ref.current && !ref.current.contains(event.target)) {
+    if (ref.current && !isInsideComponent(ref.current, event.target)) {
       setIsComponentVisible(false);
     }
   };

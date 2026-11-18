@@ -481,8 +481,13 @@ export const TelemetryRuleCopy: {
     "The rule this monitor checks every minute.",
   ),
   whatHappensTitle: translationKey("What happens"),
+  /*
+   * True whatever the project has: its on-call rules page their policies
+   * whether a policy is picked here or not (#7055), and When this goes
+   * down, under the criteria, says who that is.
+   */
   whatHappensDescription: translationKey(
-    "An alert or incident notifies its owners, or the Project Owners when it has none. Pick an on-call policy to page whoever is on call.",
+    "An alert or incident notifies its owners, or the Project Owners when it has none. Your on-call rules page their policies, and a policy picked here is paged too.",
   ),
   conditionTitle: translationKey("Condition"),
   logCountTitle: translationKey("Number of logs"),

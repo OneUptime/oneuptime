@@ -499,7 +499,7 @@ const ValueSection: FunctionComponent<ValueSectionProps> = (
                     {translator.translateText(row.name) || row.name}
                   </span>
                   {props.showIds && row.id !== row.name && (
-                    <code className="font-mono text-[11px] font-normal text-gray-500">
+                    <code className="font-mono text-xs font-normal text-gray-500">
                       {row.id}
                     </code>
                   )}

@@ -57,7 +57,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -1949,7 +1949,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   }, [targetUserId?.toString(), props.severityModelType]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

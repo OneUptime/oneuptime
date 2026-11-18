@@ -378,7 +378,7 @@ describe("the count column", () => {
     expect(count()).toHaveClass(...classesOf(FACET_COUNT_COLUMN_CLASS));
     // A fixed width, never a minimum that a long count could stretch.
     expect(classesOf(FACET_COUNT_COLUMN_CLASS)).toEqual(
-      expect.arrayContaining(["w-7", "flex-none", "text-right"]),
+      expect.arrayContaining(["w-8", "flex-none", "text-right"]),
     );
     expect(FACET_COUNT_COLUMN_CLASS).not.toContain("min-w");
     first.unmount();

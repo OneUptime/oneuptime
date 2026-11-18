@@ -9,6 +9,11 @@ metadata:
   namespace: "{{ .Release.Namespace }}"
   labels:
     app.kubernetes.io/name: "{{ .Release.Name }}"
+  annotations:
+    # The deployer refuses an Application without it: the listing's partner
+    # and product IDs - the project and the product of editions.json's
+    # serviceName - which deployments are attributed to.
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "oneuptime-marketplace", "product_id": "oneuptime-enterprise", "partner_name": "OneUptime"}'
 spec:
   descriptor:
     type: OneUptime Enterprise

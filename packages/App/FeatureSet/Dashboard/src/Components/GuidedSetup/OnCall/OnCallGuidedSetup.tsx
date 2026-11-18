@@ -23,6 +23,7 @@ import {
   PhoneChannelFacts,
   PolicyLevel,
   ReachMethod,
+  ReachOrders,
   ResponderReach,
   SMS_METHOD_TYPE,
   canAddPhone,
@@ -67,6 +68,15 @@ import {
 import VerificationCodeModal from "../../NotificationMethods/VerificationCodeModal";
 import { VerificationCodeChannel } from "../../NotificationMethods/VerificationCodeChannels";
 import {
+  BROWSER_PUSH_PROBLEM_MESSAGES,
+  BrowserPushError,
+  BrowserPushProblem,
+} from "../../NotificationMethods/BrowserPushRegistration";
+import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import { PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE } from "../../NotificationMethods/PushNotificationsTurnedOff";
+import { usePushNotificationsTurnedOff } from "../../../Utils/PushNotificationsTurnedOff";
+import Toast from "Common/UI/Utils/Toast";
+import {
   SetupReminderStatus,
   SetupReminderStatuses,
 } from "../../OnCallPolicy/EscalationRule/EscalationRuleReadiness";
@@ -88,12 +98,16 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
+  SERVER_EMAIL_COPY,
   ServerEmail,
   cannotSendEmail,
   getAdminServerSetupUrl,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
+import Email from "Common/Types/Email";
+import ObjectID from "Common/Types/ObjectID";
+import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import {
   WELCOME_STEP_MINUTES,
   WelcomeStep,
@@ -128,7 +142,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import LazyPeoplePicker from "Common/UI/Components/PeoplePicker/LazyPeoplePicker";
 import {
   PeoplePickerKind,
@@ -138,7 +152,12 @@ import GroupRadioButtons from "Common/UI/Components/RadioButtons/GroupRadioButto
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { useServerSendingStatus } from "Common/UI/Utils/ServerSending";
+import {
+  useProjectCanSend,
+  useServerSendingStatus,
+} from "Common/UI/Utils/ServerSending";
+import { ProjectCanSendAnswer } from "Common/Types/ServerSending/ProjectCanSend";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -220,6 +239,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();
+  /*
+   * Whether a page can reach this project's people by email, SMS and call,
+   * as any member reads it (#7151): a member is told the server cannot send
+   * SMS before typing a number, not only a master admin.
+   */
+  const projectCanSend: ProjectCanSendAnswer | null = useProjectCanSend();
   const userId: string = UserUtil.getUserId()?.toString() || "";
 
   const store: GuidedSetupRunStore = useMemo(() => {
@@ -257,6 +282,19 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     phone: string;
   } | null>(null);
   const [reachError, setReachError] = useState<string>("");
+  /*
+   * The app or this browser, set up in the step (#7149): whether the server
+   * turned push off, this browser being registered, what stopped it, and
+   * whether the app's codes are open.
+   */
+  const isPushTurnedOff: boolean = usePushNotificationsTurnedOff() === true;
+  const [isRegisteringBrowser, setIsRegisteringBrowser] =
+    useState<boolean>(false);
+  const [browserPushError, setBrowserPushError] = useState<{
+    problem: BrowserPushProblem | null;
+    message: string;
+  } | null>(null);
+  const [isAppCodesOpen, setIsAppCodesOpen] = useState<boolean>(false);
   const [showRecharge, setShowRecharge] = useState<boolean>(false);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
   const [rechargeError, setRechargeError] = useState<string>("");
@@ -281,6 +319,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    */
   const [policyGone, setPolicyGone] = useState<SetupPolicyGone | null>(null);
   const [reminders, setReminders] = useState<SetupReminderStatuses>({});
+  /*
+   * Someone not in the project yet, invited by email from the step (#7150):
+   * the form, what is typed, what went wrong, who was invited, and - on a
+   * server that cannot send email - the invitation whose link a master
+   * admin hands over.
+   */
+  const [isInviteOpen, setIsInviteOpen] = useState<boolean>(false);
+  const [inviteEmail, setInviteEmail] = useState<string>("");
+  const [inviteFieldError, setInviteFieldError] = useState<string>("");
+  const [inviteServerError, setInviteServerError] = useState<string>("");
+  const [isInviting, setIsInviting] = useState<boolean>(false);
+  const [invitedEmails, setInvitedEmails] = useState<Array<string>>([]);
+  const [invitationLinkFor, setInvitationLinkFor] = useState<string | null>(
+    null,
+  );
 
   // Step 3.
   const maySecondLevel: boolean = maySecondEscalationLevel();
@@ -299,6 +352,35 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   // Step 4.
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
     useState<boolean>(false);
+
+  /*
+   * The summary: the order a page reaches each person the policy pages
+   * first (#7154), read once the summary shows, for its policy.
+   */
+  const [reachOrders, setReachOrders] = useState<ReachOrders | null>(null);
+  const summaryPolicyId: string =
+    !isLoading && openStepKey === null && policy ? policy.id : "";
+
+  useEffect(() => {
+    if (!summaryPolicyId) {
+      return;
+    }
+
+    let isActive: boolean = true;
+    setReachOrders(null);
+
+    void OnCallSetupApi.loadReachOrders(summaryPolicyId).then(
+      (orders: ReachOrders | null) => {
+        if (isActive) {
+          setReachOrders(orders);
+        }
+      },
+    );
+
+    return () => {
+      isActive = false;
+    };
+  }, [summaryPolicyId]);
 
   const executionLogId: string =
     typeof run[OnCallRunValue.TestExecutionLogId] === "string"
@@ -440,7 +522,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * Whether the run's policy is still there and in service, read just
    * before a step that needs it moves on (#7516, #8432). Gone or archived:
-   * the run forgets it, and "Who else is on call?" opens again, saying
+   * the run forgets it, and "Who is paged first?" opens again, saying
    * which. Unreadable: the step says why, and stays.
    */
   const isPolicyStillThere: (policyId: string) => Promise<boolean> = async (
@@ -576,7 +658,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   }, [store]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {
@@ -614,8 +696,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     isSmsOn: phoneFacts.isSmsOn,
     isCallOn: phoneFacts.isCallOn,
     balanceInUSDCents: phoneFacts.balanceInUSDCents,
-    serverCanSendSms: canServerSend(sendingStatus, ServerSendingChannel.SMS),
-    serverCanCall: canServerSend(sendingStatus, ServerSendingChannel.Call),
+    // The project's own Twilio counts; a master admin's sending status while it is not read.
+    serverCanSendSms: projectCanSend
+      ? projectCanSend.sms
+      : canServerSend(sendingStatus, ServerSendingChannel.SMS),
+    serverCanCall: projectCanSend
+      ? projectCanSend.call
+      : canServerSend(sendingStatus, ServerSendingChannel.Call),
   };
   const phoneBreaks: Array<WhoIsToldBreak> = getPhoneBreaks(channelFacts);
   const channelsOff: Array<ProjectNotificationChannel> = [];
@@ -635,11 +722,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ProjectNotificationChannel.Call,
     ]);
 
+  // "Email · •••mple, SMS · •••0123", with the reader's comma ("، " in Persian).
   const describeMethods: (list: Array<ReachMethod>) => string = (
     list: Array<ReachMethod>,
   ): string => {
-    return list
-      .map((method: ReachMethod): string => {
+    return joinList(
+      list.map((method: ReachMethod): string => {
         const channel: string = getChannelName(
           method.methodType as OnCallPageChannel,
           translator,
@@ -648,8 +736,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         return method.maskedIdentifier
           ? `${channel} · ${method.maskedIdentifier}`
           : channel;
-      })
-      .join(", ");
+      }),
+    );
   };
 
   const turnOnPhone: () => Promise<void> = async (): Promise<void> => {
@@ -893,6 +981,134 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       <></>
     );
 
+  /*
+   * "Use this browser" (#7149): registered straight from the click - the
+   * browser's permission prompt only opens for a page the person just used
+   * - the way Notification Methods registers one. Then whether a page
+   * reaches the person is read again, and the row lists the browser.
+   */
+  const registerThisBrowser: () => Promise<void> = async (): Promise<void> => {
+    setBrowserPushError(null);
+    setIsRegisteringBrowser(true);
+
+    try {
+      await OnCallSetupApi.registerThisBrowser();
+      Toast.success(
+        translator.translateText(ON_CALL_SETUP_COPY.browserRegistered) ||
+          ON_CALL_SETUP_COPY.browserRegistered,
+      );
+      await readReach(true);
+    } catch (err) {
+      setBrowserPushError(
+        err instanceof BrowserPushError
+          ? { problem: err.problem, message: "" }
+          : { problem: null, message: API.getFriendlyMessage(err) },
+      );
+    }
+
+    setIsRegisteringBrowser(false);
+  };
+
+  /*
+   * What stops this browser before anything is asked: a server without
+   * push keys, an insecure page, a browser without push (#7149). It is said
+   * in place of "Use this browser"; the app still reaches the person.
+   */
+  const browserPushProblem: BrowserPushProblem | null =
+    OnCallSetupApi.getBrowserPushProblem();
+
+  const pushOptions: ReactElement = (
+    <div className="space-y-2" data-testid="on-call-setup-push-options">
+      {isPushTurnedOff ? (
+        <p
+          className="text-sm text-amber-700"
+          data-testid="on-call-setup-push-turned-off"
+        >
+          {translator.translateText(PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE)}
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-gray-500">
+            {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
+          </p>
+          {browserPushProblem ? (
+            <p
+              className="text-sm text-amber-700"
+              data-testid="on-call-setup-browser-push-problem"
+              data-problem={browserPushProblem}
+            >
+              {translator.translateText(
+                BROWSER_PUSH_PROBLEM_MESSAGES[browserPushProblem],
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+          <div className={ACTIONS_CLASS_NAME}>
+            {browserPushProblem ? (
+              <></>
+            ) : (
+              <Button
+                title={ON_CALL_SETUP_COPY.useThisBrowser}
+                icon={IconProp.Bell}
+                buttonStyle={ButtonStyleType.NORMAL}
+                isLoading={isRegisteringBrowser}
+                dataTestId="on-call-setup-use-this-browser"
+                onClick={() => {
+                  void registerThisBrowser();
+                }}
+              />
+            )}
+            <Button
+              title={ON_CALL_SETUP_COPY.getTheApp}
+              icon={IconProp.DevicePhoneMobile}
+              buttonStyle={ButtonStyleType.NORMAL}
+              ariaExpanded={isAppCodesOpen}
+              ariaControls="on-call-setup-app-codes"
+              dataTestId="on-call-setup-get-the-app"
+              onClick={() => {
+                setIsAppCodesOpen(!isAppCodesOpen);
+              }}
+            />
+          </div>
+          {browserPushError ? (
+            <p
+              role="alert"
+              className="text-sm text-red-600"
+              data-testid="on-call-setup-browser-push-error"
+            >
+              {browserPushError.problem ? (
+                translator.translateText(
+                  BROWSER_PUSH_PROBLEM_MESSAGES[browserPushError.problem],
+                )
+              ) : (
+                <ErrorInSentence
+                  message={browserPushError.message}
+                  showWhereToLook={true}
+                />
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+          {isAppCodesOpen ? (
+            <div id="on-call-setup-app-codes" className="space-y-2">
+              <MobileAppCodes
+                dataTestId="on-call-setup-app-codes"
+                serverUrlDataTestId="on-call-setup-app-server-url"
+              />
+              <p className="text-sm text-gray-500">
+                {translator.translateText(ON_CALL_SETUP_COPY.appRecheckHint)}
+              </p>
+            </div>
+          ) : (
+            <></>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   const reachRow: (data: {
     key: string;
     title: string;
@@ -948,21 +1164,23 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             emails.length > 0
               ? describeMethods(emails)
               : translator.translateText(ON_CALL_SETUP_COPY.emailNone) || "",
-          children: cannotSendEmail(serverEmail) ? (
-            <p
-              className="text-sm text-amber-700"
-              data-testid="on-call-setup-no-email"
-            >
-              {getBreakSentence(
-                makeWhoIsToldBreak({
-                  kind: WhoIsToldBreakKind.ServerCannotSend,
-                  fix: WhoIsToldFix.ServerSettings,
-                  channel: WhoIsToldServerChannel.Email,
-                }),
-                translator,
-              )}
-            </p>
-          ) : undefined,
+          // Not set up, never worked, or failing now: as Notification Methods says it (#6880).
+          children:
+            cannotSendEmail(serverEmail) || projectCanSend?.email === false ? (
+              <p
+                className="text-sm text-amber-700"
+                data-testid="on-call-setup-no-email"
+              >
+                {getBreakSentence(
+                  makeWhoIsToldBreak({
+                    kind: WhoIsToldBreakKind.ServerCannotSend,
+                    fix: WhoIsToldFix.ServerSettings,
+                    channel: WhoIsToldServerChannel.Email,
+                  }),
+                  translator,
+                )}
+              </p>
+            ) : undefined,
         })}
         {reachRow({
           key: "phone",
@@ -986,21 +1204,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             pushes.length > 0
               ? describeMethods(pushes)
               : translator.translateText(ON_CALL_SETUP_COPY.pushNone) || "",
-          children:
-            pushes.length > 0 ? undefined : (
-              <>
-                <p className="text-sm text-gray-500">
-                  {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
-                </p>
-                <AppLink
-                  to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}
-                  className={linkClassName}
-                  dataTestId="on-call-setup-push-link"
-                >
-                  {translator.translateText(ON_CALL_SETUP_COPY.pushLink) || ""}
-                </AppLink>
-              </>
-            ),
+          children: pushes.length > 0 ? undefined : pushOptions,
         })}
       </dl>
       {reachError ? (
@@ -1094,7 +1298,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   );
 
   /*
-   * STEP 2: WHO ELSE IS ON CALL?
+   * STEP 2: WHO IS PAGED FIRST?
    */
   const policies: Array<{ id: string; name: string }> = choices?.policies || [];
   const isExistingMode: boolean = !policy && policies.length > 0;
@@ -1323,11 +1527,20 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                     className="text-gray-500"
                     data-testid={`on-call-setup-reminder-${person.userId}`}
                   >
-                    {reminder.state === "sent"
-                      ? translator.translateText(
-                          ON_CALL_SETUP_COPY.reminderSent,
-                        )
-                      : reminder.message}
+                    {reminder.state === "sent" ? (
+                      translator.translateText(ON_CALL_SETUP_COPY.reminderSent)
+                    ) : reminder.message ? (
+                      /*
+                       * The server's sentence, or a failure nobody explained,
+                       * in the reader's language: as the Readiness card says it.
+                       */
+                      <ErrorInSentence
+                        message={reminder.message}
+                        showWhereToLook={true}
+                      />
+                    ) : (
+                      <></>
+                    )}
                   </span>
                 ) : (
                   <Button
@@ -1386,6 +1599,163 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       </ul>
     );
   };
+
+  /*
+   * INVITE BY EMAIL (#7150): someone not in the project yet, invited the way
+   * the Users page invites (OnCallSetupApi.inviteByEmail) and added to whom
+   * the step pages first, to save with the rest. Offered only to whoever
+   * may invite to the project's members team. The server keeps every check
+   * it keeps there - the plan's seats, who may invite, a server that cannot
+   * send email - and says why in its words when it refuses. Whether the
+   * address has an account is never asked, and nothing said depends on it.
+   */
+  const mayInvite: boolean = OnCallSetupApi.mayInviteByEmail();
+
+  const sendInvitation: () => Promise<void> = async (): Promise<void> => {
+    const email: string = inviteEmail.trim();
+
+    setInviteServerError("");
+
+    if (!Email.isValid(email)) {
+      setInviteFieldError(
+        translator.translateText(ON_CALL_SETUP_COPY.inviteEmailError) || "",
+      );
+      return;
+    }
+
+    setInviteFieldError("");
+    setIsInviting(true);
+
+    try {
+      const invited: { teamMemberId: string; userId: string } =
+        await OnCallSetupApi.inviteByEmail(email);
+
+      setPeople((previous: PeoplePickerValue): PeoplePickerValue => {
+        const userIds: Array<string> = pickedIds(
+          previous,
+          PeoplePickerKind.User,
+        ).filter((id: string): boolean => {
+          return id !== invited.userId;
+        });
+
+        return {
+          ...previous,
+          [PeoplePickerKind.User]: [...userIds, invited.userId],
+        };
+      });
+      setPeopleError("");
+      setInvitedEmails((previous: Array<string>): Array<string> => {
+        return [
+          ...previous.filter((entry: string): boolean => {
+            return entry !== email;
+          }),
+          email,
+        ];
+      });
+      setInviteEmail("");
+      setIsInviteOpen(false);
+
+      // No email went out: a master admin is handed the link it would carry.
+      if (cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin) {
+        setInvitationLinkFor(invited.teamMemberId);
+      }
+    } catch (err) {
+      setInviteServerError(API.getFriendlyMessage(err));
+    }
+
+    setIsInviting(false);
+  };
+
+  const inviteForm: ReactElement = !mayInvite ? (
+    <></>
+  ) : isInviteOpen ? (
+    <form
+      className="mt-3 space-y-2 rounded-lg border border-gray-200 p-3"
+      data-testid="on-call-setup-invite"
+      onSubmit={(event: React.FormEvent) => {
+        event.preventDefault();
+        void sendInvitation();
+      }}
+    >
+      <label
+        htmlFor="on-call-setup-invite-email"
+        className="block text-sm font-medium text-gray-700"
+      >
+        {translator.translateText(ON_CALL_SETUP_COPY.inviteEmailLabel)}
+      </label>
+      <Input
+        id="on-call-setup-invite-email"
+        value={inviteEmail}
+        placeholder="member@company.com"
+        inputMode="email"
+        readsLeftToRight={true}
+        autoComplete="email"
+        disableSpellCheck={true}
+        onChange={(value: string) => {
+          setInviteEmail(value);
+          setInviteFieldError("");
+          setInviteServerError("");
+        }}
+        error={inviteFieldError || undefined}
+        dataTestId="on-call-setup-invite-email"
+      />
+      <p
+        className="text-sm text-gray-500"
+        data-testid="on-call-setup-invite-description"
+      >
+        {translator.translateText(
+          cannotSendEmail(serverEmail)
+            ? serverEmail.isMasterAdmin
+              ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
+              : SERVER_EMAIL_COPY.inviteEmailDescription
+            : ON_CALL_SETUP_COPY.inviteDescription,
+        )}
+      </p>
+      {inviteServerError ? (
+        <p
+          role="alert"
+          className="text-sm text-red-600"
+          data-testid="on-call-setup-invite-error"
+        >
+          <ErrorInSentence message={inviteServerError} showWhereToLook={true} />
+        </p>
+      ) : (
+        <></>
+      )}
+      <div className={ACTIONS_CLASS_NAME}>
+        <Button
+          title={ON_CALL_SETUP_COPY.inviteSend}
+          type={ButtonType.Submit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          isLoading={isInviting}
+          dataTestId="on-call-setup-invite-send"
+        />
+        <Button
+          title={ON_CALL_SETUP_COPY.inviteCancel}
+          buttonStyle={ButtonStyleType.LINK}
+          dataTestId="on-call-setup-invite-cancel"
+          onClick={() => {
+            setIsInviteOpen(false);
+            setInviteEmail("");
+            setInviteFieldError("");
+            setInviteServerError("");
+          }}
+        />
+      </div>
+    </form>
+  ) : (
+    <div className="mt-2">
+      <Button
+        title={ON_CALL_SETUP_COPY.inviteByEmail}
+        icon={IconProp.Email}
+        buttonStyle={ButtonStyleType.LINK}
+        dataTestId="on-call-setup-invite-open"
+        onClick={() => {
+          setIsInviteOpen(true);
+        }}
+      />
+    </div>
+  );
 
   const policyChoiceOptions: Array<DropdownOption> = policies.map(
     (entry: { id: string; name: string }): DropdownOption => {
@@ -1579,6 +1949,43 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               ariaLabelledby="on-call-setup-people-label"
               dataTestId="on-call-setup-people"
             />
+            {/*
+             * Everyone picked here is paged at once: whoever should be
+             * paged only when nobody answers belongs to the next step
+             * (#7372).
+             */}
+            <p
+              className="mt-2 text-sm text-gray-500"
+              data-testid="on-call-setup-who-next-hint"
+            >
+              {translator.translateText(ON_CALL_SETUP_COPY.whoNextHint)}
+            </p>
+            {invitedEmails.map((email: string) => {
+              return (
+                <p
+                  key={email}
+                  className="mt-2 text-sm text-gray-700"
+                  data-testid="on-call-setup-invited"
+                >
+                  {translator.translateTemplate(
+                    ON_CALL_SETUP_COPY.invited,
+                    { email: email },
+                    { setsValuesApart: true },
+                  )}
+                </p>
+              );
+            })}
+            {inviteForm}
+            {invitationLinkFor ? (
+              <InvitationLinkModal
+                teamMemberId={new ObjectID(invitationLinkFor)}
+                onClose={() => {
+                  setInvitationLinkFor(null);
+                }}
+              />
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>
@@ -1607,7 +2014,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * Saves what happens when nobody answers - once the policy is read again,
    * just before: deleted since, in another tab or by a teammate, the run
-   * forgets it and "Who else is on call?" opens again, with nothing written
+   * forgets it and "Who is paged first?" opens again, with nothing written
    * to a policy that is gone and the step never left with a button that
    * does nothing (#7516).
    */
@@ -1928,7 +2335,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    * summary, read from the records - once the policy is read again: deleted
    * (#7516) or archived (#8432) since, in another tab or by a teammate,
    * there is nothing true to sum up - the summary would say it pages people
-   * - and "Who else is on call?" opens again instead. Unreadable, the step
+   * - and "Who is paged first?" opens again instead. Unreadable, the step
    * says why and stays.
    */
   const finishTest: (skipped: boolean) => Promise<void> = async (
@@ -2081,12 +2488,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ...progress[0]!,
       title: ON_CALL_SETUP_COPY.reachTitle,
       outcome: ON_CALL_SETUP_COPY.reachOutcome,
-      doneLine: [emails, phones, pushes]
-        .filter((list: Array<ReachMethod>): boolean => {
-          return list.length > 0;
-        })
-        .map(describeMethods)
-        .join(", "),
+      doneLine: joinList(
+        [emails, phones, pushes]
+          .filter((list: Array<ReachMethod>): boolean => {
+            return list.length > 0;
+          })
+          .map(describeMethods),
+      ),
       content: reachContent,
     },
     {
@@ -2128,6 +2536,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         testResultSentence: testResult
           ? getResultSentence(translator, testResult)
           : null,
+        reachOrders: reachOrders,
       })
     : [];
 
@@ -2251,6 +2660,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setNextPeople({});
             setShowNotReceivedHelp(false);
             setPeople({ [PeoplePickerKind.User]: userId ? [userId] : [] });
+            // Whoever was invited is in the project now, to pick like anyone.
+            setInvitedEmails([]);
+            setIsInviteOpen(false);
+            setInviteEmail("");
+            setInviteFieldError("");
+            setInviteServerError("");
             setOpenStepKey(OnCallSetupStep.WhoElse);
             // The project has a policy now: the choice is asked afresh.
             OnCallSetupApi.loadPolicyChoices()

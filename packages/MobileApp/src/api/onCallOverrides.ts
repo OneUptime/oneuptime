@@ -190,6 +190,16 @@ export function toOnCallOverrideItem(
     ? toPlainText((policyRaw as Record<string, unknown>)["name"])
     : "";
 
+  /*
+   * Its policy by id, whether or not the person may read the policy's name:
+   * an edit and a conflict are of one scope, global or that policy.
+   */
+  const policyId: string =
+    toPlainText(item["onCallDutyPolicyId"]) ||
+    (policyRaw
+      ? toPlainText((policyRaw as Record<string, unknown>)["_id"])
+      : "");
+
   return {
     _id: id,
     projectId: project.projectId,
@@ -204,11 +214,24 @@ export function toOnCallOverrideItem(
           name: policyName,
         }
       : null,
+    onCallDutyPolicyId: policyId || null,
     startsAt: toPlainText(item["startsAt"]) || null,
     endsAt: toPlainText(item["endsAt"]) || null,
     createdAt: toPlainText(item["createdAt"]),
   };
 }
+
+// The columns an override is read with, for its card, its edit and its conflicts.
+const OVERRIDE_SELECT: Record<string, unknown> = {
+  _id: true,
+  createdAt: true,
+  startsAt: true,
+  endsAt: true,
+  onCallDutyPolicyId: true,
+  overrideUser: { _id: true, name: true, email: true },
+  routeAlertsToUser: { _id: true, name: true, email: true },
+  onCallDutyPolicy: { _id: true, name: true },
+};
 
 export async function fetchOnCallOverrides(
   project: { projectId: string; projectName: string },
@@ -220,15 +243,7 @@ export async function fetchOnCallOverrides(
     `/api/on-call-duty-policy-user-override/get-list?skip=0&limit=${limit}`,
     {
       query: {},
-      select: {
-        _id: true,
-        createdAt: true,
-        startsAt: true,
-        endsAt: true,
-        overrideUser: { _id: true, name: true, email: true },
-        routeAlertsToUser: { _id: true, name: true, email: true },
-        onCallDutyPolicy: { _id: true, name: true },
-      },
+      select: OVERRIDE_SELECT,
       sort: { startsAt: "DESC" },
     },
     {
@@ -289,4 +304,142 @@ export async function deleteOnCallOverride(
       headers: { tenantid: projectId },
     },
   );
+}
+
+/*
+ * What an edit of an override sends (#7897): who covers - somebody, or
+ * nobody (null), for the rotation to cover - and either time. Left out,
+ * each stays as it is saved. Who is away and its policy never change, so
+ * they are never sent.
+ */
+export interface OnCallOverrideChange {
+  routeAlertsToUserId?: string | null | undefined;
+  startsAt?: Date | undefined;
+  endsAt?: Date | undefined;
+}
+
+// The edit as the server's PUT takes it: only what it changes.
+export function toOverrideUpdateData(
+  change: OnCallOverrideChange,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+
+  if (change.routeAlertsToUserId !== undefined) {
+    data["routeAlertsToUserId"] = change.routeAlertsToUserId;
+  }
+
+  if (change.startsAt) {
+    data["startsAt"] = change.startsAt.toISOString();
+  }
+
+  if (change.endsAt) {
+    data["endsAt"] = change.endsAt.toISOString();
+  }
+
+  return data;
+}
+
+/*
+ * Edits an override, held to the same rules as on the dashboard
+ * (oncall/overrideEdit): the server checks every one of them again, and
+ * says why when it refuses.
+ */
+export async function updateOnCallOverride(
+  projectId: string,
+  overrideId: string,
+  change: OnCallOverrideChange,
+): Promise<void> {
+  await apiClient.put(
+    `/api/on-call-duty-policy-user-override/${overrideId}`,
+    { data: toOverrideUpdateData(change) },
+    {
+      headers: { tenantid: projectId },
+    },
+  );
+}
+
+function isNotFound(err: unknown): boolean {
+  return Boolean(
+    err &&
+      typeof err === "object" &&
+      (err as { isAxiosError?: unknown }).isAxiosError === true &&
+      (err as { response?: { status?: unknown } }).response?.status === 404,
+  );
+}
+
+/*
+ * End Now: the override under way ends at the server's own now
+ * (POST .../:id/end-now), so a phone whose clock is a minute out still
+ * ends it. A server older than End Now answers 404; it is sent the end the
+ * phone works out instead (`fallbackEndsAt`, oncall/overrideEdit.getEndNow),
+ * as an edit of its end.
+ */
+export async function endOnCallOverrideNow(
+  projectId: string,
+  overrideId: string,
+  fallbackEndsAt: Date | null,
+): Promise<void> {
+  try {
+    await apiClient.post(
+      `/api/on-call-duty-policy-user-override/${overrideId}/end-now`,
+      {},
+      {
+        headers: { tenantid: projectId },
+      },
+    );
+  } catch (err: unknown) {
+    if (!isNotFound(err) || !fallbackEndsAt) {
+      throw err;
+    }
+
+    await updateOnCallOverride(projectId, overrideId, {
+      endsAt: fallbackEndsAt,
+    });
+  }
+}
+
+/*
+ * The overrides of `overrideUserId` in the project that share a moment with
+ * [startsAt, endsAt), in every scope - to name the one the server refused
+ * an add or an edit for (oncall/overrideEdit.pickConflict). Back to back is
+ * no overlap.
+ */
+export async function fetchOverlappingOverrides(
+  project: { projectId: string; projectName: string },
+  data: { overrideUserId: string; startsAt: Date; endsAt: Date },
+): Promise<OnCallOverrideItem[]> {
+  const response: AxiosResponse = await apiClient.post(
+    "/api/on-call-duty-policy-user-override/get-list?skip=0&limit=50",
+    {
+      query: {
+        overrideUserId: data.overrideUserId,
+        startsAt: { _type: "LessThan", value: data.endsAt.toISOString() },
+        endsAt: { _type: "GreaterThan", value: data.startsAt.toISOString() },
+      },
+      select: OVERRIDE_SELECT,
+      sort: { startsAt: "ASC" },
+    },
+    {
+      headers: { tenantid: project.projectId },
+    },
+  );
+
+  const rows: Array<unknown> = Array.isArray(response.data?.data)
+    ? response.data.data
+    : [];
+
+  const overrides: OnCallOverrideItem[] = [];
+
+  rows.forEach((row: unknown) => {
+    const override: OnCallOverrideItem | null = toOnCallOverrideItem(
+      row,
+      project,
+    );
+
+    if (override) {
+      overrides.push(override);
+    }
+  });
+
+  return overrides;
 }

@@ -5,7 +5,7 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { fetchRawK8sObject } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -191,7 +191,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
   ]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -220,7 +220,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
 
     // Comment lines
     if (line.trimStart().startsWith("#")) {
-      return <span className="text-gray-400 italic">{line}</span>;
+      return <span className="text-gray-500 italic">{line}</span>;
     }
 
     // Array item prefix "  - "
@@ -315,7 +315,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
             {lines.map((line: string, index: number) => {
               return (
                 <tr key={index} className="hover:bg-gray-100/50">
-                  <td className="px-4 py-0 text-right text-xs text-gray-400 select-none w-12 align-top font-mono border-r border-gray-200">
+                  <td className="px-4 py-0 text-right text-xs text-gray-500 select-none w-12 align-top font-mono border-r border-gray-200">
                     {index + 1}
                   </td>
                   <td className="px-4 py-0 text-sm font-mono whitespace-pre">

@@ -70,19 +70,19 @@ Jedes Meeting wird als das Konto angelegt, mit dem Sie sich anmelden, und dieses
 
 Eine per Anmeldung hergestellte Verbindung hat weiterhin die Einstellungen, die entscheiden, wer wartet: **Who can join** für Google Meet und **Who skips the lobby** für Microsoft Teams. Ändern Sie sie mit **Bearbeiten** in der Zeile der Verbindung.
 
-Eine Zoom-Verbindung, die angemeldet wurde, bevor OneUptime Anruf-Transkripte las, startet Anrufe wie bisher, kann deren Transkripte aber erst lesen, wenn sie neu angemeldet wird: **Reconnect** in ihrer Zeile fragt Zoom nach den Berechtigungen für Transkripte.
+Eine Zoom-Verbindung, die angemeldet wurde, bevor OneUptime Anruf-Transkripte las, kann sie nicht lesen. Sobald die Zoom-App von OneUptime aktualisiert ist, um sie zu lesen, akzeptiert Zoom die Anmeldung einer solchen Verbindung 90 Tage später nicht mehr, und sie startet keine Anrufe mehr. Ab dann bittet OneUptime Sie, sie neu anzumelden: **Neu verbinden** in ihrer Zeile fragt Zoom nach den Berechtigungen für Transkripte.
 
-Eine Microsoft-Teams-Verbindung, die angemeldet wurde, während **Anrufe zu Vorfällen aufzeichnen und transkribieren** ausgeschaltet war, startet Anrufe wie bisher, ohne Aufzeichnung. Sobald die Einstellung eingeschaltet ist, fragt **Reconnect** in ihrer Zeile Microsoft auch nach den Berechtigungen für Kalender und Transkripte.
+Eine Microsoft-Teams-Verbindung, die angemeldet wurde, während **Anrufe zu Vorfällen aufzeichnen und transkribieren** ausgeschaltet war, startet Anrufe wie bisher, ohne Aufzeichnung. Sobald die Einstellung eingeschaltet ist, fragt **Neu verbinden** in ihrer Zeile Microsoft auch nach den Berechtigungen für Kalender und Transkripte.
 
 ### Angemeldet bleiben
 
-OneUptime bewahrt das Refresh-Token der Anmeldung verschlüsselt auf und erneuert es mindestens einmal pro Woche, sodass es nie durch Nichtbenutzung abläuft, wie lange das Projekt auch ohne Vorfall bleibt. Funktioniert die Anmeldung nicht mehr (das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder die Richtlinie Ihrer Organisation verlangt eine neue Anmeldung), zeigt die Zeile der Verbindung **Funktioniert nicht** mit dem Grund, und zwar an dem Tag, an dem OneUptime es bemerkt, nicht erst beim nächsten Vorfall. **Reconnect** in der Zeile meldet sie erneut an.
+OneUptime bewahrt das Refresh-Token der Anmeldung verschlüsselt auf und erneuert es mindestens einmal pro Woche, sodass es nie durch Nichtbenutzung abläuft, wie lange das Projekt auch ohne Vorfall bleibt. Funktioniert die Anmeldung nicht mehr (das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder die Richtlinie Ihrer Organisation verlangt eine neue Anmeldung), zeigt die Zeile der Verbindung **Funktioniert nicht** mit dem Grund, und zwar an dem Tag, an dem OneUptime es bemerkt, nicht erst beim nächsten Vorfall. **Neu verbinden** in der Zeile meldet sie erneut an.
 
 Verbindungen, die mit demselben Konto angemeldet sind, teilen sich eine Anmeldung, in jedem Projekt: Zoom behält nur eine Anmeldung pro Konto, daher ersetzt ein erneutes Verbinden desselben Zoom-Benutzers sie für alle.
 
 ### Neu verbinden und entfernen
 
-**Reconnect** in der Zeile einer Verbindung meldet sie erneut an, mit demselben oder einem anderen Konto. Nutzen Sie es, nachdem das Konto OneUptime entfernt hat, oder um Vorfall-Meetings auf ein anderes Konto zu verlegen.
+**Neu verbinden** in der Zeile einer Verbindung meldet sie erneut an, mit demselben oder einem anderen Konto. Nutzen Sie es, nachdem das Konto OneUptime entfernt hat, oder um Vorfall-Meetings auf ein anderes Konto zu verlegen.
 
 Das Löschen einer Verbindung entzieht OneUptime den Zugriff bei Zoom und Google, sobald keine andere Verbindung die Anmeldung nutzt. Bei Microsoft entfernen Sie OneUptime unter **My Apps** (myapps.microsoft.com) des Kontos. Das Entfernen von OneUptime aus Ihrem Zoom-Konto im Zoom App Marketplace löscht seine Anmeldung aus jeder Verbindung, die mit diesem Konto angemeldet ist, und sie zeigen **Funktioniert nicht**, bis sie neu verbunden werden.
 
@@ -135,13 +135,13 @@ Damit niemand daran denken muss, einen Anruf aufzuzeichnen oder sein Transkript 
 
 Die Einstellung ist standardmäßig ausgeschaltet, weil sie Menschen aufzeichnet: Alle Teilnehmenden sehen, dass diese Anrufe aufgezeichnet oder transkribiert werden, prüfen Sie also, ob Ihre Organisation das erlaubt. Zoom behält ein Transkript nur, wenn das Konto in der Cloud mit eingeschaltetem Audio-Transkript aufzeichnet, und Google Meet nur in einer Google Workspace-Edition, die Transkripte bietet. Slack-Huddles und Meeting-Links werden nicht aufgezeichnet, Anrufe zu Warnungen ebenso wenig: Fügen Sie deren Transkripte von Hand hinzu.
 
-Microsoft lässt Apps nur die Transkripte von Teams-Meetings lesen, die in einem Kalender stehen, deshalb trägt OneUptime jedes Vorfall-Meeting in den Kalender seines Organisators ein und schaltet in den Optionen des Meetings die automatische Aufzeichnung und Transkription ein. Dafür braucht die Verbindung zwei weitere Microsoft-Graph-Berechtigungen, `Calendars.ReadWrite` und `OnlineMeetingTranscript.Read.All`: Fügen Sie sie Ihrer App-Registrierung hinzu (siehe [Microsoft Teams](#microsoft-teams)), oder klicken Sie bei einer per Anmeldung hergestellten Verbindung auf **Reconnect**. Die Teams-Meeting-Richtlinie des Organisators muss Cloud-Aufzeichnung, Transkription und automatische Aufzeichnung erlauben, und Ihre Organisation darf den Zugriff von Apps auf Transkripte nicht abgeschaltet haben. Ein Anruf, den OneUptime nicht in den Kalender eintragen kann, startet trotzdem, ohne Aufzeichnung, und seine Karte **Videoanruf** sagt, warum.
+Microsoft lässt Apps nur die Transkripte von Teams-Meetings lesen, die in einem Kalender stehen, deshalb trägt OneUptime jedes Vorfall-Meeting in den Kalender seines Organisators ein und schaltet in den Optionen des Meetings die automatische Aufzeichnung und Transkription ein. Dafür braucht die Verbindung zwei weitere Microsoft-Graph-Berechtigungen, `Calendars.ReadWrite` und `OnlineMeetingTranscript.Read.All`: Fügen Sie sie Ihrer App-Registrierung hinzu (siehe [Microsoft Teams](#microsoft-teams)), oder klicken Sie bei einer per Anmeldung hergestellten Verbindung auf **Neu verbinden**. Die Teams-Meeting-Richtlinie des Organisators muss Cloud-Aufzeichnung, Transkription und automatische Aufzeichnung erlauben, und Ihre Organisation darf den Zugriff von Apps auf Transkripte nicht abgeschaltet haben. Ein Anruf, den OneUptime nicht in den Kalender eintragen kann, startet trotzdem, ohne Aufzeichnung, und seine Karte **Videoanruf** sagt, warum.
 
 ### Was jeder Anbieter aufbewahrt
 
 | Anruf | Wie er sein Transkript bekommt | Was er braucht |
 | --- | --- | --- |
-| Zoom | **Von Zoom abrufen** | Ein in der Cloud aufgezeichnetes Meeting mit eingeschaltetem Audio-Transkript oder mit eingeschalteter Meeting-Zusammenfassung von AI Companion. Die Verbindung braucht die Scopes für Transkripte (siehe [Zoom](#zoom)), und eine, die vorher angemeldet wurde, braucht **Reconnect**. Zoom bereitet ein Transkript nach dem Meeting vor, meist innerhalb der doppelten Meeting-Dauer. |
+| Zoom | **Von Zoom abrufen** | Ein in der Cloud aufgezeichnetes Meeting mit eingeschaltetem Audio-Transkript oder mit eingeschalteter Meeting-Zusammenfassung von AI Companion. Die Verbindung braucht die Scopes für Transkripte (siehe [Zoom](#zoom)), und eine, die vorher angemeldet wurde, braucht **Neu verbinden**. Zoom bereitet ein Transkript nach dem Meeting vor, meist innerhalb der doppelten Meeting-Dauer. |
 | Google Meet | **Von Google Meet abrufen** | Im Anruf eingeschaltete Transkripte, in einer Google Workspace-Edition, die sie bietet. Sonst ist nichts einzurichten: OneUptime liest die Transkripte der Meetings, die es angelegt hat. Google hält ein Transkript 30 Tage lang für Apps lesbar. |
 | Microsoft Teams | **Von Microsoft Teams abrufen** | Ein Meeting, das OneUptime gestartet hat, während [jeder Anruf aufgezeichnet und transkribiert wird](#jeden-anruf-aufzeichnen-und-transkribieren): Microsoft lässt Apps nur die Transkripte von Meetings lesen, die in einem Kalender stehen, und bewahrt ein Meeting 60 Tage lang auf. Für jedes andere Teams-Meeting **Transkript hinzufügen**: Öffnen Sie in Teams die Zusammenfassung des Meetings, dann sein Transkript, und laden Sie es als `.vtt`-Datei herunter. |
 | Meeting-Link oder Slack-Huddle | **Transkript hinzufügen** | Das Transkript, das das Meeting-Tool oder die Notizen des Huddles aufbewahren. |
@@ -291,7 +291,7 @@ Der Anbieter hat abgelehnt, und der Feed nennt seinen Grund. Starten Sie in der 
 :::
 
 :::details Eine Verbindung zeigt Funktioniert nicht
-Ihre Anmeldung funktioniert nicht mehr: Das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder muss sich neu anmelden. Klicken Sie in ihrer Zeile auf **Reconnect**. Bis dahin können die Anrufe, die sie starten soll, nicht starten.
+Ihre Anmeldung funktioniert nicht mehr: Das Konto hat OneUptime entfernt, wurde gelöscht oder gesperrt, oder muss sich neu anmelden. Klicken Sie in ihrer Zeile auf **Neu verbinden**. Bis dahin können die Anrufe, die sie starten soll, nicht starten.
 :::
 
 :::details Leute warten in einer Lobby oder einem Warteraum
@@ -307,7 +307,7 @@ Sobald der Anruf vorbei ist, fragt OneUptime Zoom, Google Meet oder Microsoft Te
 :::
 
 :::details Ein Microsoft-Teams-Anruf wurde nicht aufgezeichnet
-OneUptime konnte das Meeting nicht in den Kalender seines Organisators eintragen, hat den Anruf deshalb auf dem üblichen Weg gestartet, ohne Aufzeichnung, und die Karte **Videoanruf** sagt, warum. Meist fehlt der Verbindung `Calendars.ReadWrite` oder `OnlineMeetingTranscript.Read.All`: Fügen Sie sie der App-Registrierung hinzu und erteilen Sie die Administratorzustimmung, oder klicken Sie bei einer per Anmeldung hergestellten Verbindung auf **Reconnect**. Danach gestartete Anrufe werden aufgezeichnet.
+OneUptime konnte das Meeting nicht in den Kalender seines Organisators eintragen, hat den Anruf deshalb auf dem üblichen Weg gestartet, ohne Aufzeichnung, und die Karte **Videoanruf** sagt, warum. Meist fehlt der Verbindung `Calendars.ReadWrite` oder `OnlineMeetingTranscript.Read.All`: Fügen Sie sie der App-Registrierung hinzu und erteilen Sie die Administratorzustimmung, oder klicken Sie bei einer per Anmeldung hergestellten Verbindung auf **Neu verbinden**. Danach gestartete Anrufe werden aufgezeichnet.
 :::
 
 :::details OneUptime AI konnte ein Transkript nicht lesen

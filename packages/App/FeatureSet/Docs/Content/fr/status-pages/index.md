@@ -72,8 +72,10 @@ C'est tout le formulaire. La liste **Pages de statut** affiche **Nom**, **Descri
 
 ### Ouvrir la nouvelle page
 
-La nouvelle page s'ouvre sur son écran **Vue d'ensemble**. Tant que la page n'a aucune ressource, l'écran commence par **Rien sur cette page de statut pour l'instant** et **Ajouter des moniteurs**, qui ouvre son écran **Ressources**. Viennent ensuite deux cartes : **Lien de la page de statut**, avec le lien vers la page elle-même et **Copier le lien**, et **Détails de la page de statut**, où vous pouvez modifier le nom, la description et les étiquettes que vous venez de définir. Dès que le projet a des champs personnalisés de page de statut, une carte **Champs personnalisés** les suit.
+La nouvelle page s'ouvre sur son écran **Vue d'ensemble**. Tant que la page n'a aucune ressource, l'écran commence par **Rien sur cette page de statut pour l'instant** et **Ajouter des moniteurs**, qui ouvre sur place une boîte de dialogue pour choisir les moniteurs que voient les visiteurs. Viennent ensuite deux cartes : **Lien de la page de statut**, avec le lien vers la page elle-même et **Copier le lien**, et **Détails de la page de statut**, où vous pouvez modifier le nom, la description et les étiquettes que vous venez de définir. Dès que le projet a des champs personnalisés de page de statut, une carte **Champs personnalisés** les suit.
 :::
+
+Pour être guidé pas à pas à la place, des moniteurs que la page affiche jusqu'à ce que voient vos clients, cliquez sur **Configuration guidée** : sur la liste **Pages de statut** vide, ou sous **Fonctionnement**. Voir [Publier une page de statut](/docs/guides/status-page).
 
 Une page créée via l'API ou Terraform est soumise aux mêmes formules que les paramètres décrits ci-dessous. Sur OneUptime Cloud, créer une page avec un paramètre activé que votre formule n'inclut pas — par exemple privée, une liste masquée, du HTML, CSS ou JavaScript personnalisé, des rapports par e-mail, des abonnés SMS, Slack, Microsoft Teams ou webhook, une liste d'autorisation IP — est refusé avec `402 Payment Required`, et le message nomme la formule. La formule de chaque paramètre est indiquée avec lui ci-dessous. Les paramètres laissés à leur valeur par défaut, comme ce formulaire les laisse, fonctionnent avec toutes les formules.
 

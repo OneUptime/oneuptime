@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -14,7 +15,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import Dropdown, {
@@ -224,7 +224,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
   };
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <InlineValueSkeleton />;
   }
 
   if (error) {

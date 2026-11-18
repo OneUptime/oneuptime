@@ -404,7 +404,7 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
      * Nothing has been read yet (issue #4709): the loader stands alone, and
      * the selection shows as its chip above the list meanwhile.
      */
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(sectionTitles()).toEqual([]);
 
     view.rerender(
@@ -422,7 +422,7 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
   test("the first load ({}) shows the loader alone: no sections that say they are empty, no footer", () => {
     render(sidebarElement({ facetData: {}, isLoading: true }));
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(sectionTitles()).toEqual([]);
     expect(screen.queryByText("No values in this time range")).toBeNull();
     expect(footer()).toBeNull();

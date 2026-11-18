@@ -62,7 +62,7 @@ Abra **Plantão** pelo menu **Produtos** e vá para **Agendamentos de plantão**
 
 ### Criar uma política
 
-Vá para **Políticas de plantão** e clique em **Criar: Política de plantão**. Em **Quem é acionado primeiro?**, escolha o agendamento. Ele vira a primeira regra de escalonamento da política, **Level 1**, que espera 30 minutos por uma confirmação.
+Vá para **Políticas de plantão** e clique em **Criar política de plantão**. Em **Quem é acionado primeiro?**, escolha o agendamento. Ele vira a primeira regra de escalonamento da política, **Level 1**, que espera 30 minutos por uma confirmação.
 
 ### Adicionar os próximos níveis
 
@@ -70,7 +70,7 @@ Na página **Regras de escalonamento** da política, clique em **Adicionar regra
 
 ### Executar a política automaticamente
 
-A primeira política de um projeto pode fazer isso já ao ser criada: deixe **Dispará-la a cada novo incidente e a cada novo alerta** ativado. Para qualquer outra política, vá para **Incidentes → Regras → Regras de plantão** ou **Alertas → Regras → Regras de plantão** e adicione uma regra que a execute para os incidentes ou alertas que corresponderem, por exemplo cada incidente crítico. Veja [O que executa uma política](/docs/on-call/policies#o-que-executa-uma-política).
+A primeira política de um projeto pode fazer isso já ao ser criada: deixe **Dispará-la a cada novo incidente e a cada novo alerta** ativado. Uma política posterior recebe a mesma pergunta, desativada no início. Para executar uma política só para alguns incidentes ou alertas, por exemplo cada incidente crítico, vá para **Incidentes → Regras → Regras de plantão** ou **Alertas → Regras → Regras de plantão** e adicione uma regra que corresponda a eles. Veja [O que executa uma política](/docs/on-call/policies#o-que-executa-uma-política).
 
 ### Conferir se todos podem ser contatados
 

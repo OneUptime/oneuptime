@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import HuntHeader from "../../Components/SecurityEvents/Hunts/HuntHeader";
@@ -38,7 +39,6 @@ import {
 } from "Common/Types/SecurityEvent/SecurityHunt";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -240,7 +240,7 @@ const HuntOnPage: FunctionComponent<{ huntId: ObjectID }> = (props: {
   };
 
   if (!isLoaded) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error || !hunt) {

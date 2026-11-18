@@ -34,6 +34,23 @@ import {
 } from "../../../Types/SecurityEvent/SecurityHunt";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import OneUptimeDate from "../../../Types/Date";
+import { openDropdown } from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 /*
  * A HUNT'S RUN HISTORY (HuntRunHistory), beside its page: every scheduled
@@ -374,8 +391,14 @@ describe("a hunt's Run History", () => {
 
     expect(sizes.length).toBeGreaterThan(0);
 
+    /*
+     * The history is a side-over: what is outside it is hidden from the
+     * accessibility tree, and the picker's menu is drawn over the page.
+     */
+    openDropdown(rowsPerPage(sizes[0]!.parentElement!));
+
     await act(async () => {
-      fireEvent.change(sizes[0]!, { target: { value: "25" } });
+      fireEvent.click(screen.getByRole("option", { name: "25", hidden: true }));
     });
 
     await waitFor(() => {

@@ -11,6 +11,11 @@ import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
 import {
+  HANDWRITTEN_RESOURCES,
+  HandwrittenResource,
+  ON_CALL_SCHEDULE_LAYERS,
+} from "./HandwrittenResources";
+import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
   PROVIDER_DISPLAY_NAME,
@@ -566,6 +571,163 @@ ${aliases}${takenNames}`;
         resourceDoc,
       );
     }
+
+    // The resources written by hand (Core/HandwrittenResources.ts).
+    for (const handwritten of HANDWRITTEN_RESOURCES) {
+      await this.fileGenerator.writeFileInDir(
+        "docs/resources",
+        `${handwritten.name}.md`,
+        this.generateHandwrittenResourceDoc(handwritten),
+      );
+    }
+  }
+
+  /*
+   * The page of a resource written by hand: its schema as the built
+   * provider has it (or as Core/HandwrittenResources.ts describes it, when
+   * generation stopped before the provider was built), with its own example
+   * and guide.
+   */
+  public generateHandwrittenResourceDoc(
+    handwritten: HandwrittenResource,
+  ): string {
+    const provider: string = this.config.providerName;
+    const block: SchemaDumpBlock =
+      this.schemaDump?.resources[`${provider}_${handwritten.name}`] ||
+      handwritten.schema;
+    const description: string = (handwritten.schema.description || "").trim();
+
+    return `---
+page_title: "${provider}_${handwritten.name} Resource - ${provider}"
+subcategory: "${DocumentationGenerator.getSubcategory(handwritten.name)}"
+description: |-
+  ${description}
+---
+
+# ${provider}_${handwritten.name} (Resource)
+
+${description}
+
+## Example Usage
+
+\`\`\`terraform
+${this.getHandwrittenResourceExample(handwritten)}
+\`\`\`
+
+${this.getHandwrittenResourceGuide(handwritten)}
+## Schema
+
+${this.renderSchema(block.attributes)}
+
+${this.getHandwrittenResourceImport(handwritten)}`;
+  }
+
+  private getHandwrittenResourceExample(
+    handwritten: HandwrittenResource,
+  ): string {
+    const provider: string = this.config.providerName;
+
+    if (handwritten.name !== ON_CALL_SCHEDULE_LAYERS.name) {
+      return "";
+    }
+
+    return `resource "${provider}_on_call_policy_schedule" "sre" {
+  name     = "SRE"
+  timezone = "UTC"
+}
+
+resource "${provider}_on_call_schedule_layer" "primary" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.sre.id
+  name                            = "Primary"
+  starts_at                       = "2030-01-07T09:00:00Z"
+  hand_off_time                   = "2030-01-14T09:00:00Z"
+}
+
+resource "${provider}_on_call_schedule_layer" "fallback" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.sre.id
+  name                            = "Fallback"
+  starts_at                       = "2030-01-07T09:00:00Z"
+  hand_off_time                   = "2030-01-14T09:00:00Z"
+}
+
+data "${provider}_user" "alice" {
+  email = "alice@example.com"
+}
+
+data "${provider}_user" "bob" {
+  email = "bob@example.com"
+}
+
+data "${provider}_user" "carol" {
+  email = "carol@example.com"
+}
+
+# Alice and Bob take turns on top; Carol covers whenever neither is on call.
+resource "${provider}_on_call_schedule_layers" "sre" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.sre.id
+
+  layers = [
+    {
+      layer_id = ${provider}_on_call_schedule_layer.primary.id
+      user_ids = [data.${provider}_user.alice.id, data.${provider}_user.bob.id]
+    },
+    {
+      layer_id = ${provider}_on_call_schedule_layer.fallback.id
+      user_ids = [data.${provider}_user.carol.id]
+    },
+  ]
+}`;
+  }
+
+  private getHandwrittenResourceGuide(
+    handwritten: HandwrittenResource,
+  ): string {
+    const provider: string = this.config.providerName;
+
+    if (handwritten.name !== ON_CALL_SCHEDULE_LAYERS.name) {
+      return "";
+    }
+
+    return `## How a change is saved
+
+Each apply sends the whole change in one call, as **Save changes** on a schedule's **Layers** page in OneUptime does: OneUptime writes all of it or none of it, and works out who is on call once, at once, so someone who goes on or off call, or is next, hears it once. Someone who stays in a layer keeps their place in it, and only their turn moves.
+
+The change is made to the layers as they are read just before it. If someone changes them in between, OneUptime refuses the save, and the provider reads them again and saves again.
+
+## Layers it does not list
+
+List layers of the schedule by their \`${provider}_on_call_schedule_layer\` IDs, the highest priority first. A layer of the schedule that is not listed keeps its people and its place, and the layers listed take the places they have between them, in the order listed. To delete a layer, remove its \`${provider}_on_call_schedule_layer\` and take it out of \`layers\` in the same change.
+
+Give the people of the layers it lists here only, not with \`${provider}_on_call_schedule_layer_user\` too, and leave those layers' \`order\` unset: this resource orders them.
+
+## Destroying it
+
+Destroying it takes everyone out of the layers it lists, and leaves the layers. To stop managing their people with Terraform and keep them, remove it from the state instead, with a \`removed\` block or \`terraform state rm\`.
+`;
+  }
+
+  private getHandwrittenResourceImport(
+    handwritten: HandwrittenResource,
+  ): string {
+    const provider: string = this.config.providerName;
+
+    return `## Import
+
+Import the layers of an existing schedule by the schedule's ID, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+). The import takes every layer of the schedule, in its order:
+
+\`\`\`terraform
+import {
+  to = ${provider}_${handwritten.name}.example
+  id = "<on_call_duty_policy_schedule_id>"
+}
+\`\`\`
+
+or on the command line:
+
+\`\`\`shell
+terraform import ${provider}_${handwritten.name}.example <on_call_duty_policy_schedule_id>
+\`\`\`
+`;
   }
 
   private async generateDataSourceDocs(): Promise<void> {

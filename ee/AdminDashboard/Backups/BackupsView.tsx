@@ -1,4 +1,5 @@
 import { BACKUP_PLURALS, BackupsCopy } from "./BackupsCopy";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import BackupsApi, { BackupsOverview, FindBackupsResult } from "./BackupsApi";
 import BackupsHero from "./BackupsHero";
 import BackupsLicenseNotice, {
@@ -30,7 +31,6 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
@@ -367,7 +367,7 @@ const BackupsView: FunctionComponent<ComponentProps> = (
         />
       </div>
     ) : (
-      <ComponentLoader />
+      <TableSkeleton />
     );
   }
 

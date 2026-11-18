@@ -218,7 +218,7 @@ const SecurityPlaybookStepsEditor: FunctionComponent<ComponentProps> = (
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-900">
-                            <span className="mr-1.5 text-gray-400">
+                            <span className="mr-1.5 text-gray-500">
                               {translator.formatNumber(index + 1)}.
                             </span>
                             {translator.translateText(

@@ -15,7 +15,7 @@ Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lug
 
 1. Uma caixa de pesquisa, com **Declarar incidente** e **Criar** ao lado.
 2. Uma linha que diz se algo está errado, acima de cinco números que contam o que precisa de atenção.
-3. **Boas-vindas ao OneUptime 👋**, uma lista para um projeto novo, até que esteja concluída.
+3. **Boas-vindas ao OneUptime 👋**, uma lista para um projeto novo, até que esteja concluída, e depois **Mais para configurar** enquanto restar algo.
 4. **Requer atenção**, cada problema aberto neste momento, pelo nome.
 5. **Seu projeto**, do que o projeto é feito, e **Próximas manutenções** quando houver alguma programada.
 6. **Explore o OneUptime**, todos os produtos, uma categoria por vez.
@@ -40,7 +40,7 @@ A linha do topo nomeia o que há de mais urgente em aberto, numa cor corresponde
 
 Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. O Início também acompanha o que conta à medida que muda: quando um incidente, alerta, monitor, evento de manutenção ou SLO é criado, alterado ou excluído, a linha, os números, **Requer atenção** e **Próximas manutenções** se atualizam em segundos, sem recarregar. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
 
-Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre a configuração guiada **Saber quando meu site ou API cair**. Só quem tem permissão para criar monitores o vê.
+Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre a configuração guiada **Saber quando meu site ou API cair**, a menos que a lista abaixo já ofereça essa etapa. Só quem tem permissão para criar monitores o vê.
 
 ### Os cinco números
 
@@ -68,13 +68,17 @@ Cada etapa se marca sozinha quando a coisa funciona, não quando um registro exi
 | **Crie seu primeiro monitor** | Chega a primeira verificação. | A configuração guiada **Saber quando meu site ou API cair**, ou a lista **Monitores** para quem não pode criar monitores. |
 | **Conecte um servidor ou cluster** | Chegam as primeiras métricas. | **Hosts** |
 | **Envie seus primeiros logs, métricas ou traces** | Chegam os primeiros logs, métricas, traces, exceções ou perfis do projeto. | A configuração guiada **Enviar registros, métricas e traços e receber alertas** |
-| **Configure uma política de plantão** | Um acionamento de teste é reconhecido, um acionamento alcança alguém, ou uma regra de plantão executa uma política que pode alcançar alguém. | A configuração guiada **Acionar a pessoa certa quando algo quebrar** |
+| **Configure uma política de plantão** | Um acionamento de teste é reconhecido, um acionamento alcança alguém, ou uma regra de plantão ou um monitor executa uma política que pode alcançar alguém. | A configuração guiada **Acionar a pessoa certa quando algo quebrar** |
 | **Publique uma página de status** | Uma página de status mostra um monitor. | A configuração guiada **Publique uma página de status**, ou a lista **Páginas de status** para quem não pode criar páginas de status. |
 | **Convide sua equipe** | Alguém aceita seu convite. | **Usuários** |
 
-A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não pode enviar e-mails, os administradores do servidor veem primeiro **Este servidor ainda não pode enviar e-mails**, que abre o painel de administração.
+A etapa a fazer primeiro é marcada com **Próxima etapa**. No plano Free do OneUptime Cloud, que tem uma pessoa, **Convide sua equipe** diz que precisa do plano Growth e abre **Cobrança**. Em um servidor auto-hospedado que ainda não está configurado, seus administradores veem, em vez disso, o cartão do próprio servidor acima da lista, com **Concluir a configuração**, que abre o painel de administração.
 
 Cada etapa diz quanto tempo leva, mais ou menos, a lista diz quanto tempo falta, e a próxima etapa tem seu próprio botão **Iniciar**.
+
+Uma etapa cujo registro existe, mas ainda não funciona, diz o porquê logo abaixo, com as palavras de **Saúde da configuração**: uma página de status que não mostra nenhum monitor, um monitor que nada verifica, uma política de plantão que nada executa ou que não alcança ninguém, um convite que ninguém aceitou. A etapa então abre a página que corrige isso e, quando é a próxima, o botão dela diz a correção, como **Adicionar monitores**.
+
+Depois que **Configure uma política de plantão** estiver marcada, e enquanto só o e-mail puder acionar você, **Ser acionado por SMS ou ligação telefônica** fica abaixo dela: abre a configuração guiada **Acionar a pessoa certa quando algo quebrar**, para adicionar seu telefone ou o app móvel. Só quem pode criar políticas de plantão o vê.
 
 Uma configuração guiada faz todo o trabalho em uma só página, uma etapa de cada vez, e termina com o que configurou e o que fazer em seguida. Para abri-la de novo mais tarde, pesquise pelo nome dela.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Sim"| hidden{"Ocultada<br/>por você?"}
     hidden -->|"Sim"| line["Uma linha para<br/>mostrá-la de novo"]
     hidden -->|"Não"| done{"Todas as etapas<br/>concluídas?"}
-    done -->|"Sim"| gone["Sem lista"]
+    done -->|"Sim"| gone["Mais para configurar,<br/>enquanto restar algo"]
     done -->|"Não"| shown["A lista, com<br/>as etapas restantes"]
 ```
 
 A lista some para todos quando todas as etapas estão concluídas. Para ocultá-la antes, clique em **Ocultar**: ela fica oculta só para você, em todos os dispositivos, e fica uma linha com **Mostrar** e **Como o OneUptime funciona**. Quem foi convidado ao projeto como membro não vê a lista. **Como o OneUptime funciona** continua a um clique, em qualquer projeto: abra-o em **Ajuda** ou com o botão ao lado de **Explore o OneUptime**.
+
+Quando a lista é concluída, **Mais para configurar** ocupa o lugar dela abaixo da manchete, como um cartão entre os outros: as etapas essenciais que seus objetivos não trouxeram, como uma página de status e sua equipe, cada uma até funcionar, com **Ser acionado por SMS ou ligação telefônica** primeiro enquanto só o e-mail puder acionar você. O **Ocultar** dele o oculta para você, sem deixar nenhuma linha.
 
 **Como o OneUptime funciona** abre em **Como tudo se encaixa**: as quatro etapas pelas quais um problema passa, **Detectar**, **Responder**, **Comunicar** e **Melhorar**, cada uma com os produtos que a realizam. Depois vêm as categorias do menu **Produtos**, cada uma com seus produtos e para que serve cada um: escolha uma, ou passe para a próxima com as setas do teclado ou **Próximo**. Clique em um produto para abri-lo. Os produtos que seu projeto oculta ficam de fora.
 
@@ -103,7 +109,7 @@ A lista some para todos quando todas as etapas estão concluídas. Para ocultá-
 
 ### Saúde da configuração
 
-Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que começa com uma linha na cor da descoberta mais grave: quantos problemas impediriam que as pessoas fossem avisadas, quantos itens vale corrigir, ou **Nada para corrigir**. Abaixo dela, a página lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor, um domínio personalizado cujo certificado SSL não pôde ser emitido, uma chave de ingestão com a qual nenhum dado chegou. Cada descoberta diz em uma frase o que está errado, com os nomes dos seus monitores, políticas e pessoas em negrito, os monitores ou políticas que ela afeta depois de **Afeta**, e logo abaixo o botão que abre a correção. Duas podem ser corrigidas ali mesmo, depois que uma caixa de diálogo diz exatamente o que vai mudar: **Ativar SMS** (ou as chamadas telefônicas, o WhatsApp ou o Telegram), para quem pode ativá-lo, e **Criar regra de plantão**, que aciona a política de plantão que você escolher para um monitor que não acionava ninguém. As descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta, e uma política de plantão que nada executa, ou um domínio personalizado que não abre sua página de status, também avisa no topo da página da política ou da página de status. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
+Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que começa com uma linha na cor da descoberta mais grave: quantos problemas impediriam que as pessoas fossem avisadas, quantos itens vale corrigir, ou **Nada para corrigir**. Abaixo dela, a página lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor, um domínio personalizado cujo certificado SSL não pôde ser emitido, uma chave de ingestão com a qual nenhum dado chegou. Cada descoberta diz em uma frase o que está errado, com os nomes dos seus monitores, políticas e pessoas em negrito, os monitores ou políticas que ela afeta depois de **Afeta**, e logo abaixo o botão que abre a correção. Duas podem ser corrigidas ali mesmo, depois que uma caixa de diálogo diz exatamente o que vai mudar: **Ativar SMS** (ou as chamadas telefônicas, o WhatsApp ou o Telegram), para quem pode ativá-lo, e **Criar regra de plantão**, que aciona a política de plantão que você escolher para um monitor que não acionava ninguém. As descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta, e uma política de plantão que nada executa, ou um domínio personalizado que não abre sua página de status, também avisa no topo da página da política ou da página de status. Cada proprietário que, segundo o cartão, o e-mail de criação nunca alcança também é uma descoberta que vale corrigir, com a mesma página para resolver. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
 
 ### Seu projeto
 
@@ -113,7 +119,7 @@ Quando algo na configuração do projeto impediria que as pessoas fossem avisada
 
 ### Explore o OneUptime
 
-**Explore o OneUptime** mostra os produtos do menu **Produtos** uma categoria por vez, começando pelos essenciais. Cada produto diz para que serve e abre quando você clica nele. Os produtos que o seu projeto oculta ficam de fora.
+**Explore o OneUptime** mostra os produtos do menu **Produtos** uma categoria por vez, começando pelos essenciais. Cada produto diz para que serve e abre quando você clica nele. Os produtos que o seu projeto oculta ficam na última aba, **Mais produtos**, com uma nota de que continuam funcionando.
 
 ## Encontrar o caminho
 
@@ -158,8 +164,10 @@ Pressione **Cmd+K** (Mac) ou **Ctrl+K** (Windows e Linux), ou clique no ícone d
 
 - **Todas as páginas dos menus**, pelo nome que o menu dá a elas: Chaves de API, Excluir projeto, Agendamentos de plantão, Severidade do incidente, seus próprios Métodos de notificação. Cada resultado diz onde fica, por exemplo *Configurações do projeto › Avançado*, para que páginas com o mesmo nome (Campos personalizados em Incidentes, Alertas e Monitores) sejam fáceis de distinguir.
 - **As configurações de uma página**, pelo nome que o cartão ou o botão delas mostra: *Exigir SSO para entrar* encontra SSO, e *Configurações SMTP Personalizadas* encontra Canais de notificação. Digite o nome em inglês ou no seu idioma.
-- **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
+- **Ações**, pelo que você quer fazer: Declarar incidente, Criar monitor ou Delete Project, que abre a Zona de perigo. Criar página de status, Criar política de plantão, Criar agendamento de plantão, Criar painel, Criar fluxo de trabalho e Convidar Usuário abrem o formulário na lista deles. Uma ação que muda algo só é oferecida a quem tem permissão para fazê-la.
 - **Seus monitores, incidentes, alertas, páginas de status e políticas de plantão**, pelo nome, e incidentes e alertas também pelo número, como `INC-42`. Cada resultado de incidente ou alerta começa pelo número dele, para que dois com o mesmo título se distingam.
+- **As pessoas do seu projeto**, pelo nome ou e-mail, em Usuários: cada uma abre a página dessa pessoa. Você encontra as pessoas que a página Usuários mostra a você.
+- **As páginas de um registro**: em uma página de status, *sso* abre a página Login único dela. Em qualquer outro lugar, acrescente o nome do registro ou o tipo dele: *status page sso*, ou *acme subscribers* para os assinantes de uma página de status chamada Acme. Só aparecem os registros que você pode ver, e uma página renomeada ainda é encontrada pelo nome antigo, como *advanced settings*.
 - **A documentação**, em um grupo *Documentação* abaixo de todo o resto: as páginas e seções cujas palavras correspondem ao que você digitou, no seu idioma, mesmo com um erro de digitação. Cada uma abre em uma nova aba, para você não perder seu lugar.
 
 A pesquisa lê o que você digita do jeito que você quer dizer:

@@ -244,6 +244,61 @@ describe("TelemetryMilestones", () => {
     ]);
   });
 
+  /*
+   * The writers that insert a network device's logs themselves (its syslog,
+   * its SNMP traps) call markInserted once the insert went in (#6897).
+   */
+  describe("markInserted", () => {
+    test("keeps the table's milestone for each project in the rows, once", () => {
+      TelemetryMilestones.markInserted(
+        AnalyticsTableName.Log,
+        rowsOf([PROJECT_A, PROJECT_B, PROJECT_A]),
+      );
+
+      expect(reached).toEqual([
+        {
+          projectId: PROJECT_A,
+          milestone: ActivationMilestone.FirstLogsReceived,
+        },
+        {
+          projectId: PROJECT_B,
+          milestone: ActivationMilestone.FirstLogsReceived,
+        },
+      ]);
+    });
+
+    test("keeps nothing for a project known to have it, or a table that is no telemetry kind", () => {
+      known.add(`${PROJECT_A}:${ActivationMilestone.FirstLogsReceived}`);
+
+      TelemetryMilestones.markInserted(
+        AnalyticsTableName.Log,
+        rowsOf([PROJECT_A]),
+      );
+      TelemetryMilestones.markInserted(
+        AnalyticsTableName.MonitorLog,
+        rowsOf([PROJECT_B]),
+      );
+      TelemetryMilestones.markInserted(AnalyticsTableName.Log, []);
+
+      expect(reached).toEqual([]);
+    });
+
+    test("never throws: the insert that went in is not failed by its milestone", () => {
+      jest
+        .spyOn(ProjectMilestoneService, "reachInBackground")
+        .mockImplementation((): void => {
+          throw new Error("The memo is gone.");
+        });
+
+      expect(() => {
+        TelemetryMilestones.markInserted(
+          AnalyticsTableName.Log,
+          rowsOf([PROJECT_A]),
+        );
+      }).not.toThrow();
+    });
+  });
+
   describe("through the fan-in writer", () => {
     test("rows ClickHouse accepted mark their projects' first telemetry of that kind", async () => {
       const writer: TelemetryFanInWriter = makeWriter();

@@ -70,6 +70,22 @@ export const getScheduleLayersSaveRoute: (scheduleId: string) => string = (
   return `/${scheduleId}/save-layers`;
 };
 
+/*
+ * GET /on-call-duty-policy-schedule/:id/layers (issue #9038): the layers as
+ * they are saved, as a save that changes nothing - every layer the schedule
+ * keeps in priority order, each with its people in turn order, and the
+ * version they are at as basedOnVersion. An API caller or Terraform changes
+ * it and sends it back to save-layers: the version is worked out from the
+ * rows (getVersion), so nobody has to work it out themselves.
+ */
+export const SCHEDULE_LAYERS_READ_ROUTE: string = "/:id/layers";
+
+export const getScheduleLayersReadRoute: (scheduleId: string) => string = (
+  scheduleId: string,
+): string => {
+  return `/${scheduleId}/layers`;
+};
+
 // The most layers one save names: far more than any schedule has.
 export const SCHEDULE_LAYERS_SAVE_MAX_LAYERS: number = 100;
 

@@ -540,7 +540,7 @@ describe("the page draws the reader's text", () => {
       expect(viewer.text).toBe(DOCUMENTATION);
       expect(viewer.readingDirection).toBeUndefined();
     }
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
   });
 
   test("in German, the German text: none of the English page's headings", async () => {
@@ -650,7 +650,7 @@ describe("the page draws the reader's text", () => {
       );
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(mockViewers).toEqual([]);
 
     await act(async () => {
@@ -658,7 +658,7 @@ describe("the page draws the reader's text", () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("detail-skeleton")).toBeNull();
     expect(lastViewer()).toEqual({
       text: "## Langsam",
       readingDirection: LEFT_TO_RIGHT,

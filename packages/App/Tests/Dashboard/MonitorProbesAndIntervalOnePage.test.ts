@@ -146,7 +146,7 @@ describe("the Probes & Interval page", () => {
   test("shows why a monitor could not be read instead of loading for good", () => {
     expect(page.indexOf("if (error) {")).toBeGreaterThan(-1);
     expect(page.indexOf("if (error) {")).toBeLessThan(
-      page.indexOf("<ComponentLoader />"),
+      page.indexOf('<PageSkeleton shape="table" />'),
     );
   });
 

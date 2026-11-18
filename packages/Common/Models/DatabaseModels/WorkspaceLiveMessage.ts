@@ -31,6 +31,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * remember between edits (who it already names, which alarms its run already
  * raised).
  *
+ * Where a message is - its channel or chat, team and message id - is kept
+ * whole, in LongText columns (500 characters): a Microsoft Teams personal
+ * chat's id ("a:1...") runs to 130 characters and more, and an id cut to fit
+ * is another id, which addresses nothing (issue #9284). The names are only
+ * shown, and are cut to fit (WorkspaceStoredValue).
+ *
  * Written and read only by the server (WorkspaceLiveMessages): no client can
  * read or write a row, and it has no CRUD API.
  */
@@ -166,15 +172,15 @@ export default class WorkspaceLiveMessage extends BaseModel {
   @Index()
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Channel ID",
     description:
-      "The Slack channel, Microsoft Teams channel or Microsoft Teams chat the message is in.",
+      "The Slack channel, Microsoft Teams channel or Microsoft Teams chat the message is in, as the workspace names it, whole.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public channelId?: string = undefined;
 
@@ -185,14 +191,14 @@ export default class WorkspaceLiveMessage extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Channel Name",
     description: "The channel's or chat's name when the message was posted.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public channelName?: string = undefined;
 
@@ -203,14 +209,14 @@ export default class WorkspaceLiveMessage extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Team ID",
-    description: "The Microsoft Teams team a channel belongs to.",
+    description: "The Microsoft Teams team a channel belongs to, whole.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public teamId?: string = undefined;
 
@@ -221,15 +227,15 @@ export default class WorkspaceLiveMessage extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Message ID",
     description:
-      "The id the workspace gave the message: a Slack message ts or a Microsoft Teams activity id.",
+      "The id the workspace gave the message, whole: a Slack message ts or a Microsoft Teams activity id.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public messageId?: string = undefined;
 

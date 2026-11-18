@@ -971,7 +971,7 @@ const NetworkSiteMap: FunctionComponent<
                   />
                   <span className="truncate font-medium">{link.name}</span>
                   {link.monitorStatus ? (
-                    <span className="flex-shrink-0 text-gray-400">
+                    <span className="flex-shrink-0 text-gray-500">
                       {translateRecordName(
                         translator,
                         StateListType.MonitorStatus,

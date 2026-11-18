@@ -196,6 +196,12 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       '"/doctor"',
       "/api/admin/health/doctor",
     ),
+    // `npm run backup` says it ran (#7026): no guessing the key to mark a server backed up.
+    route(
+      "packages/App/API/AdminHealth.ts",
+      '"/backup-run"',
+      "/api/admin/health/backup-run",
+    ),
   ];
 }
 
@@ -505,6 +511,7 @@ describe("on each route, one client's different wrong keys", () => {
     "model trigger",
     "/workflow/incoming-email/deliver",
     "/api/admin/health/doctor",
+    "/api/admin/health/backup-run",
   ])(
     "%s: ten are answered as wrong, the next is refused with Retry-After, and so is the right key after it",
     async (name: string) => {

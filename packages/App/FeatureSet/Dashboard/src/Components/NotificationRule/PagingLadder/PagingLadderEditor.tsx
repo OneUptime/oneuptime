@@ -10,6 +10,7 @@ import {
   PagingMethodChoice,
   findMethodChoice,
   getAddableMethodChoices,
+  getMethodChoiceLabel,
   getNewStep,
 } from "./PagingLadderMethods";
 import {
@@ -19,7 +20,17 @@ import {
   MethodLabel,
   UNKNOWN_METHOD_LABEL,
 } from "./PagingLadderParts";
-import { PAGING_LADDER_COPY } from "./PagingLadderWords";
+import {
+  PAGING_LADDER_COPY,
+  PAGING_LADDER_DEFAULT_START_COPY,
+  describeDefaultStartLeftOut,
+} from "./PagingLadderWords";
+import {
+  NotSentNowMark,
+  StepsNotSentNowNotice,
+  getChannelsNotSentNowInSteps,
+  isStepNotSentNow,
+} from "./StepsNotSentNow";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -29,7 +40,13 @@ import {
   getPagingLadderStepKey,
   normalizePagingLadderSteps,
 } from "Common/Types/NotificationRule/PagingLadder";
+import {
+  PagingLadderFromDefault,
+  getChannelsOfPagingLadderSteps,
+  isSamePagingLadder,
+} from "Common/Types/NotificationRule/PagingLadderDefault";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -41,7 +58,6 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
-import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -76,6 +92,13 @@ import React, {
  * button at the end of that list, and names them before it saves.
  * Different for Some Severities, the way to the grid of cards, is a button
  * beside the title, not a link at the card's foot that people missed.
+ *
+ * In a project with a default ladder, Start From the Project's Default sits
+ * beside it while the steps are not the default's (#9445): it fills the
+ * steps with the default, mapped to the person's verified methods, and says
+ * what it left out; Save Changes saves them as any change is saved. A step
+ * this server can't send right now is marked, and the card says once why
+ * and who can fix it (#9446).
  */
 
 export interface ComponentProps {
@@ -110,6 +133,30 @@ export interface ComponentProps {
   setUpMoreMethodsRoute?: Route | undefined;
   // Below the steps: what is not verified yet, or why nothing can be added.
   footer?: ReactElement | undefined;
+  /*
+   * Words for a ladder that is nobody's own - the project's default ladder
+   * of channels (#7449) - already in the reader's language: the empty
+   * ladder's sentence, its button and each step's Add, and what a save
+   * says. Left out, the person's own words.
+   */
+  noStepsText?: string | undefined;
+  addLabel?: string | undefined;
+  savedText?: string | undefined;
+  /*
+   * The project's default ladder, as this person's steps (#9445,
+   * getPagingLadderDefaultStart): Start From the Project's Default, beside
+   * the title, fills the steps with it, and they say what it left out until
+   * they are saved. Left out, nothing is offered.
+   */
+  defaultStart?: PagingLadderFromDefault | null | undefined;
+  // Told when the steps are filled from the default.
+  onStartFromDefault?: ((start: PagingLadderFromDefault) => void) | undefined;
+  /*
+   * The channels this server can't send through right now (#9446,
+   * getChannelsNotSentNow): each of their steps is marked, and the card
+   * says once why and who can fix it.
+   */
+  channelsNotSentNow?: ReadonlyArray<OnCallPageChannel> | undefined;
 }
 
 const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
@@ -187,6 +234,20 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   // ...and leaving the page asks first.
   const leavePrompt: LeavePrompt = useLeaveGuard(isDirty);
 
+  const channelsNotSentNow: ReadonlyArray<OnCallPageChannel> =
+    props.channelsNotSentNow || [];
+
+  /*
+   * Start From the Project's Default (#9445), for somebody who may change
+   * these steps: offered until the steps are the default's.
+   */
+  const defaultStart: PagingLadderFromDefault | null =
+    props.isEditable && props.defaultStart ? props.defaultStart : null;
+  const isDraftTheDefault: boolean = Boolean(
+    defaultStart && isSamePagingLadder(draft, defaultStart.steps),
+  );
+  const isStartOffered: boolean = Boolean(defaultStart) && !isDraftTheDefault;
+
   const addableMethods: Array<PagingMethodChoice> = getAddableMethodChoices({
     choices: props.methods,
     isPushTurnedOff: props.isPushTurnedOff,
@@ -263,6 +324,19 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     setDraft(normalizePagingLadderSteps(props.savedSteps));
   };
 
+  // The steps become the default's; nothing is saved until Save Changes.
+  const startFromDefault: () => void = (): void => {
+    if (!defaultStart) {
+      return;
+    }
+
+    setError("");
+    changeDraft(() => {
+      return [...defaultStart.steps];
+    });
+    props.onStartFromDefault?.(defaultStart);
+  };
+
   const save: (keepDifferences: boolean) => Promise<void> = async (
     keepDifferences: boolean,
   ): Promise<void> => {
@@ -308,17 +382,21 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     ? getNextStepWait(lastGroup.wait)
     : null;
 
-  const addLabel: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder);
+  const addLabel: string =
+    props.addLabel ||
+    (props.memberName
+      ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
+          name: props.memberName,
+        })
+      : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder));
 
-  const noStepsText: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps);
+  const noStepsText: string =
+    props.noStepsText ||
+    (props.memberName
+      ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
+          name: props.memberName,
+        })
+      : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps));
 
   // One way to reach the person, in its step: what it is, how a push sounds, and its ×.
   const getStepRow: (index: number) => ReactElement = (
@@ -330,6 +408,7 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       step,
     );
     const isPush: boolean = step.methodColumn === "userPushId";
+    const isNotSentNow: boolean = isStepNotSentNow(step, channelsNotSentNow);
 
     return (
       <li
@@ -339,7 +418,15 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       >
         <MethodIcon step={step} />
         <div className="flex min-h-7 min-w-0 flex-1 flex-col justify-center gap-1.5">
-          <MethodLabel choice={choice} />
+          {isNotSentNow ? (
+            // Why it is not sent is said once, above the steps (#9446).
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <MethodLabel choice={choice} />
+              <NotSentNowMark />
+            </div>
+          ) : (
+            <MethodLabel choice={choice} />
+          )}
           {isPush ? (
             <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
               {choice?.hasPushLevel !== false ? (
@@ -379,11 +466,7 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                 PAGING_LADDER_COPY.removeMethod,
                 {
                   name: choice
-                    ? NotificationMethodUtil.getMethodLabel(
-                        translator,
-                        choice.channel,
-                        choice.identifier,
-                      )
+                    ? getMethodChoiceLabel(translator, choice)
                     : translator.translateText(UNKNOWN_METHOD_LABEL) ||
                       UNKNOWN_METHOD_LABEL,
                 },
@@ -559,14 +642,17 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
           onSetUpMore={onSetUpMore}
           dataTestId="paging-ladder-add-first-menu"
           trigger={
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              data-testid="paging-ladder-add-first"
-            >
-              <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
-              <span>{addLabel}</span>
-            </button>
+            /*
+             * The shared Button, the empty ladder's one next step: MoreMenu
+             * hands it the menu's id, aria and click.
+             */
+            <Button
+              title={addLabel}
+              isTitleTranslated={true}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="paging-ladder-add-first"
+            />
           }
         />
       ) : (
@@ -603,6 +689,7 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
         differences={props.differences}
         methods={props.methods}
         severityColors={props.severityColors}
+        channelsNotSentNow={channelsNotSentNow}
       />
       {props.isEditable ? (
         <div>
@@ -624,6 +711,67 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * Under steps filled from the project's default, until they are saved or
+   * changed: where they came from, and what the default left out because it
+   * is not verified yet (#9445).
+   */
+  const defaultLeftOut: string = defaultStart
+    ? describeDefaultStartLeftOut({
+        translator: translator,
+        leftOutChannels: defaultStart.leftOutChannels,
+        keptChannels: getChannelsOfPagingLadderSteps(defaultStart.keptSteps),
+        memberName: props.memberName,
+      })
+    : "";
+
+  const startedFromDefaultNote: ReactElement =
+    defaultStart && isDraftTheDefault && isDirty ? (
+      <div
+        className="flex max-w-3xl flex-col gap-1 text-sm text-gray-600"
+        data-testid="paging-ladder-started-from-default"
+      >
+        <p>
+          {translator.translateText(PAGING_LADDER_DEFAULT_START_COPY.started)}
+        </p>
+        {defaultLeftOut ? (
+          <p data-testid="paging-ladder-default-left-out">{defaultLeftOut}</p>
+        ) : (
+          <></>
+        )}
+      </div>
+    ) : (
+      <></>
+    );
+
+  const headerButtons: Array<ReactElement> = [];
+
+  if (isStartOffered) {
+    headerButtons.push(
+      <Button
+        key="start-from-default"
+        title={PAGING_LADDER_DEFAULT_START_COPY.start}
+        buttonStyle={ButtonStyleType.OUTLINE}
+        icon={IconProp.Template}
+        dataTestId="paging-ladder-start-from-default"
+        onClick={startFromDefault}
+      />,
+    );
+  }
+
+  if (props.onOpenGrid) {
+    headerButtons.push(
+      <Button
+        key="open-grid"
+        title={PAGING_LADDER_COPY.differentForSome}
+        buttonStyle={ButtonStyleType.NORMAL}
+        icon={IconProp.TableCells}
+        dataTestId="paging-ladder-open-grid"
+        onClick={openGrid}
+      />,
+    );
+  }
+
   const isSaveOffered: boolean = isDirty;
 
   // Under the steps, once there is something to save, or it has just been saved.
@@ -642,11 +790,12 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.Check} className="h-4 w-4 flex-shrink-0" />
               <span>
-                {translator.translateText(
-                  savedKeptDifferences
-                    ? PAGING_LADDER_COPY.savedKeepingDifferences
-                    : PAGING_LADDER_COPY.saved,
-                )}
+                {props.savedText ||
+                  translator.translateText(
+                    savedKeptDifferences
+                      ? PAGING_LADDER_COPY.savedKeepingDifferences
+                      : PAGING_LADDER_COPY.saved,
+                  )}
               </span>
             </p>
           ) : (
@@ -705,23 +854,29 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       <Card
         title={props.title}
         description={props.description}
-        buttons={
-          props.onOpenGrid
-            ? [
-                <Button
-                  key="open-grid"
-                  title={PAGING_LADDER_COPY.differentForSome}
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  icon={IconProp.TableCells}
-                  dataTestId="paging-ladder-open-grid"
-                  onClick={openGrid}
-                />,
-              ]
-            : undefined
-        }
+        buttons={headerButtons.length > 0 ? headerButtons : undefined}
       >
         <div className="flex flex-col gap-5">
+          <StepsNotSentNowNotice
+            channels={getChannelsNotSentNowInSteps(
+              [
+                ...draft,
+                // What a card that differs sends besides the steps is marked too.
+                ...props.differences.flatMap(
+                  (
+                    difference: PagingLadderDifference,
+                  ): Array<PagingLadderStep> => {
+                    return difference.extra;
+                  },
+                ),
+              ],
+              channelsNotSentNow,
+            )}
+          />
+
           {draft.length === 0 ? empty : steps}
+
+          {startedFromDefaultNote}
 
           {props.footer || <></>}
 

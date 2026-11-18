@@ -12,6 +12,7 @@ import {
   submitPublicForm,
   submitPublicFormOnCustomDomain,
 } from "../Utils/Form";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PublicFormImage } from "Common/Types/Form/FormBranding";
@@ -40,7 +41,6 @@ import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { showPublicFormFavicon } from "Common/UI/Components/PublicForm/PublicFormFavicon";
 import {
@@ -603,7 +603,7 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
   }
 
   if (!form) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={3} />;
   }
 
   if (result) {

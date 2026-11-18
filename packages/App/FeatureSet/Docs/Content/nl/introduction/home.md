@@ -15,7 +15,7 @@ Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. S
 
 1. Een zoekvak, met **Incident melden** en **Aanmaken** ernaast.
 2. Eén regel die zegt of er iets mis is, boven vijf getallen die tellen wat aandacht nodig heeft.
-3. **Welkom bij OneUptime 👋**, een checklist voor een nieuw project, tot die klaar is.
+3. **Welkom bij OneUptime 👋**, een checklist voor een nieuw project, tot die klaar is, en daarna **Meer om in te stellen** zolang er nog iets over is.
 4. **Vraagt aandacht**, elk probleem dat nu openstaat, bij naam.
 5. **Je project**, waaruit het project bestaat, en **Aankomend onderhoud** als er onderhoud gepland is.
 6. **Verken OneUptime**, elk product, één categorie tegelijk.
@@ -40,7 +40,7 @@ De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
 
 Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Start volgt ook wat het telt terwijl het verandert: wanneer een incident, waarschuwing, monitor, onderhoudsgebeurtenis of SLO wordt aangemaakt, gewijzigd of verwijderd, lopen de regel, de getallen, **Vraagt aandacht** en **Aankomend onderhoud** binnen enkele seconden bij, zonder te vernieuwen. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
 
-Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die de begeleide installatie **Weten wanneer mijn website of API plat ligt** opent. Alleen wie monitoren mag maken, ziet hem.
+Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die de begeleide installatie **Weten wanneer mijn website of API plat ligt** opent, tenzij de checklist eronder die stap al aanbiedt. Alleen wie monitoren mag maken, ziet hem.
 
 ### De vijf getallen
 
@@ -68,13 +68,17 @@ Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, e
 | **Maak je eerste monitor** | De eerste controle komt binnen. | De begeleide installatie **Weten wanneer mijn website of API plat ligt**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
 | **Verbind een server of cluster** | De eerste metrics komen binnen. | **Hosts** |
 | **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | De begeleide installatie **Logboeken, metrieken en traces versturen en daarna waarschuwingen ontvangen** |
-| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | De begeleide installatie **De juiste persoon oproepen als er iets kapotgaat** |
+| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel of een monitor voert een beleid uit dat iemand kan bereiken. | De begeleide installatie **De juiste persoon oproepen als er iets kapotgaat** |
 | **Publiceer een statuspagina** | Een statuspagina toont een monitor. | De begeleide installatie **Publiceer een statuspagina**, of de lijst **Statuspagina's** voor wie geen statuspagina's mag maken. |
 | **Nodig je team uit** | Iemand accepteert je uitnodiging. | **Gebruikers** |
 
-De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog geen e-mail kan versturen, zien de beheerders van de server eerst **Deze server kan nog geen e-mail versturen**; dat opent het beheerdashboard.
+De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog niet is ingericht, zien de beheerders in plaats daarvan de eigen kaart van de server boven de checklist, met **Instellen afronden**, dat het beheerdashboard opent.
 
 Elke stap zegt hoe lang hij ongeveer duurt, de checklist hoeveel tijd er ongeveer over is, en de volgende stap heeft een eigen knop **Starten**.
+
+Een stap waarvan het record bestaat maar nog niet werkt, zegt eronder waarom, in de woorden van **Inrichtingsstatus**: een statuspagina die geen monitor toont, een monitor die door niets wordt gecontroleerd, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd of dat niemand bereikt, een uitnodiging die niemand heeft geaccepteerd. De stap opent dan de pagina die het oplost, en als het de volgende stap is, noemt de knop de oplossing, zoals **Monitoren toevoegen**.
+
+Zodra **Stel een bereikbaarheidsbeleid in** is afgevinkt, en zolang alleen e-mail je kan oproepen, blijft **Opgeroepen worden via SMS of telefoontje** eronder staan: het opent de begeleide installatie **De juiste persoon oproepen als er iets kapotgaat**, om je telefoon of de mobiele app toe te voegen. Alleen wie bereikbaarheidsbeleid mag maken, ziet het.
 
 Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Ja"| hidden{"Door jou<br/>verborgen?"}
     hidden -->|"Ja"| line["Een regel om hem<br/>weer te tonen"]
     hidden -->|"Nee"| done{"Alle stappen<br/>klaar?"}
-    done -->|"Ja"| gone["Geen checklist"]
+    done -->|"Ja"| gone["Meer om in te stellen,<br/>zolang er iets over is"]
     done -->|"Nee"| shown["De checklist, met<br/>de resterende stappen"]
 ```
 
 De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet. **Hoe OneUptime werkt** blijft in elk project één klik verwijderd: open het via **Hulp** of met de knop naast **Verken OneUptime**.
+
+Is de checklist klaar, dan neemt **Meer om in te stellen** zijn plaats in onder de kop, als een kaart tussen de andere: de basisstappen die je doelen niet meebrachten, zoals een statuspagina en je team, elk tot hij werkt, met **Opgeroepen worden via SMS of telefoontje** voorop zolang alleen e-mail je kan oproepen. Met **Verbergen** verberg je hem voor jezelf, zonder dat er een regel achterblijft.
 
 **Hoe OneUptime werkt** opent op **Hoe het in elkaar grijpt**: de vier stappen die een probleem doorloopt, **Detecteren**, **Reageren**, **Communiceren** en **Verbeteren**, elk met de producten die die stap doen. Daarna volgen de categorieën van het menu **Producten**, elk met zijn producten en waarvoor elk dient: kies er een, of ga naar de volgende met de pijltjestoetsen of **Volgende**. Klik op een product om het te openen. Producten die je project verbergt, staan er niet in.
 
@@ -103,7 +109,7 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 ### Inrichtingsstatus
 
-Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, dat begint met één regel in de kleur van de ernstigste bevinding: hoeveel problemen zouden voorkomen dat mensen worden gewaarschuwd, hoeveel punten het oplossen waard zijn, of **Niets op te lossen**. Daaronder toont de pagina wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont, een aangepast domein waarvan het SSL-certificaat niet kon worden uitgegeven, een ingestiesleutel waarmee nooit gegevens zijn binnengekomen. Elke bevinding zegt in één zin wat er mis is, met de namen van je monitors, beleidsregels en mensen vetgedrukt, de monitors of beleidsregels die ze raakt na **Betreft**, en er direct onder de knop die de oplossing opent. Twee los je daar meteen op, nadat een venster precies heeft gezegd wat er verandert: **SMS inschakelen** (of telefoonoproepen, WhatsApp of Telegram), voor wie het mag aanzetten, en **Bereikbaarheidsregel aanmaken**, die het bereikbaarheidsbeleid dat je kiest oproept voor een monitor die niemand opriep. De bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt, en een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, of een aangepast domein dat zijn statuspagina niet opent, zegt het ook bovenaan de eigen pagina van het beleid of de statuspagina. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
+Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, dat begint met één regel in de kleur van de ernstigste bevinding: hoeveel problemen zouden voorkomen dat mensen worden gewaarschuwd, hoeveel punten het oplossen waard zijn, of **Niets op te lossen**. Daaronder toont de pagina wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont, een aangepast domein waarvan het SSL-certificaat niet kon worden uitgegeven, een ingestiesleutel waarmee nooit gegevens zijn binnengekomen. Elke bevinding zegt in één zin wat er mis is, met de namen van je monitors, beleidsregels en mensen vetgedrukt, de monitors of beleidsregels die ze raakt na **Betreft**, en er direct onder de knop die de oplossing opent. Twee los je daar meteen op, nadat een venster precies heeft gezegd wat er verandert: **SMS inschakelen** (of telefoonoproepen, WhatsApp of Telegram), voor wie het mag aanzetten, en **Bereikbaarheidsregel aanmaken**, die het bereikbaarheidsbeleid dat je kiest oproept voor een monitor die niemand opriep. De bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt, en een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, of een aangepast domein dat zijn statuspagina niet opent, zegt het ook bovenaan de eigen pagina van het beleid of de statuspagina. Elke eigenaar die de e-mail bij het aanmaken volgens de kaart nooit bereikt, is ook een bevinding die het oplossen waard is, met dezelfde pagina om het op te lossen. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
 
 ### Je project
 
@@ -113,7 +119,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ### Verken OneUptime
 
-**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt. De producten die uw project verbergt, ontbreken daar.
+**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt. De producten die uw project verbergt, staan onder het laatste tabblad, **Meer producten**, met een opmerking dat ze blijven werken.
 
 ## Uw weg vinden
 
@@ -158,8 +164,10 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Project verwijderen, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
 - **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen om aan te melden* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
-- **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
+- **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Statuspagina maken, Bereikbaarheidsbeleid aanmaken, Bereikbaarheidsschema maken, Dashboard aanmaken, Workflow maken en Gebruiker uitnodigen openen het formulier op hun lijst. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
+- **De mensen in uw project**, op naam of e-mail, onder Gebruikers: elk opent de pagina van die persoon. U vindt de mensen die de pagina Gebruikers u toont.
+- **De eigen pagina's van een record**: op een statuspagina opent *sso* de pagina Single Sign-On ervan. Elders voegt u de naam van het record of de soort toe: *status page sso*, of *acme subscribers* voor de abonnees van een statuspagina met de naam Acme. Alleen records die u mag zien worden aangeboden, en een hernoemde pagina wordt nog gevonden onder de oude naam, zoals *advanced settings*.
 - **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
 
 Zoeken leest wat u typt zoals u het bedoelt:

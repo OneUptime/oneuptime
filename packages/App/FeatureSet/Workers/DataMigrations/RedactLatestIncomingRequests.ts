@@ -13,9 +13,13 @@ import ObjectID from "Common/Types/ObjectID";
  * as people read it, cut as the monitor's logs are, by its Keep request
  * content switch (LatestIncomingRequest). Each monitor's request is split
  * so (MonitorService.rewriteLatestIncomingRequestForReaders): the request
- * as it came moves beside the copy, and the copy is cut. A request a server
- * from before the split writes later, while the upgrade runs, the heartbeat
- * job splits (CheckHeartbeat).
+ * as it came moves beside the copy, and the copy is cut. The split reads
+ * the copy as the request as it came while nothing is kept beside it
+ * (LatestIncomingRequest.getAsReceived): that fallback stays for as long as
+ * this migration is registered, and the two go together. The heartbeat job
+ * splits nothing since #8906, as no server that writes the copy alone runs
+ * beside a server of 16: an install whose migrations stopped before this
+ * one has its monitors split when they run again.
  *
  * Postgres only. A monitor is written only while it still holds what was
  * read, so a request that came in meanwhile - which wrote both copies
@@ -66,7 +70,7 @@ export default class RedactLatestIncomingRequests extends DataMigrationBase {
         } catch (err) {
           /*
            * One monitor that fails holds no other back: its next request,
-           * or the heartbeat job, splits it.
+           * or a change of its Keep request content switch, splits it.
            */
           failed++;
           logger.error(

@@ -1,3 +1,7 @@
+import {
+  getAllRepresentativeRecommendations,
+  getRepresentativeRecommendations,
+} from "./RepresentativeRecommendations";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
@@ -162,15 +166,13 @@ function buildTwoUnhealthyCriteriaStep(
 }
 
 const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
-  MonitorRecommendationCatalog.getAllRecommendations();
+  getAllRepresentativeRecommendations();
 
 // One representative recommendation per resource type, for the focused tests.
 const ONE_PER_RESOURCE_TYPE: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
     (definition: MonitorRecommendationResourceTypeDefinition) => {
-      return MonitorRecommendationCatalog.getAllPossibleRecommendations(
-        definition.resourceType,
-      )[0]!;
+      return getRepresentativeRecommendations(definition.resourceType)[0]!;
     },
   );
 
@@ -196,7 +198,7 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("has recommendations to test at all", () => {
       // Guards every for-loop in this file against a vacuous pass.
       expect(ALL_RECOMMENDATIONS.length).toBeGreaterThan(0);
-      expect(ONE_PER_RESOURCE_TYPE.length).toBe(18);
+      expect(ONE_PER_RESOURCE_TYPE.length).toBe(20);
     });
 
     it("ships every unhealthy criteria with createIncidents AND createAlerts true, and both arrays populated", () => {

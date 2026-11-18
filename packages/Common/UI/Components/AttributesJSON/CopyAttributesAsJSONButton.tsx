@@ -507,13 +507,13 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
                         />
                       )}
                     </span>
-                    <span className="block text-[11px] leading-4 text-gray-500">
+                    <span className="block text-xs leading-4 text-gray-500">
                       {translator.translateText(
                         ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[itemFormat],
                       )}
                     </span>
                     <code
-                      className="mt-1.5 block truncate rounded bg-gray-50 px-1.5 py-1 font-mono text-[10.5px] leading-4 text-gray-600 ring-1 ring-inset ring-gray-100"
+                      className="mt-1.5 block truncate rounded bg-gray-50 px-1.5 py-1 font-mono text-xs leading-4 text-gray-600 ring-1 ring-inset ring-gray-100"
                       title={previews[itemFormat]}
                     >
                       {previews[itemFormat]}
@@ -523,7 +523,7 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
               );
             },
           )}
-          <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-[10.5px] text-gray-500">
+          <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-xs text-gray-500">
             <span className="whitespace-nowrap tabular-nums">
               {translator.translatePlural(ATTRIBUTE_COUNT, count)}
             </span>

@@ -17,9 +17,9 @@ import {
  * `<button type="button">` or a link. See Tests/Helpers/ClickOnlyControlsScan
  * for what is read and what counts as reachable.
  *
- * The shared components (Common/UI/Components) hold none but those listed
- * below with their reason. The apps hold no more than STILL_TO_FIX allows a
- * file, a count that may only fall.
+ * Nothing in the shared components or the apps holds one but those listed
+ * below with their reason. The apps' last 36 were made links and buttons, or
+ * listed here with why a keyboard already does the same (#9222).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -38,9 +38,9 @@ function relative(file: string): string {
 }
 
 /*
- * The clicks kept on purpose in the shared components, by file, each with
- * its reason: a keyboard does the same another way. An entry whose element
- * is gone fails the guard, so the list cannot outlive what it excuses.
+ * The clicks kept on purpose, by file, each with its reason: a keyboard does
+ * the same another way. An entry whose element is gone fails the guard, so
+ * the list cannot outlive what it excuses.
  */
 const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
   {
@@ -130,6 +130,58 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
       reason:
         "A log row: the logs viewer moves between rows with the arrow keys and j/k and opens the focused one with Enter (LogsViewer's keyboard shortcuts).",
     },
+    "packages/App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary.tsx": {
+      elements: ["div", "div"],
+      reason:
+        "The AI-off card's sparkle and its title line open the card's fold, a bigger target for the chevron button beside the title, which a keyboard reaches and presses (aria-expanded).",
+    },
+    "packages/App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel.tsx": {
+      elements: ["div"],
+      reason:
+        "The backdrop: a click beside the Ask AI sheet closes it, as Escape and its Close button do from the keyboard.",
+    },
+    "packages/App/FeatureSet/Dashboard/src/Components/Profiles/FunctionFocusPanel.tsx":
+      {
+        elements: ["div"],
+        reason:
+          "The backdrop: a click beside the callers and callees panel closes it, as Escape and its Close button do from the keyboard.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx":
+      {
+        elements: ["div"],
+        reason:
+          "The backdrop behind the span panel on a narrow screen: a click beside it closes the panel, as Escape and the panel's Close button do from the keyboard.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx":
+      {
+        elements: ["div"],
+        reason:
+          "A click on the empty board unselects the widget; from the keyboard its settings dialog closes with Escape or its Close button, which unselects it the same way.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/TransceiverHealthCard.tsx":
+      {
+        elements: ["tr", "li"],
+        reason:
+          "A row (and a phone's line) opens its interface on a click anywhere; its interface name is a real button that does the same, which Tab reaches and Enter presses.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx":
+      {
+        elements: ["tr", "tr"],
+        reason:
+          "A row opens its resource on a click anywhere; its name is a real button that does the same, which Tab reaches and Enter presses.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceOperations.tsx":
+      {
+        elements: ["tr"],
+        reason:
+          "A row shows its spans on a click anywhere; its operation name is a real button that does the same, which Tab reaches and Enter presses.",
+      },
+    "packages/App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsTimeline.tsx":
+      {
+        elements: ["span", "span"],
+        reason:
+          "The time and the device name sit above the row's own button (stretched over the row) to show their hover text; a click on them opens the event, as that button does from the keyboard.",
+      },
   };
 
 /*
@@ -138,52 +190,10 @@ const DELIBERATE: Record<string, { elements: Array<string>; reason: string }> =
  * taken off.
  */
 const KNOWN_GAPS: Record<string, { elements: Array<string>; issue: number }> = {
-  "packages/Common/UI/Components/Table/TableRow.tsx": {
-    elements: ["div", "td"],
-    issue: 9223,
-  },
-  "packages/Common/UI/Components/Workflow/Component.tsx": {
-    elements: ["div", "div"],
-    issue: 9223,
-  },
   "packages/Common/UI/Components/Icon/Icon.tsx": {
     elements: ["svg"],
     issue: 6922,
   },
-};
-
-/*
- * The apps' click-only elements, by file: how many each may still hold.
- * Lower a count (or take the file off) as you fix them (#9222); a new one,
- * or a new file, fails the guard.
- */
-const STILL_TO_FIX: Record<string, number> = {
-  "packages/App/FeatureSet/Accounts/src/Pages/Login.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDevicesTable.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/TransceiverHealthCard.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsTimeline.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationDiagram.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsPeopleCard.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/DiffFlamegraph.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/FlamegraphView.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/FunctionFocusPanel.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx": 2,
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/FlameGraph.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceOperations.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Pages/Code/Repositories.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index.tsx": 3,
-  "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index.tsx": 3,
-  "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary.tsx": 1,
 };
 
 let cachedScan: Array<ClickOnlyElementInSource> | null = null;
@@ -337,12 +347,8 @@ describe("clicks across the project", () => {
     }
   });
 
-  test("no shared component is pressed with a mouse alone", () => {
-    const byFile: Map<string, Array<string>> = elementsByFile(
-      scanProject().filter((element: ClickOnlyElementInSource): boolean => {
-        return element.file.startsWith(SHARED_COMPONENTS);
-      }),
-    );
+  test("nothing in the shared components or the apps is pressed with a mouse alone", () => {
+    const byFile: Map<string, Array<string>> = elementsByFile(scanProject());
 
     const offenders: Array<string> = [];
 
@@ -387,38 +393,9 @@ describe("clicks across the project", () => {
     }
   });
 
-  test("the apps hold no more mouse-only clicks than they did", () => {
-    const counts: Map<string, number> = new Map<string, number>();
-
-    for (const element of scanProject()) {
-      if (element.file.startsWith(SHARED_COMPONENTS)) {
-        continue;
-      }
-
-      counts.set(element.file, (counts.get(element.file) || 0) + 1);
-    }
-
-    const over: Array<string> = [];
-
-    for (const [file, count] of counts) {
-      if (count > (STILL_TO_FIX[file] || 0)) {
-        over.push(
-          ...scanProject()
-            .filter((element: ClickOnlyElementInSource): boolean => {
-              return element.file === file;
-            })
-            .map((element: ClickOnlyElementInSource): string => {
-              return `${element.file}:${element.line} ${clickOnlyKey(element)}`;
-            }),
-        );
-      }
-    }
-
-    expect(over).toEqual([]);
-
-    // A count that fell is lowered here, so it cannot climb back.
-    for (const [file, allowed] of Object.entries(STILL_TO_FIX)) {
-      expect(`${file}: ${counts.get(file) || 0}`).toBe(`${file}: ${allowed}`);
+  test("a known gap is a shared component's, with its follow-up", () => {
+    for (const file of Object.keys(KNOWN_GAPS)) {
+      expect(file.startsWith(SHARED_COMPONENTS)).toBe(true);
     }
   });
 
@@ -440,6 +417,26 @@ describe("clicks across the project", () => {
       "packages/Common/UI/Components/Charts/ChartLibrary/LineChart/LineChart.tsx",
       "packages/Common/UI/Components/Image/Image.tsx",
       "packages/Common/UI/Components/ProductLogo/ProductLogo.tsx",
+      // The follow-ups (#9222, #9223).
+      "packages/Common/UI/Components/Table/TableRow.tsx",
+      "packages/Common/UI/Components/Workflow/Component.tsx",
+      "packages/App/FeatureSet/Accounts/src/Pages/Login.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDevicesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationDiagram.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsPeopleCard.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Profiles/DiffFlamegraph.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Profiles/FlamegraphView.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Traces/FlameGraph.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Code/Repositories.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Index.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary.tsx",
     ]) {
       expect(DELIBERATE[file]).toBeUndefined();
       expect(KNOWN_GAPS[file]).toBeUndefined();

@@ -423,7 +423,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
       return (
         <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
-          <span className="text-xs text-gray-400 font-medium mr-1">
+          <span className="text-xs text-gray-500 font-medium mr-1">
             {translator.translateText("Filtered by:")}
           </span>
           {Object.entries(attributes).map(
@@ -477,7 +477,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           {activeAttributeCount > 1 && (
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              className="rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={handleClearAllAttributes}
             >
               {translator.translateText("Clear all")}
@@ -614,7 +614,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 aria-expanded={showDisplaySettings}
-                className="flex w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600"
+                className="flex w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:text-gray-600"
                 onClick={() => {
                   setShowDisplaySettings(!showDisplaySettings);
                 }}

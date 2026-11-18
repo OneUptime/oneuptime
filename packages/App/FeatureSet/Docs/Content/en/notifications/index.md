@@ -61,7 +61,7 @@ When you join a project with a verified sign-in email, OneUptime sets you up so 
 2. For every severity, on each of the four tabs of **How to Reach Me**, a rule emails you as soon as you are paged.
 3. A set of updates about what you own, and about your shifts, is switched on by email. See [Notification Settings](/docs/notifications/notification-settings#what-is-on-for-a-new-member).
 
-Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with).
+Every method you verify later gets the same rules: a rule for every severity, sent as soon as you are paged. So verifying a phone number for SMS means every page also texts you. To keep texts for critical pages only, delete the other severities' SMS rules. See [How to Reach Me](/docs/notifications/on-call-rules#the-rules-you-start-with). When your project has a default ladder, your email and every method you verify follow it instead: see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder).
 
 ## The setup checklist
 
@@ -84,6 +84,10 @@ Every method you verify later gets the same rules: a rule for every severity, se
 | **A few things still need setting up** | A severity has no rule, or a step is not done yet |
 | **Nothing can reach you yet** | None of your methods can be used: none is verified, or each verified one is on a channel this project has turned off |
 | **You are set up, and not on call right now** | Everything is ready for the day a policy names you |
+
+While a step is left, **User Settings** opens on this checklist, and on **Notification Methods** once nothing essential is left. A link to any other page of **User Settings** still opens that page.
+
+When you are on an on-call policy and your setup is not finished, the bell at the top of every page says **Finish setting up your notifications**, and why: nothing can reach you, a severity has no rule, or your project asks for a phone method you have not verified. It opens this checklist, or **How to Reach Me** for the phone. **Hide for a week** puts it away in this browser, and it goes by itself once your setup is finished.
 
 ## When no rule matches
 

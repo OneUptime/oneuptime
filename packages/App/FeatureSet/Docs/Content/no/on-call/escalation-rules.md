@@ -32,10 +32,10 @@ flowchart TB
 Når du oppretter en vaktpolicy på siden **Vaktpolicyer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, blir den første eskaleringsregelen i policyen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles.
 
 :::steps
-1. Gå til **Vakt** > **Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt** > **Vaktpolicyer**, og klikk på **Opprett vaktpolicy**.
 2. Skriv inn et **Navn**.
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal varsles først.
-4. Klikk på **Opprett Vaktpolicy**. Den nye policyen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
+4. Klikk på **Opprett vaktpolicy**. Den nye policyen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
 :::
 
 **Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter policyen uten eskaleringsregler: den varsler ingen før du legger til en, og oversikten sier det. Beskrivelsen og etikettene ligger under **Flere felt**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
@@ -45,7 +45,7 @@ Når du oppretter en vaktpolicy på siden **Vaktpolicyer**, spør skjemaet om **
 :::steps
 ### Åpne eskaleringsreglene i policyen
 
-Åpne vaktpolicyen, velg **Eskaleringsregler** i sidemenyen, og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side.
+Åpne vaktpolicyen, velg **Eskaleringsregler** i sidemenyen, og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side. Den sier hvilket nivå i policyen regelen legger til.
 
 ### Velg hvem som skal varsles
 
@@ -61,6 +61,10 @@ Klikk på **Legg til mottaker** under **Varsle**, søk, og velg så mange vaktpl
 ### Angi hvor lenge det ventes
 
 **Eskaler etter (i minutter)** er hvor lenge det ventes på en bekreftelse før neste nivå varsles. Den starter på **30 minutter**; endre den til det som passer for nivået.
+
+![Dialogen «Legg til eskaleringsregel» på en policy med ett nivå, med «Tilkalles etter (i minutter)» uthevet](screen:escalation-rule-paged-after)
+
+En regel som legges til etter den første, spør i stedet **Tilkalles etter (i minutter)**: hvor lenge nivået før den venter på en bekreftelse før dette nivået tilkalles. Den starter på ventetiden til det nivået og lagres som den; det nye nivået venter selv 30 minutter til du legger til et etter det. Den som kan legge til regler, men ikke endre dem, får **Eskaler etter (i minutter)**, og dialogen sier når det nye nivået tilkalles.
 
 ### Gi regelen et navn, hvis du vil
 
@@ -190,7 +194,7 @@ Et nivå kan varsle neste person i en vaktplans rotasjon: personen etter den som
 
 :::steps
 1. Sørg for at det første nivået i policyen, **Level 1**, varsler vaktplanen.
-2. Klikk på **Legg til eskaleringsregel**, deretter på **Legg til mottaker**, og velg den samme vaktplanen under **Neste i rotasjonen**. Angi **Eskaler etter (i minutter)**, og klikk på **Opprett regel**.
+2. Klikk på **Legg til eskaleringsregel**, deretter på **Legg til mottaker**, og velg den samme vaktplanen under **Neste i rotasjonen**. Angi **Tilkalles etter (i minutter)**, og klikk på **Opprett regel**.
 3. Legg til ett nivå til for teamet eller lederen som skal få beskjed etterpå.
 :::
 

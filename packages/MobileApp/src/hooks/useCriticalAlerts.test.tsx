@@ -482,7 +482,7 @@ describe("useCriticalAlerts after updating to a build with Apple's entitlement",
     );
   });
 
-  test("allowing it in iOS Settings afterwards clears the instruction, and the switch then turns on", async () => {
+  test("allowing it in iOS Settings afterwards clears the instruction, and the switch turns on as asked", async () => {
     const { getSpy } = simulateIos(
       iosPermissions("granted", null),
       iosPermissions("granted", false),
@@ -516,15 +516,14 @@ describe("useCriticalAlerts after updating to a build with Apple's entitlement",
       expect(result.current.isPermissionGranted).toBe(true);
     });
 
-    await act(async () => {
-      await result.current.setEnabled(true);
+    // Asked for before, allowed now: on without a second press.
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
     });
-
     expect(serverSpy()).toHaveBeenCalledWith({
       deviceToken: DEVICE_TOKEN,
       isEnabled: true,
     });
-    expect(result.current.isEnabled).toBe(true);
   });
 });
 
@@ -957,19 +956,55 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     });
     expect(result.current.error).toBe("");
 
-    // Turning it on now reaches the server, and stays on.
-    await act(async () => {
-      await result.current.setEnabled(true);
+    // It turns on as they asked - no second press - reaches the server, and stays on.
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
     });
-
     expect(serverSpy()).toHaveBeenCalledWith({
       deviceToken: DEVICE_TOKEN,
       isEnabled: true,
     });
-    expect(result.current.isEnabled).toBe(true);
     expect(android.stored(NotificationChannelId.CRITICAL)?.bypassDnd).toBe(
       true,
     );
+    expect(
+      await AsyncStorage.getItem("oneuptime_critical_alerts_enabled"),
+    ).toBe("true");
+  });
+
+  test("turned off again before granting it: coming back with access granted leaves it off", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    // Changed their mind: off is their choice now.
+    await act(async () => {
+      await result.current.setEnabled(false);
+    });
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isPermissionGranted).toBe(true);
+    });
+    expect(result.current.isEnabled).toBe(false);
+    expect(toldServer()).not.toContain(true);
+  });
+
+  test("never asked for: granting Do Not Disturb access for something else turns nothing on", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isPermissionGranted).toBe(true);
+    });
+    expect(result.current.isEnabled).toBe(false);
+    expect(toldServer()).not.toContain(true);
   });
 
   test("a responder who had already turned it on sees it come back on by itself, and so does the server", async () => {

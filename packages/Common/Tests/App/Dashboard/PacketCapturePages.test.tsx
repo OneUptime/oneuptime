@@ -93,7 +93,7 @@ describe("a probe's page", () => {
 
     render(<ProbePacketCaptures probeId={new ObjectID(PROBE_ID)} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
 
     await flush();
 

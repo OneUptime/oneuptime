@@ -235,7 +235,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
       <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         {header}
         <div
-          className={`flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400${
+          className={`flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-500${
             emptyStateReset ? " select-none" : ""
           }`}
           onDoubleClick={emptyStateReset}

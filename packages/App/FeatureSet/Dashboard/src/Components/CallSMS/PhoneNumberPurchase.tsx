@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -556,61 +557,65 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
       return (
         <div className="space-y-4">
           {/* Use Existing Option */}
-          <div
-            className="border-2 border-gray-200 rounded-lg p-5 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+          <button
+            type="button"
+            data-testid="phone-number-configure-existing"
+            className="block w-full border-2 border-gray-200 rounded-lg p-5 text-left cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             onClick={() => {
               setConfigureStep("existing");
               fetchOwnedNumbers();
             }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="flex items-center space-x-4">
+              <span className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <Icon icon={IconProp.List} className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">
+              </span>
+              <span className="block flex-1">
+                <span className="block text-lg font-semibold text-gray-900">
                   {translator.translateText("Use Existing Phone Number")}
-                </h4>
-                <p className="text-sm text-gray-500 mt-1">
+                </span>
+                <span className="block text-sm text-gray-500 mt-1">
                   {translator.translateText(
                     "Select a phone number you already own in your Twilio account",
                   )}
-                </p>
-              </div>
+                </span>
+              </span>
               <Icon
                 icon={IconProp.ChevronRight}
                 className="h-5 w-5 text-gray-400"
               />
-            </div>
-          </div>
+            </span>
+          </button>
 
           {/* Buy New Option */}
-          <div
-            className="border-2 border-gray-200 rounded-lg p-5 cursor-pointer hover:border-green-500 hover:bg-green-50 transition-all"
+          <button
+            type="button"
+            data-testid="phone-number-configure-buy"
+            className="block w-full border-2 border-gray-200 rounded-lg p-5 text-left cursor-pointer hover:border-green-500 hover:bg-green-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             onClick={() => {
               setConfigureStep("buy");
             }}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="flex items-center space-x-4">
+              <span className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <Icon icon={IconProp.Add} className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-900">
+              </span>
+              <span className="block flex-1">
+                <span className="block text-lg font-semibold text-gray-900">
                   {translator.translateText("Reserve New Phone Number")}
-                </h4>
-                <p className="text-sm text-gray-500 mt-1">
+                </span>
+                <span className="block text-sm text-gray-500 mt-1">
                   {translator.translateText(
                     "Search and reserve a new phone number from Twilio",
                   )}
-                </p>
-              </div>
+                </span>
+              </span>
               <Icon
                 icon={IconProp.ChevronRight}
                 className="h-5 w-5 text-gray-400"
               />
-            </div>
-          </div>
+            </span>
+          </button>
         </div>
       );
     }
@@ -632,7 +637,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
           {isLoadingOwned ? (
             <div className="py-8">
-              <ComponentLoader />
+              <TableSkeleton rows={3} />
             </div>
           ) : ownedNumbers.length === 0 ? (
             <div className="py-8 text-center">

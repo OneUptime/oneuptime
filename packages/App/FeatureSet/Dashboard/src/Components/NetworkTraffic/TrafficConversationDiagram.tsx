@@ -22,6 +22,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { onPressKeys } from "Common/UI/Utils/PressKeys";
 
 /*
  * Who talks to whom, drawn: the window's busiest conversations as bands from
@@ -62,6 +63,13 @@ export function shortenDiagramLabel(text: string): string {
     ? `${characters.slice(0, MAX_LABEL_CHARACTERS - 1).join("")}…`
     : text;
 }
+
+/*
+ * A band or an address the keyboard is on: an outline, as SVG shapes draw no
+ * ring of their own.
+ */
+export const TRAFFIC_DIAGRAM_FOCUS_CLASS_NAME: string =
+  "focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500";
 
 const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,16 +122,30 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
         <span>{translator.translateText("Sent by")}</span>
         <span>{translator.translateText("Received by")}</span>
       </div>
+      {/*
+       * Not role="img": a picture hides what is inside it, and each band and
+       * each address is a control Tab reaches and Enter presses (#9222).
+       */}
       <svg
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         className="h-auto w-full"
-        role="img"
       >
         <g className="text-indigo-500">
           {layout.bands.map((band: DiagramBand): ReactElement => {
             const key: string = bandKey(band);
             const isLit: boolean = hovered === key;
             const isDimmed: boolean = hovered !== null && !isLit;
+            const bandLabel: string = translator.translateTemplate(
+              "{{source}} to {{destination}}: {{bytes}}",
+              {
+                source: getTrafficAddressText(labelOf(band.sourceIp)),
+                destination: getTrafficAddressText(labelOf(band.destinationIp)),
+                bytes: formatTrafficBytes(band.octets),
+              },
+            );
+            const selectBand: () => void = (): void => {
+              props.onSelectConversation(band.sourceIp, band.destinationIp);
+            };
 
             return (
               <path
@@ -131,30 +153,27 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
                 d={band.path}
                 fill="currentColor"
                 fillOpacity={isLit ? 0.6 : isDimmed ? 0.12 : 0.32}
-                className="cursor-pointer transition-[fill-opacity] duration-150"
+                role="button"
+                tabIndex={0}
+                aria-label={bandLabel}
+                className={`cursor-pointer transition-[fill-opacity] duration-150 ${TRAFFIC_DIAGRAM_FOCUS_CLASS_NAME}`}
                 onMouseEnter={() => {
                   setHovered(key);
                 }}
                 onMouseLeave={() => {
                   setHovered(null);
                 }}
-                onClick={() => {
-                  props.onSelectConversation(band.sourceIp, band.destinationIp);
+                onFocus={() => {
+                  setHovered(key);
                 }}
+                onBlur={() => {
+                  setHovered(null);
+                }}
+                onClick={selectBand}
+                onKeyDown={onPressKeys<SVGPathElement>(selectBand)}
                 data-testid="traffic-conversation-band"
               >
-                <title>
-                  {translator.translateTemplate(
-                    "{{source}} to {{destination}}: {{bytes}}",
-                    {
-                      source: getTrafficAddressText(labelOf(band.sourceIp)),
-                      destination: getTrafficAddressText(
-                        labelOf(band.destinationIp),
-                      ),
-                      bytes: formatTrafficBytes(band.octets),
-                    },
-                  )}
-                </title>
+                <title>{bandLabel}</title>
               </path>
             );
           })}
@@ -165,31 +184,35 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
             ? LABEL_GUTTER - 8
             : layout.width - LABEL_GUTTER + 8;
           const label: TrafficAddressLabel = labelOf(node.address);
+          const nodeLabel: string = translator.translateTemplate(
+            isSource
+              ? "{{address}} sent {{bytes}}"
+              : "{{address}} received {{bytes}}",
+            {
+              address: getTrafficAddressText(label),
+              bytes: formatTrafficBytes(node.octets),
+            },
+          );
+          const selectNode: () => void = (): void => {
+            if (isSource) {
+              props.onSelectSource(node.address);
+            } else {
+              props.onSelectDestination(node.address);
+            }
+          };
 
           return (
             <g
               key={`${node.side}-${node.address}`}
-              className="cursor-pointer"
-              onClick={() => {
-                if (isSource) {
-                  props.onSelectSource(node.address);
-                } else {
-                  props.onSelectDestination(node.address);
-                }
-              }}
+              role="button"
+              tabIndex={0}
+              aria-label={nodeLabel}
+              className={`cursor-pointer ${TRAFFIC_DIAGRAM_FOCUS_CLASS_NAME}`}
+              onClick={selectNode}
+              onKeyDown={onPressKeys<SVGGElement>(selectNode)}
               data-testid={`traffic-conversation-${node.side}`}
             >
-              <title>
-                {translator.translateTemplate(
-                  isSource
-                    ? "{{address}} sent {{bytes}}"
-                    : "{{address}} received {{bytes}}",
-                  {
-                    address: getTrafficAddressText(label),
-                    bytes: formatTrafficBytes(node.octets),
-                  },
-                )}
-              </title>
+              <title>{nodeLabel}</title>
               <rect
                 x={node.x}
                 y={node.y}

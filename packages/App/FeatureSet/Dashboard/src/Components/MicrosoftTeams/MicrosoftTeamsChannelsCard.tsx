@@ -5,11 +5,12 @@ import React, {
   useRef,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Card from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
@@ -242,7 +243,7 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
       ]}
     >
       <div className="mt-2">
-        {isLoadingTeams && <ComponentLoader />}
+        {isLoadingTeams && <CardListSkeleton count={3} lines={1} />}
 
         {!isLoadingTeams && error && <ErrorMessage message={error} />}
 
@@ -290,7 +291,9 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
               />
             </div>
 
-            {isLoadingChannels && <ComponentLoader />}
+            {isLoadingChannels && (
+              <TableSkeleton rows={3} columns={2} hasHeader={false} />
+            )}
 
             {!isLoadingChannels && channels.length === 0 && selectedTeamId && (
               <div className="rounded-lg border border-dashed border-gray-300 px-6 py-8 text-center text-sm text-gray-500">

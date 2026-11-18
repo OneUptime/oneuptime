@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -26,7 +27,6 @@ import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusP
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Page from "Common/UI/Components/Page/Page";
 import {
@@ -218,7 +218,7 @@ const AnnouncementCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isPageLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <DetailListSkeleton fields={4} columns={1} />}
           {error && <ErrorMessage message={error} />}
           {!isPageLoading && !error && templateError && (
             <div className="mb-5">

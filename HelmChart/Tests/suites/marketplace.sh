@@ -21,8 +21,13 @@
 #                  every image is a global.azure.images entry; the app gets
 #                  the extension identity, plan and resource Azure fills in;
 #   google-cloud   the schema maps every image and the reporting secret; the
-#                  chart renders an Application and no service account; the
-#                  reporting secret reaches the app; the tester renders.
+#                  chart takes every value the deployer passes (the app's name
+#                  and namespace too) and renders an Application with the
+#                  listing's deploy-info and no service account; the
+#                  reporting secret reaches the app; the tester renders laid
+#                  over the chart, as a verification run lays it, in the app's
+#                  image, and asks for OneUptime by the deployment's own host;
+#                  PostgreSQL is built without gosu.
 #
 # The Kubernetes agent's Amazon EKS add-on (aws-eks-addon) is checked the way
 # AWS checks an add-on: AWS's own helm lint and helm template, for every
@@ -321,14 +326,18 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
         tail -20 "${WORK_DIR}/google-lint.log" | sed 's/^/        /'
     fi
 
-    # As the deployer runs it: the reporting secret and the domain from the schema.
+    # As the deployer runs it: every property of the schema is a value - the app's name and
+    # namespace, the reporting secret and the domain - which the chart's schema must take.
     render "$GOOGLE_CHART" "${WORK_DIR}/google-cloud.yaml" \
+        --set name=oneuptime --set namespace=oneuptime \
         --set enterpriseMarketplace.googleCloud.reportingSecret=oneuptime-reporting-secret \
         --set host=oneuptime.example.com
     check_common google-cloud "$GOOGLE_CHART" "${WORK_DIR}/google-cloud.yaml" "${GOOGLE_REGISTRY}"
 
     GOOGLE_RENDER="$(cat "${WORK_DIR}/google-cloud.yaml")"
     assert_present "google-cloud: renders the Application resource" "$GOOGLE_RENDER" "kind: Application"
+    # The deployer refuses an Application without the listing's partner and product IDs.
+    assert_present "google-cloud: the Application carries the listing's deploy-info" "$GOOGLE_RENDER" "marketplace.cloud.google.com/deploy-info"
     assert_absent "google-cloud: creates no service account" "$GOOGLE_RENDER" "kind: ServiceAccount"
     assert_absent "google-cloud: creates no RBAC" "$GOOGLE_RENDER" "kind: Role"
     assert_present "google-cloud: the app reads the reporting key from the reporting secret" "$GOOGLE_RENDER" "key: reporting-key"
@@ -350,11 +359,30 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
         --set image.overrides.app=marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa
     assert_present "google-cloud: runs the image the deployer passes" "$(cat "${WORK_DIR}/google-cloud-deployed.yaml")" "marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa"
 
-    render "${GOOGLE_OUT}/apptest/deployer/oneuptime" "${WORK_DIR}/google-cloud-tester.yaml" \
-        --set testerImage="${GOOGLE_REGISTRY}:${VERSION}"
+    # A verification run (mpdev verify, Google's review) lays the tester's files over the
+    # chart's and renders them together, with what the deployer passes.
+    GOOGLE_TESTED="${WORK_DIR}/google-cloud-tested"
+    rm -rf "$GOOGLE_TESTED"
+    cp -R "$GOOGLE_CHART" "$GOOGLE_TESTED"
+    cp -R "${GOOGLE_OUT}/apptest/deployer/oneuptime/." "$GOOGLE_TESTED/"
+    assert_eq "google-cloud: the tester leaves the chart's Chart.yaml as it is" "$(cat "${GOOGLE_CHART}/Chart.yaml")" "$(cat "${GOOGLE_TESTED}/Chart.yaml")"
+    render "$GOOGLE_TESTED" "${WORK_DIR}/google-cloud-tester.yaml" \
+        --set name=oneuptime --set namespace=oneuptime \
+        --set enterpriseMarketplace.googleCloud.reportingSecret=oneuptime-reporting-secret \
+        --set image.overrides.app=marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa \
+        --set host=oneuptime.example.com
     TESTER="$(cat "${WORK_DIR}/google-cloud-tester.yaml")"
     assert_present "google-cloud: the tester is marked for verification" "$TESTER" "marketplace.cloud.google.com/verification: test"
-    assert_present "google-cloud: the tester checks OneUptime through nginx" "$TESTER" "http://oneuptime-nginx.oneuptime.svc"
+    assert_present "google-cloud: the tester checks OneUptime through nginx" "$TESTER" 'value: "oneuptime-nginx.oneuptime.svc"'
+    # By the Service's name, OneUptime takes the request for a status page's custom domain,
+    # and its dashboard is a 404: the tester asks by the deployment's own host.
+    assert_present "google-cloud: the tester asks for OneUptime by its own host" "$TESTER" 'value: "oneuptime.example.com"'
+    assert_present "google-cloud: the tester sends that host as the Host header" "$TESTER" "headers: { host }"
+    # Google's copy of the app's image, which its test cluster pulls; nothing from our registry.
+    assert_present "google-cloud: the tester runs in the app image the deployer passes" "$TESTER" 'image: "marketplace.gcr.io/oneuptime/oneuptime-enterprise@sha256:aaaa"'
+
+    # Google's vulnerability scan refuses gosu, which the official PostgreSQL image carries.
+    assert_present "google-cloud: PostgreSQL is built without gosu" "$(cat "${GOOGLE_OUT}/postgres/Dockerfile")" "apk add --no-cache su-exec"
 
     DOCKERFILE="$(cat "${GOOGLE_OUT}/Dockerfile")"
     assert_present "google-cloud: the deployer builds on Google's helm deployer" "$DOCKERFILE" "gcr.io/cloud-marketplace-tools/k8s/deployer_helm"
@@ -535,9 +563,13 @@ for marketplace in aws azure google-cloud aws-eks-addon; do
     fi
 
     PLANNED="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["images"]))' "$PLAN")"
+    # An image the plan gives a build context (PostgreSQL, on Google Cloud) is built, not copied.
+    PLANNED_BUILDS="$(python3 -c 'import json,sys; print(sum(1 for image in json.load(open(sys.argv[1]))["images"] if image.get("build")))' "$PLAN")"
     MIRROR="$(bash "${MARKETPLACE_DIR}/mirror-images.sh" "$PLAN" --dry-run 2>&1 || true)"
     COPIES="$(grep -cE '^\+ crane (copy|index filter) ' <<<"$MIRROR" || true)"
-    assert_eq "${marketplace}: mirror-images.sh copies every image" "$PLANNED" "$COPIES"
+    BUILDS="$(grep -cE '^\+ docker buildx build ' <<<"$MIRROR" || true)"
+    assert_eq "${marketplace}: mirror-images.sh copies every image it does not build" "$((PLANNED - PLANNED_BUILDS))" "$COPIES"
+    assert_eq "${marketplace}: mirror-images.sh builds every image the plan gives a build context" "$PLANNED_BUILDS" "$BUILDS"
 
     case "$marketplace" in
         aws | aws-eks-addon)

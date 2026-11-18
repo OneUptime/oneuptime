@@ -40,6 +40,7 @@ import { isOpenStackProjectNoticeArmed } from "Common/Types/OpenStack/OpenStackP
 import API from "Common/Utils/API";
 import EncryptSnmpCredentials from "../../../FeatureSet/Workers/DataMigrations/EncryptSnmpCredentials";
 import EncryptWebhookAddresses from "../../../FeatureSet/Workers/DataMigrations/EncryptWebhookAddresses";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import {
   afterEach,
   beforeEach,
@@ -378,8 +379,12 @@ function answerMigrationSql(
   };
 }
 
-// Runs the real data migrations over the tables, their SQL answered as Postgres's.
-async function migrate(): Promise<void> {
+/*
+ * Runs `step` over the tables, their SQL answered as Postgres's: the real
+ * data migrations at the upgrade, or the CredentialsAtRest:EncryptInPlace
+ * job's real pass a day later.
+ */
+async function withMigrationSql(step: () => Promise<void>): Promise<void> {
   const attached: Array<[InMemoryTable, string]> = [
     [tables.subscribers, "StatusPageSubscriber"],
     [tables.webhooks, "UserWebhook"],
@@ -398,8 +403,7 @@ async function migrate(): Promise<void> {
   }
 
   try {
-    await new EncryptWebhookAddresses().migrate();
-    await new EncryptSnmpCredentials().migrate();
+    await step();
   } finally {
     for (const [table] of attached) {
       const repository: Record<string, unknown> =
@@ -412,15 +416,61 @@ async function migrate(): Promise<void> {
 }
 
 /*
- * What `send` sent with the rows as written, and what it sends again with
- * the same rows once the migrations have encrypted them.
+ * The upgrade (#9266): the data migrations change nothing - every value
+ * stays as written, which a server of the release before reads as it is,
+ * while the upgrade rolls out.
+ */
+async function upgrade(): Promise<void> {
+  const asWritten: string = JSON.stringify(everyRow());
+
+  await withMigrationSql(async (): Promise<void> => {
+    await new EncryptWebhookAddresses().migrate();
+    await new EncryptSnmpCredentials().migrate();
+  });
+
+  expect(JSON.stringify(everyRow())).toBe(asWritten);
+}
+
+// A day after the upgrade: the job's pass encrypts every value as written.
+async function encryptADayLater(): Promise<void> {
+  await withMigrationSql(async (): Promise<void> => {
+    await encryptInPlaceADayLater(new EncryptWebhookAddresses().name);
+    await encryptInPlaceADayLater(new EncryptSnmpCredentials().name);
+  });
+}
+
+// The upgrade, then the day after it.
+async function migrate(): Promise<void> {
+  await upgrade();
+  await encryptADayLater();
+}
+
+function everyRow(): Array<Array<StoredRow>> {
+  return [
+    tables.subscribers.rows,
+    tables.webhooks.rows,
+    tables.notices.rows,
+    tables.channels.rows,
+    tables.devices.rows,
+    tables.scans.rows,
+  ];
+}
+
+/*
+ * What `send` sent with the rows as written; what it sends with them during
+ * the upgrade, when they are as written still - the same; and what it sends
+ * again with the same rows once the job has encrypted them, a day later.
  */
 async function beforeAndAfter<T>(
   send: () => Promise<T>,
 ): Promise<{ before: T; after: T }> {
   const before: T = await send();
 
-  await migrate();
+  await upgrade();
+
+  expect(await send()).toEqual(before);
+
+  await encryptADayLater();
 
   const after: T = await send();
 

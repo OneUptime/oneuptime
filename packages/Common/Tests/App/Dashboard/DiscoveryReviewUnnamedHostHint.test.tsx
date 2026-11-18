@@ -451,7 +451,7 @@ describe("the reporter's ICMP-only scan says why each unnamed host has no name (
 
     for (const ipAddress of ["10.18.166.51", "10.18.166.53", "10.18.166.54"]) {
       const label: HTMLElement | null =
-        rowOf(ipAddress).querySelector("span.text-gray-400");
+        rowOf(ipAddress).querySelector("span.text-gray-500");
 
       expect(label).toHaveTextContent(UNNAMED_HOST_LABEL);
       // Muted, small, and never squeezed out by a long name beside it.

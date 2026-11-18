@@ -285,6 +285,7 @@ Ein Banner oben auf den Seiten des SLO sagt, was es am Messen hindert:
 | --- | --- | --- |
 | **Keine Monitore verbunden** | Das SLO hat keine Monitore, es gibt also nichts zu messen. | Monitore zuordnen oder eine Monitor-Regel erstellen. |
 | **Warten auf die SLO-Auswertung** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen. | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten. |
+| **Warten auf die erste Prüfung** | Monitore sind zugeordnet, aber noch nichts hat sie geprüft: ein Monitor, der vor einer Minute angelegt wurde, oder eine selbst gehostete Sonde, die nicht verbunden ist. | Nichts: Das SLO wird ab ihrer ersten Prüfung gemessen. Bleibt sie aus, öffnen Sie die Monitore, um zu sehen, warum. |
 | **Die Messung ist pausiert** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
 | **Das Ziel liegt außerhalb des gültigen Bereichs** | Das Ziel ist nicht größer als 0 und kleiner als 100. | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest. |
 | **Dieses SLO ist deaktiviert** | Die Auswertung ist aus. | Klicken Sie auf **Auswertung einschalten**. |

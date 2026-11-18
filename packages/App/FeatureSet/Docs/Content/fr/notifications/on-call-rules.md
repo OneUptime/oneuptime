@@ -34,7 +34,7 @@ La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SM
 :::steps
 ### Ajouter un moyen de vous joindre
 
-Cliquez sur **Ajouter** dans une étape pour envoyer l'une de vos méthodes vérifiées au moment de cette étape, ou sur **Ajouter une étape** pour commencer une nouvelle étape après la dernière. Un numéro ou une adresse qui attend encore son code apparaît sous **Pas encore vérifié**, avec **Vérifier**.
+Cliquez sur **Ajouter** dans une étape pour envoyer l'une de vos méthodes vérifiées au moment de cette étape, ou sur **Ajouter une étape** pour commencer une nouvelle étape après la dernière. Un numéro ou une adresse qui attend encore son code apparaît sous **Pas encore vérifié**, avec **Vérifier**. Sans quitter la page, **Ajouter votre téléphone** sous les étapes envoie un code à votre numéro, et une fois vérifié, le numéro vous alerte par SMS et par appel téléphonique ; **Utiliser ce navigateur** et **Obtenir l'application** ajoutent le push de la même façon.
 
 ### Choisir quand l'utiliser
 
@@ -46,6 +46,8 @@ Cliquez sur **Enregistrer les modifications**, qui apparaît dès que quelque ch
 :::
 
 **Tester vos appels**, au pied de la page, vous envoie un appel de test à travers elles.
+
+Quand votre serveur ne peut pas envoyer d'e-mails, de SMS ou d'appels téléphoniques pour le moment, une étape de ce type est marquée **Non envoyé pour le moment**, et la page dit une seule fois qui peut le configurer.
 
 Quand une gravité mérite autre chose, **Différent pour certaines gravités**, le bouton à côté du titre, ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**. La page s'ouvre toujours sur vos étapes et liste en dessous chaque carte qui diffère et ce qu'elle fait à la place. **Enregistrer les modifications** laisse ces cartes telles quelles ; **Utiliser cette séquence pour chaque gravité**, à la fin de cette liste, leur donne aussi votre séquence, après avoir nommé les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
 
@@ -68,7 +70,7 @@ Une gravité que votre projet a archivée vient après les autres, marquée **Ar
 
 ## Les règles de départ
 
-Chaque méthode que vous vérifiez reçoit une règle sur chaque carte de chaque onglet, envoyée dès que vous êtes alerté. Votre e-mail de connexion les a depuis le jour de votre arrivée, pour qu'une alerte vous joigne toujours. Vérifiez un numéro de téléphone pour les SMS, et chaque alerte vous envoie aussi un SMS.
+Chaque méthode que vous vérifiez reçoit une règle sur chaque carte de chaque onglet, envoyée dès que vous êtes alerté. Votre e-mail de connexion les a depuis le jour de votre arrivée, pour qu'une alerte vous joigne toujours. Vérifiez un numéro de téléphone pour les SMS, et chaque alerte vous envoie aussi un SMS. Quand votre projet a une séquence par défaut, une méthode que vous vérifiez la suit à la place : voir [La séquence par défaut](#la-séquence-par-défaut).
 
 C'est un départ sûr, et en général trop. Réduisez-le à ce que chaque gravité mérite :
 
@@ -79,6 +81,18 @@ C'est un départ sûr, et en général trop. Réduisez-le à ce que chaque gravi
 | Mineure ou faible | Un e-mail tout de suite |
 
 Vos propres règles n'ont pas d'heures calmes : gardez les faibles gravités sur l'e-mail, ou sur une règle push réglée sur **Standard**, pour qu'elles ne vous réveillent jamais. Pour que l'alerte d'une faible gravité attende les heures ouvrées pour tout le monde, réglez la règle d'astreinte qui la déclenche sur **Uniquement pendant les heures ouvrées** : voir [Règles d'astreinte](/docs/alerts/settings#règles-dastreinte).
+
+## La séquence par défaut
+
+Un projet peut avoir une séquence par défaut : la façon dont un membre est alerté dès qu'il vérifie un moyen de le joindre. Un Propriétaire du projet ou un Administrateur du projet la définit dans **Séquence par défaut pour les nouveaux membres**, repliée sous **Plus de paramètres** sur **Paramètres du projet → Notifications → Canaux de notification**, avec des canaux plutôt que les appareils de chacun : par exemple, un push tout de suite et un appel téléphonique au bout de 5 minutes.
+
+Avec une séquence par défaut, une méthode que vous vérifiez reçoit une règle à chaque étape de son canal, sur chaque carte de chaque onglet, et un canal que la séquence laisse de côté n'en reçoit aucune. Les règles que vous avez déjà ne changent jamais, et une alerte qui ne trouve aucune règle se replie toujours sur vos méthodes vérifiées.
+
+Pour la donner aux membres qui ont déjà des règles, un administrateur utilise **Appliquer la séquence par défaut** sur la page Disponibilité : voir [Appliquer la séquence par défaut](/docs/on-call/readiness#appliquer-la-séquence-par-défaut). Chacun d'eux reçoit un e-mail.
+
+Pour la suivre vous-même, cliquez sur **Partir de la séquence par défaut**, à côté de **Différent pour certaines gravités**. Vos étapes deviennent celles de la séquence, avec vos propres méthodes vérifiées : un moyen que vous n'avez pas vérifié est laissé de côté et nommé, et vous gardez vos propres étapes à sa place. Rien ne change tant que vous n'avez pas cliqué sur **Enregistrer les modifications**.
+
+**Téléphone des personnes d'astreinte**, à côté, demande à toutes les personnes d'astreinte un numéro vérifié pour les SMS, les appels téléphoniques ou WhatsApp. Tant que vous n'en avez pas, cette page le dit au-dessus de **Ajouter votre téléphone**, et Disponibilité et Santé de la configuration vous nomment. Personne n'est bloqué.
 
 ## Ajouter une règle
 
@@ -121,7 +135,7 @@ Une règle push, pour un téléphone ou un navigateur, peut aussi renvoyer son p
 
 ## Quand une gravité n'a pas de règle
 
-Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite.
+Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite. Quand votre projet a une séquence par défaut, votre e-mail la suit à la place : voir [La séquence par défaut](#la-séquence-par-défaut).
 
 Une alerte qui ne trouve toujours pas de règle est quand même envoyée à vos méthodes vérifiées, et vous recevez un e-mail à ce sujet ; voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 

@@ -422,10 +422,10 @@ describe("MonitorRecommendationCreateProgress", () => {
 
       expect(
         within(getRow("pending")).getByText("Disk is filling up"),
-      ).toHaveClass("text-gray-400");
+      ).toHaveClass("text-gray-500");
       expect(
         within(getRow("created")).getByText("Node CPU is high"),
-      ).not.toHaveClass("text-gray-400");
+      ).not.toHaveClass("text-gray-500");
     });
 
     /*

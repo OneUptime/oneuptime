@@ -68,7 +68,7 @@ export const TableThresholdStyleVisual: FunctionComponent<{
 }> = (props: { thresholdStyle: TableThresholdStyle }): ReactElement => {
   return (
     <div
-      className="grid h-9 grid-rows-2 divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200 bg-white text-[10px] leading-none tabular-nums sm:h-12 sm:text-xs"
+      className="grid h-9 grid-rows-2 divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200 bg-white text-xs leading-none tabular-nums sm:h-12 sm:text-xs"
       data-threshold-style={props.thresholdStyle}
     >
       {SAMPLE_VALUES.map(

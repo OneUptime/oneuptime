@@ -21,6 +21,9 @@ import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceUtil from "../Workspace";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import WorkspaceStoredValue, {
+  WORKSPACE_STORED_ID_MAX_LENGTH,
+} from "../WorkspaceStoredValue";
 import WorkspaceBase, {
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -270,6 +273,19 @@ export default class WorkspaceLiveMessages {
 
     const isChat: boolean = Boolean(data.destination.chatIds?.length);
 
+    const teamId: string | undefined =
+      data.destination.teamId || thread.channel.teamId;
+
+    if (
+      !this.canKeepPlace({
+        projectId: data.projectId,
+        channelId: thread.channel.id,
+        teamId: teamId,
+      })
+    ) {
+      return null;
+    }
+
     const keptMessage: WorkspaceLiveMessage = new WorkspaceLiveMessage();
     keptMessage.projectId = data.projectId;
     keptMessage.workspaceType = data.destination.workspaceType;
@@ -277,21 +293,19 @@ export default class WorkspaceLiveMessages {
     keptMessage.destinationType = isChat
       ? WorkspaceLiveMessageDestinationType.Chat
       : WorkspaceLiveMessageDestinationType.Channel;
-    keptMessage.channelId = thread.channel.id.substring(0, 100);
-    keptMessage.channelName = (thread.channel.name || "").substring(0, 100);
-
-    const teamId: string | undefined =
-      data.destination.teamId || thread.channel.teamId;
+    keptMessage.channelId = thread.channel.id;
+    keptMessage.channelName =
+      WorkspaceStoredValue.channelName(thread.channel.name) || "";
 
     if (teamId) {
-      keptMessage.teamId = teamId.substring(0, 100);
+      keptMessage.teamId = teamId;
     }
 
     /*
      * Kept even without an id (Microsoft Teams can answer a send without
      * one): it cannot be edited then, but it is not posted a second time.
      */
-    keptMessage.messageId = (thread.threadId || "").substring(0, 100);
+    keptMessage.messageId = WorkspaceStoredValue.id(thread.threadId) || "";
     keptMessage.contentHash = this.getContentHash(
       data.destination.messageBlocks,
     );
@@ -359,6 +373,21 @@ export default class WorkspaceLiveMessages {
           continue;
         }
 
+        const teamId: string | undefined =
+          payload.teamId || thread.channel.teamId;
+
+        // A post whose id cannot be kept whole has no place to edit either.
+        if (
+          !WorkspaceStoredValue.isStorableId(thread.threadId) ||
+          !this.canKeepPlace({
+            projectId: data.projectId,
+            channelId: thread.channel.id,
+            teamId: teamId,
+          })
+        ) {
+          continue;
+        }
+
         const keptMessage: WorkspaceLiveMessage = new WorkspaceLiveMessage();
         keptMessage.projectId = data.projectId;
         keptMessage.workspaceType = payload.workspaceType;
@@ -368,17 +397,15 @@ export default class WorkspaceLiveMessages {
         )
           ? WorkspaceLiveMessageDestinationType.Chat
           : WorkspaceLiveMessageDestinationType.Channel;
-        keptMessage.channelId = thread.channel.id.substring(0, 100);
-        keptMessage.channelName = (thread.channel.name || "").substring(0, 100);
-
-        const teamId: string | undefined =
-          payload.teamId || thread.channel.teamId;
+        keptMessage.channelId = thread.channel.id;
+        keptMessage.channelName =
+          WorkspaceStoredValue.channelName(thread.channel.name) || "";
 
         if (teamId) {
-          keptMessage.teamId = teamId.substring(0, 100);
+          keptMessage.teamId = teamId;
         }
 
-        keptMessage.messageId = thread.threadId.substring(0, 100);
+        keptMessage.messageId = thread.threadId;
         keptMessage.contentHash = this.getContentHash(payload.messageBlocks);
         keptMessage.messageData = {
           leadBlocks:
@@ -537,7 +564,7 @@ export default class WorkspaceLiveMessages {
       }
 
       await this.saveKept(keptMessage, {
-        messageId: (thread.threadId || "").substring(0, 100),
+        messageId: WorkspaceStoredValue.id(thread.threadId) || "",
         contentHash: contentHash,
         ...(data.messageData ? { messageData: data.messageData } : {}),
       });
@@ -551,6 +578,35 @@ export default class WorkspaceLiveMessages {
     });
 
     return WorkspaceLiveMessageEdit.Updated;
+  }
+
+  /*
+   * Whether a message's place - its channel or chat, and its team - can be
+   * kept as the workspace names it, whole (WorkspaceStoredValue). A place
+   * cut to fit is another place: a Microsoft Teams personal chat's id cut to
+   * 100 characters was no chat, and every edit and repost there failed
+   * (issue #9284). A message whose place cannot be kept whole is not kept,
+   * and says so in the log: the next change about it posts a new message
+   * instead, as for any message OneUptime does not remember.
+   */
+  public static canKeepPlace(data: {
+    projectId: ObjectID;
+    channelId: string;
+    teamId?: string | undefined;
+  }): boolean {
+    if (
+      WorkspaceStoredValue.isStorableId(data.channelId) &&
+      (!data.teamId || WorkspaceStoredValue.isStorableId(data.teamId))
+    ) {
+      return true;
+    }
+
+    logger.error(
+      `A workspace message's channel or team id is longer than OneUptime can keep whole (channel id: ${data.channelId.length} characters, team id: ${data.teamId?.length || 0}, at most ${WORKSPACE_STORED_ID_MAX_LENGTH}), so the message is not updated in place.`,
+      { projectId: data.projectId.toString() } as LogAttributes,
+    );
+
+    return false;
   }
 
   // The workspaces the project is connected to, Slack first.

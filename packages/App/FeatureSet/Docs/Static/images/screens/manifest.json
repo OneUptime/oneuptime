@@ -1,6 +1,76 @@
 {
   "pixelRatio": 2,
   "shots": {
+    "escalation-rule-paged-after": {
+      "da": {
+        "width": 512,
+        "height": 548
+      },
+      "de": {
+        "width": 512,
+        "height": 568
+      },
+      "en": {
+        "width": 512,
+        "height": 508
+      },
+      "es": {
+        "width": 512,
+        "height": 548
+      },
+      "fa": {
+        "width": 512,
+        "height": 508
+      },
+      "fr": {
+        "width": 512,
+        "height": 548
+      },
+      "hi": {
+        "width": 512,
+        "height": 508
+      },
+      "it": {
+        "width": 512,
+        "height": 548
+      },
+      "ja": {
+        "width": 512,
+        "height": 528
+      },
+      "ko": {
+        "width": 512,
+        "height": 508
+      },
+      "nl": {
+        "width": 512,
+        "height": 548
+      },
+      "no": {
+        "width": 512,
+        "height": 528
+      },
+      "pt": {
+        "width": 512,
+        "height": 548
+      },
+      "ru": {
+        "width": 512,
+        "height": 588
+      },
+      "sv": {
+        "width": 512,
+        "height": 528
+      },
+      "zh-CN": {
+        "width": 512,
+        "height": 508
+      },
+      "zh-TW": {
+        "width": 512,
+        "height": 508
+      }
+    },
     "home-goal-paging": {
       "da": {
         "width": 986,
@@ -423,72 +493,142 @@
     },
     "ingestion-keys": {
       "da": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "de": {
-        "width": 952,
-        "height": 552
+        "width": 940,
+        "height": 542
       },
       "en": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "es": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "fa": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "fr": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "hi": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "it": {
-        "width": 952,
-        "height": 528
+        "width": 940,
+        "height": 518
       },
       "ja": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "ko": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "nl": {
-        "width": 952,
-        "height": 528
+        "width": 940,
+        "height": 518
       },
       "no": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "pt": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "ru": {
-        "width": 952,
-        "height": 576
+        "width": 940,
+        "height": 566
       },
       "sv": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "zh-CN": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
       },
       "zh-TW": {
-        "width": 952,
-        "height": 512
+        "width": 940,
+        "height": 502
+      }
+    },
+    "on-call-policies-guided-setup": {
+      "da": {
+        "width": 453,
+        "height": 365
+      },
+      "de": {
+        "width": 453,
+        "height": 438
+      },
+      "en": {
+        "width": 453,
+        "height": 365
+      },
+      "es": {
+        "width": 453,
+        "height": 415
+      },
+      "fa": {
+        "width": 453,
+        "height": 329
+      },
+      "fr": {
+        "width": 453,
+        "height": 438
+      },
+      "hi": {
+        "width": 453,
+        "height": 329
+      },
+      "it": {
+        "width": 453,
+        "height": 438
+      },
+      "ja": {
+        "width": 453,
+        "height": 438
+      },
+      "ko": {
+        "width": 453,
+        "height": 365
+      },
+      "nl": {
+        "width": 453,
+        "height": 438
+      },
+      "no": {
+        "width": 453,
+        "height": 365
+      },
+      "pt": {
+        "width": 453,
+        "height": 438
+      },
+      "ru": {
+        "width": 453,
+        "height": 461
+      },
+      "sv": {
+        "width": 453,
+        "height": 329
+      },
+      "zh-CN": {
+        "width": 453,
+        "height": 329
+      },
+      "zh-TW": {
+        "width": 453,
+        "height": 329
       }
     },
     "paging-no-answer": {
@@ -564,141 +704,141 @@
     "paging-phone": {
       "da": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "de": {
         "width": 780,
-        "height": 596
+        "height": 622
       },
       "en": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "es": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "fa": {
         "width": 780,
-        "height": 556
+        "height": 582
       },
       "fr": {
         "width": 780,
-        "height": 596
+        "height": 622
       },
       "hi": {
         "width": 780,
-        "height": 536
+        "height": 562
       },
       "it": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "ja": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "ko": {
         "width": 780,
-        "height": 556
+        "height": 602
       },
       "nl": {
         "width": 780,
-        "height": 596
+        "height": 622
       },
       "no": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "pt": {
         "width": 780,
-        "height": 596
+        "height": 622
       },
       "ru": {
         "width": 780,
-        "height": 596
+        "height": 672
       },
       "sv": {
         "width": 780,
-        "height": 576
+        "height": 602
       },
       "zh-CN": {
         "width": 780,
-        "height": 536
+        "height": 562
       },
       "zh-TW": {
         "width": 780,
-        "height": 556
+        "height": 582
       }
     },
     "paging-reach-you": {
       "da": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "de": {
         "width": 780,
-        "height": 664
+        "height": 690
       },
       "en": {
         "width": 780,
-        "height": 604
+        "height": 630
       },
       "es": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "fa": {
         "width": 780,
-        "height": 624
+        "height": 630
       },
       "fr": {
         "width": 780,
-        "height": 664
+        "height": 690
       },
       "hi": {
         "width": 780,
-        "height": 564
+        "height": 590
       },
       "it": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "ja": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "ko": {
         "width": 780,
-        "height": 604
+        "height": 670
       },
       "nl": {
         "width": 780,
-        "height": 664
+        "height": 690
       },
       "no": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "pt": {
         "width": 780,
-        "height": 664
+        "height": 690
       },
       "ru": {
         "width": 780,
-        "height": 664
+        "height": 740
       },
       "sv": {
         "width": 780,
-        "height": 644
+        "height": 670
       },
       "zh-CN": {
         "width": 780,
-        "height": 564
+        "height": 590
       },
       "zh-TW": {
         "width": 780,
-        "height": 584
+        "height": 610
       }
     },
     "paging-summary": {
@@ -716,7 +856,7 @@
       },
       "es": {
         "width": 768,
-        "height": 482
+        "height": 502
       },
       "fa": {
         "width": 768,
@@ -724,7 +864,7 @@
       },
       "fr": {
         "width": 768,
-        "height": 482
+        "height": 502
       },
       "hi": {
         "width": 768,
@@ -844,71 +984,71 @@
     "paging-who-else": {
       "da": {
         "width": 780,
-        "height": 258
+        "height": 334
       },
       "de": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "en": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "es": {
         "width": 780,
-        "height": 258
+        "height": 334
       },
       "fa": {
         "width": 780,
-        "height": 258
+        "height": 314
       },
       "fr": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "hi": {
         "width": 780,
-        "height": 238
+        "height": 314
       },
       "it": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "ja": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "ko": {
         "width": 780,
-        "height": 258
+        "height": 334
       },
       "nl": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "no": {
         "width": 780,
-        "height": 258
+        "height": 334
       },
       "pt": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "ru": {
         "width": 780,
-        "height": 258
+        "height": 354
       },
       "sv": {
         "width": 780,
-        "height": 258
+        "height": 334
       },
       "zh-CN": {
         "width": 780,
-        "height": 238
+        "height": 314
       },
       "zh-TW": {
         "width": 780,
-        "height": 238
+        "height": 314
       }
     },
     "status-page-pick": {
@@ -1350,7 +1490,7 @@
       },
       "fa": {
         "width": 780,
-        "height": 314
+        "height": 294
       },
       "fr": {
         "width": 780,

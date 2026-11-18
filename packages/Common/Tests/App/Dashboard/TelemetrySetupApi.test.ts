@@ -17,7 +17,12 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import ProjectMilestone from "../../../Models/DatabaseModels/ProjectMilestone";
 import Service from "../../../Models/DatabaseModels/Service";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import LogSeverity from "../../../Types/Log/LogSeverity";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -158,6 +163,165 @@ describe("the monitors offered", () => {
       ["service-latency-p95", MonitorType.Metrics],
       ["service-unhandled-exceptions", MonitorType.Exceptions],
     ]);
+  });
+});
+
+/*
+ * #7146: what the project's first data says arrived picks what is offered:
+ * a service that sends only logs is offered the error-log monitor.
+ */
+describe("the monitors offered for the data that arrived", () => {
+  test("logs only: unhandled exceptions and the spike in error logs, a Logs monitor", () => {
+    expect(
+      getTelemetryRecommendations([ActivationMilestone.FirstLogsReceived]).map(
+        (recommendation: MonitorRecommendation) => {
+          return [recommendation.templateId, recommendation.monitorType];
+        },
+      ),
+    ).toEqual([
+      ["service-unhandled-exceptions", MonitorType.Exceptions],
+      ["service-error-log-spike", MonitorType.Logs],
+    ]);
+  });
+
+  test("every kind: all four, the error logs last", () => {
+    expect(
+      getTelemetryRecommendations([
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ]).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      }),
+    ).toEqual([
+      "service-error-burst",
+      "service-latency-p95",
+      "service-unhandled-exceptions",
+      "service-error-log-spike",
+    ]);
+  });
+
+  test("nothing known: the setup's three, as before", () => {
+    for (const reached of [undefined, null, []]) {
+      expect(
+        getTelemetryRecommendations(reached).map(
+          (recommendation: MonitorRecommendation): string => {
+            return recommendation.templateId;
+          },
+        ),
+      ).toEqual([
+        "service-error-burst",
+        "service-latency-p95",
+        "service-unhandled-exceptions",
+      ]);
+    }
+  });
+
+  test("the error-log monitor is made for the service: its error and fatal logs, more than 25 in five minutes", async () => {
+    const offered: Array<MonitorRecommendation> = getTelemetryRecommendations([
+      ActivationMilestone.FirstLogsReceived,
+    ]);
+    const errorLogs: MonitorRecommendation = offered.find(
+      (recommendation: MonitorRecommendation): boolean => {
+        return recommendation.templateId === "service-error-log-spike";
+      },
+    )!;
+
+    await TelemetrySetupApi.createMonitors({
+      service: SERVICE,
+      recommendations: offered,
+      recommendationIds: [errorLogs.recommendationId],
+      hasAcknowledgedBilling: false,
+      translator: english,
+    });
+
+    expect(created()).toHaveLength(1);
+
+    const monitor: Monitor = created()[0]!.model;
+    const step: MonitorStep = monitor.monitorSteps!.data!
+      .monitorStepsInstanceArray[0] as MonitorStep;
+
+    expect(monitor.monitorType).toBe(MonitorType.Logs);
+    expect(monitor.name).toContain("checkout");
+    expect(step.data!.logMonitor!.severityTexts).toEqual([
+      LogSeverity.Error,
+      LogSeverity.Fatal,
+    ]);
+    expect(step.data!.logMonitor!.lastXSecondsOfLogs).toBe(300);
+    expect(
+      step.data!.logMonitor!.telemetryServiceIds.map(
+        (serviceId: ObjectID): string => {
+          return serviceId.toString();
+        },
+      ),
+    ).toEqual([SERVICE.id]);
+
+    const unhealthy: MonitorCriteriaInstance = step.data!.monitorCriteria.data!
+      .monitorCriteriaInstanceArray[0] as MonitorCriteriaInstance;
+
+    expect(unhealthy.data!.filters[0]).toMatchObject({
+      checkOn: CheckOn.LogCount,
+      filterType: FilterType.GreaterThan,
+      value: 25,
+    });
+    // An alert, for the team, as the setup's other monitors open.
+    expect(unhealthy.data!.createAlerts).toBe(true);
+    expect(unhealthy.data!.createIncidents).toBe(false);
+  });
+
+  test("a Logs monitor the service has already covers the error-log monitor, as the tab counts it", async () => {
+    const offered: Array<MonitorRecommendation> = getTelemetryRecommendations([
+      ActivationMilestone.FirstLogsReceived,
+    ]);
+
+    await TelemetrySetupApi.createMonitors({
+      service: SERVICE,
+      recommendations: offered,
+      recommendationIds: offered.map((r: MonitorRecommendation) => {
+        return r.recommendationId;
+      }),
+      hasAcknowledgedBilling: false,
+      translator: english,
+    });
+
+    existingMonitors = created().map(
+      (call: { model: Monitor }, index: number): Monitor => {
+        return model(Monitor, {
+          _id: id(300 + index).toString(),
+          name: call.model.name,
+          monitorType: call.model.monitorType,
+          monitorSteps: call.model.monitorSteps,
+        });
+      },
+    );
+
+    const covered: Array<string> =
+      await TelemetrySetupApi.loadCoveredRecommendationIds({
+        service: SERVICE,
+        recommendations: offered,
+        translator: english,
+      });
+
+    expect(covered.sort()).toEqual(
+      offered
+        .map((r: MonitorRecommendation): string => {
+          return r.recommendationId;
+        })
+        .sort(),
+    );
+
+    // The tab reads Logs monitors as well as the others.
+    const monitorTypesRead: Array<unknown> = getListSpy.mock.calls
+      .map((call: Array<unknown>): Record<string, unknown> => {
+        return call[0] as Record<string, unknown>;
+      })
+      .filter((args: Record<string, unknown>): boolean => {
+        return args["modelType"] === Monitor;
+      })
+      .map((args: Record<string, unknown>): unknown => {
+        return (args["query"] as Record<string, unknown>)["monitorType"];
+      });
+    expect(monitorTypesRead).toContain(MonitorType.Logs);
   });
 });
 
@@ -398,6 +562,44 @@ describe("the records it reads", () => {
     expect(
       (args["query"] as Record<string, unknown>)["lastSeenAt"],
     ).toBeDefined();
+  });
+
+  test("the project's first data: its first logs, traces, metrics and exceptions, and nothing else it keeps", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        model(ProjectMilestone, {
+          _id: id(90).toString(),
+          milestone: ActivationMilestone.FirstLogsReceived,
+        }),
+        model(ProjectMilestone, {
+          _id: id(91).toString(),
+          milestone: "a_milestone_this_version_does_not_know",
+        }),
+      ]) as never,
+    );
+
+    expect(await TelemetrySetupApi.loadFirstDataReached()).toEqual([
+      ActivationMilestone.FirstLogsReceived,
+    ]);
+
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as unknown as Record<string, unknown>;
+    const query: Record<string, unknown> = args["query"] as Record<
+      string,
+      unknown
+    >;
+
+    expect(args["modelType"]).toBe(ProjectMilestone);
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["milestone"]).toBeInstanceOf(Includes);
+    expect([...(query["milestone"] as Includes).values].sort()).toEqual(
+      [
+        ActivationMilestone.FirstTracesReceived,
+        ActivationMilestone.FirstMetricsReceived,
+        ActivationMilestone.FirstExceptionsReceived,
+        ActivationMilestone.FirstLogsReceived,
+      ].sort(),
+    );
   });
 
   test("the run's monitors that still exist, and no read for none", async () => {

@@ -1,4 +1,5 @@
 import Protocol from "Common/Types/API/Protocol";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { TelemetryAiLane } from "Common/Types/AI/TelemetryAi";
@@ -14,7 +15,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
@@ -421,7 +421,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 
   const getContent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (error && entries.length === 0) {

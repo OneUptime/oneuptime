@@ -124,6 +124,52 @@ const emptyIdSets: () => OwnerIdSets = (): OwnerIdSets => {
   return { userIds: new Set<string>(), teamIds: new Set<string>() };
 };
 
+/*
+ * The owners each source has, with those it will have once it is created
+ * added: a monitor not saved yet has no owner rows, and its creator becomes
+ * its owner as it is created (DatabaseService.autoOwnerOnCreate) - which a
+ * preview of what it opens hands in (WhoIsToldService.getForDraft). Only for
+ * the sources asked of; nothing is added to `read`.
+ */
+export function withPendingOwners(data: {
+  read: Map<OwnerRuleInheritSource, OwnerIdSets>;
+  pending: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
+  sources: Set<OwnerRuleInheritSource>;
+}): Map<OwnerRuleInheritSource, OwnerIdSets> {
+  if (!data.pending || data.pending.size === 0) {
+    return data.read;
+  }
+
+  const merged: Map<OwnerRuleInheritSource, OwnerIdSets> = new Map();
+
+  for (const [source, owners] of data.read) {
+    merged.set(source, {
+      userIds: new Set<string>(owners.userIds),
+      teamIds: new Set<string>(owners.teamIds),
+    });
+  }
+
+  for (const [source, owners] of data.pending) {
+    if (!data.sources.has(source)) {
+      continue;
+    }
+
+    const into: OwnerIdSets = merged.get(source) || emptyIdSets();
+
+    for (const userId of owners.userIds) {
+      into.userIds.add(userId);
+    }
+
+    for (const teamId of owners.teamIds) {
+      into.teamIds.add(teamId);
+    }
+
+    merged.set(source, into);
+  }
+
+  return merged;
+}
+
 export default class OwnerRulePlanBuilder<TRule> {
   private readonly allowOwnerNotification: boolean;
   private anyRuleMatched: boolean = false;

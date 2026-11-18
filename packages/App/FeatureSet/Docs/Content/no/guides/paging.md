@@ -13,7 +13,7 @@ flowchart TB
 
 - Et prosjekt du eier: SMS og anrop slås på av eieren, og en vaktpolicy opprettes av eieren eller en administrator.
 - Mobiltelefonen din.
-- Teammedlemmene som skal tilkalles, lagt til i prosjektet: [Inviter personer](/docs/permissions/inviting-people) viser hvordan.
+- Teammedlemmene som skal tilkalles: oppsettet kan invitere dem via e-post, eller se [Inviter personer](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter d
 
 ![Hjem spør «Hva vil du gjøre først?», med «Varsle rett person når noe går ned» avkrysset](screen:home-goal-paging)
 
-På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Varsle rett person når noe går ned**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger **Varsle rett person når noe går ned**.
+På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Varsle rett person når noe går ned**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger **Varsle rett person når noe går ned**. I **Vakt** åpner **Veiledet oppsett** det også.
 
 ### Last ned appen på telefonen din
 
-Installer OneUptime On-Call fra App Store eller Google Play, og logg inn: da registreres telefonen din for push-varslinger. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** under **Hvordan skal vi nå deg?** viser nå telefonen din.
+Under **Hvordan skal vi nå deg?** klikker du på **Hent appen**, skanner koden med telefonen, installerer appen og logger inn. Tilbake i oppsettet klikker du på **Kontroller på nytt**: **Mobilapp eller nettleser** viser nå telefonen din. **Bruk denne nettleseren** tilkaller også denne nettleseren.
 
 ### Slå på SMS og anrop
 
@@ -47,11 +47,11 @@ Nye prosjekter starter med SMS og telefonanrop slått av. Eier du prosjektet, kl
 
 Skriv inn mobilnummeret ditt med landskode i **Telefonnummeret ditt**, for eksempel `+15551234567`, og klikk på **Send meg en kode på SMS**. Skriv inn koden fra SMS-en, og klikk på **Verifiser**: det samme nummeret blir også ringt opp ved tilkallinger. Klikk på **Fortsett**. Vil du bare tilkalles via appen og e-post, lar du nummeret stå tomt og klikker på **Fortsett** med en gang.
 
-### Velg hvem andre som tilkalles
+### Velg hvem som tilkalles først
 
-![Steget «Hvem andre har vakt?», med «Lagre og fortsett» uthevet](screen:paging-who-else)
+![Steget «Hvem tilkalles først?», med «Lagre og fortsett» uthevet](screen:paging-who-else)
 
-Under **Hvem andre har vakt?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre sammen med deg, og klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
+Under **Hvem tilkalles først?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre samtidig med deg. For noen som ennå ikke er i prosjektet, klikker du på **Inviter via e-post**, skriver adressen og klikker på **Send invitasjon**. Klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 
@@ -67,7 +67,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**. Velg en **
 
 ### Bekreft testoppkallet
 
-Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. Appen viser at tilkallingen kom frem, men kan ikke bekrefte en test. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
+Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. I OneUptime On-Call-appen, i versjoner nyere enn 1.6.0, kan du også bekrefte tilkallingen fra push-varslingen. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
 :::
 
 ## Sjekk at det virker
@@ -75,7 +75,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**. Velg en **
 ![Sammendraget «Tilkalling er satt opp»: «Hvem som tilkalles», «Hvis ingen svarer» og «Testet»](screen:paging-summary)
 
 - Teststeget viser hvem som bekreftet tilkallingen, hvordan og hvor raskt.
-- Oppsettet slutter med **Tilkalling er satt opp**, hentet fra det som faktisk er lagret: **Hvem som tilkalles**, **Hvis ingen svarer** og **Testet**. Et problem med selve policyen, for eksempel noen den ikke kan nå, står under **Krever oppmerksomhet**.
+- Oppsettet slutter med **Tilkalling er satt opp**, hentet fra det som faktisk er lagret: **Hvem som tilkalles**, **Hvis ingen svarer** og **Testet**. **Hvem som tilkalles** viser i rekkefølge hvordan hver person nås. Et problem med selve policyen, for eksempel noen den ikke kan nå, står under **Krever oppmerksomhet**.
 - På **Hjem** merker sjekklisten **Sett opp en vaktpolicy** som ferdig. Var det det siste steget, er sjekklisten borte.
 
 Tilkaller policyen noen andre, kan du også se eskaleringen: klikk på **Åpne vaktpolicyen** i sammendraget, og deretter på **Test denne policyen**. Slå på **Gå gjennom hvert eskaleringsnivå**, send testen, og ikke bekreft den første tilkallingen: den neste personen tilkalles opptil 2 minutter senere.

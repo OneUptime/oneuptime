@@ -7,8 +7,13 @@ import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
 import WhoIsOnCallScreen from "../screens/WhoIsOnCallScreen";
 import OnCallOverridesScreen from "../screens/OnCallOverridesScreen";
 import CreateOnCallOverrideScreen from "../screens/CreateOnCallOverrideScreen";
+import EditOnCallOverrideScreen from "../screens/EditOnCallOverrideScreen";
 import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
+import TestPageScreen from "../screens/TestPageScreen";
+import GetReadyScreen from "../screens/GetReadyScreen";
+import { TEST_PAGE_TEXT } from "../oncall/testPage";
+import { GET_READY_TEXT } from "../onboarding/getReady";
 import type { OnCallStackParamList } from "./types";
 
 /*
@@ -31,6 +36,11 @@ const Stack: ReturnType<
  */
 const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
   "CreateOnCallOverride",
+  "EditOnCallOverride",
+  // A test page opened from its push, over the roster beside it.
+  "TestPage",
+  // The app's first steps (#7041), over whatever is open.
+  "GetReady",
 ];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
@@ -86,6 +96,17 @@ export default function OnCallStackNavigator(): React.JSX.Element {
         }}
       />
       <Stack.Screen
+        name="EditOnCallOverride"
+        component={EditOnCallOverrideScreen}
+        options={{
+          title: "Edit Override",
+
+          // A sheet, as the cover form it mirrors (#7897).
+          presentation: "modal",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
+      />
+      <Stack.Screen
         name="MyOnCallPages"
         component={MyOnCallPagesScreen}
         options={{ title: "Pages Sent To Me" }}
@@ -94,6 +115,34 @@ export default function OnCallStackNavigator(): React.JSX.Element {
         name="OnCallCalendarFeed"
         component={OnCallCalendarFeedScreen}
         options={{ title: "Calendar Feed" }}
+      />
+      {/*
+       * A test page's own screen (oncall/testPage.ts), opened from its
+       * push: never from a list, so it is a sheet over whatever is open,
+       * and Done - or a swipe - takes it away.
+       */}
+      <Stack.Screen
+        name="TestPage"
+        component={TestPageScreen}
+        options={{
+          title: TEST_PAGE_TEXT.screenTitle,
+          presentation: "modal",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
+      />
+      {/*
+       * The app's first steps (#7041), opened by itself once on a new
+       * install's first launch: a sheet, so Not Now - or a swipe - puts it
+       * away, and a test page's own sheet opens over it.
+       */}
+      <Stack.Screen
+        name="GetReady"
+        component={GetReadyScreen}
+        options={{
+          title: GET_READY_TEXT.screenTitle,
+          presentation: "modal",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
       />
     </Stack.Navigator>
   );

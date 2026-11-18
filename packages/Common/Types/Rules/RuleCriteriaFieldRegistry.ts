@@ -1,3 +1,5 @@
+import { RuleCriteriaOperator } from "./RuleCriteria";
+
 /**
  * The complete API allowlist for configurable rule criteria.
  *
@@ -571,6 +573,57 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
 
 export type RegisteredRuleCriteriaModelName =
   keyof typeof RULE_CRITERIA_FIELDS_BY_MODEL;
+
+/**
+ * WHO OWNS THE RECORD (#9353): conditions on the people and teams on a
+ * record's list of owners, which no column of the rule holds. Every field
+ * above is one of the rule's own columns, matched the way the column was
+ * before conditions existed; these live only in the rule's criteria.
+ *
+ * A filter's value is the ids of the people and teams picked, in one list,
+ * compared with "Has any of" or "Has none of". The record's owners are read
+ * when the rule is matched, as they are recorded - a member of an owning
+ * team is not an owner by being in it - so an owner added later counts from
+ * then on. It is the same matching as a workspace rule's owner condition
+ * (#7583).
+ */
+export const RULE_CRITERIA_OWNER_FIELDS_BY_MODEL: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  AlertOnCallRule: ["alertOwners"],
+} as const;
+
+// How an owner condition compares: one of the picks is an owner, or none is.
+export const RULE_CRITERIA_OWNER_OPERATORS: ReadonlyArray<RuleCriteriaOperator> =
+  [RuleCriteriaOperator.HasAnyOf, RuleCriteriaOperator.HasNoneOf];
+
+const RULE_CRITERIA_OWNER_FIELD_LOOKUP: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = RULE_CRITERIA_OWNER_FIELDS_BY_MODEL;
+
+// The owner fields of a kind of rule, or none.
+export function getRuleCriteriaOwnerFieldsForModel(
+  modelName: string,
+): ReadonlyArray<string> {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      RULE_CRITERIA_OWNER_FIELD_LOOKUP,
+      modelName,
+    )
+  ) {
+    return [];
+  }
+
+  return RULE_CRITERIA_OWNER_FIELD_LOOKUP[modelName] || [];
+}
+
+// Whether a field of a kind of rule is an owner condition.
+export function isRuleCriteriaOwnerField(
+  modelName: string,
+  field: string,
+): boolean {
+  return getRuleCriteriaOwnerFieldsForModel(modelName).includes(field);
+}
 
 /**
  * The rule kinds that match nothing until they have a condition, so their

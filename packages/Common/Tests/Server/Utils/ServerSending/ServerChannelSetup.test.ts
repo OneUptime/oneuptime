@@ -9,7 +9,12 @@ import ServerChannelSetup, {
   SERVER_CHANNEL_SETUP_SELECT,
   SMS_NOT_SET_UP_PROBLEM,
   ServerChannelSetupSettings,
+  ServerSetUpProblemReading,
 } from "../../../../Server/Utils/ServerSending/ServerChannelSetup";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  SERVER_SET_UP_PROBLEMS,
+} from "../../../../Types/ServerSending/ServerSetUpProblem";
 import { EmailServerType } from "../../../../Models/DatabaseModels/GlobalConfig";
 import { CallAndSmsProvider } from "../../../../Types/CallAndSMS/CallAndSmsProvider";
 import { TwilioConfigUse } from "../../../../Types/CallAndSMS/TwilioConfigUse";
@@ -594,6 +599,230 @@ describe("push notifications", () => {
         disablePushNotifications: true,
       }),
     ).toBe(PUSH_TURNED_OFF_PROBLEM);
+  });
+});
+
+/*
+ * #9437: what a channel's settings are missing is sent as words too - one
+ * of OneUptime's own sentences, a provider's name and a setting's name -
+ * so the Admin Dashboard says it in its reader's language. The English is
+ * the same sentence, word for word; what is wrong with the environment
+ * variables has no words, and is drawn as it came.
+ */
+describe("what is missing, in words every language has", () => {
+  // Every problem a row can have, from settings left blank one way after another.
+  const emailRows: Array<ServerChannelSetupSettings> = [
+    {},
+    { smtpPort: new Port(25) },
+    leftBlank(smtp(), "smtpFromEmail"),
+    leftBlank(smtp(), "smtpFromName"),
+    leftBlank(smtp(), "smtpHost"),
+    leftBlank(smtp(), "smtpPort"),
+    smtp({ smtpAuthType: SMTPAuthenticationType.OAuth }),
+    leftBlank(
+      smtp({ smtpAuthType: SMTPAuthenticationType.OAuth }),
+      "smtpUsername",
+    ),
+    smtp({
+      smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpClientId: "client",
+    }),
+    smtp({
+      smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpClientId: "client",
+      smtpClientSecret: "secret",
+    }),
+    smtp({
+      smtpAuthType: SMTPAuthenticationType.OAuth,
+      smtpClientId: "client",
+      smtpClientSecret: "secret",
+      smtpTokenUrl: "https://login.example.com/token",
+    }),
+    {
+      smtpTransportType: MailTransportType.MicrosoftGraph,
+      smtpFromEmail: new Email("alerts@example.com"),
+    },
+    { emailServerType: EmailServerType.Sendgrid },
+    { emailServerType: EmailServerType.Sendgrid, sendgridApiKey: "key" },
+    {
+      emailServerType: EmailServerType.Sendgrid,
+      sendgridApiKey: "key",
+      sendgridFromEmail: new Email("alerts@example.com"),
+    },
+    { emailServerType: EmailServerType.AmazonSES },
+    {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAccessKeyId: "AKIA",
+    },
+    {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAccessKeyId: "AKIA",
+      amazonSesSecretAccessKey: "secret",
+      amazonSesRegion: "moon-1",
+    },
+    {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAccessKeyId: "AKIA",
+      amazonSesSecretAccessKey: "secret",
+      amazonSesRegion: "us-east-1",
+    },
+    { emailServerType: EmailServerType.Mailgun },
+    { emailServerType: EmailServerType.Mailgun, mailgunApiKey: "key" },
+    {
+      emailServerType: EmailServerType.Mailgun,
+      mailgunApiKey: "key",
+      mailgunDomain: "mg.example.com",
+    },
+    { emailServerType: EmailServerType.Postmark },
+    { emailServerType: EmailServerType.Postmark, postmarkServerToken: "t" },
+    { emailServerType: EmailServerType.Resend },
+    { emailServerType: EmailServerType.Resend, resendApiKey: "key" },
+  ];
+
+  test("every email problem has words, and they say the English sentence word for word", () => {
+    const templates: Set<string> = new Set<string>();
+
+    for (const row of emailRows) {
+      const english: string | null =
+        ServerChannelSetup.getEmailSetUpProblem(row);
+      const reading: ServerSetUpProblemReading | null =
+        ServerChannelSetup.readEmailSetUpProblem(row);
+
+      expect({ row, hasProblem: Boolean(english) }).toEqual({
+        row,
+        hasProblem: true,
+      });
+      expect(reading?.english).toBe(english);
+      expect(reading?.words).toBeTruthy();
+      expect(ServerSetUpProblem.toEnglish(reading!.words!)).toBe(english);
+
+      // What a browser reads back is the same words.
+      expect(
+        ServerSetUpProblem.parse(JSON.parse(JSON.stringify(reading!.words))),
+      ).toEqual(reading!.words);
+
+      templates.add(reading!.words!.template);
+    }
+
+    expect(Array.from(templates).sort()).toEqual(
+      [
+        SERVER_SET_UP_PROBLEMS.emailNotSetUp,
+        SERVER_SET_UP_PROBLEMS.emailSettingNotSet,
+      ].sort(),
+    );
+  });
+
+  test("a setting is named by the key the settings form draws it with", () => {
+    expect(
+      ServerChannelSetup.readEmailSetUpProblem({
+        emailServerType: EmailServerType.Sendgrid,
+      })?.words,
+    ).toEqual({
+      template: SERVER_SET_UP_PROBLEMS.emailSettingNotSet,
+      values: {
+        provider: "SendGrid",
+        field: SERVER_EMAIL_SETTING_NAMES.apiKey,
+      },
+    });
+    expect(
+      ServerChannelSetup.readEmailSetUpProblem({
+        emailServerType: EmailServerType.Mailgun,
+        mailgunApiKey: "key",
+      })?.words?.values.field,
+    ).toBe(SERVER_EMAIL_SETTING_NAMES.mailgunDomain);
+  });
+
+  test("SMS and calls: not set up, used for one kind only, or no number to send from", () => {
+    const twilio: ServerChannelSetupSettings = {
+      twilioAccountSID: "AC123",
+      twilioAuthToken: "token",
+      twilioPrimaryPhoneNumber: new Phone("+14155550123"),
+    };
+    const smsOnly: ServerChannelSetupSettings = leftBlank(
+      {
+        ...twilio,
+        twilioUsedFor: TwilioConfigUse.SmsOnly,
+        twilioSmsPhoneNumbers: "+14155550123",
+      },
+      "twilioPrimaryPhoneNumber",
+    );
+    const callsOnly: ServerChannelSetupSettings = {
+      ...twilio,
+      twilioUsedFor: TwilioConfigUse.CallsOnly,
+    };
+
+    const cases: Array<{
+      config: ServerChannelSetupSettings | null;
+      kind: TwilioMessageKind;
+      template: string;
+    }> = [
+      {
+        config: null,
+        kind: TwilioMessageKind.SMS,
+        template: SERVER_SET_UP_PROBLEMS.smsNotSetUp,
+      },
+      {
+        config: {},
+        kind: TwilioMessageKind.Call,
+        template: SERVER_SET_UP_PROBLEMS.callNotSetUp,
+      },
+      {
+        config: smsOnly,
+        kind: TwilioMessageKind.Call,
+        template: SERVER_SET_UP_PROBLEMS.twilioUsedForSmsOnly,
+      },
+      {
+        config: callsOnly,
+        kind: TwilioMessageKind.SMS,
+        template: SERVER_SET_UP_PROBLEMS.twilioUsedForCallsOnly,
+      },
+    ];
+
+    for (const item of cases) {
+      const reading: ServerSetUpProblemReading | null =
+        ServerChannelSetup.readTwilioSetUpProblem(item.config, item.kind);
+
+      expect(reading?.words).toEqual({ template: item.template, values: {} });
+      expect(reading?.english).toBe(item.template);
+      expect(reading?.english).toBe(
+        ServerChannelSetup.getTwilioSetUpProblem(item.config, item.kind),
+      );
+    }
+
+    expect(
+      ServerChannelSetup.readTwilioSetUpProblem(twilio, TwilioMessageKind.SMS),
+    ).toBeNull();
+  });
+
+  test("push turned off: the test push's own words", () => {
+    expect(
+      ServerChannelSetup.readSetUpProblem(ServerSendingChannel.Push, {
+        disablePushNotifications: true,
+      }),
+    ).toEqual({
+      english: PUSH_TURNED_OFF_PROBLEM,
+      words: { template: PUSH_TURNED_OFF_PROBLEM, values: {} },
+    });
+  });
+
+  test("every channel's reading is its sentence: nothing for a channel that is set up", () => {
+    for (const channel of [
+      ServerSendingChannel.Email,
+      ServerSendingChannel.SMS,
+      ServerSendingChannel.Call,
+      ServerSendingChannel.Push,
+    ]) {
+      const reading: ServerSetUpProblemReading | null =
+        ServerChannelSetup.readSetUpProblem(channel, {});
+
+      expect(reading?.english || null).toBe(
+        ServerChannelSetup.getSetUpProblem(channel, {}),
+      );
+    }
+
+    expect(
+      ServerChannelSetup.readSetUpProblem(ServerSendingChannel.Email, smtp()),
+    ).toBeNull();
   });
 });
 

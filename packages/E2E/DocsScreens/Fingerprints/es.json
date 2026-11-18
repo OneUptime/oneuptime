@@ -179,7 +179,7 @@
     "text": [
       "1",
       "¿Qué debemos comprobar?",
-      "OneUptime lo comprueba cada 5 minutos. Se abre un incidente cuando todas las ubicaciones que lo comprueban lo encuentran caído: sin respuesta, o con una respuesta de error.",
+      "OneUptime crea un monitor que lo comprueba cada 5 minutos desde 2 ubicaciones. Se abre un incidente cuando todas lo encuentran caído: sin respuesta, o con una respuesta de error.",
       "Dirección del sitio web o de la API",
       "Este es un endpoint de API",
       "Empezar a comprobar",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incidente",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Empezar a comprobar",
@@ -209,8 +211,10 @@
       "Guardar y continuar"
     ],
     "outline": [
+      "link: Cómo contactarme",
       "button: Añadir miembros del equipo",
       "button: Quitar Ada Lovelace",
+      "button: política de guardia",
       "button: Guardar y continuar"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Activar SMS y llamadas",
       "App móvil o navegador",
       "Sin configurar.",
-      "Consigue la app de OneUptime o activa las notificaciones en este navegador desde tus métodos de notificación.",
-      "Configurar la app o este navegador",
+      "Recibe los avisos en tu teléfono con la app OneUptime On-Call, o en este navegador.",
+      "Usar este navegador",
+      "Obtener la app",
       "Continuar",
       "Volver a comprobar"
     ],
     "outline": [
       "button: Añadir saldo",
       "button: Activar SMS y llamadas",
-      "link: Configurar la app o este navegador",
+      "button: Usar este navegador",
+      "button: Obtener la app",
       "button: Continuar",
       "button: Volver a comprobar"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Envíame un código por SMS",
       "App móvil o navegador",
       "Sin configurar.",
-      "Consigue la app de OneUptime o activa las notificaciones en este navegador desde tus métodos de notificación.",
-      "Configurar la app o este navegador",
+      "Recibe los avisos en tu teléfono con la app OneUptime On-Call, o en este navegador.",
+      "Usar este navegador",
+      "Obtener la app",
       "Continuar",
       "Volver a comprobar",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Envíame un código por SMS",
-      "link: Configurar la app o este navegador",
+      "button: Usar este navegador",
+      "button: Obtener la app",
       "button: Continuar",
       "button: Volver a comprobar"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "¿Quién más está de guardia?",
+      "¿A quién se avisa primero?",
       "Esto crea la política de guardia «Política de guardia predeterminada». Avisa primero a estas personas, por cada incidente y alerta nueva de este proyecto.",
       "Avisados primero",
       "Añadir miembros del equipo",
       "AL",
       "Ada Lovelace",
+      "Aquí se avisa a todos a la vez. A quién avisar solo si nadie responde se elige en el siguiente paso.",
+      "Invitar por correo",
       "Guardar y continuar"
     ],
     "outline": [
       "button: Añadir miembros del equipo",
       "button: Quitar Ada Lovelace",
+      "button: Invitar por correo",
       "button: Guardar y continuar"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Los avisos están configurados",
       "A quién se avisa",
-      "Cada incidente o alerta nueva ejecuta «Política de guardia predeterminada», que avisa a Ada Lovelace (Correo electrónico, SMS, Llamada telefónica).",
+      "Cada incidente o alerta nueva ejecuta «Política de guardia predeterminada», que avisa a Ada Lovelace (correo electrónico, SMS y llamada telefónica de inmediato).",
       "Si nadie responde",
       "Si nadie lo confirma en 30 minutos, se avisa a Grace Hopper.",
       "Probado",
@@ -413,7 +424,7 @@
       "button: Configurar otra política"
     ],
     "width": 768,
-    "height": 482
+    "height": 502
   },
   "status-page-pick": {
     "text": [
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Guardia",
+      "La persona adecuada se entera, siempre",
+      "1",
+      "Crear una política de guardia",
+      "2",
+      "Añadir horarios o personas a cada regla de escalado",
+      "3",
+      "Conectarla a monitores, incidentes y alertas",
+      "Configuración guiada",
+      "Crear política de guardia",
+      "Guía paso a paso",
+      "Documentación"
+    ],
+    "outline": [
+      "heading: La persona adecuada se entera, siempre",
+      "button: Configuración guiada",
+      "button: Crear política de guardia",
+      "link: Guía paso a paso",
+      "link: Documentación"
+    ],
+    "width": 417,
+    "height": 378
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Añadir regla de escalado",
+      "Añade el nivel 2 de esta política: a quién se avisa, y cuándo.",
+      "Notificar",
+      "Las programaciones de guardia avisan a quien esté de guardia; Siguiente en la rotación avisa a la persona que va después. Los equipos avisan a cada miembro.",
+      "Añadir destinatario",
+      "Esta regla dice a quién se avisa. Cómo se contacta a cada persona, por qué método y tras cuánto tiempo, lo decide su propia página Cómo contactarme.",
+      "Avisado tras (en minutos)",
+      "Cuánto espera Level 1 a que alguien reconozca antes de avisar a este nivel. Se guarda como la espera de Level 1.",
+      "Más campos· Nombre, Descripción",
+      "Cancelar",
+      "Crear regla",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Añadir regla de escalado",
+      "button: Cerrar",
+      "button: Añadir destinatario",
+      "link: Cómo contactarme",
+      "field number: 30",
+      "button: Más campos· Nombre, Descripción",
+      "button: Cancelar",
+      "button: Crear regla"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Claves de ingesta",
@@ -543,18 +607,13 @@
       "Mostrando 1-4 de 4",
       "Filas por página",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Buscar: claves de ingesta por nombre, descripción…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Claves de ingesta",
@@ -580,13 +639,13 @@
       "field checkbox: Seleccionar Clave de ingesta: Marketing site",
       "button: Ver Clave de ingesta",
       "button: Más acciones para Clave de ingesta: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Ir a la página anterior",
       "button: Página 1",
       "button: Ir a la página siguiente"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

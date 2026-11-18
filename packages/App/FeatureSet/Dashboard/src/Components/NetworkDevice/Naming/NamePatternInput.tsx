@@ -249,7 +249,7 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
           >
             {example}
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-500">
             {translator.translateText(
               "for a device at 10.48.145.51 in the site coded 1216",
             )}

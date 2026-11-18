@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -55,7 +56,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -393,7 +393,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isPageLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <DetailListSkeleton fields={4} columns={1} />}
           {error && <ErrorMessage message={error} />}
           {!isPageLoading && !error && (
             <ModelForm<ScheduledMaintenance>

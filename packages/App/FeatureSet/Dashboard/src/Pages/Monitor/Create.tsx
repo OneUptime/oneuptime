@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
@@ -18,9 +19,11 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import WebsiteDownSetupOffer from "../../Components/GuidedSetup/WebsiteDown/WebsiteDownSetupOffer";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -31,7 +34,6 @@ import ObjectID from "Common/Types/ObjectID";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorType, {
@@ -46,6 +48,7 @@ import {
 import MonitorSteps, {
   MonitorStepSeed,
 } from "../../Components/Form/Monitor/MonitorSteps";
+import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import URL from "Common/Types/API/URL";
 import DeviceWebUiUtil, {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
@@ -386,6 +389,21 @@ const MonitorCreate: FunctionComponent<
   const serverEmail: ServerEmail = useServerEmail();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
+
+  /*
+   * A plain Create Monitor - opened with nothing in its address but, at
+   * most, the type to start on - and not a template's, an action item's, a
+   * device's or a chart's monitor, each of which is a job of its own. Only
+   * it offers the guided setup (#7054).
+   */
+  const isPlainCreate: boolean = useMemo((): boolean => {
+    // The address as the page reads its other parameters (Navigation).
+    return Array.from(
+      new URLSearchParams(Navigation.getQueryString()).keys(),
+    ).every((key: string): boolean => {
+      return key === "monitorType";
+    });
+  }, []);
 
   const [isLoading, setIsLoading] = useState<boolean>(
     Boolean(monitorTemplateId),
@@ -1956,22 +1974,25 @@ const MonitorCreate: FunctionComponent<
         /*
          * Who is told is the first thing someone new asks of a monitor.
          * Its default criteria open an incident when it goes down (an alert
-         * for a few types), and an incident or alert nobody owns is emailed
-         * to the project's owners - unless the server cannot send email yet,
-         * which is said instead, with who can set it up (Utils/ServerEmail).
+         * for a few types). Who that tells depends on the project - its
+         * owners, owner rules and on-call rules - so the Criteria step says
+         * it for this monitor (#7055), rather than this card guessing "the
+         * Project Owners" in a project whose rules page somebody. A server
+         * that cannot send email yet says so instead, with who can set it
+         * up (Utils/ServerEmail).
          */
         description={
           cannotSendEmail(serverEmail)
             ? serverEmail.isMasterAdmin
               ? SERVER_EMAIL_COPY.createMonitorDescriptionForAdmin
               : SERVER_EMAIL_COPY.createMonitorDescription
-            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners."
+            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told."
         }
         className="mb-10"
       >
         <div>
           {(isLoading || isLoadingProbes || isBinding) && (
-            <PageLoader isVisible={true} />
+            <DetailListSkeleton fields={4} columns={1} />
           )}
           {error && <ErrorMessage message={error} />}
           {!isLoading && !isLoadingProbes && !isBinding && !error && (
@@ -2000,6 +2021,21 @@ const MonitorCreate: FunctionComponent<
                  */
                 getMonitorTypeFormField<Monitor>({
                   stepId: "monitor-info",
+                  /*
+                   * Website or API picked: the guided setup does the whole
+                   * job - who is told and a test page too - on one page
+                   * (#7054). Offered on a plain Create Monitor only.
+                   */
+                  getFooterElement: (
+                    monitorType: MonitorType | undefined,
+                  ): ReactElement => {
+                    return (
+                      <WebsiteDownSetupOffer
+                        monitorType={monitorType}
+                        isOffered={isPlainCreate}
+                      />
+                    );
+                  },
                 }),
                 {
                   field: {
@@ -2065,27 +2101,43 @@ const MonitorCreate: FunctionComponent<
                     props: CustomElementProps,
                   ) => {
                     return (
-                      <MonitorSteps
-                        {...props}
-                        monitorType={value.monitorType || MonitorType.Manual}
-                        monitorName={value.name || ""}
-                        /*
-                         * A new monitor's criteria are defaults that suit
-                         * most monitors: each starts folded to its one-line
-                         * summary, so the step opens on what to check.
-                         */
-                        foldDefaultCriteria={true}
-                        seedQuery={seedQuery}
-                        seedStep={seedStep}
-                        /*
-                         * Not a template's monitor: criteria nobody has
-                         * worked on follow the monitor type picked, and a
-                         * telemetry monitor offers its recipes - also
-                         * after a walk back to Monitor Info, and for a
-                         * metric chart's Create monitor.
-                         */
-                        isCreating={!monitorTemplateId}
-                      />
+                      <>
+                        <MonitorSteps
+                          {...props}
+                          monitorType={value.monitorType || MonitorType.Manual}
+                          monitorName={value.name || ""}
+                          /*
+                           * A new monitor's criteria are defaults that suit
+                           * most monitors: each starts folded to its one-line
+                           * summary, so the step opens on what to check.
+                           */
+                          foldDefaultCriteria={true}
+                          seedQuery={seedQuery}
+                          seedStep={seedStep}
+                          /*
+                           * Not a template's monitor: criteria nobody has
+                           * worked on follow the monitor type picked, and a
+                           * telemetry monitor offers its recipes - also
+                           * after a walk back to Monitor Info, and for a
+                           * metric chart's Create monitor.
+                           */
+                          isCreating={!monitorTemplateId}
+                        />
+                        {/*
+                         * Who these criteria would tell, before the monitor
+                         * exists (#7055): the resolver a saved monitor's
+                         * overview reads, on the monitor this form holds.
+                         */}
+                        <MonitorDraftWhoIsTold
+                          monitorType={value.monitorType as MonitorType}
+                          name={value.name as string | undefined}
+                          description={value.description as string | undefined}
+                          monitorSteps={
+                            value.monitorSteps as MonitorStepsType | undefined
+                          }
+                          labels={value.labels as Array<unknown> | undefined}
+                        />
+                      </>
                     );
                   },
                 },

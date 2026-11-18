@@ -8,6 +8,11 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import {
+  clearDropdown,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -161,6 +166,13 @@ afterEach(() => {
   cleanup();
   getTelemetryAttributeValuesMock.mockReset();
 });
+
+// What the variable's picker reads: its pick, or "All" - its placeholder.
+function shownChoice(): string | null {
+  const picker: HTMLElement = screen.getByRole("combobox");
+
+  return getShownDropdownValue(picker) ?? getShownDropdownPlaceholder(picker);
+}
 
 describe("dashboard variable All contract", () => {
   describe("a multi-select shows All exactly when it filters nothing", () => {
@@ -339,7 +351,7 @@ describe("dashboard variable All contract", () => {
 
       renderToolbar(variable);
 
-      expect(screen.getByRole("combobox")).toHaveValue("eu-1");
+      expect(shownChoice()).toBe("eu-1");
       expect(isUnfiltered(variable)).toBe(false);
     });
 
@@ -357,7 +369,7 @@ describe("dashboard variable All contract", () => {
 
       renderToolbar(variable);
 
-      expect(screen.getByRole("combobox")).toHaveValue("");
+      expect(shownChoice()).toBe("All");
       expect(isUnfiltered(variable)).toBe(true);
     });
 
@@ -366,9 +378,8 @@ describe("dashboard variable All contract", () => {
         makeVariable({ selectedValue: "eu-1", defaultValue: "eu-1" }),
       );
 
-      fireEvent.change(screen.getByRole("combobox"), {
-        target: { value: "" },
-      });
+      // "All" is the picker's placeholder: clearing the picker picks it.
+      clearDropdown(screen.getByRole("combobox"));
 
       expect(changes[0]?.change).toEqual({ selectedValue: "" });
     });
@@ -381,7 +392,7 @@ describe("dashboard variable All contract", () => {
 
       renderToolbar(variable);
 
-      expect(screen.getByRole("combobox")).toHaveValue("us-1");
+      expect(shownChoice()).toBe("us-1");
       expect(DashboardVariableInterpolation.resolveValue(variable)).toEqual({
         scalar: "us-1",
       });
@@ -458,14 +469,14 @@ describe("dashboard variable All contract", () => {
 
       renderPublic(variable);
 
-      expect(screen.getByRole("combobox")).toHaveValue("");
+      expect(shownChoice()).toBe("All");
       expect(isUnfiltered(variable)).toBe(true);
     });
 
     test("an untouched variable still shows its Default", () => {
       renderPublic(makeVariable({ defaultValue: "eu-1" }));
 
-      expect(screen.getByRole("combobox")).toHaveValue("eu-1");
+      expect(shownChoice()).toBe("eu-1");
     });
 
     test("a TelemetryAttribute Default missing from the values does not read All", async () => {
@@ -487,8 +498,7 @@ describe("dashboard variable All contract", () => {
       await waitFor(() => {
         expect(screen.getByRole("combobox")).not.toBeDisabled();
       });
-      expect(screen.getByRole("combobox")).toHaveValue("prod");
-      expect(screen.getByRole("combobox")).toHaveDisplayValue("prod");
+      expect(shownChoice()).toBe("prod");
       expect(isUnfiltered(variable)).toBe(false);
     });
   });

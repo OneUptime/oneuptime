@@ -171,6 +171,25 @@ Met Docker Compose stelt u de `GLOBAL_EMAIL_`-instellingen in `config.env` in en
 
 OneUptime leest de variabelen bij het opstarten. Is er een onjuist, zoals een poort die geen getal is of een ontbrekend wachtwoord, dan verstuurt de server geen e-mail totdat dat is opgelost; het log van de server, de e-mailinstellingen in het Admin Dashboard en de checklist op `/admin/setup` noemen de variabele. Wachtwoorden en sleutels worden nooit getoond. Wijzig de variabelen en herstart OneUptime om de instellingen te wijzigen: het Admin Dashboard wijzigt ze niet.
 
+## Zien wat de server heeft verstuurd
+
+Op een zelf gehoste server eindigt **Instellingen > Meldingen > E-mails** in het Admin Dashboard met de kaart **E-maillogboek**. Die toont elke e-mail die de server via zijn eigen instellingen verstuurde en die bij geen project hoort, zoals een wachtwoordherstel, een inloglink of een uitnodiging, en elke e-mail die hij niet kon versturen, ook die van een project: naar wie hij ging, wanneer, wat het was en wat de maildienst antwoordde.
+
+- Zet **Alleen mislukte e-mails** aan om alleen de e-mails te zien die niet verstuurd zijn.
+- Een verstuurde e-mail van een project staat in de eigen logboeken van dat project, niet hier. Een e-mail via de eigen mailserver van een project staat hier nooit.
+- Het logboek bewaart nooit het bericht zelf, want een wachtwoordherstel of een inloglink laat iedereen binnen die hem heeft. Een link in een onderwerp wordt bewaard als `[link]`.
+- Alleen hoofdbeheerders kunnen het lezen. Elke e-mail wordt 30 dagen bewaard.
+
+## Bericht krijgen als e-mail of de sondes stoppen
+
+Als de e-mail van de server niet meer werkt, of geen enkele globale sonde meer rapporteert, krijgen de hoofdbeheerders bericht van OneUptime, en nog een keer zodra het weer werkt. Kies waarheen in de kaart **Storingsmeldingen** op dezelfde pagina:
+
+- **Push naar de apparaten van hoofdbeheerders** stuurt een pushmelding naar elk apparaat waarop een hoofdbeheerder in de OneUptime-app is aangemeld. Die staat aan tot u hem uitzet.
+- **Sms naar dit nummer** stuurt een sms via de eigen sms-instellingen van de server.
+- Het **Admin-meldings-e-mail** krijgt ook bericht over de sondes.
+
+Een bericht gaat nooit via het kanaal dat stopte, dus een bericht over e-mail gaat nooit per e-mail, en nooit via een kanaal waarlangs de server nu niet kan versturen. Alleen een verandering wordt gemeld, voor elk hooguit één keer per uur, en projectleden krijgen nooit bericht.
+
 ## Problemen oplossen
 
 Een testmail die niet wordt verzonden, zegt waarom. Open voor elke andere e-mail het tabblad **E-mail** van **Projectinstellingen > Meldingen > Meldingslogboeken** en kies **Statusbericht bekijken** in de rij ervan.

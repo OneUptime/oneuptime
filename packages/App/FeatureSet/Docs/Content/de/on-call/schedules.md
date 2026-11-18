@@ -86,7 +86,7 @@ Jede Person behält überall dieselbe Farbe, damit Sie ihr auf einen Blick folge
 
 ## Wenn jemand abwesend ist
 
-Wenn jemand in den Urlaub geht, überspringen Sie die Person, bis sie zurück ist. Klappen Sie auf der Seite **Ebenen** des Plans eine Ebene auf und klicken Sie neben ihrem Namen auf **Überspringen bis…**. Das öffnet das Formular für Abwesenheiten mit der Person unter **Wer ist abwesend?**, **Nächste Person in der Rotation** unter **Wer vertritt?** und **Beginnt** ab jetzt: Setzen Sie **Endet** auf ihre Rückkehr und speichern Sie.
+Wenn jemand in den Urlaub geht, überspringen Sie die Person, bis sie zurück ist. Klappen Sie auf der Seite **Ebenen** des Plans eine Ebene auf und klicken Sie neben ihrem Namen auf **Überspringen bis…**. Das öffnet das Formular für Abwesenheiten mit der Person unter **Wer ist abwesend?**, **Nächste Person in der Rotation** unter **Wer vertritt?** und **Beginnt** ab jetzt: Setzen Sie **Endet** auf ihre Rückkehr und speichern Sie. Hat die Person zu dieser Zeit schon eine Abwesenheit, sagt das Formular es neben den Zeiten, während Sie sie wählen, mit **Diese Vertretung bearbeiten**, um stattdessen jene zu ändern.
 
 Solange die Person abwesend ist:
 
@@ -97,7 +97,7 @@ Solange die Person abwesend ist:
 
 Wählen Sie stattdessen jemanden unter **Wer vertritt?**, erhält diese Person alle ihre Alarmierungen, aus jedem Plan und jeder Richtlinie, statt dass die Rotation ihre Schichten übernimmt.
 
-So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie und braucht deshalb die Berechtigung für Vertretungen über das ganze Projekt. Ist die Rolle Ihres Teams auf seine eigenen Richtlinien oder auf einige Beschriftungen beschränkt, kommt sie stattdessen auf die Richtlinien dieses Plans, für die Sie Vertretungen anlegen dürfen, mit einer Vertretung je Richtlinie, die auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie steht; bei mehreren haken Sie sie unter **Bereitschaftsrichtlinien** an. **Überspringen bis…** ist nur dort gesperrt und sagt, warum, wo Sie für keine davon eine anlegen dürfen. Sie steht unter **Bereitschaft** > **Erweitert** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
+So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie und braucht deshalb die Berechtigung für Vertretungen über das ganze Projekt. Ist die Rolle Ihres Teams auf seine eigenen Richtlinien oder auf einige Beschriftungen beschränkt, kommt sie stattdessen auf die Richtlinien dieses Plans, für die Sie Vertretungen anlegen dürfen, mit einer Vertretung je Richtlinie, die auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie steht; bei mehreren haken Sie sie unter **Bereitschaftsrichtlinien** an. **Überspringen bis…** ist nur dort gesperrt und sagt, warum, wo Sie für keine davon eine anlegen dürfen. Sie steht unter **Bereitschaft** > **Erweitert** > **Benutzerüberschreibungen** und bei den Benutzerüberschreibungen des Plans auf seiner Seite **Ebenen**, wo **Jetzt beenden** die Person früher zurückholt. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 
 Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
@@ -111,6 +111,8 @@ Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre
 - Ein Plan, der ohne sie angelegt wird, hat wie bisher keine Ebenen; die Plan-Ressource von Terraform sendet sie nicht.
 - Eine Ebene, die ohne `rotation` angelegt wird, übergibt wie bisher täglich.
 - Eine Änderung an den Ebenen eines Plans und an den Personen darin, die über die API oder Terraform vorgenommen wird, wird als eine Änderung mitgeteilt: Wer Bereitschaft hat, wird ermittelt, sobald die Ebenen eine halbe Minute lang nicht geändert wurden, und wer in die Bereitschaft kommt, sie abgibt oder als Nächstes dran ist, erfährt es einmal, nicht einmal pro geschriebener Ebene oder Person. Alarme gehen an die Person, die die Ebenen in Bereitschaft setzen, sobald jede Änderung gespeichert ist.
+- Um auf einmal zu ändern, wer in den Ebenen eines Plans an der Reihe ist, wie es **Änderungen speichern** auf der Seite **Ebenen** tut, lesen Sie die Ebenen mit `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` und senden sie geändert an `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` zurück. Sie nennen jede Ebene, die der Plan behält, die mit der höchsten Priorität zuerst, jede mit ihren Personen in der Reihenfolge ihrer Schichten: wer schon in einer Ebene ist, über `layerUserId`, wer hinzukommt, nur über `userId`. `deletedLayerIds` nennt die Ebenen, die gelöscht werden.
+- Eine Speicherung wird ganz oder gar nicht geschrieben, und wer Bereitschaft hat, wird einmal ermittelt, sofort. Eine, die gesendet wird, nachdem jemand anderes die Ebenen geändert hat, wird mit 409 abgelehnt, weil ihre `basedOnVersion` nicht mehr die der Ebenen ist: Lesen Sie die Ebenen erneut und nehmen Sie die Änderung an dem vor, was jetzt da ist. Die Terraform-Ressource `oneuptime_on_call_schedule_layers` speichert die Ebenen eines Plans auf diese Weise.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

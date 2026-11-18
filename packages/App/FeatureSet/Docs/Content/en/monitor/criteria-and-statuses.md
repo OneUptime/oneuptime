@@ -93,6 +93,49 @@ flowchart TB
 
 To see how a check was judged, open the monitor's **Overview**: the **Monitor Summary** card shows which criteria matched and what each one did, including an incident it skipped because one was already open. On a monitor that checks metrics (a Metrics monitor, or a Host, Kubernetes, Docker, Proxmox or other infrastructure monitor), the card at the top of its overview charts those metrics with each criteria's value drawn as a line, so you can see how close they are to matching.
 
+## Who is told when it goes down
+
+**When this goes down** says in a few sentences what happens when the monitor fails and who is told: the status it sets, the incident or alert it opens, who that emails and who it pages, by name. Each thing that would stop someone being told is a line of its own, with a link to the page that puts it right. It is on a monitor's **Overview**, under its criteria on its **Criteria** page, on the criteria step of **Create Monitor** for the monitor you are setting up, and in the website guided setup.
+
+It works the chain out as a real incident or alert does: with the owner rules, privacy rules, label rules and on-call rules of your project, the alert incident rule that turns an alert into an incident, and who each on-call policy's first escalation rule reaches right now. An alert's on-call rule that asks who owns it (**Alert Owner**) is matched on the owners the alert will have: the people and teams its criteria names, the owners of the network device the monitor watches, and whom owner rules add. A title placeholder that only a check fills is shown as written. **Show the chain** opens it row by row:
+
+| Row | What it says |
+| --- | --- |
+| **Status** | The status the criteria sets. |
+| **Opens** | The incident or alert, its severity in brackets, and its title. |
+| **Emails** | Who its Created email reaches: its owners, the owners owner rules add, or the Project Owners when it has none. Someone the on-call page reaches first is not emailed as an owner too. |
+| **Owner Rules** | The owner rules that add its owners. |
+| **Private** | Why it is private: a privacy rule, or the criteria. A private incident shows on no status page and tells no subscriber, and only its owners, the Project Owners and the Project Admins can see it. |
+| **Label Rules** | The label rules whose labels change which on-call rules page it. |
+| **On-call rules** | The on-call rules that match it. A rule that matches who owns an alert says which owner made it match. |
+| **On-call policy** | Each policy those rules run: who its first escalation rule reaches right now and by what, and who it can't reach, and why. |
+| **Status pages** | The status pages that show it, each with the monitor group it shows the monitor through. |
+| **Incident Rule** | For an alert: the alert incident rule that declares an incident from it, right away or once the alert has stayed open, and that incident, told as any incident is. |
+
+### What stops people being told
+
+| What stops it | Link |
+| --- | --- |
+| No criteria changes the status or opens an incident or alert. | **Open Criteria** |
+| Nobody is paged: no on-call rule matches, or the project has no on-call policy yet. | **Set Up Paging** |
+| The monitor opens alerts, and only incidents have on-call rules. | **Set Up Paging** |
+| An on-call policy has no escalation rules. | **Open On-Call Policy** |
+| An on-call policy reaches nobody right now. | **Open On-Call Policy** |
+| Someone a policy pages can't be reached: they opted out, have no verified method, or have no rule for the severity in a project that doesn't fall back. | **Open Readiness** |
+| SMS, calls, WhatsApp or Telegram are off in the project. | **Open Notification Channels** |
+| The project has no balance left for SMS and calls (OneUptime Cloud). | **Open Billing** |
+| The server can't send email, SMS or calls yet. | **Open Admin Dashboard**, for the server's admins |
+
+An alert that an alert incident rule turns into an incident that pages someone is not a break: the incident's own policies are checked instead.
+
+Owners who aren't emailed are listed after the breaks, each with why and where they are named: someone who isn't a member of the project, a team with nobody in it who is (**Open Team**), or a team of another project, named in the criteria (**Open Criteria**), on the network device the monitor watches (**Open Network Device**) or by an owner rule (**Open Owner Rules**). The email still goes out, to the owners it reaches or to the Project Owners, so they are not breaks. Setup Health lists them too, as worth fixing.
+
+### Recheck, and what you can see
+
+The answer is at most a minute old, and **Recheck** works it out again. When a recheck fails, the card keeps the last answer and says why under it.
+
+The card names only what you can read. An on-call policy, a rule, a status page or a monitor group you can't see keeps its place without its name, and a private incident or alert you won't be able to see says only that it opens and that it is private.
+
 ## What an incident or alert keeps of the check
 
 An incident or an alert a monitor opens keeps the check that opened it, so you can see why long after the monitor's own logs are gone. Under its root cause, **Evaluation details** names the criteria that matched and, for each filter that matched, what the check found. **Show details** adds the rest of the evidence, the filters that did not match, and the check itself: the request, when it ran, from which probe and what came back. What a filter found can be:

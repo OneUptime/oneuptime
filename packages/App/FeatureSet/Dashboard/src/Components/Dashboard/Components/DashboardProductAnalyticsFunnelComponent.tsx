@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import DashboardProductAnalyticsFunnelComponent from "Common/Types/Dashboard/DashboardComponents/DashboardProductAnalyticsFunnelComponent";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ObjectID from "Common/Types/ObjectID";
@@ -7,7 +8,6 @@ import {
   ProductAnalyticsFunnelDefinition,
   ProductAnalyticsSavedViewType,
 } from "Common/Types/Rum/ProductAnalyticsSavedViews";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -89,7 +89,7 @@ const DashboardProductAnalyticsFunnelComponentElement: FunctionComponent<
   } else if (!funnel.data) {
     content = (
       <div className="flex h-full items-center justify-center">
-        <ComponentLoader />
+        <ChartSkeleton hasLegend={false} fillsHeight={true} />
       </div>
     );
   } else if (funnel.data.steps[0] && funnel.data.steps[0].people === 0) {

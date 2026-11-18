@@ -9,6 +9,7 @@ import {
   TelemetrySignalIngestionView,
   TelemetrySignalRow,
 } from "./TelemetryIngestionUtils";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import URL from "Common/Types/API/URL";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
@@ -20,7 +21,6 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
@@ -220,7 +220,7 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     const view: TelemetrySignalIngestionView = parseSignalIngestion(data);

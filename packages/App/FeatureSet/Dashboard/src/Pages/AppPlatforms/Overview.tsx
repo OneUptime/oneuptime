@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -36,7 +37,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -409,7 +410,7 @@ const AppPlatformsOverview: FunctionComponent<
   }
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const openAdd: () => void = (): void => {
@@ -484,7 +485,7 @@ const AppPlatformsOverview: FunctionComponent<
         ) : groups ? (
           <PlatformGroupList groups={groups} />
         ) : (
-          <PageLoader isVisible={true} />
+          <CardListSkeleton />
         )}
       </Card>
       {addDialog}

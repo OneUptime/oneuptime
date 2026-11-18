@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -7,7 +8,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import StatusBadge, {
   StatusBadgeType,
@@ -477,7 +477,7 @@ const RumApplicationProductAnalyticsPerson: FunctionComponent<
   }
 
   if (!detail.data) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   const person: ProductAnalyticsPersonDto | null = detail.data.person;

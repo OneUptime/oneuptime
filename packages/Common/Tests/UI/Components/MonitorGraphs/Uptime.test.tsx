@@ -270,13 +270,13 @@ describe("MonitorUptimeGraph - loading and recovery", () => {
   test("loading hides the history until the supplied timeline is ready", () => {
     const { snapshots, rerenderHistory } = renderHistory({ isLoading: true });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("day-uptime-graph")).not.toBeInTheDocument();
     snapshots.length = 0;
 
     rerenderHistory({ isLoading: false });
 
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chart-skeleton")).not.toBeInTheDocument();
     expect(snapshots[0]?.labels[1]).toContain("0% uptime");
   });
 

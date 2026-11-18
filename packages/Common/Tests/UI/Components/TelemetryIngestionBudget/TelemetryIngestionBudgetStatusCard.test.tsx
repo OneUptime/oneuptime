@@ -525,7 +525,7 @@ describe("an answer that is not a status", () => {
       drawOverPage(answeringAnything(answer));
 
       await waitFor(() => {
-        expect(screen.queryByTestId("component-loader")).toBeNull();
+        expect(screen.queryByTestId("detail-skeleton")).toBeNull();
       });
 
       expect(screen.getByTestId(PAGE_TEST_ID)).toBeInTheDocument();

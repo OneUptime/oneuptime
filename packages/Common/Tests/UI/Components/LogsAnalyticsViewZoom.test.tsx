@@ -18,6 +18,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "../../../UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
 
@@ -617,9 +618,10 @@ describe("only the timeseries is a time chart", () => {
     async (_label: string, chartType: string) => {
       await renderInZoom(spyZoom(false).zoom);
 
-      fireEvent.change(screen.getAllByRole("combobox")[0]!, {
-        target: { value: chartType },
-      });
+      chooseDropdownOption(
+        screen.getByRole("combobox", { name: "Chart" }),
+        _label,
+      );
 
       await waitFor(() => {
         expect(
@@ -785,7 +787,7 @@ describe("a superseded request never paints over the current window", () => {
   }
 
   function loader(): HTMLElement | null {
-    return screen.queryByTestId("component-loader");
+    return screen.queryByTestId("chart-skeleton");
   }
 
   /*
@@ -925,9 +927,10 @@ describe("a superseded request never paints over the current window", () => {
       expect(pending).toHaveLength(1);
     });
 
-    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
-      target: { value: "toplist" },
-    });
+    chooseDropdownOption(
+      screen.getByRole("combobox", { name: "Chart" }),
+      "Top List",
+    );
     await waitFor(() => {
       expect(pending).toHaveLength(2);
     });

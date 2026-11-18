@@ -27,6 +27,7 @@ import {
   getUserSettingsOnCallRulesLink,
 } from "../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../Types/ObjectID";
+import { hasNotificationSetupToFinish } from "../../Types/OnCallDutyPolicy/NotificationSetupToFinish";
 import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 
@@ -416,7 +417,13 @@ export class OnCallSetupReminderService extends BaseService {
      * that twice and the next mail from this sender - which might be the one
      * that matters - has already been filed as noise.
      */
-    if (readiness.status === ReadinessStatus.Ready) {
+    /*
+     * Unless their project asks people on call for a phone method and
+     * they have none (#7449): that is something to set up, said in the
+     * reasons the mail lists. The same rule Readiness lets an admin pick
+     * them by, and the bell asks them to finish by (#7040).
+     */
+    if (!hasNotificationSetupToFinish(readiness)) {
       return {
         userId: userId,
         outcome: SetupReminderOutcome.SkippedNothingMissing,

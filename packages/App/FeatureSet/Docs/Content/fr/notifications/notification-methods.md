@@ -188,7 +188,7 @@ Ce canal est désactivé dans ce projet. La carte indique qui peut l'activer ; v
 :::
 
 :::details Le code n'est jamais arrivé
-Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Envoyer un nouveau code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message.
+Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Envoyer un nouveau code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message. Qui peut lire ces journaux voit **Ouvrir les Journaux de notification** sous le code, qui ouvre l'onglet du message ; les autres sont invités à demander à un Propriétaire du projet ou à un Administrateur du projet.
 :::
 
 :::details L'ajout de mon compte Slack échoue
@@ -198,6 +198,10 @@ Liez d'abord votre compte dans **Paramètres utilisateur → Espace de travail �
 :::details Mon téléphone ne reçoit pas de notifications push
 Vérifiez que le téléphone figure sous **Appareils de notification push**, et envoyez-lui une **Notification de test**. Voir [FAQ et dépannage](/docs/mobile-desktop-apps/faq-troubleshooting#notifications).
 :::
+
+### La page indique que ce serveur ne peut pas envoyer de SMS
+
+Votre serveur n'a pour l'instant aucun moyen qui fonctionne d'envoyer des SMS, ou de passer des appels : rien n'est configuré, ou ce qui l'est échoue. Tant que cela ne fonctionne pas, la page le dit, et vous ne pouvez pas y ajouter de numéro. Demandez à l'administrateur de votre serveur, qui voit à la place un lien vers les paramètres. Un projet qui a sa propre configuration Twilio envoie par elle et n'est pas concerné. Il en va de même pour l'e-mail.
 
 ## Étapes suivantes
 

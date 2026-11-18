@@ -83,7 +83,7 @@ import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
@@ -670,7 +670,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   /*

@@ -863,7 +863,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
               )}
             </div>
           )}
-          <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
+          <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">
             {isGroupedMode &&
             searchText.trim() !== "" &&
             allRowTuples.length !== rowCount ? (
@@ -991,7 +991,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                                  * 1.5:1 on the card, too faint to read.
                                  */}
                                 {value || (
-                                  <span className="text-gray-400">
+                                  <span className="text-gray-500">
                                     {getUnsetText(translator)}
                                   </span>
                                 )}

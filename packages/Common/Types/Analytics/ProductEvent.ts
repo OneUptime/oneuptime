@@ -114,9 +114,24 @@ export enum ProductEventName {
   // How to reach me (#6820): a paging ladder saved, and the grid opened.
   PagingLadderSaved = "paging_ladder/saved",
   PagingLadderGridOpened = "paging_ladder/grid_opened",
+  /*
+   * The project's default ladder (#7449) saved, and applied to members from
+   * On-Call Readiness (#7450).
+   */
+  PagingLadderDefaultSaved = "paging_ladder/default_saved",
+  PagingLadderDefaultApplied = "paging_ladder/default_applied",
+  // A person's own steps filled with the project's default (#9445).
+  PagingLadderStartedFromDefault = "paging_ladder/started_from_default",
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
+
+  /*
+   * "When this goes down" (#7079): its chain opened, and a fix opened from
+   * one of its breaks or owners who aren't emailed. Never a name.
+   */
+  WhoIsToldChainOpened = "who_is_told/chain_opened",
+  WhoIsToldFixOpened = "who_is_told/fix_opened",
 
   /*
    * Putting a status page, a dashboard or a form on its own domain (#7024):
@@ -139,6 +154,12 @@ export const PRODUCT_EVENT_TOKEN_MAX_LENGTH: number = 60;
 
 // The page a feedback answer was given on: a route with no ids, cut to this.
 export const FEEDBACK_PAGE_TOKEN_MAX_LENGTH: number = 200;
+
+/*
+ * The kinds of break a chain names, joined by "." (who_is_told/
+ * chain_opened): long enough for every kind there is.
+ */
+export const WHO_IS_TOLD_BREAK_KINDS_MAX_LENGTH: number = 200;
 
 export interface ProductEventPropertySpec {
   name: string;
@@ -337,8 +358,9 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   },
   {
     name: ProductEventName.GuidedSetupStarted,
-    description: "A guided setup was opened.",
-    properties: [token("setup")],
+    description:
+      "A guided setup was opened, and where from when the way in names itself (from: empty_list, how_it_works, create_monitor, website_down_summary).",
+    properties: [token("setup"), token("from")],
   },
   {
     name: ProductEventName.GuidedSetupStepReached,
@@ -455,10 +477,58 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     properties: [{ name: "is_own" }, { name: "differing_card_count" }],
   },
   {
+    name: ProductEventName.PagingLadderDefaultSaved,
+    description:
+      "The project's default ladder for new members was saved in Project Settings > Notifications > Notification Channels: how many steps it has (0: turned off).",
+    properties: [{ name: "step_count" }],
+  },
+  {
+    name: ProductEventName.PagingLadderDefaultApplied,
+    description:
+      "The project's default ladder was applied from On-Call Readiness to the members picked: how many were picked, and how many got it, were skipped or failed.",
+    properties: [
+      { name: "member_count" },
+      { name: "applied_count" },
+      { name: "skipped_count" },
+      { name: "failed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.PagingLadderStartedFromDefault,
+    description:
+      "Start From the Project's Default filled a paging ladder on How to Reach Me with the project's default, before it was saved: by the person or for a member, how many steps it gave, and how many of the default's channels it left out as not verified.",
+    properties: [
+      { name: "is_own" },
+      { name: "step_count" },
+      { name: "left_out_count" },
+    ],
+  },
+  {
     name: ProductEventName.UsedByListOpened,
     description:
       'The full list of what refers to a record was opened: a relation\'s "See all" on a record\'s Used by card (relation), or a label\'s Used by (relation "all").',
     properties: [token("record_kind"), token("relation")],
+  },
+  {
+    name: ProductEventName.WhoIsToldChainOpened,
+    description:
+      "Show the chain was opened on When this goes down: where the card is (place), how many breaks it named and of which kinds, and how many owners it said aren't emailed.",
+    properties: [
+      token("place"),
+      { name: "break_count" },
+      {
+        name: "break_kinds",
+        isToken: true,
+        maxLength: WHO_IS_TOLD_BREAK_KINDS_MAX_LENGTH,
+      },
+      { name: "owners_not_emailed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.WhoIsToldFixOpened,
+    description:
+      "A fix was opened from When this goes down: where the card is (place), the break it puts right or owner_not_emailed (kind), and the page it opens (fix).",
+    properties: [token("place"), token("kind"), token("fix")],
   },
   {
     name: ProductEventName.CustomDomainAddStarted,

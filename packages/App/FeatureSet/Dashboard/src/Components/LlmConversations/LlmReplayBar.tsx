@@ -1,4 +1,4 @@
-import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -6,7 +6,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import LlmConversationReplay from "Common/Utils/Telemetry/LlmConversationReplay";
 import { LlmTranscriptStep } from "Common/Utils/Telemetry/LlmConversationTranscript";
@@ -108,26 +107,23 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
       data-testid="llm-replay-bar"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={controller.togglePlay}
+        {/*
+          The shared primary Button: the one thing this bar is for. Its
+          words say what a press does (Play, Pause, Replay), its state is
+          read from data-state, and K presses it too (useLlmConversationReplay).
+        */}
+        <Button
+          title={playLabel}
+          isTitleTranslated={true}
+          icon={controller.isPlaying ? IconProp.Pause : IconProp.Play}
+          buttonStyle={ButtonStyleType.PRIMARY}
+          className="shrink-0"
           disabled={total === 0}
-          className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-indigo-600 pl-3 pr-4 text-sm font-medium text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
-            {
-              isLocked: total === 0,
-              hoverClassName: "hover:bg-indigo-500",
-            },
-          )}`}
-          data-testid="llm-replay-play"
-          data-state={controller.isPlaying ? "playing" : "paused"}
-          title={translator.translateText("Play or pause (K)") || ""}
-        >
-          <Icon
-            icon={controller.isPlaying ? IconProp.Pause : IconProp.Play}
-            className="h-4 w-4"
-          />
-          <span>{playLabel}</span>
-        </button>
+          tooltip="Play or pause (K)"
+          dataTestId="llm-replay-play"
+          dataState={controller.isPlaying ? "playing" : "paused"}
+          onClick={controller.togglePlay}
+        />
 
         <ReplayButtonGroup ariaLabel="Move through the conversation">
           <ReplayToolButton

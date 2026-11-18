@@ -34,7 +34,7 @@ const RelativeTimeCell: FunctionComponent<ComponentProps> = (
   if (!props.date) {
     return (
       <span
-        className={`${RELATIVE_TIME_CELL_CLASS_NAME} text-gray-400`}
+        className={`${RELATIVE_TIME_CELL_CLASS_NAME} text-gray-500`}
         data-testid={RELATIVE_TIME_CELL_TEST_ID}
       >
         {translator.translateText("Never")}

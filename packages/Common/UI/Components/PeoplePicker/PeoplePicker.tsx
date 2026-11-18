@@ -127,6 +127,14 @@ export interface ComponentProps {
    * dialog step that asks for nothing else, as a form's first input is.
    */
   autoFocus?: boolean | undefined;
+  /*
+   * What a pick that can no longer be found is called, in English to look
+   * up, in place of its kind's own name for it ("Unknown user", "Deleted
+   * team"): a workspace rule's owner condition says "No longer in this
+   * project", as the rule's card does (#7807). Other pickers - an on-call
+   * schedule's layer - keep their kind's words.
+   */
+  unknownName?: string | undefined;
 }
 
 // Its words, kept in PeoplePickerTypes, for what reads them from the picker.
@@ -324,6 +332,23 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  // A pick no longer found, called what this picker calls it (unknownName).
+  const getChipOption: (
+    kind: PeoplePickerKind,
+    id: string,
+  ) => PeoplePickerOption | undefined = (
+    kind: PeoplePickerKind,
+    id: string,
+  ): PeoplePickerOption | undefined => {
+    const option: PeoplePickerOption | undefined = lookup.getOption(kind, id);
+
+    if (option?.isUnknown && props.unknownName) {
+      return { ...option, name: props.unknownName };
+    }
+
+    return option;
+  };
+
   const chips: Array<ReactElement> = picks.map(
     (pick: { kind: PeoplePickerKind; id: string }): ReactElement => {
       return (
@@ -331,7 +356,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
           key={getPeoplePickerOptionKey(pick.kind, pick.id)}
           kind={pick.kind}
           id={pick.id}
-          option={lookup.getOption(pick.kind, pick.id)}
+          option={getChipOption(pick.kind, pick.id)}
           disabled={!isInteractive}
           onRemove={
             isInteractive

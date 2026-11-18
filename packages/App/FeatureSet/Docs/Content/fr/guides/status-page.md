@@ -32,11 +32,17 @@ Votre serveur a besoin de son propre nom d'hôte, comme `oneuptime.example.com`,
 
 Sur la page **Accueil** de votre projet, cliquez sur **Publiez une page de statut** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Informer mes clients avec une page de statut** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `status page` et choisissez **Publiez une page de statut**.
 
+**Pages de statut** l'ouvre aussi : cliquez sur **Configuration guidée** dans sa liste vide, ou sous **Fonctionnement** une fois que le projet a une page de statut.
+
 ### La nommer et choisir ce qu'elle affiche
 
 ![L'étape « Nommez-la et choisissez ce qu'elle affiche », avec « Créer la page de statut » entouré](screen:status-page-pick)
 
 Sous **Nommez-la et choisissez ce qu'elle affiche**, gardez le **Nom de la page de statut** proposé ou saisissez le vôtre. Sous **Ce qu'elle affiche**, cochez les moniteurs que vos clients doivent voir, ou cliquez sur **Tout sélectionner**. Cliquez sur **Créer la page de statut**. Dès cet instant, la page est publique à son lien, et n'affiche que les moniteurs que vous avez cochés.
+
+Si le projet a déjà une page de statut, l'étape y ajoute les moniteurs que vous cochez et marque **Sur la page** ceux qu'elle affiche déjà. S'il y a plusieurs pages, choisissez-en une sous **Page de statut**. Pour une nouvelle page, cliquez sur **Créer plutôt une nouvelle page de statut**.
+
+Avec beaucoup de moniteurs, tapez une partie d'un nom dans **Rechercher par nom**, ou choisissez une étiquette sous **Toutes les étiquettes** : **Tout sélectionner** coche alors ce que la liste affiche. Un groupe de moniteurs apparaît sur la page comme une seule ligne.
 
 ### Regarder ce que voient vos clients
 

@@ -1,4 +1,5 @@
 import EnterpriseSettingLicenseNotice from "../../Dashboard/EnterpriseSettings/EnterpriseSettingLicenseNotice";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import {
   EnterpriseLicenseMode,
   LicensedFeature,
@@ -37,7 +38,6 @@ import {
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Page from "Common/UI/Components/Page/Page";
@@ -266,7 +266,7 @@ const SessionLengthSettingsPage: FunctionComponent = (): ReactElement => {
           title={SessionLengthCopy.cardTitle}
           description={SessionLengthCopy.cardDescription}
         >
-          <ComponentLoader />
+          <DetailListSkeleton fields={2} columns={1} />
         </Card>
       );
     }

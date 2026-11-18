@@ -173,7 +173,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ComponentLoader/ComponentLoader", () => {
+jest.mock("../../../UI/Components/Page/PageSkeleton", () => {
   return {
     __esModule: true,
     default: (): ReactElement => {

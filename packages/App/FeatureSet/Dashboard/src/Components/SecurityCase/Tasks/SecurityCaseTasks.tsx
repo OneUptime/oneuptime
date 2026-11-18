@@ -2,6 +2,7 @@ import {
   SECURITY_CASE_TASKS_COPY,
   SECURITY_CASE_TASKS_TEST_IDS,
 } from "./SecurityCaseTasksCopy";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import {
   SECURITY_CASE_TASKS_LIMIT,
   SECURITY_CASE_TASK_SELECT,
@@ -29,7 +30,6 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -133,7 +133,7 @@ export const SecurityCaseTaskAssignee: FunctionComponent<{
   if (!props.task.assignedToUser || !name) {
     return (
       <span
-        className={`${props.isCompact ? "text-xs" : "text-sm"} text-gray-400`}
+        className={`${props.isCompact ? "text-xs" : "text-sm"} text-gray-500`}
       >
         {translator.translateText(SECURITY_CASE_TASKS_COPY.unassigned)}
       </span>
@@ -599,7 +599,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
     }
 
     if (!tasks) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={3} />;
     }
 
     return (

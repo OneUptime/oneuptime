@@ -1,11 +1,11 @@
 import { getCloudBreadcrumbs } from "../../../Utils/Breadcrumbs/CloudBreadcrumbs";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import { getCloudResourceForwardRoute } from "../../../Utils/CloudResourceViewPages";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -139,7 +139,7 @@ const CloudResourceViewLayout: FunctionComponent<
         />
       }
     >
-      {cloudResourceKind ? <Outlet /> : <PageLoader isVisible={true} />}
+      {cloudResourceKind ? <Outlet /> : <PageSkeleton />}
     </ModelPage>
   );
 };

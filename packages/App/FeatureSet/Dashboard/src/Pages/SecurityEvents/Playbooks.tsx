@@ -326,7 +326,7 @@ const SecurityPlaybooksPage: FunctionComponent<
             getElement: (item: SecurityPlaybook): ReactElement => {
               if (!item.lastRunAt) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Never")}
                   </span>
                 );

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
@@ -16,7 +17,6 @@ import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1145,7 +1145,7 @@ const DockerHostOverview: FunctionComponent<
                       {hostIdentifier}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -1206,7 +1206,11 @@ const DockerHostOverview: FunctionComponent<
     if (isInitialLoading) {
       return (
         <div className="mb-6">
-          <PageLoader isVisible={true} />
+          <StatTilesSkeleton
+            kind="golden"
+            count={5}
+            gridClassName="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+          />
         </div>
       );
     }

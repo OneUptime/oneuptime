@@ -22,6 +22,15 @@ import DashboardVariable, {
 import ObjectID from "../../../Types/ObjectID";
 import { VariableValueChange } from "../../../UI/Components/Dashboard/DashboardVariableControl";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  closeDropdown,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+  listDropdownOptions,
+  openDropdown,
+} from "../../DropdownPicks";
 import PrivateSelector from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariableSelector";
 import PublicSelector from "../../../../App/FeatureSet/PublicDashboard/src/Pages/DashboardView/DashboardVariableSelector";
 import DashboardVariablesModal from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardVariablesModal";
@@ -165,12 +174,14 @@ describe.each([false, true])(
   (isPublic: boolean) => {
     test("shows names with leading zeroes and sends stable label IDs without a labels request", () => {
       const state: SelectorState = renderSelector(isPublic, labelVariable());
-      expect(screen.getByRole("option", { name: "0660" })).toHaveValue(FIRST);
-      fireEvent.change(screen.getByRole("combobox", { name: "Unit" }), {
-        target: { value: FIRST },
-      });
+      chooseDropdownOption(
+        screen.getByRole("combobox", { name: "Unit" }),
+        "0660",
+      );
       expect(state.variable.selectedValue).toBe(FIRST);
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(FIRST);
+      expect(
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("0660");
       expect(getListMock).not.toHaveBeenCalled();
       expect(telemetryMock).not.toHaveBeenCalled();
       expect(publicPostMock).not.toHaveBeenCalled();
@@ -184,10 +195,12 @@ describe.each([false, true])(
       const select: HTMLElement = screen.getByRole("combobox", {
         name: "Unit",
       });
-      expect(select).toHaveValue(FIRST);
-      fireEvent.change(select, { target: { value: "" } });
+      expect(getShownDropdownValue(select)).toBe("0660");
+      // "All" is the placeholder: clearing the picker picks it.
+      clearDropdown(select);
       expect(state.variable.selectedValue).toBe("");
-      expect(select).toHaveValue("");
+      expect(getShownDropdownValue(select)).toBeNull();
+      expect(getShownDropdownPlaceholder(select)).toBe("All");
     });
 
     test("multiple choices and Clear update selectedValues and remove stale scalar state", () => {
@@ -217,11 +230,8 @@ describe.each([false, true])(
     test("a deleted or disallowed selected ID is visibly unavailable instead of appearing as All", () => {
       renderSelector(isPublic, labelVariable({ selectedValue: "missing" }));
       expect(
-        screen.getByRole("option", { name: "Unavailable label" }),
-      ).toHaveValue("missing");
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(
-        "missing",
-      );
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("Unavailable label");
     });
 
     test("limits explicit multi-selection to 100 labels", () => {
@@ -313,9 +323,11 @@ describe("Project Labels variable authoring", () => {
       screen.getByRole("combobox", { name: "Allowed project labels" }),
       { key: "Backspace", keyCode: 8 },
     );
-    expect(screen.getByRole("combobox", { name: "Default label" })).toHaveValue(
-      "",
-    );
+    expect(
+      getShownDropdownValue(
+        screen.getByRole("combobox", { name: "Default label" }),
+      ),
+    ).toBeNull();
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
     expect(saved[0]?.[0]).toMatchObject({
       labelOptions: [OPTIONS[0]],
@@ -331,9 +343,9 @@ describe("Project Labels variable authoring", () => {
     const select: HTMLElement = screen.getByRole("combobox", {
       name: "Default label",
     });
-    expect(select).toHaveValue("missing");
+    expect(getShownDropdownValue(select)).toBe("Unavailable label");
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
-    fireEvent.change(select, { target: { value: "" } });
+    clearDropdown(select);
     expect(screen.getByTestId("modal-footer-submit-button")).not.toBeDisabled();
   });
 
@@ -349,9 +361,13 @@ describe("Project Labels variable authoring", () => {
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
     await screen.findByRole("combobox", { name: "Allowed project labels" });
     chooseDropdown("Allowed project labels", "0660");
-    fireEvent.change(screen.getByRole("combobox", { name: "Default label" }), {
-      target: { value: FIRST },
-    });
+    closeDropdown(
+      screen.getByRole("combobox", { name: "Allowed project labels" }),
+    );
+    chooseDropdownOption(
+      screen.getByRole("combobox", { name: "Default label" }),
+      "0660",
+    );
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
     expect(saved[0]?.[0]).toMatchObject({
       id: "unit",
@@ -389,11 +405,12 @@ describe("Project Labels variable authoring", () => {
       chooseDropdown("Variable source", "Project Labels");
       await screen.findByRole("combobox", { name: "Allowed project labels" });
       chooseDropdown("Allowed project labels", "0660");
-      fireEvent.change(
+      closeDropdown(
+        screen.getByRole("combobox", { name: "Allowed project labels" }),
+      );
+      chooseDropdownOption(
         screen.getByRole("combobox", { name: "Default label" }),
-        {
-          target: { value: FIRST },
-        },
+        "0660",
       );
       fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
       expect(saved[0]?.[0]).not.toHaveProperty("selectedValue");
@@ -410,7 +427,9 @@ describe("Project Labels variable authoring", () => {
         );
       cleanup();
       renderSelector(isPublic, restored!);
-      expect(screen.getByRole("combobox", { name: "Unit" })).toHaveValue(FIRST);
+      expect(
+        getShownDropdownValue(screen.getByRole("combobox", { name: "Unit" })),
+      ).toBe("0660");
       expect(DashboardVariableInterpolation.resolveValue(restored!)).toEqual({
         scalar: FIRST,
       });
@@ -461,7 +480,15 @@ describe("Project Labels variable authoring", () => {
     chooseDropdown("Allowed project labels", "0661");
     expect(getListMock).toHaveBeenCalledTimes(2);
     expect(getListMock.mock.calls[1]?.[0]).toMatchObject({ skip: 1 });
-    expect(screen.getByRole("option", { name: "0661" })).toHaveValue(SECOND);
+    closeDropdown(
+      screen.getByRole("combobox", { name: "Allowed project labels" }),
+    );
+    // The label from the second page is a default the author can pick.
+    expect(
+      await listDropdownOptions(
+        screen.getByRole("combobox", { name: "Default label" }),
+      ),
+    ).toContain("0661");
   });
 
   test("reports a labels loading failure and prevents saving an empty allowlist", async () => {
@@ -482,9 +509,8 @@ describe("Project Labels variable authoring", () => {
   test("disables a single default for multi-select label variables", async () => {
     renderEditor(labelVariable({ isMultiSelect: true, defaultValue: FIRST }));
     await screen.findByRole("combobox", { name: "Allowed project labels" });
-    expect(
-      screen.getByRole("combobox", { name: "Default label" }),
-    ).toBeDisabled();
+    // A locked Dropdown's input is not offered as a combobox, but keeps its name.
+    expect(screen.getByLabelText("Default label")).toBeDisabled();
   });
 
   test("preserves legacy custom-list source and values when saving unrelated edits", () => {
@@ -524,10 +550,14 @@ describe("Monitor List variable binding editor", () => {
         }}
       />,
     );
+    openDropdown(screen.getByRole("combobox", { name: "Label Variable" }));
+    expect(screen.getByRole("option", { name: "Unit (UNIT)" })).toBeTruthy();
     expect(screen.queryByRole("option", { name: "host" })).toBeNull();
-    fireEvent.change(screen.getByRole("combobox", { name: "Label Variable" }), {
-      target: { value: "unit" },
-    });
+    closeDropdown(screen.getByRole("combobox", { name: "Label Variable" }));
+    chooseDropdownOption(
+      screen.getByRole("combobox", { name: "Label Variable" }),
+      "Unit (UNIT)",
+    );
     expect(changes).toEqual(["unit"]);
     rerender(
       <ProjectLabelVariableDropdown
@@ -536,10 +566,10 @@ describe("Monitor List variable binding editor", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByRole("combobox")).toHaveValue("unit");
-    expect(
-      screen.getByRole("option", { name: "Unit (LOCATION)" }),
-    ).toBeInTheDocument();
+    // The binding is the variable's ID, so it still names the renamed one.
+    expect(getShownDropdownValue(screen.getByRole("combobox"))).toBe(
+      "Unit (LOCATION)",
+    );
   });
 
   test("flags a deleted binding and lets the author explicitly clear it", () => {
@@ -556,8 +586,10 @@ describe("Monitor List variable binding editor", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "removed or its source changed",
     );
-    expect(screen.getByRole("combobox")).toHaveValue("missing");
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "" } });
+    expect(getShownDropdownValue(screen.getByRole("combobox"))).toBe(
+      "Unavailable variable",
+    );
+    clearDropdown(screen.getByRole("combobox"));
     expect(changes).toEqual([""]);
   });
 

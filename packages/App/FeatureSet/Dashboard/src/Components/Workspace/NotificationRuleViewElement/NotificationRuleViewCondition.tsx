@@ -177,6 +177,48 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         props.notificationRuleCondition,
       );
 
+    /*
+     * A value the condition holds that names none of the project's records
+     * any more - a severity, a label, a monitor, an SLO or a policy since
+     * deleted - is said to be gone, once, after the values still there:
+     * the rule still holds it, and its Conditions step shows it in the same
+     * words (#7807). A list the page could not read says nothing is gone.
+     */
+    const notFoundIds: Array<string> =
+      NotificationRuleConditionUtil.getIdsNotFound({
+        ids: selectedIds,
+        records: NotificationRuleConditionUtil.getRecordsByCheckOn({
+          checkOn: checkOn,
+          alertSeverities: props.alertSeverities,
+          alertStates: props.alertStates,
+          incidentSeverities: props.incidentSeverities,
+          monitorStatus: props.monitorStatus,
+          incidentStates: props.incidentStates,
+          scheduledMaintenanceStates: props.scheduledMaintenanceStates,
+          labels: props.labels,
+          monitors: props.monitors,
+          securityCasePriorities: props.securityCasePriorities,
+          securityCaseStatuses: props.securityCaseStatuses,
+          serviceLevelObjectives: props.serviceLevelObjectives,
+          onCallDutyPolicies: props.onCallDutyPolicies,
+        }),
+      });
+
+    const notFoundName: string =
+      notFoundIds.length > 0
+        ? translator.translateText(VALUE_NOT_FOUND_NAME) || VALUE_NOT_FOUND_NAME
+        : "";
+
+    const notFoundElement: ReactElement | null =
+      notFoundIds.length > 0 ? (
+        <span
+          className="font-normal italic text-gray-500"
+          data-testid="notification-rule-condition-value-not-found"
+        >
+          {notFoundName}
+        </span>
+      ) : null;
+
     let valueElement: ReactElement | undefined = Array.isArray(
       props.notificationRuleCondition?.value,
     ) ? (
@@ -209,6 +251,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               });
             },
           )}
+          {notFoundElement}
         </div>
       );
     }
@@ -232,6 +275,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               element: <AlertStateElement alertState={alertState} />,
             });
           })}
+          {notFoundElement}
         </div>
       );
     }
@@ -262,6 +306,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               });
             },
           )}
+          {notFoundElement}
         </div>
       );
     }
@@ -286,6 +331,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               });
             },
           )}
+          {notFoundElement}
         </div>
       );
     }
@@ -320,6 +366,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               });
             },
           )}
+          {notFoundElement}
         </div>
       );
     }
@@ -346,6 +393,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               });
             },
           )}
+          {notFoundElement}
         </div>
       );
     }
@@ -382,6 +430,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               element: <LabelElement label={label} />,
             });
           })}
+          {notFoundElement}
         </div>
       );
     }
@@ -402,6 +451,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               element: <MonitorElement monitor={monitor} />,
             });
           })}
+          {notFoundElement}
         </div>
       );
     }
@@ -438,6 +488,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               ),
             });
           })}
+          {notFoundElement}
         </div>
       );
     }
@@ -446,10 +497,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
      * The SLOs an SLO rule picks and the policies an on-call rule picks, by
      * their names as the team wrote them, in the project's order, listed
      * with the commas of the script they are written in - each followed by
-     * "Archived" when it is, on the same line as its name. A policy since
-     * deleted is said to be gone, rather than left out: the rule still
-     * holds it, and the words that say so, in the reader's language, choose
-     * the commas too. (An SLO since deleted is left out, as it always was.)
+     * "Archived" when it is, on the same line as its name. A policy or an
+     * SLO since deleted is said to be gone, rather than left out: the rule
+     * still holds it (#7807), and the words that say so, in the reader's
+     * language, choose the commas too.
      */
     if (
       checkOn === NotificationRuleConditionCheckOn.Slos ||
@@ -490,12 +541,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
             );
           },
         );
-      const isAPolicyGone: boolean =
-        checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicies &&
-        found.length < picked.size;
-      const notFoundName: string = isAPolicyGone
-        ? translator.translateText(VALUE_NOT_FOUND_NAME) || VALUE_NOT_FOUND_NAME
-        : "";
+      const isAValueGone: boolean = notFoundIds.length > 0;
       const separator: string = getListSeparator([
         ...found.map(
           (row: ServiceLevelObjective | OnCallDutyPolicy): string => {
@@ -538,15 +584,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               );
             },
           )}
-          {isAPolicyGone ? (
+          {isAValueGone ? (
             <>
               {found.length > 0 ? separator : ""}
-              <span
-                className="font-normal italic text-gray-500"
-                data-testid="notification-rule-condition-value-not-found"
-              >
-                {notFoundName}
-              </span>
+              {notFoundElement}
             </>
           ) : (
             <></>

@@ -1,4 +1,6 @@
 import URL from "Common/Types/API/URL";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -9,7 +11,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsageBar";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
@@ -475,7 +476,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           {value}
         </div>
         {hint ? (
-          <div className="text-xs text-gray-400 mt-0.5">{hint}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{hint}</div>
         ) : (
           <></>
         )}
@@ -659,7 +660,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={4} />;
     }
 
     const connected: boolean = Boolean(data?.["connected"]);
@@ -1016,7 +1017,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
    */
   const renderLargestTables: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     const connected: boolean = Boolean(data?.["connected"]);
@@ -1191,7 +1192,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
    */
   const renderActivity: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !activity) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     /*
@@ -1514,7 +1515,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
    */
   const renderTopStatements: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !activity) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     // Same failed-request vs unreachable-database distinction as renderActivity().

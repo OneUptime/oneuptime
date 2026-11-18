@@ -15,6 +15,7 @@ import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPoli
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import ScheduleLayersSaveUtil, {
+  SCHEDULE_LAYERS_READ_ROUTE,
   SCHEDULE_LAYERS_SAVE_ROUTE,
   ScheduleLayersSaveRequest,
   ScheduleLayersSaveResult,
@@ -30,7 +31,12 @@ import ScheduleLayersSaveUtil, {
  * - all at once, in one transaction, with one round of messages for the
  * people it reaches (Types/OnCallDutyPolicy/ScheduleLayersSave,
  * Utils/OnCall/ScheduleLayersSave). A save made to layers someone has
- * changed since is answered 409.
+ * changed since is answered 409. And
+ *
+ *   GET /on-call-duty-policy-schedule/:id/layers
+ *
+ * the layers as a save that changes nothing, with the version they are at:
+ * what an API caller or Terraform changes and sends back (issue #9038).
  *
  * The project is the request's tenant; a project API key is asked like a
  * member, its permissions deciding. A request with no session is answered
@@ -73,6 +79,44 @@ export default class OnCallDutyPolicyScheduleAPI extends BaseAPI<
             req,
             res,
             ScheduleLayersSaveUtil.resultToJSON(result),
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /on-call-duty-policy-schedule/:id/layers (issue #9038): the
+     * layers as a save that changes nothing, with the version they are at,
+     * for an API caller or Terraform to change and send to save-layers.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}${SCHEDULE_LAYERS_READ_ROUTE}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          CommonAPI.assertTenantScoped(props);
+
+          const scheduleIdParam: string = String(req.params["id"] || "");
+          ObjectID.validateUUID(scheduleIdParam);
+
+          const layers: ScheduleLayersSaveRequest =
+            await ScheduleLayersSave.read({
+              scheduleId: new ObjectID(scheduleIdParam),
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            ScheduleLayersSaveUtil.requestToJSON(layers),
           );
         } catch (err) {
           next(err);

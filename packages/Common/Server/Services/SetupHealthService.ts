@@ -12,8 +12,10 @@ import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertEpisodeOnCallRuleService from "./AlertEpisodeOnCallRuleService";
 import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import AlertOwnerRuleService from "./AlertOwnerRuleService";
 import IncidentEpisodeOnCallRuleService from "./IncidentEpisodeOnCallRuleService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import MonitorService from "./MonitorService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyScheduleService, {
@@ -34,6 +36,7 @@ import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageResourceService from "./StatusPageResourceService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
+import TeamService from "./TeamService";
 import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import WhoIsToldService, {
   WHO_IS_TOLD_MONITOR_SELECT,
@@ -43,8 +46,10 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import AlertEpisodeOnCallRule from "../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "../../Models/DatabaseModels/AlertOwnerRule";
 import IncidentEpisodeOnCallRule from "../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -54,6 +59,7 @@ import RecommendationDismissal from "../../Models/DatabaseModels/RecommendationD
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import User from "../../Models/DatabaseModels/User";
@@ -64,7 +70,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
-import { WhoIsToldResult } from "../../Types/Monitor/WhoIsTold";
+import { WhoIsToldEvent, WhoIsToldResult } from "../../Types/Monitor/WhoIsTold";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import ScheduleShiftUtil, {
@@ -103,9 +109,11 @@ import {
   SetupHealthWorkspaceFact,
   applySetupHealthDismissals,
   getSetupHealthCounts,
+  getSetupHealthFactsForReader,
   getSetupHealthFindings,
   getSetupHealthFindingsForRecord,
   getSetupHealthRecordIds,
+  hasSetupHealthPrivateEvent,
   redactSetupHealthFindings,
 } from "../../Types/SetupHealth/SetupHealth";
 import WorkspaceType, {
@@ -135,6 +143,18 @@ import WorkspaceType, {
  * project's dismissals (RecommendationDismissal, RecommendationType.
  * SetupHealth) applied - read on every ask, so a dismissal or a Restore
  * shows at once, for everyone.
+ *
+ * A PRIVATE RECORD THAT IS NOT THEIRS TO SEE (#9370): an incident or alert a
+ * monitor would open, private, that the person could not read once it
+ * exists says only that it opens on that monitor's card - nothing of whom
+ * it tells, and none of the breaks it would raise (#7213). So it raises no
+ * finding of theirs here either: their findings are worked out again from
+ * the facts, kept for that, with such records' breaks left out, and none
+ * of their owners no Created email reaches (#9371) - the card names none
+ * of its owners (getSetupHealthFactsForReader). Somebody who may read every
+ * private record, or one in a project with none, is handed the project's
+ * findings. A team or an owner rule such an owner finding is about is
+ * shown to whoever may read it (readReadable), as a monitor or a policy is.
  */
 
 // What is kept a minute per project.
@@ -142,6 +162,12 @@ interface ProjectFindings {
   findings: Array<SetupHealthFinding>;
   monitorCount: number;
   checkedAt: string;
+  /*
+   * The facts the findings were worked out from, kept only when a monitor
+   * would open a private record: a person who may not read it is told
+   * them again without it (getFindingsForCaller).
+   */
+  facts?: SetupHealthFacts | undefined;
 }
 
 // How many monitors one read takes.
@@ -222,12 +248,19 @@ export function toResponderFact(user: UserReadiness): SetupHealthResponderFact {
     reason = SetupHealthResponderReason.InvitationNotAccepted;
   }
 
-  return {
+  const fact: SetupHealthResponderFact = {
     userId: idText(user.userId),
     name: user.userName || user.userEmail || "",
     isNotReachable: user.status === ReadinessStatus.NotReachable,
     reason: reason,
   };
+
+  // Readiness's own answer, never worked out again here (#7449).
+  if (user.isMissingPhoneMethod === true) {
+    fact.isMissingPhoneMethod = true;
+  }
+
+  return fact;
 }
 
 export default class SetupHealthService {
@@ -261,14 +294,21 @@ export default class SetupHealthService {
       refresh: data.refresh,
     });
 
+    const findings: Array<SetupHealthFinding> = await this.getFindingsForCaller(
+      {
+        computed: computed,
+        props: data.props,
+      },
+    );
+
     const readable: SetupHealthReadable = await this.readReadable({
       projectId: data.projectId,
       props: data.props,
-      findings: computed.findings,
+      findings: findings,
     });
 
     const visible: Array<SetupHealthFinding> = redactSetupHealthFindings(
-      computed.findings,
+      findings,
       readable,
     );
 
@@ -322,7 +362,10 @@ export default class SetupHealthService {
     });
 
     const about: Array<SetupHealthFinding> = getSetupHealthFindingsForRecord(
-      computed.findings,
+      await this.getFindingsForCaller({
+        computed: computed,
+        props: data.props,
+      }),
       data.record,
     );
 
@@ -400,11 +443,49 @@ export default class SetupHealthService {
   private static async compute(projectId: ObjectID): Promise<ProjectFindings> {
     const facts: SetupHealthFacts = await this.readFacts(projectId);
 
-    return {
+    const computed: ProjectFindings = {
       findings: getSetupHealthFindings(facts),
       monitorCount: facts.chains.length,
       checkedAt: facts.now,
     };
+
+    if (hasSetupHealthPrivateEvent(facts)) {
+      computed.facts = facts;
+    }
+
+    return computed;
+  }
+
+  /*
+   * THE PROJECT'S FINDINGS AS THIS PERSON'S CARDS SAY THEM (#9370): without
+   * what a private record they may not read would raise - read as each
+   * monitor's card reads it for them (WhoIsToldService.readHiddenFromCaller)
+   * - or the project's own, when nothing is hidden from them.
+   */
+  private static async getFindingsForCaller(data: {
+    computed: ProjectFindings;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SetupHealthFinding>> {
+    const facts: SetupHealthFacts | undefined = data.computed.facts;
+
+    if (!facts) {
+      return data.computed.findings;
+    }
+
+    const isHidden: (event: WhoIsToldEvent) => boolean =
+      await WhoIsToldService.readHiddenFromCaller({
+        props: data.props,
+        results: facts.chains,
+      });
+
+    const told: SetupHealthFacts = getSetupHealthFactsForReader(
+      facts,
+      isHidden,
+    );
+
+    return told === facts
+      ? data.computed.findings
+      : getSetupHealthFindings(told);
   }
 
   /*
@@ -1297,6 +1378,43 @@ export default class SetupHealthService {
         },
       ),
       canReadResponders: await this.canReadResponders(data),
+      // What an owner no Created email reaches is about (#9371).
+      teamIds: await readIds(
+        SetupHealthRecordKind.Team,
+        async (ids: Array<ObjectID>): Promise<Array<Team>> => {
+          return await TeamService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
+      incidentOwnerRuleIds: await readIds(
+        SetupHealthRecordKind.IncidentOwnerRule,
+        async (ids: Array<ObjectID>): Promise<Array<IncidentOwnerRule>> => {
+          return await IncidentOwnerRuleService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
+      alertOwnerRuleIds: await readIds(
+        SetupHealthRecordKind.AlertOwnerRule,
+        async (ids: Array<ObjectID>): Promise<Array<AlertOwnerRule>> => {
+          return await AlertOwnerRuleService.findBy({
+            query: idsQuery(ids),
+            select: { _id: true },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: data.props,
+          });
+        },
+      ),
     };
   }
 

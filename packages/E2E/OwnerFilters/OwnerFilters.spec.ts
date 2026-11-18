@@ -9,6 +9,7 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { pickDropdownOption } from "../SuiteHelpers/Dropdowns";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
@@ -255,6 +256,13 @@ async function pick(page: Page, label: string, option: string): Promise<void> {
   await offered(popover).filter({ hasText: option }).click();
 }
 
+const OPERATOR_WORDS: Record<string, string> = {
+  is: "is",
+  is_not: "is not",
+  is_empty: "is empty",
+  is_not_empty: "is not empty",
+};
+
 async function setOperator(
   page: Page,
   label: string,
@@ -262,7 +270,12 @@ async function setOperator(
 ): Promise<void> {
   const popover: Locator = await openChip(page, label);
 
-  await popover.getByRole("combobox").selectOption(operator);
+  // The operator is the shared Dropdown; its options are its words.
+  await pickDropdownOption(
+    page,
+    popover.getByRole("combobox"),
+    OPERATOR_WORDS[operator]!,
+  );
 }
 
 // Close a chip's popover by clicking away from it.

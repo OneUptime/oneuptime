@@ -2752,6 +2752,54 @@ export default class NetworkDevice extends BaseModel {
   })
   public vendor?: string = undefined;
 
+  /*
+   * Who made the device, as OneUptime names it everywhere (issue #9363): the
+   * maker the Devices list's Vendor / Model column, the device's page and
+   * its Inventory item show, worked out by the very function they draw it
+   * with (Utils/NetworkDevice/NetworkDeviceStoredManufacturer). That is the
+   * vendor above when it names a maker, and otherwise what the device's SNMP
+   * identity, its network controller or the Discovered Devices list names -
+   * a printer imported from that list is "Sunnovo International" here and
+   * has no vendor at all above.
+   *
+   * Kept, not worked out on each read, because Postgres cannot work it out:
+   * part of it is read off the sysDescr and the sysObjectID by OneUptime's own
+   * rules. The service writes it again whenever one of the columns it is
+   * worked out from changes (NetworkDeviceService.refreshManufacturer), so the
+   * lists' Vendor filter and sort - which read this column - find each device
+   * under the maker they show for it. Nobody writes it but the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Manufacturer",
+    description:
+      "Who made the device, as OneUptime shows it: the vendor saved on the device or read by its SNMP poll, or else the maker its SNMP identity, its network controller or the Discovered Devices list names. Worked out by the server from the device's details and kept up to date as they change; read-only.",
+    example: "Cisco",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public manufacturer?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

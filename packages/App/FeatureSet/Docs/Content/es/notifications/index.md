@@ -61,7 +61,7 @@ Cuando te unes a un proyecto con un correo de inicio de sesión verificado, OneU
 2. Para cada gravedad, en cada una de las cuatro pestañas de **Cómo contactarme**, una regla te envía un correo en cuanto te avisan.
 3. Un conjunto de novedades sobre lo que es tuyo, y sobre tus turnos, se activa por correo. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings#qué-está-activado-para-un-miembro-nuevo).
 
-Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Cómo contactarme](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas).
+Cada método que verifiques después recibe las mismas reglas: una regla para cada gravedad, enviada en cuanto te avisan. Así que verificar un número de teléfono para SMS significa que cada aviso también te envía un SMS. Para dejar los SMS solo para los avisos críticos, elimina las reglas de SMS de las demás gravedades. Consulta [Cómo contactarme](/docs/notifications/on-call-rules#las-reglas-con-las-que-empiezas). Cuando tu proyecto tiene una secuencia predeterminada, tu correo y cada método que verifiques la siguen en su lugar: consulta [La secuencia predeterminada](/docs/notifications/on-call-rules#la-secuencia-predeterminada).
 
 ## La lista de configuración
 
@@ -84,6 +84,10 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 | **Todavía quedan algunas cosas por configurar** | Una gravedad no tiene regla, o un paso aún no está hecho |
 | **Todavía nada puede contactarte** | Ninguno de tus métodos se puede usar: ninguno está verificado, o cada uno verificado está en un canal que este proyecto ha desactivado |
 | **Ya lo tienes todo configurado y ahora no estás de guardia** | Todo está listo para el día en que una política te nombre |
+
+Mientras quede un paso, los **Ajustes de usuario** se abren en esta lista, y en **Métodos de notificación** cuando ya no queda nada esencial. Un enlace a cualquier otra página de los **Ajustes de usuario** sigue abriendo esa página.
+
+Cuando estás en una política de guardia y tu configuración no está terminada, la campana de la parte superior de cada página muestra **Termina de configurar tus notificaciones**, y por qué: nada puede contactarte, una gravedad no tiene regla, o tu proyecto pide un método telefónico que no has verificado. Abre esta lista, o **Cómo contactarme** para el teléfono. **Ocultar durante una semana** la oculta en este navegador, y desaparece sola en cuanto tu configuración está terminada.
 
 ## Cuando ninguna regla coincide
 

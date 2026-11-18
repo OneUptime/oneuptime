@@ -1,11 +1,11 @@
 import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
-import {
-  getOwnSendersFoldedItems,
-  OWN_SENDERS_MORE_DESCRIPTION,
-} from "../../Components/NotificationMethods/OwnSendersFold";
+import { getOwnSendersFoldedItems } from "../../Components/NotificationMethods/OwnSendersFold";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
+import DefaultPagingLadderCard from "../../Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
+import PhoneForOnCallCard from "../../Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
+import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
@@ -30,7 +30,7 @@ import {
   PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
@@ -74,9 +74,20 @@ import React, {
  * sends its subscribers through, and what an incoming call policy answers
  * on, instead of OneUptime's - wait folded under More settings: most
  * projects never add one (Components/NotificationMethods/OwnSendersFold).
+ * So do how members are paged by default (#7449): the project's default
+ * ladder for new members, and its ask for a phone method from everyone on
+ * call (Components/NotificationRule/PagingLadder/DefaultPagingLadderCard and
+ * PhoneForOnCallCard) - first, as what an on-call admin comes for. Each is a
+ * card of its own module, so the card-in-card guard reads it as a whole card
+ * drawn as a section of the fold (#9464).
  */
 export const NOTIFICATION_SETTINGS_MORE_TEST_ID: string =
   "notification-settings-more";
+
+// What the fold holds, under its title once open.
+export const NOTIFICATION_SETTINGS_MORE_DESCRIPTION: string = translationKey(
+  "How members are paged by default, and your own mail servers and Twilio accounts.",
+);
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -92,6 +103,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // How many own mail servers and Twilio accounts there are, once listed.
   const [smtpConfigCount, setSmtpConfigCount] = useState<number>(0);
   const [twilioConfigCount, setTwilioConfigCount] = useState<number>(0);
+  // The default ladder's steps, and whether a phone is asked for, once read.
+  const [defaultStepCount, setDefaultStepCount] = useState<number>(0);
+  const [isPhoneAsked, setIsPhoneAsked] = useState<boolean>(false);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -251,13 +265,31 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       )}
 
       <AdvancedPageSection
-        description={OWN_SENDERS_MORE_DESCRIPTION}
-        items={getOwnSendersFoldedItems({
-          smtpConfigCount: smtpConfigCount,
-          twilioConfigCount: twilioConfigCount,
-        })}
+        description={NOTIFICATION_SETTINGS_MORE_DESCRIPTION}
+        items={[
+          ...getProjectPagingDefaultsFoldedItems({
+            defaultStepCount: defaultStepCount,
+            isPhoneAsked: isPhoneAsked,
+          }),
+          ...getOwnSendersFoldedItems({
+            smtpConfigCount: smtpConfigCount,
+            twilioConfigCount: twilioConfigCount,
+          }),
+        ]}
         dataTestId={NOTIFICATION_SETTINGS_MORE_TEST_ID}
       >
+        <DefaultPagingLadderCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          onStepCountChange={(count: number) => {
+            setDefaultStepCount(count);
+          }}
+        />
+        <PhoneForOnCallCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          onChange={(isOn: boolean) => {
+            setIsPhoneAsked(isOn);
+          }}
+        />
         <CustomSMTPTable
           onCountChange={(count: number) => {
             setSmtpConfigCount(count);

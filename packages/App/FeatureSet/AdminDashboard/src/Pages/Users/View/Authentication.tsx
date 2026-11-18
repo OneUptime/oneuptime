@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../../Utils/ModelAPI";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -18,7 +19,6 @@ import Card from "Common/UI/Components/Card/Card";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import { getNewPasswordFields } from "Common/UI/Components/PasswordRequirements/NewPasswordFields";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -364,7 +364,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
             )}
 
             {!statusError && isStatusLoading && !status ? (
-              <ComponentLoader />
+              <DetailListSkeleton fields={3} />
             ) : (
               <></>
             )}

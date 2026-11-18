@@ -45,7 +45,7 @@ Wenn Sie auf der Seite **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie
 :::steps
 ### Die Eskalationsregeln der Richtlinie öffnen
 
-Öffnen Sie die Bereitschaftsrichtlinie, wählen Sie im Seitenmenü **Eskalationsregeln** und klicken Sie auf **Eskalationsregel hinzufügen**. Der Dialog ist eine kurze Seite.
+Öffnen Sie die Bereitschaftsrichtlinie, wählen Sie im Seitenmenü **Eskalationsregeln** und klicken Sie auf **Eskalationsregel hinzufügen**. Der Dialog ist eine kurze Seite. Er nennt die Stufe der Richtlinie, die die Regel hinzufügt.
 
 ### Wählen, wer benachrichtigt wird
 
@@ -61,6 +61,10 @@ Klicken Sie unter **Benachrichtigen** auf **Empfänger hinzufügen**, suchen Sie
 ### Festlegen, wie lange gewartet wird
 
 **Eskalieren nach (in Minuten)** ist die Wartezeit auf eine Bestätigung, bevor die nächste Stufe alarmiert wird. Der Wert beginnt bei **30 Minuten**; ändern Sie ihn so, wie es zur Stufe passt.
+
+![Der Dialog „Eskalationsregel hinzufügen“ einer Richtlinie mit einer Stufe, „Alarmiert nach (in Minuten)“ ist markiert](screen:escalation-rule-paged-after)
+
+Eine Regel, die nach der ersten hinzukommt, fragt stattdessen **Alarmiert nach (in Minuten)**: wie lange die Stufe davor auf eine Bestätigung wartet, bevor diese alarmiert wird. Der Wert beginnt bei der Wartezeit dieser Stufe und wird als ihre Wartezeit gespeichert; die neue Stufe selbst wartet 30 Minuten, bis Sie eine weitere nach ihr hinzufügen. Wer Regeln hinzufügen, aber nicht ändern darf, wird nach **Eskalieren nach (in Minuten)** gefragt, und der Dialog sagt, wann die neue Stufe alarmiert wird.
 
 ### Die Regel benennen, wenn Sie möchten
 
@@ -190,7 +194,7 @@ Eine Stufe kann die nächste Person in der Rotation eines Bereitschaftsplans ala
 
 :::steps
 1. Stellen Sie sicher, dass die erste Stufe der Richtlinie, **Level 1**, den Bereitschaftsplan benachrichtigt.
-2. Klicken Sie auf **Eskalationsregel hinzufügen**, dann auf **Empfänger hinzufügen**, und wählen Sie denselben Plan unter **Nächste in der Rotation**. Legen Sie **Eskalieren nach (in Minuten)** fest und klicken Sie auf **Regel erstellen**.
+2. Klicken Sie auf **Eskalationsregel hinzufügen**, dann auf **Empfänger hinzufügen**, und wählen Sie denselben Plan unter **Nächste in der Rotation**. Legen Sie **Alarmiert nach (in Minuten)** fest und klicken Sie auf **Regel erstellen**.
 3. Fügen Sie eine weitere Stufe für das Team oder die Führungskraft hinzu, die als Nächstes Bescheid bekommen soll.
 :::
 

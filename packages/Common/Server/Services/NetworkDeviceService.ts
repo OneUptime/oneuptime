@@ -93,6 +93,11 @@ import {
   sanitizeDiscoveredDetailsOnWrite,
   toDiscoveredDetailsJson,
 } from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
+  getStoredNetworkDeviceManufacturer,
+  isNetworkDeviceManufacturerDiscoveredPatch,
+  isNetworkDeviceManufacturerInputWrite,
+} from "../../Utils/NetworkDevice/NetworkDeviceStoredManufacturer";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
 
@@ -375,6 +380,56 @@ export interface DiscoveredDetailsMerge {
  * bytes per device), not on Postgres's parameter count.
  */
 export const DISCOVERED_DETAILS_MERGE_CHUNK_SIZE: number = 500;
+
+/*
+ * Devices per read of NetworkDeviceService.refreshManufacturer: the columns
+ * the maker is worked out from, discovered details included, for this many
+ * devices at a time.
+ */
+export const MANUFACTURER_REFRESH_CHUNK_SIZE: number = 500;
+
+/*
+ * How many times refreshManufacturer reads a device whose details changed
+ * between its read and its write. Each write lands only on the details it
+ * was worked out from, so a write that loses that race reads the device
+ * again rather than store a maker worked out from what it no longer holds.
+ */
+export const MANUFACTURER_REFRESH_ATTEMPTS: number = 3;
+
+/*
+ * What the maker is worked out from, as one value Postgres writes for the
+ * row aliased `alias`: the five columns, in a jsonb array, as text, hashed.
+ * jsonb keeps each value as stored - a NULL as null, a string quoted, the
+ * discovered details as the column holds them - and the poll time as the
+ * exact number of seconds since the epoch, so two reads of the same row give
+ * the same fingerprint and a change to any of the five gives another.
+ * refreshManufacturer reads it beside the columns and writes a maker only
+ * while the row still has it, so neither JavaScript's millisecond Dates nor
+ * the typing of a jsonb parameter come into the comparison.
+ */
+export function getManufacturerInputsFingerprintSql(alias: string): string {
+  return `md5(jsonb_build_array(${alias}."vendor", ${alias}."sysDescr", ${alias}."sysObjectId", extract(epoch from ${alias}."lastSnmpSeenAt"), ${alias}."discoveredDetails")::text)`;
+}
+
+// One device as refreshManufacturer reads it.
+interface ManufacturerInputsRow {
+  _id?: unknown;
+  vendor?: unknown;
+  sysDescr?: unknown;
+  sysObjectId?: unknown;
+  lastSnmpSeenAt?: unknown;
+  discoveredDetails?: unknown;
+  manufacturer?: unknown;
+  inputsFingerprint?: unknown;
+}
+
+// One page of the manufacturer backfill. See backfillManufacturerPage.
+export interface ManufacturerBackfillPage {
+  read: number;
+  written: number;
+  // Where the next page starts; undefined when this one read nothing.
+  lastId?: string | undefined;
+}
 
 // A walk's cached interface counts, as the device list reads them.
 export interface NetworkDeviceInterfaceCounts {
@@ -806,6 +861,37 @@ export class Service extends ProjectReferencesService<Model> {
       "snmpV3AuthKey",
       "snmpV3PrivKey",
     ]);
+  }
+
+  /*
+   * A hook-free write of a column the maker is worked out from - the poll
+   * residue a switch to monitor-backed clears, the discovered details an
+   * address change takes away - works the maker the lists file the device
+   * under out again (issue #9363), as a write through the service does in
+   * onUpdateSuccess. Every other hook-free write - a liveness stamp, a site's
+   * rollup - reads nothing more. Never fatal: the write is done.
+   */
+  @CaptureSpan()
+  public override async updateColumnsByIdWithoutHooks(
+    input: Parameters<
+      ProjectReferencesService<Model>["updateColumnsByIdWithoutHooks"]
+    >[0],
+  ): Promise<void> {
+    await super.updateColumnsByIdWithoutHooks(input);
+
+    if (!isNetworkDeviceManufacturerInputWrite(Object.keys(input.data || {}))) {
+      return;
+    }
+
+    try {
+      await this.refreshManufacturer({ deviceIds: [input.id] });
+    } catch (error) {
+      logger.error(
+        `The maker of network device ${input.id.toString()} was not worked out again after a write of its details: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /*
@@ -1539,6 +1625,16 @@ export class Service extends ProjectReferencesService<Model> {
     sanitizeDiscoveredDetailsOnCreate(
       createBy.data as unknown as Record<string, unknown>,
     );
+
+    /*
+     * The maker the lists file it under, from what it is created with: the
+     * Discovered Devices list's maker for a device imported from that list,
+     * a scan's reading of its SNMP identity for one imported from a scan
+     * (issue #9363). Whatever a create sends there is the server's to
+     * replace (a computed column), so it is worked out here every time.
+     */
+    (createBy.data as unknown as Record<string, unknown>)["manufacturer"] =
+      getStoredNetworkDeviceManufacturer(createBy.data) || undefined;
 
     const siteId: ObjectID | null = readSiteIdFromData(
       createBy.data as unknown as Record<string, unknown>,
@@ -2818,6 +2914,28 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    /*
+     * The maker the lists file the device under (issue #9363): a write of
+     * what it is worked out from - the SNMP identity its poll read when it
+     * changed, a person's edit of the vendor - works it out again. After the
+     * address change above, which may have taken the discovered details with
+     * it. Its own try: the device is saved already.
+     */
+    if (
+      updatedItemIds.length > 0 &&
+      isNetworkDeviceManufacturerInputWrite(
+        Object.keys(onUpdate.updateBy.data || {}),
+      )
+    ) {
+      try {
+        await this.refreshManufacturer({ deviceIds: updatedItemIds });
+      } catch (error) {
+        logger.error(
+          `Error in NetworkDeviceService.onUpdateSuccess working out the maker again: ${error}`,
+        );
+      }
+    }
+
     try {
       await this.reconcileAlertPoliciesAfterUpdate(onUpdate, updatedItemIds);
     } catch (error) {
@@ -3933,6 +4051,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     let written: number = 0;
+    // Every device written, lower case: whose maker may have changed.
+    const mergedIds: Set<string> = new Set<string>();
     const leftOver: Array<DiscoveredDetailsMergeRow> = [];
 
     for (
@@ -3953,6 +4073,10 @@ export class Service extends ProjectReferencesService<Model> {
 
       written += writtenIds.size;
 
+      for (const id of writtenIds) {
+        mergedIds.add(id);
+      }
+
       for (const row of chunk) {
         if (!writtenIds.has(row.id.toLowerCase())) {
           leftOver.push(row);
@@ -3963,33 +4087,79 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * What the first pass did not write: devices another writer held - and
      * devices that are gone or another project's, which this pass leaves
-     * unwritten again at the cost of one indexed read each.
+     * unwritten again at the cost of one indexed read each. Unless the
+     * caller leaves those to the next reading.
      */
-    if (data.skipLockedDevices) {
-      return written;
-    }
+    if (!data.skipLockedDevices) {
+      for (const row of leftOver) {
+        try {
+          const writtenIds: Set<string> = await this.mergeDiscoveredDetailsRows(
+            {
+              projectId: data.projectId,
+              rows: [row],
+              skipLocked: false,
+            },
+          );
 
-    for (const row of leftOver) {
-      try {
-        written += (
-          await this.mergeDiscoveredDetailsRows({
-            projectId: data.projectId,
-            rows: [row],
-            skipLocked: false,
-          })
-        ).size;
-      } catch (error) {
-        if (!isPostgresLockContentionError(error)) {
-          throw error;
+          written += writtenIds.size;
+
+          for (const id of writtenIds) {
+            mergedIds.add(id);
+          }
+        } catch (error) {
+          if (!isPostgresLockContentionError(error)) {
+            throw error;
+          }
+
+          logger.warn(
+            `Discovered details of network device ${row.id} were not merged: another writer held the device past the lock timeout. The next reading records them.`,
+          );
         }
-
-        logger.warn(
-          `Discovered details of network device ${row.id} were not merged: another writer held the device past the lock timeout. The next reading records them.`,
-        );
       }
     }
 
+    await this.refreshManufacturerAfterMerge(rows, mergedIds);
+
     return written;
+  }
+
+  /*
+   * The maker the lists file a device under (issue #9363), worked out again
+   * for each device a merge wrote one of the keys it reads into: the SNMP
+   * identity a scan read, the Discovered Devices list's maker, its
+   * controller's reading. A merge of anything else - a MAC an ARP table gave
+   * a device, the address its name resolves to - cannot change it and reads
+   * nothing more. Never fatal: the details are written, and the device's
+   * next write works its maker out again.
+   */
+  private async refreshManufacturerAfterMerge(
+    rows: Array<DiscoveredDetailsMergeRow>,
+    mergedIds: Set<string>,
+  ): Promise<void> {
+    const deviceIds: Array<string> = rows
+      .filter((row: DiscoveredDetailsMergeRow): boolean => {
+        return (
+          mergedIds.has(row.id.toLowerCase()) &&
+          isNetworkDeviceManufacturerDiscoveredPatch(row)
+        );
+      })
+      .map((row: DiscoveredDetailsMergeRow): string => {
+        return row.id;
+      });
+
+    if (deviceIds.length === 0) {
+      return;
+    }
+
+    try {
+      await this.refreshManufacturer({ deviceIds: deviceIds });
+    } catch (error) {
+      logger.error(
+        `The maker of ${deviceIds.length} network device(s) was not worked out again after their discovered details were merged: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /*
@@ -4048,6 +4218,225 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return ids;
+  }
+
+  /*
+   * THE MAKER THE LISTS FILE A DEVICE UNDER, WORKED OUT AGAIN (issue #9363).
+   *
+   * Writes each device's `manufacturer` as its Vendor / Model column, its
+   * page and its Inventory item name its maker
+   * (getStoredNetworkDeviceManufacturer), from the columns it is worked out
+   * from as the device holds them now. Called after every write of one of
+   * them: a create works it out from what it is created with, an update
+   * through the service (the poll's reading of a changed SNMP identity, a
+   * person's edit) and a hook-free write of one of them come here
+   * (onUpdateSuccess, updateColumnsByIdWithoutHooks), and so do a merge of a
+   * key of the discovered details it reads (mergeDiscoveredDetails), a
+   * connection's controller readings going (forgetControllerReadings), and a
+   * poll that makes the device's own SNMP identity the newer reading again
+   * (NetworkInventoryUtil).
+   *
+   * One read per MANUFACTURER_REFRESH_CHUNK_SIZE devices, then one statement
+   * per device whose maker changed - none for the others, which is nearly
+   * every device nearly every time. Each statement writes one device and
+   * waits for that one alone, so it never holds a device while it waits for
+   * another (the queues of issue #7194). It writes only while the device
+   * still holds what its maker was worked out from (its inputs'
+   * fingerprint): a write that lands in between - a poll, a scan, the list's
+   * sync - is never undone by a maker worked out from what came before it;
+   * the device is read again, up to MANUFACTURER_REFRESH_ATTEMPTS times.
+   *
+   * Hook-free, like the other bookkeeping writes of the device: no updatedAt,
+   * no version, no audit-log entry, as nothing anybody set changed. Archived
+   * devices too (the Archived list filters by Vendor), never a deleted one.
+   * Returns how many devices it wrote.
+   */
+  @CaptureSpan()
+  public async refreshManufacturer(data: {
+    deviceIds: Array<ObjectID | string>;
+  }): Promise<number> {
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.deviceIds
+          .map((deviceId: ObjectID | string): string => {
+            return (deviceId ? deviceId.toString() : "").toLowerCase();
+          })
+          .filter((deviceId: string): boolean => {
+            return ObjectID.isValidUUID(deviceId);
+          }),
+      ),
+    );
+
+    let written: number = 0;
+
+    for (
+      let offset: number = 0;
+      offset < ids.length;
+      offset += MANUFACTURER_REFRESH_CHUNK_SIZE
+    ) {
+      let pending: Array<string> = ids.slice(
+        offset,
+        offset + MANUFACTURER_REFRESH_CHUNK_SIZE,
+      );
+
+      for (
+        let attempt: number = 1;
+        attempt <= MANUFACTURER_REFRESH_ATTEMPTS && pending.length > 0;
+        attempt++
+      ) {
+        const outcome: { written: number; changedSinceRead: Array<string> } =
+          await this.writeManufacturerOf(
+            await this.readManufacturerInputs(pending),
+          );
+
+        written += outcome.written;
+        pending = outcome.changedSinceRead;
+      }
+
+      if (pending.length > 0) {
+        logger.warn(
+          `The maker of ${pending.length} network device(s) was not written: each changed again every time it was read (${pending.join(", ")}). Their next write works it out again.`,
+        );
+      }
+    }
+
+    return written;
+  }
+
+  /*
+   * One page of the manufacturer backfill, for the data migration
+   * BackfillNetworkDeviceManufacturer: the next `limit` devices by id after
+   * `afterId`, of every project, archived ones included, each given the maker
+   * refreshManufacturer works out for it. A device written meanwhile was
+   * given its maker by that write, which this leaves as it is. Answers how
+   * many devices the page read and wrote, and the last id it read, where the
+   * next page starts.
+   */
+  @CaptureSpan()
+  public async backfillManufacturerPage(data: {
+    afterId?: string | undefined;
+    limit: number;
+  }): Promise<ManufacturerBackfillPage> {
+    const params: Array<unknown> = [Math.max(1, Math.floor(data.limit))];
+
+    if (data.afterId) {
+      params.push(data.afterId);
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT nd."_id"::text AS "_id"
+        FROM "NetworkDevice" AS nd
+        WHERE nd."deletedAt" IS NULL${
+          data.afterId ? `\n          AND nd."_id" > $2::uuid` : ""
+        }
+        ORDER BY nd."_id" ASC
+        LIMIT $1`,
+      params,
+    );
+
+    const ids: Array<string> = (Array.isArray(rows) ? rows : [])
+      .map((row: { _id?: unknown }): string => {
+        return row && typeof row._id === "string" ? row._id : "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      });
+
+    const written: number =
+      ids.length > 0 ? await this.refreshManufacturer({ deviceIds: ids }) : 0;
+
+    return {
+      read: ids.length,
+      written: written,
+      lastId: ids.length > 0 ? ids[ids.length - 1] : undefined,
+    };
+  }
+
+  // What refreshManufacturer works each device's maker out from.
+  private async readManufacturerInputs(
+    ids: Array<string>,
+  ): Promise<Array<ManufacturerInputsRow>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT nd."_id"::text AS "_id", nd."vendor", nd."sysDescr",
+          nd."sysObjectId", nd."lastSnmpSeenAt", nd."discoveredDetails",
+          nd."manufacturer",
+          ${getManufacturerInputsFingerprintSql("nd")} AS "inputsFingerprint"
+        FROM "NetworkDevice" AS nd
+        WHERE nd."_id" = ANY($1::uuid[])
+          AND nd."deletedAt" IS NULL`,
+      [ids],
+    );
+
+    return Array.isArray(rows) ? (rows as Array<ManufacturerInputsRow>) : [];
+  }
+
+  /*
+   * Writes the maker of each device read whose maker changed, while it still
+   * holds what it was worked out from. Answers how many it wrote, and the
+   * devices that changed after they were read, to be read again. A device
+   * another writer holds past the lock timeout is left to its next write.
+   */
+  private async writeManufacturerOf(
+    rows: Array<ManufacturerInputsRow>,
+  ): Promise<{ written: number; changedSinceRead: Array<string> }> {
+    let written: number = 0;
+    const changedSinceRead: Array<string> = [];
+
+    for (const row of rows) {
+      const id: string = typeof row._id === "string" ? row._id : "";
+
+      if (!ObjectID.isValidUUID(id)) {
+        continue;
+      }
+
+      const manufacturer: string | null = getStoredNetworkDeviceManufacturer({
+        vendor: row.vendor,
+        sysDescr: row.sysDescr,
+        sysObjectId: row.sysObjectId,
+        lastSnmpSeenAt: row.lastSnmpSeenAt,
+        discoveredDetails: row.discoveredDetails,
+      });
+
+      const stored: string | null =
+        typeof row.manufacturer === "string" && row.manufacturer
+          ? row.manufacturer
+          : null;
+
+      if (manufacturer === stored) {
+        continue;
+      }
+
+      try {
+        const result: unknown = await this.getRepository().manager.query(
+          `WITH "written" AS (
+            UPDATE "NetworkDevice" AS nd
+            SET "manufacturer" = $2
+            WHERE nd."_id" = $1::uuid
+              AND nd."deletedAt" IS NULL
+              AND ${getManufacturerInputsFingerprintSql("nd")} = $3
+            RETURNING nd."_id"
+          )
+          SELECT "_id" FROM "written"`,
+          [id, manufacturer, String(row.inputsFingerprint || "")],
+        );
+
+        if (Array.isArray(result) && result.length > 0) {
+          written++;
+        } else {
+          changedSinceRead.push(id);
+        }
+      } catch (error) {
+        if (!isPostgresLockContentionError(error)) {
+          throw error;
+        }
+
+        logger.warn(
+          `The maker of network device ${id} was not written: another writer held the device past the lock timeout. Its next write works it out again.`,
+        );
+      }
+    }
+
+    return { written: written, changedSinceRead: changedSinceRead };
   }
 
   /*
@@ -4338,15 +4727,35 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     connectionId: ObjectID;
   }): Promise<number> {
-    const result: unknown = await this.getRepository().manager.query(
+    /*
+     * A SELECT of the devices it wrote, in a CTE: a device that loses its
+     * controller's reading may lose the maker it was listed under too (the
+     * controller's own, "Cisco Meraki"), which is worked out again for each
+     * of them below.
+     */
+    const forgotten: unknown = await this.getRepository().manager.query(
       `
-      UPDATE "NetworkDevice" AS nd
-      SET "discoveredDetails" = nd."discoveredDetails" - 'controller'
-      WHERE nd."projectId" = $1
-        AND (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $2
+      WITH "forgotten" AS (
+        UPDATE "NetworkDevice" AS nd
+        SET "discoveredDetails" = nd."discoveredDetails" - 'controller'
+        WHERE nd."projectId" = $1
+          AND (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $2
+        RETURNING nd."_id"
+      )
+      SELECT "_id" FROM "forgotten"
     `,
       [data.projectId.toString(), data.connectionId.toString()],
     );
+
+    const forgottenIds: Array<string> = (
+      Array.isArray(forgotten) ? forgotten : []
+    )
+      .map((row: { _id?: unknown }): string => {
+        return row && typeof row._id === "string" ? row._id : "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      });
 
     await this.getRepository().manager.query(
       `
@@ -4358,10 +4767,23 @@ export class Service extends ProjectReferencesService<Model> {
       [data.projectId.toString(), data.connectionId.toString()],
     );
 
-    // node-postgres through TypeORM answers an UPDATE with [rows, count].
-    return Array.isArray(result) && typeof result[1] === "number"
-      ? result[1]
-      : 0;
+    /*
+     * Never fatal: the readings are gone, and each device's next write works
+     * its maker out again.
+     */
+    if (forgottenIds.length > 0) {
+      try {
+        await this.refreshManufacturer({ deviceIds: forgottenIds });
+      } catch (error) {
+        logger.error(
+          `The maker of ${forgottenIds.length} network device(s) was not worked out again after their controller's readings were forgotten: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return forgottenIds.length;
   }
 }
 

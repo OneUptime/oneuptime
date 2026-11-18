@@ -120,6 +120,10 @@ De connectiviteit van apparaten is een aparte vereiste. iOS-apparaten hebben toe
 
 Bij mobiele pushes leest OneUptime ook het afleverbewijs van Expo, ongeveer 15 minuten na elke push: een push die het apparaat nooit heeft bereikt, staat dan als niet afgeleverd in het pushlog en, bij een dienstmelding, op de tijdlijn van de dienst.
 
+## Een testpush versturen
+
+Een hoofdbeheerder kan push aan de kant van de server controleren: **Testpush versturen**, in **Admin Dashboard > Instellingen > Pushmeldingen**, stuurt een testpush naar de telefoons en browsers die die beheerder heeft geregistreerd, en naar niemand anders. Kan er niets uit, dan zegt het waarom: push staat uit, er is niets geregistreerd, of de server heeft geen VAPID-sleutels voor een browser.
+
 ## Push uitzetten voor de hele server
 
 Als er niets via Expo, de push-relay of de pushdienst van een browser uw netwerk mag verlaten, kan een hoofdbeheerder push uitzetten in **Admin Dashboard > Instellingen > Pushmeldingen**: zet **Send push notifications** uit en bevestig.
@@ -251,6 +255,10 @@ Om het apparaat terug te halen, opent u er de mobiele app op terwijl u bent aang
 Via de push-relay (geen `EXPO_ACCESS_TOKEN`) werkt dit hetzelfde: de relay meldt `DeviceNotRegistered` wanneer hij een push verstuurt, en leest de afleverbewijzen waar uw instantie naar vraagt.
 
 Helpt niets hiervan, neem dan contact met ons op via [hello@oneuptime.com](mailto:hello@oneuptime.com) met de fouten uit uw OneUptime-logs.
+
+### Het Admin Dashboard zegt dat push mislukt
+
+Het Admin Dashboard zegt dat push mislukt als de eigen pushmeldingen van de server niet meer worden verstuurd: de push-relay, Expo Push of Web Push weigerde ze, of was niet bereikbaar. Het zegt sinds wanneer, en wat er werd geantwoord. Een push die één apparaat weigerde, zoals een naar een verwijderde app, telt niet mee. Zodra er weer een push wordt verstuurd, staat push weer als werkend. Verstuur een testpush om het te controleren.
 
 ## Volgende stappen
 

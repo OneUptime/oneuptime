@@ -44,6 +44,16 @@ jest.mock("./ProjectNavigationSync", () => {
   };
 });
 
+// The first steps' first-run open has its own suite (GetReadyFirstRun).
+jest.mock("./GetReadyFirstRun", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return null;
+    },
+  };
+});
+
 jest.mock("../components/ProjectSwitcher", () => {
   return {
     __esModule: true,

@@ -276,7 +276,7 @@ Het account kan alleen wijzigen zolang het beleid geen telefoonnummers heeft: de
 :::
 
 :::details De code voor het nummer van een engineer komt niet aan
-SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Nieuwe code sturen** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd.
+SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Nieuwe code sturen** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd. Wie die logboeken mag lezen, krijgt in het venster **Meldingslogboeken openen**, dat het sms-tabblad ervan opent.
 :::
 
 ## Volgende stappen

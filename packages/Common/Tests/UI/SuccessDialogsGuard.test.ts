@@ -308,10 +308,6 @@ const NOTICES: Record<string, NoticeEntry> = {
     count: 2,
     why: WHY.details,
   },
-  "packages/Common/UI/Components/Table/TableRow.tsx": {
-    count: 2,
-    why: WHY.details,
-  },
   // Someone else saved the workflow first: which version to keep.
   "packages/Common/UI/Components/Workflow/WorkflowSaveConflictModal.tsx": {
     count: 1,

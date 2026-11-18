@@ -1,4 +1,10 @@
 import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
+import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  readPickedDropdownValue,
+} from "../Dropdown/DropdownChoices";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Modal from "../Modal/Modal";
@@ -92,7 +98,7 @@ export interface PaginationSize {
    * the two- and three-digit ones beside it.
    */
   pageClassName: string;
-  // The rows-per-page select, with room on the right for its chevron.
+  // The box around the rows-per-page picker: wide enough for "1000".
   selectClassName: string;
 }
 
@@ -111,7 +117,7 @@ export const DefaultPaginationSize: PaginationSize = {
   heightClassName: `h-7 ${TOUCH_HEIGHT_CLASS_NAME}`,
   squareClassName: `h-7 w-7 ${TOUCH_SQUARE_CLASS_NAME}`,
   pageClassName: `h-7 min-w-7 px-1.5 ${TOUCH_PAGE_CLASS_NAME}`,
-  selectClassName: `h-7 pl-2.5 pr-7 ${TOUCH_HEIGHT_CLASS_NAME}`,
+  selectClassName: "w-20",
 };
 
 export const CompactPaginationSize: PaginationSize = {
@@ -119,7 +125,7 @@ export const CompactPaginationSize: PaginationSize = {
   heightClassName: `h-6 ${TOUCH_HEIGHT_CLASS_NAME}`,
   squareClassName: `h-6 w-6 ${TOUCH_SQUARE_CLASS_NAME}`,
   pageClassName: `h-6 min-w-6 px-1 ${TOUCH_PAGE_CLASS_NAME}`,
-  selectClassName: `h-6 pl-2 pr-6 ${TOUCH_HEIGHT_CLASS_NAME}`,
+  selectClassName: "w-20",
 };
 
 /*
@@ -271,6 +277,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
       props.itemsOnPage,
       props.itemsOnPageOptions || DefaultItemsOnPageOptions,
     );
+
+  // A page size is a number, drawn as it is in every language.
+  const itemsOnPageDropdownOptions: Array<DropdownOption> =
+    itemsOnPageOptions.map((option: number): DropdownOption => {
+      return getNamedDropdownOption(option, String(option));
+    });
 
   type NavigateToPageFunction = (pageNumber: number) => void;
 
@@ -469,14 +481,28 @@ const Pagination: FunctionComponent<ComponentProps> = (
             >
               {translate(PaginationCopy.rowsPerPage)}
             </label>
-            <div className="relative">
-              <select
-                id={itemsOnPageSelectId}
-                data-testid="pagination-items-on-page-select"
-                value={props.itemsOnPage}
+            <div
+              className={`${size.selectClassName} relative`}
+              data-testid="pagination-items-on-page-select"
+            >
+              <Dropdown
+                inputId={itemsOnPageSelectId}
+                className="relative w-full overflow-visible"
+                isCompact={true}
+                options={itemsOnPageDropdownOptions}
+                value={findDropdownOption(
+                  itemsOnPageDropdownOptions,
+                  props.itemsOnPage,
+                )}
                 disabled={isDisabled}
-                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                  const newItemsOnPage: number = Number(event.target.value);
+                // A list always shows some number of rows a page.
+                isClearable={false}
+                onChange={(
+                  next: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const newItemsOnPage: number = Number(
+                    readPickedDropdownValue(next),
+                  );
 
                   if (!newItemsOnPage || newItemsOnPage === props.itemsOnPage) {
                     return;
@@ -489,26 +515,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                    */
                   props.onNavigateToPage(1, newItemsOnPage);
                 }}
-                className={`${
-                  size.selectClassName
-                } block cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-0 text-xs font-medium text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none ${
-                  isDisabled ? "" : "hover:border-gray-400"
-                }`}
-              >
-                {itemsOnPageOptions.map((option: number) => {
-                  return (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  );
-                })}
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
-                <Icon
-                  icon={IconProp.ChevronDown}
-                  className="h-3.5 w-3.5 text-gray-400"
-                />
-              </span>
+              />
             </div>
           </div>
 

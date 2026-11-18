@@ -276,7 +276,7 @@ Le compte ne peut changer que tant que la politique n'a aucun numéro de télép
 :::
 
 :::details Le code pour le numéro d'une personne n'arrive pas
-Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Envoyer un nouveau code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
+Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Envoyer un nouveau code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu. Qui peut lire ces journaux voit **Ouvrir les Journaux de notification** dans la boîte de dialogue, qui ouvre leur onglet SMS.
 :::
 
 ## Étapes suivantes

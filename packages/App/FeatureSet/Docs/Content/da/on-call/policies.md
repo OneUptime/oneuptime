@@ -12,15 +12,19 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 ## Opret en politik
 
 :::steps
-1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
+1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret vagtpolitik**.
 2. Angiv et **Navn**, fx "Betalinger primær".
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
-4. Klik på **Opret Vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
+4. Klik på **Opret vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
 :::
 
 **Hvem tilkaldes først?** er valgfrit og vises kun for folk, der må tilføje eskaleringsregler: står det tomt, tilkalder politikken ingen, før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felter**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for at tilføje de næste niveauer.
 
-Ved et projekts første politik spørger formularen også **Udløs den ved hver ny hændelse og hver ny advarsel**, som starter slået til. Den tilføjer en regel under **Hændelser → Regler → Vagtregler** og en under **Advarsler → Regler → Vagtregler**, der hver matcher alt og kører denne politik. Der spørges kun folk, der må tilføje vagtregler, så længe projektet hverken har en vagtpolitik eller en vagtregel.
+Formularen spørger også **Udløs den ved hver ny hændelse og hver ny advarsel**, hvis du må tilføje vagtregler. Den tilføjer en regel under **Hændelser → Regler → Vagtregler** og en under **Advarsler → Regler → Vagtregler**, der hver matcher alt og kører denne politik. Den starter slået til for et projekts første politik, så længe projektet hverken har en vagtpolitik eller en vagtregel, og slået fra for senere politikker: at udløse to politikker ved hver ny hændelse og advarsel er et valg, du skal træffe. Slået fra tilkalder politikken ingen, før en regel, en monitor eller en person kører den.
+
+![Forklaringen på den tomme liste »Vagtpolitikker«, med »Guidet opsætning« fremhævet](screen:on-call-policies-guided-setup)
+
+Vil du hellere guides trin for trin, fra din telefon til et testtilkald, så klik på **Guidet opsætning**: på den tomme liste **Vagtpolitikker** eller under **Sådan fungerer det**. Se [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 
 Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
 
@@ -96,6 +100,24 @@ Ingen går glip af et tilkald ved kun at blive tilkaldt én gang. Det ene tilkal
 Nogle tilkald fortsætter, efter den er bekræftet, indtil nogen, de har tilkaldt, svarer, eller den er løst: et nyt tilkald, et tilkald til observatører, et tilkald, som nogen har sendt til personer fra Slack eller Microsoft Teams, og en politik, der er startet manuelt.
 
 En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor: dashboardet slår **Udfør vagtpolitik** fra og viser årsagen. Dens notifikationer siger, hvem der startede hvilken politik, og indeholder den besked, der blev sendt med et tilkald fra Slack eller Microsoft Teams.
+
+## Test en politik
+
+**Test denne politik**, i en politiks eskaleringsregler, kalder dens første niveau som en test, uden en hændelse bag: der står TEST i hver besked, og ingen statusside, abonnent eller kanal får besked. Slå **Gå gennem hvert eskaleringsniveau** til for at kalde hvert niveau efter tur, højst 2 minutter fra hinanden, indtil nogen kvitterer. Før noget sendes, viser dialogen, hvem testen kalder og hvordan, og hvad den koster på OneUptime Cloud.
+
+**Send testkald** forbliver slået fra, så længe testen ikke ville nå nogen: alle, den kalder, har fravalgt alvorligheden, har ingen regel for den og intet at falde tilbage på, eller har kun metoder, der ikke er bekræftet eller er slået fra i projektet. En linje under listen siger hvorfor. Kan kun et senere niveau nås, tilbyder linjen **Gå gennem hvert eskaleringsniveau** med ét klik.
+
+Den, der kaldes, kvitterer for testen fra enhver af dens beskeder: linket i en e-mail, en sms eller en chatbesked, 1 i et opkald eller dens pushnotifikation i OneUptime On-Call-appen i versioner nyere end 1.6.0. En politik kan testes én gang hvert 5. minut, og et projekt sender højst 20 test i timen.
+
+### Hold en beredskabsøvelse for en monitor
+
+**Hold en beredskabsøvelse**, på kortet **Når den går ned** for en monitor, øver en af dens fejl: en hændelse eller advarsel, som et af dens kriterier åbner, eller den hændelse, som en hændelsesregel for advarsler opretter ud fra sådan en advarsel. Den tester hver vagtpolitik, som den fejl ville kalde, hver som **Test denne politik** tester den, og intet offentligt sker: der oprettes ingen hændelse eller advarsel, og ingen statusside, abonnent eller kanal får besked. Før noget sendes, nævner dialogen fejlen, hver politik og hvem den politik kalder nu. For en oprettet hændelse nævner den også reglen, og hvor længe advarslen først står åben: øvelsen tester hændelsens politikker med det samme, uden den ventetid.
+
+En øvelse kalder hver politiks første niveau. Under **Flere felter** kan du slå **Gå gennem hvert eskaleringsniveau** til for at kalde hver politiks niveauer efter tur, højst 2 minutter fra hinanden, indtil nogen kvitterer: dialogen viser så hvert niveau, hver politik når, og hvad gennemgangen højst koster. Når ingen på de første niveauer kan nås, men et senere niveau kan, tilbyder linjen under listen **Gå gennem hvert eskaleringsniveau** med ét klik.
+
+**Start beredskabsøvelse** forbliver slået fra, så længe en af de politikker er en, du ikke kan teste, fordi du ikke kan redigere den, eller så længe ingen, de kalder, kan nås. Hver politik i en øvelse tæller som sin egen test: en politik, der er testet inden for de sidste 5 minutter, stopper hele øvelsen, og en øvelse med tre politikker bruger tre af projektets 20 test i timen.
+
+Når dialogen er lukket, siger **Seneste beredskabsøvelse** på kortet, hvilken fejl monitorens seneste øvelse øvede, hvornår og af hvem den blev startet, og hvor mange af dens test der blev kvitteret for. **Vis detaljer** viser hver politiks test: om der blev kvitteret for den, af hvem, hvordan og hvor hurtigt. Hver test bliver i sin politiks udførelseslogs, markeret som en beredskabsøvelse for monitoren. En øvelses resultater vises for den, der kan læse monitoren og hver af de udførelseslogs.
 
 ## Udførelseslogs
 

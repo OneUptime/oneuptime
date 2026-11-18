@@ -1,9 +1,9 @@
 import FormsCopy from "./FormsCopy";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Form from "Common/Models/DatabaseModels/Form";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
@@ -106,7 +106,7 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={1} columns={1} />;
     }
 
     if (isEnabled === null) {

@@ -1,4 +1,5 @@
 import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import EscalationRuleNotifyNote, {
   PreviousEscalationLevel,
 } from "./EscalationRuleNotifyNote";
@@ -39,10 +40,15 @@ import {
   ESCALATION_RULE_TEAMS_KEY,
   ESCALATION_RULE_USERS_KEY,
   EscalationRuleResponderIds,
+  PAGED_AFTER_DESCRIPTION,
   getEscalationRuleFormFields,
   readEscalationRuleResponderIds,
+  readPagedAfterInMinutes,
   resolveEscalationRuleName,
 } from "./EscalationRuleForm";
+import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Toast from "Common/UI/Utils/Toast";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -50,6 +56,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  DEFAULT_ESCALATE_AFTER_IN_MINUTES,
   EscalationRuleNameEntry,
   getEscalationRuleDisplayName,
   getEscalationRuleOrderAfterSwap,
@@ -63,7 +70,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -192,6 +198,35 @@ export const NO_RESPONDERS_NOTICE: string = translationKey(
 export const PAGED_AT_ONCE_CONNECTOR: string = translationKey(
   "Nobody to page here, so the next level is paged at once",
 );
+
+/*
+ * An escalation rule is a level of the policy (the glossary's words), and
+ * its add and edit dialogs say which one (#7373): "Add Escalation Rule"
+ * over "Adds level 3", and the cards' "Level 3", read as one thing.
+ */
+export const ADD_ESCALATION_LEVEL_DESCRIPTION: string = translationKey(
+  "Adds level {{number}} of this policy: who is paged, and when.",
+);
+export const EDIT_ESCALATION_LEVEL_DESCRIPTION: string = translationKey(
+  "Level {{number}} of this policy: who is paged, and how long to wait for an acknowledgement before the next level.",
+);
+
+// A new level was added, but the wait before it could not be saved (#7373).
+export const PAGED_AFTER_NOT_SAVED_TITLE: string = translationKey(
+  "The rule was added, but the wait of {{level}} was not changed",
+);
+
+/*
+ * Whether the person may change a policy's escalation rules: a new rule
+ * after the first then asks when it is paged, which is saved on the level
+ * before it (#7373).
+ */
+export const canChangeEscalationRules: () => boolean = (): boolean => {
+  return PermissionGate.check(
+    new OnCallDutyEscalationRule(),
+    ModelAction.Update,
+  ).isAllowed;
+};
 
 // Whether a rule's schedule row pages the next person in its rotation.
 export const isNextInRotationJoin: (
@@ -561,6 +596,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       onCallSchedules: [],
       nextInRotationSchedules: [],
     });
+
+  /*
+   * A new rule's "Paged after", as it was sent (#7373): the level before
+   * it, and the wait to save on it once the new rule exists. Null when the
+   * form did not ask.
+   */
+  const pagedAfterRef: React.MutableRefObject<{
+    ruleId: string;
+    minutes: number;
+  } | null> = useRef<{ ruleId: string; minutes: number } | null>(null);
 
   /*
    * The level whose readiness detail is open, by rule id. The label on the card
@@ -1640,17 +1685,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                      * once it has responders.
                      */}
                     {isEmpty ? (
-                      <span
-                        data-testid="escalation-rule-skipped-at-once"
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                      >
-                        <Icon
-                          icon={IconProp.Forward}
-                          className="h-3 w-3 text-gray-400"
-                          isMirroredRightToLeft={true}
-                        />
-                        {translator.translateText(SKIPPED_LEVEL_TIMING)}
-                      </span>
+                      /*
+                       * The twin of "Escalates after": the same Pill, its
+                       * Forward arrow pointing the way the words run on a
+                       * page read right to left.
+                       */
+                      <Pill
+                        dataTestId="escalation-rule-skipped-at-once"
+                        text={
+                          translator.translateText(SKIPPED_LEVEL_TIMING) ||
+                          SKIPPED_LEVEL_TIMING
+                        }
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={IconProp.Forward}
+                        isIconMirroredRightToLeft={true}
+                      />
                     ) : (
                       <Pill
                         dataTestId="escalation-rule-escalates-after"
@@ -1742,14 +1792,23 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           className="flex flex-col items-center py-1"
         >
           <div className="h-3 w-px bg-gray-200" />
-          <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-            <Icon
-              icon={IconProp.Forward}
-              className="h-3.5 w-3.5 text-gray-400"
-              isMirroredRightToLeft={true}
-            />
-            <span>{translator.translateText(PAGED_AT_ONCE_CONNECTOR)}</span>
-          </div>
+          {/*
+           * A Pill whose Forward arrow points the way the words run, and
+           * whose sentence wraps on a phone rather than end in "...".
+           */}
+          <Pill
+            className="my-1"
+            text={
+              translator.translateText(PAGED_AT_ONCE_CONNECTOR) ||
+              PAGED_AT_ONCE_CONNECTOR
+            }
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            icon={IconProp.Forward}
+            isIconMirroredRightToLeft={true}
+            isWrapping={true}
+            isKeepingWordsWhole={true}
+          />
           <Icon icon={IconProp.ChevronDown} className="h-4 w-4 text-gray-300" />
         </div>
       );
@@ -1785,7 +1844,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     if (isLoading) {
       return (
         <div className="flex w-full justify-center py-16">
-          <ComponentLoader />
+          <CardListSkeleton count={2} lines={2} />
         </div>
       );
     }
@@ -1859,7 +1918,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
   /*
    * The level a new rule comes after, and its wait: when the new level is
-   * paged, said under its Notify field (#7373).
+   * paged (#7373). The list's last level, as the page draws them.
    */
   const lastRule: OnCallDutyEscalationRule | undefined =
     rules[rules.length - 1];
@@ -1870,28 +1929,107 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       }
     : undefined;
 
+  /*
+   * A new rule after the first asks when it is paged ("Paged after"), and
+   * the answer is saved as the wait of the level before it - for someone
+   * who may change that level. Anyone else is told when it is paged, under
+   * Notify, and asked "Escalate after" as before.
+   */
+  const asksWhenPaged: boolean =
+    Boolean(previousLevel) && canChangeEscalationRules();
+
   const createFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: rules.length + 1,
         notifyFooterElement: (
-          <EscalationRuleNotifyNote previousLevel={previousLevel} />
+          <EscalationRuleNotifyNote
+            previousLevel={asksWhenPaged ? undefined : previousLevel}
+          />
         ),
+        previousLevel: asksWhenPaged ? previousLevel : undefined,
+        pagedAfterDescriptionElement:
+          asksWhenPaged && previousLevel ? (
+            <span data-testid="escalation-rule-paged-after-description">
+              {translator.translateTemplate(PAGED_AFTER_DESCRIPTION, {
+                level: previousLevel.name,
+              })}
+            </span>
+          ) : undefined,
       });
     }, [
       rules.length,
       previousLevel?.name,
       previousLevel?.escalateAfterInMinutes,
+      asksWhenPaged,
+      translator.language,
     ]);
+
+  /*
+   * Saves a new rule's "Paged after" as the wait of the level before it
+   * (#7373), when it changed. Nothing to save resolves at once.
+   */
+  const savePagedAfter: (
+    pagedAfter: { ruleId: string; minutes: number } | null,
+  ) => Promise<void> = async (
+    pagedAfter: { ruleId: string; minutes: number } | null,
+  ): Promise<void> => {
+    if (!pagedAfter) {
+      return;
+    }
+
+    const levelBefore: OnCallDutyEscalationRule | undefined = rules.find(
+      (rule: OnCallDutyEscalationRule): boolean => {
+        return rule.id?.toString() === pagedAfter.ruleId;
+      },
+    );
+
+    if (
+      levelBefore &&
+      (Number(levelBefore.escalateAfterInMinutes) || 0) === pagedAfter.minutes
+    ) {
+      return;
+    }
+
+    await ModelAPI.updateById<OnCallDutyEscalationRule>({
+      modelType: OnCallDutyEscalationRule,
+      id: new ObjectID(pagedAfter.ruleId),
+      data: { escalateAfterInMinutes: pagedAfter.minutes },
+    });
+  };
+
+  /*
+   * The level before the one being edited: its Notify says when the level
+   * is paged, and that the wait is set there (#7373).
+   */
+  const levelBeforeEdited: OnCallDutyEscalationRule | undefined =
+    editRuleLevel > 1 ? rules[editRuleLevel - 2] : undefined;
+  const editPreviousLevel: PreviousEscalationLevel | undefined =
+    levelBeforeEdited
+      ? {
+          name: resolveEscalationRuleName(
+            levelBeforeEdited.name,
+            editRuleLevel - 1,
+          ),
+          escalateAfterInMinutes:
+            Number(levelBeforeEdited.escalateAfterInMinutes) || 0,
+        }
+      : undefined;
 
   const editFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: editRuleLevel,
         isEditing: true,
-        notifyFooterElement: <EscalationRuleNotifyNote />,
+        notifyFooterElement: (
+          <EscalationRuleNotifyNote previousLevel={editPreviousLevel} />
+        ),
       });
-    }, [editRuleLevel]);
+    }, [
+      editRuleLevel,
+      editPreviousLevel?.name,
+      editPreviousLevel?.escalateAfterInMinutes,
+    ]);
 
   /*
    * What the edit dialog opens with: the rule as this page loaded it, and its
@@ -2165,19 +2303,62 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <ModelFormModal<OnCallDutyEscalationRule>
           title="Add Escalation Rule"
           name="Create Escalation Rule"
-          description="Who gets paged at this level, and how long to wait for an acknowledgement before escalating."
+          /*
+           * The rule is a level (#7373): the dialog says which one it adds,
+           * so "Add Escalation Rule" and the "Level 1" on the cards read as
+           * one thing.
+           */
+          description={
+            <span data-testid="escalation-rule-create-description">
+              {translator.translateTemplate(ADD_ESCALATION_LEVEL_DESCRIPTION, {
+                number: translator.formatNumber(rules.length + 1),
+              })}
+            </span>
+          }
           modalWidth={ModalWidth.Normal}
           modelType={OnCallDutyEscalationRule}
           submitButtonText="Create Rule"
           onClose={() => {
+            pagedAfterRef.current = null;
             return setShowCreateModal(false);
           }}
           onSuccess={() => {
             setShowCreateModal(false);
-            loadData().catch(() => {});
+            const pagedAfter: { ruleId: string; minutes: number } | null =
+              pagedAfterRef.current;
+            pagedAfterRef.current = null;
+
+            /*
+             * The new level exists; its "Paged after" is saved as the wait
+             * of the level before (#7373). A wait that could not be saved
+             * leaves that level as it was, and says so: the new level is
+             * there either way.
+             */
+            savePagedAfter(pagedAfter)
+              .catch((err: Error) => {
+                Toast.error(
+                  translator.translateTemplate(PAGED_AFTER_NOT_SAVED_TITLE, {
+                    level: previousLevel?.name || "",
+                  }),
+                  {
+                    description: (
+                      <ErrorLine
+                        as="div"
+                        message={API.getFriendlyMessage(err)}
+                      />
+                    ),
+                    dataTestId: "escalation-rule-paged-after-not-saved",
+                  },
+                );
+              })
+              .finally(() => {
+                loadData().catch(() => {});
+              });
           }}
           onBeforeCreate={(
             item: OnCallDutyEscalationRule,
+            _miscDataProps: JSONObject,
+            formValues: JSONObject,
           ): Promise<OnCallDutyEscalationRule> => {
             item.onCallDutyPolicyId = props.onCallDutyPolicyId;
             item.projectId = props.projectId;
@@ -2190,6 +2371,26 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
              */
             if (!item.name?.toString().trim()) {
               delete item.name;
+            }
+
+            /*
+             * "Paged after" (#7373) is the wait of the level before, saved
+             * there once this rule exists (onSuccess). This level waits the
+             * usual time itself until a level after it asks again.
+             */
+            const pagedAfterInMinutes: number | null =
+              readPagedAfterInMinutes(formValues);
+
+            pagedAfterRef.current =
+              asksWhenPaged && lastRule?.id && pagedAfterInMinutes !== null
+                ? {
+                    ruleId: lastRule.id.toString(),
+                    minutes: pagedAfterInMinutes,
+                  }
+                : null;
+
+            if (asksWhenPaged) {
+              item.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
             }
 
             return Promise.resolve(item);
@@ -2211,7 +2412,13 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <ModelFormModal<OnCallDutyEscalationRule>
           title="Edit Escalation Rule"
           name="Edit Escalation Rule"
-          description="Who gets paged at this level, and how long to wait for an acknowledgement before escalating."
+          description={
+            <span data-testid="escalation-rule-edit-description">
+              {translator.translateTemplate(EDIT_ESCALATION_LEVEL_DESCRIPTION, {
+                number: translator.formatNumber(editRuleLevel),
+              })}
+            </span>
+          }
           modalWidth={ModalWidth.Normal}
           modelType={OnCallDutyEscalationRule}
           modelIdToEdit={ruleToEdit.id!}

@@ -1,8 +1,8 @@
 import API from "../../Utils/API/API";
+import InlineValueSkeleton from "../Skeleton/InlineValueSkeleton";
 import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Card from "../Card/Card";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -58,7 +58,7 @@ const ModelProgress: <TBaseModel extends BaseModel>(
             <ErrorMessage message={error} />
           </div>
         )}
-        {isLoading && <ComponentLoader />}
+        {isLoading && <InlineValueSkeleton widthClassName="w-full" />}
         {!error && !isLoading && (
           <ProgressBar
             totalCount={props.totalCount}

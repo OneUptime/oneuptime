@@ -107,7 +107,7 @@ export const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
     >
       <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-1.5">
         <Icon icon={IconProp.Code} className="h-3.5 w-3.5 text-gray-500" />
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-400">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-400">
           {fileName || translator.translateText("Original source")}
         </span>
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">

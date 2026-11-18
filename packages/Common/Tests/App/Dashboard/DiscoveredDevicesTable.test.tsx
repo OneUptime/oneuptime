@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import userEvent from "@testing-library/user-event";
 import {
   act,
   cleanup,
@@ -1173,5 +1174,93 @@ describe("a card narrower than the rows", () => {
         name: "View device",
       }),
     ).toHaveTextContent(/^View$/);
+  });
+});
+
+describe("filtering devices (issue #9304)", () => {
+  // Types a value into one text chip and applies it, as a person does.
+  async function typeIntoChip(field: string, value: string): Promise<void> {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    const chip: HTMLElement = screen.getByTestId(
+      `discovered-devices-filter-${field}`,
+    );
+
+    await user.click(within(chip).getAllByRole("button")[0]!);
+
+    // The value's box, under the operator picker's.
+    const inputs: NodeListOf<HTMLInputElement> = within(chip)
+      .getByRole("dialog")
+      .querySelectorAll('input[type="text"]');
+    const input: HTMLInputElement | undefined = inputs[inputs.length - 1];
+
+    expect(input).toBeDefined();
+
+    await user.type(input!, `${value}{Enter}`);
+    await flush();
+  }
+
+  test("the chips the Devices list draws sit over the table, beside the search", async () => {
+    await renderList();
+
+    const bar: HTMLElement = screen.getByTestId("discovered-devices-filters");
+
+    for (const label of [
+      "Name",
+      "IP Address",
+      "MAC Address",
+      "Vendor",
+      "Hostname",
+      "Site",
+      "Seen By",
+      "Last Seen",
+    ]) {
+      expect(within(bar).getByText(label)).toBeInTheDocument();
+    }
+
+    expect(screen.getByTestId("discovered-devices-search")).toBeInTheDocument();
+  });
+
+  test("a site's own list has no Site chip", async () => {
+    await renderList({ siteId: SITE_ID });
+
+    expect(
+      screen.queryByTestId("discovered-devices-filter-site"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("discovered-devices-filter-vendor"),
+    ).toBeInTheDocument();
+  });
+
+  test("each chip set is sent to the server with the search, all of them holding at once, from the first page", async () => {
+    await renderList();
+
+    await typeIntoChip("vendor", "Axis");
+
+    await waitFor(() => {
+      expect(lastListBody()["filters"]).toEqual([
+        { field: "vendor", operator: "is", values: ["Axis"] },
+      ]);
+    });
+
+    await typeIntoChip("ipAddress", "10.0.0.5");
+
+    await waitFor(() => {
+      expect(lastListBody()["filters"]).toEqual([
+        { field: "ipAddress", operator: "is", values: ["10.0.0.5"] },
+        { field: "vendor", operator: "is", values: ["Axis"] },
+      ]);
+    });
+    expect(lastListBody()["skip"]).toBe(0);
+    expect(lastListBody()["search"]).toBe("");
+
+    // Clear all empties the chips, and the list asks without them.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("facet-filter-bar-clear-all"));
+    });
+    await flush();
+
+    await waitFor(() => {
+      expect(lastListBody()).not.toHaveProperty("filters");
+    });
   });
 });

@@ -23,6 +23,9 @@ import AIService from "../../../Services/AIService";
 import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../WorkspaceIncidentFromAlert";
+import WorkspaceIncidentSubscriberNotification, {
+  WorkspaceNotifySubscribersField,
+} from "../WorkspaceIncidentSubscriberNotification";
 
 /*
  * "incident" and "maintenance" typed to the Microsoft Teams bot - or "create
@@ -107,31 +110,44 @@ export default class MicrosoftTeamsCreateCommands {
     let declaringAlert: WorkspaceDeclaringAlert | null = null;
     let isAffectedResourcesOffered: boolean = false;
     let isAiEnabled: boolean = false;
+    let isNotifyTickedByDefault: boolean | null = null;
 
     try {
       /*
        * The lists, whether the project has resources to offer under
-       * Affected Resources, and - in an alert's own channel - the alert it
-       * is declared from (WorkspaceIncidentFromAlert), read at once.
+       * Affected Resources, in an alert's own channel the alert it is
+       * declared from (WorkspaceIncidentFromAlert), and how Notify Status
+       * Page Subscribers starts - as the project says, null for a sender it
+       * does not ask (WorkspaceIncidentSubscriberNotification) - read at
+       * once.
        */
-      [choices, declaringAlert, isAffectedResourcesOffered, isAiEnabled] =
-        await Promise.all([
-          MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-            projectId,
-            props,
-          ),
-          WorkspaceIncidentFromAlert.readChannelAlert({
-            projectId: projectId,
-            channelId: this.getChannelId(activity),
-            props: props,
-          }),
-          WorkspaceAffectedResources.isOffered({
-            projectId: projectId,
-            props: props,
-          }),
-          // Whether Affected Resources' hint may speak of OneUptime AI.
-          AIService.isProjectAIEnabled(projectId),
-        ]);
+      [
+        choices,
+        declaringAlert,
+        isAffectedResourcesOffered,
+        isAiEnabled,
+        isNotifyTickedByDefault,
+      ] = await Promise.all([
+        MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+          projectId,
+          props,
+        ),
+        WorkspaceIncidentFromAlert.readChannelAlert({
+          projectId: projectId,
+          channelId: this.getChannelId(activity),
+          props: props,
+        }),
+        WorkspaceAffectedResources.isOffered({
+          projectId: projectId,
+          props: props,
+        }),
+        // Whether Affected Resources' hint may speak of OneUptime AI.
+        AIService.isProjectAIEnabled(projectId),
+        WorkspaceIncidentSubscriberNotification.readTickedByDefault({
+          projectId: projectId,
+          props: props,
+        }),
+      ]);
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,
@@ -166,6 +182,16 @@ export default class MicrosoftTeamsCreateCommands {
         route: INCIDENT_FORM.dashboardRoute,
       });
 
+    /*
+     * Not asked for a private alert's incident, which no status page
+     * shows: the card says it will be private.
+     */
+    const notifySubscribers: WorkspaceNotifySubscribersField | null =
+      WorkspaceIncidentSubscriberNotification.getField({
+        isTickedByDefault: isNotifyTickedByDefault,
+        isPrivate: declaringAlert?.isPrivate === true,
+      });
+
     await this.sendForm({
       turnContext: turnContext,
       projectId: projectId,
@@ -191,6 +217,7 @@ export default class MicrosoftTeamsCreateCommands {
               }
             : {}),
           declaringAlert: declaringAlert,
+          notifySubscribers: notifySubscribers,
         });
       },
     });

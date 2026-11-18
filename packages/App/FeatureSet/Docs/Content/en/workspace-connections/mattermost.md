@@ -114,7 +114,7 @@ People join a rule's channel by the Mattermost account they connected, or else b
 
 An incident, alert, episode or maintenance event with a channel of its own has **Open in Mattermost** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, on your Mattermost server. A record with two channels of its own lists both under the button. A record that also has channels in Slack or Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
-**Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.
+**Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack. **Send Test Now** on a summary answers as it does for Slack: **Summary Sent**, or **Test Failed** with each channel that did not get it and why. Every post, and why one failed under **Reason**, is listed in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
 
 OneUptime's messages notify nobody with what they quote: a name or a description that holds `@channel`, `@here` or `@someone` is shown as written, and pings nobody.
 

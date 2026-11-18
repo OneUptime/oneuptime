@@ -341,12 +341,13 @@ describe("the run's words", () => {
 });
 
 describe("where a test can be acknowledged from", () => {
-  test("a message with a link or a call's 1 can; push, WhatsApp, webhooks and custom channels can't", () => {
+  test("a message with a link or a call's 1 can, and a push - the On-Call app's Acknowledge test page (#7014); WhatsApp, webhooks and custom channels can't", () => {
     for (const channel of [
       OnCallPageChannel.Call,
       OnCallPageChannel.SMS,
       OnCallPageChannel.Email,
       OnCallPageChannel.Telegram,
+      OnCallPageChannel.Push,
       OnCallPageChannel.Slack,
       OnCallPageChannel.MicrosoftTeams,
       OnCallPageChannel.Mattermost,
@@ -355,7 +356,6 @@ describe("where a test can be acknowledged from", () => {
     }
 
     for (const channel of [
-      OnCallPageChannel.Push,
       OnCallPageChannel.WhatsApp,
       OnCallPageChannel.Webhook,
       OnCallPageChannel.CustomChannel,
@@ -363,7 +363,7 @@ describe("where a test can be acknowledged from", () => {
       expect(canAcknowledgeOnCallTestPageBy(channel)).toBe(false);
     }
 
-    expect(ON_CALL_TEST_PAGE_ACKNOWLEDGEABLE_CHANNELS).toHaveLength(7);
+    expect(ON_CALL_TEST_PAGE_ACKNOWLEDGEABLE_CHANNELS).toHaveLength(8);
   });
 });
 

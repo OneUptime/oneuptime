@@ -671,6 +671,10 @@ export default class DiscoveryImportRunner {
           facts.vendor = row.vendor;
         }
 
+        if (row.hostname) {
+          facts.hostname = row.hostname;
+        }
+
         return {
           ipAddress: row.ipAddress!,
           discoveredDevice: facts,

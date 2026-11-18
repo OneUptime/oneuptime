@@ -23,11 +23,17 @@ and the server adds an incident and an alert on-call rule for it. The suite pins
 - what Create sends: `pageForEveryNewIncidentAndAlert: true` as misc data beside the policy
   (never a column of it), and the new policy opening on its Escalation Rules; switched off
   (by its words, which are its label), nothing asks for the rules
-- when it is not asked: a project with a policy (`?policies=one`, and then only the list's
-  own count runs), one with an incident on-call rule and no policy (`?rules=incident`), counts that
-  fail (`?counts=fail`), and someone who may create a policy but not an on-call rule
-  (`?role=member`, a Project Member); none of them sends the switch
+- a later policy (#7371): a project with a policy (`?policies=one`, and then only the list's own
+  count runs) and one with an incident on-call rule and no policy (`?rules=incident`) are asked
+  too, the switch off, so the dialog says before the policy is saved that a policy nothing
+  triggers pages nobody; left off nothing is sent, and turned on it asks for the two rules
+- when it is not asked: counts that fail (`?counts=fail`), and someone who may create a policy
+  but not an on-call rule (`?role=member`, a Project Member); neither sends the switch
 - counts that answer late (`?counts=hold`): the switch joins the dialog already open, on
+- the on-call guided setup from On-Call itself (#7148): a new project's empty list explains
+  On-Call with **Guided setup** first, as its one primary button, beside **Create On-Call
+  Policy** on one row (wrapping at 390px with nothing to scroll sideways), and a project with a
+  policy finds it under **How it works**; either opens `/on-call-duty/setup` (a stub here)
 - the switch's row at a 390px phone (the switch first, its words wrapping beside it, nothing
   to scroll sideways), in German (`?lang=de`) and in Persian in dark mode
   (`?lang=fa&theme=dark`: right to left, the switch on the right with its knob at the end,

@@ -158,11 +158,12 @@ describe("ClientIdMetadataDocument", () => {
       },
     );
 
-    it("accepts the three real client ids by name, so a rule change that drops one is seen", () => {
+    it("accepts the four real client ids by name, so a rule change that drops one is seen", () => {
       for (const clientId of [
         "https://vscode.dev/oauth/client-metadata.json",
         "https://claude.ai/oauth/mcp-oauth-client-metadata",
         "https://claude.ai/oauth/claude-code-client-metadata",
+        "https://chatgpt.com/oauth/client.json",
       ]) {
         expect(ClientIdMetadataDocument.isMetadataDocumentUrl(clientId)).toBe(
           true,

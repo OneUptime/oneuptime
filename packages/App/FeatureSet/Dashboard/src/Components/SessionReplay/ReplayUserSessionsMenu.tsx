@@ -358,7 +358,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       </span>
                       <span
                         data-testid="replay-user-session-absolute"
-                        className="block text-[11px] text-gray-500"
+                        className="block text-xs text-gray-500"
                       >
                         {description.absolute}
                       </span>
@@ -372,7 +372,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                           translator.translateText("Unknown page")}
                       </span>
                       {description.deviceHint.length > 0 && (
-                        <span className="block text-[11px] text-gray-500">
+                        <span className="block text-xs text-gray-500">
                           {description.deviceHint}
                         </span>
                       )}

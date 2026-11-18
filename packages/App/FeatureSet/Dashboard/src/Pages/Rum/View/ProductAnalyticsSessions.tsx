@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -10,7 +11,6 @@ import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -588,7 +588,7 @@ const RumApplicationProductAnalyticsSessions: FunctionComponent<
                   )}
                 </div>
               ) : (
-                <ComponentLoader />
+                <TableSkeleton />
               )}
             </div>
           </Card>

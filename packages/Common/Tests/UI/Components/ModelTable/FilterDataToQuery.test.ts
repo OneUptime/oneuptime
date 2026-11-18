@@ -1,5 +1,6 @@
 import buildQueryFromFilterData, {
   getFilterKeys,
+  renameFilterDataKeys,
   sanitizeFilterData,
 } from "../../../../UI/Components/ModelTable/FilterDataToQuery";
 import Filter from "../../../../UI/Components/ModelFilter/Filter";
@@ -360,5 +361,102 @@ describe("sanitizeFilterData", () => {
   test("tolerates an empty snapshot", () => {
     expect(sanitize({})).toEqual({});
     expect(sanitize(undefined as unknown as FilterData<Monitor>)).toEqual({});
+  });
+});
+
+/*
+ * `renameFilterDataKeys`: a snapshot made when a table keyed a filter by
+ * another field - a link someone shared, a bookmark - still filters by what
+ * it said, read under the key the table uses now (#9363: the Devices list's
+ * Vendor filter moved from `vendor` to `manufacturer`).
+ */
+describe("renameFilterDataKeys", () => {
+  type RenameFunction = (
+    filterData: FilterData<Monitor>,
+    renamedKeys?: Record<string, string>,
+  ) => FilterData<Monitor>;
+
+  const rename: RenameFunction = (
+    filterData: FilterData<Monitor>,
+    renamedKeys?: Record<string, string>,
+  ): FilterData<Monitor> => {
+    return renameFilterDataKeys<Monitor>({
+      filterData: filterData,
+      renamedKeys: renamedKeys,
+    });
+  };
+
+  test("reads an old key under its new name, with its value as it was", () => {
+    const search: Search<string> = new Search("api");
+
+    const renamed: FilterData<Monitor> = rename(
+      { title: search } as unknown as FilterData<Monitor>,
+      { title: "name" },
+    );
+
+    expect(renamed).toEqual({ name: search });
+    expect(renamed["name" as keyof FilterData<Monitor>]).toBe(search);
+  });
+
+  test("so the table's own sanitizing keeps it, and the query filters by it", () => {
+    const search: Search<string> = new Search("api");
+
+    expect(
+      build(
+        sanitizeFilterData<Monitor>({
+          filterData: rename(
+            { title: search } as unknown as FilterData<Monitor>,
+            { title: "name" },
+          ),
+          filters: FILTERS,
+        }),
+      ),
+    ).toEqual({ name: search });
+  });
+
+  test("a snapshot that already names the new key keeps the new key's value", () => {
+    const old: Search<string> = new Search("old");
+    const current: Search<string> = new Search("current");
+
+    expect(
+      rename({ title: old, name: current } as unknown as FilterData<Monitor>, {
+        title: "name",
+      }),
+    ).toEqual({ name: current });
+    expect(
+      rename({ name: current, title: old } as unknown as FilterData<Monitor>, {
+        title: "name",
+      }),
+    ).toEqual({ name: current });
+  });
+
+  test("keys it does not rename are left as they are", () => {
+    expect(
+      rename(
+        {
+          name: "api",
+          disableActiveMonitoring: false,
+        } as unknown as FilterData<Monitor>,
+        { title: "name" },
+      ),
+    ).toEqual({ name: "api", disableActiveMonitoring: false });
+  });
+
+  test("no renames, or an empty snapshot, change nothing", () => {
+    expect(rename({ name: "api" } as unknown as FilterData<Monitor>)).toEqual({
+      name: "api",
+    });
+    expect(rename({}, { title: "name" })).toEqual({});
+    expect(
+      rename(undefined as unknown as FilterData<Monitor>, { title: "name" }),
+    ).toEqual({});
+  });
+
+  test("a key that only shares a name with an object's own property is not renamed", () => {
+    expect(
+      rename({ toString: "x" } as unknown as FilterData<Monitor>, {
+        title: "name",
+      }),
+    ).toEqual({ toString: "x" });
   });
 });

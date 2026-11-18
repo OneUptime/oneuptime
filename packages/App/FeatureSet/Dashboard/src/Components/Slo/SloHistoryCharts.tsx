@@ -2,6 +2,7 @@ import {
   SLO_CHART_ZOOM_HINT_BODY_CLASS_NAME,
   withSloChartZoomHint,
 } from "./SloChartZoomHint";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import { getSloPolicyTierReferenceLines } from "./SloPolicyTier";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -37,7 +38,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
@@ -464,7 +464,7 @@ const SloHistoryCharts: FunctionComponent<ComponentProps> = (
      * not even while zoomed.
      */
     if (isLoading && options.points.length === 0) {
-      return withSloChartZoomHint(false, <ComponentLoader />);
+      return withSloChartZoomHint(false, <ChartSkeleton />);
     }
 
     if (options.points.length === 0) {

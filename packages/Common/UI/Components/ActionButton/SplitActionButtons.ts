@@ -60,8 +60,6 @@ const DESTRUCTIVE_STYLES: Array<ButtonStyleType> = [
 const CALL_TO_ACTION_STYLES: Array<ButtonStyleType> = [
   ButtonStyleType.NORMAL,
   ButtonStyleType.PRIMARY,
-  ButtonStyleType.SUCCESS,
-  ButtonStyleType.WARNING,
 ];
 
 export const isDestructiveActionButton: <T extends GenericObject>(

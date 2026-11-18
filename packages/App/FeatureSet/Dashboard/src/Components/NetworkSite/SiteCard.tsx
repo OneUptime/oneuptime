@@ -227,7 +227,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               className="flex-shrink-0"
             />
           )}
-          <span className="flex-shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-wider text-gray-400">
+          <span className="flex-shrink-0 text-xs font-semibold uppercase leading-4 tracking-wider text-gray-500">
             {site.siteType}
           </span>
         </div>
@@ -239,7 +239,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
          * deliberately quiet card, not as one missing its bottom half.
          */
         <div className="flex flex-1 items-center">
-          <p className="text-[11px] leading-4 text-gray-400">
+          <p className="text-xs leading-4 text-gray-500">
             {translator.translateText(
               "Nothing reporting yet: no devices or sites in it.",
             )}
@@ -256,7 +256,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                   >
                     {leadValue}
                   </div>
-                  <div className="truncate text-[11px] leading-4 text-gray-500">
+                  <div className="truncate text-xs leading-4 text-gray-500">
                     {leadCaption}
                   </div>
                 </React.Fragment>
@@ -274,7 +274,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               <div className="text-sm font-semibold leading-6 tabular-nums text-gray-900">
                 {getValueOrQuietDash(formatUptimePercent(site.uptimePercent))}
               </div>
-              <div className="text-[10px] leading-4 text-gray-400">
+              <div className="text-xs leading-4 text-gray-500">
                 {translator.translateText("30d uptime")}
               </div>
               {/*
@@ -286,7 +286,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                */}
               {site.dailyUptimePercent !== null && (
                 <div
-                  className="text-[10px] leading-4 tabular-nums text-gray-500"
+                  className="text-xs leading-4 tabular-nums text-gray-500"
                   title={translator.translateText(
                     "Uptime over the last 24 hours",
                   )}
@@ -331,7 +331,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
           )}
 
           {hasCounts ? (
-            <div className="truncate text-[11px] leading-4 text-gray-400">
+            <div className="truncate text-xs leading-4 text-gray-500">
               {site.childSiteCount > 0 ? (
                 <span>
                   {translator.translatePlural(

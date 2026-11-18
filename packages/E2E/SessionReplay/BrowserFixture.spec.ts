@@ -10,6 +10,7 @@ import { readFileSync } from "fs";
 import { mkdir } from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { dropdownIn, listDropdownOptions } from "../SuiteHelpers/Dropdowns";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 const artifacts: string = path.resolve(
@@ -252,9 +253,12 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(
     page.getByTestId("session-pagination").locator(".."),
   ).toHaveClass(/bg-gray-50/);
-  await expect(
-    page.getByTestId("pagination-items-on-page-select").locator("option"),
-  ).toHaveText(["20", "50", "100"]);
+  expect(
+    await listDropdownOptions(
+      page,
+      dropdownIn(page.getByTestId("pagination-items-on-page-select")),
+    ),
+  ).toEqual(["20", "50", "100"]);
   await expect(
     page.getByRole("button", { name: "Users", exact: true }),
   ).toHaveCount(0);

@@ -82,7 +82,7 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
       <h3 className="text-sm font-semibold text-gray-700 mb-1">
         {translator.translateText("No widgets yet")}
       </h3>
-      <p className="text-sm text-gray-400 max-w-sm mx-auto">{description}</p>
+      <p className="text-sm text-gray-500 max-w-sm mx-auto">{description}</p>
       {offersAddWidget ? (
         <div className="mt-5 flex justify-center">
           <Button

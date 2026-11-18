@@ -1079,6 +1079,12 @@ describe("SLOs Overview, against the product", () => {
         sloStatus: SloStatus.Misconfigured,
       }),
       getSloNotice({ ...base, sloStatus: SloStatus.Misconfigured }),
+      // Nothing has checked its monitors yet (#9089).
+      getSloNotice({
+        ...base,
+        sloStatus: SloStatus.Misconfigured,
+        isWaitingForFirstCheck: true,
+      }),
       getSloNotice({ ...base, sloStatus: SloStatus.Paused }),
       getSloNotice({
         ...base,

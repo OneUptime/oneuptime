@@ -1,5 +1,11 @@
 import { Locator, Page, expect, test } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import {
+  dropdownControl,
+  listDropdownOptions,
+  pickDropdownOption,
+  shownDropdownValue,
+} from "../SuiteHelpers/Dropdowns";
 
 /*
  * The pagination footer under every table, log and trace list, in a real
@@ -324,11 +330,14 @@ test.describe("rows per page", () => {
   }) => {
     const footer: Locator = await open(page, "total=1000&page=7");
     const select: Locator = footer.getByLabel("Rows per page");
+    const picker: Locator = footer.getByTestId(
+      "pagination-items-on-page-select",
+    );
 
-    await expect(select).toHaveValue("10");
-    await select.selectOption("50");
+    await expect(shownDropdownValue(picker)).toHaveText("10");
+    await pickDropdownOption(page, select, "50");
 
-    await expect(select).toHaveValue("50");
+    await expect(shownDropdownValue(picker)).toHaveText("50");
     await expect(currentPage(footer)).toHaveText("1");
     await expect(rows(page)).toHaveCount(50);
     await expect(footer.getByTestId("pagination-summary")).toHaveText(
@@ -347,10 +356,12 @@ test.describe("rows per page", () => {
     const footer: Locator = await open(page, "total=1000&size=37");
     const select: Locator = footer.getByLabel("Rows per page");
 
-    await expect(select).toHaveValue("37");
+    await expect(
+      shownDropdownValue(footer.getByTestId("pagination-items-on-page-select")),
+    ).toHaveText("37");
 
     const options: Array<number> = (
-      await select.locator("option").allInnerTexts()
+      await listDropdownOptions(page, select)
     ).map((text: string) => {
       return Number(text);
     });
@@ -547,7 +558,7 @@ test.describe("under a finger", () => {
 
     for (const control of [
       footer.getByTestId("pagination-current-page-indicator"),
-      footer.getByTestId("pagination-items-on-page-select"),
+      dropdownControl(footer.getByTestId("pagination-items-on-page-select")),
     ]) {
       expect((await sizeOf(control)).height).toBeGreaterThanOrEqual(44);
     }

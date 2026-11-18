@@ -410,6 +410,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     props.data.metadata.componentType,
   );
 
+  /*
+   * A card hears no click or key of its own. react-flow draws each step in a
+   * focusable button (role="button", tabIndex 0) around this card: a click on
+   * it, or Enter or Space while the keyboard is on it, opens the step's
+   * settings - or, on the trigger placeholder, the trigger picker - through
+   * the canvas (Workflow's onNodeClick, onCanvasKeyDown and onCanvasKeyUp,
+   * #9223).
+   */
+
   // Placeholder node
   if (props.data.nodeType === NodeType.PlaceholderNode) {
     /*
@@ -447,11 +456,6 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           gap: "0.75rem",
           transition: "all 0.2s ease",
           minHeight: "7rem",
-        }}
-        onClick={() => {
-          if (props.data.onClick && !isViewOnly) {
-            props.data.onClick(props.data);
-          }
         }}
       >
         <div
@@ -565,11 +569,6 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         transition: "all 0.2s ease",
         transform: isHovering ? "translateY(-1px)" : "none",
         position: "relative",
-      }}
-      onClick={() => {
-        if (props.data.onClick) {
-          props.data.onClick(props.data);
-        }
       }}
     >
       {/* In Ports (top handles) */}

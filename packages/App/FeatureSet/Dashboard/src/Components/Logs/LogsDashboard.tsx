@@ -8,8 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dictionary from "Common/Types/Dictionary";
 import Dropdown, {
   DropdownOption,
@@ -749,7 +749,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   if (isLoading && !volume) {
     return renderPage(
       <div className="rounded-xl border border-gray-200 bg-white p-12">
-        <ComponentLoader />
+        <ChartSkeleton />
       </div>,
     );
   }

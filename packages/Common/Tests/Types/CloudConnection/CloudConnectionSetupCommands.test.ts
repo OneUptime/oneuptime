@@ -5,6 +5,7 @@ import {
   AWS_LOG_READ_ACTION_GROUP,
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTIONS,
+  isAwsActionGranted,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_SCOPED_READ_RESOURCES,
   AZURE_COST_ROLE,
@@ -386,6 +387,48 @@ describe("AWS", () => {
     ]) {
       expect(isCoveredByApiGatewayRead(apiPath)).toBe(false);
     }
+  });
+
+  test("an action is granted as IAM reads the policy: case aside, a star for any run of characters", () => {
+    for (const action of [
+      "elasticloadbalancing:DescribeTargetHealth",
+      "elasticloadbalancing:DescribeListeners",
+      "ElasticLoadBalancing:describeloadbalancers",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups",
+    ]) {
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
+    }
+
+    for (const action of [
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:ModifyListener",
+      "ec2:DescribeInstanceAttribute",
+      "ec2:Describe",
+      "s3:GetObject",
+    ]) {
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: false,
+      });
+    }
+
+    expect(isAwsActionGranted("a:xbyc", ["a:x*y*c"])).toBe(true);
+    expect(isAwsActionGranted("a:xyc", ["a:x*y*c"])).toBe(true);
+    expect(isAwsActionGranted("a:xc", ["a:x*y*c"])).toBe(false);
+    expect(isAwsActionGranted("a:xyz", ["a:*z"])).toBe(true);
+    expect(isAwsActionGranted("a:z", ["a:z*z"])).toBe(false);
+  });
+
+  test("the only wildcard is Elastic Load Balancing's Describe, which reads how load balancers are set up", () => {
+    expect(
+      AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
+        return action.includes("*");
+      }),
+    ).toEqual(["elasticloadbalancing:Describe*"]);
   });
 
   test("the policy fits an IAM inline policy's 10,240 characters with room to spare", () => {

@@ -2,6 +2,7 @@ import {
   BUTTON_DISABLED_CLASS_NAME,
   getRestingClassName,
 } from "Common/UI/Components/Button/ButtonStates";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
@@ -14,7 +15,6 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { OWNERS_ADD_BUTTON_TEXT } from "Common/UI/Components/PeoplePicker/OwnersFormField";
@@ -554,7 +554,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
             "People and teams responsible for this {{resourceName}}. They are notified about changes.",
             { resourceName: resourceName },
           )}
-      {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
+      {countLabel && <span className="ml-1 text-gray-500">· {countLabel}</span>}
     </span>
   );
 
@@ -581,7 +581,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
       <>
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
-            <ComponentLoader />
+            <CardListSkeleton count={2} lines={1} />
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-6 py-8 flex flex-col items-center text-center">

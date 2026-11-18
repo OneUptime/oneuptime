@@ -102,10 +102,13 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 
 import GettingStarted, {
   WelcomeCardView,
+  getMoreSteps,
   getStepAfter,
   getWelcomeCardView,
+  isPhoneOffered,
   isQuickstartTakingHome,
   isQuickstartView,
+  offersFirstMonitor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
   WELCOME_GOALS,
@@ -164,7 +167,14 @@ function step(
   key: WelcomeStep,
   extra?: Partial<WelcomeChecklistStepState>,
 ): WelcomeChecklistStepState {
-  return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
+  return {
+    step: key,
+    isDone: false,
+    needsPlan: null,
+    isNext: false,
+    gap: null,
+    ...extra,
+  };
 }
 
 function answer(
@@ -197,15 +207,22 @@ const NEW_PROJECT: WelcomeChecklistAnswer = answer({ shouldAskForGoals: true });
 let views: Array<WelcomeCardView | null> = [];
 // And each time, whether it said it was the whole of Home.
 let takingHome: Array<boolean> = [];
+// And whether it offered to create the first monitor (#7759).
+let firstMonitorOffers: Array<boolean> = [];
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
     render(
       <GettingStarted
         projectId={new ObjectID(PROJECT_ID)}
-        onViewChange={(view: WelcomeCardView | null, isTakingHome: boolean) => {
+        onViewChange={(
+          view: WelcomeCardView | null,
+          isTakingHome: boolean,
+          isOfferingFirstMonitor: boolean,
+        ) => {
           views.push(view);
           takingHome.push(isTakingHome);
+          firstMonitorOffers.push(isOfferingFirstMonitor);
         }}
       />,
     );
@@ -229,6 +246,7 @@ beforeEach(() => {
   window.sessionStorage.clear();
   views = [];
   takingHome = [];
+  firstMonitorOffers = [];
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -863,7 +881,7 @@ describe("what this browser remembered of the old checklist", () => {
 });
 
 describe("the events of a step seen done", () => {
-  test("carry the goals, and leave out the server's email and steps the plan holds back", async () => {
+  test("carry the goals, and leave out steps the plan holds back", async () => {
     const note: SpyInstance<typeof ChecklistEvents.noteProgress> = jest.spyOn(
       ChecklistEvents,
       "noteProgress",
@@ -873,9 +891,8 @@ describe("the events of a step seen done", () => {
       answer({
         goals: [ProjectGoal.OnCall],
         steps: [
-          step(WelcomeStep.ServerEmail, { isNext: true }),
           step(WelcomeStep.Monitor, { isDone: true }),
-          step(WelcomeStep.OnCall),
+          step(WelcomeStep.OnCall, { isNext: true }),
           step(WelcomeStep.Team, { needsPlan: "Growth" as never }),
         ],
       }),
@@ -1015,6 +1032,44 @@ describe("the view it says it draws, for Home", () => {
     expect(takingHome[takingHome.length - 1]).toBe(false);
   });
 
+  test("says whether it offers the first monitor, so Home's headline does not too (#7759)", async () => {
+    fetchMock.mockResolvedValue(answer({ goals: null }));
+    await renderGettingStarted();
+
+    expect(firstMonitorOffers).toEqual([false, true]);
+
+    cleanup();
+    firstMonitorOffers = [];
+    fetchMock.mockResolvedValue(
+      answer({
+        goals: null,
+        steps: [
+          step(WelcomeStep.Monitor, { isDone: true }),
+          step(WelcomeStep.OnCall, { isNext: true }),
+        ],
+      }),
+    );
+    await renderGettingStarted();
+
+    expect(firstMonitorOffers).toEqual([false, false]);
+  });
+
+  test("what else to set up is a card among Home's others, never the whole of Home", async () => {
+    fetchMock.mockResolvedValue(
+      answer({
+        goals: [ProjectGoal.Uptime],
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.StatusPage), step(WelcomeStep.Team)],
+      }),
+    );
+    await renderGettingStarted();
+
+    expect(views[views.length - 1]).toBe(WelcomeCardView.More);
+    expect(takingHome[takingHome.length - 1]).toBe(false);
+    expect(screen.getByTestId("welcome-more")).toBeVisible();
+  });
+
   test("nothing takes Home before the answer is read", async () => {
     fetchMock.mockImplementation(() => {
       return new Promise(() => {
@@ -1054,6 +1109,17 @@ describe("the view it says it draws, for Home", () => {
       answer({ audience: WelcomeAudience.InvitedMember }),
       false,
     ],
+    [
+      "what else to set up, once the steps are done (#7986)",
+      WelcomeCardView.More,
+      answer({
+        goals: [ProjectGoal.Uptime],
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.StatusPage)],
+      }),
+      false,
+    ],
     ["nothing", WelcomeCardView.None, null, false],
     ["not read yet", null, null, false],
   ])(
@@ -1078,6 +1144,7 @@ describe("the view it says it draws, for Home", () => {
       WelcomeCardView.None,
       WelcomeCardView.Hidden,
       WelcomeCardView.InvitedMember,
+      WelcomeCardView.More,
       null,
     ]) {
       expect({ view, isQuickstart: isQuickstartView(view) }).toEqual({
@@ -1114,6 +1181,37 @@ describe("what the card draws", () => {
     ["hidden", answer({ isHiddenForMe: true }), false, WelcomeCardView.Hidden],
     ["no steps", answer({ steps: [] }), false, WelcomeCardView.None],
     ["steps to do", answer(), false, WelcomeCardView.Checklist],
+    [
+      "finished, with core steps no goal brought left (#7986)",
+      answer({
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.StatusPage), step(WelcomeStep.Team)],
+      }),
+      false,
+      WelcomeCardView.More,
+    ],
+    [
+      "finished, with them left, hidden by this person: nothing, no line",
+      answer({
+        isFinished: true,
+        isHiddenForMe: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.StatusPage)],
+      }),
+      false,
+      WelcomeCardView.None,
+    ],
+    [
+      "finished, with them left, while choosing goals: what else to set up",
+      answer({
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.Team)],
+      }),
+      true,
+      WelcomeCardView.More,
+    ],
   ])(
     "%s",
     (
@@ -1125,6 +1223,136 @@ describe("what the card draws", () => {
       expect(
         getWelcomeCardView({ answer: value, isChangingGoals: isChangingGoals }),
       ).toBe(view);
+    },
+  );
+
+  /*
+   * Only email pages the person (#9442): a finished checklist with nothing
+   * else left still offers their phone and the app, for whoever may use
+   * the on-call guided setup.
+   */
+  test.each([
+    ["only email pages them, and they may use the setup", false, true, true],
+    ["a phone or the app pages them", true, true, false],
+    ["not read", null, true, false],
+    ["they may not use the setup", false, false, false],
+  ])(
+    "finished with nothing else left: %s",
+    (
+      _name: string,
+      canBePagedByPhoneOrApp: boolean | null,
+      mayUseOnCallSetup: boolean,
+      isMore: boolean,
+    ) => {
+      const value: WelcomeChecklistAnswer = answer({
+        isFinished: true,
+        steps: [],
+        moreSteps: [],
+        canBePagedByPhoneOrApp: canBePagedByPhoneOrApp,
+      });
+      const offersPhone: boolean = isPhoneOffered({
+        answer: value,
+        mayUseOnCallSetup: mayUseOnCallSetup,
+      });
+
+      expect(offersPhone).toBe(isMore);
+      expect(
+        getWelcomeCardView({
+          answer: value,
+          isChangingGoals: false,
+          offersPhone: offersPhone,
+        }),
+      ).toBe(isMore ? WelcomeCardView.More : WelcomeCardView.None);
+    },
+  );
+
+  test("an invited member is never offered a phone by this card: their own first steps do", () => {
+    expect(
+      isPhoneOffered({
+        answer: answer({
+          audience: WelcomeAudience.InvitedMember,
+          canBePagedByPhoneOrApp: false,
+        }),
+        mayUseOnCallSetup: true,
+      }),
+    ).toBe(false);
+    expect(isPhoneOffered({ answer: null, mayUseOnCallSetup: true })).toBe(
+      false,
+    );
+  });
+
+  test("an answer that says nothing of what else to set up offers nothing", () => {
+    const old: WelcomeChecklistAnswer = {
+      ...answer({ isFinished: true, steps: [] }),
+    };
+    delete (old as Partial<WelcomeChecklistAnswer>).moreSteps;
+
+    expect(getMoreSteps(old)).toEqual([]);
+    expect(getWelcomeCardView({ answer: old, isChangingGoals: false })).toBe(
+      WelcomeCardView.None,
+    );
+  });
+
+  /*
+   * One start for one job (#7759): the card says when it offers the first
+   * monitor, so Home's headline leaves its own button out.
+   */
+  test.each([
+    [
+      "the checklist, the monitor left",
+      WelcomeCardView.Checklist,
+      answer(),
+      true,
+    ],
+    [
+      "the checklist, the monitor done",
+      WelcomeCardView.Checklist,
+      answer({
+        steps: [
+          step(WelcomeStep.Monitor, { isDone: true }),
+          step(WelcomeStep.OnCall, { isNext: true }),
+        ],
+      }),
+      false,
+    ],
+    [
+      "the checklist, without the monitor",
+      WelcomeCardView.Checklist,
+      answer({ steps: [step(WelcomeStep.Telemetry, { isNext: true })] }),
+      false,
+    ],
+    [
+      "what else to set up, the monitor among them",
+      WelcomeCardView.More,
+      answer({
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.Monitor), step(WelcomeStep.Team)],
+      }),
+      true,
+    ],
+    [
+      "what else to set up, without the monitor",
+      WelcomeCardView.More,
+      answer({
+        isFinished: true,
+        steps: [],
+        moreSteps: [step(WelcomeStep.Team)],
+      }),
+      false,
+    ],
+    ["the line left by Hide", WelcomeCardView.Hidden, answer(), false],
+    ["the question", WelcomeCardView.Question, answer(), false],
+    ["nothing", WelcomeCardView.None, null, false],
+  ])(
+    "offers the first monitor: %s",
+    (
+      _name: string,
+      view: WelcomeCardView,
+      value: WelcomeChecklistAnswer | null,
+      expected: boolean,
+    ) => {
+      expect(offersFirstMonitor({ view: view, answer: value })).toBe(expected);
     },
   );
 

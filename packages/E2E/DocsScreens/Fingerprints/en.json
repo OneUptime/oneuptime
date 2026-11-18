@@ -179,7 +179,7 @@
     "text": [
       "1",
       "What should we check?",
-      "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
+      "OneUptime makes a monitor that checks it every 5 minutes from 2 locations. An incident opens when all of them find it down: no answer, or an answer with an error.",
       "Website or API address",
       "This is an API endpoint",
       "Start checking",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Start checking",
@@ -209,8 +211,10 @@
       "Save and continue"
     ],
     "outline": [
+      "link: How to Reach Me",
       "button: Add teammates",
       "button: Remove Ada Lovelace",
+      "button: on-call policy",
       "button: Save and continue"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Turn on SMS and phone calls",
       "Mobile app or browser",
       "Not set up.",
-      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
-      "Set up the app or this browser",
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
+      "Use this browser",
+      "Get the app",
       "Continue",
       "Recheck"
     ],
     "outline": [
       "button: Add balance",
       "button: Turn on SMS and phone calls",
-      "link: Set up the app or this browser",
+      "button: Use this browser",
+      "button: Get the app",
       "button: Continue",
       "button: Recheck"
     ],
     "width": 768,
-    "height": 592
+    "height": 618
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Text me a code",
       "Mobile app or browser",
       "Not set up.",
-      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
-      "Set up the app or this browser",
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
+      "Use this browser",
+      "Get the app",
       "Continue",
       "Recheck",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Text me a code",
-      "link: Set up the app or this browser",
+      "button: Use this browser",
+      "button: Get the app",
       "button: Continue",
       "button: Recheck"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Who else is on call?",
+      "Who is paged first?",
       "This makes the on-call policy \"Default on-call policy\". It pages these people first, for every new incident and alert in this project.",
       "Paged first",
       "Add teammates",
       "AL",
       "Ada Lovelace",
+      "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+      "Invite by email",
       "Save and continue"
     ],
     "outline": [
       "button: Add teammates",
       "button: Remove Ada Lovelace",
+      "button: Invite by email",
       "button: Save and continue"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Paging is set up",
       "Who is paged",
-      "Any new incident or alert runs \"Default on-call policy\", which pages Ada Lovelace (Email, SMS, Phone call).",
+      "Any new incident or alert runs \"Default on-call policy\", which pages Ada Lovelace (email, SMS and phone call at once).",
       "If nobody answers",
       "If nobody acknowledges within 30 minutes, Grace Hopper is paged.",
       "Tested",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "On-Call",
+      "The right person hears about it, every time",
+      "1",
+      "Create an on-call policy",
+      "2",
+      "Add schedules or people to each escalation rule",
+      "3",
+      "Connect it to monitors, incidents and alerts",
+      "Guided setup",
+      "Create On-Call Policy",
+      "Step-by-step guide",
+      "Documentation"
+    ],
+    "outline": [
+      "heading: The right person hears about it, every time",
+      "button: Guided setup",
+      "button: Create On-Call Policy",
+      "link: Step-by-step guide",
+      "link: Documentation"
+    ],
+    "width": 417,
+    "height": 328
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Add Escalation Rule",
+      "Adds level 2 of this policy: who is paged, and when.",
+      "Notify",
+      "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+      "Add responder",
+      "This rule says who is paged. How each person is reached, by which method and after how long, is their own How to Reach Me.",
+      "Paged after (in minutes)",
+      "How long Level 1 waits for someone to acknowledge before this level is paged. Saved as the wait of Level 1.",
+      "More fields· Name, Description",
+      "Cancel",
+      "Create Rule",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Add Escalation Rule",
+      "button: Close",
+      "button: Add responder",
+      "link: How to Reach Me",
+      "field number: 30",
+      "button: More fields· Name, Description",
+      "button: Cancel",
+      "button: Create Rule"
+    ],
+    "width": 512,
+    "height": 508
+  },
   "ingestion-keys": {
     "text": [
       "Ingestion Keys",
@@ -543,18 +607,13 @@
       "Showing 1-4 of 4 ingestion keys",
       "Rows per page",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Search ingestion keys by name, description…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ingestion Keys",
@@ -580,13 +639,13 @@
       "field checkbox: Select Ingestion Key: Marketing site",
       "button: View Ingestion Key",
       "button: More actions for Ingestion Key: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Go to previous page",
       "button: Page 1",
       "button: Go to next page"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

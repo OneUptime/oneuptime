@@ -12,6 +12,7 @@ import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions
 import URL from "../../../../../Types/API/URL";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import {
+  WorkspaceCheckboxBlock,
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
@@ -619,6 +620,38 @@ describe("MattermostUtil: forms are interactive dialogs", () => {
     expect(byName["starts"]).toMatchObject({
       type: "text",
       default: "2026-10-15 14:30",
+    });
+  });
+
+  test("a box's own words go beside it, the field's name above, its help under it", () => {
+    const elements: JSONArray = MattermostUtil.getDialog({
+      modalBlock: {
+        ...modal,
+        blocks: [
+          {
+            _type: "WorkspaceCheckboxBlock",
+            label: "Status Page Subscribers",
+            optionLabel: "Notify Status Page Subscribers",
+            blockId: "notifyStatusPageSubscribers",
+            initialValue: false,
+            description:
+              "Should status page subscribers be notified when this incident is created?",
+            optional: true,
+          } as WorkspaceCheckboxBlock,
+        ],
+      },
+      teamId: TEAM_ID,
+    })["elements"] as JSONArray;
+
+    expect(elements[0]).toMatchObject({
+      name: "notifyStatusPageSubscribers",
+      type: "bool",
+      display_name: "Status Page Subscribers",
+      placeholder: "Notify Status Page Subscribers",
+      help_text:
+        "Should status page subscribers be notified when this incident is created?",
+      default: "false",
+      optional: true,
     });
   });
 

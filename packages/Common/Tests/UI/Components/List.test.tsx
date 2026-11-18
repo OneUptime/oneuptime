@@ -3,8 +3,25 @@ import FieldType from "../../../UI/Components/Types/FieldType";
 import { TableEmptyStateKind } from "../../../UI/Components/Table/TableEmptyState";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
 
 describe("List", () => {
   interface ListData {
@@ -249,9 +266,7 @@ describe("List", () => {
   it("changes the page size from the list footer", () => {
     render(<List {...defaultProps} />);
 
-    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-      target: { value: "25" },
-    });
+    chooseDropdownOption(rowsPerPage(), "25");
 
     expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(1, 25);
   });

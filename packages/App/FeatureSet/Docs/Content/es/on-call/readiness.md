@@ -6,6 +6,7 @@ La preparación responde a una pregunta antes de que lo haga un incidente: si al
 - [Cómo se determina un estado](#cómo-se-determina-un-estado): Listo, Necesita configuración o Inaccesible, y por qué.
 - [La página Preparación](#la-página-preparación): Cada respondedor del proyecto, en una lista.
 - [Recordar a las personas que terminen su configuración](#recordar-a-las-personas-que-terminen-su-configuración): Un correo que nombra lo que falta.
+- [Aplicar la secuencia predeterminada](#aplicar-la-secuencia-predeterminada): La secuencia predeterminada del proyecto, para las personas que elijas.
 - [Tiempo de guardia del usuario](#tiempo-de-guardia-del-usuario): Cuánto tiempo estuvo de guardia cada persona.
 :::
 
@@ -32,6 +33,8 @@ Un respondedor es cualquiera a quien una política de guardia puede avisar: una 
 
 Un hueco es una gravedad sin regla, en la pestaña de incidentes, episodios de incidentes, alertas o episodios de alertas. Una regla que desactiva una gravedad a propósito no es un hueco. Un aviso que encuentra un hueco llega igualmente a la persona por sus métodos verificados, salvo que el proyecto haya desactivado esa alternativa: consulta [Cuando ninguna regla coincide](/docs/notifications/index#cuando-ninguna-regla-coincide).
 
+Cuando el proyecto pide un método telefónico a todas las personas de guardia, en **Teléfono para las personas de guardia**, un respondedor sin un número verificado de SMS, llamada telefónica o WhatsApp también se marca como **Sin método telefónico**, sea cual sea su estado, y Salud de la configuración lo nombra. Nadie queda bloqueado: un aviso le sigue llegando por los métodos que tiene.
+
 ## La página Preparación
 
 Abre **Guardia → Preparación**. La tarjeta **Preparación de las guardias** enumera a cada persona a la que puede llegar una política de guardia del proyecto, primero las que necesitan algo. Cualquier persona del proyecto puede abrirla.
@@ -53,12 +56,24 @@ Encima de la lista, los mosaicos cuentan **Respondedores**, **Listo**, **Necesit
 Solo la propia persona puede añadir y verificar sus métodos de notificación y sus reglas, así que la solución es pedírselo.
 
 :::steps
-1. En la página Preparación, marca los respondedores a los que quieres recordárselo. Los respondedores listos no se pueden marcar: no hay nada que recordarles.
+1. En la página Preparación, marca los respondedores a los que quieres recordárselo. A un respondedor listo solo se le recuerda cuando aparece como **Sin método telefónico**: no hay nada más que recordarle.
 2. Haz clic en **Enviar recordatorio de configuración**. La confirmación nombra a cada persona a la que va a escribir.
 3. Confirma. Cada persona recibe un correo que nombra lo que falta en su propia configuración, con un enlace a la página que lo arregla.
 :::
 
 Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fallaron, y por qué en cada uno que no se envió. A nadie se le recuerda más de una vez cada 24 horas, y un envío llega como máximo a 250 personas. Enviar recordatorios requiere **Propietario del proyecto**, **Administrador del proyecto** u **Administrador de guardias**, o **Edit On-Call Policy** en un rol personalizado.
+
+## Aplicar la secuencia predeterminada
+
+Cuando el proyecto tiene una secuencia predeterminada (consulta [La secuencia predeterminada](/docs/notifications/on-call-rules#la-secuencia-predeterminada)), puedes dársela a personas que ya tienen sus propias reglas.
+
+:::steps
+1. En la página Preparación, marca los respondedores.
+2. Haz clic en **Aplicar secuencia predeterminada**. La confirmación muestra la secuencia y nombra a todas las personas que cambia.
+3. Confirma. Las reglas de cada persona para cada gravedad se sustituyen por la secuencia, en los métodos que ha verificado.
+:::
+
+Una forma que alguien no ha verificado queda fuera, y esa persona conserva sus propios pasos en su lugar; quien no ha verificado ninguna de las formas de la secuencia queda como estaba. Después, un aviso indica para cada persona qué se aplicó o por qué no, por canal: no se muestran los números ni las direcciones de nadie. Cada persona cuyas reglas cambiaron recibe un correo, y cada cambio queda en el registro de auditoría del proyecto. Aplicarla requiere **Propietario del proyecto** o **Administrador del proyecto**, o **Edit User Notification Rules** en un rol personalizado.
 
 ## La preparación en otras páginas
 
@@ -66,6 +81,7 @@ Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fal
 - En las **Reglas de escalado** de una política, un nivel cuyos respondedores no se pueden avisar a todos lo indica en su tarjeta. Consulta [El resumen de escalado](/docs/on-call/escalation-rules#el-resumen-de-escalado).
 - En **Usuarios**, abre un miembro y luego **Preparación** en la sección **Guardia**: su estado, sus métodos y su cuadrícula de cobertura.
 - Para tu propia configuración, **Ajustes de usuario → Lista de configuración** te guía. Consulta [La lista de configuración](/docs/notifications/index#la-lista-de-configuración).
+- Quien está en una política y no ha terminado su propia configuración ve **Termina de configurar tus notificaciones** en la campana de la parte superior de cada página, que abre su lista de configuración.
 
 ## El correo semanal de preparación
 

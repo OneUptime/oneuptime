@@ -12,6 +12,32 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
+// Whether this server has VAPID keys, for a test push to a browser (#7028).
+const mockVapid: {
+  publicKey: string | undefined;
+  privateKey: string | undefined;
+} = { publicKey: undefined, privateKey: undefined };
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "VapidPublicKey", {
+    get: (): string | undefined => {
+      return mockVapid.publicKey;
+    },
+  });
+  Object.defineProperty(mocked, "VapidPrivateKey", {
+    get: (): string | undefined => {
+      return mockVapid.privateKey;
+    },
+  });
+
+  return mocked;
+});
+
 /*
  * Master admins are named by the request's x-test-master-admin header: the
  * session is the middleware's business, tested on its own.
@@ -76,10 +102,22 @@ import MailService from "../../FeatureSet/Notification/Services/MailService";
 import ServerTestSendService, {
   SERVER_TEST_CALL_TEXT,
   SERVER_TEST_EMAIL_TIMEOUT_IN_MS,
+  SERVER_TEST_PUSH_TEXT,
+  SERVER_TEST_PUSH_TITLE,
   SERVER_TEST_SMS_TEXT,
 } from "../../FeatureSet/Notification/Services/ServerTestSendService";
 import SmsService from "../../FeatureSet/Notification/Services/SmsService";
+import UserMiddleware, {
+  RequestSession,
+} from "Common/Server/Middleware/UserAuthorization";
+import PushNotificationService from "Common/Server/Services/PushNotificationService";
+import UserPushService from "Common/Server/Services/UserPushService";
+import { PUSH_TURNED_OFF_PROBLEM } from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
+import UserPush from "Common/Models/DatabaseModels/UserPush";
+import ObjectID from "Common/Types/ObjectID";
+import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
+import PushNotificationRequest from "Common/Types/PushNotification/PushNotificationRequest";
 import { expressErrorHandler } from "Common/Server/Utils/StartServer";
 import GlobalConfig, {
   EmailServerType,
@@ -97,6 +135,7 @@ import Phone from "Common/Types/Phone";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import {
   parseServerTestSendAnswer,
+  SERVER_TEST_PUSH_REASONS,
   ServerTestSendAnswer,
   ServerTestSendResult,
 } from "Common/Types/ServerSetup/ServerTestSend";
@@ -244,6 +283,12 @@ describe("a test email", () => {
     expect(answer.message).toBe(
       "SMTP: the Port is not set under Settings > Emails.",
     );
+    // #9437: the same, in words the Admin Dashboard says in its reader's language.
+    expect(answer.messageWords).toEqual({
+      template:
+        "{{provider}}: the {{field}} is not set under Settings > Emails.",
+      values: { provider: "SMTP", field: "Port" },
+    });
     expect(mailSend).not.toHaveBeenCalled();
 
     config = null;
@@ -407,6 +452,9 @@ describe("a test SMS and a test call", () => {
     expect(sms.message).toContain("SMS gateway");
     expect(call.result).toBe(ServerTestSendResult.NotSetUp);
     expect(call.message).toContain("call gateway");
+    // #9437: in words the Admin Dashboard says in its reader's language.
+    expect(sms.messageWords).toEqual({ template: sms.message, values: {} });
+    expect(call.messageWords).toEqual({ template: call.message, values: {} });
     expect(smsSend).not.toHaveBeenCalled();
     expect(makeCall).not.toHaveBeenCalled();
   });
@@ -628,5 +676,399 @@ describe("over HTTP", () => {
     expect(mailSend).not.toHaveBeenCalled();
     expect(smsSend).not.toHaveBeenCalled();
     expect(makeCall).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #7028: "Send test push" goes to the master admin who pressed it, on the
+ * phones and browsers they registered - each once, whichever projects they
+ * registered it in - through PushNotificationService, the way a page goes,
+ * with no project. It says plainly when nothing can be sent: push turned off
+ * for the server, nothing registered, or only browsers and no VAPID keys.
+ */
+describe("a test push", () => {
+  const ADA: ObjectID = new ObjectID("a1a1a1a1-0000-4000-8000-000000000001");
+  let devices: Array<Partial<UserPush>> = [];
+  let findDevices: ReturnType<typeof jest.spyOn>;
+  let sendPush: ReturnType<typeof jest.spyOn>;
+  // The tokens a push service refuses, and what it says.
+  let refusedTokens: Record<string, string> = {};
+
+  const device: (
+    token: string,
+    deviceType: PushDeviceType,
+    deviceName: string,
+  ) => Partial<UserPush> = (
+    token: string,
+    deviceType: PushDeviceType,
+    deviceName: string,
+  ): Partial<UserPush> => {
+    return { deviceToken: token, deviceType, deviceName };
+  };
+
+  const pushedTokens: () => Array<string> = (): Array<string> => {
+    return sendPush.mock.calls.map((call: Array<unknown>): string => {
+      return (call[0] as PushNotificationRequest).devices[0]!.token;
+    });
+  };
+
+  beforeEach(() => {
+    devices = [];
+    refusedTokens = {};
+    mockVapid.publicKey = undefined;
+    mockVapid.privateKey = undefined;
+    config = {};
+
+    findDevices = jest
+      .spyOn(UserPushService, "findBy")
+      .mockImplementation(async (): Promise<Array<UserPush>> => {
+        return devices.map((values: Partial<UserPush>): UserPush => {
+          return Object.assign(new UserPush(), values);
+        });
+      });
+    sendPush = jest
+      .spyOn(PushNotificationService, "sendPushNotification")
+      .mockImplementation(
+        async (request: PushNotificationRequest): Promise<void> => {
+          const refusal: string | undefined =
+            refusedTokens[request.devices[0]!.token];
+
+          if (refusal) {
+            throw new Error(refusal);
+          }
+        },
+      );
+  });
+
+  test("push turned off for the server: not set up, in the checklist's words, and nothing read or sent", async () => {
+    config = { disablePushNotifications: true };
+    devices = [device("ExponentPushToken[a]", PushDeviceType.iOS, "iPhone")];
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer).toEqual({
+      channel: ServerSendingChannel.Push,
+      result: ServerTestSendResult.NotSetUp,
+      to: "",
+      sentThrough: null,
+      message: PUSH_TURNED_OFF_PROBLEM,
+      // In words the Admin Dashboard says in its reader's language (#9437).
+      messageWords: { template: PUSH_TURNED_OFF_PROBLEM, values: {} },
+    });
+    expect(PUSH_TURNED_OFF_PROBLEM).toBe(SERVER_TEST_PUSH_REASONS.turnedOff);
+    expect(findDevices).not.toHaveBeenCalled();
+    expect(sendPush).not.toHaveBeenCalled();
+  });
+
+  test("nothing registered: says so, and nothing is sent", async () => {
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer.result).toBe(ServerTestSendResult.NotSetUp);
+    expect(answer.message).toBe(SERVER_TEST_PUSH_REASONS.noDevices);
+    expect(sendPush).not.toHaveBeenCalled();
+  });
+
+  test("only browsers, and no VAPID keys: says so, and nothing is sent", async () => {
+    devices = [
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
+    ];
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer.result).toBe(ServerTestSendResult.NotSetUp);
+    expect(answer.message).toBe(SERVER_TEST_PUSH_REASONS.noVapidKeys);
+    expect(sendPush).not.toHaveBeenCalled();
+  });
+
+  test("the admin's own verified devices only, each once, read as OneUptime", async () => {
+    devices = [
+      device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      // The same phone, registered in a second project.
+      device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      device("ExponentPushToken[tablet]", PushDeviceType.Android, ""),
+    ];
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    const query: Record<string, unknown> = (
+      findDevices.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect((query["userId"] as ObjectID).toString()).toBe(ADA.toString());
+    expect(query["isVerified"]).toBe(true);
+    expect(query["projectId"]).toBeUndefined();
+    expect((findDevices.mock.calls[0]![0] as { props: unknown }).props).toEqual(
+      { isRoot: true },
+    );
+
+    expect(pushedTokens()).toEqual([
+      "ExponentPushToken[phone]",
+      "ExponentPushToken[tablet]",
+    ]);
+    expect(answer).toEqual({
+      channel: ServerSendingChannel.Push,
+      result: ServerTestSendResult.Accepted,
+      to: "iPhone, Unknown Device",
+      sentThrough: null,
+      message: null,
+    });
+  });
+
+  test("a device that accepts it: the test message, to that device, with no project, for that admin", async () => {
+    mockVapid.publicKey = "public";
+    mockVapid.privateKey = "private";
+    devices = [
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
+    ];
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer.result).toBe(ServerTestSendResult.Accepted);
+    expect(answer.to).toBe("Chrome on macOS");
+
+    const [request, options] = sendPush.mock.calls[0] as [
+      PushNotificationRequest,
+      Record<string, unknown>,
+    ];
+
+    expect(request.deviceType).toBe(PushDeviceType.Web);
+    expect(request.message.title).toBe(SERVER_TEST_PUSH_TITLE);
+    expect(request.message.body).toBe(SERVER_TEST_PUSH_TEXT);
+    expect(options["projectId"]).toBeUndefined();
+    expect((options["userId"] as ObjectID).toString()).toBe(ADA.toString());
+  });
+
+  test("without VAPID keys a browser is left out, and the phone still gets it", async () => {
+    devices = [
+      device(
+        '{"endpoint":"https://fcm.googleapis.com/x"}',
+        PushDeviceType.Web,
+        "Chrome on macOS",
+      ),
+      device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+    ];
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(pushedTokens()).toEqual(["ExponentPushToken[phone]"]);
+    expect(answer.result).toBe(ServerTestSendResult.Accepted);
+    expect(answer.to).toBe("iPhone");
+  });
+
+  test("one device refuses and one accepts: accepted, for the one that took it", async () => {
+    devices = [
+      device("ExponentPushToken[gone]", PushDeviceType.Android, "Old phone"),
+      device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+    ];
+    refusedTokens = {
+      "ExponentPushToken[gone]":
+        "Expo says this device is no longer registered for push notifications (DeviceNotRegistered).",
+    };
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer.result).toBe(ServerTestSendResult.Accepted);
+    expect(answer.to).toBe("iPhone");
+  });
+
+  test("every device refuses: refused, with what each push service said, once each", async () => {
+    devices = [
+      device("ExponentPushToken[a]", PushDeviceType.Android, "Phone A"),
+      device("ExponentPushToken[b]", PushDeviceType.Android, "Phone B"),
+      device("ExponentPushToken[c]", PushDeviceType.iOS, "Phone C"),
+    ];
+    refusedTokens = {
+      "ExponentPushToken[a]": "The push relay could not be reached.",
+      "ExponentPushToken[b]": "The push relay could not be reached.",
+      "ExponentPushToken[c]": "Expo refused the credentials.",
+    };
+
+    const answer: ServerTestSendAnswer =
+      await ServerTestSendService.sendPush(ADA);
+
+    expect(answer).toEqual({
+      channel: ServerSendingChannel.Push,
+      result: ServerTestSendResult.Refused,
+      to: "",
+      sentThrough: null,
+      message:
+        "The push relay could not be reached.; Expo refused the credentials.",
+    });
+  });
+
+  describe("over HTTP", () => {
+    let server: http.Server;
+    let port: number;
+
+    beforeAll(async () => {
+      const app: ExpressApplication = createExpressApp();
+      app.use(ExpressJson());
+      app.use("/api/notification/server-test", ServerTestSendAPI);
+      app.use(expressErrorHandler);
+      server = http.createServer(app);
+
+      await new Promise<void>((resolve: () => void) => {
+        server.listen(0, "127.0.0.1", resolve);
+      });
+
+      port = (server.address() as AddressInfo).port;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        server.close(() => {
+          resolve();
+        });
+      });
+    });
+
+    const signedIn: (userId: ObjectID | null) => void = (
+      userId: ObjectID | null,
+    ): void => {
+      jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue(
+        userId
+          ? ({
+              kind: "user",
+              session: { userId: userId, isMasterAdmin: true },
+            } as unknown as RequestSession)
+          : ({ kind: "none" } as RequestSession),
+      );
+    };
+
+    function postPush(data: {
+      body: JSONObject;
+      isMasterAdmin: boolean;
+    }): Promise<{ status: number; body: JSONObject | null }> {
+      return new Promise(
+        (
+          resolve: (result: {
+            status: number;
+            body: JSONObject | null;
+          }) => void,
+          reject: (e: Error) => void,
+        ) => {
+          const payload: string = JSON.stringify(data.body);
+          const request: http.ClientRequest = http.request(
+            {
+              host: "127.0.0.1",
+              port: port,
+              path: "/api/notification/server-test/push",
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "content-length": Buffer.byteLength(payload),
+                ...(data.isMasterAdmin
+                  ? { "x-test-master-admin": "true" }
+                  : {}),
+              },
+            },
+            (response: http.IncomingMessage) => {
+              const chunks: Array<Buffer> = [];
+
+              response.on("data", (chunk: Buffer) => {
+                chunks.push(chunk);
+              });
+              response.on("end", () => {
+                const raw: string = Buffer.concat(chunks).toString("utf8");
+
+                resolve({
+                  status: response.statusCode || 0,
+                  body: raw ? (JSON.parse(raw) as JSONObject) : null,
+                });
+              });
+            },
+          );
+
+          request.on("error", reject);
+          request.write(payload);
+          request.end();
+        },
+      );
+    }
+
+    test("a master admin's test push: 200, to their own devices - a body naming someone else changes nothing", async () => {
+      signedIn(ADA);
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
+
+      const result: { status: number; body: JSONObject | null } =
+        await postPush({
+          body: {
+            userId: "b2b2b2b2-0000-4000-8000-000000000002",
+            toPhone: "+14155550123",
+          },
+          isMasterAdmin: true,
+        });
+
+      expect(result.status).toBe(200);
+      expect(parseServerTestSendAnswer(result.body)).toEqual({
+        channel: ServerSendingChannel.Push,
+        result: ServerTestSendResult.Accepted,
+        to: "iPhone",
+        sentThrough: null,
+        message: null,
+      });
+      expect(
+        (
+          (findDevices.mock.calls[0]![0] as { query: Record<string, unknown> })
+            .query["userId"] as ObjectID
+        ).toString(),
+      ).toBe(ADA.toString());
+    });
+
+    test("nothing registered is an answer, 200, saying so", async () => {
+      signedIn(ADA);
+
+      const result: { status: number; body: JSONObject | null } =
+        await postPush({ body: {}, isMasterAdmin: true });
+
+      expect(result.status).toBe(200);
+      expect(parseServerTestSendAnswer(result.body)?.message).toBe(
+        SERVER_TEST_PUSH_REASONS.noDevices,
+      );
+    });
+
+    test("anybody but a master admin is refused, and nothing is read or sent", async () => {
+      signedIn(ADA);
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
+
+      const result: { status: number; body: JSONObject | null } =
+        await postPush({ body: {}, isMasterAdmin: false });
+
+      expect(result.status).toBeGreaterThanOrEqual(400);
+      expect(findDevices).not.toHaveBeenCalled();
+      expect(sendPush).not.toHaveBeenCalled();
+    });
+
+    test("a master admin whose session cannot be read is refused, and nothing is sent", async () => {
+      signedIn(null);
+      devices = [
+        device("ExponentPushToken[phone]", PushDeviceType.iOS, "iPhone"),
+      ];
+
+      const result: { status: number; body: JSONObject | null } =
+        await postPush({ body: {}, isMasterAdmin: true });
+
+      expect(result.status).toBeGreaterThanOrEqual(400);
+      expect(sendPush).not.toHaveBeenCalled();
+    });
   });
 });

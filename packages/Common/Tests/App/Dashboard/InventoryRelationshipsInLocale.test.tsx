@@ -270,7 +270,7 @@ async function renderNode(): Promise<void> {
     />,
   );
   await waitFor(() => {
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-list-skeleton")).not.toBeInTheDocument();
   });
 }
 

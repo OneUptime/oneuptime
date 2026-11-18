@@ -6,6 +6,7 @@ import {
   hasAiActivity,
   parseAiActivityInsights,
 } from "./AiActivityInsightsData";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import AiActivityInsightsView, { CoverageCard } from "./AiActivityInsightsView";
 import ProjectAiNotice from "../../AISettings/ProjectAiNotice";
 import { ProjectAiNoticeContext } from "../../AISettings/ProjectAiSettingsCopy";
@@ -23,7 +24,6 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -233,7 +233,7 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     body = (
       <div data-testid="ai-insights-loading">
-        <PageLoader isVisible={true} />
+        <StatTilesSkeleton />
       </div>
     );
   } else if (!insights) {

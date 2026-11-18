@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -16,7 +17,6 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Dictionary from "Common/Types/Dictionary";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -750,7 +750,7 @@ const CompanionMetricsTab: FunctionComponent<CompanionMetricsTabProps> = (
   }
 
   if (metricNames === null) {
-    return <ComponentLoader />;
+    return <ChartSkeleton />;
   }
 
   if (metricNames.length === 0) {

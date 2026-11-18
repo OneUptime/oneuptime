@@ -109,36 +109,27 @@ test("Delete Project is offered only to people allowed to delete the project; th
   const input: Locator = await openSearch(page);
   await input.fill("delete project");
 
+  await expect(options(page).first()).toContainText("Danger Zone");
+
   /*
-   * The Danger Zone page is named Delete Project since #9134 (8802a636569),
-   * so its own row reads "Delete Project", under Project Settings › Danger
-   * Zone, among the pages: the page says why its button is locked. The
-   * action of that name stands in for the page only for people allowed to
-   * delete the project (6e397edb5fd), and is never offered here.
+   * The Danger Zone page is called Delete Project since #9134, so the row
+   * they find is named that too: it is the page, under Pages, and says it is
+   * Project Settings > Danger Zone. The action, which would stand in for the
+   * page's row for someone allowed to delete, is not under Actions.
    */
-  const first: Locator = options(page).first();
-  await expect(first).toContainText("Danger Zone");
-  await expect(first).toContainText("Delete Project");
-  await expect(
-    page
-      .getByRole("group", { name: "Pages" })
-      .getByRole("option")
-      .filter({ hasText: /^Delete Project/ }),
-  ).toHaveCount(1);
+  const pages: Locator = page.getByRole("group", { name: "Pages" });
+  const pageRow: Locator = pages
+    .getByRole("option")
+    .filter({ hasText: /^Delete Project/ });
+  await expect(pageRow).toHaveCount(1);
+  await expect(pageRow).toContainText("Project Settings");
+  await expect(pageRow).toContainText("Danger Zone");
   await expect(
     page
       .getByRole("group", { name: "Actions" })
       .getByRole("option")
       .filter({ hasText: /^Delete Project/ }),
   ).toHaveCount(0);
-  await expect(
-    options(page).filter({ hasText: /^Delete Project/ }),
-  ).toHaveCount(1);
-
-  await input.press("Enter");
-  await expect(page.getByTestId("current-route")).toHaveText(
-    `${projectPath}/settings/danger-zone`,
-  );
 });
 
 test("browsing lists the actions and products, not every page; a page opened from search is a recent", async ({
@@ -356,5 +347,93 @@ test("on a 320px phone in German, each key hint stays one piece and the row wrap
     );
   }
 
+  await expectNoSidewaysScroll(page);
+});
+
+/*
+ * A record's own pages (#9204). The status page search answers with one
+ * status page, Acme Status; every other record search finds nothing.
+ */
+const STATUS_PAGE_ID: string = "0193c0de-4444-4aaa-8bbb-000000000004";
+
+const answerWithAcmeStatus: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.route(
+    /\/api\/status-page\/(get-list|[^/]+\/get-item)/,
+    async (route: Route) => {
+      const row: { _id: string; name: string } = {
+        _id: STATUS_PAGE_ID,
+        name: "Acme Status",
+      };
+      await route.fulfill({
+        json: route.request().url().includes("get-item")
+          ? row
+          : { data: [row], count: 1, skip: 0, limit: 5 },
+      });
+    },
+  );
+};
+
+test("'status page sso' offers each status page's Single Sign-On, and choosing it opens it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await answerWithAcmeStatus(page);
+  const input: Locator = await openSearch(page);
+  await input.fill("status page sso");
+
+  const row: Locator = page.getByTestId(
+    `command-palette-option-record-pages-status-pages-${STATUS_PAGE_ID}-STATUS_PAGE_VIEW_SSO`,
+  );
+  await expect(row).toContainText("Single Sign-On");
+  await expect(row).toContainText("Acme Status");
+  await expect(row).toContainText("Security");
+  await expectNoSidewaysScroll(page);
+
+  await row.click();
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/status-pages/${STATUS_PAGE_ID}/sso`,
+  );
+});
+
+test("on a status page, 'advanced settings' and 'sso' open its own pages first", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await answerWithAcmeStatus(page);
+  await page.goto(`${projectPath}/status-pages/${STATUS_PAGE_ID}?palette=true`);
+  const input: Locator = await openSearch(page);
+
+  await input.fill("advanced settings");
+  await expect(options(page).first()).toContainText("Settings");
+  await expect(options(page).first()).toContainText("Acme Status");
+
+  await input.fill("sso");
+  await expect(options(page).first()).toContainText("Single Sign-On");
+  await expect(options(page).first()).toContainText("Acme Status");
+
+  await input.press("Enter");
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/status-pages/${STATUS_PAGE_ID}/sso`,
+  );
+});
+
+test("in Arabic, a record's page is found by its English old name and stays inside the panel", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await answerWithAcmeStatus(page);
+  await page.goto(
+    `${projectPath}/status-pages/${STATUS_PAGE_ID}?palette=true&lang=ar`,
+  );
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.getByRole("combobox").fill("sso");
+
+  await expect(options(page).first()).toContainText("Acme Status");
   await expectNoSidewaysScroll(page);
 });

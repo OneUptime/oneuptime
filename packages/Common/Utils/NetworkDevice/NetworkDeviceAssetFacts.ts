@@ -70,7 +70,9 @@ import {
  *                     did, in the IEEE form hosts report (AC-DE-48-23-45-67).
  *   manufacturer      ENTITY-MIB's maker; else the sysDescr's; else the
  *                     sysObjectID enterprise's - but never an SNMP AGENT's
- *                     ("Net-SNMP" names the software answering, not the box).
+ *                     ("Net-SNMP" names the software answering, not the box);
+ *                     else the maker its MAC address names, as the
+ *                     Discovered Devices list shows it (issue #9305).
  *   model, serial,    ENTITY-MIB, or the vendor's own MIB where the device
  *   firmware, OS      keeps them there (SnmpVendorIdentity); the model and
  *   version           versions read off the sysDescr when neither has them
@@ -365,6 +367,14 @@ export interface NetworkDeviceEffectiveInputs {
   controllerAddress: NetworkDeviceEffectiveInput;
   controllerProductType: NetworkDeviceEffectiveInput;
   controllerFirmwareVersion: NetworkDeviceEffectiveInput;
+  /*
+   * What the Discovered Devices list says about the device (issue #9305):
+   * the maker its MAC address names, and what its controller calls it. The
+   * last word on either - only when nothing the device reports, nothing
+   * saved on it and nothing its controller says gives one.
+   */
+  listVendor: NetworkDeviceEffectiveInput;
+  listClientName: NetworkDeviceEffectiveInput;
   details: NetworkDeviceDiscoveredDetails;
 }
 
@@ -733,6 +743,12 @@ export function getNetworkDeviceEffectiveInputs(
       controller,
       NetworkDeviceControllerField.FirmwareVersion,
     ),
+    listVendor: readDiscoveredOnly(
+      details.values[NetworkDeviceDiscoveredField.Vendor],
+    ),
+    listClientName: readDiscoveredOnly(
+      details.values[NetworkDeviceDiscoveredField.ClientName],
+    ),
     details: details,
   };
 }
@@ -853,10 +869,15 @@ function getHostnameFact(
   if (!choice?.name) {
     /*
      * Nothing the device says names it: the name its controller files it
-     * under (the Meraki dashboard's), when it has one. Still never its
-     * address.
+     * under (the Meraki dashboard's), when it has one; else the name the
+     * Discovered Devices list knows it by - what a controller's client list
+     * calls it (issue #9305). Still never its address.
      */
-    return fact(inputs.controllerName.value, inputs.controllerName);
+    if (inputs.controllerName.value) {
+      return fact(inputs.controllerName.value, inputs.controllerName);
+    }
+
+    return fact(inputs.listClientName.value, inputs.listClientName);
   }
 
   const from: NetworkDeviceFactDetail =
@@ -995,7 +1016,12 @@ function getManufacturerFact(
   const candidate: string | undefined = stored || fromEnterprise;
 
   if (!candidate || isSnmpAgentVendor(candidate)) {
-    return {};
+    /*
+     * Nothing the device reports or holds names its maker: the one its MAC
+     * address's prefix names, as the Discovered Devices list shows it (issue
+     * #9305) - a register or a camera that is only pinged has no other.
+     */
+    return fact(inputs.listVendor.value, inputs.listVendor);
   }
 
   return stored
@@ -1281,6 +1307,26 @@ export function getNetworkDeviceSystemDescription(
 ): string | undefined {
   return getNetworkDeviceEffectiveInputs(device).sysDescr.value;
 }
+
+/*
+ * The columns the maker is worked out from (getNetworkDeviceManufacturer):
+ * the saved vendor, the SNMP identity, when the device's poll last read it,
+ * and what discovery and its controller read. The server keeps each device's
+ * maker in its `manufacturer` column, which the device lists' Vendor filter
+ * and sort read, and works it out again after a write of any of these
+ * (NetworkDeviceStoredManufacturer, issue #9363), so the filter and the
+ * Vendor / Model column name the same maker. A test fails when the maker
+ * starts reading another column without it being added here.
+ */
+export const NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS: ReadonlyArray<
+  keyof NetworkDeviceAssetSource
+> = [
+  "vendor",
+  "sysDescr",
+  "sysObjectId",
+  "lastSnmpSeenAt",
+  "discoveredDetails",
+];
 
 /**
  * Every asset fact of one network device. See the header for where each one

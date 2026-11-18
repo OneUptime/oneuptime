@@ -146,7 +146,7 @@ describe("what reads a list", () => {
 
     expect(flat(cell)).toBe("VIP sign-inVIP failures (Monitor)");
     expect(kinds).toHaveLength(1);
-    expect(kinds[0]).toHaveClass("text-gray-400", "whitespace-nowrap");
+    expect(kinds[0]).toHaveClass("text-gray-500", "whitespace-nowrap");
   });
 
   test("folded under the name: every kind, then how many more", () => {

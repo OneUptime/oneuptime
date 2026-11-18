@@ -3,7 +3,7 @@ import CloudAccountMonitorRecommendations from "../../../../Components/Recommend
 import useCloudAccount, { CloudAccountRead } from "./UseCloudAccount";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -21,7 +21,7 @@ const CloudAccountRecommendations: FunctionComponent<
   const read: CloudAccountRead = useCloudAccount(modelId);
 
   if (read.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error || !read.account) {

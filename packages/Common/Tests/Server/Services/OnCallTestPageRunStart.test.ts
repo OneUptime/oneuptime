@@ -342,6 +342,76 @@ describe("startPolicyTest: a test of an on-call policy", () => {
     expect(args.data.triggeredByIncidentId).toBeUndefined();
     expect(args.data.triggeredByAlertId).toBeUndefined();
     expect(args.props).toEqual({ isRoot: true, userId: SENDER_ID });
+    // A test of its own is part of no fire drill (#9386).
+    expect(args.data.testPageFireDrillId).toBeUndefined();
+    expect(args.data.testPageFireDrillMonitorId).toBeUndefined();
+    expect(args.data.testPageFireDrillFailure).toBeUndefined();
+  });
+
+  /*
+   * #9386: a monitor's fire drill keeps on each policy's test the drill, the
+   * monitor and the failure it rehearsed - what the policy's execution logs
+   * say of the run, and what the monitor's card reads its last drill from.
+   */
+  test("a fire drill's test keeps the drill, the monitor and the failure it rehearsed", async () => {
+    const fireDrillId: ObjectID = ObjectID.generate();
+    const monitorId: ObjectID = ObjectID.generate();
+
+    await OnCallDutyPolicyExecutionLogService.startPolicyTest({
+      projectId: PROJECT_ID,
+      onCallDutyPolicyId: POLICY_ID,
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityId: SEVERITY_ID,
+      walksEscalation: false,
+      startedByUserId: SENDER_ID,
+      fireDrill: {
+        fireDrillId: fireDrillId,
+        monitorId: monitorId,
+        failure: { criteriaName: "Offline", declaredAfterMinutes: 30 },
+      },
+    });
+
+    const args: CreateArgs = createSpy.mock.calls[0]![0] as CreateArgs;
+
+    expect(args.data.testPageFireDrillId).toBe(fireDrillId);
+    expect(args.data.testPageFireDrillMonitorId).toBe(monitorId);
+    expect(args.data.testPageFireDrillFailure).toEqual({
+      criteriaName: "Offline",
+      declaredAfterMinutes: 30,
+    });
+    // Still a test, written as OneUptime, with nothing behind it.
+    expect(args.data.userNotificationEventType).toBe(
+      UserNotificationEventType.TestPage,
+    );
+    expect(args.data.triggeredByIncidentId).toBeUndefined();
+    expect(args.props).toEqual({ isRoot: true, userId: SENDER_ID });
+  });
+
+  // No caller writes them: only OneUptime starts a fire drill.
+  test("no caller may write a fire drill's columns: create and update are nobody's", () => {
+    const model: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+
+    for (const column of [
+      "testPageFireDrillId",
+      "testPageFireDrillMonitor",
+      "testPageFireDrillMonitorId",
+      "testPageFireDrillFailure",
+    ]) {
+      expect({
+        column,
+        create: model.getColumnAccessControlFor(column)?.create,
+        update: model.getColumnAccessControlFor(column)?.update,
+      }).toEqual({ column, create: [], update: [] });
+      // Read as the run's other test page columns are read.
+      expect({
+        column,
+        read: model.getColumnAccessControlFor(column)?.read,
+      }).toEqual({
+        column,
+        read: model.getColumnAccessControlFor("testPageSeverityId")?.read,
+      });
+    }
   });
 });
 

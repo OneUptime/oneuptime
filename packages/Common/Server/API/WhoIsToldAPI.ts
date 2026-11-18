@@ -1,5 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
-import WhoIsToldService from "../Services/WhoIsToldService";
+import WhoIsToldService, { WhoIsToldDraft } from "../Services/WhoIsToldService";
+import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -55,6 +57,128 @@ export function isRefreshRequested(req: ExpressRequest): boolean {
 
   return normalized === "true" || normalized === "1";
 }
+
+// The most labels a draft is read with: a form never holds more.
+export const WHO_IS_TOLD_DRAFT_MAX_LABELS: number = 500;
+const WHO_IS_TOLD_DRAFT_MAX_NAME_LENGTH: number = 1000;
+
+/*
+ * The monitor a draft describes (#7055), from the request's body - its
+ * monitorSteps as the Dashboard serializes them - or a refusal that says
+ * what is wrong.
+ */
+export function readDraftFromBody(req: ExpressRequest): WhoIsToldDraft {
+  const body: JSONObject = (req.body || {}) as JSONObject;
+
+  const monitorType: unknown = body["monitorType"];
+
+  if (
+    typeof monitorType !== "string" ||
+    !Object.values(MonitorType).includes(monitorType as MonitorType)
+  ) {
+    throw new BadDataException("monitorType is required.");
+  }
+
+  const rawMonitorId: unknown = body["monitorId"];
+  let monitorId: ObjectID | undefined = undefined;
+
+  if (
+    rawMonitorId !== undefined &&
+    rawMonitorId !== null &&
+    rawMonitorId !== ""
+  ) {
+    if (
+      typeof rawMonitorId !== "string" ||
+      !ObjectID.isValidUUID(rawMonitorId)
+    ) {
+      throw new BadDataException("monitorId is not a monitor's id.");
+    }
+
+    monitorId = new ObjectID(rawMonitorId);
+  }
+
+  const rawSteps: unknown = body["monitorSteps"];
+
+  if (!rawSteps || typeof rawSteps !== "object" || Array.isArray(rawSteps)) {
+    throw new BadDataException("monitorSteps is required.");
+  }
+
+  let monitorSteps: MonitorSteps;
+
+  try {
+    monitorSteps = MonitorSteps.fromJSON(rawSteps as JSONObject);
+  } catch {
+    throw new BadDataException("monitorSteps could not be read.");
+  }
+
+  const rawLabelIds: unknown = body["labelIds"];
+  const labelIds: Array<ObjectID> = [];
+
+  if (Array.isArray(rawLabelIds)) {
+    for (const id of rawLabelIds.slice(0, WHO_IS_TOLD_DRAFT_MAX_LABELS)) {
+      if (typeof id === "string" && ObjectID.isValidUUID(id)) {
+        labelIds.push(new ObjectID(id));
+      }
+    }
+  }
+
+  const text: (value: unknown) => string = (value: unknown): string => {
+    return typeof value === "string"
+      ? value.slice(0, WHO_IS_TOLD_DRAFT_MAX_NAME_LENGTH)
+      : "";
+  };
+
+  return {
+    monitorId: monitorId,
+    name: text(body["name"]),
+    description: text(body["description"]),
+    monitorType: monitorType as MonitorType,
+    monitorSteps: monitorSteps,
+    labelIds: labelIds,
+  };
+}
+
+/*
+ * WHO A MONITOR NOT SAVED YET WOULD TELL (#7055): Create Monitor's criteria,
+ * or a saved monitor's criteria being edited.
+ *
+ *   POST /who-is-told/draft
+ *   { monitorId?, name, description?, monitorType, monitorSteps, labelIds? }
+ *
+ * Reads only, and keeps nothing: WhoIsToldService.getForDraft, which asks
+ * what creating the monitor takes, or reading the saved one.
+ */
+router.post(
+  `${WHO_IS_TOLD_API_PATH}/draft`,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+
+      const result: WhoIsToldResult = await WhoIsToldService.getForDraft({
+        projectId: projectId,
+        props: props,
+        draft: readDraftFromBody(req),
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.get(
   `${WHO_IS_TOLD_API_PATH}/monitor/:monitorId`,

@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -68,7 +69,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -1317,7 +1317,7 @@ const IncidentCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isPageLoading && <PageLoader isVisible={true} />}
+          {isPageLoading && <DetailListSkeleton fields={4} columns={1} />}
           {error && <ErrorMessage message={error} />}
           {!isPageLoading && !error && alertsToLink.length > 0 && (
             <AlertBanner

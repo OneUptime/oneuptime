@@ -1,7 +1,14 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -80,6 +87,7 @@ jest.mock("../../../UI/Config", () => {
   return mockedConfig;
 });
 
+import OnCallTestPageApi from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageApi";
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {
@@ -90,6 +98,9 @@ import {
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
   WhoIsToldPersonProblem,
@@ -177,6 +188,11 @@ const NAMES: ReadonlyArray<string> = [
   "Lee Park",
   "Night shift",
   "Weekend",
+  // A record's own rules (#7212 - #7572).
+  "Payments are private",
+  "Tag checkout",
+  "Lasting alerts",
+  "Checkout",
 ];
 
 const LOCALES: string = path.join(
@@ -761,6 +777,149 @@ const ANSWERS: ReadonlyArray<Answer> = [
       ],
     ),
   },
+  /*
+   * What a record's own rules make of it (#7212, #7213, #7214, #7216,
+   * #7572): a private incident the reader may see and one they may not,
+   * label rules that change who is paged, a page that shows the monitor
+   * through monitor groups, incidents alert incident rules declare - after
+   * a wait and right away, by a rule the reader may not see - and every
+   * kind of owner no Created email reaches.
+   */
+  {
+    name: "a record's own rules: privacy, labels, groups, declared incidents and owners not emailed",
+    result: result([
+      {
+        id: "offline",
+        name: "Offline",
+        statusName: "Offline",
+        statusColor: "#ef4444",
+        events: [
+          event({
+            isPrivate: true,
+            privacyRules: [
+              { id: "payments-private", name: "Payments are private" },
+              { id: "hidden-privacy-rule", name: "" },
+            ],
+            statusPages: [],
+            isPrivateOffStatusPages: true,
+            labelRules: [
+              { id: "tag-checkout", name: "Tag checkout" },
+              { id: "hidden-label-rule", name: "" },
+            ],
+            owners: {
+              source: WhoIsToldOwnersSource.Named,
+              userNames: ["Ana Lopez"],
+              teamNames: [],
+              notReached: [
+                {
+                  kind: WhoIsToldOwnerKind.User,
+                  id: "70780000-0000-4000-8000-0000000000e1",
+                  name: "",
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.Criteria,
+                },
+                {
+                  kind: WhoIsToldOwnerKind.Team,
+                  id: "70780000-0000-4000-8000-0000000000e2",
+                  name: "Night shift",
+                  problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                  rule: { id: "checkout-monitors", name: "Checkout monitors" },
+                },
+                {
+                  kind: WhoIsToldOwnerKind.Team,
+                  id: "70780000-0000-4000-8000-0000000000e3",
+                  name: "",
+                  problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+                  addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+                  networkDeviceId: "70780000-0000-4000-8000-0000000000e4",
+                },
+                {
+                  kind: WhoIsToldOwnerKind.User,
+                  id: "70780000-0000-4000-8000-0000000000e5",
+                  name: "",
+                  problem: WhoIsToldOwnerProblem.NotInProject,
+                  addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+                  rule: { id: "hidden-owner-rule", name: "" },
+                },
+              ],
+            },
+          }),
+          event({
+            title: "",
+            owners: {
+              source: WhoIsToldOwnersSource.Named,
+              userNames: [],
+              teamNames: [],
+            },
+            ownerRules: [],
+            rules: [],
+            policies: [],
+            statusPages: [],
+            isPrivate: true,
+            privacyRules: [{ id: "hidden-privacy-rule", name: "" }],
+            isHidden: true,
+          }),
+        ],
+      },
+      {
+        id: "slow",
+        name: "Slow",
+        events: [
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            title: "Checkout API is slow",
+            severityName: "Minor",
+            rules: [],
+            policies: [],
+            statusPages: [],
+            declares: {
+              rule: { id: "lasting-alerts", name: "Lasting alerts" },
+              waitInMinutes: 30,
+              incident: event({
+                statusPages: [
+                  {
+                    id: "payments-status",
+                    name: "Payments status",
+                    groups: [
+                      { id: "checkout-group", name: "Checkout" },
+                      { id: "hidden-group", name: "" },
+                    ],
+                  },
+                ],
+              }),
+            },
+          }),
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            title: "Checkout API is slow",
+            severityName: "Minor",
+            rules: [],
+            policies: [],
+            statusPages: [],
+            declares: {
+              rule: { id: "hidden-alert-incident-rule", name: "" },
+              waitInMinutes: 1,
+              incident: event(),
+            },
+          }),
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            title: "Checkout API is slow",
+            severityName: "Minor",
+            rules: [],
+            policies: [],
+            statusPages: [],
+            declares: {
+              rule: { id: "hidden-alert-incident-rule", name: "" },
+              waitInMinutes: 0,
+              incident: event(),
+            },
+          }),
+        ],
+      },
+    ]),
+  },
 ];
 
 function readIn(language: string, words: Record<string, unknown>): void {
@@ -772,6 +931,8 @@ function readIn(language: string, words: Record<string, unknown>): void {
 // The card drawn with `answer`, its chain open when it has one.
 async function drawCard(answer: WhoIsToldResult): Promise<RenderResult> {
   jest.spyOn(WhoIsToldApi, "getForMonitor").mockResolvedValue(answer);
+  // And its last fire drill (#9386): none, read on every draw.
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
 
   const drawn: RenderResult = render(
     <MemoryRouter>
@@ -847,6 +1008,14 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   readIn("en", {});
+});
+
+/*
+ * The card reads its monitor's last fire drill too (#9386, LastFireDrill):
+ * none here, stood in for as every other read of the server is.
+ */
+beforeEach(() => {
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
 });
 
 // The words left on what `read` holds once marked words and `names` are out.
@@ -1440,4 +1609,74 @@ describe("why somebody is paged, and why nobody is, in the reader's words (#7261
     expect(textsOf("who-is-told-reached-through")).toEqual([]);
     expect(textsOf("who-is-told-not-paged")).toEqual([]);
   });
+});
+
+/*
+ * A RECHECK THAT FAILS (#7308) says so under the answer it keeps, wholly in
+ * the reader's language: its sentence, and why - a gateway's 502 or 504
+ * worded as the first read's failure is (#7307), never the English it came
+ * as.
+ */
+describe("a Recheck that fails, in the reader's language", () => {
+  const TEMPLATE: string = "Couldn't check again. {{error}}";
+
+  async function drawFailedRecheck(): Promise<{
+    drawn: RenderResult;
+    note: HTMLElement;
+  }> {
+    jest
+      .spyOn(WhoIsToldApi, "getForMonitor")
+      .mockResolvedValueOnce(ANSWERS[0]!.result)
+      .mockRejectedValueOnce(new Error(SERVER_DOWN_MESSAGE));
+
+    const drawn: RenderResult = render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId("who-is-told-recheck"));
+
+    return {
+      drawn: drawn,
+      note: await screen.findByTestId("who-is-told-recheck-error"),
+    };
+  }
+
+  test("every word of it is the Dashboard's", async () => {
+    readIn("en", markedEnglish());
+
+    const { drawn, note } = await drawFailedRecheck();
+
+    expect(note.textContent).toContain("⟦");
+    expect(unmarkedWords(readCard(drawn), NAMES)).toEqual([]);
+  });
+
+  test.each(["de", "fa", "ar"])(
+    "%s: the sentence and why, none of it in English",
+    async (language: string): Promise<void> => {
+      const words: Record<string, string> = readWords(language) as Record<
+        string,
+        string
+      >;
+
+      readIn(language, words);
+
+      const { note } = await drawFailedRecheck();
+
+      expect(words[TEMPLATE]).toBeTruthy();
+      expect(words[TEMPLATE]).not.toBe(TEMPLATE);
+      expect(withoutIsolateMarks(note.textContent || "").trim()).toBe(
+        words[TEMPLATE]!.replace(
+          "{{error}}",
+          joinSentences([
+            words[UnexplainedErrorWords.serverDownWhy]!,
+            words[UnexplainedErrorWords.serverDownNext]!,
+          ]),
+        ).trim(),
+      );
+      expect(note.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+      expect(note.textContent).not.toContain("Couldn't check again");
+    },
+  );
 });

@@ -123,7 +123,7 @@ const NetworkSiteView: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.networkSiteType?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Not set")}
                     </span>
                   );
@@ -142,7 +142,7 @@ const NetworkSiteView: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.parentSite?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Top level")}
                     </span>
                   );
@@ -162,7 +162,7 @@ const NetworkSiteView: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.currentMonitorStatus) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("No Data")}
                     </span>
                   );
@@ -199,7 +199,7 @@ const NetworkSiteView: FunctionComponent<
                   item.longitude === null
                 ) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Not pinned on the map")}
                     </span>
                   );

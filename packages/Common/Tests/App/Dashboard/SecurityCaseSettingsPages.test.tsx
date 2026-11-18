@@ -394,7 +394,7 @@ describe("Case Priorities' Detection severity column", () => {
     );
     // In the reader's language, and muted.
     expect(none).toHaveTextContent("Keine");
-    expect(none).toHaveClass("text-gray-400");
+    expect(none).toHaveClass("text-gray-500");
     cleanup();
 
     await renderPage(PAGES[1]!);

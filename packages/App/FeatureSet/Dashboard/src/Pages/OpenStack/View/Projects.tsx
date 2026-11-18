@@ -105,7 +105,7 @@ function numberCell(value: number | undefined): ReactElement {
   return value ? (
     <span className="text-gray-900">{value}</span>
   ) : (
-    <span className="text-gray-400">0</span>
+    <span className="text-gray-500">0</span>
   );
 }
 
@@ -314,7 +314,7 @@ const OpenStackCloudProjects: FunctionComponent<
                 {count}
               </span>
             ) : (
-              <span className="text-gray-400">0</span>
+              <span className="text-gray-500">0</span>
             );
           },
           getExportValue: (row: OpenStackResource): string => {
@@ -333,7 +333,7 @@ const OpenStackCloudProjects: FunctionComponent<
             return count > 0 ? (
               <span className="font-medium text-red-700">{count}</span>
             ) : (
-              <span className="text-gray-400">0</span>
+              <span className="text-gray-500">0</span>
             );
           },
           getExportValue: (row: OpenStackResource): string => {

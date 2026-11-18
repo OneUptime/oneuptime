@@ -1,17 +1,16 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import {
-  ADMIN_SERVER_SETUP_ROUTE as SERVER_SETUP_ROUTE,
-  SERVER_EMAIL_COPY,
-} from "../../../Utils/ServerEmail";
+import { SERVER_EMAIL_COPY } from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ProjectGoal, {
   PROJECT_GOALS,
 } from "Common/Types/WelcomeChecklist/ProjectGoal";
 import { WelcomeStep } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
-import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
+import {
+  GuidedSetupEntryPoint,
+  withGuidedSetupEntryPoint,
+} from "Common/UI/Utils/GuidedSetupEvents";
 import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
@@ -21,6 +20,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 /*
@@ -244,6 +244,68 @@ export const WELCOME_CHECKLIST_COPY: {
 };
 
 /*
+ * WHY A STEP IS NOT DONE ALTHOUGH ITS RECORD EXISTS (#6938): the
+ * checklist's own sentence, for an invitation nobody accepted. Every other
+ * break is a Setup health finding, said in its words.
+ */
+export const WELCOME_GAP_COPY: {
+  invitationNotAccepted: string;
+} = {
+  invitationNotAccepted: translationKey(
+    "An invitation to this project hasn't been accepted yet.",
+  ),
+};
+
+/*
+ * WHAT ELSE TO SET UP (#7986): the card Home draws once the goals' steps are
+ * done, while core steps no goal brought are left - and, while only email
+ * pages the person, the way to their phone and the app (#9442).
+ */
+export const WELCOME_MORE_COPY: {
+  title: string;
+  description: string;
+  phoneTitle: string;
+  phoneDescription: string;
+} = {
+  title: translationKey("More to set up"),
+  description: translationKey(
+    "Your first steps are done. Set up more whenever you like: each one ticks itself off once it works.",
+  ),
+  // The website setup's own link to the on-call guided setup, in its words.
+  phoneTitle: translationKey("Get paged by SMS or phone call"),
+  phoneDescription: translationKey(
+    "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.",
+  ),
+};
+
+/*
+ * Whether this person is offered "Get paged by SMS or phone call" (#9442):
+ * whoever may use the on-call guided setup, by the rule On-Call's own
+ * "Guided setup" button and the website setup's summary follow - one who
+ * may create an on-call policy (WebsiteDownApi's mayUseOnCallSetup).
+ */
+export const mayUseOnCallGuidedSetup: () => boolean = (): boolean => {
+  return PermissionGate.check(new OnCallDutyPolicy(), ModelAction.Create)
+    .isAllowed;
+};
+
+/*
+ * Where "Get paged by SMS or phone call" leads from Home (#9442): the
+ * on-call guided setup, which adds a phone and the app and ends in a test
+ * page, saying it was opened from Home.
+ */
+export const getPagedByPhoneRoute: () => Route = (): Route => {
+  return new Route(
+    withGuidedSetupEntryPoint(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ).toString(),
+      GuidedSetupEntryPoint.Home,
+    ),
+  );
+};
+
+/*
  * The next-step line on the page a step's record lands on (WelcomeNextStep):
  * what was done, and what is next.
  */
@@ -306,8 +368,6 @@ export interface WelcomeStepEntry {
    * create page is gated by that page's model instead.
    */
   guidedSetupModelType?: { new (): PermissionCheckableModel } | undefined;
-  // A page outside the Dashboard (the Admin Dashboard), opened in a new tab.
-  externalUrl?: (() => URL) | undefined;
   /*
    * Where the step's record lands once it is created, for the one quiet
    * line that says what is next there (WelcomeNextStep), and what that line
@@ -323,29 +383,12 @@ export interface WelcomeStepEntry {
 }
 
 /*
- * The server setup page of the Admin Dashboard (/admin/setup, #6824),
- * where a master admin sets email up and tests it: the same route the
- * Dashboard's server setup card opens (Utils/ServerEmail).
+ * The server's own setup (email, HTTPS, who can sign up) is no step: its
+ * master admins see the Server setup card above the checklist
+ * (Components/ServerSetup/ServerSetupCard), so Home asks for it once
+ * (#7018).
  */
-export const ADMIN_SERVER_SETUP_ROUTE: string = SERVER_SETUP_ROUTE;
-
-export const getAdminServerSetupUrl: () => URL = (): URL => {
-  return URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
-    ADMIN_SERVER_SETUP_ROUTE,
-  );
-};
-
 export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
-  {
-    step: WelcomeStep.ServerEmail,
-    title: translationKey("This server cannot send email yet"),
-    description: translationKey(
-      "Nobody gets invitations, password resets or alerts by email until you set up email in the Admin Dashboard.",
-    ),
-    icon: IconProp.Email,
-    iconBackgroundClassName: "bg-amber-500",
-    externalUrl: getAdminServerSetupUrl,
-  },
   {
     step: WelcomeStep.Import,
     title: translationKey("Import from your current tool"),
@@ -409,12 +452,16 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     step: WelcomeStep.OnCall,
     title: translationKey("Set up an on-call policy"),
     /*
-     * Says what happens until then, too: an incident or alert nobody owns
-     * is emailed to the project's owners (the Owners workers), so a new
-     * project's first monitor already reaches whoever made the project.
+     * It ends in a test page (#6937): its guided setup's last step sends
+     * one, and the step ticks once it is acknowledged - so that is what it
+     * says. A policy that already pages someone when something breaks
+     * ticks it too, as Home's docs say. It says what happens until then:
+     * an incident or alert nobody owns is emailed to the project's owners
+     * (the Owners workers), so a new project's first monitor already
+     * reaches whoever made the project.
      */
     description: translationKey(
-      "Page the right person when an incident or alert opens. Done when an on-call rule runs a policy that reaches someone. Until then, the Project Owners get an email.",
+      "Page the right person when an incident or alert opens. Done when a test page is acknowledged. Until then, the Project Owners get an email.",
     ),
     // A server that cannot send email emails nobody: said, with the fix.
     descriptionWithoutEmail: {
@@ -425,7 +472,7 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,
     /*
-     * The guided setup (#6805): how you are reached, who else is on call,
+     * The guided setup (#6805): how you are reached, who is paged first,
      * what if nobody answers and a test page, on one page. It says what is
      * next itself, so the step has no landing line.
      */
@@ -546,7 +593,7 @@ export const isCatalogComplete: () => boolean = (): boolean => {
       return Boolean(getWelcomeGoalEntry(goal));
     }) &&
     WELCOME_STEPS.every((entry: WelcomeStepEntry): boolean => {
-      return Boolean(entry.pageMap || entry.externalUrl);
+      return Boolean(entry.pageMap);
     })
   );
 };

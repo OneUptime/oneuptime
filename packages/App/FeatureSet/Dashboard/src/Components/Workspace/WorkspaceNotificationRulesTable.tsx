@@ -54,7 +54,7 @@ import Field, {
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import { getNotificationRuleCardColumns } from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
@@ -113,6 +113,11 @@ import {
 } from "../Slack/SlackOrganizationCard";
 import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
+import {
+  getTestRuleChannelWarning,
+  TEST_RULE_CHANNEL_WARNING_TEST_ID,
+} from "./WorkspaceRuleTestChannel";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   SecurityCaseValueLists,
   getSecurityCaseValues,
@@ -198,10 +203,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [securityCaseStatuses, setSecurityCaseStatuses] = React.useState<
     Array<SecurityCaseStatus>
   >([]);
-  // An SLO rule's: the project's SLOs, to pick the ones it is for.
+  /*
+   * An SLO rule's: the project's SLOs, to pick the ones it is for. Left
+   * undefined while they could not be read, so no SLO a rule holds is said
+   * to be gone from a list nobody read (#7807).
+   */
   const [serviceLevelObjectives, setServiceLevelObjectives] = React.useState<
-    Array<ServiceLevelObjective>
-  >([]);
+    Array<ServiceLevelObjective> | undefined
+  >(undefined);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
     Array<MicrosoftTeamsTeam>
@@ -249,9 +258,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [numberPrefixes, setNumberPrefixes] = React.useState<
     WorkspaceChannelNumberPrefixes | undefined
   >(undefined);
+  /*
+   * An on-call rule's policies. Undefined while they could not be read: no
+   * policy a rule holds is then said to be gone (#7807), and a name
+   * condition says nothing of what its words match (#7806).
+   */
   const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
-    Array<OnCallDutyPolicy>
-  >([]);
+    Array<OnCallDutyPolicy> | undefined
+  >(undefined);
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
@@ -542,7 +556,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
           setServiceLevelObjectives(slos.data);
         } catch {
-          setServiceLevelObjectives([]);
+          setServiceLevelObjectives(undefined);
         }
       }
 
@@ -719,7 +733,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             )?.name || undefined,
           );
         } catch {
-          setOnCallDutyPolicies([]);
+          setOnCallDutyPolicies(undefined);
           setOnCallPolicyName(undefined);
         }
       }
@@ -867,7 +881,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {
@@ -965,6 +979,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
     return notificationRule;
   };
+
+  // What testing the rule about to be tested creates, when it creates a channel.
+  const testRuleChannelWarning: string | undefined = testNotificationRule
+    ? getTestRuleChannelWarning({
+        rule: testNotificationRule.notificationRule as
+          | IncidentNotificationRule
+          | undefined,
+        eventType: props.eventType,
+        workspaceType: props.workspaceType,
+        translator: translator,
+      })
+    : undefined;
 
   return (
     <Fragment>
@@ -1484,7 +1510,22 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             }
             await testRule(testNotificationRule.id!);
           }}
-        />
+        >
+          {/*
+           * A rule that creates a channel for each event creates a real
+           * one when tested, and invites the person testing to it: said
+           * before the test runs, naming the channel (#7265). A rule that
+           * only posts says nothing more. Worded already: drawn as given.
+           */}
+          {testRuleChannelWarning ? (
+            <Alert
+              type={AlertType.WARNING}
+              title={<span>{testRuleChannelWarning}</span>}
+              dataTestId={TEST_RULE_CHANNEL_WARNING_TEST_ID}
+              className="mt-4"
+            />
+          ) : undefined}
+        </ConfirmModal>
       ) : (
         <></>
       )}

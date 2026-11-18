@@ -911,7 +911,7 @@ describe("MonitorOverviewHero layout", () => {
     expect(pulse).toHaveTextContent("Last checked: unavailable");
     expect(pulse).not.toHaveTextContent("Not checked yet");
     expect(within(pulse).getByText("Last checked: unavailable")).toHaveClass(
-      "text-gray-400",
+      "text-gray-500",
     );
   });
 
@@ -1023,7 +1023,7 @@ describe("MonitorOverviewHero layout", () => {
       within(
         screen.getByTestId("monitor-overview-fact-latest-result"),
       ).getByRole("definition"),
-    ).toHaveClass("text-gray-400");
+    ).toHaveClass("text-gray-500");
   });
 
   test("the device fact links to the device the step names", () => {
@@ -1209,7 +1209,7 @@ describe("MonitorOverviewHero layout", () => {
       );
       expect(owners).toHaveTextContent("Unavailable");
       expect(within(owners).getByText("Unavailable")).toHaveClass(
-        "text-gray-400",
+        "text-gray-500",
       );
       expect(within(owners).queryByRole("link")).toBeNull();
       expect(owners).not.toHaveTextContent("No owners");

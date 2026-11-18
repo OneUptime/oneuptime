@@ -62,7 +62,7 @@ Abre **Guardia** desde el menú **Productos** y ve a **Programaciones de guardia
 
 ### Crear una política
 
-Ve a **Políticas de guardia** y haz clic en **Crear Política de guardia**. En **¿A quién se avisa primero?**, elige la programación. Se convierte en la primera regla de escalado de la política, **Level 1**, que espera 30 minutos a que alguien reconozca.
+Ve a **Políticas de guardia** y haz clic en **Crear política de guardia**. En **¿A quién se avisa primero?**, elige la programación. Se convierte en la primera regla de escalado de la política, **Level 1**, que espera 30 minutos a que alguien reconozca.
 
 ### Añadir los niveles siguientes
 
@@ -70,7 +70,7 @@ En la página **Reglas de escalado** de la política, haz clic en **Añadir regl
 
 ### Ejecutar la política automáticamente
 
-La primera política de un proyecto puede hacerlo al crearla: deja activado **Activarla con cada nuevo incidente y cada nueva alerta**. Para cualquier otra política, ve a **Incidentes → Reglas → Reglas de guardia** o **Alertas → Reglas → Reglas de guardia** y añade una regla que la ejecute para los incidentes o las alertas que coincidan, por ejemplo cada uno crítico. Consulta [Qué ejecuta una política](/docs/on-call/policies#qué-ejecuta-una-política).
+La primera política de un proyecto puede hacerlo al crearla: deja activado **Activarla con cada nuevo incidente y cada nueva alerta**. A una política posterior se le pregunta lo mismo, desactivado de entrada. Para ejecutar una política solo con algunos incidentes o alertas, por ejemplo cada uno crítico, ve a **Incidentes → Reglas → Reglas de guardia** o **Alertas → Reglas → Reglas de guardia** y añade una regla que coincida con ellos. Consulta [Qué ejecuta una política](/docs/on-call/policies#qué-ejecuta-una-política).
 
 ### Comprobar que todos son localizables
 

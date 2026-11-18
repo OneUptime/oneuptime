@@ -166,7 +166,7 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                       />
                     </div>
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${rc.chip}`}
+                      className={`rounded-full px-1.5 py-0.5 text-xs font-medium ${rc.chip}`}
                     >
                       {getValueOrQuietDash(ratingLabel(v), { isSmall: true })}
                     </span>
@@ -182,7 +182,7 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                       {getFigure(formatVital(v, translator))}
                     </span>
                   </div>
-                  <div className="mt-1 text-[11px] text-gray-400 truncate">
+                  <div className="mt-1 text-xs text-gray-500 truncate">
                     {v.label}
                   </div>
                 </div>

@@ -34,6 +34,7 @@ import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceN
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
+  placeholdersOf,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { isolated } from "../../Helpers/IsolateMarks";
@@ -75,11 +76,22 @@ const RULE_ID: ObjectID = new ObjectID("71140000-0000-4000-8000-0000000000a2");
 
 const RULE_NAME: string = "Page the database team";
 
+/*
+ * What the rule does, when a test says: a rule that creates a channel for
+ * each event (#7265). None: a rule as the other tests have it.
+ */
+let mockRuleConfig: Record<string, unknown> | undefined = undefined;
+
 // The rule row the stand-in table shows.
 function ruleRow(): WorkspaceNotificationRule {
   const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
   rule._id = RULE_ID.toString();
   rule.name = RULE_NAME;
+
+  if (mockRuleConfig) {
+    rule.notificationRule = mockRuleConfig as never;
+  }
+
   return rule;
 }
 
@@ -205,6 +217,11 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import WorkspaceNotificationRuleTable from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceNotificationRulesTable";
+import {
+  TEST_RULE_CHANNEL_WARNING_TEST_ID,
+  TEST_RULE_CREATES_CHANNEL_WARNING,
+  TEST_RULE_CREATES_TEAMS_CHANNEL_WARNING,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceRuleTestChannel";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -308,12 +325,15 @@ function fill(
   return text;
 }
 
-async function renderTable(): Promise<void> {
+async function renderTable(
+  workspaceType: WorkspaceType = WorkspaceType.Slack,
+  eventType: NotificationRuleEventType = NotificationRuleEventType.Incident,
+): Promise<void> {
   await act(async (): Promise<void> => {
     render(
       <WorkspaceNotificationRuleTable
-        workspaceType={WorkspaceType.Slack}
-        eventType={NotificationRuleEventType.Incident}
+        workspaceType={workspaceType}
+        eventType={eventType}
       />,
     );
   });
@@ -401,6 +421,7 @@ afterAll(async () => {
 beforeEach(() => {
   testAnswer = new HTTPResponse<JSONObject>(200, {}, {});
   testRoutesCalled.length = 0;
+  mockRuleConfig = undefined;
 
   // What the page reads as it loads: nothing it needs to show a rule.
   jest.spyOn(API, "get").mockImplementation((async (): Promise<
@@ -748,5 +769,178 @@ describe("every Dashboard language words the two dialogs", () => {
         "de",
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * #7265: testing a rule that creates a channel for each event creates a
+ * real channel - named as the rule names its channels, with a few random
+ * letters - and invites the person testing to it. The Test Rule dialog
+ * says so before the test runs, naming the channel; for a rule that only
+ * posts it says nothing more.
+ */
+describe("Test Rule on a rule that creates channels says what the test creates, before it runs", () => {
+  const CREATES: string = TEST_RULE_CREATES_CHANNEL_WARNING;
+  const CREATES_IN_TEAMS: string = TEST_RULE_CREATES_TEAMS_CHANNEL_WARNING;
+
+  function warningOf(dialog: HTMLElement): HTMLElement | null {
+    return within(dialog).queryByTestId(TEST_RULE_CHANNEL_WARNING_TEST_ID);
+  }
+
+  test("a Slack rule that creates channels: the channel it creates, by its prefix, and that you are invited", async () => {
+    mockRuleConfig = {
+      shouldCreateNewChannel: true,
+      newChannelTemplateName: "prod-",
+    };
+
+    await renderTable();
+
+    const confirm: HTMLElement = pressTestRule();
+
+    expect(warningOf(confirm)).toHaveTextContent(
+      fill(CREATES, { workspace: "Slack", channel: "#prod-abcde" }),
+    );
+    // Asked before the test runs: nothing is sent yet.
+    expect(testRoutesCalled).toEqual([]);
+    expect(descriptionOf(confirm)).toBe(
+      `Send a test notification for the rule "${RULE_NAME}" to Slack.`,
+    );
+  });
+
+  test("a rule without a prefix names its test channel test-, as the server does", async () => {
+    mockRuleConfig = { shouldCreateNewChannel: true };
+
+    await renderTable();
+
+    expect(warningOf(pressTestRule())).toHaveTextContent("#test-abcde");
+  });
+
+  test("REGRESSION: a rule that only posts in existing channels says nothing more", async () => {
+    mockRuleConfig = {
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "incidents",
+    };
+
+    await renderTable();
+
+    const confirm: HTMLElement = pressTestRule();
+
+    expect(warningOf(confirm)).toBeNull();
+    expect(confirm).not.toHaveTextContent("abcde");
+  });
+
+  test("a rule that has no settings yet says nothing more either", async () => {
+    await renderTable();
+
+    expect(warningOf(pressTestRule())).toBeNull();
+  });
+
+  test("a kind of rule that never has a channel of its own says nothing more, whatever it holds", async () => {
+    mockRuleConfig = { shouldCreateNewChannel: true };
+
+    await renderTable(
+      WorkspaceType.Slack,
+      NotificationRuleEventType.ServiceLevelObjective,
+    );
+
+    expect(warningOf(pressTestRule())).toBeNull();
+  });
+
+  test("Mattermost: the channel and the invite, without Slack's #", async () => {
+    mockRuleConfig = {
+      shouldCreateNewChannel: true,
+      newChannelTemplateName: "prod-",
+    };
+
+    await renderTable(WorkspaceType.Mattermost);
+
+    expect(warningOf(pressTestRule())).toHaveTextContent(
+      fill(CREATES, { workspace: "Mattermost", channel: "prod-abcde" }),
+    );
+  });
+
+  test("Microsoft Teams: the channel in the rule's team, which everyone in it sees - nobody is invited to one", async () => {
+    mockRuleConfig = {
+      shouldCreateNewChannel: true,
+      newChannelTemplateName: "prod-",
+    };
+
+    // A Microsoft Teams page reads the connection's teams and chats first.
+    jest.spyOn(API, "get").mockImplementation((async (options: {
+      url: URL;
+    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      const route: string = new globalThis.URL(options.url.toString()).pathname;
+
+      if (route.endsWith("/microsoft-teams/teams")) {
+        return new HTTPResponse<JSONObject>(200, { teams: [] }, {});
+      }
+
+      if (route.endsWith("/microsoft-teams/chats")) {
+        return new HTTPResponse<JSONObject>(200, { chats: [] }, {});
+      }
+
+      return new HTTPErrorResponse(500, { message: "Not answered" }, {});
+    }) as never);
+
+    await renderTable(WorkspaceType.MicrosoftTeams);
+
+    const warning: HTMLElement | null = warningOf(pressTestRule());
+
+    expect(warning).toHaveTextContent(
+      fill(CREATES_IN_TEAMS, { channel: "prod-abcde" }),
+    );
+    expect(warning).not.toHaveTextContent("invites you");
+  });
+
+  test.each(READERS)(
+    "%s: the warning in the reader's words, the channel's name set apart as it is",
+    async (
+      language: string,
+      words: Record<string, string>,
+      inSentence: (value: string) => string,
+    ) => {
+      await act(async (): Promise<void> => {
+        await i18next.changeLanguage(language);
+      });
+      mockRuleConfig = {
+        shouldCreateNewChannel: true,
+        newChannelTemplateName: "prod-",
+      };
+
+      await renderTable();
+
+      const warning: HTMLElement | null = warningOf(pressTestRule());
+
+      expect(words[CREATES]).toBeTruthy();
+      expect(warning?.textContent).toBe(
+        fill(words[CREATES], {
+          workspace: inSentence("Slack"),
+          channel: inSentence("#prod-abcde"),
+        }),
+      );
+      expect(warning).not.toHaveTextContent("invites you");
+    },
+  );
+
+  test("every Dashboard language words the warning, keeping its placeholders", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of [CREATES, CREATES_IN_TEAMS]) {
+        const worded: string = words[key] || "";
+
+        expect({
+          language,
+          key,
+          worded: worded !== "" && worded !== key,
+          placeholders: placeholdersOf(worded).sort(),
+        }).toEqual({
+          language,
+          key,
+          worded: true,
+          placeholders: placeholdersOf(key).sort(),
+        });
+      }
+    }
   });
 });

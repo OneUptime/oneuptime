@@ -20,6 +20,7 @@ import MessageQueueMetrics from "../Pages/MessageQueue/View/Metrics";
 import MessageQueueOwners from "../Pages/MessageQueue/View/Owners";
 import MessageQueueSettings from "../Pages/MessageQueue/View/Settings";
 import MessageQueueDocumentation from "../Pages/MessageQueue/View/Documentation";
+import MessageQueueRecommendations from "../Pages/MessageQueue/View/Recommendations";
 import MessageQueueDelete from "../Pages/MessageQueue/View/Delete";
 import MessageQueueAuditLogs from "../Pages/MessageQueue/View/AuditLogs";
 import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabelRule";
@@ -213,6 +214,21 @@ const MessageQueueRoutes: FunctionComponent<ComponentProps> = (
             <MessageQueueSettings
               {...props}
               pageRoute={RouteMap[PageMap.MESSAGE_QUEUE_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <MessageQueueRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS] as Route
+              }
             />
           }
         />

@@ -60,6 +60,13 @@ export const AZURE_INVENTORY_PROPERTIES: ReadonlyArray<string> = [
   "powerState",
   "osType",
   "version",
+  // A subnet's ranges and what it is delegated to (#9375).
+  "addressPrefix",
+  "addressPrefixes",
+  "delegatedTo",
+  // A network security group's rules, one line each (#9375).
+  "inbound",
+  "outbound",
 ];
 
 // The fields a resource's host names are read from, as the query names them.
@@ -90,17 +97,44 @@ const AZURE_SCALE_SET_TYPE: string =
   "Microsoft.Compute/virtualMachineScaleSets";
 const AZURE_APPLICATION_GATEWAY_TYPE: string =
   "Microsoft.Network/applicationGateways";
+export const AZURE_NETWORK_SECURITY_GROUP_TYPE: string =
+  "Microsoft.Network/networkSecurityGroups";
+const AZURE_MANAGED_CLUSTER_TYPE: string =
+  "Microsoft.ContainerService/managedClusters";
+const AZURE_LOAD_BALANCER_TYPE: string = "Microsoft.Network/loadBalancers";
+
+/*
+ * The types the inventory lists that publish no metrics of their own
+ * (#9375): network security groups, read by the main query, and subnets,
+ * read out of their virtual networks by a query of their own
+ * (buildAzureSubnetQuery). Their descriptors are the catalog's
+ * INVENTORY_ONLY_RESOURCE_TYPES.
+ */
+export const AZURE_INVENTORY_ONLY_QUERY_TYPES: ReadonlyArray<string> = [
+  AZURE_NETWORK_SECURITY_GROUP_TYPE,
+];
+export const AZURE_LISTED_ONLY_TYPES: ReadonlyArray<string> = [
+  AZURE_NETWORK_SECURITY_GROUP_TYPE,
+  AZURE_SUBNET_TYPE,
+];
 
 /*
  * The query. Types are the catalog's own (letters, dots and slashes only),
  * so they go into the query as they are.
  */
 export function buildAzureInventoryQuery(): string {
-  const types: string = AZURE_RESOURCE_TYPES.map(
-    (descriptor: CloudResourceTypeDescriptor): string => {
-      return `'${descriptor.type.toLowerCase()}'`;
-    },
-  ).join(", ");
+  const types: string = [
+    ...AZURE_RESOURCE_TYPES.map(
+      (descriptor: CloudResourceTypeDescriptor): string => {
+        return descriptor.type;
+      },
+    ),
+    ...AZURE_INVENTORY_ONLY_QUERY_TYPES,
+  ]
+    .map((type: string): string => {
+      return `'${type.toLowerCase()}'`;
+    })
+    .join(", ");
 
   return [
     "Resources",
@@ -148,7 +182,33 @@ export function buildAzureInventoryQuery(): string {
     // What it sends traffic to.
     "  privateLinkServiceConnections = properties.privateLinkServiceConnections,",
     "  manualPrivateLinkServiceConnections = properties.manualPrivateLinkServiceConnections,",
-    "  gatewayBackendPools = iff(type =~ 'microsoft.network/applicationgateways', properties.backendAddressPools, dynamic(null))",
+    "  gatewayBackendPools = iff(type =~ 'microsoft.network/applicationgateways', properties.backendAddressPools, dynamic(null)),",
+    // A network security group's own rules; a cluster's node resource group.
+    "  securityRules = iff(type =~ 'microsoft.network/networksecuritygroups', properties.securityRules, dynamic(null)),",
+    "  nodeResourceGroup = tostring(properties.nodeResourceGroup)",
+  ].join("\n");
+}
+
+/*
+ * The subnets, read out of their virtual networks (#9375): Azure lists a
+ * subnet inside its virtual network, never as a resource of its own. One
+ * row each, shaped as the main query's rows are, with only what a subnet
+ * is: its ranges, its network security group and its route table - never
+ * the interfaces it lists, which would make a large network's rows heavy.
+ */
+export function buildAzureSubnetQuery(): string {
+  return [
+    "Resources",
+    "| where type =~ 'microsoft.network/virtualnetworks'",
+    "| mv-expand limit 2000 subnet = properties.subnets",
+    "| where isnotempty(tostring(subnet.id))",
+    "| project id = tostring(subnet.id), name = strcat(name, '/', tostring(subnet.name)), type = 'microsoft.network/virtualnetworks/subnets', location, resourceGroup, subscriptionId,",
+    "  provisioningState = tostring(subnet.properties.provisioningState),",
+    "  addressPrefix = tostring(subnet.properties.addressPrefix),",
+    "  addressPrefixes = subnet.properties.addressPrefixes,",
+    "  networkSecurityGroupId = tostring(subnet.properties.networkSecurityGroup.id),",
+    "  routeTableId = tostring(subnet.properties.routeTable.id),",
+    "  delegations = subnet.properties.delegations",
   ].join("\n");
 }
 
@@ -322,12 +382,137 @@ function subnetsOf(row: JSONObject): Array<string> {
   });
 }
 
+// "443", "8000-8100", or the ranges joined: "80,443"; "" for every port.
+function portsOf(rule: unknown): string {
+  const ranges: Array<string> = [
+    asText(readCloudPath(rule, "properties.destinationPortRange")),
+    ...asList(readCloudPath(rule, "properties.destinationPortRanges")).map(
+      (range: unknown): string => {
+        return asText(range);
+      },
+    ),
+  ].filter((range: string): boolean => {
+    return range.length > 0 && range !== "*";
+  });
+
+  return ranges.join(",");
+}
+
+// Where a rule's traffic comes from or goes to: "Internet", "10.0.0.0/8, 10.1.0.0/16".
+function peersOf(rule: unknown, side: "source" | "destination"): string {
+  const peers: Array<string> = [
+    asText(readCloudPath(rule, `properties.${side}AddressPrefix`)),
+    ...asList(readCloudPath(rule, `properties.${side}AddressPrefixes`)).map(
+      (prefix: unknown): string => {
+        return asText(prefix);
+      },
+    ),
+    ...textsAt(
+      readCloudPath(rule, `properties.${side}ApplicationSecurityGroups`),
+      "id",
+    ).map((id: string): string => {
+      return id.slice(id.lastIndexOf("/") + 1);
+    }),
+  ].filter((peer: string): boolean => {
+    return peer.length > 0;
+  });
+
+  return peers.length > 0 ? peers.join(", ") : "*";
+}
+
+/*
+ * A network security group's rules of one direction, one line each, by
+ * priority, as the portal reads them: "Allow tcp:443 from Internet (100)",
+ * "Deny all to * (4096)". Its default rules are Azure's own and not read.
+ */
+export function networkSecurityGroupRules(
+  rules: unknown,
+  direction: "Inbound" | "Outbound",
+): Array<string> {
+  return asList(rules)
+    .filter((rule: unknown): boolean => {
+      return (
+        asText(readCloudPath(rule, "properties.direction")).toLowerCase() ===
+        direction.toLowerCase()
+      );
+    })
+    .map((rule: unknown): { priority: number; line: string } => {
+      const access: string =
+        asText(readCloudPath(rule, "properties.access")) || "Allow";
+      const rawProtocol: string = asText(
+        readCloudPath(rule, "properties.protocol"),
+      ).toLowerCase();
+      const protocol: string =
+        !rawProtocol || rawProtocol === "*" ? "all" : rawProtocol;
+      const ports: string = portsOf(rule);
+      const peer: string =
+        direction === "Inbound"
+          ? `from ${peersOf(rule, "source")}`
+          : `to ${peersOf(rule, "destination")}`;
+      const priorityValue: unknown = readCloudPath(rule, "properties.priority");
+      const priority: number =
+        typeof priorityValue === "number" ? priorityValue : 0;
+
+      return {
+        priority,
+        line: `${access} ${ports ? `${protocol}:${ports}` : protocol} ${peer}${
+          priority ? ` (${priority})` : ""
+        }`,
+      };
+    })
+    .sort(
+      (
+        a: { priority: number; line: string },
+        b: { priority: number; line: string },
+      ): number => {
+        return a.priority - b.priority;
+      },
+    )
+    .map((entry: { line: string }): string => {
+      return entry.line;
+    });
+}
+
+// What a row's properties are worked out to, beside the ones projected as they are.
+function derivedPropertiesOf(row: JSONObject): JSONObject {
+  const derived: JSONObject = {};
+  const type: string = text(row, "type").toLowerCase();
+
+  if (type === AZURE_NETWORK_SECURITY_GROUP_TYPE.toLowerCase()) {
+    derived["inbound"] = networkSecurityGroupRules(
+      row["securityRules"],
+      "Inbound",
+    );
+    derived["outbound"] = networkSecurityGroupRules(
+      row["securityRules"],
+      "Outbound",
+    );
+  }
+
+  if (type === AZURE_SUBNET_TYPE.toLowerCase()) {
+    derived["delegatedTo"] = textsAt(
+      row["delegations"],
+      "properties.serviceName",
+    );
+  }
+
+  return derived;
+}
+
 function relationshipsOf(row: JSONObject): Array<CloudResourceRelationship> {
   const relationships: Array<CloudResourceRelationship> = [];
   const id: string = text(row, "id");
   const parent: string = getAzureParentResourceId(id);
+  const network: string = getAzureVirtualNetworkOfSubnet(id);
 
-  if (parent) {
+  // A subnet runs in its virtual network, as everything in it does.
+  if (network) {
+    relationships.push({
+      kind: CloudRelationshipKind.RunsIn,
+      target: network,
+      targetType: AZURE_VIRTUAL_NETWORK_TYPE,
+    });
+  } else if (parent) {
     relationships.push({ kind: CloudRelationshipKind.PartOf, target: parent });
   }
 
@@ -427,14 +612,34 @@ function relationshipsOf(row: JSONObject): Array<CloudResourceRelationship> {
     }
   }
 
-  // The network security group on a network interface.
-  const securityGroup: string = text(row, "networkSecurityGroupId");
+  /*
+   * The network security group on a network interface or a subnet, and on
+   * each interface a scale set gives its instances.
+   */
+  for (const securityGroup of [
+    text(row, "networkSecurityGroupId"),
+    ...textsAt(
+      row["networkInterfaceConfigurations"],
+      "properties.networkSecurityGroup.id",
+    ),
+  ]) {
+    if (securityGroup) {
+      relationships.push({
+        kind: CloudRelationshipKind.ProtectedBy,
+        target: securityGroup,
+        targetType: AZURE_NETWORK_SECURITY_GROUP_TYPE,
+      });
+    }
+  }
 
-  if (securityGroup) {
+  // A subnet's route table.
+  const routeTable: string = text(row, "routeTableId");
+
+  if (routeTable) {
     relationships.push({
-      kind: CloudRelationshipKind.ProtectedBy,
-      target: securityGroup,
-      targetType: "Microsoft.Network/networkSecurityGroups",
+      kind: CloudRelationshipKind.AttachedTo,
+      target: routeTable,
+      targetType: "Microsoft.Network/routeTables",
     });
   }
 
@@ -509,7 +714,10 @@ export function buildAzureInventoryItem(
     resource,
     displayName: text(row, "name") || undefined,
     tags: normalizeCloudTags(row["tags"]),
-    properties: pickCloudProperties(row, AZURE_INVENTORY_PROPERTIES),
+    properties: pickCloudProperties(
+      { ...row, ...derivedPropertiesOf(row) },
+      AZURE_INVENTORY_PROPERTIES,
+    ),
     relationships: relationshipsOf(row),
     endpoints: endpointsOf(row),
   };
@@ -608,8 +816,16 @@ function gatewayBackendAddresses(row: JSONObject): Array<string> {
  * A subscription's rows as inventory items, with what only the rows read
  * together say:
  *
- *   - a virtual machine runs in the virtual networks its network
- *     interfaces run in;
+ *   - a virtual machine runs in the subnets and virtual networks its
+ *     network interfaces run in, and is protected by the network security
+ *     groups on them and on their subnets (#9375);
+ *   - a network interface and a scale set are protected by the network
+ *     security group on each subnet they run in, as Azure applies both;
+ *   - a load balancer also sends traffic to the virtual machine of each
+ *     network interface in its pools;
+ *   - a Kubernetes cluster's node scale sets and machines - the ones in its
+ *     node resource group - are part of it, and a cluster that names no
+ *     subnet of its own runs where they do;
  *   - a load balancer or an application gateway sends traffic to each
  *     network interface and scale set in its backend pools, which those
  *     list rather than the balancer;
@@ -662,6 +878,67 @@ export function buildAzureInventoryItems(
     added.set(entry.item, [...(added.get(entry.item) || []), relationship]);
   };
 
+  // The network security group on each subnet, by the subnet's id.
+  const securityGroupOfSubnet: Map<string, string> = new Map();
+
+  for (const entry of listed) {
+    if (entry.type === AZURE_SUBNET_TYPE.toLowerCase()) {
+      const group: string = text(entry.row, "networkSecurityGroupId");
+
+      if (group) {
+        securityGroupOfSubnet.set(entry.id.toLowerCase(), group);
+      }
+    }
+  }
+
+  // Protected by the security groups of the subnets a resource runs in.
+  const subnetGuards: (
+    relationships: ReadonlyArray<CloudResourceRelationship>,
+  ) => Array<CloudResourceRelationship> = (
+    relationships: ReadonlyArray<CloudResourceRelationship>,
+  ): Array<CloudResourceRelationship> => {
+    const guards: Array<CloudResourceRelationship> = [];
+
+    for (const relationship of relationships) {
+      if (
+        relationship.kind !== CloudRelationshipKind.RunsIn ||
+        relationship.targetType !== AZURE_SUBNET_TYPE
+      ) {
+        continue;
+      }
+
+      const group: string | undefined = securityGroupOfSubnet.get(
+        relationship.target.toLowerCase(),
+      );
+
+      if (group) {
+        guards.push({
+          kind: CloudRelationshipKind.ProtectedBy,
+          target: group,
+          targetType: AZURE_NETWORK_SECURITY_GROUP_TYPE,
+        });
+      }
+    }
+
+    return guards;
+  };
+
+  // The clusters whose nodes each resource group holds: AKS's MC_ groups.
+  const clustersByNodeGroup: Map<string, Array<AzureListedRow>> = new Map();
+
+  for (const entry of listed) {
+    const nodeGroup: string = text(entry.row, "nodeResourceGroup");
+
+    if (entry.type === AZURE_MANAGED_CLUSTER_TYPE.toLowerCase() && nodeGroup) {
+      const key: string =
+        `${text(entry.row, "subscriptionId")}|${nodeGroup}`.toLowerCase();
+      clustersByNodeGroup.set(key, [
+        ...(clustersByNodeGroup.get(key) || []),
+        entry,
+      ]);
+    }
+  }
+
   // The resources that answer on each host: an app behind a gateway.
   const byHost: Map<string, Array<AzureListedRow>> = new Map();
 
@@ -683,16 +960,43 @@ export function buildAzureInventoryItems(
       const owners: { loadBalancers: Array<string>; gateways: Array<string> } =
         backendPoolOwners(entry);
 
+      const machine: AzureListedRow | undefined =
+        entry.type === AZURE_NETWORK_INTERFACE_TYPE.toLowerCase()
+          ? byId.get(text(entry.row, "virtualMachineId").toLowerCase())
+          : undefined;
+
       for (const balancer of [...owners.loadBalancers, ...owners.gateways]) {
-        add(byId.get(balancer.toLowerCase()), {
+        const owner: AzureListedRow | undefined = byId.get(
+          balancer.toLowerCase(),
+        );
+
+        add(owner, {
           kind: CloudRelationshipKind.RoutesTo,
           target: entry.id,
           targetType,
         });
+
+        // Through the interface, to the machine behind it.
+        if (machine && owner?.type === AZURE_LOAD_BALANCER_TYPE.toLowerCase()) {
+          add(owner, {
+            kind: CloudRelationshipKind.RoutesTo,
+            target: machine.id,
+            targetType: AZURE_VIRTUAL_MACHINE_TYPE,
+          });
+        }
+      }
+
+      // Guarded by the security group on each subnet it runs in, too.
+      for (const guard of subnetGuards(entry.item.relationships)) {
+        add(entry, guard);
       }
     }
 
-    // A virtual machine runs where the network interfaces attached to it do.
+    /*
+     * A virtual machine runs where the network interfaces attached to it
+     * do, and is guarded by what guards them: the security groups on the
+     * interfaces and on their subnets.
+     */
     if (entry.type === AZURE_NETWORK_INTERFACE_TYPE.toLowerCase()) {
       const machine: AzureListedRow | undefined = byId.get(
         text(entry.row, "virtualMachineId").toLowerCase(),
@@ -700,10 +1004,54 @@ export function buildAzureInventoryItems(
 
       for (const relationship of entry.item.relationships) {
         if (
-          relationship.kind === CloudRelationshipKind.RunsIn &&
-          relationship.targetType === AZURE_VIRTUAL_NETWORK_TYPE
+          (relationship.kind === CloudRelationshipKind.RunsIn &&
+            (relationship.targetType === AZURE_SUBNET_TYPE ||
+              relationship.targetType === AZURE_VIRTUAL_NETWORK_TYPE)) ||
+          (relationship.kind === CloudRelationshipKind.ProtectedBy &&
+            relationship.targetType === AZURE_NETWORK_SECURITY_GROUP_TYPE)
         ) {
           add(machine, relationship);
+        }
+      }
+
+      for (const guard of subnetGuards(entry.item.relationships)) {
+        add(machine, guard);
+      }
+    }
+
+    // A cluster's node scale sets and machines are part of it.
+    if (
+      entry.type === AZURE_SCALE_SET_TYPE.toLowerCase() ||
+      entry.type === AZURE_VIRTUAL_MACHINE_TYPE.toLowerCase()
+    ) {
+      const clusters: Array<AzureListedRow> =
+        clustersByNodeGroup.get(
+          `${text(entry.row, "subscriptionId")}|${text(entry.row, "resourceGroup")}`.toLowerCase(),
+        ) || [];
+
+      // One cluster's node resource group: never a guess between two.
+      if (clusters.length === 1) {
+        const cluster: AzureListedRow = clusters[0]!;
+
+        add(entry, {
+          kind: CloudRelationshipKind.PartOf,
+          target: cluster.id,
+          targetType: AZURE_MANAGED_CLUSTER_TYPE,
+        });
+
+        // A cluster on a network AKS made for it runs where its nodes do.
+        const own: boolean = cluster.item.relationships.some(
+          (relationship: CloudResourceRelationship): boolean => {
+            return relationship.kind === CloudRelationshipKind.RunsIn;
+          },
+        );
+
+        if (!own) {
+          for (const relationship of entry.item.relationships) {
+            if (relationship.kind === CloudRelationshipKind.RunsIn) {
+              add(cluster, relationship);
+            }
+          }
         }
       }
     }

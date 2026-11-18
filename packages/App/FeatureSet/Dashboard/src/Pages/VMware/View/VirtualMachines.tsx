@@ -14,7 +14,7 @@ import React, {
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMwareVirtualMachinesTable } from "../../../Components/VMware/VMwareResourceTables";
 import { getVMwarePartRoutes } from "../../../Components/VMware/Part/VMwarePartRoutes";
@@ -81,7 +81,7 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

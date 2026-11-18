@@ -276,7 +276,7 @@ The account can change only while the policy has no phone numbers: the page says
 :::
 
 :::details The code for an engineer's number does not arrive
-SMS must be on for the project. On OneUptime Cloud, a project without its own default Twilio config pays for the SMS from its balance, which must be above 1 USD. Codes can take a minute to arrive; click **Send a new code** to send another, and **Project Settings** > **Notifications** > **Notification Logs** shows what happened to it.
+SMS must be on for the project. On OneUptime Cloud, a project without its own default Twilio config pays for the SMS from its balance, which must be above 1 USD. Codes can take a minute to arrive; click **Send a new code** to send another, and **Project Settings** > **Notifications** > **Notification Logs** shows what happened to it. Whoever may read those logs gets **Open Notification Logs** in the dialog, which opens their SMS tab.
 :::
 
 ## Next steps

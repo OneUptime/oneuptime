@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useDataSecuritySetting, {
@@ -21,7 +22,6 @@ import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/Advanc
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -741,7 +741,7 @@ const DataSecurityScanning: FunctionComponent<
   }, [setting?.id?.toString()]);
 
   if (settingState.isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (settingState.error) {

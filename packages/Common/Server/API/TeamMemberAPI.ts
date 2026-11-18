@@ -11,6 +11,7 @@ import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
 } from "../Services/TeamMemberService";
 import UserService from "../Services/UserService";
+import ProjectMemberSearch from "../Utils/Team/ProjectMemberSearch";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 import {
   ExpressRequest,
@@ -30,6 +31,11 @@ import ObjectID from "../../Types/ObjectID";
 import UserType from "../../Types/UserType";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
+import {
+  ProjectMemberSearchMatch,
+  readProjectMemberSearchText,
+  toProjectMemberSearchAnswerJSON,
+} from "../../Types/Team/ProjectMemberSearch";
 
 export default class TeamMemberAPI extends BaseAPI<
   TeamMember,
@@ -84,6 +90,49 @@ export default class TeamMemberAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             isRegistered: Boolean(user),
           });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/search-members - Search's people (#7036,
+     * Types/Team/ProjectMemberSearch): the project's members whose name - or
+     * email, for a reader who may see the project's emails - holds what was
+     * typed, read as the Users page reads them, with the caller's own
+     * permissions (Utils/Team/ProjectMemberSearch). For a signed-in member
+     * of the project or a project API key; a reader who may not see the
+     * project's people is refused, and fewer than two letters are refused
+     * rather than answered with everyone. Nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/search-members`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const text: string = readProjectMemberSearchText(req.body);
+
+          const members: Array<ProjectMemberSearchMatch> =
+            await ProjectMemberSearch.search({
+              projectId: projectId,
+              text: text,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toProjectMemberSearchAnswerJSON(members),
+          );
         } catch (err) {
           return next(err);
         }

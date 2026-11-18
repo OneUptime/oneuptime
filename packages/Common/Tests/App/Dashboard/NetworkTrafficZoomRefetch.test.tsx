@@ -378,7 +378,7 @@ function body(): HTMLElement {
 
 // Everything that says the page is refetching over the data it shows.
 function expectRefreshingOverLastData(): void {
-  expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
   expect(screen.getByTestId("traffic-refreshing")).toHaveTextContent(
     "Refreshing",
   );
@@ -387,7 +387,7 @@ function expectRefreshingOverLastData(): void {
 }
 
 function expectSettled(): void {
-  expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
   expect(screen.queryByTestId("traffic-refreshing")).not.toBeInTheDocument();
   expect(body()).not.toHaveClass("opacity-75");
   expect(body().parentElement).toHaveAttribute("aria-busy", "false");
@@ -417,7 +417,7 @@ describe("Traffic page: a zoom or a reset refetches over the data on screen (sdn
     renderView();
     await flush();
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("traffic-body")).not.toBeInTheDocument();
     expect(screen.queryByTestId("traffic-refreshing")).not.toBeInTheDocument();
 
@@ -554,7 +554,7 @@ describe("Traffic page: a zoom or a reset refetches over the data on screen (sdn
     expect(screen.getByText("The probe did not answer")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByTestId("traffic-body")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
   });
 
   test("a zoom, then a reset before the zoom's data lands: the slower, older answer never lands", async () => {

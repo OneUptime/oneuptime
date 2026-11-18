@@ -135,9 +135,10 @@ const OnCallDutyPage: FunctionComponent<
   });
 
   /*
-   * A project's first policy is offered "Page this policy for every new
-   * incident and alert" (UseEveryNewEventRulesOffer): the list's first page
-   * says whether there is a policy yet.
+   * "Page this policy for every new incident and alert" is offered on for a
+   * project's first policy and off for a later one (#7371,
+   * UseEveryNewEventRulesOffer): the list's first page says whether there is
+   * a policy yet.
    */
   const everyNewEventRules: EveryNewEventRulesOffer =
     useEveryNewEventRulesOffer();
@@ -145,15 +146,20 @@ const OnCallDutyPage: FunctionComponent<
   /*
    * Name, who gets paged first, and the description and labels folded under
    * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
-   * the page.
+   * the page - and again only when the switch's start changes: on while the
+   * project could be on its first policy, off once it is known to be a
+   * later one.
    */
+  const everyNewEventRulesStartsOn: boolean = everyNewEventRules.startsOn();
+
   const createFormFields: Array<ModelField<OnCallDutyPolicy>> =
     useMemo((): Array<ModelField<OnCallDutyPolicy>> => {
       return getOnCallPolicyCreateFormFields({
         canAddEscalationRules: canAddEscalationRules,
         offerEveryNewEventRules: everyNewEventRules.isOffered,
+        everyNewEventRulesStartsOn: everyNewEventRulesStartsOn,
       });
-    }, []);
+    }, [everyNewEventRulesStartsOn]);
 
   return (
     <Fragment>
@@ -161,6 +167,11 @@ const OnCallDutyPage: FunctionComponent<
         modelType={OnCallDutyPolicy}
         refreshToggle={firstRun.refreshToken}
         showCreateForm={firstRun.showCreateForm}
+        /*
+         * Search's Create On-Call Policy opens this list with ?create=1, and the table
+         * opens its create form from it (#7035).
+         */
+        opensCreateFormFromAddress={true}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}

@@ -7,10 +7,10 @@
 #
 # It also prints what OneUptime says is wrong with itself - the same checks
 # as `npm run doctor` on Docker Compose and the "What needs attention" card
-# of Admin > OneUptime Health - asked from inside the app pod. What the
-# doctor checks from a Docker Compose host and this script does not: the
-# address people open from outside the cluster and its certificate, which
-# your ingress controller and cert-manager serve.
+# of Admin > OneUptime Health - asked from inside the app pod, and checks
+# the address people open (host in your Helm values): that it resolves,
+# reaches this OneUptime and presents a valid certificate, from inside the
+# cluster and from this computer (with curl).
 #
 # Usage:
 #   ./diagnose.sh                                # auto-detect namespace
@@ -19,7 +19,7 @@
 #   ./diagnose.sh --no-color                     # disable color output
 #   ./diagnose.sh --output report.txt            # custom report file
 #
-# Requirements: kubectl with access to the cluster. jq is optional.
+# Requirements: kubectl with access to the cluster. jq and curl are optional.
 # The script only runs read queries; it does not modify cluster state.
 
 set -u
@@ -832,37 +832,66 @@ check_ingress() {
 # getClusterKey), so a key with + / = @ & % or a letter beyond ASCII is
 # accepted too; the POST changes nothing. A redirect is not followed, so the
 # key goes to no other address.
+#
+# A key the app refuses from every caller - unset, blank, or a value the
+# repository ships (EnvironmentConfig.isShippedSecretValue) - is not
+# presented at all: the app would only answer HTTP 401, and its log says
+# nothing about why (#7588). The script says so in its own words instead,
+# since nothing outside it may name the key.
 # ---------------------------------------------------------------------------
 
 # Run with node inside the app pod. Prints one line a finding,
-# LEVEL|TITLE|WHAT IS WRONG|FIX, then VERSION|<version>; ERROR|<why> when the
-# app does not answer.
+# LEVEL|TITLE|WHAT IS WRONG|FIX, then VERSION|<version> and PROOF|<a proof
+# only this installation answers, for the address check after it>;
+# SKIP|WHY|FIX when the pod's key is one the app refuses, so nothing is
+# asked; ERROR|<why> when the app does not answer.
 SERVER_FINDINGS_SCRIPT='
 const port = process.env.PORT || "3002";
 const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
-fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
-  method: "POST",
-  redirect: "manual",
-  headers: { clusterkey: encodeURIComponent(process.env.ONEUPTIME_SECRET || "") },
-})
-  .then(async (response) => {
-    if (response.status !== 200) {
-      console.log("ERROR|the app answered HTTP " + response.status);
-      return;
-    }
-    const answer = await response.json();
-    for (const finding of answer.findings || []) {
-      if (finding.level !== "fix" && finding.level !== "warn") {
-        continue;
-      }
-      console.log([finding.level, clean(finding.title), clean(finding.sentence), clean(finding.fixSentence)].join("|"));
-    }
-    console.log("VERSION|" + clean(answer.version && answer.version.current));
+/*
+ * The rule of EnvironmentConfig.isShippedSecretValue, which this pod cannot
+ * import: unset or blank, "secret", or a "please-change-this" placeholder.
+ * The app refuses such a key from every caller. Common runs both over the
+ * same values, so they never drift apart.
+ */
+const isShippedSecretValue = (value) => {
+  const trimmed = String(value || "").trim();
+  return trimmed === "" || trimmed === "secret" || trimmed.indexOf("please-change-this") !== -1;
+};
+const secret = process.env.ONEUPTIME_SECRET || "";
+if (!isShippedSecretValue(secret)) {
+  fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
+    method: "POST",
+    redirect: "manual",
+    headers: { clusterkey: encodeURIComponent(secret) },
   })
-  .catch((error) => {
-    console.log("ERROR|" + clean(error && error.message));
-  });
+    .then(async (response) => {
+      if (response.status !== 200) {
+        console.log("ERROR|the app answered HTTP " + response.status);
+        return;
+      }
+      const answer = await response.json();
+      for (const finding of answer.findings || []) {
+        if (finding.level !== "fix" && finding.level !== "warn") {
+          continue;
+        }
+        console.log([finding.level, clean(finding.title), clean(finding.sentence), clean(finding.fixSentence)].join("|"));
+      }
+      console.log("VERSION|" + clean(answer.version && answer.version.current));
+      if (/^[0-9a-f]{32}\.[0-9a-f]{64}$/.test(String(answer.addressProof || ""))) {
+        console.log("PROOF|" + answer.addressProof);
+      }
+    })
+    .catch((error) => {
+      console.log("ERROR|" + clean(error && error.message));
+    });
+} else {
+  console.log("SKIP|Could not ask OneUptime how it is: oneuptimeSecret (ONEUPTIME_SECRET in the app pod) is empty or still a value OneUptime ships, and OneUptime refuses that value from every caller.|Set oneuptimeSecret in your Helm values to a long random value, such as the output of openssl rand -hex 32, or put one in the Secret that externalSecrets.oneuptimeSecret names. Then run helm upgrade, and this script again.");
+}
 '
+
+# Set from the script's PROOF line, for check_external_address.
+SERVER_ADDRESS_PROOF=""
 
 # Turns the script's lines into findings: fix is CRIT, warn is WARN.
 report_server_findings() {
@@ -887,6 +916,17 @@ report_server_findings() {
         ;;
       VERSION\|*)
         [ -n "${line#VERSION|}" ] && info "OneUptime ${line#VERSION|}"
+        ;;
+      PROOF\|*)
+        SERVER_ADDRESS_PROOF="${line#PROOF|}"
+        ;;
+      SKIP\|*)
+        line="${line#SKIP|}"
+        sentence="${line%%|*}"
+        fix="${line#*|}"
+        warn "$sentence"
+        add_finding "WARN" "app" "$sentence" "$fix"
+        return
         ;;
       ERROR\|*)
         warn "OneUptime could not say how it is: ${line#ERROR|}"
@@ -924,6 +964,363 @@ check_server_findings() {
   fi
 
   report_server_findings "$output"
+}
+
+# ---------------------------------------------------------------------------
+# 11. The address people open, and its certificate (#7051)
+#
+# What `npm run doctor` checks from a Docker Compose host, from both sides of
+# whatever stands in front of OneUptime here - a cloud load balancer, an
+# ingress controller with cert-manager, or OneUptime's own gateway with
+# ssl.provision:
+#
+#   - from inside the cluster, with node in the app pod: whether `host` (the
+#     HOST the pod runs with) resolves, the certificate it presents (who
+#     issued it, which names it covers, until when, whether it is trusted),
+#     and whether a request to it reaches this OneUptime - the address proof
+#     OneUptime's own checks answered, which only this installation accepts,
+#     so another server or a default backend there is told apart. The answer
+#     says how that request arrived, so an ingress that changes the host
+#     name or drops X-Forwarded-Proto is named too;
+#   - from this computer, with curl when it is installed: whether a browser
+#     here would reach it and accept its certificate.
+#
+# Every request is a GET that carries no key and changes nothing, and gives
+# up quickly (EXTERNAL_* below): an address that does not answer says so in
+# seconds.
+# ---------------------------------------------------------------------------
+
+# Seconds a request from this computer may take to connect, and in all.
+EXTERNAL_CONNECT_TIMEOUT=5
+EXTERNAL_MAX_TIME=10
+
+# Run with node inside the app pod, with the address proof as its argument
+# (empty without one). Prints HOST|<host>|<http or https> first when there
+# is an address to check, then one line a finding:
+# LEVEL|TITLE|WHAT IT SAW|FIX, LEVEL fix, warn, ok or info.
+EXTERNAL_ADDRESS_SCRIPT='
+const dns = require("dns");
+const http = require("http");
+const https = require("https");
+const net = require("net");
+const tls = require("tls");
+const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
+const say = (level, title, sentence, fix) => {
+  console.log([level, title, clean(sentence), clean(fix)].join("|"));
+};
+/* kubectl exec waits for this script: it never takes longer than this. */
+setTimeout(() => {
+  say("warn", "Address", "Checking the address took longer than 30 seconds and was stopped.", "Run this script again. If it stops again, the address does not answer from inside the cluster.");
+  process.exit(0);
+}, 30000).unref();
+const WORDS = {
+  ENOTFOUND: "the name does not resolve",
+  EAI_AGAIN: "the name does not resolve",
+  ECONNREFUSED: "connection refused",
+  ETIMEDOUT: "no answer in time",
+  ECONNRESET: "the connection was closed",
+  EHOSTUNREACH: "the host cannot be reached",
+  ENETUNREACH: "the network cannot be reached",
+  DEPTH_ZERO_SELF_SIGNED_CERT: "it is self-signed",
+  SELF_SIGNED_CERT_IN_CHAIN: "it is signed by a certificate authority of its own",
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE: "its issuer is not one browsers know, or the chain is incomplete",
+  UNABLE_TO_GET_ISSUER_CERT_LOCALLY: "its issuer is not one browsers know, or the chain is incomplete",
+};
+const wordsOf = (code) => WORDS[code] || clean(code) || "no answer";
+const listOf = (names) => names.length <= 3 ? names.join(", ") : names.slice(0, 3).join(", ") + " and " + (names.length - 3) + " more";
+const DAY = 24 * 60 * 60 * 1000;
+const WARN_DAYS = 14;
+const host = String(process.env.HOST || "").trim();
+const protocol = String(process.env.HTTP_PROTOCOL || "").trim().toLowerCase() === "https" ? "https" : "http";
+const proof = /^[0-9a-f]{32}\.[0-9a-f]{64}$/.test(process.argv[1] || "") ? process.argv[1] : "";
+const shape = /^(?:\[([0-9A-Fa-f:.]+)\]|([A-Za-z0-9.-]+))(?::([0-9]{1,5}))?$/.exec(host);
+const hostname = shape ? (shape[1] || shape[2]).toLowerCase() : "";
+const isIp = Boolean(shape) && net.isIP(hostname) !== 0;
+const isLoopback = ["localhost", "ingress", "0.0.0.0", "::", "::1"].indexOf(hostname) !== -1 || /^127\./.test(hostname) || /\.localhost$/.test(hostname);
+const port = shape && shape[3] ? Number(shape[3]) : protocol === "https" ? 443 : 80;
+const base = protocol + "://" + host;
+const lookup = (name) => new Promise((resolve) => {
+  const timer = setTimeout(() => resolve({ error: "ETIMEDOUT" }), 5000);
+  dns.lookup(name, { all: true }, (error, addresses) => {
+    clearTimeout(timer);
+    resolve(error ? { error: error.code || "ENOTFOUND" } : { addresses: (addresses || []).map((entry) => entry.address) });
+  });
+});
+const certificateOf = () => new Promise((resolve) => {
+  let settled = false;
+  const finish = (answer) => {
+    if (!settled) {
+      settled = true;
+      resolve(answer);
+    }
+  };
+  const socket = tls.connect({ host: hostname, port: port, servername: isIp ? undefined : hostname, rejectUnauthorized: false, timeout: 5000 }, () => {
+    const certificate = socket.getPeerCertificate() || {};
+    finish({ authorized: socket.authorized === true, reason: socket.authorizationError ? String(socket.authorizationError.code || socket.authorizationError) : "", certificate: certificate, isForAnotherName: Boolean(tls.checkServerIdentity(hostname, certificate)) });
+    socket.end();
+  });
+  socket.on("timeout", () => {
+    socket.destroy();
+    finish({ error: "ETIMEDOUT" });
+  });
+  socket.on("error", (error) => finish({ error: (error && error.code) || "ERROR" }));
+});
+const get = (url) => new Promise((resolve) => {
+  let settled = false;
+  const finish = (answer) => {
+    if (!settled) {
+      settled = true;
+      resolve(answer);
+    }
+  };
+  let request;
+  try {
+    request = (url.indexOf("https:") === 0 ? https : http).get(url, { rejectUnauthorized: false, timeout: 10000 }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        if (body.length < 65536) {
+          body += chunk;
+        }
+      });
+      response.on("end", () => {
+        let json = null;
+        try {
+          json = JSON.parse(body);
+        } catch (error) {
+          json = null;
+        }
+        finish({ status: response.statusCode, json: json });
+      });
+    });
+  } catch (error) {
+    finish({ error: (error && error.code) || "EINVAL" });
+    return;
+  }
+  request.on("timeout", () => {
+    request.destroy();
+    finish({ error: "ETIMEDOUT" });
+  });
+  request.on("error", (error) => finish({ error: (error && error.code) || "ERROR" }));
+});
+const checkCertificate = async () => {
+  const presented = await certificateOf();
+  const certificateFix = "With cert-manager, kubectl describe certificate -A shows why it was not issued or renewed. With ssl.provision, the worker and app pod logs say why: look for CoreSSL.";
+  if (presented.error) {
+    say("warn", "HTTPS", "From inside the cluster, " + hostname + " does not answer over HTTPS on port " + port + " (" + wordsOf(presented.error) + ").", "If people can open " + base + " from elsewhere, nothing is wrong: some clusters cannot reach their own load balancer. If they cannot, check that the load balancer or ingress for " + hostname + " listens on port " + port + ".");
+    return;
+  }
+  const certificate = presented.certificate;
+  const issuer = (certificate.issuer && (certificate.issuer.O || certificate.issuer.CN)) || "an unknown issuer";
+  const names = String(certificate.subjectaltname || "").split(",").map((name) => name.trim().replace(/^(DNS|IP Address):/, "")).filter(Boolean);
+  const validTo = new Date(certificate.valid_to);
+  const isDated = !Number.isNaN(validTo.getTime());
+  const until = isDated ? validTo.toISOString().slice(0, 10) : "an unknown date";
+  const daysLeft = isDated ? Math.floor((validTo.getTime() - Date.now()) / DAY) : null;
+  if (daysLeft !== null && daysLeft < 0) {
+    say("fix", "HTTPS", "The certificate " + hostname + " presents expired on " + until + ", so browsers refuse it.", certificateFix);
+  } else if (presented.isForAnotherName) {
+    say("fix", "HTTPS", "The certificate " + hostname + " presents is not for it: it is for " + (names.length > 0 ? listOf(names) : "no host name") + ", from " + issuer + ", so browsers refuse it.", "Have a certificate issued for " + hostname + ": name it in the tls hosts of your Ingress, or set ssl.provision for host in your Helm values. " + certificateFix);
+  } else if (!presented.authorized) {
+    say("fix", "HTTPS", "Browsers do not trust the certificate " + hostname + " presents: " + wordsOf(presented.reason) + " (from " + issuer + ").", "If it comes from a certificate authority of your own, nothing is wrong for computers that trust it. Otherwise: " + certificateFix);
+  } else if (daysLeft !== null && daysLeft < WARN_DAYS) {
+    say("warn", "HTTPS", "The certificate for " + hostname + " expires on " + until + ", in " + daysLeft + " days, and has not been renewed yet.", certificateFix);
+  } else {
+    say("ok", "HTTPS", "The certificate for " + hostname + ", from " + issuer + ", covers " + listOf(names) + " and is valid until " + until + ".", "");
+  }
+};
+const checkReach = async () => {
+  if (!proof) {
+    say("info", "Address", "Whether " + base + " reaches this OneUptime was not checked: OneUptime did not answer its own checks above.", "");
+    return;
+  }
+  const reached = await get(base + "/status-page-api/custom-domain-readiness/" + proof);
+  if (reached.error) {
+    say("warn", "Address", "From inside the cluster, " + base + " could not be opened (" + wordsOf(reached.error) + ").", "If people can open it from elsewhere, nothing is wrong: some clusters cannot reach their own load balancer. If they cannot, point " + hostname + " at the external address of the load balancer or ingress people reach OneUptime through.");
+    return;
+  }
+  if (reached.status !== 200) {
+    say("fix", "Address", base + " answers (HTTP " + reached.status + "), but not as this OneUptime, so people who open it do not reach this installation.", "Point " + hostname + " at the external address of the load balancer or ingress people reach this OneUptime through, and check that it passes every request for " + hostname + " on to OneUptime.");
+    return;
+  }
+  say("ok", "Address", "From inside the cluster, " + base + " reaches this OneUptime.", "");
+  const seen = reached.json && typeof reached.json.request === "object" ? reached.json.request : null;
+  if (!seen) {
+    return;
+  }
+  const reachedAs = String(seen.host || "").toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (reachedAs !== hostname.replace(/\.$/, "")) {
+    const as = reachedAs ? "as " + reachedAs : "with no host name it could read";
+    const hostFix = "Have it pass on the Host header the browser sent: ingress-nginx, Traefik and cloud load balancers do unless told otherwise. Look for an upstream-vhost annotation or a Host rewrite on the route to OneUptime.";
+    if (reachedAs === "localhost" || reachedAs === "ingress") {
+      say("warn", "Address", "The ingress or load balancer in front of OneUptime changes the host name: a request to " + base + " reached OneUptime " + as + ". The dashboard still opens, but status pages and dashboards on their own domains cannot be served through it.", hostFix);
+    } else {
+      say("fix", "Address", "The ingress or load balancer in front of OneUptime changes the host name: a request to " + base + " reached OneUptime " + as + ", so people who open " + base + " are told OneUptime is not set up for that address, and signing in fails.", hostFix);
+    }
+  }
+  if (protocol === "https" && seen.isHttps === false) {
+    say("warn", "Address", "The ingress or load balancer that ends TLS in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to " + base + " for plain HTTP. Links it writes for status pages start with http://, the sign-in cookies of status pages and dashboards on custom domains are not kept on HTTPS, and Twilio calls to incoming call policies are refused.", "Have it send X-Forwarded-Proto: https. ingress-nginx sends it when it ends TLS itself; behind a load balancer that ends TLS before it, set use-forwarded-headers to true in the ingress-nginx ConfigMap.");
+  }
+};
+const main = async () => {
+  if (!shape) {
+    say("warn", "Address", "host in your Helm values (" + (clean(host) || "empty") + ") is not a host name, so the address people open was not checked.", "Set host to the domain people open OneUptime at, such as oneuptime.example.com, then run helm upgrade.");
+    return;
+  }
+  if (isLoopback) {
+    say("warn", "Address", "host in your Helm values is " + hostname + ": the links OneUptime sends lead nowhere, and people who open it at any other address are told it is not set up for that address.", "Set host to the domain people open OneUptime at, such as oneuptime.example.com, then run helm upgrade.");
+    return;
+  }
+  console.log("HOST|" + host + "|" + protocol);
+  if (!isIp) {
+    const resolved = await lookup(hostname);
+    if (resolved.error) {
+      say("warn", "Address", "From inside the cluster, " + hostname + " does not resolve (" + wordsOf(resolved.error) + "), so it was not opened from here.", "If it resolves elsewhere, nothing is wrong. If not, create a DNS record for " + hostname + " that points at the external address of the load balancer or ingress people reach OneUptime through.");
+      return;
+    }
+    say("ok", "Address", hostname + " resolves to " + listOf(resolved.addresses) + " inside the cluster.", "");
+  }
+  if (protocol === "https") {
+    await checkCertificate();
+  }
+  await checkReach();
+};
+main()
+  .catch((error) => {
+    say("warn", "Address", "The address could not be checked (" + clean(error && error.message) + ").", "Run this script again.");
+  })
+  .then(() => process.exit(0));
+'
+
+# Set from the script's HOST line.
+EXTERNAL_HOST=""
+EXTERNAL_PROTOCOL=""
+
+# Turns the script's lines into findings: fix is CRIT, warn is WARN.
+report_external_address() {
+  local output="$1"
+  local line level title sentence fix
+
+  while IFS= read -r line; do
+    case "$line" in
+      HOST\|*)
+        line="${line#HOST|}"
+        EXTERNAL_HOST="${line%%|*}"
+        EXTERNAL_PROTOCOL="${line#*|}"
+        ;;
+      fix\|*|warn\|*|ok\|*|info\|*)
+        level="${line%%|*}"; line="${line#*|}"
+        title="${line%%|*}"; line="${line#*|}"
+        sentence="${line%%|*}"
+        fix="${line#*|}"
+        case "$level" in
+          fix)  crit "$sentence"; add_finding "CRIT" "$title" "$sentence" "$fix" ;;
+          warn) warn "$sentence"; add_finding "WARN" "$title" "$sentence" "$fix" ;;
+          ok)   ok "$sentence" ;;
+          *)    info "$sentence" ;;
+        esac
+        ;;
+    esac
+  done <<EOF
+$output
+EOF
+}
+
+# Whether HOST reaches this OneUptime from the computer this script runs on,
+# as a browser here sees it: curl, with this computer's DNS and the
+# certificate authorities it trusts.
+check_address_from_here() {
+  local host="$1" protocol="$2" proof="$3"
+  local base="${protocol}://${host}"
+  local url="${base}/"
+
+  if ! command -v curl >/dev/null 2>&1; then
+    info "curl is not installed on this computer, so ${base} was not opened from here."
+    return
+  fi
+
+  if [ -n "$proof" ]; then
+    url="${base}/status-page-api/custom-domain-readiness/${proof}"
+  fi
+
+  local out status code message
+  out=$(curl -sS -o /dev/null --connect-timeout "$EXTERNAL_CONNECT_TIMEOUT" \
+    --max-time "$EXTERNAL_MAX_TIME" -w 'HTTP_CODE=%{http_code}' "$url" 2>&1)
+  status=$?
+  code=$(printf '%s' "$out" | sed -n 's/.*HTTP_CODE=\([0-9][0-9]*\).*/\1/p' | tail -n1)
+  message=$(printf '%s\n' "$out" | sed -n 's/^curl: ([0-9]*) //p' | head -n1 | cut -c1-200)
+
+  local dns_fix="If people elsewhere can open it, this computer's DNS differs. If not, create a DNS record for the host that points at the external address of the load balancer or ingress people reach OneUptime through."
+  local reach_fix="Check that the load balancer or ingress for ${host} accepts connections on its port from the internet, and that nothing between blocks it."
+
+  case "$status" in
+    0)
+      if [ -z "$proof" ] && [ "$protocol" = "https" ]; then
+        ok "From this computer, ${base} answers (HTTP ${code}), with a certificate this computer trusts."
+      elif [ -z "$proof" ]; then
+        ok "From this computer, ${base} answers (HTTP ${code})."
+      elif [ "$code" = "200" ]; then
+        ok "From this computer, ${base} reaches this OneUptime."
+      else
+        crit "From this computer, ${base} answers (HTTP ${code}), but not as this OneUptime."
+        add_finding "CRIT" "Address" \
+          "From this computer, ${base} answers (HTTP ${code}), but not as this OneUptime, so people who open it do not reach this installation." \
+          "Point ${host} at the external address of the load balancer or ingress people reach this OneUptime through, and check that it passes every request for ${host} on to OneUptime."
+      fi
+      ;;
+    6)
+      warn "From this computer, ${host} does not resolve."
+      add_finding "WARN" "Address" "From this computer, ${host} does not resolve." "$dns_fix"
+      ;;
+    7)
+      warn "From this computer, nothing answers at ${base} (${message:-connection refused})."
+      add_finding "WARN" "Address" "From this computer, nothing answers at ${base} (${message:-connection refused})." "$reach_fix"
+      ;;
+    28)
+      warn "From this computer, ${base} did not answer within ${EXTERNAL_MAX_TIME} seconds."
+      add_finding "WARN" "Address" "From this computer, ${base} did not answer within ${EXTERNAL_MAX_TIME} seconds." "$reach_fix"
+      ;;
+    35|51|53|54|58|59|60|77|80|82|83|90|91)
+      crit "From this computer, the certificate of ${base} is refused: ${message:-curl could not set up HTTPS}"
+      add_finding "CRIT" "HTTPS" \
+        "From this computer, the certificate of ${base} is refused (${message:-curl could not set up HTTPS}), so browsers here warn about it." \
+        "With cert-manager, kubectl describe certificate -A shows why it was not issued or renewed. With ssl.provision, the worker and app pod logs say why: look for CoreSSL."
+      ;;
+    *)
+      warn "From this computer, ${base} could not be opened (${message:-curl exit ${status}})."
+      add_finding "WARN" "Address" "From this computer, ${base} could not be opened (${message:-curl exit ${status}})." "$reach_fix"
+      ;;
+  esac
+}
+
+check_external_address() {
+  section "The address people open"
+  local pod
+  pod=$(first_ready_pod "app=${RELEASE}-app")
+  if [ -z "$pod" ]; then
+    info "No running app pod, so the address people open was not checked."
+    return
+  fi
+
+  local output
+  output=$(kc_exec "$pod" node -e "$EXTERNAL_ADDRESS_SCRIPT" "$SERVER_ADDRESS_PROOF")
+  if [ -z "$output" ]; then
+    info "Could not run node in $pod; skipping the address check."
+    return
+  fi
+
+  EXTERNAL_HOST=""
+  EXTERNAL_PROTOCOL=""
+  report_external_address "$output"
+
+  # Only a host name, or an address in brackets, with a port: nothing else reaches curl.
+  case "$EXTERNAL_PROTOCOL" in
+    http|https) ;;
+    *) return ;;
+  esac
+  if printf '%s' "$EXTERNAL_HOST" | grep -Eq '^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9.-]+)(:[0-9]{1,5})?$'; then
+    check_address_from_here "$EXTERNAL_HOST" "$EXTERNAL_PROTOCOL" "$SERVER_ADDRESS_PROOF"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -1017,6 +1414,7 @@ fi
 discover
 check_pod_health
 check_server_findings
+check_external_address
 check_resources
 check_postgres
 check_clickhouse

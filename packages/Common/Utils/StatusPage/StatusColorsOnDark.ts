@@ -21,7 +21,8 @@ import {
  *
  *   - Text in a status colour (a status's name, an uptime percentage, a
  *     group's rollup) takes the nearest lighter shade that reads at WCAG
- *     AA, 4.5:1, against the card.
+ *     AA, 4.5:1, against the card and the tinted grid cell it may sit in:
+ *     4.6:1 against the card.
  *   - An uptime bar keeps its colour exactly - the colours are told apart by
  *     their lightness, for people with red-green colour blindness, and a
  *     lighter red would look like the orange next to it - and a bar that
@@ -40,6 +41,17 @@ export const DARK_THEME_PAGE: RGB = { red: 15, green: 23, blue: 42 };
 
 // WCAG 2 AA for text.
 export const STATUS_TEXT_MINIMUM_CONTRAST: number = 4.5;
+
+/*
+ * What status text is worked out to read at against the dark card: WCAG's
+ * 4.5:1, with room for the grounds lighter than the card it is drawn on. A
+ * public grid's cell is tinted with its status colour (5% of it), and the
+ * status sits in a pill of the card's own surface at 85% over that tint:
+ * up to 2% less contrast than on the card itself, for the lightest colour.
+ * Not monitored's gray, worked out to 4.5:1 on the card, read 4.47:1 in a
+ * grid cell (#6989).
+ */
+export const STATUS_TEXT_CONTRAST_ON_CARD: number = 4.6;
 
 // WCAG 2.1 SC 1.4.11, non-text contrast, for a bar's shape.
 export const UPTIME_BAR_MINIMUM_CONTRAST: number = 3;
@@ -69,9 +81,10 @@ function remember<T>(cache: Map<string, T>, key: string, value: T): T {
 
 /**
  * The colour status text is drawn in on the dark theme: the colour itself
- * when it reads at 4.5:1 on the dark card, the nearest lighter shade of it
- * that does otherwise. Null for a colour that cannot be read, which the
- * text then keeps as it is.
+ * when it reads at 4.6:1 on the dark card (STATUS_TEXT_CONTRAST_ON_CARD),
+ * the nearest lighter shade of it that does otherwise - so it reads at
+ * 4.5:1 on every ground it is drawn on. Null for a colour that cannot be
+ * read, which the text then keeps as it is.
  */
 export function getStatusTextColorOnDark(
   color: Color | string | null | undefined,
@@ -96,7 +109,7 @@ export function getStatusTextColorOnDark(
       getReadableShade({
         color: rgb,
         background: DARK_THEME_CARD,
-        minimumContrast: STATUS_TEXT_MINIMUM_CONTRAST,
+        minimumContrast: STATUS_TEXT_CONTRAST_ON_CARD,
       }),
     ),
   );

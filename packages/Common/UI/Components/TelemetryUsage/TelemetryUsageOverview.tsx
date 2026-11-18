@@ -1,4 +1,5 @@
 import Route from "../../../Types/API/Route";
+import StatTilesSkeleton from "../Skeleton/StatTilesSkeleton";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -20,7 +21,6 @@ import { translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import InfoCard from "../InfoCard/InfoCard";
@@ -353,7 +353,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
 
   const getSummaryBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !summary) {
-      return <ComponentLoader />;
+      return <StatTilesSkeleton />;
     }
 
     if (error) {

@@ -17,7 +17,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -300,7 +300,7 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -358,7 +358,7 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
 
   const renderOverview: () => ReactElement = (): ReactElement => {
     if (isLoadingResource) {
-      return <PageLoader isVisible={true} />;
+      return <PageSkeleton />;
     }
 
     if (resourceError) {

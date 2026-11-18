@@ -13,10 +13,12 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { UserOverrideSavedTimes } from "Common/Types/OnCallDutyPolicy/UserOverrideEdit";
 import UserOverrideOverlap, {
   UserOverrideSentence,
   UserOverrideTimes,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -51,6 +53,11 @@ import React, {
  * every one, and its refusal is said under Ends too (ownsServerError), when
  * the check is asked again. Nothing is said while the check has not
  * answered, or could not be made.
+ *
+ * An edit is asked about the time it adds, as the server asks it: an
+ * overlap saved before the rule never stops an override from being ended
+ * early. A Skip until... added on several policies at once asks about each
+ * of them, and a conflict names the policy it is on (issue #7898).
  */
 
 // A person the reader cannot be told the name of.
@@ -134,7 +141,18 @@ export const fetchUserOverrideOverlaps: (
 
 export interface ComponentProps {
   // The override the form would save, or null while there is nothing to ask.
-  candidate: UserOverrideTimes | null;
+  candidate?: UserOverrideTimes | null | undefined;
+  /*
+   * Or the overrides it would save, one per policy, the same person at the
+   * same times: a Skip until... added on several policies (issue #7898).
+   * With more than one, a conflict names its policy first.
+   */
+  candidates?: Array<UserOverrideTimes> | undefined;
+  /*
+   * The override edited, as saved: only the time the edit adds can conflict
+   * (UserOverrideOverlap.getAddedTimes), as the server holds it.
+   */
+  saved?: UserOverrideSavedTimes | undefined;
   // Told what each question found: whether it overlaps one it may not.
   onChecked?: ((key: string, isConflict: boolean) => void) | undefined;
   /*
@@ -153,9 +171,17 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const key: string = props.candidate
-    ? getUserOverrideOverlapKey(props.candidate)
-    : "";
+  // Each override the form would save; they differ only in their policy.
+  const candidates: Array<UserOverrideTimes> =
+    props.candidates || (props.candidate ? [props.candidate] : []);
+
+  const candidateKeys: Array<string> = candidates.map(
+    (candidate: UserOverrideTimes): string => {
+      return getUserOverrideOverlapKey(candidate);
+    },
+  );
+
+  const key: string = candidateKeys.join(",");
 
   // The server refused an overlap the check had not seen: ask again.
   const serverRefusal: string =
@@ -165,35 +191,57 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
 
   const [answer, setAnswer] = useState<{
     key: string;
-    overlaps: UserOverrideOverlapAnswer<ReadUserOverride>;
+    // What each candidate overlaps, in their order.
+    overlaps: Array<UserOverrideOverlapAnswer<ReadUserOverride>>;
   } | null>(null);
 
   useEffect(() => {
-    const candidate: UserOverrideTimes | null = props.candidate;
+    const first: UserOverrideTimes | undefined = candidates[0];
 
-    if (!candidate || !key) {
+    if (!first || !key) {
       return;
     }
 
     let isCancelled: boolean = false;
 
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      fetchUserOverrideOverlaps(candidate)
+      // One read answers for all of them: the same person at the same times.
+      fetchUserOverrideOverlaps(first)
         .then((overrides: Array<ReadUserOverride>) => {
           if (isCancelled) {
             return;
           }
 
-          const overlaps: UserOverrideOverlapAnswer<ReadUserOverride> =
-            getUserOverrideOverlapAnswer(candidate, overrides);
+          const overlaps: Array<UserOverrideOverlapAnswer<ReadUserOverride>> =
+            candidates.map(
+              (
+                candidate: UserOverrideTimes,
+                index: number,
+              ): UserOverrideOverlapAnswer<ReadUserOverride> => {
+                const found: UserOverrideOverlapAnswer<ReadUserOverride> =
+                  getUserOverrideOverlapAnswer(
+                    candidate,
+                    overrides,
+                    props.saved,
+                  );
 
-          props.onChecked?.(key, overlaps.conflicts.length > 0);
+                props.onChecked?.(
+                  candidateKeys[index]!,
+                  found.conflicts.length > 0,
+                );
+
+                return found;
+              },
+            );
+
           setAnswer({ key: key, overlaps: overlaps });
         })
         .catch(() => {
           // Not known: the server decides, and says why if it refuses.
           if (!isCancelled) {
-            props.onChecked?.(key, false);
+            for (const candidateKey of candidateKeys) {
+              props.onChecked?.(candidateKey, false);
+            }
             setAnswer(null);
           }
         });
@@ -205,7 +253,7 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
     };
   }, [key, serverRefusal]);
 
-  if (!props.candidate || !answer || answer.key !== key) {
+  if (candidates.length === 0 || !answer || answer.key !== key) {
     return <></>;
   }
 
@@ -240,13 +288,33 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
     return translator.translateTemplate(sentence.template, sentence.values);
   };
 
-  const conflict: ReadUserOverride | undefined = answer.overlaps.conflicts[0];
+  // The first candidate's conflict, in their order: the one the form names.
+  const conflict: ReadUserOverride | undefined = answer.overlaps
+    .map(
+      (
+        overlaps: UserOverrideOverlapAnswer<ReadUserOverride>,
+      ): ReadUserOverride | undefined => {
+        return overlaps.conflicts[0];
+      },
+    )
+    .find((found: ReadUserOverride | undefined): boolean => {
+      return Boolean(found);
+    });
 
   if (conflict) {
     const isOver: boolean = OneUptimeDate.isOnOrBefore(
       conflict.endsAt,
       OneUptimeDate.getCurrentDate(),
     );
+
+    /*
+     * Added on several policies, the sentence's "this policy" is the one
+     * named before it, as the policy's own name: the project's words.
+     */
+    const policyName: string =
+      candidates.length > 1
+        ? conflict.override.onCallDutyPolicy?.name?.toString() || ""
+        : "";
 
     return (
       <div
@@ -255,6 +323,20 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
         className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-inset ring-red-200"
       >
         <p>
+          {policyName ? (
+            <>
+              <span
+                data-testid="user-override-overlap-conflict-policy"
+                className="font-medium"
+              >
+                {translator.translateTemplate(LABEL_WITH_COLON, {
+                  label: policyName,
+                })}
+              </span>{" "}
+            </>
+          ) : (
+            <></>
+          )}
           {say(
             UserOverrideOverlap.getConflictSentence({
               conflict: conflict,
@@ -284,7 +366,9 @@ const UserOverrideOverlapNotice: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const other: ReadUserOverride | undefined = answer.overlaps.otherScope[0];
+  // Said of one override only: added on several, "this policy" would be any of them.
+  const other: ReadUserOverride | undefined =
+    candidates.length === 1 ? answer.overlaps[0]?.otherScope[0] : undefined;
 
   if (!other) {
     return <></>;

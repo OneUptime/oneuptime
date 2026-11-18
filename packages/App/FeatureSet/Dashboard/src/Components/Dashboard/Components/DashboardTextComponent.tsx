@@ -48,7 +48,7 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
         }}
       >
         {props.component.arguments.text || (
-          <span className="text-gray-300 text-sm">
+          <span className="text-gray-500 text-sm">
             {translator.translateText("No text configured")}
           </span>
         )}

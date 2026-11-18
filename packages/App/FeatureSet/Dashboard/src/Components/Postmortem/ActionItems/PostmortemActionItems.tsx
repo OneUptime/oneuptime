@@ -1,4 +1,5 @@
 import ActionItemCodeTaskModal from "./ActionItemCodeTaskModal";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PostmortemActionItemsApi from "./PostmortemActionItemsApi";
@@ -58,7 +59,6 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -460,7 +460,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
 
     if (!item.ownerUser || !name) {
       return (
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           {translator.translateText(POSTMORTEM_ACTION_ITEMS_COPY.noOwner)}
         </span>
       );
@@ -1059,7 +1059,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
     }
 
     if (!items) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={3} />;
     }
 
     return (

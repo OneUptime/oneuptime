@@ -73,7 +73,8 @@ import { ReactElement } from "react";
  * lets one change (UserOverrideEdit): who is away is shown, never changed -
  * time away for somebody else is another override - and once the override
  * has started, so is when it starts. Who covers changes until it ends, and
- * when it ends can be moved, down to now to end it now. The times are
+ * when it ends can be moved, down to now; End Now under Ends ends one under
+ * way at once (issue #7899, the dialog's UserOverrideEndNow). The times are
  * checked here as the server checks them, so a refusal is said under the
  * field it is about before anything is sent.
  *
@@ -114,8 +115,13 @@ export const USER_OVERRIDE_START_LOCKED_TEXT: string = translationKey(
   "It has already started, so when it starts can't be changed.",
 );
 
-export const USER_OVERRIDE_END_NOW_TEXT: string = translationKey(
-  "From then on, alerts page the person who is away again. To end it now, pick the current time.",
+/*
+ * What Ends says, added or edited. An override under way is ended now with
+ * End Now under the field (UserOverrideEndNow), so it no longer says to
+ * pick the current time.
+ */
+export const USER_OVERRIDE_ENDS_TEXT: string = translationKey(
+  "From then on, alerts page the person who is away again.",
 );
 
 /*
@@ -515,9 +521,7 @@ export const getUserOverrideFormFields: <TEntity>(
     {
       field: { endsAt: true } as SelectFormFields<TEntity>,
       title: "Ends",
-      description: isStartLocked
-        ? USER_OVERRIDE_END_NOW_TEXT
-        : "From then on, alerts page the person who is away again.",
+      description: USER_OVERRIDE_ENDS_TEXT,
       fieldType: FormFieldSchemaType.DateTime,
       required: true,
       placeholder: "Pick Date and Time",

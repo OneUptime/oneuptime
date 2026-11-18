@@ -448,6 +448,26 @@ export async function requestCriticalAlertPermission(
 }
 
 /*
+ * The words of the button that opens a place in the phone's settings, or
+ * none for the App Store, which the app does not open: Settings' footnote
+ * under Critical On-Call Alerts and the first steps (GetReadyScreen) say
+ * the same.
+ */
+export function getPhoneSettingsActionLabel(
+  place: CriticalAlertSettingsPlace,
+): string | undefined {
+  if (place === CriticalAlertSettingsPlace.IosAppSettings) {
+    return "Open iOS Settings";
+  }
+
+  if (place === CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess) {
+    return "Open Do Not Disturb access";
+  }
+
+  return undefined;
+}
+
+/*
  * Open the place in the phone's settings that turns critical alerts back on
  * (CriticalAlertsOffInPhoneSettings.place): this app's page in iOS Settings,
  * where its Notifications and Critical Alerts switches are, or Android's Do

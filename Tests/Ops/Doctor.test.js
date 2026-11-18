@@ -33,7 +33,9 @@ const {
   ingressFindings,
   serverFixOf,
   serverFindings,
+  productsFindings,
   addressFindings,
+  proxyFindings,
   certificateFindings,
   diskFindings,
   summaryOf,
@@ -862,6 +864,280 @@ describe("what the server says of itself", () => {
   });
 });
 
+/*
+ * #7481: which products the server switches off, from its own answer, so
+ * that "where did Logs go?" is answered from the command line. A product an
+ * admin switched off is no fault: a note, shown whenever there is one and
+ * never counted. What SERVER_PRODUCTS got wrong, while it applies, is worth
+ * a look.
+ */
+const TELEMETRY_OFF = [
+  { product: "logs", title: "Logs" },
+  { product: "metrics", title: "Metrics" },
+  { product: "traces", title: "Traces" },
+  { product: "profiles", title: "Profiles" },
+  { product: "exceptions", title: "Exceptions" },
+];
+
+const products = (overrides) => {
+  return Object.assign(
+    {
+      switchableCount: 44,
+      onCount: 44,
+      preset: "everything",
+      presetTitle: "Everything",
+      source: "starting-value",
+      switchedOff: [],
+      unknownNames: [],
+      isTelemetryIngestionStopped: false,
+      offByIngestion: [],
+      shouldSuggestStoppingIngestion: false,
+    },
+    overrides || {},
+  );
+};
+
+const MONITORING_ONLY = products({
+  onCount: 5,
+  preset: "monitoring-and-status-pages",
+  presetTitle: "Monitoring and status pages",
+  source: "saved",
+  switchedOff: TELEMETRY_OFF.concat([{ product: "alerts", title: "Alerts" }]),
+});
+
+describe("the products switched off on the server", () => {
+  const PUBLIC_URL = "https://oneuptime.example.com";
+
+  test("every product on is one passing line", () => {
+    expect(productsFindings(products(), PUBLIC_URL)).toEqual([
+      finding("ok", "Products: every product is switched on."),
+    ]);
+  });
+
+  test("a preset an admin saved: its name, how many are on, and where to change it", () => {
+    expect(productsFindings(MONITORING_ONLY, PUBLIC_URL)).toEqual([
+      finding(
+        "note",
+        "Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products.",
+      ),
+    ]);
+  });
+
+  test("without an address to name, it says only where", () => {
+    expect(productsFindings(MONITORING_ONLY, null)[0].message).toBe(
+      "Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard.",
+    );
+  });
+
+  test("set by SERVER_PRODUCTS, it says so", () => {
+    expect(
+      productsFindings(
+        Object.assign({}, MONITORING_ONLY, { source: "starting-value" }),
+        PUBLIC_URL,
+      )[0].message,
+    ).toBe(
+      "Products: Monitoring and status pages (5 of 44 on), set by SERVER_PRODUCTS in config.env.",
+    );
+  });
+
+  test.each([
+    [[{ product: "logs", title: "Logs" }], "Switched off: Logs."],
+    [TELEMETRY_OFF.slice(0, 2), "Switched off: Logs and Metrics."],
+    [
+      TELEMETRY_OFF.concat([
+        { product: "alerts", title: "Alerts" },
+        { product: "slos", title: "SLOs" },
+        { product: "workflows", title: "Workflows" },
+      ]),
+      "Switched off: Logs, Metrics, Traces, Profiles, Exceptions, Alerts and 2 more.",
+    ],
+  ])(
+    "a choice of one's own names what is switched off: %j",
+    (switchedOff, named) => {
+      const found = productsFindings(
+        products({
+          onCount: 44 - switchedOff.length,
+          preset: null,
+          presetTitle: null,
+          source: "saved",
+          switchedOff: switchedOff,
+        }),
+        PUBLIC_URL,
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("note");
+      expect(found[0].message).toBe(
+        `Products: ${44 - switchedOff.length} of 44 on, set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products. ${named}`,
+      );
+    },
+  );
+
+  test("names SERVER_PRODUCTS held that OneUptime did not know are worth a look, with the names and the fix", () => {
+    const found = productsFindings(
+      products({ unknownNames: ["monitor", "statuspages"] }),
+      PUBLIC_URL,
+    );
+
+    expect(found).toEqual([
+      finding("ok", "Products: every product is switched on."),
+      finding(
+        "warn",
+        "SERVER_PRODUCTS in config.env names what OneUptime does not know, so it left them out: monitor, statuspages.",
+        "Use everything, monitoring-and-status-pages, incident-response, or product keys such as monitors,incidents,status-pages, then run npm start. See https://oneuptime.com/docs/installation/docker-compose#run-only-what-you-need",
+      ),
+    ]);
+  });
+
+  test("one unknown name is said as one", () => {
+    expect(
+      productsFindings(products({ unknownNames: ["monitor"] }), PUBLIC_URL)[1]
+        .message,
+    ).toContain("so it left it out: monitor.");
+  });
+
+  test("once an admin saved the page, SERVER_PRODUCTS no longer applies, and what it got wrong is not said", () => {
+    expect(
+      productsFindings(
+        Object.assign({}, MONITORING_ONLY, { unknownNames: ["monitor"] }),
+        PUBLIC_URL,
+      ).map((entry) => {
+        return entry.level;
+      }),
+    ).toEqual(["note"]);
+  });
+
+  test("telemetry ingestion stopped is a note naming the products it turns off", () => {
+    expect(
+      productsFindings(
+        products({
+          isTelemetryIngestionStopped: true,
+          offByIngestion: TELEMETRY_OFF,
+        }),
+        PUBLIC_URL,
+      ),
+    ).toEqual([
+      finding("ok", "Products: every product is switched on."),
+      finding(
+        "note",
+        "Telemetry ingestion is stopped (DISABLE_TELEMETRY_INGESTION=true), so Logs, Metrics, Traces, Profiles and Exceptions are off for every project.",
+      ),
+    ]);
+  });
+
+  test("every telemetry product switched off while ingestion runs is a note with how to save memory", () => {
+    const found = productsFindings(
+      Object.assign({}, MONITORING_ONLY, {
+        shouldSuggestStoppingIngestion: true,
+      }),
+      PUBLIC_URL,
+    );
+
+    expect(found[1]).toEqual(
+      finding(
+        "note",
+        "Every telemetry product is switched off, but telemetry ingestion still runs. You can also stop it to save memory: set DISABLE_TELEMETRY_INGESTION=true in config.env, then run npm start.",
+      ),
+    );
+  });
+
+  test.each([
+    ["an older server, which does not say", undefined],
+    ["a server that could not read them", null],
+    ["an answer that is no object", "everything"],
+  ])("nothing is said for %s", (_label, value) => {
+    expect(productsFindings(value, PUBLIC_URL)).toEqual([]);
+  });
+
+  test("npm run doctor prints the note on a healthy server, counts it as nothing, and exits 0", async () => {
+    const answer = serverAnswer([], { products: MONITORING_ONLY });
+    const result = await runDoctor({
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).toBe(
+      [
+        "Checking this OneUptime:",
+        "  • Products: Monitoring and status pages (5 of 44 on), set in the Admin Dashboard at https://oneuptime.example.com/admin/settings/products.",
+        "",
+        "Everything looks right.",
+      ].join("\n"),
+    );
+    expect(result.code).toBe(0);
+  });
+
+  test("the note comes after what needs attention", async () => {
+    const answer = serverAnswer([EMAIL_NOT_SET_UP], {
+      products: products({ unknownNames: ["monitor"] }),
+    });
+    const result = await runDoctor({
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+    const marks = result.output
+      .split("\n")
+      .filter((line) => {
+        return /^ {2}[✗!•✓] /.test(line);
+      })
+      .map((line) => {
+        return line.slice(2, 3);
+      });
+
+    expect(marks).toEqual(["✗", "!"]);
+    expect(result.output).toContain("1 thing to fix, and 1 worth a look.");
+  });
+
+  test("after npm start, a note is not said: only what needs attention is", async () => {
+    const answer = serverAnswer([], { products: MONITORING_ONLY });
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).not.toContain("Products:");
+    expect(result.output).toBe("✓ Everything looks right.");
+    expect(result.code).toBe(0);
+
+    // Nor beside something that does need attention.
+    const withProblem = serverAnswer([EMAIL_NOT_SET_UP], {
+      products: MONITORING_ONLY,
+    });
+    const problem = await runDoctor({
+      argv: ["--after-start"],
+      network: {
+        doctor: {
+          status: 200,
+          body: JSON.stringify(withProblem),
+          json: withProblem,
+        },
+      },
+    });
+
+    expect(problem.output).toContain("What needs attention on this server:");
+    expect(problem.output).toContain("✗ Email: Not set up yet");
+    expect(problem.output).not.toContain("Products:");
+  });
+
+  test("--all says every product is on", async () => {
+    const answer = serverAnswer([], { products: products() });
+    const result = await runDoctor({
+      argv: ["--all"],
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).toContain(
+      "  ✓ Products: every product is switched on.",
+    );
+  });
+});
+
 describe("HOST, from outside the containers", () => {
   test("HOST answering the server's proof is this OneUptime", () => {
     expect(
@@ -890,6 +1166,184 @@ describe("HOST, from outside the containers", () => {
 
     expect(found.level).toBe("warn");
     expect(found.message).toContain("(the name does not resolve)");
+  });
+});
+
+/*
+ * #7050: the server says how the doctor's request to HOST reached it - the
+ * host name and whether it took it for HTTPS - so a proxy in front that does
+ * not pass them on is named, with the fix for the proxies people run.
+ */
+describe("a proxy in front of OneUptime", () => {
+  const PUBLIC_URL = "https://oneuptime.example.com";
+  const reachedAs = (request) => {
+    const json = { proof: "0123abcd.signature", request: request };
+
+    return { status: 200, body: JSON.stringify(json), json: json };
+  };
+
+  test("that passes on the host name and HTTPS is one passing line", () => {
+    expect(
+      proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: "oneuptime.example.com", isHttps: true }),
+      ),
+    ).toEqual([
+      finding(
+        "ok",
+        "Requests to https://oneuptime.example.com reach OneUptime with their host name and as HTTPS.",
+      ),
+    ]);
+  });
+
+  test.each([
+    ["the proxy's upstream address", "127.0.0.1"],
+    ["the proxy's own name for OneUptime", "oneuptime-upstream"],
+    ["another site's name", "status.example.org"],
+  ])(
+    "that sends %s instead of the host name is something to fix: HOST's visitors are served as a status page's domain",
+    (_label, seenHost) => {
+      const found = proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: seenHost, isHttps: true }),
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("fix");
+      expect(found[0].message).toBe(
+        `A proxy in front of OneUptime changes the host name: a request to https://oneuptime.example.com reached OneUptime as ${seenHost}, so people who open https://oneuptime.example.com get "OneUptime is not set up for this address", and signing in fails.`,
+      );
+      expect(found[0].fix).toContain("proxy_set_header Host $host;");
+      expect(found[0].fix).toContain("ProxyPreserveHost On");
+      expect(found[0].fix).toContain(
+        "https://oneuptime.com/docs/installation/docker-compose#use-your-own-reverse-proxy",
+      );
+    },
+  );
+
+  test.each(["localhost", "ingress"])(
+    "that sends %s, a name OneUptime's ingress still serves the dashboard on, is worth a look: custom domains cannot work through it",
+    (seenHost) => {
+      const found = proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: seenHost, isHttps: true }),
+      );
+
+      expect(found.length).toBe(1);
+      expect(found[0].level).toBe("warn");
+      expect(found[0].message).toContain(`reached OneUptime as ${seenHost}.`);
+      expect(found[0].message).toContain(
+        "status pages and dashboards on their own domains cannot be served through this proxy",
+      );
+    },
+  );
+
+  test("that sends no host name OneUptime can read is something to fix", () => {
+    const found = proxyFindings(
+      PUBLIC_URL,
+      "oneuptime.example.com",
+      reachedAs({ host: null, isHttps: true }),
+    );
+
+    expect(found[0].level).toBe("fix");
+    expect(found[0].message).toContain(
+      "reached OneUptime with no host name it could read",
+    );
+  });
+
+  test.each([
+    [
+      "with a port in HOST",
+      "oneuptime.example.com:8443",
+      "oneuptime.example.com",
+    ],
+    ["in other capitals", "OneUptime.Example.com", "oneuptime.example.com"],
+    ["with a trailing dot", "oneuptime.example.com.", "oneuptime.example.com"],
+    ["an IPv6 address in brackets", "[2001:db8::1]:8443", "[2001:db8::1]"],
+    [
+      "an IPv6 address the server names without them",
+      "[2001:db8::1]",
+      "2001:db8::1",
+    ],
+  ])(
+    "the same host name %s is the host name passed on",
+    (_label, host, seenHost) => {
+      expect(
+        proxyFindings(
+          PUBLIC_URL,
+          host,
+          reachedAs({ host: seenHost, isHttps: true }),
+        ).map((entry) => {
+          return entry.level;
+        }),
+      ).toEqual(["ok"]);
+    },
+  );
+
+  test("that ends TLS and drops X-Forwarded-Proto is worth a look, with what goes wrong and the fix", () => {
+    const found = proxyFindings(
+      PUBLIC_URL,
+      "oneuptime.example.com",
+      reachedAs({ host: "oneuptime.example.com", isHttps: false }),
+    );
+
+    expect(found.length).toBe(1);
+    expect(found[0].level).toBe("warn");
+    expect(found[0].message).toBe(
+      "A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to https://oneuptime.example.com for plain HTTP. Links it writes for status pages start with http://, the sign-in cookies of status pages and dashboards on custom domains are not kept on HTTPS, and Twilio's calls to incoming call policies are refused.",
+    );
+    expect(found[0].fix).toContain("X-Forwarded-Proto: https");
+    expect(found[0].fix).toContain(
+      "proxy_set_header X-Forwarded-Proto $scheme;",
+    );
+    expect(found[0].fix).toContain("Caddy, Traefik and cloud load balancers");
+  });
+
+  test("both at once are both said, the host name first", () => {
+    expect(
+      proxyFindings(
+        PUBLIC_URL,
+        "oneuptime.example.com",
+        reachedAs({ host: "127.0.0.1", isHttps: false }),
+      ).map((entry) => {
+        return entry.level;
+      }),
+    ).toEqual(["fix", "warn"]);
+  });
+
+  test("over plain HTTP, the scheme is not asked about", () => {
+    expect(
+      proxyFindings(
+        "http://oneuptime.example.com",
+        "oneuptime.example.com",
+        reachedAs({ host: "oneuptime.example.com", isHttps: false }),
+      ),
+    ).toEqual([
+      finding(
+        "ok",
+        "Requests to http://oneuptime.example.com reach OneUptime with their host name.",
+      ),
+    ]);
+  });
+
+  test.each([
+    [
+      "HOST did not reach this OneUptime",
+      { status: 404, body: "", json: null },
+    ],
+    ["no answer", { error: "ETIMEDOUT" }],
+    [
+      "an older server, which does not say how the request arrived",
+      { status: 200, body: "{}", json: { proof: "0123abcd.signature" } },
+    ],
+    ["an answer that is no JSON", { status: 200, body: "OK", json: null }],
+  ])("nothing is said when %s", (_label, response) => {
+    expect(
+      proxyFindings(PUBLIC_URL, "oneuptime.example.com", response),
+    ).toEqual([]);
   });
 });
 
@@ -1333,6 +1787,56 @@ describe("npm run doctor", () => {
       method: "GET",
       headers: {},
     });
+  });
+
+  test("a proxy in front that rewrites the host name and drops X-Forwarded-Proto is named, each with its fix, and the doctor exits 1 (#7050)", async () => {
+    const reached = {
+      proof: "0123abcd.signature",
+      request: { host: "127.0.0.1", isHttps: false },
+    };
+    const result = await runDoctor({
+      config: healthyConfig(["PROVISION_SSL=false"]),
+      network: {
+        address: {
+          status: 200,
+          body: JSON.stringify(reached),
+          json: reached,
+        },
+      },
+    });
+
+    expect(result.output).toContain(
+      '  ✗ A proxy in front of OneUptime changes the host name: a request to https://oneuptime.example.com reached OneUptime as 127.0.0.1, so people who open https://oneuptime.example.com get "OneUptime is not set up for this address", and signing in fails.\n      Fix: Have the proxy pass on the Host header the browser sent:',
+    );
+    expect(result.output).toContain(
+      "  ! A proxy in front of OneUptime drops X-Forwarded-Proto: OneUptime took an HTTPS request to https://oneuptime.example.com for plain HTTP.",
+    );
+    // HOST still reaches this OneUptime: only the proxy's headers are wrong.
+    expect(result.output).not.toContain("but not as this OneUptime");
+    expect(result.output).toContain("1 thing to fix, and 1 worth a look.");
+    expect(result.code).toBe(1);
+  });
+
+  test("a proxy that passes on the host name and HTTPS says so with --all, and nothing without it", async () => {
+    const reached = {
+      proof: "0123abcd.signature",
+      request: { host: "oneuptime.example.com", isHttps: true },
+    };
+    const network = {
+      address: { status: 200, body: JSON.stringify(reached), json: reached },
+    };
+
+    const quiet = await runDoctor({ network: network });
+
+    expect(quiet.output).not.toContain("A proxy in front");
+    expect(quiet.output).toContain("Everything looks right.");
+    expect(quiet.code).toBe(0);
+
+    const all = await runDoctor({ network: network, argv: ["--all"] });
+
+    expect(all.output).toContain(
+      "  ✓ Requests to https://oneuptime.example.com reach OneUptime with their host name and as HTTPS.",
+    );
   });
 
   test("the ingress on another port is checked there", async () => {
@@ -1810,6 +2314,17 @@ describe("the Docker Compose guide", () => {
     expect(check).toContain("```bash\nnpm run doctor -- --logs\n```");
     expect(check).toContain("It exits with `1` when something marked ✗");
     expect(check).toContain("**Everything looks right.**");
+    // A proxy in front (#7050), the products switched off (#7481), diagnose.sh's address check (#7051).
+    expect(check).toContain(
+      "a proxy in front of it passes on the host name and `X-Forwarded-Proto`",
+    );
+    expect(check).toContain(
+      "Lines marked • are worth knowing but no fault, and are not counted: which products are switched off on this server",
+    );
+    expect(check).toContain("A name in `SERVER_PRODUCTS`");
+    expect(check).toContain(
+      "`HelmChart/Public/diagnose.sh` prints it, then checks the address people open and its certificate.",
+    );
     expect(
       guide.slice(guide.indexOf("\n## Troubleshooting\n")).split("\n")[3],
     ).toBe(
@@ -1858,6 +2373,10 @@ describe("the Docker Compose guide", () => {
       expect(check).toContain("`1`");
       expect(check).toContain("**Everything looks right.**");
       expect(check).toContain("HelmChart/Public/diagnose.sh");
+      // The proxy check, the note's mark and SERVER_PRODUCTS, written as the doctor writes them.
+      expect(check).toContain("`X-Forwarded-Proto`");
+      expect(check).toContain("•");
+      expect(check).toContain("`SERVER_PRODUCTS`");
       expect(
         page
           .slice(page.indexOf(`\n${headings[headings.length - 2]}\n`))

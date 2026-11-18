@@ -19,6 +19,7 @@ import {
   buildPageSearchCommandDescriptors,
   buildProjectSwitchDescriptors,
   canDeleteProject,
+  canSearchMembers,
   canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
@@ -36,6 +37,8 @@ import {
   PaletteActionId,
   PaletteEntitySearchSpec,
   PaletteGlossaryEntry,
+  PaletteListCreateAction,
+  PALETTE_LIST_CREATE_ACTIONS,
   PaletteGlossaryTermDescriptor,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
@@ -58,6 +61,20 @@ import {
   openGiveFeedback,
 } from "../Feedback/GiveFeedbackDialog";
 import { getPageSearchAreas } from "./PageSearchIndex";
+import { getOpenRecord, OpenRecord } from "./RecordPageSearch";
+import {
+  getRecordPageSearchKinds,
+  RecordPageSearchKind,
+} from "./RecordPageSearchIndex";
+import {
+  getRecordPageSearchModels,
+  RecordPageSearchModel,
+} from "./RecordPageSearchModels";
+import {
+  buildOpenRecordPageCommands,
+  createRecordPageSearchProvider,
+  loadOpenRecordTitle,
+} from "./RecordPageSearchProvider";
 import { useProductFeedbackSettings } from "Common/UI/Utils/ProductFeedback";
 import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
 import Route from "Common/Types/API/Route";
@@ -88,8 +105,11 @@ import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
+import ProjectMemberSearch from "Common/UI/Utils/ProjectMemberSearch";
+import { ProjectMemberSearchMatch } from "Common/Types/Team/ProjectMemberSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
+import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
@@ -135,6 +155,9 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  * event, and feeds the generic Common CommandPalette with:
  *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
  *  - quick actions (create flows, theme, Ask AI, global pages, logout),
+ *    and, while searching, the lists' create forms (#7035: Create Status
+ *    Page, Create On-Call Policy, Create On-Call Schedule, Create
+ *    Dashboard, Create Workflow, Invite User),
  *  - every page the menus link to and the actions done on them (API Keys,
  *    On-Call Schedules, Delete Project...), from PageSearchIndex.ts. These
  *    are offered while searching only, each with the breadcrumb of where it
@@ -143,6 +166,8 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  *    on-call policies, and (#6816) services, hosts, on-call schedules,
  *    scheduled maintenance, dashboards, workflows, runbooks and teams - each
  *    kind only where the person may read it,
+ *  - the project's people, by name or email (#7036), each opening their page
+ *    under Users - only for someone who may see them there,
  *  - the person's other projects ("Switch to Acme Staging"),
  *  - How OneUptime works, the Glossary and its terms (#6936),
  *  - "Ask AI: ..." for a question nothing else answers.
@@ -290,6 +315,54 @@ function createEntitySearchProvider<
 }
 
 /*
+ * Search's Users group (#7036): the project's people whose name or email
+ * holds what was typed, as the server finds them for this reader
+ * (ProjectMemberSearch), each opening their page under Users. A person reads
+ * as the Users page shows them: their name, and their email under it - or
+ * their email alone while they have no name. A search that fails or is
+ * refused shows nothing, never an error.
+ */
+export function createMemberSearchProvider(data: {
+  sectionTitle: string;
+  onNavigate: () => void;
+}): PaletteSearchProvider {
+  return {
+    id: "members",
+    title: data.sectionTitle,
+    search: async (searchText: string): Promise<Array<PaletteSearchResult>> => {
+      let members: Array<ProjectMemberSearchMatch> = [];
+
+      try {
+        members = await ProjectMemberSearch.search(searchText);
+      } catch {
+        return [];
+      }
+
+      return members.map(
+        (member: ProjectMemberSearchMatch): PaletteSearchResult => {
+          return {
+            id: `members-${member.userId}`,
+            title: member.name || member.email || "",
+            description: member.name && member.email ? member.email : undefined,
+            icon: IconProp.User,
+            iconColor: "blue",
+            onSelect: () => {
+              data.onNavigate();
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.USER_VIEW] as Route,
+                  { modelId: new ObjectID(member.userId) },
+                ),
+              );
+            },
+          };
+        },
+      );
+    },
+  };
+}
+
+/*
  * Search's Documentation group (#6822): the docs pages and sections that
  * answer what was typed, from the installation's own docs search (the one
  * the docs' search box asks), opened in a new tab. A read that fails shows
@@ -409,6 +482,62 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     };
   }, [isOpen, language]);
 
+  /*
+   * The record whose page is open (#9204): its own pages are found by their
+   * names alone, under its name, which is read once per record.
+   */
+  const currentPath: string = isOpen ? window.location.pathname : "";
+  const openRecord: OpenRecord | null = useMemo((): OpenRecord | null => {
+    if (!currentPath) {
+      return null;
+    }
+
+    return getOpenRecord({
+      path: currentPath,
+      kinds: getRecordPageSearchKinds(),
+      getRouteTemplate: (pageKey: string): string | undefined => {
+        return RouteMap[pageKey]?.toString();
+      },
+    });
+  }, [currentPath]);
+  const openRecordKey: string = openRecord
+    ? `${openRecord.kind.id}:${openRecord.modelId}`
+    : "";
+  const [openRecordTitles, setOpenRecordTitles] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    if (!openRecord || openRecordTitles[openRecordKey] !== undefined) {
+      return undefined;
+    }
+
+    let isCurrent: boolean = true;
+
+    loadOpenRecordTitle({
+      openRecord,
+      model: getRecordPageSearchModels().get(openRecord.kind.id),
+    })
+      .then((title: string): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setOpenRecordTitles(
+          (previous: Record<string, string>): Record<string, string> => {
+            return { ...previous, [openRecordKey]: title };
+          },
+        );
+      })
+      .catch((): void => {
+        // Its pages are still found, under what one is called.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [openRecordKey]);
+
   // Toggle from anywhere via the global event bus.
   useEffect(() => {
     const toggle: () => void = (): void => {
@@ -492,6 +621,29 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       }
       closePalette();
       Navigation.navigate(populated);
+    },
+    [closePalette],
+  );
+
+  /*
+   * Open a list's create form (#7035): the list's page with ?create=1
+   * (CreateFormAddress), which opens the form as its Create button does.
+   * Chosen on that list already, the address is replaced rather than added
+   * to, so Back still leaves the list once the form is closed.
+   */
+  const navigateToListCreateForm: (pageMap: PageMap) => void = useCallback(
+    (pageMap: PageMap): void => {
+      const populated: Route = RouteUtil.populateRouteParams(
+        RouteMap[pageMap] as Route,
+      );
+      if (!isRoutePathNavigable(populated.toString())) {
+        return;
+      }
+      closePalette();
+      Navigation.navigate(
+        new Route(`${populated.toString()}${CREATE_FORM_QUERY_STRING}`),
+        { replace: Navigation.isOnThisPage(populated) },
+      );
     },
     [closePalette],
   );
@@ -618,7 +770,36 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       "Account",
     );
 
+    /*
+     * The lists' create forms (#7035), titled as each list's own Create
+     * button is, and found by that title in English too. Offered while
+     * searching only: the list Search opens on stays as it was.
+     */
+    const listCreateCommands: Partial<Record<PaletteActionId, PaletteCommand>> =
+      {};
+
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      const listAction: PaletteListCreateAction = action;
+      const title: string =
+        translator.translateText(listAction.title) || listAction.title;
+
+      listCreateCommands[listAction.id] = {
+        id: listAction.id,
+        title: title,
+        titleAliases: title === listAction.title ? [] : [listAction.title],
+        icon: listAction.icon,
+        iconColor: listAction.iconColor,
+        category: actionsCategory,
+        keywords: listAction.keywords,
+        isSearchOnly: true,
+        onSelect: () => {
+          navigateToListCreateForm(listAction.page);
+        },
+      };
+    }
+
     const actionCommandsById: Record<PaletteActionId, PaletteCommand> = {
+      ...(listCreateCommands as Record<PaletteActionId, PaletteCommand>),
       "action-declare-incident": {
         id: "action-declare-incident",
         title: t("commandPalette.actions.declareIncident", "Declare Incident"),
@@ -1054,6 +1235,69 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           onNavigate: closePalette,
         });
       });
+
+      /*
+       * --- the project's people (#7036), after the kinds of record ------
+       * Only for someone who may see them on the Users page; the server
+       * holds anyone else to a refusal too.
+       */
+      if (
+        !offProducts.includes(ProductKey.Users) &&
+        canSearchMembers({ held: heldPermissions, isMasterAdmin })
+      ) {
+        searchProviders = [
+          ...(searchProviders || []),
+          createMemberSearchProvider({
+            sectionTitle: translator.translateText("Users") || "Users",
+            onNavigate: closePalette,
+          }),
+        ];
+      }
+
+      /*
+       * --- a record's pages (#9204): "status page sso" ------------------
+       * Looked up in the kinds the person may read, whose product is on.
+       */
+      const recordPageModels: Map<string, RecordPageSearchModel> =
+        getRecordPageSearchModels();
+      const recordPageKinds: Array<RecordPageSearchKind> =
+        getRecordPageSearchKinds().filter(
+          (kind: RecordPageSearchKind): boolean => {
+            const model: RecordPageSearchModel | undefined =
+              recordPageModels.get(kind.id);
+            const product: ProductKey | null = kind.pages[0]
+              ? getProductOfPage(kind.pages[0].page as PageMap)
+              : null;
+
+            return (
+              Boolean(model) &&
+              !(product && offProducts.includes(product)) &&
+              canSearchRecordsOf({
+                model: new model!.modelType(),
+                held: heldPermissions,
+                isMasterAdmin,
+              })
+            );
+          },
+        );
+
+      if (recordPageKinds.length > 0) {
+        searchProviders = [
+          ...(searchProviders || []),
+          createRecordPageSearchProvider({
+            kinds: recordPageKinds,
+            models: recordPageModels,
+            translate: (text: string): string => {
+              return translator.translateText(text) || text;
+            },
+            sectionTitle: t(
+              "commandPalette.sections.recordPages",
+              "Pages of Records",
+            ),
+            onNavigate: closePalette,
+          }),
+        ];
+      }
     }
 
     /*
@@ -1172,6 +1416,22 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
   if (pageCommands.length > 0) {
     commands = [...commands, ...pageCommands];
+  }
+
+  // The open record's own pages, by their names alone (#9204).
+  if (isOpen && openRecord) {
+    commands = [
+      ...commands,
+      ...buildOpenRecordPageCommands({
+        openRecord,
+        recordTitle: openRecordTitles[openRecordKey],
+        translate: (text: string): string => {
+          return translator.translateText(text) || text;
+        },
+        category: t("commandPalette.categories.pages", "Pages"),
+        onNavigate: closePalette,
+      }),
+    ];
   }
 
   /*

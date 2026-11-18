@@ -68,6 +68,8 @@ Appen registrerer deretter telefonen i hvert av prosjektene dine. Hvert prosjekt
 
 Appen viser ett prosjekt om gangen: trykk på prosjektets navn øverst på en skjerm for å bytte. Et prosjekt som krever single sign-on, står som **SSO Required** under **Settings → Manage Projects** til du trykker på **Authenticate with SSO** der.
 
+Ved en ny installasjon åpner appen deretter **Get Ready for On-Call** én gang: tre trinn så et varsel når telefonen, også om natten med Ikke forstyrr på. Tillat varslinger, trykk på **Turn On Critical Alerts**, deretter på **Send Test Page**, og bekreft testvarselet fra varslingen. **Not Now** legger skjermen bort, og **Settings → Get Ready for On-Call** åpner den igjen når som helst. Må tilgang til Ikke forstyrr tillates i Android-innstillingene, slås kritiske varsler på så snart du kommer tilbake til appen.
+
 ## Sjekk at varsler når telefonen
 
 :::steps

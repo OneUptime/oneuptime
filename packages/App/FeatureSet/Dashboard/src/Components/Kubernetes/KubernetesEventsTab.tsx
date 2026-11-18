@@ -2,6 +2,7 @@ import {
   KubernetesEventsPage,
   fetchKubernetesEvents,
 } from "./KubernetesEventsApi";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import {
   KubernetesEventCounts,
   KubernetesEventRow,
@@ -19,7 +20,7 @@ import Card from "Common/UI/Components/Card/Card";
 import FilterButtons, {
   FilterButtonOption,
 } from "Common/UI/Components/FilterButtons/FilterButtons";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Tab, TabType } from "Common/UI/Components/Tabs/Tab";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -163,7 +164,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
   const events: KubernetesEventsState & { reload: () => void } = props.events;
 
   if (events.isLoading && events.rows.length === 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (events.error && events.rows.length === 0) {
@@ -324,7 +325,7 @@ export function useKubernetesEventsTab(data: {
             resourceKind={data.resourceKind}
           />
         ) : (
-          <PageLoader isVisible={true} />
+          <TableSkeleton />
         )}
       </Card>
     ),

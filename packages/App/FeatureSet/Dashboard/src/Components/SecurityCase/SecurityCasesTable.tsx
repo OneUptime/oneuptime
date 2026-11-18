@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import UserElement from "../User/User";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -61,7 +62,6 @@ import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -262,7 +262,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
   if (!values) {
     return (
       <Card title={view.title} description={view.description}>
-        <ComponentLoader />
+        <TableSkeleton />
       </Card>
     );
   }
@@ -634,7 +634,7 @@ const SecurityCasesList: FunctionComponent<{
         }
 
         return (
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-500">
             {translator.translateText("Unassigned")}
           </span>
         );

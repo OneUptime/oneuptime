@@ -12,7 +12,7 @@ const PoweredByFooter: FunctionComponent = (): ReactElement => {
   return (
     <div className="max-w-7xl mx-auto px-5 py-5">
       <div
-        className="flex items-center justify-center text-xs text-gray-400"
+        className="flex items-center justify-center text-xs text-gray-500"
         data-testid="public-dashboard-powered-by"
       >
         <span>Powered by</span>

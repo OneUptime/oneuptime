@@ -251,12 +251,8 @@ const CodeRepositoriesPage: FunctionComponent<
               onOpen={openSearch}
               dataTestId="code-repository-search-slot"
             >
-              <div
+              <label
                 className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-                onClick={() => {
-                  searchInputRef.current?.focus();
-                }}
-                role="presentation"
               >
                 <Icon
                   icon={IconProp.Search}
@@ -310,7 +306,7 @@ const CodeRepositoriesPage: FunctionComponent<
                 ) : (
                   <></>
                 )}
-              </div>
+              </label>
             </TableHeaderSearchSlot>
           ) : undefined
         }

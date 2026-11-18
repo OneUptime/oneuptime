@@ -322,8 +322,8 @@ const DetailCopyButton: FunctionComponent<DetailCopyButtonProps> = (
             : isUnavailable
               ? "gap-1.5 border-amber-200 bg-amber-50 px-2 text-xs font-medium text-amber-700 hover:bg-amber-100"
               : isPending
-                ? "w-8 cursor-wait border-gray-200 bg-gray-50 text-gray-400"
-                : "w-8 border-gray-200 bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                ? "w-8 cursor-wait border-gray-200 bg-gray-50 text-gray-500"
+                : "w-8 border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-600"
         }`}
         onClick={(): void => {
           void handleCopy();
@@ -458,7 +458,7 @@ const DetailSection: FunctionComponent<DetailSectionProps> = (
               {translator.translateText(props.title)}
             </h3>
             {props.badge !== undefined && (
-              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-600">
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600">
                 {props.badge}
               </span>
             )}
@@ -503,7 +503,7 @@ const StringMapRows: FunctionComponent<StringMapRowsProps> = (
               className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
               data-testid={`${props.testId}-row`}
             >
-              <dt className="truncate text-[11px] font-medium text-gray-500">
+              <dt className="truncate text-xs font-medium text-gray-500">
                 {key}
               </dt>
               <dd className="mt-0.5 break-words text-xs text-gray-900">
@@ -1199,7 +1199,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
 
         {(d.traceIds.length > 0 || d.exceptionFingerprints.length > 0) && (
           <p
-            className="border-t border-gray-100 py-3 text-[11px] leading-4 text-gray-500"
+            className="border-t border-gray-100 py-3 text-xs leading-4 text-gray-500"
             data-testid="details-correlation-caps"
           >
             {d.isFinalized === false

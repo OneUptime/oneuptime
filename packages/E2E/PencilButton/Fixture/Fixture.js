@@ -19,7 +19,7 @@ await i18next.use(initReactI18next).init({
 
 const variants = Object.keys(ButtonStyleType).filter(
   (name) =>
-    Number.isNaN(Number(name)) && !["ICON", "ICON_LIGHT"].includes(name),
+    Number.isNaN(Number(name)) && name !== "ICON",
 );
 
 function Fixture() {
@@ -77,7 +77,7 @@ function Fixture() {
         )}
       </section>
       <section className="flex flex-wrap items-center gap-6 rounded-lg border border-gray-200 bg-white p-4">
-        {["ICON", "ICON_LIGHT"].map((name) => (
+        {["ICON"].map((name) => (
           <Button
             key={name}
             icon={IconProp.Edit}

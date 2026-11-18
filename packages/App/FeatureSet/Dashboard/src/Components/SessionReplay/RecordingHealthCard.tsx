@@ -548,7 +548,7 @@ function RecorderDiagnosticsExplanationView(props: {
                     />
                     <code className="text-gray-700">{record.code}</code>
                     {record.atUnixMs !== null && (
-                      <span className="text-gray-400">
+                      <span className="text-gray-500">
                         {new Date(record.atUnixMs).toISOString()}
                       </span>
                     )}
@@ -562,7 +562,7 @@ function RecorderDiagnosticsExplanationView(props: {
                     </div>
                   )}
                   {Object.keys(record.detail).length > 0 && (
-                    <div className="mt-0.5 font-mono text-[11px] text-gray-500">
+                    <div className="mt-0.5 font-mono text-xs text-gray-500">
                       {Object.keys(record.detail)
                         .map((key: string): string => {
                           return `${key}=${String(record.detail[key])}`;

@@ -1,3 +1,4 @@
+import { NotificationLogsTab } from "../NotificationLogs/NotificationLogsTabQuery";
 import {
   PluralTemplate,
   translationKey,
@@ -52,8 +53,24 @@ export interface VerificationCodeChannelDefinition {
   sendCodeButtonText: string;
   // That control while the code is on its way.
   sendingCodeButtonText: string;
-  // Small print under the field: what to do if the code does not come.
+  /*
+   * Small print under the field: what to do if the code does not come, for
+   * someone who may read the channel's Notification Logs - the dialog links
+   * them there, on the channel's tab (logsTab).
+   */
   notArrivedHint: string;
+  /*
+   * The same, for someone who may not read them, who can do nothing with
+   * Project Settings (#7374): who can look instead. The words are the same
+   * as notArrivedHint for a channel whose hint names no log.
+   */
+  notArrivedHintWithoutLogs: string;
+  /*
+   * The Notification Logs tab the channel's messages are kept on, which the
+   * dialog's link opens; null for a channel whose hint names no log (a call
+   * number, which is verified by SMS instead).
+   */
+  logsTab: NotificationLogsTab | null;
 }
 
 const SMS_COPY: Omit<
@@ -74,8 +91,12 @@ const SMS_COPY: Omit<
   sendCodeButtonText: translationKey("Send a new code"),
   sendingCodeButtonText: translationKey("Sending…"),
   notArrivedHint: translationKey(
-    "Texts can take a minute to arrive. If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
+    "Texts can take a minute to arrive. If it does not come, see what happened to it in Notification Logs.",
   ),
+  notArrivedHintWithoutLogs: translationKey(
+    "Texts can take a minute to arrive. If it does not come, ask a Project Owner or Project Admin to look it up in Notification Logs.",
+  ),
+  logsTab: NotificationLogsTab.SMS,
 };
 
 const VERIFICATION_CODE_CHANNELS: Readonly<
@@ -98,8 +119,12 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     sendCodeButtonText: translationKey("Send a new code"),
     sendingCodeButtonText: translationKey("Sending…"),
     notArrivedHint: translationKey(
-      "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
+      "Emails can take a few minutes, and sometimes land in spam. If it does not come, see what happened to it in Notification Logs.",
     ),
+    notArrivedHintWithoutLogs: translationKey(
+      "Emails can take a few minutes, and sometimes land in spam. If it does not come, ask a Project Owner or Project Admin to look it up in Notification Logs.",
+    ),
+    logsTab: NotificationLogsTab.Email,
   },
   [VerificationCodeChannel.SMS]: {
     channel: VerificationCodeChannel.SMS,
@@ -127,6 +152,10 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     notArrivedHint: translationKey(
       "A number you have verified for SMS is verified for calls without a code, so you can verify it there instead.",
     ),
+    notArrivedHintWithoutLogs: translationKey(
+      "A number you have verified for SMS is verified for calls without a code, so you can verify it there instead.",
+    ),
+    logsTab: null,
   },
   [VerificationCodeChannel.WhatsApp]: {
     channel: VerificationCodeChannel.WhatsApp,
@@ -145,8 +174,12 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     sendCodeButtonText: translationKey("Send a new code"),
     sendingCodeButtonText: translationKey("Sending…"),
     notArrivedHint: translationKey(
-      "If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
+      "If it does not come, see what happened to it in Notification Logs.",
     ),
+    notArrivedHintWithoutLogs: translationKey(
+      "If it does not come, ask a Project Owner or Project Admin to look it up in Notification Logs.",
+    ),
+    logsTab: NotificationLogsTab.WhatsApp,
   },
   [VerificationCodeChannel.IncomingCallNumber]: {
     channel: VerificationCodeChannel.IncomingCallNumber,
@@ -189,6 +222,11 @@ export const VerificationCodeCopy: {
   statusUnavailable: string;
   // Closes the dialog once it is done.
   doneButtonText: string;
+  /*
+   * After the not-arrived hint, for someone who may read the channel's
+   * logs: opens them, on the channel's tab, in a new tab beside the dialog.
+   */
+  openNotificationLogs: string;
 } = {
   codeFieldTitle: translationKey("Verification Code"),
   codeExpirySentence: translationKey("It works until {{expiresAt}}."),
@@ -209,6 +247,7 @@ export const VerificationCodeCopy: {
     "We could not check whether a code is waiting. If you have one, you can still enter it.",
   ),
   doneButtonText: translationKey("Done"),
+  openNotificationLogs: translationKey("Open Notification Logs"),
 };
 
 /*

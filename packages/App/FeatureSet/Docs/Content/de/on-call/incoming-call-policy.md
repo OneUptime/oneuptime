@@ -276,7 +276,7 @@ Das Konto lässt sich nur ändern, solange die Richtlinie keine Telefonnummern h
 :::
 
 :::details Der Code für die Nummer einer Person kommt nicht an
-SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Neuen Code senden**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist.
+SMS muss im Projekt eingeschaltet sein. In OneUptime Cloud bezahlt ein Projekt ohne eigene Standard-Twilio-Konfiguration die SMS von seinem Guthaben, das über 1 USD liegen muss. Codes können eine Minute brauchen; klicken Sie auf **Neuen Code senden**, um einen weiteren zu senden, und **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** zeigt, was mit ihm passiert ist. Wer diese Protokolle lesen darf, bekommt im Dialog **Benachrichtigungsprotokolle öffnen**, das ihren SMS-Reiter öffnet.
 :::
 
 ## Nächste Schritte

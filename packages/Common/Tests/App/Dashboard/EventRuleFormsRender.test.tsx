@@ -243,6 +243,8 @@ import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQuer
 import RuleSettingsPageProps from "../../../../App/FeatureSet/Dashboard/src/Pages/RuleSettingsPageProps";
 import IncidentOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentOnCallRules";
 import AlertOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertOnCallRules";
+import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import OnCallPageAs from "../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import IncidentPrivacyRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentPrivacyRules";
 import AlertPrivacyRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertPrivacyRules";
 import IncidentSlaRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentSlaRules";
@@ -536,6 +538,71 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
       await within(dialog()).findByText("On-Call Policies is required."),
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * REGRESSION (#9353): an alert on-call rule's Alert Owner condition, which no
+ * column of the rule holds, is offered by the real form and kept on save. A
+ * field with no column was left out of the form for want of the column's
+ * permission, so a rule holding one read "This field is no longer
+ * available".
+ */
+describe("an alert on-call rule that matches who owns the alert", () => {
+  const PLATFORM_TEAM: string = "0000000d-0000-4000-8000-000000000001";
+
+  test("draws its Alert Owner condition, and saves it in the criteria alone", async () => {
+    const ownerCriteria: JSONObject = {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [
+        { field: "alertOwners", operator: "HasAnyOf", value: [PLATFORM_TEAM] },
+      ],
+    };
+
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(new AlertOnCallRule(), {
+          _id: RULE_ID,
+          name: "Platform's alerts",
+          description: "",
+          isEnabled: true,
+          criteria: ownerCriteria,
+          pageAs: OnCallPageAs.Responders,
+          whenToPage: OnCallRuleWhenToPage.RightAway,
+          onCallDutyPolicies: [{ _id: PLATFORM_ON_CALL }],
+        }),
+      );
+    }) as never);
+
+    await renderPage(AlertOnCallRules as RulePage, "edit");
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+
+    expect(await within(dialog()).findByText("Alert Owner")).toBeVisible();
+    expect(within(dialog()).getByText("Is any of")).toBeVisible();
+    expect(
+      within(dialog()).getByText(
+        "Matches the people and teams added as owners. Team membership does not count.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(dialog()).queryByText(
+        "This field is no longer available. Choose another one or remove this condition.",
+      ),
+    ).toBeNull();
+
+    await next();
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+    expect((model["criteria"] as { filters?: Array<unknown> }).filters).toEqual(
+      [{ field: "alertOwners", operator: "HasAnyOf", value: [PLATFORM_TEAM] }],
+    );
+    expect(model).not.toHaveProperty("alertOwners");
   });
 });
 

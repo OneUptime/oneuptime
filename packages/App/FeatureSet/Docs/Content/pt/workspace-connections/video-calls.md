@@ -70,19 +70,19 @@ Cada reunião é criada como a conta com que você faz login, que é a anfitriã
 
 Uma conexão feita por login ainda tem as configurações que decidem quem espera: **Who can join** para o Google Meet e **Who skips the lobby** para o Microsoft Teams. Altere-as com **Editar** na linha da conexão.
 
-Uma conexão do Zoom feita antes de o OneUptime ler transcrições de chamadas inicia chamadas como antes, mas só lê as transcrições delas depois de entrar de novo: **Reconnect** na linha dela pede ao Zoom as permissões de transcrição.
+Uma conexão do Zoom feita antes de o OneUptime ler transcrições de chamadas não consegue lê-las. Depois que o app do Zoom do OneUptime for atualizado para lê-las, o Zoom deixa de aceitar o login dessa conexão 90 dias depois, e ela deixa de iniciar chamadas. A partir daí, o OneUptime pede que você entre de novo com ela: **Reconectar** na linha dela pede ao Zoom as permissões de transcrição.
 
-Uma conexão do Microsoft Teams feita enquanto a opção **Gravar e transcrever chamadas de incidentes** estava desativada inicia chamadas como antes, sem gravá-las. Depois que a opção é ativada, **Reconnect** na linha dela pede à Microsoft também as permissões de calendário e de transcrição.
+Uma conexão do Microsoft Teams feita enquanto a opção **Gravar e transcrever chamadas de incidentes** estava desativada inicia chamadas como antes, sem gravá-las. Depois que a opção é ativada, **Reconectar** na linha dela pede à Microsoft também as permissões de calendário e de transcrição.
 
 ### Permanecer conectado
 
-O OneUptime guarda o token de atualização do login, criptografado, e o renova pelo menos uma vez por semana, então ele nunca expira por falta de uso, por mais tempo que o projeto passe sem um incidente. Se o login parar de funcionar (a conta removeu o OneUptime, foi excluída ou suspensa, ou a política da sua organização pede um novo login), a linha da conexão mostra **Não funciona** com o motivo no dia em que o OneUptime percebe, não no próximo incidente. **Reconnect** na linha faz o login de novo.
+O OneUptime guarda o token de atualização do login, criptografado, e o renova pelo menos uma vez por semana, então ele nunca expira por falta de uso, por mais tempo que o projeto passe sem um incidente. Se o login parar de funcionar (a conta removeu o OneUptime, foi excluída ou suspensa, ou a política da sua organização pede um novo login), a linha da conexão mostra **Não funciona** com o motivo no dia em que o OneUptime percebe, não no próximo incidente. **Reconectar** na linha faz o login de novo.
 
 Conexões feitas com a mesma conta compartilham um único login, em todos os projetos: o Zoom guarda só um login por conta, então conectar de novo o mesmo usuário do Zoom o substitui para todas elas.
 
 ### Reconectar e remover
 
-**Reconnect** na linha de uma conexão faz o login de novo, com a mesma conta ou com outra. Use-o depois que a conta tiver removido o OneUptime, ou para mover as reuniões de incidentes para outra conta.
+**Reconectar** na linha de uma conexão faz o login de novo, com a mesma conta ou com outra. Use-o depois que a conta tiver removido o OneUptime, ou para mover as reuniões de incidentes para outra conta.
 
 Excluir uma conexão retira o acesso do OneUptime no Zoom e no Google assim que nenhuma outra conexão usa aquele login. Na Microsoft, remova o OneUptime em **My Apps** (myapps.microsoft.com) da conta. Remover o OneUptime da sua conta do Zoom no Zoom App Marketplace exclui o login dele de todas as conexões feitas com essa conta, e elas mostram **Não funciona** até serem reconectadas.
 
@@ -135,13 +135,13 @@ Para que ninguém precise se lembrar de gravar uma chamada nem de obter a transc
 
 A opção fica desativada por padrão, porque grava pessoas: todos nessas chamadas veem que elas estão sendo gravadas ou transcritas, então verifique se a sua organização permite isso. O Zoom só guarda uma transcrição quando a conta grava na nuvem com a transcrição de áudio ativada, e o Google Meet só numa edição do Google Workspace que tenha transcrições. Huddles do Slack e links de reunião não são gravados, e as chamadas de alertas também não: adicione as transcrições delas manualmente.
 
-A Microsoft só deixa os apps lerem as transcrições de reuniões do Teams que estão num calendário, então o OneUptime coloca cada reunião de incidente no calendário do organizador dela e ativa a gravação e a transcrição automáticas nas opções da reunião. Para isso, a conexão precisa de mais duas permissões do Microsoft Graph, `Calendars.ReadWrite` e `OnlineMeetingTranscript.Read.All`: adicione-as ao seu registro de aplicativo (veja [Microsoft Teams](#microsoft-teams)), ou use **Reconnect** numa conexão feita por login. A política de reunião do Teams do organizador precisa permitir a gravação na nuvem, a transcrição e a gravação automática, e a sua organização não pode ter desativado o acesso dos apps às transcrições. Uma chamada que o OneUptime não consegue colocar no calendário começa mesmo assim, sem gravação, e o card **Video Call** dela diz o motivo.
+A Microsoft só deixa os apps lerem as transcrições de reuniões do Teams que estão num calendário, então o OneUptime coloca cada reunião de incidente no calendário do organizador dela e ativa a gravação e a transcrição automáticas nas opções da reunião. Para isso, a conexão precisa de mais duas permissões do Microsoft Graph, `Calendars.ReadWrite` e `OnlineMeetingTranscript.Read.All`: adicione-as ao seu registro de aplicativo (veja [Microsoft Teams](#microsoft-teams)), ou use **Reconectar** numa conexão feita por login. A política de reunião do Teams do organizador precisa permitir a gravação na nuvem, a transcrição e a gravação automática, e a sua organização não pode ter desativado o acesso dos apps às transcrições. Uma chamada que o OneUptime não consegue colocar no calendário começa mesmo assim, sem gravação, e o card **Video Call** dela diz o motivo.
 
 ### O que cada provedor guarda
 
 | Chamada | Como obtém a transcrição | Do que precisa |
 | --- | --- | --- |
-| Zoom | **Obter do Zoom** | Uma reunião gravada na nuvem com a transcrição de áudio ativada, ou com o resumo de reunião do AI Companion ativado. A conexão precisa dos escopos de transcrição (veja [Zoom](#zoom)), e uma feita antes deles precisa de **Reconnect**. O Zoom prepara uma transcrição depois da reunião, geralmente em até o dobro da duração dela. |
+| Zoom | **Obter do Zoom** | Uma reunião gravada na nuvem com a transcrição de áudio ativada, ou com o resumo de reunião do AI Companion ativado. A conexão precisa dos escopos de transcrição (veja [Zoom](#zoom)), e uma feita antes deles precisa de **Reconectar**. O Zoom prepara uma transcrição depois da reunião, geralmente em até o dobro da duração dela. |
 | Google Meet | **Obter do Google Meet** | Transcrições ativadas na chamada, numa edição do Google Workspace que as tenha. Não há mais nada a configurar: o OneUptime lê as transcrições das reuniões que criou. O Google mantém uma transcrição disponível para apps por 30 dias. |
 | Microsoft Teams | **Obter do Microsoft Teams** | Uma reunião que o OneUptime iniciou enquanto [todas as chamadas são gravadas e transcritas](#gravar-e-transcrever-todas-as-chamadas): a Microsoft só deixa os apps lerem as transcrições de reuniões que estão num calendário, e guarda uma reunião por 60 dias. Para qualquer outra reunião do Teams, **Adicionar transcrição**: no Teams, abra o resumo da reunião, depois a transcrição, e baixe-a como arquivo `.vtt`. |
 | Link de reunião ou huddle do Slack | **Adicionar transcrição** | A transcrição que a ferramenta de reunião, ou as notas do huddle, guardam. |
@@ -291,7 +291,7 @@ O provedor recusou, e o feed dá o motivo. Enquanto isso, inicie uma chamada a p
 :::
 
 :::details Uma conexão mostra Não funciona
-O login dela parou de funcionar: a conta removeu o OneUptime, foi excluída ou suspensa, ou precisa fazer login de novo. Clique em **Reconnect** na linha dela. Até lá, as chamadas que ela deveria iniciar não podem começar.
+O login dela parou de funcionar: a conta removeu o OneUptime, foi excluída ou suspensa, ou precisa fazer login de novo. Clique em **Reconectar** na linha dela. Até lá, as chamadas que ela deveria iniciar não podem começar.
 :::
 
 :::details As pessoas esperam em um lobby ou em uma sala de espera
@@ -307,7 +307,7 @@ Depois que a chamada termina, o OneUptime pede a transcrição ao Zoom, ao Googl
 :::
 
 :::details Uma chamada do Microsoft Teams não foi gravada
-O OneUptime não conseguiu colocar a reunião no calendário do organizador dela, então iniciou a chamada do jeito habitual, sem gravação, e o card **Video Call** diz o motivo. Normalmente falta à conexão `Calendars.ReadWrite` ou `OnlineMeetingTranscript.Read.All`: adicione-as ao registro de aplicativo e conceda o consentimento do administrador, ou use **Reconnect** numa conexão feita por login. As chamadas iniciadas depois disso são gravadas.
+O OneUptime não conseguiu colocar a reunião no calendário do organizador dela, então iniciou a chamada do jeito habitual, sem gravação, e o card **Video Call** diz o motivo. Normalmente falta à conexão `Calendars.ReadWrite` ou `OnlineMeetingTranscript.Read.All`: adicione-as ao registro de aplicativo e conceda o consentimento do administrador, ou use **Reconectar** numa conexão feita por login. As chamadas iniciadas depois disso são gravadas.
 :::
 
 :::details A OneUptime AI não conseguiu ler uma transcrição

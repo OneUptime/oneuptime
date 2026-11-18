@@ -188,7 +188,7 @@ Dat kanaal staat in dit project uit. De kaart zegt wie het kan aanzetten; zie [E
 :::
 
 :::details De code kwam nooit aan
-E-mails kunnen een paar minuten duren, en komen soms in de spam terecht; sms'jes kunnen een minuut duren. Wacht een minuut en klik dan in het venster op **Nieuwe code sturen**. **Projectinstellingen → Meldingen → Meldingslogboeken** laat zien wat er met het bericht is gebeurd.
+E-mails kunnen een paar minuten duren, en komen soms in de spam terecht; sms'jes kunnen een minuut duren. Wacht een minuut en klik dan in het venster op **Nieuwe code sturen**. **Projectinstellingen → Meldingen → Meldingslogboeken** laat zien wat er met het bericht is gebeurd. Wie die logboeken mag lezen, krijgt onder de code **Meldingslogboeken openen**, dat het tabblad van het bericht opent; anderen wordt gevraagd het een Projecteigenaar of Projectbeheerder te vragen.
 :::
 
 :::details Mijn Slack-account toevoegen mislukt
@@ -198,6 +198,10 @@ Koppel eerst je account onder **Gebruikersinstellingen → Werkruimte → Slack*
 :::details Mijn telefoon krijgt geen pushmeldingen
 Controleer of de telefoon onder **Apparaten voor pushmeldingen** staat, en stuur hem een **Testmelding**. Zie [Veelgestelde vragen en probleemoplossing](/docs/mobile-desktop-apps/faq-troubleshooting#meldingen).
 :::
+
+### De pagina zegt dat deze server geen sms kan versturen
+
+Je server heeft nu geen werkende manier om sms te versturen of te bellen: er is niets ingesteld, of wat is ingesteld mislukt. Tot het werkt, zegt de pagina dat, en kun je er geen nummer voor toevoegen. Vraag het de beheerder van je server, die in plaats daarvan een link naar de instellingen ziet. Een project met een eigen Twilio-configuratie verstuurt daarlangs en merkt er niets van. Voor e-mail geldt hetzelfde.
 
 ## Volgende stappen
 

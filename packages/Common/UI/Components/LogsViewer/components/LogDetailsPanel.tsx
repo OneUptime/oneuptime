@@ -633,7 +633,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         key={ctxLog.id || ctxLog.time}
         className={`flex items-start gap-3 px-3 py-2 ${rowClass}`}
       >
-        <span className="flex-none whitespace-nowrap font-mono text-[11px] text-gray-500">
+        <span className="flex-none whitespace-nowrap font-mono text-xs text-gray-500">
           {ctxLog.time ? (
             OneUptimeDate.getDateAsUserFriendlyFormattedString(
               OneUptimeDate.fromString(ctxLog.time),

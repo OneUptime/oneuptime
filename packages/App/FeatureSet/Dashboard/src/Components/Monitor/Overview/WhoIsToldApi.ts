@@ -2,6 +2,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { WhoIsToldResult } from "Common/Types/Monitor/WhoIsTold";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
@@ -39,31 +41,84 @@ export class WhoIsToldApiError extends Error {
   }
 }
 
+/*
+ * A monitor not saved yet (#7055): the form's name, type, labels and
+ * criteria on Create Monitor - or, with monitorId, a saved monitor's
+ * criteria being edited.
+ */
+export interface WhoIsToldDraftInput {
+  monitorId?: ObjectID | undefined;
+  name: string;
+  description?: string | undefined;
+  monitorType: MonitorType;
+  monitorSteps: MonitorSteps;
+  labelIds: Array<ObjectID>;
+}
+
+export function getWhoIsToldDraftUrl(): URL {
+  return URL.fromString(APP_API_URL.toString()).addRoute(
+    `${WHO_IS_TOLD_API_PATH}/draft`,
+  );
+}
+
+// The body POST /who-is-told/draft reads (WhoIsToldAPI.readDraftFromBody).
+export function getWhoIsToldDraftBody(draft: WhoIsToldDraftInput): JSONObject {
+  return {
+    ...(draft.monitorId ? { monitorId: draft.monitorId.toString() } : {}),
+    name: draft.name,
+    description: draft.description || "",
+    monitorType: draft.monitorType,
+    monitorSteps: draft.monitorSteps.toJSON(),
+    labelIds: draft.labelIds.map((id: ObjectID): string => {
+      return id.toString();
+    }),
+  };
+}
+
+// An answer, or a refusal said in the reader's words.
+function readAnswer(
+  response: HTTPResponse<JSONObject> | HTTPErrorResponse,
+): WhoIsToldResult {
+  if (response instanceof HTTPErrorResponse) {
+    throw new WhoIsToldApiError(
+      API.getFriendlyMessage(response),
+      response.statusCode,
+    );
+  }
+
+  const body: JSONValue = response.data as JSONValue;
+
+  if (!isWhoIsToldResult(body)) {
+    throw new WhoIsToldApiError("Couldn't read who is told.");
+  }
+
+  return body;
+}
+
 export default class WhoIsToldApi {
   public static async getForMonitor(data: {
     monitorId: ObjectID;
     refresh?: boolean | undefined;
   }): Promise<WhoIsToldResult> {
-    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    return readAnswer(
       await API.get<JSONObject>({
         url: getWhoIsToldUrl(data),
         headers: { ...ModelAPI.getCommonHeaders() },
-      });
+      }),
+    );
+  }
 
-    if (response instanceof HTTPErrorResponse) {
-      throw new WhoIsToldApiError(
-        API.getFriendlyMessage(response),
-        response.statusCode,
-      );
-    }
-
-    const body: JSONValue = response.data as JSONValue;
-
-    if (!isWhoIsToldResult(body)) {
-      throw new WhoIsToldApiError("Couldn't read who is told.");
-    }
-
-    return body;
+  // Worked out afresh on every ask: the server keeps nothing of a draft.
+  public static async getForDraft(data: {
+    draft: WhoIsToldDraftInput;
+  }): Promise<WhoIsToldResult> {
+    return readAnswer(
+      await API.post<JSONObject>({
+        url: getWhoIsToldDraftUrl(),
+        data: getWhoIsToldDraftBody(data.draft),
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
   }
 }
 

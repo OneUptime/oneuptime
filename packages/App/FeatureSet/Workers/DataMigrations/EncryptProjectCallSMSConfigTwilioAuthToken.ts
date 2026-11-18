@@ -1,81 +1,55 @@
 import DataMigrationBase from "./DataMigrationBase";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseService from "Common/Server/Services/DatabaseService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
-import Encryption from "Common/Server/Utils/Encryption";
-import logger from "Common/Server/Utils/Logger";
-
-// Taken from Common's service so App does not resolve its own typeorm copy.
-type ModelRepository = ReturnType<DatabaseService<BaseModel>["getRepository"]>;
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
- * Encrypts the Twilio auth tokens that were stored before the column became a
+ * The Twilio auth tokens that were stored before the column became a
  * secret.
  *
  * ProjectCallSMSConfig.twilioAuthToken is now encrypted at rest (the model's
  * `encrypted: true`), but a row written before that holds the token as
- * plaintext. This reads each config's raw token, and when it is not already
- * our ciphertext (Encryption.looksEncrypted) encrypts it and writes it back —
- * in raw SQL, so DatabaseService's own encrypt/decrypt hooks never touch it
- * and the value is encrypted exactly once.
+ * plaintext.
  *
- * Idempotent, and safe to run twice: a value that already looks encrypted is
- * left alone, so a second run rewrites nothing. The read path tolerates the
- * window before this finishes: DatabaseService.decrypt hands back a value
- * that is not our ciphertext untouched, so a not-yet-encrypted token still
- * reads as itself.
+ * THE UPGRADE CHANGES NO TOKEN (#9266). A server of a release before
+ * 14.0.56, still running while an upgrade from it rolls out, reads the
+ * column as it is stored: a project's SMS and calls would go out with a
+ * ciphertext for a token, and fail. So this runs at the upgrade and changes
+ * nothing, and when it ran starts the wait: a day later, once no server of
+ * the release before can still be running, the
+ * CredentialsAtRest:EncryptInPlace job encrypts each token still stored as
+ * written, in place, in raw SQL, only while the row still holds the token
+ * read (CredentialsAtRest, EncryptColumnInPlace). An install that ran this
+ * when it still encrypted at once (14.0.56 to 15.0.0) has its tokens
+ * encrypted already: the job encrypts what is left, and never a ciphertext
+ * again.
+ *
+ * Every reader of this release reads the same token before and after:
+ * DatabaseService.decrypt hands back a value that is not our ciphertext
+ * untouched.
  */
 export default class EncryptProjectCallSMSConfigTwilioAuthToken extends DataMigrationBase {
   public constructor() {
     super("EncryptProjectCallSMSConfigTwilioAuthToken");
   }
 
+  // Leaves every token as written: see the top of this file.
   public override async migrate(): Promise<void> {
-    const repository: ModelRepository =
-      ProjectCallSMSConfigService.getRepository() as unknown as ModelRepository;
+    return;
+  }
 
-    const tableName: string = repository.metadata.tableName;
-
-    let rows: Array<{ _id: string; twilioAuthToken: string | null }> = [];
-
-    try {
-      rows = (await repository.manager.query(
-        `SELECT "_id", "twilioAuthToken" FROM "${tableName}" WHERE "twilioAuthToken" IS NOT NULL AND "twilioAuthToken" <> ''`,
-      )) as Array<{ _id: string; twilioAuthToken: string | null }>;
-    } catch (err) {
-      logger.error(
-        "EncryptProjectCallSMSConfigTwilioAuthToken: failed to read the configs to encrypt:",
-      );
-      logger.error(err);
-      return;
-    }
-
-    for (const row of rows) {
-      const plaintext: string | null = row.twilioAuthToken;
-
-      if (!plaintext || Encryption.looksEncrypted(plaintext)) {
-        // Empty, or already encrypted by an earlier run — nothing to do.
-        continue;
-      }
-
-      try {
-        const encrypted: string = await Encryption.encrypt(plaintext);
-
-        await repository.manager.query(
-          `UPDATE "${tableName}" SET "twilioAuthToken" = $1 WHERE "_id" = $2 AND "twilioAuthToken" = $3`,
-          [encrypted, row._id, plaintext],
-        );
-      } catch (err) {
-        /*
-         * One config that cannot be encrypted must not cost the others their
-         * encryption, nor halt every migration queued behind this one.
-         */
-        logger.error(
-          `EncryptProjectCallSMSConfigTwilioAuthToken: failed to encrypt config ${row._id}:`,
-        );
-        logger.error(err);
-      }
-    }
+  // The column whose tokens are encrypted in place a day after this ran.
+  public static getTargets(): Array<ColumnToEncrypt> {
+    return [
+      {
+        kind: "Twilio config",
+        repository:
+          ProjectCallSMSConfigService.getRepository() as unknown as ModelRepository,
+        column: "twilioAuthToken",
+      },
+    ];
   }
 
   public override async rollback(): Promise<void> {

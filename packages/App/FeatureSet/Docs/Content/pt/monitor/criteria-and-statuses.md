@@ -93,6 +93,49 @@ flowchart TB
 
 Para ver como uma verificação foi julgada, abra a **Visão geral** do monitor: o cartão **Resumo do monitor** mostra qual critério correspondeu e o que cada um fez, incluindo um incidente ignorado porque já havia um aberto.
 
+## Quem é avisado quando ele cai
+
+**Quando cair** diz em poucas frases o que acontece quando o monitor falha e quem é avisado: o status que ele define, o incidente ou alerta que ele abre, quem recebe e-mail e quem ele aciona, pelo nome. Cada coisa que impediria alguém de ser avisado aparece em uma linha própria, com um link para a página que a corrige. Ele aparece na **Visão geral** de um monitor, abaixo dos critérios na página **Critérios**, na etapa de critérios de **Criar monitor** para o monitor que você está configurando, e na configuração guiada de sites.
+
+Ele monta a cadeia como um incidente ou alerta real faz: com as regras de proprietário, regras de privacidade, regras de rótulos e regras de plantão do seu projeto, a regra de incidente de alertas que transforma um alerta em incidente, e quem a primeira regra de escalonamento de cada política de plantão alcança agora. Uma regra de plantão que pergunta quem é o proprietário de um alerta (**Proprietário do alerta**) é comparada com os proprietários que o alerta terá: as pessoas e equipes que seus critérios indicam, os proprietários do dispositivo de rede que o monitor observa e os que as regras de proprietário adicionam. Uma variável do título que só uma verificação preenche é mostrada como está escrita. **Mostrar a cadeia** a abre linha por linha:
+
+| Linha | O que diz |
+| --- | --- |
+| **Status** | O status que os critérios definem. |
+| **Abre** | O incidente ou alerta, sua gravidade entre parênteses e seu título. |
+| **E-mails** | Quem o e-mail de criação alcança: seus proprietários, os que as regras de proprietário adicionam, ou os Proprietários do projeto quando não há nenhum. Quem o acionamento de plantão alcança primeiro não recebe também o e-mail como proprietário. |
+| **Regras de proprietário** | As regras de proprietário que adicionam seus proprietários. |
+| **Privado** | Por que é privado: uma regra de privacidade ou os critérios. Um incidente privado não aparece em nenhuma página de status e não avisa nenhum assinante, e somente seus proprietários, os Proprietários do projeto e os Administradores do projeto podem vê-lo. |
+| **Regras de Rótulos** | As regras de rótulos cujos rótulos mudam quais regras de plantão são acionadas. |
+| **Regras de plantão** | As regras de plantão que correspondem a ele. Para uma regra que compara quem é o proprietário de um alerta, diz qual proprietário faz com que ela corresponda. |
+| **Política de plantão** | Cada política que essas regras acionam: quem sua primeira regra de escalonamento alcança agora e por qual meio, e quem ela não alcança, e por quê. |
+| **Páginas de status** | As páginas de status que o mostram, cada uma com o grupo de monitores pelo qual mostra o monitor. |
+| **Regra de incidente** | Para um alerta: a regra de incidente de alertas que declara um incidente a partir dele, imediatamente ou depois que o alerta fica aberto, e esse incidente, descrito como qualquer incidente. |
+
+### O que impede alguém de ser avisado
+
+| O que impede | Link |
+| --- | --- |
+| Nenhum critério muda o status ou abre um incidente ou alerta. | **Abrir critérios** |
+| Ninguém é acionado: nenhuma regra de plantão corresponde, ou o projeto ainda não tem uma política de plantão. | **Configurar acionamentos** |
+| O monitor abre alertas, e só os incidentes têm regras de plantão. | **Configurar acionamentos** |
+| Uma política de plantão não tem regras de escalonamento. | **Abrir política de plantão** |
+| Uma política de plantão não alcança ninguém agora. | **Abrir política de plantão** |
+| Alguém que uma política aciona não pode ser alcançado: cancelou a inscrição, não tem método verificado, ou não tem regra para a gravidade em um projeto sem alternativa. | **Abrir prontidão** |
+| SMS, chamadas, WhatsApp ou Telegram estão desativados no projeto. | **Abrir canais de notificação** |
+| O projeto não tem mais saldo para SMS e chamadas (OneUptime Cloud). | **Abrir faturamento** |
+| O servidor ainda não consegue enviar e-mails nem SMS, nem fazer chamadas. | **Abrir o Painel do administrador**, para os administradores do servidor |
+
+Um alerta que uma regra de incidente de alertas transforma em um incidente que aciona alguém não é uma interrupção: as políticas do incidente é que são verificadas.
+
+Os proprietários que não recebem e-mail são listados depois das interrupções, cada um com o motivo e o lugar onde foi indicado: alguém que não é membro do projeto, uma equipe sem ninguém que seja (**Abrir equipe**), ou uma equipe de outro projeto, indicada nos critérios (**Abrir critérios**), no dispositivo de rede que o monitor observa (**Abrir dispositivo de rede**) ou por uma regra de proprietário (**Abrir regras de proprietário**). O e-mail sai mesmo assim, para os proprietários que ele alcança ou para os Proprietários do projeto, então eles não são interrupções. A saúde da configuração também os lista, como algo que vale corrigir.
+
+### Verificar de novo, e o que você pode ver
+
+A resposta tem no máximo um minuto, e **Verificar de novo** a calcula de novo. Quando uma nova verificação falha, o cartão mantém a última resposta e diz abaixo por quê.
+
+O cartão nomeia apenas o que você pode ler. Uma política de plantão, uma regra, uma página de status ou um grupo de monitores que você não pode ver mantém seu lugar sem o nome, e um incidente ou alerta privado que você não poderá ver diz apenas que é aberto e que é privado.
+
 ## O que um incidente ou alerta guarda da verificação
 
 Um incidente ou alerta que um monitor abre guarda a verificação que o abriu, para que você veja o porquê muito depois de os registros do próprio monitor terem sido apagados. Abaixo da causa raiz, a seção **Detalhes da avaliação** nomeia o critério que correspondeu e, para cada filtro que correspondeu, o que a verificação encontrou. **Mostrar detalhes** acrescenta o resto das evidências, os filtros que não corresponderam e a própria verificação: a solicitação, quando foi feita, de qual sonda e o que voltou. O que um filtro encontrou pode ser:

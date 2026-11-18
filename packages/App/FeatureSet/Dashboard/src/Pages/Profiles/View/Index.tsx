@@ -369,7 +369,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {entityId && (
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-gray-400">
+            <div className="text-xs uppercase tracking-wider text-gray-500">
               {source.typeLabel}
             </div>
             <div
@@ -384,7 +384,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
         )}
 
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-gray-400">
+          <div className="text-xs uppercase tracking-wider text-gray-500">
             {translator.translateText("Type")}
           </div>
           <span
@@ -395,7 +395,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
         </div>
 
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-gray-400">
+          <div className="text-xs uppercase tracking-wider text-gray-500">
             {translator.translateText("Duration")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
@@ -404,7 +404,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
         </div>
 
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-gray-400">
+          <div className="text-xs uppercase tracking-wider text-gray-500">
             {translator.translateText("Samples")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
@@ -415,7 +415,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
         </div>
 
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-gray-400">
+          <div className="text-xs uppercase tracking-wider text-gray-500">
             {translator.translateText("Captured")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">

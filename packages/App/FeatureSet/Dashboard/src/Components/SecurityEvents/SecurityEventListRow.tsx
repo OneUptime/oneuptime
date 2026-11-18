@@ -74,7 +74,7 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
         className={
           props.isAttribute
             ? "max-w-[9rem] truncate text-indigo-400"
-            : "text-gray-400"
+            : "text-gray-500"
         }
         title={props.labelTitle}
       >
@@ -137,7 +137,7 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
           <div className="flex min-w-0 items-baseline gap-2">
             {time && (
               <span
-                className="flex-shrink-0 font-mono text-[11px] text-gray-400"
+                className="flex-shrink-0 font-mono text-xs text-gray-500"
                 title={OneUptimeDate.getDateAsLocalFormattedString(time)}
               >
                 {OneUptimeDate.getDateAsLocalFormattedString(time)}
@@ -157,7 +157,7 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             {isSecurityEventRequestOutcome(event.requestOutcome) && (
               <span
                 data-testid={SECURITY_EVENT_ROW_OUTCOME_TEST_ID}
-                className="flex-shrink-0 text-[11px] font-medium"
+                className="flex-shrink-0 text-xs font-medium"
                 style={{
                   color: getRequestOutcomeColor(
                     event.requestOutcome,
@@ -176,7 +176,7 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             )}
             <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700">
               {message || (
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {translator.translateText("No message recorded")}
                 </span>
               )}

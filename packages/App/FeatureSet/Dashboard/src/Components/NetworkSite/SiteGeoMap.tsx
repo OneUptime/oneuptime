@@ -2072,7 +2072,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 <button
                   type="button"
                   aria-label={translator.translateText("Close site list")}
-                  className="rounded text-xs text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="rounded text-xs text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   onClick={() => {
                     setOpenCluster(null);
                   }}
@@ -2409,7 +2409,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               );
             })}
           {props.unplacedSites.length > UNPLACED_NAMES_SHOWN ? (
-            <span className="text-gray-400">
+            <span className="text-gray-500">
               {translator.translateTemplate("+{{count}} more", {
                 count: translator.formatNumber(
                   props.unplacedSites.length - UNPLACED_NAMES_SHOWN,

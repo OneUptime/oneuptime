@@ -58,6 +58,8 @@ The app then registers the iPhone or iPad in each of your projects. Every projec
 
 The app shows one project at a time: tap the project's name at the top of a screen to switch. A project that requires single sign-on says **SSO Required** under **Settings → Manage Projects** until you tap **Authenticate with SSO** there.
 
+On a new install, the app then opens **Get Ready for On-Call** once: three steps so a page reaches the device, even at night on silent. Allow notifications, tap **Turn On Critical Alerts**, then **Send Test Page**, and acknowledge the test page from its notification. **Not Now** puts it away, and **Settings → Get Ready for On-Call** opens it again any time. When critical alerts have to be allowed in iOS Settings, they turn on as soon as you come back to the app.
+
 ## Check that pages reach the device
 
 :::steps

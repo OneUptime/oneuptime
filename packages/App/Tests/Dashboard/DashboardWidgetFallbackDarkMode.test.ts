@@ -134,7 +134,6 @@ describe("a widget's could-not-be-shown note in the dark theme", () => {
         "text-amber-500",
         "text-gray-700",
         "text-gray-500",
-        "text-gray-400",
       ]),
     );
     expect(unmapped).toEqual([]);

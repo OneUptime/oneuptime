@@ -74,17 +74,17 @@ La configuration du site web a déjà créé la **Politique d'astreinte par déf
 :::steps
 ### Ouvrir la configuration de l'astreinte
 
-Appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Tant que la liste de vérification n'a pas coché **Configurez une politique d'astreinte**, cette étape ouvre la même configuration guidée.
+Dans le résumé de la configuration du site web, cliquez sur **Être alerté par SMS ou par appel téléphonique** : le lien ouvre la configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne**. Pour l'ouvrir plus tard, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez-la. Tant que la liste de vérification n'a pas coché **Configurez une politique d'astreinte**, cette étape ouvre la même configuration guidée. Une fois l'étape cochée, et tant que seul l'e-mail peut vous alerter, la page d'accueil garde **Être alerté par SMS ou par appel téléphonique** en dessous.
 
 ### Choisir comment vous êtes joint
 
 ![L'étape « Comment devons-nous vous joindre ? », avec « Activer les SMS et les appels » entouré](screen:paging-reach-you)
 
-Sous **Comment devons-nous vous joindre ?**, votre e-mail de connexion est déjà listé. Pour les notifications push, installez l'application OneUptime On-Call depuis l'App Store ou Google Play, connectez-vous et cliquez sur **Revérifier**. Pour recevoir aussi des SMS et des appels, cliquez sur **Activer les SMS et les appels**, saisissez votre numéro dans **Votre numéro de téléphone** et cliquez sur **M'envoyer un code par SMS** : sur OneUptime Cloud, les SMS et les appels sont payés sur le solde du projet, donc l'étape vous demande d'abord d'en ajouter. Cliquez sur **Continuer**.
+Sous **Comment devons-nous vous joindre ?**, votre e-mail de connexion est déjà listé. Pour les notifications push, installez l'application OneUptime On-Call depuis l'App Store ou Google Play, connectez-vous et cliquez sur **Revérifier**. **Obtenir l'application** affiche un code à scanner pour chaque boutique, et **Utiliser ce navigateur** fait aussi alerter ce navigateur. Pour recevoir aussi des SMS et des appels, cliquez sur **Activer les SMS et les appels**, saisissez votre numéro dans **Votre numéro de téléphone** et cliquez sur **M'envoyer un code par SMS** : sur OneUptime Cloud, les SMS et les appels sont payés sur le solde du projet, donc l'étape vous demande d'abord d'en ajouter. Cliquez sur **Continuer**.
 
-### Choisir qui d'autre est alerté
+### Choisir qui est alerté en premier
 
-Sous **Qui d'autre est d'astreinte ?**, gardez la **Politique d'astreinte par défaut** sous **Politique d'astreinte**. Pour alerter des membres de l'équipe avec vous, ajoutez-les sous **Ajouter à la première règle d'escalade**. Cliquez sur **Enregistrer et continuer**.
+Sous **Qui est alerté en premier ?**, gardez la **Politique d'astreinte par défaut** sous **Politique d'astreinte**. Pour alerter des membres de l'équipe en même temps que vous, ajoutez-les sous **Ajouter à la première règle d'escalade**, ou invitez-les avec **Inviter par e-mail**. Cliquez sur **Enregistrer et continuer**.
 
 ### Décider de ce qui se passe si personne ne répond
 
@@ -100,7 +100,7 @@ Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**, chois
 
 Deux règles d'astreinte déclenchent la politique : une pour chaque nouvel incident et une pour chaque nouvelle alerte. Pour voir la première, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
 
-Pour construire plutôt une politique champ par champ, ouvrez **Astreinte** depuis le menu **Produits** et cliquez sur **Créer : Politique d'astreinte**. Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
+Pour construire plutôt une politique champ par champ, ouvrez **Astreinte** depuis le menu **Produits** et cliquez sur **Créer une politique d'astreinte**. Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
 
 Pour chaque écran de la configuration, et quoi faire quand un appel n'arrive pas, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
 

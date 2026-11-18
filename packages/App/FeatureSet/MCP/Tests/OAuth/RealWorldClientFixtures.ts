@@ -2,9 +2,11 @@
  * Client ID Metadata Documents published by real MCP clients.
  *
  * Each `document` is the JSON served at its `clientId` URL, copied as fetched
- * on 2026-10-01 - including the fields this server does not use (`logo_uri`,
- * `application_type`) and the grant types it does not offer (device code, JWT
- * bearer), because tolerating those is part of what is being pinned.
+ * on 2026-10-01 (ChatGPT's on 2026-11-17) - including the fields this server
+ * does not use (`logo_uri`, `application_type`, `jwks_uri`) and the grant
+ * types and authentication methods it does not offer (device code, JWT
+ * bearer, `private_key_jwt`), because tolerating those is part of what is
+ * being pinned.
  *
  * `requestedAtRuntime` are redirect URIs the client really sends when it
  * starts authorization; `neverRequested` are near misses that must not match.
@@ -138,8 +140,56 @@ export const CLAUDE_CODE: RealWorldClientFixture = {
   ],
 };
 
+/*
+ * ChatGPT, and OpenAI's plugin portal, which connects a plugin's server with
+ * the same client. This is ChatGPT's stable document, the one it uses with a
+ * server that sends `iss` in its authorization responses (RFC 9207), as this
+ * one does.
+ *
+ * It names "private_key_jwt" as its token_endpoint_auth_method but lists
+ * "none" among the methods it can use, and uses one the server offers.
+ * Reading only the single field refused ChatGPT outright: the portal's
+ * Connect landed on "client_metadata_invalid".
+ */
+export const CHATGPT: RealWorldClientFixture = {
+  name: "ChatGPT",
+  clientId: "https://chatgpt.com/oauth/client.json",
+  document: {
+    client_id: "https://chatgpt.com/oauth/client.json",
+    client_uri: "https://chatgpt.com/",
+    redirect_uris: ["https://chatgpt.com/connector_platform_oauth_redirect"],
+    token_endpoint_auth_method: "private_key_jwt",
+    token_endpoint_auth_methods_supported: ["none", "private_key_jwt"],
+    grant_types: [
+      "authorization_code",
+      "refresh_token",
+      "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    ],
+    response_types: ["code"],
+    client_name: "ChatGPT",
+    logo_uri: "https://persistent.oaistatic.com/sonic/misc/openai-logo.png",
+    token_endpoint_auth_signing_alg: "RS256",
+    jwks_uri: "https://chatgpt.com/oauth/jwks.json",
+  },
+  expected: {
+    clientName: "ChatGPT",
+    clientUri: "https://chatgpt.com/",
+    redirectUris: ["https://chatgpt.com/connector_platform_oauth_redirect"],
+  },
+  requestedAtRuntime: ["https://chatgpt.com/connector_platform_oauth_redirect"],
+  neverRequested: [
+    "https://chatgpt.com/connector_platform_oauth_redirect/",
+    "https://chatgpt.com/connector/oauth/abc123",
+    "http://chatgpt.com/connector_platform_oauth_redirect",
+    "https://chatgpt.com:8443/connector_platform_oauth_redirect",
+    "https://chatgpt.com.evil.example/connector_platform_oauth_redirect",
+    "https://chatgpt.com/connector_platform_oauth_redirect?next=https://evil.example",
+  ],
+};
+
 export const REAL_WORLD_CLIENTS: Array<RealWorldClientFixture> = [
   VS_CODE,
   CLAUDE,
   CLAUDE_CODE,
+  CHATGPT,
 ];

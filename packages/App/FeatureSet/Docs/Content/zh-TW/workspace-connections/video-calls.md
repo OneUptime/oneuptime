@@ -70,19 +70,19 @@ flowchart TB
 
 透過登入建立的連線仍然有決定誰需要等待的設定：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在連線所在列使用 **編輯** 變更它們。
 
-在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線會像以前一樣開始通話，但在重新登入之前無法讀取通話的逐字稿：其所在列的 **Reconnect** 會向 Zoom 要求逐字稿權限。
+在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線無法讀取這些逐字稿。OneUptime 的 Zoom 應用程式更新為可讀取逐字稿後，Zoom 會在 90 天後不再接受這類連線的登入，該連線也將無法開始通話。從那時起，OneUptime 會請您重新登入：其所在列的 **重新連線** 會向 Zoom 要求逐字稿權限。
 
-在 **錄製並轉錄事件通話** 關閉期間登入的 Microsoft Teams 連線會像以前一樣開始通話，但不會錄製。開啟該開關後，其所在列的 **Reconnect** 也會向 Microsoft 要求行事曆和逐字稿權限。
+在 **錄製並轉錄事件通話** 關閉期間登入的 Microsoft Teams 連線會像以前一樣開始通話，但不會錄製。開啟該開關後，其所在列的 **重新連線** 也會向 Microsoft 要求行事曆和逐字稿權限。
 
 ### 維持登入
 
-OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一次，因此無論專案多久沒有發生事件，權杖都不會因閒置而過期。如果登入失效（帳戶移除了 OneUptime、帳戶被刪除或停用，或您組織的原則要求重新登入），連線所在列會在 OneUptime 發現的當天顯示 **異常** 及原因，而不是等到下一個事件。該列上的 **Reconnect** 會重新登入。
+OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一次，因此無論專案多久沒有發生事件，權杖都不會因閒置而過期。如果登入失效（帳戶移除了 OneUptime、帳戶被刪除或停用，或您組織的原則要求重新登入），連線所在列會在 OneUptime 發現的當天顯示 **異常** 及原因，而不是等到下一個事件。該列上的 **重新連線** 會重新登入。
 
 以同一帳戶登入的連線在所有專案中共用一次登入：Zoom 每個帳戶只保留一次登入，因此再次連接同一個 Zoom 使用者會取代所有這些連線的登入。
 
 ### 重新連接和移除
 
-連線所在列的 **Reconnect** 會以同一帳戶或其他帳戶重新登入。在帳戶移除 OneUptime 之後，或要把事件會議轉到其他帳戶時使用它。
+連線所在列的 **重新連線** 會以同一帳戶或其他帳戶重新登入。在帳戶移除 OneUptime 之後，或要把事件會議轉到其他帳戶時使用它。
 
 刪除連線後，一旦沒有其他連線使用該登入，OneUptime 在 Zoom 和 Google 的存取權就會被撤銷。對於 Microsoft，請在該帳戶的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中從您的 Zoom 帳戶移除 OneUptime，會從所有以該帳戶登入的連線中刪除其登入，這些連線在重新連接之前都會顯示 **異常**。
 
@@ -135,13 +135,13 @@ OneUptime 已讀取的逐字稿會保留在其事件上：刪除連線會保留�
 
 此功能預設為關閉，因為它會錄製人員：這些通話中的每個人都會看到自己正在被錄製或轉錄，因此請確認您的組織允許這樣做。只有當帳戶在開啟音訊逐字稿的情況下錄製到雲端時，Zoom 才會保留逐字稿；Google Meet 也只在支援逐字稿的 Google Workspace 版本上保留逐字稿。Slack huddle 和會議連結不會被錄製，警示的通話也不會：請手動新增它們的逐字稿。
 
-Microsoft 只允許應用程式讀取行事曆上的 Teams 會議的逐字稿，因此 OneUptime 會把每場事件會議加入其召集人的行事曆，並在會議選項中開啟自動錄製和轉錄。為此，連線還需要另外兩個 Microsoft Graph 權限 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All`：請將它們新增到您的應用程式註冊中（參見 [Microsoft Teams](#microsoft-teams)），或對透過登入建立的連線使用 **Reconnect** 。召集人的 Teams 會議原則必須允許雲端錄製、轉錄和自動錄製，而且您的組織不能關閉應用程式對逐字稿的存取。OneUptime 無法加入行事曆的通話仍會照常開始，但不會錄製，其 **Video Call** 卡片會說明原因。
+Microsoft 只允許應用程式讀取行事曆上的 Teams 會議的逐字稿，因此 OneUptime 會把每場事件會議加入其召集人的行事曆，並在會議選項中開啟自動錄製和轉錄。為此，連線還需要另外兩個 Microsoft Graph 權限 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All`：請將它們新增到您的應用程式註冊中（參見 [Microsoft Teams](#microsoft-teams)），或對透過登入建立的連線使用 **重新連線** 。召集人的 Teams 會議原則必須允許雲端錄製、轉錄和自動錄製，而且您的組織不能關閉應用程式對逐字稿的存取。OneUptime 無法加入行事曆的通話仍會照常開始，但不會錄製，其 **Video Call** 卡片會說明原因。
 
 ### 各提供者保留的內容
 
 | 通話 | 如何取得逐字稿 | 需要什麼 |
 | --- | --- | --- |
-| Zoom | **從 Zoom 取得** | 會議錄製到雲端且開啟了音訊逐字稿，或開啟了 AI Companion 的會議摘要。連線需要逐字稿的權限範圍（參見 [Zoom](#zoom)），在此之前登入的連線需要 **Reconnect** 。Zoom 會在會議結束後準備逐字稿，通常在會議時長的兩倍以內完成。 |
+| Zoom | **從 Zoom 取得** | 會議錄製到雲端且開啟了音訊逐字稿，或開啟了 AI Companion 的會議摘要。連線需要逐字稿的權限範圍（參見 [Zoom](#zoom)），在此之前登入的連線需要 **重新連線** 。Zoom 會在會議結束後準備逐字稿，通常在會議時長的兩倍以內完成。 |
 | Google Meet | **從 Google Meet 取得** | 通話中開啟的逐字稿，所用的 Google Workspace 版本需支援逐字稿。無需其他設定：OneUptime 會讀取它所建立會議的逐字稿。Google 會將逐字稿保留 30 天供應用程式讀取。 |
 | Microsoft Teams | **從 Microsoft Teams 取得** | OneUptime 在 [每次通話都錄製並轉錄](#錄製並轉錄每次通話) 期間開始的會議：Microsoft 只允許應用程式讀取行事曆上的會議的逐字稿，並將會議保留 60 天。對於其他任何 Teams 會議，請使用 **新增逐字稿** ：在 Teams 中，開啟會議的回顧，再開啟其逐字稿，並將其下載為 `.vtt` 檔案。 |
 | 會議連結或 Slack huddle | **新增逐字稿** | 會議工具或 huddle 筆記中保存的逐字稿。 |
@@ -291,7 +291,7 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 :::
 
 :::details 連線顯示 異常
-它的登入已失效：帳戶移除了 OneUptime、帳戶被刪除或停用，或需要重新登入。在其所在列按一下 **Reconnect**。在此之前，它原本應該開始的通話都無法開始。
+它的登入已失效：帳戶移除了 OneUptime、帳戶被刪除或停用，或需要重新登入。在其所在列按一下 **重新連線**。在此之前，它原本應該開始的通話都無法開始。
 :::
 
 :::details 有人在大廳或等候室中等待
@@ -307,7 +307,7 @@ Zoom 只會為錄製到雲端且開啟了音訊逐字稿的會議，或開啟了
 :::
 
 :::details Microsoft Teams 通話沒有被錄製
-OneUptime 無法將會議加入其召集人的行事曆，因此以一般方式開始了通話，沒有錄製，而 **Video Call** 卡片會說明原因。通常是連線缺少 `Calendars.ReadWrite` 或 `OnlineMeetingTranscript.Read.All`：請將它們新增到應用程式註冊中並授與管理員同意，或對透過登入建立的連線使用 **Reconnect** 。之後開始的通話都會被錄製。
+OneUptime 無法將會議加入其召集人的行事曆，因此以一般方式開始了通話，沒有錄製，而 **Video Call** 卡片會說明原因。通常是連線缺少 `Calendars.ReadWrite` 或 `OnlineMeetingTranscript.Read.All`：請將它們新增到應用程式註冊中並授與管理員同意，或對透過登入建立的連線使用 **重新連線** 。之後開始的通話都會被錄製。
 :::
 
 :::details OneUptime AI 無法讀取逐字稿

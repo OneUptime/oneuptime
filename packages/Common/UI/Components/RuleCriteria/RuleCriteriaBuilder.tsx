@@ -43,12 +43,14 @@ import {
   getRuleCriteriaOperatorsForField,
   getRuleCriteriaValuePlaceholder,
   isRuleCriteriaArrayOperator,
+  isRuleCriteriaOwnerField,
   normalizeRuleCriteriaValue,
   RULE_CRITERIA_SCALAR_OPERATORS,
   RuleCriteriaCopy,
   RuleCriteriaMessage,
 } from "./RuleCriteriaFields";
 import RuleAppliesToChoice from "./RuleAppliesToChoice";
+import RuleCriteriaOwnersValue from "./RuleCriteriaOwnersValue";
 import {
   RULE_CRITERIA_ADD_CELL_CLASS_NAME,
   RULE_CRITERIA_ADD_ROW_CLASS_NAME,
@@ -352,6 +354,52 @@ const RuleCriteriaBuilder: <TEntity>(
     };
     const error: string | undefined = problem || undefined;
 
+    /*
+     * Who owns the record: people and teams, picked as owners are, with the
+     * field's line under them - who counts as an owner.
+     */
+    if (isRuleCriteriaOwnerField(field)) {
+      const labelId: string = `rule-criteria-value-${index}-label`;
+      const hintId: string = `rule-criteria-value-${index}-hint`;
+      const hint: string | undefined =
+        typeof field.description === "string" && field.description
+          ? field.description
+          : undefined;
+
+      return (
+        <div>
+          <span id={labelId} className="sr-only">
+            {commonProps.ariaLabel}
+          </span>
+          <RuleCriteriaOwnersValue
+            ids={Array.isArray(filter.value) ? filter.value : []}
+            disabled={props.disabled}
+            error={error}
+            ariaLabelledby={labelId}
+            ariaDescribedby={hint ? hintId : undefined}
+            dataTestId={commonProps.dataTestId}
+            onChange={(ids: Array<string>): void => {
+              changeFilter(index, {
+                ...filter,
+                value: ids,
+              });
+            }}
+          />
+          {hint ? (
+            <p
+              id={hintId}
+              className="mt-1 text-sm text-gray-500"
+              data-testid={`rule-criteria-value-hint-${index}`}
+            >
+              {tx(hint)}
+            </p>
+          ) : (
+            <></>
+          )}
+        </div>
+      );
+    }
+
     if (field.dropdownModal) {
       return (
         <EntityDropdown
@@ -366,6 +414,13 @@ const RuleCriteriaBuilder: <TEntity>(
           value={filter.value}
           placeholder={placeholder}
           error={error}
+          /*
+           * A condition keeps the ids it names when a record is deleted
+           * (the rule matches nothing for it): such a value says so, as a
+           * workspace rule's Conditions step and card do (#7807), not as
+           * its raw id.
+           */
+          notFoundLabel={RuleCriteriaCopy.valueNotFound}
           onChange={(
             value: DropdownValue | Array<DropdownValue> | null,
           ): void => {

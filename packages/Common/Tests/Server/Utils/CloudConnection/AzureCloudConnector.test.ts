@@ -282,7 +282,7 @@ const STANDARD_RESOURCES: Record<string, Array<JSONObject>> = {
       "northeurope",
     ),
     resource(VNET, "Microsoft.Network/virtualNetworks", "vnet-1"),
-    // Not a type OneUptime lists: left out.
+    // No metrics to read: left out here, and listed by the inventory alone.
     resource(NIC, "Microsoft.Network/networkSecurityGroups", "nsg-1"),
   ],
 };

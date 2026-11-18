@@ -28,9 +28,49 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getDashboardVariableTypeName } from "./DashboardVariableTypeNames";
+
+/*
+ * A Project Labels variable's default: one of its allowed labels, drawn as
+ * the label is named. A default no longer among them is kept, named
+ * "Unavailable label", so it can be seen and changed.
+ */
+export function getDefaultLabelOptions(
+  variable: DashboardVariable,
+  translator: Translator,
+): Array<DropdownOption> {
+  const labelOptions: Array<DashboardVariableOption> =
+    variable.labelOptions || [];
+  const isDefaultGone: boolean = Boolean(
+    variable.defaultValue &&
+      !labelOptions.some((option: DashboardVariableOption): boolean => {
+        return option.value === variable.defaultValue;
+      }),
+  );
+
+  return [
+    ...(isDefaultGone && variable.defaultValue
+      ? [
+          getTranslatedDropdownOption(
+            variable.defaultValue,
+            translator.translateText("Unavailable label") ||
+              "Unavailable label",
+          ),
+        ]
+      : []),
+    ...labelOptions.map((option: DashboardVariableOption): DropdownOption => {
+      return getNamedDropdownOption(option.value, option.label);
+    }),
+  ];
+}
 
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
@@ -167,7 +207,7 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
           }}
         />
       )}
-      <p className="text-[11px] text-gray-500 mt-1">
+      <p className="text-xs text-gray-500 mt-1">
         {translator.translateText(
           "Choose up to 1,000 labels. Their names appear in the toolbar and on shared dashboards. Bind this variable in a Monitor List widget’s Label Variable setting.",
         )}
@@ -236,39 +276,28 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
            * stored value is kept so unticking the box restores it.
            */}
           {variable.type === DashboardVariableType.ProjectLabel ? (
-            <select
-              aria-label={translator.translateText("Default label")}
-              className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 disabled:bg-gray-50"
-              value={variable.defaultValue || ""}
+            <Dropdown
+              className="relative w-full overflow-visible"
+              options={getDefaultLabelOptions(variable, translator)}
+              value={findDropdownOption(
+                getDefaultLabelOptions(variable, translator),
+                variable.defaultValue,
+              )}
+              // Cleared, the variable starts on every label: "All".
+              placeholder={translator.translateText("All")}
+              isPlaceholderTranslated={true}
+              ariaLabel={translator.translateText("Default label")}
+              isAriaLabelTranslated={true}
               disabled={Boolean(variable.isMultiSelect)}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                return props.onChange({
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                props.onChange({
                   ...variable,
-                  defaultValue: e.target.value,
+                  defaultValue: readPickedDropdownValue(next) || "",
                 });
               }}
-            >
-              <option value="">{translator.translateText("All")}</option>
-              {variable.defaultValue &&
-                !variable.labelOptions?.some(
-                  (option: DashboardVariableOption) => {
-                    return option.value === variable.defaultValue;
-                  },
-                ) && (
-                  <option value={variable.defaultValue}>
-                    {translator.translateText("Unavailable label")}
-                  </option>
-                )}
-              {(variable.labelOptions || []).map(
-                (option: DashboardVariableOption) => {
-                  return (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  );
-                },
-              )}
-            </select>
+            />
           ) : (
             <input
               type="text"
@@ -290,7 +319,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
               }}
             />
           )}
-          <label className="mt-2 flex items-center gap-1.5 text-[11px] text-gray-500">
+          <label className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
             <input
               type="checkbox"
               className="h-3.5 w-3.5"
@@ -403,7 +432,7 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                   return props.onChange({ ...variable, attributeKey: value });
                 }}
               />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 {translator.translateText(
                   variable.isMultiSelect
                     ? 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter — a multi-select with nothing picked is All.'
@@ -441,14 +470,14 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                   });
                 }}
               />
-              <p className="text-[11px] text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 {translator.translateText(
                   "Comma-separated values for text and query placeholders. Use Project Labels to filter Monitor Lists.",
                 )}
               </p>
             </>
           ) : (
-            <p className="text-[11px] text-gray-500">
+            <p className="text-xs text-gray-500">
               {translator.translateText(
                 variable.type === DashboardVariableType.Query
                   ? "This legacy query variable is preserved. Query option loading is not supported."
@@ -586,7 +615,7 @@ const DashboardVariablesModal: FunctionComponent<ComponentProps> = (
             <p className="text-sm text-gray-500 mb-1">
               {translator.translateText("No variables yet")}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {translator.translateText(
                 "Add a variable, then configure the widgets it should filter.",
               )}

@@ -32,10 +32,10 @@ flowchart TB
 Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen om dens **Navn** og **Hvem tilkaldes først?**. Spørgsmålet bruger samme vælger som **Underret**: vagtplaner, teams og personer, så mange du har brug for. Dem, du vælger, bliver politikkens første eskaleringsregel, **Level 1**, som venter **30 minutter** på en kvittering, før næste niveau tilkaldes.
 
 :::steps
-1. Gå til **Vagt** > **Vagtpolitikker**, og klik på **Opret Vagtpolitik**.
+1. Gå til **Vagt** > **Vagtpolitikker**, og klik på **Opret vagtpolitik**.
 2. Indtast et **Navn**.
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
-4. Klik på **Opret Vagtpolitik**. Den nye politik åbner derefter på sin side **Eskaleringsregler**, hvor du kan tilføje flere niveauer.
+4. Klik på **Opret vagtpolitik**. Den nye politik åbner derefter på sin side **Eskaleringsregler**, hvor du kan tilføje flere niveauer.
 :::
 
 **Hvem tilkaldes først?** er valgfrit. Lader du det stå tomt, starter politikken uden eskaleringsregler: den tilkalder ingen, før du tilføjer en, og dens oversigt siger det. Beskrivelsen og etiketterne ligger under **Flere felter**. Spørgsmålet stilles kun til dem, der må tilføje eskaleringsregler.
@@ -45,7 +45,7 @@ Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen o
 :::steps
 ### Åbn politikkens eskaleringsregler
 
-Åbn vagtpolitikken, vælg **Eskaleringsregler** i dens sidemenu, og klik på **Tilføj eskaleringsregel**. Dialogen er én kort side.
+Åbn vagtpolitikken, vælg **Eskaleringsregler** i dens sidemenu, og klik på **Tilføj eskaleringsregel**. Dialogen er én kort side. Den siger, hvilket niveau i politikken reglen tilføjer.
 
 ### Vælg, hvem der skal underrettes
 
@@ -61,6 +61,10 @@ Klik under **Underret** på **Tilføj modtager**, søg, og vælg så mange vagtp
 ### Angiv, hvor længe der ventes
 
 **Eskalér efter (i minutter)** er, hvor længe der ventes på en kvittering, før næste niveau tilkaldes. Den starter på **30 minutter**; ret den til det, der passer til niveauet.
+
+![Dialogen »Tilføj eskaleringsregel« på en politik med ét niveau, med »Tilkaldes efter (i minutter)« fremhævet](screen:escalation-rule-paged-after)
+
+En regel, der tilføjes efter den første, spørger i stedet **Tilkaldes efter (i minutter)**: hvor længe niveauet før den venter på en kvittering, før dette niveau tilkaldes. Den starter på det niveaus ventetid og gemmes som den; det nye niveau venter selv 30 minutter, indtil du tilføjer et efter det. Den, der må tilføje regler, men ikke ændre dem, får **Eskalér efter (i minutter)**, og dialogen siger, hvornår det nye niveau tilkaldes.
 
 ### Giv reglen et navn, hvis du vil
 
@@ -190,7 +194,7 @@ Et niveau kan tilkalde den næste person i en vagtplans rotation: personen efter
 
 :::steps
 1. Sørg for, at politikkens første niveau, **Level 1**, underretter vagtplanen.
-2. Klik på **Tilføj eskaleringsregel**, derefter på **Tilføj modtager**, og vælg den samme vagtplan under **Næste i rotationen**. Angiv **Eskalér efter (i minutter)**, og klik på **Opret regel**.
+2. Klik på **Tilføj eskaleringsregel**, derefter på **Tilføj modtager**, og vælg den samme vagtplan under **Næste i rotationen**. Angiv **Tilkaldes efter (i minutter)**, og klik på **Opret regel**.
 3. Tilføj ét niveau mere for det team eller den chef, der skal have besked bagefter.
 :::
 

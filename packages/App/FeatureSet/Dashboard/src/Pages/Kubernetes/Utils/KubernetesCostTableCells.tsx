@@ -41,7 +41,7 @@ export function getTotalCostElement(
         <span className="tabular-nums font-medium text-gray-900">
           {formatCost(value)}
         </span>
-        <span className="tabular-nums text-xs text-gray-400">
+        <span className="tabular-nums text-xs text-gray-500">
           {windowTotal > 0 ? (
             `${share < 1 && share > 0 ? "<1" : Math.round(share)}%`
           ) : (

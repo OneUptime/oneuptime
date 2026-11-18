@@ -361,7 +361,7 @@ function renderPanel(overrides: Partial<ComponentProps> = {}): RenderResult {
 
 async function waitForConnections(): Promise<void> {
   await waitFor(() => {
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-list-skeleton")).not.toBeInTheDocument();
   });
 }
 
@@ -395,7 +395,7 @@ describe("loading an item's connections", () => {
 
     renderPanel();
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("card-list-skeleton")).toBeInTheDocument();
     await act(async () => {
       answer.resolve(hubResponse());
     });

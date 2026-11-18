@@ -105,6 +105,10 @@ import {
   ExpressRequest,
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
+import {
+  NO_MONITORS_SUBSCRIBERS_LINE,
+  stubSubscriberAudience,
+} from "./WorkspaceSubscriberAudienceTestHelpers";
 import { useInMemoryWorkspaceHomeChoices } from "../../../Helpers/InMemoryWorkspaceHomeChoices";
 import {
   CloudAdapter,
@@ -485,6 +489,8 @@ beforeEach(() => {
   connector.calls.splice(0);
   (GlobalCache as unknown as { store: Map<string, unknown> }).store.clear();
   memberOf = [PLATFORM, NONPRD];
+  // A declared incident is on no monitor.
+  stubSubscriberAudience();
   readsOnCall = [];
   membersRead = [];
 
@@ -862,7 +868,7 @@ describe("a form opened in the project Deane chose carries it, and is submitted 
       }),
     ).toEqual(["POST", "DELETE"]);
     expect(String(submitted.calls[0]!.activity["text"])).toBe(
-      `✅ Incident created successfully. [View incident](${DASHBOARD_URL}/${PLATFORM.toString()}/incidents/${created.id!.toString()})`,
+      `✅ Incident created successfully. [View incident](${DASHBOARD_URL}/${PLATFORM.toString()}/incidents/${created.id!.toString()})\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`,
     );
     expect(submitted.calls[1]!.activityId).toBe(form.messageId);
     expect(loggedErrors).toEqual([]);

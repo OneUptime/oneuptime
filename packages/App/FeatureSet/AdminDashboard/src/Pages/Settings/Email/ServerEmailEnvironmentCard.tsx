@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -23,7 +24,6 @@ import MailTransportType from "Common/Types/Email/MailTransportType";
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import { CARD_MODEL_DETAIL_BODY_CLASS_NAME } from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -230,7 +230,7 @@ export const ServerEmailEnvironmentLoadingCard: FunctionComponent =
           title={t("pages.settings.email.serverCardTitle")}
           description={t("pages.settings.email.serverCardDescription")}
         >
-          <ComponentLoader />
+          <DetailListSkeleton fields={3} />
         </Card>
       </div>
     );

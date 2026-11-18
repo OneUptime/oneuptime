@@ -519,15 +519,34 @@ describe("when each later level starts", () => {
     expect(preview.walkCost!.estimatedCostInUSDCents).toBe(8 * SMS_PRICE);
   });
 
-  test("a gap in the levels' order ends the walk, as it ends a run", async () => {
+  /*
+   * A run goes on from a level to the next place, gaps and all
+   * (OnCallEscalationAdvance, getOnCallRunLaterLevels, #9036): levels
+   * written through the API keep the places they were given. The walk
+   * follows it (#9369).
+   */
+  test("a gap in the levels' places: the walk goes on to the next place, as a run does", async () => {
     levels = [level(1, 1, [ANA]), level(2, 1, [BOB]), level(4, 1, [CARA])];
 
     const preview: OnCallTestPagePreview = await previewPolicy();
 
-    expect(startsOf(preview)).toEqual([[2, 1]]);
-    expect(preview.walkUnreachedLevelCount).toBe(1);
-    expect(levelsRead).toEqual(["1", "2"]);
-    expect(countsOf(preview.walkCost)).toEqual({ smsCount: 1, callCount: 1 });
+    expect(startsOf(preview)).toEqual([
+      [2, 1],
+      [4, 2],
+    ]);
+    expect(preview.walkUnreachedLevelCount).toBe(0);
+    expect(levelsRead).toEqual(["1", "2", "4"]);
+  });
+
+  test("a policy whose first level is at place 2: the test pages it, and walks on from it (#9369)", async () => {
+    levels = [level(2, 1, [ANA]), level(5, 1, [BOB])];
+
+    const preview: OnCallTestPagePreview = await previewPolicy();
+
+    expect(namesOf(preview.people)).toEqual(["Ana Lopez"]);
+    expect(startsOf(preview)).toEqual([[5, 1]]);
+    expect(preview.walkUnreachedLevelCount).toBe(0);
+    expect(levelsRead).toEqual(["2", "5"]);
   });
 });
 

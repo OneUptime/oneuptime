@@ -86,7 +86,7 @@ flowchart TB
 
 ## 有人不在崗時
 
-有人休假時，在其回來之前略過此人。在排程的 **層** 頁面上展開一個層，然後點選其姓名旁的 **略過至…** 。這會開啟離崗表單：此人位於 **誰不在崗？** ， **誰代班？** 為 **輪換中的下一個人** ， **開始** 為現在。將 **結束** 設為此人回來的時間，然後儲存。
+有人休假時，在其回來之前略過此人。在排程的 **層** 頁面上展開一個層，然後點選其姓名旁的 **略過至…** 。這會開啟離崗表單：此人位於 **誰不在崗？** ， **誰代班？** 為 **輪換中的下一個人** ， **開始** 為現在。將 **結束** 設為此人回來的時間，然後儲存。如果此人在那段時間已有離崗，表單會在您選擇時間時於時間旁邊說明這一點，並提供 **編輯那個覆寫** ，讓您改為修改那個覆寫。
 
 此人不在崗期間：
 
@@ -97,7 +97,7 @@ flowchart TB
 
 如果改為在 **誰代班？** 中選擇某人，則由該人接收此人來自所有排程和所有策略的全部呼叫，而不是由輪換接替其輪次。
 
-以這種方式新增的離崗適用於所有待命策略，因此新增它需要對整個專案的覆寫權限。如果您團隊的角色限定為它自己的策略或某些標籤，它會改為新增到此待命排程中您可以新增覆寫的策略上，每個策略各一筆，並列在每個策略自己的 **使用者覆寫** 頁面上；有多個時，您在 **待命策略** 下勾選。只有在您一個都不能新增時， **略過至…** 才會被鎖定並說明原因。它列在 **待命** > **進階** > **使用者覆寫** 下，您可以在那裡刪除它，讓此人提早回來。若只想在一個策略中略過某人，請在該策略的 **使用者覆寫** 頁面上新增覆寫，並保持 **誰代班？** 不變。請參閱 [使用者覆寫](/docs/on-call/user-overrides)。
+以這種方式新增的離崗適用於所有待命策略，因此新增它需要對整個專案的覆寫權限。如果您團隊的角色限定為它自己的策略或某些標籤，它會改為新增到此待命排程中您可以新增覆寫的策略上，每個策略各一筆，並列在每個策略自己的 **使用者覆寫** 頁面上；有多個時，您在 **待命策略** 下勾選。只有在您一個都不能新增時， **略過至…** 才會被鎖定並說明原因。它列在 **待命** > **進階** > **使用者覆寫** 下，也列在待命排程 **層** 頁面上的使用者覆寫中，您可以在那裡用 **立即結束** 讓此人提早回來。若只想在一個策略中略過某人，請在該策略的 **使用者覆寫** 頁面上新增覆寫，並保持 **誰代班？** 不變。請參閱 [使用者覆寫](/docs/on-call/user-overrides)。
 
 透過 API 建立使用者覆寫（ `/api/on-call-duty-policy-user-override` ）時，如果不帶 `routeAlertsToUserId` ，就會略過 `overrideUserId` 中的人，時間從 `startsAt` 到 `endsAt` 。
 
@@ -111,6 +111,8 @@ flowchart TB
 - 不帶它們建立的排程和以前一樣沒有層；Terraform 的排程資源不會傳送它們。
 - 不帶 `rotation` 建立的層和以往一樣每天交接。
 - 透過 API 或 Terraform 對排程的層和層中人員所做的變更會作為一次變更通知：在層半分鐘內沒有再變更後才計算誰在待命，開始待命、結束待命或下一位待命的人只會收到一次通知，而不是每寫入一個層或一個人就通知一次。每項變更一儲存，呼叫就會傳給層所安排的待命人員。
+- 若要像 **層** 頁面上的 **儲存變更** 那樣一次變更誰在排程的各層中輪值，請用 `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 讀取各層，修改後再傳回 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 。其中依優先順序從高到低列出排程保留的每一層，每層依輪值順序列出其中的人員：已在某層中的人用其 `layerUserId` ，新加入的人只用 `userId` 。 `deletedLayerIds` 列出要刪除的層。
+- 一次儲存要麼全部寫入，要麼完全不寫入，誰在待命只計算一次，並且立即計算。在別人變更各層之後才進行的儲存會以 409 被拒絕，因為它的 `basedOnVersion` 已不再是各層目前的版本：請重新讀取各層，並在現有內容的基礎上進行變更。Terraform 的 `oneuptime_on_call_schedule_layers` 資源就是這樣儲存排程的各層的。
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

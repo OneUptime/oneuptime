@@ -6,6 +6,7 @@ Medan någon är borta skickar en användaråsidosättning de utlarmningar som s
 - [Så ändrar en åsidosättning en utlarmning](#så-ändrar-en-åsidosättning-en-utlarmning): Vem som larmas i stället, och när.
 - [Lägg till en åsidosättning](#lägg-till-en-åsidosättning): Vem som är borta, vem som täcker upp, från när och till när.
 - [Redigera en åsidosättning](#redigera-en-åsidosättning): Ändra vem som täcker upp, eller när den börjar och slutar.
+- [Avsluta en åsidosättning tidigare](#avsluta-en-åsidosättning-tidigare): Ta tillbaka någon innan åsidosättningen slutar.
 - [Varje policy, eller en](#varje-policy-eller-en): Var du lägger till en åsidosättning, och vilken som vinner.
 - [Andra sätt att lägga till en](#andra-sätt-att-lägga-till-en): Från ett schema och från dina kommande pass.
 :::
@@ -56,10 +57,16 @@ Varje åsidosättning är en rad: **Borta**, **Täcks av**, **Börjar** och **Sl
 Klicka på **Redigera** på en åsidosättnings rad, på någon av de två sidorna **Användaråsidosättningar** eller i listan över användaråsidosättningar på schemats sida **Lager**. Formuläret öppnas med åsidosättningen som den sparades: ändra den och klicka på **Spara ändringar**.
 
 - **Vem täcker upp?** kan ändras tills åsidosättningen slutar. Ställ tillbaka den på **Nästa person i rotationen** för att hoppa över personen i stället.
-- **Börjar** kan flyttas tills åsidosättningen börjar och stannar sedan som den är. **Slutar** kan flyttas tills åsidosättningen slutar: ställ in den på nu för att avsluta åsidosättningen tidigare. Ingen av dem kan flyttas till det förflutna.
+- **Börjar** kan flyttas tills åsidosättningen börjar och stannar sedan som den är. **Slutar** kan flyttas tills åsidosättningen slutar: använd **Avsluta nu** för att avsluta den nu. Ingen av dem kan flyttas till det förflutna.
 - **Vem är borta?** kan inte ändras. Lägg till en ny åsidosättning för någon annan.
 
-En åsidosättning som har slutat kan inte längre ändras: dess **Redigera** är låst och säger varför.
+En åsidosättning som har slutat kan inte längre ändras: dess **Redigera** är låst och säger varför. OneUptimes mobilapp redigerar åsidosättningar enligt samma regler.
+
+## Avsluta en åsidosättning tidigare
+
+För att ta tillbaka någon innan åsidosättningen slutar klickar du på **Avsluta nu**: i menyn på åsidosättningens rad på någon av de två sidorna **Användaråsidosättningar**, bredvid den i listan över användaråsidosättningar på schemats sida **Lager**, eller under **Slutar** i dess redigeringsformulär. Den frågar först och säger vad som händer med den tid som är kvar: den som täcker upp slutar täcka upp för personen, eller så hoppas personen inte längre över, och från och med då är utlarmningarna personens egna igen. Åsidosättningen slutar sedan direkt.
+
+**Avsluta nu** erbjuds bara medan en åsidosättning pågår: en som inte har börjat än har inget att avsluta, så ta bort den i stället. Mobilappen avslutar en pågående åsidosättning på samma sätt.
 
 ## Varje policy, eller en
 
@@ -68,11 +75,11 @@ En åsidosättning som har slutat kan inte längre ändras: dess **Redigera** ä
 | **Jour → Avancerad → Användaråsidosättningar** | **Globala användaråsidosättningar** | Varje jourpolicy i projektet |
 | En policys **Användaråsidosättningar** | **Jourpolicyns användaråsidosättningar** | Bara den policyn |
 
-Två åsidosättningar för samma person får inte överlappa på samma policy, inte heller när båda är globala. Formuläret säger det så snart tiderna är valda, med **Redigera den åsidosättningen** för att ändra den andra i stället. Den ena kan sluta när nästa börjar.
+Två åsidosättningar för samma person får inte överlappa på samma policy, inte heller när båda är globala. Formuläret, och **Hoppa över till…** i ett schemas lager, säger det bredvid tiderna så snart de är valda, med **Redigera den åsidosättningen** för att ändra den andra i stället. Den ena kan sluta när nästa börjar.
 
 En policys egen åsidosättning får överlappa en global för samma person: på den policyn används dess egen medan båda gäller, och formuläret säger det. En utlarmning utan policy, från ett arbetsflöde eller från chatt, följer bara de globala åsidosättningarna.
 
-Åsidosättningar som redan överlappade före den här regeln förblir som de är. Båda är märkta **Överlappar**, som säger vilken som används: en som anger vem som täcker upp före en som hoppar över, sedan den som börjar först, sedan den som lades till först.
+Åsidosättningar som redan överlappade före den här regeln förblir som de är. Båda är märkta **Överlappar**, som säger vilken som används: en som anger vem som täcker upp före en som hoppar över, sedan den som börjar först, sedan den som lades till först. Båda kan ändå kortas eller avslutas med **Avsluta nu**: bara en ändring som lägger till tid omfattas av regeln.
 
 ## Andra sätt att lägga till en
 
@@ -85,7 +92,7 @@ När någon lämnar projektet tas varje åsidosättning som nämner hen och inte
 
 **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Jouradministratör** och **Jourmedlem** får lägga till, redigera och ta bort åsidosättningar; **Tittare** och **Jourtittare** får se dem. I en anpassad roll heter behörigheterna **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** och **Read On-Call Policy User Override**. På **Tidslinje för jourscheman** ser bara personer som får läsa åsidosättningar vems pass som täcks upp.
 
-En åsidosättning på en policy följer policyns omfattning. Ge ett team **Jourmedlem** begränsad till de policyer det äger, eller till sin etikett, så lägger dess medlemmar till, redigerar och tar bort åsidosättningar bara på de policyerna. En global åsidosättning gäller för varje policy, även ett annat teams, så att lägga till, redigera eller ta bort en kräver behörigheten för åsidosättningar över hela projektet. Med en snävare behörighet är **Lägg till Användaråsidosättning**, **Redigera** och **Ta bort** under **Jour → Avancerad → Användaråsidosättningar** låsta och säger varför. **Hoppa över till…** i ett schemas lager och **Hitta ersättare** på dina kommande pass, som lägger till globala åsidosättningar, erbjuder i stället de policyer du får lägga till åsidosättningar på, med en åsidosättning per policy, och det gör även ersättaren i mobilappen; där du inte får på någon av dem är de låsta och säger varför. Teamet lägger till sina åsidosättningar på varje policys egen sida **Användaråsidosättningar**. Detsamma gäller API:et: en åsidosättning utan `onCallDutyPolicyId` avvisas för en behörighet som är begränsad till etiketter eller till ägda policyer.
+En åsidosättning på en policy följer policyns omfattning. Ge ett team **Jourmedlem** begränsad till de policyer det äger, eller till sin etikett, så lägger dess medlemmar till, redigerar och tar bort åsidosättningar bara på de policyerna. En global åsidosättning gäller för varje policy, även ett annat teams, så att lägga till, redigera eller ta bort en kräver behörigheten för åsidosättningar över hela projektet. Med en snävare behörighet är **Lägg till Användaråsidosättning**, **Redigera**, **Avsluta nu** och **Ta bort** under **Jour → Avancerad → Användaråsidosättningar** låsta och säger varför. **Hoppa över till…** i ett schemas lager och **Hitta ersättare** på dina kommande pass, som lägger till globala åsidosättningar, erbjuder i stället de policyer du får lägga till åsidosättningar på, med en åsidosättning per policy, och det gör även ersättaren i mobilappen; där du inte får på någon av dem är de låsta och säger varför. Teamet lägger till sina åsidosättningar på varje policys egen sida **Användaråsidosättningar**. Detsamma gäller API:et: en åsidosättning utan `onCallDutyPolicyId` avvisas för en behörighet som är begränsad till etiketter eller till ägda policyer.
 
 I OneUptime Cloud kräver användaråsidosättningar abonnemanget **Growth**.
 
@@ -118,6 +125,8 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
 En åsidosättning där personen som är borta och den som täcker upp är samma person avvisas, liksom en som slutar innan den börjar. Detsamma gäller en som överlappar en annan åsidosättning för samma person på samma policy, eller när båda är globala: avvisningen anger den som den överlappar.
 
 För att ändra en åsidosättning skickar du `PUT /api/on-call-duty-policy-user-override/<override-id>` med fälten som ska ändras i `data`: `routeAlertsToUserId` (`null` för att hoppa över personen i stället), `startsAt` och `endsAt`. `overrideUserId` och `onCallDutyPolicyId` kan inte ändras. En åsidosättning som har slutat kan inte ändras, inte heller starten på en som redan har börjat, och en tid som ändras kan inte flyttas till det förflutna.
+
+För att avsluta en pågående åsidosättning skickar du `POST /api/on-call-duty-policy-user-override/<override-id>/end-now`. Den slutar enligt serverns klocka, och svaret ger dess nya `endsAt`. En som inte har börjat än, eller som redan har slutat, avvisas.
 
 ## Felsökning
 

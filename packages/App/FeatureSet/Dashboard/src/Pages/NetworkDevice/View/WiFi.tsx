@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
@@ -21,7 +22,6 @@ import WifiRadioUtil, {
 } from "Common/Utils/NetworkDevice/WifiRadioUtil";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -73,7 +73,7 @@ const StatusDot: FunctionComponent<StatusDotProps> = (
 ): ReactElement => {
   if (props.isGood === undefined) {
     return (
-      <span className="text-gray-400">{props.text || <TableEmptyValue />}</span>
+      <span className="text-gray-500">{props.text || <TableEmptyValue />}</span>
     );
   }
 
@@ -296,7 +296,7 @@ const NetworkDeviceWiFi: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

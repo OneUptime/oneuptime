@@ -11,10 +11,13 @@ import {
   ServerSendingState,
 } from "Common/Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklistUtil, {
+  getServerSetupBackupGuides,
   SERVER_SETUP_ADMIN_PATHS,
   SERVER_SETUP_CHECKED_WORDS,
   SERVER_SETUP_CHECKS,
   SERVER_SETUP_GUIDES,
+  ServerInstallKind,
+  ServerSetupBackupGuide,
   ServerSetupCheckDefinition,
   ServerSetupCheckId,
   ServerSetupCheckResult,
@@ -24,15 +27,23 @@ import ServerSetupChecklistUtil, {
   ServerSetupStatus,
 } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
+import ServerSetUpProblem from "Common/Types/ServerSending/ServerSetUpProblem";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ServerSetupChecklistLoader from "Common/UI/Utils/ServerSetupChecklist";
-import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  Translator,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -87,6 +98,8 @@ export const SERVER_SETUP_COPY: {
     seeGlobalProbes: string;
     notNeeded: string;
     howToBackUp: string;
+    howToBackUpWithDockerCompose: string;
+    howToBackUpOnKubernetes: string;
     setUpBackups: string;
     isBackedUp: string;
     readTheGuide: string;
@@ -125,6 +138,9 @@ export const SERVER_SETUP_COPY: {
     seeGlobalProbes: "See global probes",
     notNeeded: "Not needed",
     howToBackUp: "How to back up",
+    // While the server cannot tell how it was installed: both, each named (#9378).
+    howToBackUpWithDockerCompose: "How to back up with Docker Compose",
+    howToBackUpOnKubernetes: "How to back up on Kubernetes",
     setUpBackups: "Set up backups",
     isBackedUp: "This server is backed up",
     readTheGuide: "Read the guide",
@@ -133,6 +149,17 @@ export const SERVER_SETUP_COPY: {
     undo: "Undo",
   },
 };
+
+/*
+ * "Set up email" opens Settings > Emails in the form of the server that
+ * sends the email (#7460): that page reads this from its address
+ * (Pages/Settings/Email), opens the form, and takes it off again.
+ */
+export const SERVER_SETUP_SET_UP_EMAIL_QUERY: { name: string; value: string } =
+  {
+    name: "set-up",
+    value: "email",
+  };
 
 /*
  * Whether people reach the server over HTTPS: OneUptime is told so
@@ -200,9 +227,38 @@ export interface ServerSetupAction {
   url?: string | undefined;
   channel?: ServerSendingChannel | undefined;
   choice?: ServerSetupChoiceKind | undefined;
-  // The quieter of two actions: drawn as a link.
+  /*
+   * The quieter of two actions, drawn as a muted link beside the main fix:
+   * Open settings, and every choice the admin makes in the server's place -
+   * Not needed, Keep sign-ups open, Use email and push only, This server is
+   * backed up - and its Undo (#7030).
+   */
   isSecondary?: boolean | undefined;
 }
+
+/*
+ * How a quiet action is drawn, a link or a button alike: muted words,
+ * underlined, as tall as a finger needs (Docs/ux/README.md, "A finger can
+ * hit it"), on a line with the main fix (#7030). The choices used to be
+ * indigo links padded as big as a button, louder than the fix beside them.
+ * Never wider than its row: words too long for a phone's line wrap.
+ */
+export const SERVER_SETUP_QUIET_ACTION_CLASS_NAME: string =
+  "inline-flex max-w-full items-center text-start text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 [@media(pointer:coarse)]:min-h-11";
+
+/*
+ * How a guide's address is opened: a docs page this server serves itself
+ * (/docs/...) at this server, and the Helm chart's docs, which only GitHub
+ * has, as they are.
+ */
+export const getServerSetupGuideUrl: (data: {
+  guide: string;
+  origin: string;
+}) => string = (data: { guide: string; origin: string }): string => {
+  return data.guide.startsWith("https://")
+    ? data.guide
+    : `${data.origin}${data.guide}`;
+};
 
 // A row as drawn: its words and its actions.
 export interface ServerSetupRow {
@@ -212,9 +268,12 @@ export interface ServerSetupRow {
   isFinished: boolean;
   isFailing: boolean;
   // The status line: an English template and what fills it.
-  status: { template: string; values: Record<string, string> };
-  // What it was checked against, each an English template and its values.
-  checked: Array<{ template: string; values: Record<string, string> }>;
+  status: { template: string; values: TemplateValues };
+  /*
+   * What it was checked against, each an English template and its values:
+   * a setting's name among them is looked up with the sentence (#9437).
+   */
+  checked: Array<{ template: string; values: TemplateValues }>;
   actions: Array<ServerSetupAction>;
 }
 
@@ -327,14 +386,30 @@ export const getServerSetupRow: (data: {
       } else if (check.status === ServerSetupStatus.Failing) {
         providerSaid(check.sentThrough, check.reason);
       } else if (check.status === ServerSetupStatus.NotSetUp && check.reason) {
-        checked.push({ template: check.reason, values: {} });
+        /*
+         * What the settings are missing, in words the reader's language has
+         * (#9437); from an older server, or an environment variable's
+         * problem, the English sentence as it came.
+         */
+        checked.push(
+          check.reasonWords
+            ? {
+                template: check.reasonWords.template,
+                values: ServerSetUpProblem.toValues(check.reasonWords),
+              }
+            : { template: check.reason, values: {} },
+        );
       }
 
       if (check.status === ServerSetupStatus.NotSetUp) {
+        // Lands in the mail server's form, not on the page around it (#7460).
         actions.push({
           kind: "route",
           title: SERVER_SETUP_COPY.actions.setUpEmail,
-          route: route(PageMap.SETTINGS_SMTP),
+          route: route(PageMap.SETTINGS_SMTP).addQueryParams({
+            [SERVER_SETUP_SET_UP_EMAIL_QUERY.name]:
+              SERVER_SETUP_SET_UP_EMAIL_QUERY.value,
+          }),
         });
       } else if (!check.isFinished) {
         actions.push({
@@ -466,27 +541,43 @@ export const getServerSetupRow: (data: {
 
       if (
         check.status === ServerSetupStatus.NotSetUp ||
-        check.status === ServerSetupStatus.Failing
+        check.status === ServerSetupStatus.Failing ||
+        check.status === ServerSetupStatus.Stale
       ) {
         /*
          * Scheduled backups are the Enterprise Edition's page, linked only
          * when it is loaded: its address is Common's, never this page's own.
          */
-        actions.push(
-          check.hasScheduledBackups
-            ? {
-                kind: "route",
-                title: SERVER_SETUP_COPY.actions.setUpBackups,
-                route: new Route(
-                  data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
-                ),
-              }
-            : {
-                kind: "guide",
-                title: SERVER_SETUP_COPY.actions.howToBackUp,
-                url: SERVER_SETUP_GUIDES.backups,
-              },
-        );
+        if (check.hasScheduledBackups) {
+          actions.push({
+            kind: "route",
+            title: SERVER_SETUP_COPY.actions.setUpBackups,
+            route: new Route(
+              data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
+            ),
+          });
+        } else {
+          /*
+           * Steps this install can run (#9378): `npm run backup` on Docker
+           * Compose, the Helm chart's on Kubernetes - and both, each named,
+           * while the server cannot tell which it is.
+           */
+          const guides: Array<ServerSetupBackupGuide> =
+            getServerSetupBackupGuides(check.installKind);
+
+          for (const guide of guides) {
+            actions.push({
+              kind: "guide",
+              title:
+                guides.length === 1
+                  ? SERVER_SETUP_COPY.actions.howToBackUp
+                  : guide.installKind === ServerInstallKind.Kubernetes
+                    ? SERVER_SETUP_COPY.actions.howToBackUpOnKubernetes
+                    : SERVER_SETUP_COPY.actions.howToBackUpWithDockerCompose,
+              url: guide.path,
+            });
+          }
+        }
       }
       break;
 
@@ -508,12 +599,26 @@ export const getServerSetupRow: (data: {
       break;
 
     case ServerSetupCheckId.BrowserPush:
+      // The server's own pushes fail (#6881): what the push service or relay said.
+      if (check.status === ServerSetupStatus.Failing) {
+        providerSaid(check.sentThrough, check.reason);
+      }
+
       if (!check.isFinished) {
         actions.push({
           kind: "guide",
           title: SERVER_SETUP_COPY.actions.readTheGuide,
           url: SERVER_SETUP_GUIDES.browserPush,
         });
+      }
+
+      /*
+       * A test push to this admin's own phones and browsers (#7028), done
+       * or not: browsers set up says nothing of phones, and a push that
+       * goes out shows the server's pushes work again (#6881).
+       */
+      for (const channel of check.tests) {
+        actions.push({ kind: "test", title: "", channel: channel });
       }
       break;
 
@@ -679,10 +784,10 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
 
   const words: (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }) => string = (sentence: {
     template: string;
-    values: Record<string, string>;
+    values: TemplateValues;
   }): string => {
     return translator.translateTemplate(sentence.template, sentence.values);
   };
@@ -730,11 +835,20 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
     index: number,
   ): ReactElement => {
     const key: string = `${row.id}-${action.kind}-${index}`;
-    const testId: string = `server-setup-${row.id}-${action.kind}`;
+    const isOneOfItsKind: boolean =
+      row.actions.filter((other: ServerSetupAction): boolean => {
+        return other.kind === action.kind;
+      }).length === 1;
+    // A second guide of a row (both ways to back up) is told apart by its place.
+    const testId: string = isOneOfItsKind
+      ? `server-setup-${row.id}-${action.kind}`
+      : `server-setup-${row.id}-${action.kind}-${index}`;
+    /*
+     * Never wider than its row: on a phone, "How to back up with Docker
+     * Compose" ran 9px past the card's edge. Its words wrap instead.
+     */
     const buttonClassName: string =
-      "inline-flex flex-none items-center rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
-    const linkClassName: string =
-      "inline-flex flex-none items-center text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900";
+      "inline-flex max-w-full items-center rounded-md bg-white px-3 py-1.5 text-start text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
 
     switch (action.kind) {
       case "test":
@@ -748,11 +862,14 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
         );
       case "choose":
       case "undo":
+        // The admin's own choice, and its Undo: quiet beside the fix (#7030).
         return (
           <Button
             key={key}
             title={action.title}
-            buttonStyle={ButtonStyleType.LINK}
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.ExtraSmall}
+            className={SERVER_SETUP_QUIET_ACTION_CLASS_NAME}
             isLoading={busyCheck === row.id}
             disabled={busyCheck !== null}
             onClick={() => {
@@ -774,11 +891,20 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
               action.route ||
               (action.kind === "address"
                 ? URL.fromString(action.url!)
-                : URL.fromString(`${window.location.origin}${action.url!}`))
+                : URL.fromString(
+                    getServerSetupGuideUrl({
+                      guide: action.url!,
+                      origin: window.location.origin,
+                    }),
+                  ))
             }
             openInNewTab={isGuide}
             dataTestId={testId}
-            className={action.isSecondary ? linkClassName : buttonClassName}
+            className={
+              action.isSecondary
+                ? SERVER_SETUP_QUIET_ACTION_CLASS_NAME
+                : buttonClassName
+            }
           >
             {translator.translateText(action.title)}
             {/* A guide opens in a tab of its own, and says so. */}
@@ -786,7 +912,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
               <>
                 <Icon
                   icon={IconProp.ExternalLink}
-                  className="ms-1.5 h-3.5 w-3.5 text-gray-400"
+                  className="ms-1.5 h-3.5 w-3.5 flex-none text-gray-400"
                   data-testid={`${testId}-new-tab`}
                 />
                 <span className="sr-only">
@@ -828,13 +954,13 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
             </p>
             {row.checked.map(
               (
-                sentence: { template: string; values: Record<string, string> },
+                sentence: { template: string; values: TemplateValues },
                 index: number,
               ): ReactElement => {
                 return (
                   <p
                     key={index}
-                    className="mt-1 break-words text-xs text-gray-400"
+                    className="mt-1 break-words text-xs text-gray-500"
                     data-testid={`server-setup-${row.id}-checked`}
                   >
                     {words(sentence)}
@@ -888,12 +1014,16 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           {translator.translateText(title)}
         </span>
         <span
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-500"
           data-testid={`server-setup-${tier}-progress`}
         >
+          {/*
+           * In the digits the reader's language writes, as its dates are:
+           * Persian's own, where "0 of 3" read in Latin digits.
+           */}
           {translator.translateTemplate(SERVER_SETUP_COPY.progress, {
-            done: done,
-            total: sectionRows.length,
+            done: translator.formatNumber(done),
+            total: translator.formatNumber(sectionRows.length),
           })}
         </span>
       </>

@@ -13,7 +13,7 @@ flowchart TB
 
 - Un progetto di cui sei proprietario: solo un proprietario può attivare SMS e chiamate, e solo un proprietario o un amministratore può creare una policy di reperibilità.
 - Il tuo cellulare.
-- I colleghi da avvisare, aggiunti come membri del progetto: [Invitare persone](/docs/permissions/inviting-people) spiega come fare.
+- I colleghi da avvisare: la configurazione può invitarli via email, oppure vedi [Invitare persone](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Il tuo server deve poter inviare email e SMS, e fare chiamate. Il suo amministra
 
 ![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Avvisare la persona giusta quando qualcosa si guasta» selezionato](screen:home-goal-paging)
 
-Nella **Home** del tuo progetto, fai clic su **Configura una policy di reperibilità** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Avvisare la persona giusta quando qualcosa si guasta** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**.
+Nella **Home** del tuo progetto, fai clic su **Configura una policy di reperibilità** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Avvisare la persona giusta quando qualcosa si guasta** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**. In **Reperibilità**, anche **Configurazione guidata** la apre.
 
 ### Installare l'app sul telefono
 
-Installa OneUptime On-Call dall'App Store o da Google Play e accedi: l'app registra il tuo telefono per le notifiche push. Torna alla configurazione e fai clic su **Ricontrolla**: ora **App mobile o browser**, sotto **Come dobbiamo raggiungerti?**, elenca il tuo telefono.
+In **Come dobbiamo raggiungerti?**, fai clic su **Scarica l'app**, inquadra il codice con il telefono, installa l'app e accedi. Torna alla configurazione e fai clic su **Ricontrolla**: ora **App mobile o browser** elenca il tuo telefono. **Usa questo browser** fa chiamare anche questo browser.
 
 ### Attivare SMS e chiamate
 
@@ -47,11 +47,11 @@ Nei nuovi progetti, SMS e chiamate sono disattivati. Se sei il proprietario del 
 
 Digita il tuo numero di cellulare con il prefisso internazionale in **Il tuo numero di telefono**, per esempio `+15551234567`, e fai clic su **Inviami un codice via SMS**. Inserisci il codice ricevuto via SMS e fai clic su **Verifica**: anche le telefonate di reperibilità arrivano a questo numero. Fai clic su **Continua**. Per essere avvisato solo dall'app e via email, lascia vuoto il numero e fai clic subito su **Continua**.
 
-### Scegliere chi altro viene avvisato
+### Scegliere chi viene chiamato per primo
 
-![Il passaggio «Chi altro è reperibile?», con «Salva e continua» evidenziato](screen:paging-who-else)
+![Il passaggio «Chi viene chiamato per primo?», con «Salva e continua» evidenziato](screen:paging-who-else)
 
-In **Chi altro è reperibile?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone insieme a te, poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
+In **Chi viene chiamato per primo?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone nello stesso momento in cui avvisi te. Per qualcuno che non è ancora nel progetto, fai clic su **Invita via email**, scrivi il suo indirizzo e fai clic su **Invia invito**. Poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
 
 ### Decidere cosa succede se nessuno risponde
 
@@ -67,7 +67,7 @@ In **Invia una chiamata di test**, fai clic su **Testa questa policy**. Scegli u
 
 ### Riconoscere la chiamata di test
 
-Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. L'app mostra che la chiamata è arrivata, ma non può riconoscere un test. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
+Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. Nell'app OneUptime On-Call, nelle versioni successive alla 1.6.0, puoi riconoscerla anche dalla sua notifica push. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
 :::
 
 ## Controllare che funzioni
@@ -75,7 +75,7 @@ Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 dur
 ![Il riepilogo «Le chiamate sono configurate»: «Chi viene chiamato», «Se nessuno risponde» e «Testato»](screen:paging-summary)
 
 - Il passaggio di test dice chi ha riconosciuto la chiamata, come e in quanto tempo.
-- La configurazione termina su **Le chiamate sono configurate**, un riepilogo ricavato da ciò che è stato salvato: **Chi viene chiamato**, **Se nessuno risponde** e **Testato**. Un problema della policy stessa, come qualcuno che non riesce a raggiungere, è elencato in **Richiede attenzione**.
+- La configurazione termina su **Le chiamate sono configurate**, un riepilogo ricavato da ciò che è stato salvato: **Chi viene chiamato**, **Se nessuno risponde** e **Testato**. **Chi viene chiamato** dice in ordine come viene raggiunta ogni persona. Un problema della policy stessa, come qualcuno che non riesce a raggiungere, è elencato in **Richiede attenzione**.
 - Nella **Home**, l'elenco segna il passaggio **Configura una policy di reperibilità** come completato. Se era l'ultimo passaggio, l'elenco scompare.
 
 Se la policy avvisa qualcun altro, puoi guardare anche l'escalation: fai clic su **Apri la policy di reperibilità** nel riepilogo, poi su **Testa questa policy**. Attiva **Percorri ogni livello di escalation**, invia il test e non riconoscere la prima chiamata: la persona successiva viene avvisata al massimo 2 minuti dopo.

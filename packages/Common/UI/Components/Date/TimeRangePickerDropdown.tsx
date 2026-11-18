@@ -341,7 +341,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
     "bg-indigo-50 font-medium text-indigo-700";
   const idleOptionClassName: string = "text-gray-700 hover:bg-gray-50";
   const headingClassName: string =
-    "px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400";
+    "px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500";
 
   /*
    * In a row too narrow for a custom range's two dates (a phone), the

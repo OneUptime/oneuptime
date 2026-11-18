@@ -29,8 +29,10 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
  * gateway. Only the gateway asks for anything more - its URL, required, and
  * its signing secret, folded under More fields since the server makes it.
  * The card shows the gateway's URL and secret only while the server sends
- * through it. Send Test asks the server to try the gateway as saved and
- * shows what it answered, delivered or not.
+ * through it. Check Gateway asks the server to try the gateway as saved and
+ * shows what it answered, delivered or not - offered only while the server
+ * sends through its gateway: it was Send Test, on every server, beside the
+ * page's Send test SMS and Make test call, which do send one (#7029).
  */
 
 /*
@@ -286,15 +288,24 @@ async function save(dialog: HTMLElement): Promise<void> {
 async function sendTest(): Promise<HTMLElement> {
   const element: HTMLElement = await card();
 
+  await waitFor(
+    () => {
+      expect(
+        within(element).getByRole("button", { name: "Check Gateway" }),
+      ).toBeVisible();
+    },
+    { timeout: WAIT_FOR_TIMEOUT },
+  );
+
   await act(async () => {
-    fireEvent.click(within(element).getByRole("button", { name: "Send Test" }));
+    fireEvent.click(
+      within(element).getByRole("button", { name: "Check Gateway" }),
+    );
   });
 
   await waitFor(
     () => {
-      expect(
-        screen.getByText("Send test: SMS and call gateway"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
     },
     { timeout: WAIT_FOR_TIMEOUT },
   );
@@ -302,6 +313,13 @@ async function sendTest(): Promise<HTMLElement> {
 
   return screen.getByTestId("modal");
 }
+
+// A server that sends its SMS and calls through its own gateway.
+const SENDS_THROUGH_GATEWAY: Record<string, unknown> = {
+  callAndSmsProvider: "Gateway",
+  callAndSmsGatewayUrl: GATEWAY_URL,
+  callAndSmsGatewaySecret: SECRET,
+};
 
 function answer(data: JSONObject): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(200, data, {});
@@ -350,9 +368,59 @@ describe("the card", () => {
     expect(
       within(element).getByRole("button", { name: "Edit Provider" }),
     ).toBeVisible();
+  });
+
+  /*
+   * #7029: the page offers one clear test per channel - Send test SMS and
+   * Make test call. The card's own check sends nobody a message, and is
+   * named for what it checks and offered only where there is a gateway.
+   */
+  test("on a server that sends through Twilio it offers no check of a gateway, and nothing called a test", async () => {
+    for (const saved of [
+      {},
+      {
+        callAndSmsProvider: "Twilio",
+        callAndSmsGatewayUrl: GATEWAY_URL,
+        callAndSmsGatewaySecret: SECRET,
+      },
+    ]) {
+      stored = saved;
+
+      await renderElement(<CallAndSmsGatewayCard />);
+      await waitForProvider("Twilio");
+
+      const element: HTMLElement = await card();
+
+      expect(
+        within(element).queryByRole("button", { name: "Check Gateway" }),
+      ).toBeNull();
+      expect(
+        within(element).queryByRole("button", { name: /test/i }),
+      ).toBeNull();
+
+      cleanup();
+    }
+  });
+
+  test("on a server that sends through its gateway it offers Check Gateway, beside Edit Provider", async () => {
+    stored = SENDS_THROUGH_GATEWAY;
+
+    await renderElement(<CallAndSmsGatewayCard />);
+    await waitForProvider("Your own gateway");
+
+    const element: HTMLElement = await card();
+
+    await waitFor(
+      () => {
+        expect(
+          within(element).getByRole("button", { name: "Check Gateway" }),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
     expect(
-      within(element).getByRole("button", { name: "Send Test" }),
-    ).toBeVisible();
+      within(element).queryByRole("button", { name: "Send Test" }),
+    ).toBeNull();
   });
 
   test("a server that has never chosen sends through Twilio, and shows no gateway", async () => {
@@ -627,7 +695,11 @@ describe("Edit Provider", () => {
   });
 });
 
-describe("Send Test", () => {
+describe("Check Gateway", () => {
+  beforeEach(() => {
+    stored = SENDS_THROUGH_GATEWAY;
+  });
+
   test("asks the server to try the gateway as saved, and shows what it answered", async () => {
     await renderElement(<CallAndSmsGatewayCard />);
 
@@ -693,7 +765,7 @@ describe("Send Test", () => {
     ).toBeNull();
   });
 
-  test("a server that sends through Twilio says so", async () => {
+  test("a server that went back to Twilio since the page loaded says so", async () => {
     post.mockResolvedValue(
       answer({
         ok: false,
@@ -780,7 +852,7 @@ describe("Send Test", () => {
     });
     await settle();
 
-    expect(screen.queryByText("Send test: SMS and call gateway")).toBeNull();
+    expect(screen.queryByTestId("modal")).toBeNull();
 
     post.mockResolvedValue(
       answer({

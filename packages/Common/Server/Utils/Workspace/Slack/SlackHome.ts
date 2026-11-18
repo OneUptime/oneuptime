@@ -5,7 +5,6 @@ import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -40,6 +39,7 @@ import WorkspaceHome, {
 } from "../WorkspaceHome";
 import WorkspaceHomeProject from "../WorkspaceHomeProject";
 import SlackUtil from "./Slack";
+import { SlackRefusalException } from "./SlackRefusal";
 import SlackActionType from "./Actions/ActionTypes";
 
 /*
@@ -836,7 +836,7 @@ export default class SlackHome {
         return false;
       }
 
-      throw new BadRequestException("Error from Slack " + error);
+      throw new SlackRefusalException(error);
     }
 
     return true;

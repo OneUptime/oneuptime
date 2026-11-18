@@ -58,6 +58,8 @@ L'application enregistre ensuite l'iPhone ou l'iPad dans chacun de vos projets. 
 
 L'application affiche un projet à la fois : touchez le nom du projet en haut d'un écran pour en changer. Un projet qui exige l'authentification unique est marqué **SSO Required** sous **Settings → Manage Projects** jusqu'à ce que vous y touchiez **Authenticate with SSO**.
 
+Lors d'une nouvelle installation, l'application ouvre ensuite **Get Ready for On-Call** une fois : trois étapes pour qu'une alerte atteigne l'appareil, même la nuit en mode silencieux. Autorisez les notifications, touchez **Turn On Critical Alerts**, puis **Send Test Page**, et prenez en compte l'alerte de test depuis sa notification. **Not Now** referme l'écran, et **Settings → Get Ready for On-Call** le rouvre à tout moment. Si les alertes critiques doivent être autorisées dans les Réglages d'iOS, elles s'activent dès que vous revenez dans l'application.
+
 ## Vérifier que les alertes atteignent l'appareil
 
 :::steps

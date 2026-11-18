@@ -1512,6 +1512,76 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public adminNotificationEmail?: Email = undefined;
 
+  /*
+   * Where OneUptime texts the master admins when the server's email stops
+   * working or every global probe stops reporting, and when they work again
+   * (#6879, Types/ServerSending/ServerAlerts). Null: no SMS. A master
+   * admin's choice, on Settings > Emails.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Phone,
+    title: "Server Alert Phone Number",
+    description:
+      "Where OneUptime texts master admins when this server's email stops working or its global probes stop reporting, and when they work again.",
+  })
+  @Column({
+    type: ColumnType.Phone,
+    length: ColumnLength.Phone,
+    nullable: true,
+    transformer: Phone.getDatabaseTransformer(),
+  })
+  public serverAlertPhoneNumber?: Phone = undefined;
+
+  /*
+   * Whether those alerts go to the master admins' own devices as push
+   * notifications. Null, as on every server until a master admin chooses:
+   * yes on a self-hosted server, no on OneUptime Cloud
+   * (isServerAlertPushOnByDefault).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Server Alerts by Push",
+    description:
+      "Whether master admins get push notifications on their own devices when this server's email stops working or its global probes stop reporting.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isServerAlertPushOn?: boolean = undefined;
+
+  /*
+   * What the server-alerts job last told the master admins, and when
+   * (Types/ServerSending/ServerAlerts): written by that job only, as
+   * OneUptime (ROOT_ONLY_SERVER_ALERT_COLUMNS), and only when it changes.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Server Alert State",
+    description:
+      "What OneUptime last told master admins about this server's email and global probes, and when.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public serverAlertState?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -2901,6 +2971,32 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverSetupChoices?: JSONObject = undefined;
+
+  /*
+   * The last run of `npm run backup` (Types/Backup/BackupScriptRun, issue
+   * #7026): { at, succeeded, sizeInBytes }, which the setup checklist's
+   * Backups check reads. Null until the script first tells the server, and
+   * on every server whose script is older. Written by OneUptime only
+   * (isRoot), from POST /api/admin/health/backup-run, which takes the
+   * server's cluster key from the script: GlobalConfigService refuses a
+   * write through the CRUD API, so no session marks a server as backed up.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Backup Script Last Run",
+    description:
+      "When npm run backup last told this server it ran, whether it succeeded, and the size of the dump it wrote.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public backupScriptLastRun?: JSONObject = undefined;
 
   /*
    * Whether OneUptime asks people how things went (issue #6832): the

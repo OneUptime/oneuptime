@@ -16,6 +16,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import { createInstance, i18n } from "i18next";
 import * as React from "react";
 import { I18nextProvider } from "react-i18next";
@@ -444,9 +445,11 @@ function edgeLabel(id: string): string {
 }
 
 function showConnectionLabels(metric: "calls" | "errors" | "latency"): void {
-  fireEvent.change(screen.getByRole("combobox"), {
-    target: { value: metric },
-  });
+  // The picker's options in their order: On hover, Request rate, Error rate, Average latency.
+  chooseDropdownOption(
+    screen.getByRole("combobox"),
+    ["calls", "errors", "latency"].indexOf(metric) + 1,
+  );
 }
 
 function listRow(name: string): HTMLElement {

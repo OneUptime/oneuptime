@@ -490,7 +490,7 @@ describe("reading an alert's lineage", () => {
     render(<AlertLineageDiagram alertId={new ObjectID(ALERT)} />);
 
     expect(screen.getByTestId("alert-lineage-diagram")).toBeInTheDocument();
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(getAlertLineageMock).toHaveBeenCalledTimes(1);
     expect((getAlertLineageMock.mock.calls[0]![0] as ObjectID).toString()).toBe(
       ALERT,

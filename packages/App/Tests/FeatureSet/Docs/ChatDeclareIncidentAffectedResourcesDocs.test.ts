@@ -93,7 +93,7 @@ describe.each(PAGES)(
   (row: { name: string; page: string; heading: string }) => {
     const text: string = section(read(row.page), row.heading);
 
-    test("two bullets, right after what a form offers and before what it may name", () => {
+    test("two bullets, right after what a form offers - and the one about status page subscribers before what it may name", () => {
       const leads: Array<string> = bulletsOf(text).map((line: string) => {
         return line.substring(4, line.indexOf("**", 4));
       });
@@ -103,6 +103,8 @@ describe.each(PAGES)(
         "What a form offers.",
         ABOUT_LEAD,
         ALERT_LEAD,
+        // ChatDeclareIncidentSubscribersDocs holds it to the forms (#7917).
+        "Status page subscribers.",
         "What a form may name.",
       ]);
     });

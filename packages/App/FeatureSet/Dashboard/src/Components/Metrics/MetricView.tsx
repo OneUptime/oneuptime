@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import MetricQueryConfig from "./MetricQueryConfig";
 import MetricGraphConfig from "./MetricFormulaConfig";
 import Button, {
@@ -23,9 +24,8 @@ import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
@@ -1073,7 +1073,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   };
 
   if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="chart" />;
   }
 
   if (pageError) {
@@ -1088,7 +1088,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           <Card>
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   {translator.translateText("Time Range")}
                 </span>
               </div>
@@ -1111,10 +1111,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
         {/* Query configs */}
         {!props.hideQueryElements && (
           <div>
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               <span>{translator.translateText("Queries")}</span>
               {props.data.queryConfigs.length > 1 && (
-                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
                   {props.data.queryConfigs.length}
                 </span>
               )}
@@ -1449,7 +1449,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
          */}
         {isMetricResultsLoading &&
           !hasFetchedResultsOnce &&
-          !metricResultsError && <ComponentLoader />}
+          !metricResultsError && <ChartSkeleton />}
 
         {/*
          * Full-size error only before the FIRST successful fetch. Once
@@ -1516,7 +1516,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           (!isMetricResultsLoading || hasFetchedResultsOnce) && (
             <div>
               {!props.hideQueryElements && (
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   <span>{translator.translateText("Charts")}</span>
                   {/*
                    * Panel count, not result count: a query flagged
@@ -1537,7 +1537,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                         },
                       ).length + props.data.formulaConfigs.length;
                     return chartPanelCount > 1 ? (
-                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
                         {chartPanelCount}
                       </span>
                     ) : null;

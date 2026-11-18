@@ -7,7 +7,8 @@
  * notification shade. Every push of an on-call page - an incident, an alert
  * or an episode, a first page, a person's page or a page again
  * (UserNotificationRuleService) - names one of two, by who the page asks for
- * (getOnCallPagePushCategory):
+ * (getOnCallPagePushCategory), and a test page's push (OnCallTestPage) names
+ * a third of its own:
  *
  *   ON_CALL_PAGE_PUSH_CATEGORY           a responder's page: Acknowledge and
  *                                        Escalate.
@@ -17,10 +18,16 @@
  *                                        only says they have seen it - the
  *                                        record is not acknowledged - and
  *                                        there is nothing to escalate.
+ *   ON_CALL_TEST_PAGE_PUSH_CATEGORY      a test page (#7014): "Acknowledge
+ *                                        test page", and nothing else. It
+ *                                        acknowledges the test, never a
+ *                                        record - a test has none - and a
+ *                                        real page's actions are never under
+ *                                        it, nor it under a real page's.
  *
- * Each action opens the app on the record, after the phone is unlocked, and
- * the record's screen does what was asked, signed in as the person, as its
- * own buttons would.
+ * Each action opens the app, after the phone is unlocked, and the screen it
+ * opens does what was asked, signed in as the person, as its own buttons
+ * would: a page's record's screen, or a test page's own.
  *
  * An app older than a category does not know it, and shows the push with no
  * buttons, as before; so does a push that names no category. The app keeps
@@ -37,6 +44,8 @@ export const ON_CALL_PAGE_PUSH_CATEGORY: string = "ON_CALL_PAGE";
 export const ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY: string =
   "ON_CALL_OBSERVER_PAGE";
 
+export const ON_CALL_TEST_PAGE_PUSH_CATEGORY: string = "ON_CALL_TEST_PAGE";
+
 /*
  * Every category a push may name. The push relay forwards only these: what
  * it passes on goes to Expo under its deployment's access token.
@@ -44,6 +53,7 @@ export const ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY: string =
 export const PUSH_NOTIFICATION_CATEGORIES: ReadonlyArray<string> = [
   ON_CALL_PAGE_PUSH_CATEGORY,
   ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
+  ON_CALL_TEST_PAGE_PUSH_CATEGORY,
 ];
 
 export function isPushNotificationCategory(value: unknown): value is string {
@@ -56,7 +66,9 @@ export function isPushNotificationCategory(value: unknown): value is string {
  * The category an on-call page's push names: an observer's page gets its
  * own, whose one action says they have seen it - the responder's
  * Acknowledge would acknowledge the record itself, which is not theirs to.
- * Every other page is a responder's, as every page was before.
+ * Every other page is a responder's, as every page was before. A test page
+ * never comes here: its push names ON_CALL_TEST_PAGE_PUSH_CATEGORY
+ * (OnCallTestPageDelivery).
  */
 export function getOnCallPagePushCategory(page: {
   isObserverPage?: boolean | null | undefined;

@@ -359,7 +359,7 @@ const TableColumnsPage: FunctionComponent<
                 {columns.map((column: DataAssetColumn): ReactElement => {
                   return (
                     <tr key={column.name}>
-                      <td className="py-2 pr-4 text-gray-400">
+                      <td className="py-2 pr-4 text-gray-500">
                         {column.position}
                       </td>
                       <td className="py-2 pr-4 font-mono text-gray-900">

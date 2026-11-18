@@ -326,7 +326,7 @@ describe("ProfileTable names every source", () => {
   test("the hook runs before the loading early-return (rules of hooks)", () => {
     const hookIndex: number = PROFILE_TABLE.indexOf("useTelemetryEntityNames(");
     const earlyReturn: number = PROFILE_TABLE.indexOf(
-      "if (isPageLoading) { return <PageLoader",
+      "if (isPageLoading) { return <PageSkeleton",
     );
     expect(hookIndex).toBeGreaterThan(-1);
     expect(earlyReturn).toBeGreaterThan(-1);

@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -16,7 +17,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -352,7 +352,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
         title="Fix with AI"
         description="Checking AI setup and earlier tasks for this exception…"
       >
-        <ComponentLoader />
+        <DetailListSkeleton fields={2} columns={1} />
       </Card>
     );
   }

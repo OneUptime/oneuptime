@@ -151,6 +151,7 @@ import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import { isStatusPageMagicLinkAvailable } from "../../Types/StatusPage/StatusPageMagicLink";
+import { getStatusPagePublicName } from "../../Types/StatusPage/StatusPagePublicName";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
@@ -1127,7 +1128,11 @@ export default class StatusPageAPI extends BaseAPI<
      * The custom domain readiness proof: answers 200 only to a proof signed
      * with this installation's secret (CustomDomainServerReadiness), so the
      * readiness check can tell a request that reached this OneUptime from
-     * one a proxy in front of it answered itself. Reads and writes nothing.
+     * one a proxy in front of it answered itself. The answer also says how
+     * the request arrived - its host name and whether it came over HTTPS -
+     * so `npm run doctor` and diagnose.sh can tell whether a proxy in front
+     * passes those on (CustomDomainServerReadiness.answerTo). Reads and
+     * writes nothing.
      */
     this.router.get(
       `${new this.entityType()
@@ -1146,7 +1151,11 @@ export default class StatusPageAPI extends BaseAPI<
 
         Response.setNoCacheHeaders(res);
 
-        return Response.sendJsonObjectResponse(req, res, { proof: proof });
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          CustomDomainServerReadiness.answerTo({ proof: proof, req: req }),
+        );
       },
     );
 
@@ -7980,7 +7989,8 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     return {
-      title: statusPage.pageTitle || statusPage.name,
+      // Its Page Title, else its name: what its header and tab say (#7467).
+      title: getStatusPagePublicName(statusPage),
       description: statusPage.pageDescription,
       _id: statusPage._id?.toString(),
       defaultLanguage: statusPage.defaultLanguage || null,
@@ -8025,6 +8035,11 @@ export default class StatusPageAPI extends BaseAPI<
       logoAltText: true,
       coverImageAltText: true,
       pageTitle: true,
+      /*
+       * Only to name a page that has no Page Title (below); never sent as
+       * itself.
+       */
+      name: true,
       pageDescription: true,
       copyrightText: true,
       hidePoweredByOneUptimeBranding: true,
@@ -8094,6 +8109,22 @@ export default class StatusPageAPI extends BaseAPI<
 
     // Not part of what the page renders.
     delete item.isArchived;
+
+    /*
+     * The page's name as visitors read it (StatusPagePublicName): its Page
+     * Title, else its name. A page made by Create Status Page or the guided
+     * setup has no Page Title, and its header and tab named nothing - the
+     * tab read "Status Page" (#7467). The page app reads pageTitle, so it
+     * carries that name; the name itself is never sent, as a page with a
+     * Page Title may keep a name its team uses among themselves.
+     */
+    const publicName: string = getStatusPagePublicName(item);
+
+    if (publicName) {
+      item.pageTitle = publicName;
+    }
+
+    delete item.name;
 
     // Only images of the page's own project, and no project id.
     keepOwnStatusPageImages(item);

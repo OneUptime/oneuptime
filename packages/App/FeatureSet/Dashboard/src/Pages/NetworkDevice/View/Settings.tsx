@@ -68,7 +68,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, {
@@ -267,7 +267,7 @@ const NetworkDeviceSettings: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -541,7 +541,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("No site assigned")}
                     </span>
                   );
@@ -616,7 +616,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.snmpCredentialProfile?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "None — this device's own credentials, or its site's profile",
                       )}
@@ -665,7 +665,7 @@ const NetworkDeviceSettings: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.networkDeviceRole?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText("Worked out from SNMP")}
                     </span>
                   );

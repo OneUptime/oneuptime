@@ -233,8 +233,6 @@ describe("splitActionButtons", () => {
     test.each([
       ["NORMAL", ButtonStyleType.NORMAL],
       ["PRIMARY", ButtonStyleType.PRIMARY],
-      ["SUCCESS", ButtonStyleType.SUCCESS],
-      ["WARNING", ButtonStyleType.WARNING],
     ])(
       "a %s action beats an outlined action listed before it",
       (_label: string, style: ButtonStyleType) => {
@@ -252,8 +250,6 @@ describe("splitActionButtons", () => {
     test.each([
       ["OUTLINE", ButtonStyleType.OUTLINE],
       ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE],
-      ["WARNING_OUTLINE", ButtonStyleType.WARNING_OUTLINE],
-      ["SECONDARY", ButtonStyleType.SECONDARY],
       ["LINK", ButtonStyleType.LINK],
     ])(
       "without a call to action the first non-destructive %s action is the button",
@@ -531,7 +527,6 @@ describe("isDestructiveActionButton", () => {
     ["OUTLINE", ButtonStyleType.OUTLINE, false],
     ["PRIMARY", ButtonStyleType.PRIMARY, false],
     ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE, false],
-    ["WARNING", ButtonStyleType.WARNING, false],
   ])(
     "%s is destructive: %s",
     (_label: string, style: ButtonStyleType, expected: boolean) => {

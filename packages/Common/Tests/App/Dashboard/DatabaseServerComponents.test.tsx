@@ -95,15 +95,6 @@ jest.mock(
   },
 );
 
-jest.mock("../../../UI/Components/ComponentLoader/ComponentLoader", () => {
-  return {
-    __esModule: true,
-    default: () => {
-      return <div data-testid="component-loader" />;
-    },
-  };
-});
-
 jest.mock("../../../UI/Components/Card/Card", () => {
   return {
     __esModule: true,
@@ -392,7 +383,7 @@ describe("DatabaseCallingServicesCard", () => {
       ),
     );
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
   });
 
   test("says so when nothing queried the database", () => {
@@ -548,7 +539,7 @@ describe("DatabaseEngineMetricsSection", () => {
       isLoading: true,
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("stat-tiles-skeleton")).toBeInTheDocument();
     expect(chartCardMock).not.toHaveBeenCalled();
   });
 
@@ -575,7 +566,7 @@ describe("DatabaseEngineMetricsSection", () => {
       isLoading: true,
     });
 
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("stat-tiles-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId("database-engine-metrics")).toBeInTheDocument();
     expect(screen.getAllByTestId("chart-card")).toHaveLength(1);
   });
@@ -589,7 +580,7 @@ describe("DatabaseEngineMetricsSection", () => {
       isLoading: true,
     });
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("stat-tiles-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByRole("region", { name: ENGINE_METRICS_NO_DATA_TITLE }),
     ).not.toBeInTheDocument();

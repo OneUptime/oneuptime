@@ -6,6 +6,7 @@ La disponibilité répond à une question avant qu'un incident ne le fasse : si 
 - [Comment un statut est déterminé](#comment-un-statut-est-déterminé): Prêt, À configurer ou Unreachable, et pourquoi.
 - [La page Disponibilité](#la-page-disponibilité): Chaque intervenant du projet, dans une seule liste.
 - [Rappeler aux gens de terminer leur configuration](#rappeler-aux-gens-de-terminer-leur-configuration): Un e-mail qui nomme ce qui manque.
+- [Appliquer la séquence par défaut](#appliquer-la-séquence-par-défaut): La séquence par défaut du projet, pour les personnes que vous choisissez.
 - [Temps d'astreinte de l'utilisateur](#temps-dastreinte-de-lutilisateur): Combien de temps chaque personne a été d'astreinte.
 :::
 
@@ -32,6 +33,8 @@ Un intervenant est toute personne qu'une politique d'astreinte peut alerter : un
 
 Une lacune est une gravité sans règle, sur l'onglet des incidents, des épisodes d'incidents, des alertes ou des épisodes d'alertes. Une règle qui désactive volontairement une gravité n'est pas une lacune. Une alerte qui tombe sur une lacune joint quand même la personne sur ses méthodes vérifiées, sauf si le projet a désactivé ce repli : voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 
+Quand le projet demande un moyen téléphonique à toutes les personnes d'astreinte, sous **Téléphone des personnes d'astreinte**, un intervenant sans numéro vérifié pour les SMS, les appels téléphoniques ou WhatsApp est aussi marqué **Aucun moyen téléphonique**, quel que soit son statut, et Santé de la configuration le nomme. Personne n'est bloqué : une alerte le joint toujours sur les méthodes qu'il a.
+
 ## La page Disponibilité
 
 Ouvrez **Astreinte → Disponibilité**. La carte **Préparation de l'astreinte** liste chaque personne qu'une politique d'astreinte du projet peut joindre, celles qui ont besoin de quelque chose en premier. Toute personne du projet peut l'ouvrir.
@@ -53,12 +56,24 @@ Au-dessus de la liste, les tuiles comptent **Intervenants**, **Prêt**, **À con
 Seule la personne elle-même peut ajouter et vérifier ses méthodes de notification et ses règles : la solution est donc de le lui demander.
 
 :::steps
-1. Sur la page Disponibilité, cochez les intervenants à qui envoyer un rappel. Les intervenants prêts ne peuvent pas être cochés : il n'y a rien à leur rappeler.
+1. Sur la page Disponibilité, cochez les intervenants à qui envoyer un rappel. Un intervenant prêt ne reçoit un rappel que s'il est marqué **Aucun moyen téléphonique** : il n'y a rien d'autre à lui rappeler.
 2. Cliquez sur **Envoyer un rappel de configuration**. La confirmation nomme chaque personne à qui un e-mail va être envoyé.
 3. Confirmez. Chaque personne reçoit un e-mail qui nomme ce qui manque dans sa propre configuration, avec un lien vers la page qui le corrige.
 :::
 
 Un bandeau indique ensuite combien de rappels ont été envoyés, ignorés ou ont échoué, et pourquoi pour chacun de ceux qui n'ont pas été envoyés. Personne ne reçoit plus d'un rappel en 24 heures, et un envoi rappelle au plus 250 personnes. Envoyer des rappels demande **Propriétaire du projet**, **Administrateur du projet** ou **Administrateur des astreintes**, ou **Edit On-Call Policy** dans un rôle personnalisé.
+
+## Appliquer la séquence par défaut
+
+Quand le projet a une séquence par défaut (voir [La séquence par défaut](/docs/notifications/on-call-rules#la-séquence-par-défaut)), vous pouvez la donner aux personnes qui ont déjà leurs propres règles.
+
+:::steps
+1. Sur la page Disponibilité, cochez les intervenants.
+2. Cliquez sur **Appliquer la séquence par défaut**. La confirmation montre la séquence et nomme toutes les personnes qu'elle change.
+3. Confirmez. Les règles de chaque personne pour chaque gravité sont remplacées par la séquence, sur les méthodes qu'elle a vérifiées.
+:::
+
+Un moyen qu'une personne n'a pas vérifié est laissé de côté, et elle garde ses propres étapes à sa place ; une personne qui n'a vérifié aucun des moyens de la séquence reste comme avant. Un bandeau indique ensuite, pour chaque personne, ce qui a été appliqué ou pourquoi non, par canal : les numéros et les adresses de personne ne sont affichés. Chaque personne dont les règles ont changé reçoit un e-mail, et chaque changement figure dans le journal d'audit du projet. L'appliquer demande **Propriétaire du projet** ou **Administrateur du projet**, ou **Edit User Notification Rules** dans un rôle personnalisé.
 
 ## La disponibilité sur d'autres pages
 
@@ -66,6 +81,7 @@ Un bandeau indique ensuite combien de rappels ont été envoyés, ignorés ou on
 - Sur les **Règles d'escalade** d'une politique, un niveau dont les intervenants ne peuvent pas tous être alertés l'indique sur sa carte. Voir [Le résumé de l'escalade](/docs/on-call/escalation-rules#le-résumé-de-lescalade).
 - Sous **Utilisateurs**, ouvrez un membre, puis **Disponibilité** dans la section **Astreinte** : son statut, ses méthodes et sa grille de couverture.
 - Pour votre propre configuration, **Paramètres utilisateur → Liste de configuration** vous guide. Voir [La liste de configuration](/docs/notifications/index#la-liste-de-configuration).
+- Toute personne dans une politique dont la configuration n'est pas terminée voit **Terminez la configuration de vos notifications** dans la cloche en haut de chaque page, qui ouvre sa liste de configuration.
 
 ## L'e-mail hebdomadaire de disponibilité
 

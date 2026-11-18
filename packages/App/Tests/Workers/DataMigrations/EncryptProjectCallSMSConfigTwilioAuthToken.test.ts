@@ -2,6 +2,7 @@ import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSCo
 import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
 import EncryptProjectCallSMSConfigTwilioAuthToken from "../../../FeatureSet/Workers/DataMigrations/EncryptProjectCallSMSConfigTwilioAuthToken";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -14,18 +15,22 @@ import {
 } from "@jest/globals";
 
 /*
- * EncryptProjectCallSMSConfigTwilioAuthToken encrypts the Twilio auth tokens
- * that were stored as plaintext before the column became a secret. It reads
- * each config's raw token and, when it is not already our ciphertext,
- * encrypts it and writes it back - in raw SQL so the service's own
- * encrypt/decrypt hooks never touch it.
+ * The Twilio auth tokens that were stored as plaintext before the column
+ * became a secret. The upgrade's EncryptProjectCallSMSConfigTwilioAuthToken
+ * leaves them as written (#9266), so a server of a release before 14.0.56
+ * sends SMS and calls with them while an upgrade from it rolls out; a day
+ * later the CredentialsAtRest:EncryptInPlace job reads each config's raw
+ * token and, when it is not already our ciphertext, encrypts it and writes
+ * it back - in raw SQL so the service's own encrypt/decrypt hooks never
+ * touch it.
  *
- * Pinned here, with the repository stubbed so the real migrate() runs without
- * Postgres:
+ * Pinned here, with the repository stubbed so the real migrate() and the
+ * job's real pass run without Postgres:
  *   1. it is registered in DataMigrations/Index.ts, once, before the slot
- *      AddAuditLogMcpClientColumns keeps last;
- *   2. it encrypts a plaintext token (and the stored value round-trips back
- *      to the token);
+ *      AddAuditLogMcpClientColumns keeps last, and the upgrade's run of it
+ *      changes nothing;
+ *   2. the pass encrypts a plaintext token (and the stored value round-trips
+ *      back to the token);
  *   3. it leaves an already-encrypted token, an empty token and a null token
  *      alone - so a second run rewrites nothing (idempotent);
  *   4. one config that cannot be written does not stop the others;
@@ -139,13 +144,23 @@ describe("EncryptProjectCallSMSConfigTwilioAuthToken", () => {
     );
   });
 
+  test("the upgrade's run changes nothing: a server of the release before sends with every token as written", async () => {
+    const state: StubState = stubRepository([
+      { _id: "config-1", twilioAuthToken: "0123456789abcdef0123456789abcdef" },
+    ]);
+
+    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+
+    expect(state.calls).toHaveLength(0);
+  });
+
   test("encrypts a plaintext token and the stored value round-trips to the token", async () => {
     const token: string = "0123456789abcdef0123456789abcdef";
     const state: StubState = stubRepository([
       { _id: "config-1", twilioAuthToken: token },
     ]);
 
-    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const updates: Array<QueryCall> = updateCalls(state.calls);
     expect(updates).toHaveLength(1);
@@ -171,7 +186,7 @@ describe("EncryptProjectCallSMSConfigTwilioAuthToken", () => {
       { _id: "null", twilioAuthToken: null },
     ]);
 
-    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(state.calls)).toHaveLength(0);
   });
@@ -181,7 +196,7 @@ describe("EncryptProjectCallSMSConfigTwilioAuthToken", () => {
     const first: StubState = stubRepository([
       { _id: "c1", twilioAuthToken: token },
     ]);
-    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
     const encrypted: string = (
       updateCalls(first.calls)[0]!.params as Array<string>
     )[0]!;
@@ -193,7 +208,7 @@ describe("EncryptProjectCallSMSConfigTwilioAuthToken", () => {
     const second: StubState = stubRepository([
       { _id: "c1", twilioAuthToken: encrypted },
     ]);
-    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
     expect(updateCalls(second.calls)).toHaveLength(0);
   });
 
@@ -204,7 +219,7 @@ describe("EncryptProjectCallSMSConfigTwilioAuthToken", () => {
     ]);
     state.failOnUpdateForId = "bad";
 
-    await new EncryptProjectCallSMSConfigTwilioAuthToken().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const updates: Array<QueryCall> = updateCalls(state.calls);
     // Both were attempted; the good one still wrote.

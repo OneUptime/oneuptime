@@ -15,6 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { Edge, Node } from "reactflow";
@@ -415,15 +416,15 @@ describe("what a person sees first", () => {
     const select: HTMLElement = screen.getByTestId(
       "message-queue-topology-edge-label",
     );
-    fireEvent.change(select, { target: { value: "errors" } });
+    chooseDropdownOption(within(select).getByRole("combobox"), 1);
     expect(
       screen.getByTestId("map-edge-publish:service:checkout:queue:audit"),
     ).toHaveTextContent("20.0%");
-    fireEvent.change(select, { target: { value: "latency" } });
+    chooseDropdownOption(within(select).getByRole("combobox"), 2);
     expect(
       screen.getByTestId("map-edge-publish:service:checkout:queue:audit"),
     ).toHaveTextContent("12 ms");
-    fireEvent.change(select, { target: { value: "hover" } });
+    chooseDropdownOption(within(select).getByRole("combobox"), 3);
     expect(
       screen.getByTestId("map-edge-publish:service:checkout:queue:audit"),
     ).toHaveTextContent("");
@@ -496,9 +497,12 @@ describe("narrowing it down", () => {
 
   test("a broker shows its queues and the services on them", () => {
     show(pipeline());
-    fireEvent.change(screen.getByTestId("message-queue-topology-broker"), {
-      target: { value: "rabbitmq|" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("message-queue-topology-broker")).getByRole(
+        "combobox",
+      ),
+      /rabbitmq/i,
+    );
     expect(drawnNodes()).toEqual(["queue:audit", "service:checkout"]);
     expect(new URLSearchParams(window.location.search).get("broker")).toBe(
       "rabbitmq|",

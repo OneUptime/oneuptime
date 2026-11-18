@@ -401,7 +401,7 @@ export function getOpenStackAllocationColumn(data: {
           <span
             className={
               line.isLastKnown
-                ? "text-gray-400"
+                ? "text-gray-500"
                 : line.isOverLine
                   ? RESOURCE_COLUMN_TONE_CLASS_NAMES.warning
                   : undefined
@@ -419,7 +419,7 @@ export function getOpenStackAllocationColumn(data: {
               {translateText("last known")}
             </span>
           ) : ratio ? (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               {translateTemplate("ratio {{ratio}}", { ratio })}
             </span>
           ) : (

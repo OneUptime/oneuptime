@@ -163,9 +163,9 @@ describe("the list", () => {
     expect(TABLE).toContain("listDiscoveredDevices(");
   });
 
-  test("a selection belongs to the rows it was made over: a new search, choice or site clears it", () => {
+  test("a selection belongs to the rows it was made over: a new search, filter, choice or site clears it", () => {
     expect(TABLE).toContain(
-      "useEffect(() => { setCurrentPageNumber(1); clearSelection(); }, [debouncedSearch, show, props.siteId]);",
+      "useEffect(() => { setCurrentPageNumber(1); clearSelection(); }, [debouncedSearch, filtersKey, show, props.siteId]);",
     );
     expect(TABLE).toMatch(/onBulkActionEnd=\{\(\) => \{ clearSelection\(\);/);
   });

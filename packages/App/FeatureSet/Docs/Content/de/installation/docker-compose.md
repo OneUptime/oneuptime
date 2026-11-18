@@ -413,6 +413,8 @@ npm run backup
 
 Es fragt nach Ihrem sudo-Passwort und schreibt `Backups/db-<day of the month>.backup`, sodass tägliche Backups die eines Monats zuvor ersetzen. Führen Sie es mindestens einmal am Tag aus.
 
+Jeder Lauf teilt OneUptime mit, wie er ausgegangen ist: Server-Einrichtung im Admin Dashboard zeigt dann, wann das letzte Backup fertig wurde, und sagt es, wenn ein Backup fehlgeschlagen ist oder das letzte älter als eine Woche ist. Ein Lauf, dessen Dump fehlgeschlagen ist, sagt das und endet mit einem Fehler, sodass ein Cron-Job es bemerkt.
+
 ### Die Backups vom Server kopieren
 
 Ein Backup auf derselben Festplatte wie die Datenbank übersteht den Verlust dieser Festplatte nicht.
@@ -518,7 +520,7 @@ Wenn etwas nicht funktioniert, führen Sie im Ordner `oneuptime` den Doctor aus:
 npm run doctor
 ```
 
-Er listet auf, was nicht stimmt, das Wichtigste zuerst, jede Zeile mit der genauen Lösung, und endet mit **Everything looks right.** oder der Zahl der Dinge, die zu beheben sind. Er prüft jeden Container und zeigt für jeden, der nicht läuft, die letzten Zeilen seines Logs, außerdem `config.env`, ob `HOST` diesen Server erreicht, das Zertifikat, wenn `PROVISION_SSL` an ist, und den freien Speicherplatz. Er fragt auch OneUptime, was es über sich selbst sieht: PostgreSQL, ClickHouse und Valkey, die Migrationen, die Warteschlangen, die Version und die Einrichtungsschritte des Servers, etwa E-Mail und Sonden. `npm start` endet mit denselben Prüfungen und nennt nur, was Aufmerksamkeit braucht.
+Er listet auf, was nicht stimmt, das Wichtigste zuerst, jede Zeile mit der genauen Lösung, und endet mit **Everything looks right.** oder der Zahl der Dinge, die zu beheben sind. Er prüft jeden Container und zeigt für jeden, der nicht läuft, die letzten Zeilen seines Logs, außerdem `config.env`, ob `HOST` diesen Server erreicht und ob ein Proxy davor den Hostnamen und `X-Forwarded-Proto` weitergibt, das Zertifikat, wenn `PROVISION_SSL` an ist, und den freien Speicherplatz. Er fragt auch OneUptime, was es über sich selbst sieht: PostgreSQL, ClickHouse und Valkey, die Migrationen, die Warteschlangen, die Version und die Einrichtungsschritte des Servers, etwa E-Mail und Sonden. Mit • markierte Zeilen sind wissenswert, aber kein Fehler, und werden nicht mitgezählt: welche Produkte auf diesem Server abgeschaltet sind und wo das festgelegt wurde. Ein Name in `SERVER_PRODUCTS`, den OneUptime nicht kennt, ist mit ! markiert, als einen Blick wert. `npm start` endet mit denselben Prüfungen und nennt nur, was Aufmerksamkeit braucht.
 
 Um zusätzlich die letzten Fehler jedes Dienstes zu sehen, jeweils mit dem Namen des Dienstes:
 
@@ -526,7 +528,7 @@ Um zusätzlich die letzten Fehler jedes Dienstes zu sehen, jeweils mit dem Namen
 npm run doctor -- --logs
 ```
 
-Er endet mit dem Exit-Code `1`, wenn etwas mit ✗ Markiertes behoben werden muss, sodass ein Skript ihn ausführen kann. Das Admin Dashboard zeigt oben auf der Seite **OneUptime-Zustand**, was OneUptime über sich selbst sieht, und auf Kubernetes gibt `HelmChart/Public/diagnose.sh` es aus.
+Er endet mit dem Exit-Code `1`, wenn etwas mit ✗ Markiertes behoben werden muss, sodass ein Skript ihn ausführen kann. Das Admin Dashboard zeigt oben auf der Seite **OneUptime-Zustand**, was OneUptime über sich selbst sieht, und auf Kubernetes gibt `HelmChart/Public/diagnose.sh` es aus und prüft danach die Adresse, die Ihre Nutzer öffnen, und ihr Zertifikat.
 
 ## Fehlerbehebung
 

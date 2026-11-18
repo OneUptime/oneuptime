@@ -1,4 +1,6 @@
 import PageMap from "./Utils/PageMap";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap from "./Utils/RouteMap";
 import RouteParams from "./Utils/RouteParams";
 import PublicDashboardUtil from "./Utils/PublicDashboard";
@@ -8,7 +10,6 @@ import API from "./Utils/API";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { lazy, Suspense, useState } from "react";
@@ -243,7 +244,7 @@ const App: () => JSX.Element = () => {
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   /*
@@ -261,7 +262,7 @@ const App: () => JSX.Element = () => {
   // The dashboard's IP allowlist does not let this visitor in.
   if (isForbidden) {
     return (
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <ForbiddenPage />
       </Suspense>
     );
@@ -270,7 +271,7 @@ const App: () => JSX.Element = () => {
   // If dashboard is not public, show 404
   if (!isPublicDashboard) {
     return (
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <NotFoundPage />
       </Suspense>
     );
@@ -284,11 +285,11 @@ const App: () => JSX.Element = () => {
     !Navigation.getCurrentRoute().toString().includes("master-password")
   ) {
     PublicDashboardUtil.navigateToMasterPasswordPage();
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   return (
-    <Suspense fallback={<PageLoader isVisible={true} />}>
+    <Suspense fallback={<PageSkeleton />}>
       <Routes>
         {/* Live routes (custom domain) */}
         <PageRoute

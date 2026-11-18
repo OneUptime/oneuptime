@@ -124,15 +124,58 @@ export interface UserOverrideOverlapAnswer<T extends UserOverrideTimes> {
   otherScope: Array<T>;
 }
 
+/*
+ * An edit is held, as the server holds it, to the time it adds to the
+ * override as `saved` (UserOverrideOverlap.getAddedTimes): an overlap saved
+ * before the rule never keeps an override from being shortened.
+ */
 export const getUserOverrideOverlapAnswer: <T extends UserOverrideTimes>(
   candidate: UserOverrideTimes,
   overrides: Array<T>,
+  saved?: UserOverrideSavedTimes | undefined,
 ) => UserOverrideOverlapAnswer<T> = <T extends UserOverrideTimes>(
   candidate: UserOverrideTimes,
   overrides: Array<T>,
+  saved?: UserOverrideSavedTimes | undefined,
 ): UserOverrideOverlapAnswer<T> => {
   return {
-    conflicts: UserOverrideOverlap.getConflicts(candidate, overrides),
+    conflicts: UserOverrideOverlap.getConflicts(candidate, overrides, saved),
     otherScope: UserOverrideOverlap.getOtherScopeOverlaps(candidate, overrides),
   };
+};
+
+/*
+ * The overrides a Skip until... dialog would add (issue #7898): one global
+ * override, or one on each policy it is added on - the one policy, or the
+ * ones ticked - each a candidate of its own, the same person at the same
+ * times. None while who is away or a time is not picked yet, or the times
+ * are out of order.
+ */
+export const getUserOverrideSkipCandidates: (data: {
+  values: unknown;
+  // The policies the skip is added on; none for a global one.
+  onCallDutyPolicyIds: Array<string>;
+}) => Array<UserOverrideTimes> = (data: {
+  values: unknown;
+  onCallDutyPolicyIds: Array<string>;
+}): Array<UserOverrideTimes> => {
+  const scopes: Array<string | null> =
+    data.onCallDutyPolicyIds.length > 0 ? data.onCallDutyPolicyIds : [null];
+
+  const candidates: Array<UserOverrideTimes> = [];
+
+  for (const onCallDutyPolicyId of scopes) {
+    const candidate: UserOverrideTimes | null = getUserOverrideOverlapCandidate(
+      {
+        values: data.values,
+        target: { onCallDutyPolicyId: onCallDutyPolicyId },
+      },
+    );
+
+    if (candidate) {
+      candidates.push(candidate);
+    }
+  }
+
+  return candidates;
 };

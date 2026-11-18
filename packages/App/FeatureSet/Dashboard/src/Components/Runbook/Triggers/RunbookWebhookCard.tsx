@@ -1,4 +1,5 @@
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -19,7 +20,6 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -651,7 +651,7 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (error || !runbook) {

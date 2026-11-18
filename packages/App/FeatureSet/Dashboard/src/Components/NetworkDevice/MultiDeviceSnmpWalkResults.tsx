@@ -333,7 +333,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             {labels.title}
           </span>
           {labels.titleModule ? (
-            <span className="text-xs text-gray-400">{labels.titleModule}</span>
+            <span className="text-xs text-gray-500">{labels.titleModule}</span>
           ) : (
             <></>
           )}

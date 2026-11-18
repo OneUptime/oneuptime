@@ -30,8 +30,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * for every new incident and alert", on to start with, and sends the answer
  * as misc data the server turns into the two rules (EveryNewEventRules):
  *
- *   - offered only for the project's first policy, to someone who may add
- *     on-call rules, and only once the counts say so;
+ *   - offered, to someone who may add on-call rules once the counts say
+ *     so: on for the project's first policy, off for a later one (#7371);
  *   - on, it asks for the rules; off, or not offered, nothing is sent - not
  *     even the switch's own "on" while it is hidden;
  *   - the project's counts are read only when the list comes back empty
@@ -459,8 +459,16 @@ describe("a new project's first on-call policy", () => {
   });
 });
 
-describe("a project that is not new", () => {
-  test("with a policy in the list: only the list's own count, nothing offered, nothing sent", async () => {
+/*
+ * ISSUE #7371: a project's second policy hid the switch, and nothing took
+ * its place - the policy was saved paging nobody, and the dialog never said
+ * so. A later policy is offered the switch too, off to start with (two
+ * policies paged for every new incident and alert is a choice to make, not
+ * a default), with the sentence that says a policy pages nobody until a
+ * rule or a monitor triggers it.
+ */
+describe("a project that is not new (#7371)", () => {
+  test("with a policy in the list: offered off, saying it pages nobody until a rule triggers it, before it is saved", async () => {
     project.listedPolicies = 1;
     project.policyCount = 1;
 
@@ -469,43 +477,56 @@ describe("a project that is not new", () => {
     // The ask counts nothing; the list counts what it shows, as it opens.
     expect(askCounts()).toEqual([]);
     expect(countMock.mock.calls.filter(isListFirstRunCount)).toHaveLength(1);
-    expect(switchIn(modal)).toBeNull();
+    expect(switchIn(modal)).not.toBeNull();
+    expect(switchIn(modal)).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(modal).getByText(
+        PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION,
+      ),
+    ).toBeInTheDocument();
+    expect(modal).toHaveTextContent(
+      "A policy pages nobody until a rule or a monitor triggers it.",
+    );
     // A project with a policy is not explained On-Call under its list.
     expect(screen.queryByTestId("product-showcase")).toBeNull();
 
-    /*
-     * The hidden switch still holds its "on": the page drops it from the
-     * request (UseEveryNewEventRulesOffer.prepareCreate).
-     */
+    // Left off, nothing asks for the rules.
     expect(await createNamed(modal, "Search on-call")).toEqual({});
   });
 
-  test("with only an archived policy", async () => {
+  test("turned on, a later policy asks for the two rules too", async () => {
+    project.listedPolicies = 1;
     project.policyCount = 1;
 
     const modal: HTMLElement = await openCreateForm();
 
-    expect(switchIn(modal)).toBeNull();
-    expect(await createNamed(modal, "Search on-call")).toEqual({});
+    fireEvent.click(switchIn(modal)!);
+
+    await waitFor(() => {
+      expect(switchIn(modal)).toHaveAttribute("aria-checked", "true");
+    });
+
+    expect(await createNamed(modal, "Search on-call")).toEqual({
+      [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
+    });
   });
 
-  test("with an incident on-call rule", async () => {
-    project.incidentRuleCount = 1;
+  test.each([
+    ["with only an archived policy", { policyCount: 1 }],
+    ["with an incident on-call rule", { incidentRuleCount: 1 }],
+    ["with an alert on-call rule", { alertRuleCount: 2 }],
+  ])(
+    "%s: offered off, and nothing sent unless it is turned on",
+    async (_name: string, counts: Record<string, number>) => {
+      project = { ...project, ...counts };
 
-    const modal: HTMLElement = await openCreateForm();
+      const modal: HTMLElement = await openCreateForm();
 
-    expect(switchIn(modal)).toBeNull();
-    expect(await createNamed(modal, "Search on-call")).toEqual({});
-  });
-
-  test("with an alert on-call rule", async () => {
-    project.alertRuleCount = 2;
-
-    const modal: HTMLElement = await openCreateForm();
-
-    expect(switchIn(modal)).toBeNull();
-    expect(await createNamed(modal, "Search on-call")).toEqual({});
-  });
+      expect(switchIn(modal)).toHaveAttribute("aria-checked", "false");
+      expect(await createNamed(modal, "Search on-call")).toEqual({});
+    },
+  );
 });
 
 describe("when the answer is not known, or not theirs to give", () => {

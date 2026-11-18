@@ -27,7 +27,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
@@ -547,7 +547,10 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
@@ -602,7 +605,10 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",
-    modelType: User,
+    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
+    modelTypeThunk: () => {
+      return User;
+    },
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
   })
@@ -1757,6 +1763,87 @@ export default class Project extends TenantModel {
   public disableOnCallNotificationFallback?: boolean = undefined;
 
   /*
+   * THE PROJECT'S DEFAULT LADDER (#7449, Types/NotificationRule/
+   * PagingLadderDefault): how a member is paged once they verify a way to
+   * be reached, by channel - "push and SMS at once, then a call after 5
+   * minutes" - instead of every verified method at once. A method of a
+   * channel it names gets its rules at its waits in every card; a channel
+   * it leaves out gets no on-call rules. Applied as members verify methods
+   * and join, it rewrites nobody's rules; an admin applies it to members
+   * they pick from On-Call > Readiness (#7450). Empty: every verified
+   * method pages at once, as it always did. Refused by ProjectService
+   * unless it reads as a default (getPagingLadderDefaultProblem), stored
+   * tidied. Read by everyone in the project, as the ladder it is; set by
+   * its owners and admins.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Default Paging Ladder",
+    description:
+      "How a member is paged once they verify a way to be reached: steps of a channel and a wait in minutes. A channel it leaves out gets no on-call rules. It changes nobody's existing rules. Empty: every verified method pages at once.",
+    example:
+      '[{"channel": "Push", "notifyAfterMinutes": 0}, {"channel": "SMS", "notifyAfterMinutes": 0}, {"channel": "Call", "notifyAfterMinutes": 5}]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public defaultPagingLadder?: JSONArray = undefined;
+
+  /*
+   * PEOPLE ON CALL NEED A PHONE METHOD (#7449, #1809): when on, On-Call
+   * Readiness names every responder with no verified SMS, phone call or
+   * WhatsApp number (isMissingRequiredPhoneMethod), Setup health lists
+   * them, and a setup reminder asks them to add one. Nobody is locked out
+   * and no page is held back: it is a finding, not a gate.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Phone Method for On-Call",
+    description:
+      "When on, On-Call Readiness and Setup health name everyone on an on-call policy who has no verified SMS, phone call or WhatsApp number, and a setup reminder asks them to add one. Nobody is locked out.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    unique: false,
+    default: false,
+  })
+  public requirePhoneMethodForOnCall?: boolean = undefined;
+
+  /*
    * Throttle flag for the owner notification sent when the fallback above is used or
    * when a responder turns out to be unreachable. An incident storm must not turn into a
    * mail storm, so the owners are told once and the flag is cleared on the usual
@@ -2873,7 +2960,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Notify Status Page Subscribers of New Incidents by Default",
     description:
-      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
+      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard, Slack or Microsoft Teams. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared by OneUptime AI, where nothing asks, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
     defaultValue: true,
     example: false,
   })
@@ -5661,4 +5748,43 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public productSettings?: JSONObject = undefined;
+
+  /*
+   * KEPT FOR THE RELEASE BEFORE, AND READ BY NOTHING HERE.
+   *
+   * Whether this was a sample project (issue #6808), when OneUptime still
+   * made them. Every one was deleted (RemoveSampleProject1809180800000), and
+   * nothing sets this any more.
+   *
+   * The column stays until a later release drops it (expand, then
+   * contract): the pods of the release before keep serving while a
+   * release's migrations run, and they filter every probe's claim of its
+   * monitors on it, and name it in every insert into "Project" - dropped,
+   * no probe check ran until the last of them was gone.
+   * KeepSampleProjectColumns1809183500000 puts it back where 15.0.0 already
+   * dropped it. Read and written by nobody, hidden from the documentation.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Is Sample Project",
+    description:
+      "Kept for the release before: whether this was a sample project. Always false.",
+    hideColumnInDocumentation: true,
+    example: "false",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isSampleProject?: boolean = undefined;
 }

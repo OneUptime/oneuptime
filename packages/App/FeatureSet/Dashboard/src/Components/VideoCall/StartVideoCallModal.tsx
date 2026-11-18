@@ -1,4 +1,5 @@
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import Route from "Common/Types/API/Route";
@@ -10,7 +11,6 @@ import VideoCallProvider, {
   getVideoCallProviderDisplayName,
 } from "Common/Types/VideoCall/VideoCallProvider";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -237,7 +237,7 @@ const StartVideoCallModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4">
         {isLoadingConnections ? (
-          <ComponentLoader />
+          <CardListSkeleton count={2} lines={1} />
         ) : (
           <div
             role="radiogroup"

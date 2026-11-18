@@ -3,6 +3,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  DiscoveredDeviceFilter,
   DiscoveredDeviceIdsResponse,
   DiscoveredDeviceListRequest,
   DiscoveredDeviceListResponse,
@@ -67,6 +68,19 @@ export function toListRequestBody(
 
   if (request.siteId) {
     body["siteId"] = request.siteId;
+  }
+
+  // The filter chips (issue #9304), only when one is narrowing the list.
+  if (request.filters && request.filters.length > 0) {
+    body["filters"] = request.filters.map(
+      (filter: DiscoveredDeviceFilter): JSONObject => {
+        return {
+          field: filter.field,
+          operator: filter.operator,
+          values: [...filter.values],
+        };
+      },
+    );
   }
 
   if (request.limit !== undefined) {

@@ -193,7 +193,7 @@ const LineageMapCard: FunctionComponent<NodeProps<CardData>> = (
         </span>
         {subtitle ? (
           <span
-            className="mt-0.5 block truncate text-[11px] text-gray-500"
+            className="mt-0.5 block truncate text-xs text-gray-500"
             title={subtitle}
           >
             {subtitle}

@@ -4,7 +4,7 @@ import useCloudAccountAiDescriptor, {
   CloudAccountAiDescriptorRead,
 } from "./UseCloudAccountAiDescriptor";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -18,7 +18,7 @@ const CloudAccountAiLogs: FunctionComponent<PageComponentProps> = (
   const read: CloudAccountAiDescriptorRead = useCloudAccountAiDescriptor();
 
   if (read.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (!read.descriptor) {

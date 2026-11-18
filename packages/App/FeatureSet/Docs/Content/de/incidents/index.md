@@ -196,6 +196,16 @@ Was jede davon enthält:
 - **Private Notizen** und **Öffentliche Notizen** – was Ihrem Team und Ihren Kunden mitgeteilt wurde. Siehe [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
 - **Benutzerdefinierte Felder**, **Einstellungen**, **Vorfall löschen** – die Seite **Einstellungen** enthält **Auf Statusseite sichtbar** und **Privater Vorfall**, die Karte **Statusseiten-Umfang**, die den Vorfall auf einige Statusseiten beschränkt, und die Karte **Erinnerungen**, deren Schalter **Erinnerungen senden** beim Umschalten sofort speichert und zeigt, wann die nächste Erinnerung verschickt wird.
 
+## Wer benachrichtigt wurde
+
+Die **Übersicht** eines Vorfalls hat eine Karte **Wer benachrichtigt wurde**. Sie zeigt, wen OneUptime über den Vorfall benachrichtigt hat, auf welchem Weg und was fehlgeschlagen ist, gelesen aus dem, was geschah: den Ausführungen seiner Bereitschaftsrichtlinien und jeder Nachricht in Slack, Microsoft Teams oder Mattermost, jeder E-Mail, SMS, jedem Anruf, jeder Push-Benachrichtigung, WhatsApp- und Telegram-Nachricht und jedem Webhook, die dazu gesendet wurden.
+
+- Ihre ersten Worte zählen die benachrichtigten Personen und Kanäle, nennen, wer den Vorfall bestätigt hat und wie lange nach der ersten Alarmierung, und wie viele Benachrichtigungen fehlgeschlagen sind.
+- Jede Person bekommt eine Zeile: wie die Alarmierung sie erreicht hat (die Bereitschaftsrichtlinie, die Stufe, das Team oder der Dienstplan), auf welchem Weg und wo sie steht: **Bestätigt**, **Benachrichtigt**, **Wird gesendet**, **Fehlgeschlagen** oder **Nicht alarmiert**. **Details anzeigen** listet jede Alarmierung und jede Benachrichtigung in zeitlicher Reihenfolge auf, mit dem Grund, warum eine fehlgeschlagen ist oder warum jemand nicht alarmiert wurde.
+- Ein Team oder Dienstplan, der niemanden erreicht hat, eine Richtlinie, die noch nicht alarmiert hat (etwa eine, die auf die Arbeitszeit wartet), die Kanäle, in die gepostet wurde, und die Abonnenten der Statusseite bekommen ebenfalls je eine Zeile. Ein großer Vorfall listet seine ersten Personen auf, die übrigen einen Klick entfernt.
+- Solange der Vorfall offen ist, liest die Karte alle paar Sekunden neu.
+- Sie zeigt nur, was Sie ohnehin lesen können: Die Karte eines privaten Vorfalls ist für diejenigen, die den Vorfall öffnen können, und Benachrichtigungen oder Ausführungen von Bereitschaftsrichtlinien, die Sie nicht öffnen können, werden unter der Liste gezählt, nie genannt. Die **Benachrichtigungsprotokolle** enthalten jede Nachricht vollständig.
+
 ## Wie Vorfälle mit dem Rest von OneUptime zusammenspielen
 
 - **Monitore entdecken das Problem; Vorfälle halten es fest.** Eine Kriterienregel eines Monitors kann automatisch einen Vorfall melden und Titel, Schweregrad, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen und Behebungsnotizen vorausfüllen. Die dort verfügbaren Variablen finden Sie unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).

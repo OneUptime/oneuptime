@@ -212,8 +212,9 @@ export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
  * an operator runs on the server, which read the key from the installation's
  * own configuration - config.env on a Docker Compose host, the app pod's
  * environment on Kubernetes - and ask the app at an address of that server
- * alone, never at HOST, so the key never leaves it. They call one route, the
- * doctor's POST. ClusterKeyGuard holds each to how it is listed here, and
+ * alone, never at HOST, so the key never leaves it. They call two routes:
+ * the doctor's POST, and the one `npm run backup` tells the server it ran
+ * with (#7026). ClusterKeyGuard holds each to how it is listed here, and
  * fails on any other file outside the product's own code that names the
  * key's header.
  */
@@ -254,12 +255,39 @@ export interface ClusterKeyRouteToolCaller {
    * http and https, which never follow one.
    */
   client: "fetch" | "node-http";
+  /*
+   * The request's body, as the script writes it - what the tool has to say,
+   * never the key - or left out: the doctor's POST carries none.
+   */
+  body?: string | undefined;
+  /*
+   * The function the tool asks, before the request, whether the key is a
+   * value this repository ships - which the app refuses from every caller,
+   * so presenting it only earns an HTTP 401 that says nothing of why
+   * (#7588). The request is made only in the branch where it is not:
+   * `if (... && !<check>(<the key>))`. The scripts on a Docker Compose host
+   * share ReplacePlaceholderSecrets' isPlaceholderValue; diagnose.sh's pod
+   * script, which cannot import anything of the repository's, keeps its own
+   * copy of EnvironmentConfig.isShippedSecretValue, declared as
+   * `checkDeclaration` says, and ClusterKeyGuard runs that copy and the
+   * original over the same values.
+   */
+  check: "isPlaceholderValue" | "isShippedSecretValue";
+  // The check's declaration in the script, when the script declares it itself.
+  checkDeclaration?: string | undefined;
 }
 
 const DOCTOR_ROUTE: ClusterKeyRouteToolCaller["route"] = {
   file: "packages/App/API/AdminHealth.ts",
   method: "POST",
   path: '"/doctor"',
+};
+
+// `npm run backup` says it ran (#7026), beside the doctor's POST.
+export const BACKUP_RUN_ROUTE: ClusterKeyRouteToolCaller["route"] = {
+  file: "packages/App/API/AdminHealth.ts",
+  method: "POST",
+  path: '"/backup-run"',
 };
 
 export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
@@ -273,8 +301,11 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       address: ['const port = process.env.PORT || "3002";'],
       path: "/api/admin/health/doctor",
       key: 'process.env.ONEUPTIME_SECRET || ""',
-      presents: 'encodeURIComponent(process.env.ONEUPTIME_SECRET || "")',
+      presents: "encodeURIComponent(secret)",
       client: "fetch",
+      check: "isShippedSecretValue",
+      checkDeclaration:
+        'const isShippedSecretValue = (value) => { const trimmed = String(value || "").trim(); return trimmed === "" || trimmed === "secret" || trimmed.indexOf("please-change-this") !== -1; };',
     },
     // `npm run doctor`: the ingress on this host, with the key in its config.env.
     {
@@ -292,6 +323,30 @@ export const CLUSTER_KEY_ROUTE_TOOL_CALLERS: Array<ClusterKeyRouteToolCaller> =
       key: 'String(settings.get("ONEUPTIME_SECRET") || "").trim()',
       presents: "encodeURIComponent(secret)",
       client: "node-http",
+      check: "isPlaceholderValue",
+    },
+    /*
+     * `npm run backup`: backup.sh, through WithConfig.sh, hands it
+     * config.env's settings; it tells the ingress on this host how the run
+     * went (#7026).
+     */
+    {
+      route: BACKUP_RUN_ROUTE,
+      tool: "Scripts/Install/BackupScriptRun.js",
+      script: null,
+      calls: "`${ingressUrl}${BACKUP_SCRIPT_RUN_PATH}`",
+      address: [
+        'const BACKUP_SCRIPT_RUN_PATH = "/api/admin/health/backup-run";',
+        'const { ingressUrlOf } = require("./FollowIngressPort");',
+        "const ingress = ingressUrlOf(env.ONEUPTIME_HTTP_PORT);",
+        'const ingressUrl = ingress ? ingress.url : "http://localhost";',
+      ],
+      path: "/api/admin/health/backup-run",
+      key: 'String(env.ONEUPTIME_SECRET || "").trim()',
+      presents: "encodeURIComponent(secret)",
+      client: "node-http",
+      body: "outcome",
+      check: "isPlaceholderValue",
     },
   ];
 

@@ -288,7 +288,7 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
 
   if (current === undefined && limit === undefined) {
     return (
-      <span className="text-gray-400">
+      <span className="text-gray-500">
         {translator.translateText("No reports yet")}
       </span>
     );

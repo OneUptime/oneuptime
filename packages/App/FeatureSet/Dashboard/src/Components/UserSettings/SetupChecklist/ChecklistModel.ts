@@ -1027,6 +1027,26 @@ export const buildSetupChecklist: BuildChecklistFunction = (
   };
 };
 
+/*
+ * Whether the checklist has essential steps left: a step its progress bar
+ * counts is not done, or its headline says pages would not reach the person
+ * as they should - nothing can reach them, or a severity has no rule. A
+ * step only somebody else can do (Blocked) is not counted in the bar, but
+ * still leaves the person unreachable, so the headline speaks for it.
+ *
+ * User Settings opens on the checklist while it is so (#7039), as Home's
+ * card for an invited member asks them to open it (#6807).
+ */
+export const hasEssentialStepsLeft: (checklist: SetupChecklist) => boolean = (
+  checklist: SetupChecklist,
+): boolean => {
+  return (
+    checklist.completedCount < checklist.totalCount ||
+    checklist.headlineStatus === SetupHeadlineStatus.NotReachable ||
+    checklist.headlineStatus === SetupHeadlineStatus.NeedsSetup
+  );
+};
+
 type AsSentenceFunction = (clause: string) => string;
 
 /*

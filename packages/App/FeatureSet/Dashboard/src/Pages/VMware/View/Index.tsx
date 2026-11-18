@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -32,8 +33,7 @@ import React, {
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
@@ -1246,7 +1246,7 @@ const VMwareVCenterOverview: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -1608,7 +1608,7 @@ const VMwareVCenterOverview: FunctionComponent<
                   <ResourceHeroDescription
                     text={vcenter.description as string | undefined}
                   />
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2041,7 +2041,7 @@ const VMwareVCenterOverview: FunctionComponent<
   }): ReactElement => {
     if (params.rows.length === 0) {
       return (
-        <p className="text-gray-400 text-sm py-8 text-center">
+        <p className="text-gray-500 text-sm py-8 text-center">
           {tx(params.emptyMessage)}
         </p>
       );
@@ -2070,7 +2070,7 @@ const VMwareVCenterOverview: FunctionComponent<
               >
                 <div className="mb-1.5 flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <span className="w-4 flex-shrink-0 text-xs font-medium leading-5 text-gray-400">
+                    <span className="w-4 flex-shrink-0 text-xs font-medium leading-5 text-gray-500">
                       {index + 1}.
                     </span>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -2188,7 +2188,7 @@ const VMwareVCenterOverview: FunctionComponent<
           description="The ESXi hosts, datastores and virtual machines using the most of what they have, at vCenter's latest report."
         >
           {isInventoryLoading ? (
-            <ComponentLoader />
+            <TableSkeleton rows={5} columns={3} hasHeader={false} />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
               {renderTopSection({

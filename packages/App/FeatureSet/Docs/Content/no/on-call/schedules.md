@@ -86,7 +86,7 @@ Hver person beholder én farge overalt, så du kan følge personen med et blikk:
 
 ## Når noen er borte
 
-Når noen drar på ferie, hopper du over dem til de er tilbake. Utvid et lag på vaktplanens side **Lag**, og klikk på **Hopp over til…** ved siden av navnet deres. Det åpner skjemaet for fravær med dem under **Hvem er borte?**, **Neste person i rotasjonen** under **Hvem dekker?** og **Starter** fra nå: sett **Slutter** til når de er tilbake, og lagre.
+Når noen drar på ferie, hopper du over dem til de er tilbake. Utvid et lag på vaktplanens side **Lag**, og klikk på **Hopp over til…** ved siden av navnet deres. Det åpner skjemaet for fravær med dem under **Hvem er borte?**, **Neste person i rotasjonen** under **Hvem dekker?** og **Starter** fra nå: sett **Slutter** til når de er tilbake, og lagre. Har personen allerede fravær da, sier skjemaet det ved siden av tidspunktene mens du velger dem, med **Rediger den overstyringen** for å endre den andre i stedet.
 
 Mens de er borte:
 
@@ -97,7 +97,7 @@ Mens de er borte:
 
 Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle policyer, i stedet for at rotasjonen tar vaktene deres.
 
-Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne policyer eller til noen etiketter, legges det i stedet på policyene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per policy, som står på hver policys egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én policy legger du til overstyringen på den policyens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne policyer eller til noen etiketter, legges det i stedet på policyene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per policy, som står på hver policys egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, og blant vaktplanens brukeroverstyringer på siden **Lag**, der **Avslutt nå** får dem tilbake tidligere. For å hoppe over noen i bare én policy legger du til overstyringen på den policyens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
@@ -111,6 +111,8 @@ Vaktplaner er ressursen `/api/on-call-duty-policy-schedule`; lagene deres og per
 - En vaktplan som opprettes uten dem, har ingen lag, som før; Terraforms ressurs for vaktplaner sender dem ikke.
 - Et lag som opprettes uten `rotation`, overleverer daglig, slik det alltid har gjort.
 - En endring i lagene i en vaktplan og personene i dem, gjort med API-et eller Terraform, meldes som én endring: Hvem som har vakt, regnes ut når lagene ikke er endret på et halvt minutt, og den som går på eller av vakt, eller er neste, får beskjed én gang, ikke én gang per lag eller person som skrives. Varsler går til den lagene setter på vakt så snart hver endring er lagret.
+- For å endre på én gang hvem som tar vakter i lagene i en vaktplan, slik **Lagre endringer** på siden **Lag** gjør, leser du lagene med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` og sender dem tilbake, endret, til `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De nevner hvert lag vaktplanen beholder, det med høyest prioritet først, hvert med personene sine i vaktrekkefølge: den som allerede er i et lag, med sin `layerUserId`, den som legges til, bare med `userId`. `deletedLayerIds` nevner lagene som skal slettes.
+- En lagring skrives helt eller ikke i det hele tatt, og hvem som har vakt, regnes ut én gang, med en gang. En som gjøres etter at noen andre har endret lagene, avvises med 409, fordi `basedOnVersion` ikke lenger er lagenes: les lagene på nytt, og gjør endringen på det som er der nå. Terraform-ressursen `oneuptime_on_call_schedule_layers` lagrer lagene i en vaktplan på denne måten.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

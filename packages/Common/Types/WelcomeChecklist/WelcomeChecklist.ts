@@ -2,6 +2,10 @@ import ActivationMilestone from "../Analytics/ActivationMilestone";
 import { PlanType } from "../Billing/SubscriptionPlan";
 import ProjectGoal, { parseProjectGoals } from "./ProjectGoal";
 import ProductKey from "../Product/ProductKey";
+import {
+  SetupHealthCheck,
+  SetupHealthFinding,
+} from "../SetupHealth/SetupHealth";
 
 /*
  * THE WELCOME CHECKLIST ON HOME (issue #6803): which steps a project is
@@ -18,24 +22,32 @@ import ProductKey from "../Product/ProductKey";
  *     project's activation milestones (#6830, STEP_DONE_BY_MILESTONES),
  *     which the server keeps the moment they first become true - and sends
  *     to product analytics then, as activation/<milestone>.
+ *   - A step whose record exists but does not work yet says why
+ *     (WelcomeStepGap, #6938): the Setup health finding about its record,
+ *     such as a status page that shows no monitor, with the page that fixes
+ *     it - so it does not look like a step never started.
  *   - A step the project's plan cannot finish says which plan it needs
  *     (getWelcomeStepPlanNeed) and is not counted.
  *   - The next step is the first one left to do that the plan allows.
+ *   - Once every step of the goals is done, the project's checklist is
+ *     finished, and Home offers the core steps no goal brought that are
+ *     still left (getWelcomeMoreSteps, #7986): a project that came for its
+ *     website is still offered a status page and its team.
  *
  * The server builds the checklist (Server/Services/WelcomeChecklistService)
  * and sends it to Home in one answer (WelcomeChecklistAnswer.ts); the
  * Dashboard draws it with each step's words and pages
  * (Components/Home/WelcomeChecklist/WelcomeChecklistCatalog.ts).
  *
+ * The server's own setup (email, HTTPS, who can sign up) is not a step: its
+ * master admins see the Server setup card above the checklist instead
+ * (Components/ServerSetup/ServerSetupCard, #6824), so Home asks for it once
+ * (#7018).
+ *
  * Pure: the server, the Dashboard and their tests read it.
  */
 
 export enum WelcomeStep {
-  /*
-   * A master admin of a self-hosted server that cannot send email yet: set
-   * it up in the Admin Dashboard. Not one of the project's own steps.
-   */
-  ServerEmail = "server_email",
   // Bring monitors, on-call and status pages over from another tool.
   Import = "import",
   // A monitor that has reported its first result.
@@ -55,11 +67,9 @@ export enum WelcomeStep {
 /*
  * Every step, in the order the checklist shows them: the order a problem
  * flows through OneUptime ("How OneUptime works"), with what feeds it first
- * and the team last. The server's email comes before everything: without
- * it nobody is told by email, and nobody gets an invitation.
+ * and the team last.
  */
 export const WELCOME_STEP_ORDER: ReadonlyArray<WelcomeStep> = [
-  WelcomeStep.ServerEmail,
   WelcomeStep.Import,
   WelcomeStep.Monitor,
   WelcomeStep.Infrastructure,
@@ -105,8 +115,6 @@ export const STEPS_OF_GOAL: Readonly<
  * The guided setups say the same number beside their steps.
  */
 export const WELCOME_STEP_MINUTES: Readonly<Record<WelcomeStep, number>> = {
-  // An email server in the Admin Dashboard, and a test email.
-  [WelcomeStep.ServerEmail]: 5,
   // An API key from the other tool, a preview, and the import itself.
   [WelcomeStep.Import]: 10,
   // An address, who is told, and a test page (#6804).
@@ -153,8 +161,7 @@ export const getWelcomeMinutesLeft: (
 
 /*
  * The steps a choice of goals would give this server's project, before it
- * is sent: what the question says the plan is while the person picks. The
- * server's email is no goal's, so it is never counted here.
+ * is sent: what the question says the plan is while the person picks.
  */
 export const getPlanStepsForGoals: (
   goals: ReadonlyArray<ProjectGoal>,
@@ -193,7 +200,6 @@ export const DEFAULT_WELCOME_STEPS: ReadonlyArray<WelcomeStep> = [
 export const WELCOME_STEP_PRODUCTS: Readonly<
   Record<WelcomeStep, ReadonlyArray<ProductKey>>
 > = {
-  [WelcomeStep.ServerEmail]: [],
   [WelcomeStep.Import]: [],
   [WelcomeStep.Monitor]: [ProductKey.Monitors],
   [WelcomeStep.Infrastructure]: [ProductKey.Hosts],
@@ -287,7 +293,6 @@ export const getStepsForGoals: (
 export const STEP_DONE_BY_MILESTONES: Readonly<
   Record<WelcomeStep, ReadonlyArray<ActivationMilestone>>
 > = {
-  [WelcomeStep.ServerEmail]: [],
   [WelcomeStep.Import]: [],
   [WelcomeStep.Monitor]: [ActivationMilestone.FirstCheckResultReceived],
   [WelcomeStep.Infrastructure]: [ActivationMilestone.FirstMetricsReceived],
@@ -311,16 +316,16 @@ export interface WelcomeOutcomeFacts {
   // The project's activation milestones.
   reached: ReadonlyArray<ActivationMilestone> | Set<ActivationMilestone>;
   /*
-   * An enabled incident or alert on-call rule runs an on-call policy that
-   * can reach somebody (OnCallReadinessService): somebody would be told,
-   * though nobody has been yet. Until a test page (#6811) has been
-   * acknowledged, this is how "who is told" is known.
+   * An on-call policy in service that can reach somebody
+   * (OnCallReadinessService) is run when something breaks: an enabled
+   * incident or alert on-call rule runs it, or a monitor's criteria page it
+   * directly (#7017). Somebody would be told, though nobody has been yet.
+   * Until a test page (#6811) has been acknowledged, this is how "who is
+   * told" is known.
    */
-  hasRuleThatPagesSomeone: boolean;
+  hasPolicyThatPagesSomeone: boolean;
   // An import from another tool finished (ToolImportRun Completed).
   hasFinishedImport: boolean;
-  // The server can send email (always, on OneUptime Cloud).
-  serverCanSendEmail: boolean;
 }
 
 const toSet: (
@@ -357,14 +362,12 @@ export const isWelcomeStepDone: (
   facts: WelcomeOutcomeFacts,
 ) => boolean = (step: WelcomeStep, facts: WelcomeOutcomeFacts): boolean => {
   switch (step) {
-    case WelcomeStep.ServerEmail:
-      return facts.serverCanSendEmail;
     case WelcomeStep.Import:
       return facts.hasFinishedImport;
     case WelcomeStep.OnCall:
       return (
         isWelcomeStepDoneByMilestones(step, facts.reached) ||
-        facts.hasRuleThatPagesSomeone
+        facts.hasPolicyThatPagesSomeone
       );
     default:
       return isWelcomeStepDoneByMilestones(step, facts.reached);
@@ -372,10 +375,11 @@ export const isWelcomeStepDone: (
 };
 
 /*
- * Whether the server needs to look at the project's on-call rules: the
- * steps include "who is told" and no milestone has finished it yet. The
- * check reads rules and responders, so it is skipped whenever it cannot
- * change the answer.
+ * Whether the server needs to look at what runs the project's on-call
+ * policies (its rules, and its monitors' criteria): the steps include "who
+ * is told" and no milestone has finished it yet. The check reads rules,
+ * monitors and responders, so it is skipped whenever it cannot change the
+ * answer.
  */
 export const needsOnCallRuleCheck: (data: {
   steps: ReadonlyArray<WelcomeStep>;
@@ -419,6 +423,95 @@ export const getWelcomeStepPlanNeed: (
   return null;
 };
 
+/*
+ * WHY A STEP WHOSE RECORD EXISTS IS NOT DONE YET (#6938). A step ticks on
+ * its outcome, so it can be open although its record is there: a status
+ * page that shows no monitor, a monitor no probe checks, an on-call policy
+ * nothing runs or that reaches nobody, an invitation nobody accepted. Home
+ * says the break in one line under the step, and the step opens the page
+ * that fixes it, so it never looks like a step never started (principle 3:
+ * show the chain, and name the break).
+ *
+ * The breaks are Setup health's findings (Types/SetupHealth, #6812), read
+ * once for the project and said in its words, so the checklist and Setup
+ * Health never disagree. Only an invitation nobody accepted is the
+ * checklist's own: Setup health knows of one only for a responder.
+ */
+export const WELCOME_GAP_INVITATION_NOT_ACCEPTED: string =
+  "invitation_not_accepted";
+
+export interface WelcomeStepGap {
+  /*
+   * What is missing, as a stable key: the Setup health check of the
+   * finding (SetupHealthCheck), or WELCOME_GAP_INVITATION_NOT_ACCEPTED.
+   */
+  check: string;
+  /*
+   * The Setup health finding that names it - its sentence, the record it is
+   * about and the page that fixes it - or null for the checklist's own,
+   * whose step opens its own page.
+   */
+  finding: SetupHealthFinding | null;
+}
+
+/*
+ * The Setup health checks that say why a step is not done although its
+ * record exists, each step's in the order they are said: what runs a
+ * policy before what it reaches. A step with none here (importing, the
+ * team, telemetry, a server) has no finding about its record.
+ */
+export const WELCOME_STEP_GAP_CHECKS: Readonly<
+  Record<WelcomeStep, ReadonlyArray<SetupHealthCheck>>
+> = {
+  [WelcomeStep.Import]: [],
+  // A monitor no probe checks never reports its first result.
+  [WelcomeStep.Monitor]: [SetupHealthCheck.MonitorNotChecked],
+  [WelcomeStep.Infrastructure]: [],
+  [WelcomeStep.Telemetry]: [],
+  [WelcomeStep.OnCall]: [
+    SetupHealthCheck.PolicyNotRun,
+    SetupHealthCheck.PolicyHasNoEscalationRules,
+    SetupHealthCheck.PolicyReachesNobody,
+    SetupHealthCheck.ResponderCannotBePaged,
+  ],
+  [WelcomeStep.StatusPage]: [SetupHealthCheck.StatusPageShowsNoMonitor],
+  [WelcomeStep.Team]: [],
+};
+
+// Whether a step can have a Setup health finding about its record.
+export const hasWelcomeStepGapChecks: (step: WelcomeStep) => boolean = (
+  step: WelcomeStep,
+): boolean => {
+  return WELCOME_STEP_GAP_CHECKS[step].length > 0;
+};
+
+/*
+ * A step's gap among the project's findings (the ones this person is
+ * shown, without the dismissed): the first finding of the first of its
+ * checks that has one, or null.
+ */
+export const getWelcomeStepGapFromFindings: (
+  step: WelcomeStep,
+  findings: ReadonlyArray<SetupHealthFinding>,
+) => WelcomeStepGap | null = (
+  step: WelcomeStep,
+  findings: ReadonlyArray<SetupHealthFinding>,
+): WelcomeStepGap | null => {
+  for (const check of WELCOME_STEP_GAP_CHECKS[step]) {
+    const finding: SetupHealthFinding | undefined = findings.find(
+      (candidate: SetupHealthFinding): boolean => {
+        return candidate.check === check;
+      },
+    );
+
+    if (finding) {
+      return { check: check, finding: finding };
+    }
+  }
+
+  return null;
+};
+
 export interface WelcomeChecklistStepState {
   step: WelcomeStep;
   isDone: boolean;
@@ -429,6 +522,11 @@ export interface WelcomeChecklistStepState {
   needsPlan: PlanType | null;
   // The one step Home marks as next.
   isNext: boolean;
+  /*
+   * Why the step is not done although its record exists (#6938), or null:
+   * a step done, held back by the plan, or not started has none.
+   */
+  gap: WelcomeStepGap | null;
 }
 
 export interface WelcomeChecklist {
@@ -437,26 +535,42 @@ export interface WelcomeChecklist {
   doneCount: number;
   totalCount: number;
   /*
-   * Every one of the project's own steps that counts is done. The server's
-   * email is not the project's to finish, so it is left out: a project is
-   * finished for everyone, once.
+   * Every one of the project's own steps that counts is done: the
+   * checklist is finished for everyone, once.
    */
   isProjectFinished: boolean;
 }
+
+// A step's state for the facts and the plan.
+const getWelcomeStepState: (data: {
+  step: WelcomeStep;
+  facts: WelcomeOutcomeFacts;
+  plan: WelcomePlanFacts;
+}) => Omit<WelcomeChecklistStepState, "isNext"> = (data: {
+  step: WelcomeStep;
+  facts: WelcomeOutcomeFacts;
+  plan: WelcomePlanFacts;
+}): Omit<WelcomeChecklistStepState, "isNext"> => {
+  const isDone: boolean = isWelcomeStepDone(data.step, data.facts);
+
+  return {
+    step: data.step,
+    isDone: isDone,
+    needsPlan: isDone ? null : getWelcomeStepPlanNeed(data.step, data.plan),
+    gap: null,
+  };
+};
 
 export const buildWelcomeChecklist: (data: {
   goals: ReadonlyArray<ProjectGoal> | null;
   facts: WelcomeOutcomeFacts;
   plan: WelcomePlanFacts;
-  // The reader is a master admin of a self-hosted server.
-  readerIsServerAdmin: boolean;
   // The products switched off on the server: their steps are left out.
   offProducts?: ReadonlyArray<ProductKey> | undefined;
 }) => WelcomeChecklist = (data: {
   goals: ReadonlyArray<ProjectGoal> | null;
   facts: WelcomeOutcomeFacts;
   plan: WelcomePlanFacts;
-  readerIsServerAdmin: boolean;
   offProducts?: ReadonlyArray<ProductKey> | undefined;
 }): WelcomeChecklist => {
   const keys: Array<WelcomeStep> = getStepsForGoals(data.goals).filter(
@@ -465,43 +579,26 @@ export const buildWelcomeChecklist: (data: {
     },
   );
 
-  // Shown to the one person who can fix it, and only while it is broken.
-  if (data.readerIsServerAdmin && !data.facts.serverCanSendEmail) {
-    keys.unshift(WelcomeStep.ServerEmail);
-  }
-
   let hasNext: boolean = false;
 
   const steps: Array<WelcomeChecklistStepState> = keys.map(
     (step: WelcomeStep): WelcomeChecklistStepState => {
-      const isDone: boolean = isWelcomeStepDone(step, data.facts);
-      const needsPlan: PlanType | null = isDone
-        ? null
-        : getWelcomeStepPlanNeed(step, data.plan);
-      const isNext: boolean = !hasNext && !isDone && needsPlan === null;
+      const state: Omit<WelcomeChecklistStepState, "isNext"> =
+        getWelcomeStepState({ step: step, facts: data.facts, plan: data.plan });
+      const isNext: boolean =
+        !hasNext && !state.isDone && state.needsPlan === null;
 
       if (isNext) {
         hasNext = true;
       }
 
-      return {
-        step: step,
-        isDone: isDone,
-        needsPlan: needsPlan,
-        isNext: isNext,
-      };
+      return { ...state, isNext: isNext };
     },
   );
 
   const counted: Array<WelcomeChecklistStepState> = steps.filter(
     (state: WelcomeChecklistStepState): boolean => {
       return state.needsPlan === null;
-    },
-  );
-
-  const projectSteps: Array<WelcomeChecklistStepState> = counted.filter(
-    (state: WelcomeChecklistStepState): boolean => {
-      return state.step !== WelcomeStep.ServerEmail;
     },
   );
 
@@ -512,11 +609,77 @@ export const buildWelcomeChecklist: (data: {
     }).length,
     totalCount: counted.length,
     isProjectFinished:
-      projectSteps.length > 0 &&
-      projectSteps.every((state: WelcomeChecklistStepState): boolean => {
+      counted.length > 0 &&
+      counted.every((state: WelcomeChecklistStepState): boolean => {
         return state.isDone;
       }),
   };
+};
+
+/*
+ * WHAT ELSE TO SET UP, ONCE THE GOALS' STEPS ARE DONE (#7986).
+ *
+ * The goals bring the steps a project came for, and the checklist is
+ * finished for everyone once those are done. A project that came for its
+ * website - a monitor and who is told - was then never offered on Home what
+ * every project needs next: a status page and its team. So, once finished,
+ * Home offers the core steps (DEFAULT_WELCOME_STEPS, the four every
+ * checklist had before there were goals) that no goal brought and that are
+ * not done yet, each until it is done or the person hides the card. A
+ * project that never chose goals, or skipped them, had the four already,
+ * so it is offered nothing more.
+ */
+export const getWelcomeMoreSteps: (data: {
+  goals: ReadonlyArray<ProjectGoal> | null;
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
+}) => Array<WelcomeStep> = (data: {
+  goals: ReadonlyArray<ProjectGoal> | null;
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
+}): Array<WelcomeStep> => {
+  const goalSteps: Array<WelcomeStep> = getStepsForGoals(data.goals);
+
+  return DEFAULT_WELCOME_STEPS.filter((step: WelcomeStep): boolean => {
+    return (
+      !goalSteps.includes(step) &&
+      !isWelcomeStepOffOnServer(step, data.offProducts || [])
+    );
+  });
+};
+
+/*
+ * The core steps left to offer once the checklist is finished, in the
+ * checklist's order: the ones not done yet. None is marked next - each is
+ * offered, none is the plan - and one the plan holds back says which plan
+ * it needs, as on the checklist.
+ */
+export const buildWelcomeMoreSteps: (data: {
+  goals: ReadonlyArray<ProjectGoal> | null;
+  facts: WelcomeOutcomeFacts;
+  plan: WelcomePlanFacts;
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
+}) => Array<WelcomeChecklistStepState> = (data: {
+  goals: ReadonlyArray<ProjectGoal> | null;
+  facts: WelcomeOutcomeFacts;
+  plan: WelcomePlanFacts;
+  offProducts?: ReadonlyArray<ProductKey> | undefined;
+}): Array<WelcomeChecklistStepState> => {
+  return getWelcomeMoreSteps({
+    goals: data.goals,
+    offProducts: data.offProducts,
+  })
+    .map((step: WelcomeStep): WelcomeChecklistStepState => {
+      return {
+        ...getWelcomeStepState({
+          step: step,
+          facts: data.facts,
+          plan: data.plan,
+        }),
+        isNext: false,
+      };
+    })
+    .filter((state: WelcomeChecklistStepState): boolean => {
+      return !state.isDone;
+    });
 };
 
 /*
@@ -632,4 +795,37 @@ export const isLegacyChecklistComplete: (
     counts.teamMembers > 1 &&
     counts.onCallPolicies > 0
   );
+};
+
+/*
+ * PAGED BY MORE THAN EMAIL (#9442). The website setup's policy pages the
+ * person who set it up by email, which ticks "Set up an on-call policy";
+ * a ticked step is a record, not a way anywhere, so Home stopped leading
+ * to the on-call guided setup - SMS, calls and the app - for an owner whom
+ * only email reaches. Home keeps a way to it until one of these, verified,
+ * can page them: a phone number (SMS, a call, WhatsApp) or a push device
+ * (the mobile app, or a browser). They are Readiness's method types
+ * (ReadinessMethodType in Server/Services/OnCallReadinessService).
+ */
+export const PHONE_OR_APP_METHOD_TYPES: ReadonlyArray<string> = [
+  "SMS",
+  "Call",
+  "WhatsApp",
+  "Push",
+];
+
+export interface WelcomeReachMethod {
+  methodType: string;
+  isVerified: boolean;
+}
+
+// Whether a verified phone number or push device can page the person.
+export const canPageByPhoneOrApp: (
+  methods: ReadonlyArray<WelcomeReachMethod>,
+) => boolean = (methods: ReadonlyArray<WelcomeReachMethod>): boolean => {
+  return methods.some((method: WelcomeReachMethod): boolean => {
+    return (
+      method.isVerified && PHONE_OR_APP_METHOD_TYPES.includes(method.methodType)
+    );
+  });
 };

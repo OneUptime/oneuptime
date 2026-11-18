@@ -4,6 +4,8 @@ import "./Jobs/Announcement/SendNotificationToSubscribers";
 import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
 // The keys presented to OneUptime that were stored as written: protected in place (#9012).
 import "./Jobs/PresentedKeys/ProtectAtRest";
+// The credentials the upgrade left as written: encrypted in place a day later (#9266).
+import "./Jobs/CredentialsAtRest/EncryptInPlace";
 // Incidents
 import "./Jobs/Incident/SendNotificationToSubscribers";
 import "./Jobs/Incident/SendPostmortemNotificationToSubscribers";
@@ -105,6 +107,7 @@ import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
 import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
 import "./Jobs/NetworkDeviceDiscovery/AgeOutDiscoveredDevices";
+import "./Jobs/NetworkDeviceDiscovery/SyncDiscoveredDeviceInventory";
 
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
@@ -489,6 +492,12 @@ import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";
+
+/*
+ * Tells master admins, through another channel, when the server's email or
+ * its global probes stop working, and when they work again (#6879).
+ */
+import "./Jobs/ServerAlerts/TellMasterAdmins";
 
 // Tells oneuptime.com once a day which URL and version this install runs.
 import "./Jobs/InstanceCheckIn/CheckIn";

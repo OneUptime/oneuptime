@@ -2,6 +2,16 @@ import React, { FunctionComponent, ReactElement } from "react";
 import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -26,32 +36,40 @@ const ProjectLabelVariableDropdown: FunctionComponent<ComponentProps> = (
     },
   );
   const missing: boolean = Boolean(props.value && !selected);
+  // A variable's name is drawn as it was written, never looked up.
+  const options: Array<DropdownOption> = [
+    ...(missing && props.value
+      ? [
+          getTranslatedDropdownOption(
+            props.value,
+            translator.translateText("Unavailable variable") ||
+              "Unavailable variable",
+          ),
+        ]
+      : []),
+    ...variables.map((variable: DashboardVariable): DropdownOption => {
+      return getNamedDropdownOption(
+        variable.id,
+        variable.label && variable.label !== variable.name
+          ? `${variable.label} (${variable.name})`
+          : variable.name,
+      );
+    }),
+  ];
   return (
     <div>
-      <select
-        aria-label={translator.translateText("Label Variable")}
-        className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700"
-        value={props.value || ""}
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-          return props.onChange(e.target.value);
+      <Dropdown
+        options={options}
+        value={findDropdownOption(options, props.value)}
+        // Cleared, the widget follows no label variable: "None".
+        placeholder={translator.translateText("None")}
+        isPlaceholderTranslated={true}
+        ariaLabel={translator.translateText("Label Variable")}
+        isAriaLabelTranslated={true}
+        onChange={(next: DropdownValue | Array<DropdownValue> | null): void => {
+          props.onChange(readPickedDropdownValue(next) || "");
         }}
-      >
-        <option value="">{translator.translateText("None")}</option>
-        {missing && (
-          <option value={props.value}>
-            {translator.translateText("Unavailable variable")}
-          </option>
-        )}
-        {variables.map((variable: DashboardVariable) => {
-          return (
-            <option key={variable.id} value={variable.id}>
-              {variable.label && variable.label !== variable.name
-                ? `${variable.label} (${variable.name})`
-                : variable.name}
-            </option>
-          );
-        })}
-      </select>
+      />
       {missing ? (
         <p role="alert" className="text-xs text-red-600 mt-1">
           {translator.translateText(

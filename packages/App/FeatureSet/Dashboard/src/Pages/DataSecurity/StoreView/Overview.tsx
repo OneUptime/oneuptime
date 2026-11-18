@@ -52,7 +52,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -477,7 +477,7 @@ const DataStoreOverview: FunctionComponent<
   }
 
   if (!data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const store: DataStore | null = data.store || layoutStore;

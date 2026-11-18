@@ -103,10 +103,7 @@ export type StyleName = string;
  */
 export const COLOURED_STYLES: ReadonlySet<StyleName> = new Set<StyleName>([
   "PRIMARY",
-  "SECONDARY",
   "DANGER",
-  "SUCCESS",
-  "WARNING",
 ]);
 
 export const ACTION_STYLES: ReadonlySet<StyleName> = new Set<StyleName>([
@@ -122,8 +119,6 @@ export const ACTION_STYLES: ReadonlySet<StyleName> = new Set<StyleName>([
 export const FILLED_STYLES: ReadonlySet<StyleName> = new Set<StyleName>([
   "PRIMARY",
   "DANGER",
-  "SUCCESS",
-  "WARNING",
 ]);
 
 /*

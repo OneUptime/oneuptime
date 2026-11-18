@@ -8,7 +8,7 @@ import Route from "Common/Types/API/Route";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Input from "Common/UI/Components/Input/Input";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
@@ -189,7 +189,7 @@ const OpenStackCloudServices: FunctionComponent<
   }, []);
 
   if (read.isLoading && !read.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && !read.data) {

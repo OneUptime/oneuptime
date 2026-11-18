@@ -191,7 +191,7 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
                   </td>
                   <td className="pr-4 py-1">
                     {!snmpInterface.isAdministrativelyUp ? (
-                      <span className="text-gray-400">
+                      <span className="text-gray-500">
                         {translator.translateText("Disabled")}
                       </span>
                     ) : isDown ? (

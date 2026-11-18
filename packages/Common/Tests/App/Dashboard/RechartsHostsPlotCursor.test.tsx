@@ -9,14 +9,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -392,13 +390,16 @@ describe("the traces Analytics timeseries", () => {
     );
   }
 
-  async function measure(label: string, value: string): Promise<void> {
+  // Picks the measure named `label` in the query builder.
+  async function measure(label: string): Promise<void> {
     await plot();
-    fireEvent.change(screen.getByDisplayValue("Request Count"), {
-      target: { value: value },
+    const picker: HTMLElement = screen.getByRole("combobox", {
+      name: "Measure",
     });
+    expect(getShownDropdownValue(picker)).toBe("Request Count");
+    chooseDropdownOption(picker, label);
     await waitFor(() => {
-      expect(screen.getByDisplayValue(label)).toBeInTheDocument();
+      expect(getShownDropdownValue(picker)).toBe(label);
     });
   }
 
@@ -420,7 +421,7 @@ describe("the traces Analytics timeseries", () => {
         {tracesAnalytics()}
       </TimeRangeZoomProvider>,
     );
-    await measure("P95 Response Time", "p95Duration");
+    await measure("P95 Response Time");
 
     await waitFor(() => {
       expect(drawnAs()).toBe("area");
@@ -435,7 +436,7 @@ describe("the traces Analytics timeseries", () => {
         {tracesAnalytics()}
       </TimeRangeZoomProvider>,
     );
-    await measure("P95 Response Time", "p95Duration");
+    await measure("P95 Response Time");
 
     await waitFor(() => {
       expect(drawnAs()).toBe("line");

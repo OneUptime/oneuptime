@@ -18,6 +18,7 @@ import {
   TelemetrySortColumn,
   TelemetrySortDirection,
 } from "./TelemetryIngestionUtils";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import URL from "Common/Types/API/URL";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
@@ -29,7 +30,6 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Input from "Common/UI/Components/Input/Input";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
@@ -298,7 +298,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (isInitialLoading && !data) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     const view: TelemetryProjectIngestionView = parseProjectIngestion(data);
@@ -600,7 +600,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                                   translator.translateText("Unnamed project")}
                               </div>
                               <div
-                                className="truncate font-mono text-xs text-gray-400"
+                                className="truncate font-mono text-xs text-gray-500"
                                 title={project.projectId}
                               >
                                 {project.projectId}

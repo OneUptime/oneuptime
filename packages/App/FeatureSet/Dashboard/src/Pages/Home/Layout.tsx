@@ -1,9 +1,9 @@
 import PageMap from "../../Utils/PageMap";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Link from "Common/Types/Link";
 import Route from "Common/Types/API/Route";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { Outlet } from "react-router-dom";
@@ -36,7 +36,7 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Page title="Home" breadcrumbLinks={breadcrumbLinks}>
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <Outlet />
       </Suspense>
     </Page>

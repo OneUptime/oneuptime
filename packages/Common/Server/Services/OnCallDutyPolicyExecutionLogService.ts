@@ -97,7 +97,6 @@ import {
   isOnCallDirectPage,
 } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import OneUptimeDate from "../../Types/Date";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
   getOnCallPageAgainStatusMessage,
   isOnCallPageAgainRun,
@@ -112,6 +111,7 @@ import {
   isOnCallTestPage,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { JSONObject } from "../../Types/JSON";
+import { OnCallFireDrillFailureRecord } from "../../Types/OnCallDutyPolicy/OnCallFireDrill";
 
 /*
  * Who started a direct page, for its run to record: the person, or the
@@ -127,6 +127,17 @@ export interface OnCallDirectPageStartedBy {
 export interface OnCallDirectPageRun {
   executionLogId: ObjectID;
   outcome: OnCallPagingOutcome;
+}
+
+/*
+ * The fire drill a policy's test is part of (#9386): the drill, the same on
+ * every policy's test it starts; the monitor whose failure it rehearses; and
+ * that failure, as the drill's dialog named it.
+ */
+export interface OnCallFireDrillOfRun {
+  fireDrillId: ObjectID;
+  monitorId: ObjectID;
+  failure: OnCallFireDrillFailureRecord;
 }
 
 /*
@@ -952,6 +963,12 @@ export class Service extends ProjectReferencesService<Model> {
    * may edit the policy, and how often it is tested. An archived policy, or
    * one without escalation rules, writes the run with the reason, as for any
    * run. Returns the run's id.
+   *
+   * A monitor's fire drill (OnCallFireDrillService) starts one for each
+   * policy its failure pages, and keeps on each the drill, the monitor and
+   * the failure it rehearsed (#9386): the policy's execution logs say the
+   * run was part of a fire drill of that monitor, and the monitor's card
+   * says how the drill went.
    */
   @CaptureSpan()
   public async startPolicyTest(data: {
@@ -961,6 +978,7 @@ export class Service extends ProjectReferencesService<Model> {
     severityId: ObjectID;
     walksEscalation: boolean;
     startedByUserId: ObjectID;
+    fireDrill?: OnCallFireDrillOfRun | undefined;
   }): Promise<ObjectID> {
     const log: Model = new Model();
 
@@ -972,6 +990,12 @@ export class Service extends ProjectReferencesService<Model> {
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
     log.testPageWalksEscalation = data.walksEscalation;
+
+    if (data.fireDrill) {
+      log.testPageFireDrillId = data.fireDrill.fireDrillId;
+      log.testPageFireDrillMonitorId = data.fireDrill.monitorId;
+      log.testPageFireDrillFailure = data.fireDrill.failure;
+    }
 
     const createdLog: Model = await this.create({
       data: log,
@@ -1602,21 +1626,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return await OnCallDutyPolicyEscalationRuleService.findOneBy({
-      query: {
-        projectId: data.projectId,
-        onCallDutyPolicyId: data.onCallDutyPolicyId,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
+    // The policy's first, as a new run starts at (#9369).
+    return await OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy({
+      projectId: data.projectId,
+      onCallDutyPolicyId: data.onCallDutyPolicyId,
     });
   }
 
@@ -2274,20 +2287,14 @@ export class Service extends ProjectReferencesService<Model> {
         }
       | undefined,
   ): Promise<void> {
-    // get execution rules in this policy adn execute the first rule.
+    /*
+     * The policy's first escalation rule: its lowest place, which need not
+     * be 1 (#9369).
+     */
     const executionRule: OnCallDutyPolicyEscalationRule | null =
-      await OnCallDutyPolicyEscalationRuleService.findOneBy({
-        query: {
-          projectId: run.projectId!,
-          onCallDutyPolicyId: run.onCallDutyPolicyId!,
-          order: 1,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
+      await OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy({
+        projectId: run.projectId!,
+        onCallDutyPolicyId: run.onCallDutyPolicyId!,
       });
 
     if (!executionRule) {

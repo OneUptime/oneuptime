@@ -1,4 +1,5 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import TelemetryRuleEditor from "./TelemetryRule/TelemetryRuleEditor";
@@ -85,7 +86,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorStepTraceMonitor, {
@@ -874,7 +874,7 @@ return {
     props.monitorType === MonitorType.SyntheticMonitor;
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton fields={4} columns={1} />;
   }
 
   if (error) {

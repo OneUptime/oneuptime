@@ -18,7 +18,7 @@ import useCloudAccounts, {
 } from "../../Components/Cloud/UseCloudAccounts";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -49,7 +49,7 @@ const CloudSavings: FunctionComponent<
   const read: CloudAccountsRead = useCloudAccounts();
 
   if (read.isLoading && read.accounts.length === 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && read.accounts.length === 0) {

@@ -376,7 +376,7 @@ const CheckList: FunctionComponent<{
                           dateTime={at.toISOString()}
                           title={time.full}
                           data-testid="remediation-round-check-time"
-                          className="flex-shrink-0 tabular-nums text-gray-400 [@container(min-width:26rem)]:ms-auto"
+                          className="flex-shrink-0 tabular-nums text-gray-500 [@container(min-width:26rem)]:ms-auto"
                         >
                           {time.short}
                         </time>

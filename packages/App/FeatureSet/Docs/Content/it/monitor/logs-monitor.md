@@ -32,7 +32,7 @@ Ogni minuto, OneUptime conta i log che corrispondono ai filtri del monitor e son
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. Oppure, nell'esploratore dei log, cercate i log di cui volete essere informati e fate clic su **Crea monitor** (la campanella) nella sua barra degli strumenti: il nuovo monitor parte osservando la ricerca, le gravità, i servizi e gli attributi dell'esploratore.
+Andate in **Monitor** e fate clic su **Crea monitor**. Oppure, nell'esploratore dei log, cercate i log di cui volete essere informati e fate clic su **Crea monitor** (la campanella) nella sua barra degli strumenti: il nuovo monitor parte osservando la ricerca, le gravità, i servizi e gli attributi dell'esploratore. La scheda **Log** di un servizio ha lo stesso pulsante, e il suo monitor osserva quel servizio.
 
 ### Scegliere Logs
 

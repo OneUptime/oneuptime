@@ -65,6 +65,10 @@ const NAMED_DISCOVERED_SOURCE: Readonly<
   [NetworkDeviceDiscoveryMethod.ControllerClientList]: translationKey(
     "Client list of {{name}}",
   ),
+  // The device's row on Network > Discovered Devices, by the name it shows.
+  [NetworkDeviceDiscoveryMethod.DiscoveredDeviceList]: translationKey(
+    "Discovered device {{name}}",
+  ),
 };
 
 // The same, for a reader whose name was never recorded.
@@ -86,6 +90,9 @@ const UNNAMED_DISCOVERED_SOURCE: Readonly<
   [NetworkDeviceDiscoveryMethod.Dns]: translationKey("DNS lookup by its probe"),
   [NetworkDeviceDiscoveryMethod.ControllerClientList]: translationKey(
     "A network controller's client list",
+  ),
+  [NetworkDeviceDiscoveryMethod.DiscoveredDeviceList]: translationKey(
+    "The Discovered Devices list",
   ),
 };
 

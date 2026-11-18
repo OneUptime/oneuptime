@@ -99,7 +99,7 @@ function WeekBars(props: { card: AiResultsCard }): ReactElement {
         The first and the last week, as the reader's calendar writes them.
       */}
       <div
-        className="mt-1 flex justify-between gap-2 text-xs text-gray-400"
+        className="mt-1 flex justify-between gap-2 text-xs text-gray-500"
         data-testid="ai-results-weeks-ends"
       >
         <span>{describeTrendDate(weeks[0]!.weekStart)}</span>

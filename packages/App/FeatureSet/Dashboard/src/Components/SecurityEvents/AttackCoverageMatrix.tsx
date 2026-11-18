@@ -55,7 +55,7 @@ const AttackCoverageMatrix: FunctionComponent<ComponentProps> = (
                 <span className="block truncate text-xs font-semibold">
                   {view.tactic.name}
                 </span>
-                <span className="mt-0.5 block text-[10px] tabular-nums text-gray-300">
+                <span className="mt-0.5 block text-xs tabular-nums text-gray-300">
                   {translator.formatNumber(view.coveredCount)}/
                   {translator.formatNumber(view.techniqueCount)}
                   <InlineSeparator />

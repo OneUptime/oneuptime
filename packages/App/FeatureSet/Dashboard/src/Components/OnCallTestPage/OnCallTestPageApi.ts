@@ -3,6 +3,11 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
+  OnCallFireDrillPreview,
+  OnCallFireDrillRecord,
+  OnCallFireDrillRun,
+} from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
+import {
   OnCallTestPagePreview,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
@@ -132,6 +137,93 @@ export default class OnCallTestPageApi {
     }
 
     return executionLogId;
+  }
+
+  /*
+   * A MONITOR'S FIRE DRILL (#7012): the monitor's failures, and for the one
+   * picked (or the first), each policy it pages and who - before anything
+   * is sent.
+   */
+  public static async fireDrillPreview(data: {
+    monitorId: string;
+    eventKey?: string | undefined;
+  }): Promise<OnCallFireDrillPreview> {
+    const body: JSONObject = toBody(
+      await API.post<JSONObject>({
+        url: getUrl("/fire-drill/preview"),
+        data: {
+          monitorId: data.monitorId,
+          ...(data.eventKey ? { eventKey: data.eventKey } : {}),
+        },
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    return body as unknown as OnCallFireDrillPreview;
+  }
+
+  /*
+   * Starts the drill of a failure: the server pages the policies it pages
+   * now - each one's first level, or every level in turn when the drill
+   * walks them (#9385). Returns each policy's test, to read its result by.
+   */
+  public static async startFireDrill(data: {
+    monitorId: string;
+    eventKey: string;
+    walksEscalation?: boolean | undefined;
+  }): Promise<Array<OnCallFireDrillRun>> {
+    const body: JSONObject = toBody(
+      await API.post<JSONObject>({
+        url: getUrl("/fire-drill/start"),
+        data: {
+          monitorId: data.monitorId,
+          eventKey: data.eventKey,
+          walksEscalation: Boolean(data.walksEscalation),
+        },
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    const runs: Array<OnCallFireDrillRun> = Array.isArray(body["runs"])
+      ? (body["runs"] as unknown as Array<OnCallFireDrillRun>).filter(
+          (run: OnCallFireDrillRun): boolean => {
+            return Boolean(run && run.executionLogId);
+          },
+        )
+      : [];
+
+    if (runs.length === 0) {
+      throw new OnCallTestPageApiError(
+        "The fire drill was started, but its results can't be shown.",
+      );
+    }
+
+    return runs;
+  }
+
+  /*
+   * A MONITOR'S LAST FIRE DRILL (#9386): when it ran, who ran it, the
+   * failure it rehearsed and what became of each policy's test - or null,
+   * with none the reader may read.
+   */
+  public static async lastFireDrill(
+    monitorId: string,
+  ): Promise<OnCallFireDrillRecord | null> {
+    const body: JSONObject = toBody(
+      await API.get<JSONObject>({
+        url: getUrl(`/fire-drill/last/${monitorId}`),
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    const fireDrill: JSONValue | undefined = body["fireDrill"];
+
+    return fireDrill &&
+      typeof fireDrill === "object" &&
+      !Array.isArray(fireDrill) &&
+      Array.isArray((fireDrill as JSONObject)["runs"])
+      ? (fireDrill as unknown as OnCallFireDrillRecord)
+      : null;
   }
 
   public static async getResult(

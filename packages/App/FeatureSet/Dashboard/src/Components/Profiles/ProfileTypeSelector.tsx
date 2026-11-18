@@ -2,6 +2,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ProfileUtil, { ProfileCategory } from "../../Utils/ProfileUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 
 export interface ProfileTypeSelectorProps {
   selectedProfileType: string | undefined;
@@ -100,6 +109,15 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
       ? props.selectedProfileType
       : "";
 
+  const advancedOptions: Array<DropdownOption> = ADVANCED_OPTIONS.map(
+    (option: { label: string; value: string }): DropdownOption => {
+      return getTranslatedDropdownOption(
+        option.value,
+        translator.translateText(option.label) || option.label,
+      );
+    },
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
@@ -122,7 +140,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
                 props.onChange(pill.value);
               }}
             >
-              <span className="mr-1.5 text-gray-400">{pill.icon}</span>
+              <span className="mr-1.5 text-gray-500">{pill.icon}</span>
               {translator.translateText(pill.label)}
             </button>
           );
@@ -130,26 +148,26 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
       </div>
 
       {props.showAdvanced !== false && (
-        <select
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          value={advancedValue}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-            const value: string = e.target.value;
-            props.onChange(value === "" ? undefined : value);
-          }}
+        <div
+          className="w-56 max-w-full"
           title={translator.translateText("Pick a specific profile type")}
         >
-          <option value="">{translator.translateText("Specific type…")}</option>
-          {ADVANCED_OPTIONS.map(
-            (option: { label: string; value: string }, index: number) => {
-              return (
-                <option key={index} value={option.value}>
-                  {translator.translateText(option.label)}
-                </option>
-              );
-            },
-          )}
-        </select>
+          <Dropdown
+            className="relative w-full overflow-visible"
+            ariaLabel={translator.translateText("Pick a specific profile type")}
+            isAriaLabelTranslated={true}
+            // Any type is the placeholder; clearing the picker returns to it.
+            placeholder={translator.translateText("Specific type…")}
+            isPlaceholderTranslated={true}
+            options={advancedOptions}
+            value={findDropdownOption(advancedOptions, advancedValue)}
+            onChange={(
+              next: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              props.onChange(readPickedDropdownValue(next) ?? undefined);
+            }}
+          />
+        </div>
       )}
     </div>
   );

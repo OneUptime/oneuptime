@@ -22,6 +22,16 @@ interface OverrideCardProps {
   now: number;
   onCancel?: (override: OnCallOverrideItem) => void;
   isCancelling?: boolean;
+
+  /*
+   * Edit (#7897): who covers, and its times as far as they may still
+   * change. Never for one that has ended: it is history.
+   */
+  onEdit?: (override: OnCallOverrideItem) => void;
+
+  // End now, for one under way: coming back early.
+  onEndNow?: (override: OnCallOverrideItem) => void;
+  isEnding?: boolean;
 }
 
 /** A substitution names the direction: being covered is not covering someone. */
@@ -32,6 +42,9 @@ export default function OverrideCard({
   now,
   onCancel,
   isCancelling = false,
+  onEdit,
+  onEndNow,
+  isEnding = false,
 }: OverrideCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { colors } = theme;
@@ -72,6 +85,9 @@ export default function OverrideCard({
   const endsIn: string | null =
     state === "active" ? formatTimeUntil(override.endsAt, now) : null;
   const canCancel: boolean = Boolean(onCancel) && state !== "past";
+  const canEdit: boolean = Boolean(onEdit) && state !== "past";
+  const canEndNow: boolean = Boolean(onEndNow) && state === "active";
+  const hasActions: boolean = canCancel || canEdit || canEndNow;
 
   return (
     <Card
@@ -103,69 +119,128 @@ export default function OverrideCard({
           {override.onCallDutyPolicy?.name || "All on-call policies"}
         </MetaLine>
       </View>
-      {canCancel && onCancel ? (
+      {hasActions ? (
         <View
           style={{
             marginTop: spacing.md,
             paddingTop: spacing.xs,
             borderTopWidth: 1,
             borderTopColor: colors.borderSubtle,
-            alignItems: "flex-end",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: spacing.xs,
           }}
         >
-          <Pressable
-            testID={`override-cancel-${override._id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Cancel override: ${sentence}`}
-            disabled={isCancelling}
-            accessibilityState={{ disabled: isCancelling, busy: isCancelling }}
-            aria-disabled={isCancelling}
-            aria-busy={isCancelling}
-            onPress={(): void => {
-              onCancel(override);
-            }}
-            style={({ pressed }: { pressed: boolean }): ViewStyle => {
-              return {
-                minHeight: touchTarget,
-                minWidth: 76,
-                marginTop: spacing.xs,
-                marginRight: -spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: radius.md,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: spacing.xs + 2,
-                backgroundColor: pressed ? colors.statusErrorBg : "transparent",
-                opacity: isCancelling ? 0.5 : 1,
-              };
-            }}
-          >
-            {isCancelling ? (
-              <ActivityIndicator
-                size="small"
-                color={colors.actionDestructive}
-              />
-            ) : (
-              <>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={18}
-                  color={colors.actionDestructive}
-                />
-                <AppText
-                  variant="subhead"
-                  weight="600"
-                  color={colors.actionDestructive}
-                >
-                  Cancel override
-                </AppText>
-              </>
-            )}
-          </Pressable>
+          {canEdit && onEdit ? (
+            <CardAction
+              testID={`override-edit-${override._id}`}
+              label="Edit"
+              accessibilityLabel={`Edit override: ${sentence}`}
+              iconName="create-outline"
+              color={colors.actionPrimary}
+              pressedBackground={colors.backgroundTertiary}
+              onPress={(): void => {
+                onEdit(override);
+              }}
+            />
+          ) : null}
+          {/*
+           * End now on one under way (#7897): the override keeps its record
+           * and the policy's feed says it changed. Cancel - a delete - is
+           * for one that has not started, which has nothing to end.
+           */}
+          {canEndNow && onEndNow ? (
+            <CardAction
+              testID={`override-end-now-${override._id}`}
+              label="End now"
+              accessibilityLabel={`End override now: ${sentence}`}
+              iconName="stop-circle-outline"
+              color={colors.actionDestructive}
+              pressedBackground={colors.statusErrorBg}
+              isBusy={isEnding}
+              onPress={(): void => {
+                onEndNow(override);
+              }}
+            />
+          ) : null}
+          {canCancel && onCancel ? (
+            <CardAction
+              testID={`override-cancel-${override._id}`}
+              label="Cancel override"
+              accessibilityLabel={`Cancel override: ${sentence}`}
+              iconName="close-circle-outline"
+              color={colors.actionDestructive}
+              pressedBackground={colors.statusErrorBg}
+              isBusy={isCancelling}
+              onPress={(): void => {
+                onCancel(override);
+              }}
+            />
+          ) : null}
         </View>
       ) : null}
     </Card>
+  );
+}
+
+// One action at a card's foot: its words beside an icon, a finger's height.
+function CardAction({
+  testID,
+  label,
+  accessibilityLabel,
+  iconName,
+  color,
+  pressedBackground,
+  isBusy = false,
+  onPress,
+}: {
+  testID: string;
+  label: string;
+  accessibilityLabel: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  color: string;
+  pressedBackground: string;
+  isBusy?: boolean;
+  onPress: () => void;
+}): React.JSX.Element {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      disabled={isBusy}
+      accessibilityState={{ disabled: isBusy, busy: isBusy }}
+      aria-disabled={isBusy}
+      aria-busy={isBusy}
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }): ViewStyle => {
+        return {
+          minHeight: touchTarget,
+          minWidth: 76,
+          marginTop: spacing.xs,
+          paddingHorizontal: spacing.md,
+          borderRadius: radius.md,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: spacing.xs + 2,
+          backgroundColor: pressed ? pressedBackground : "transparent",
+          opacity: isBusy ? 0.5 : 1,
+        };
+      }}
+    >
+      {isBusy ? (
+        <ActivityIndicator size="small" color={color} />
+      ) : (
+        <>
+          <Ionicons name={iconName} size={18} color={color} />
+          <AppText variant="subhead" weight="600" color={color}>
+            {label}
+          </AppText>
+        </>
+      )}
+    </Pressable>
   );
 }
 

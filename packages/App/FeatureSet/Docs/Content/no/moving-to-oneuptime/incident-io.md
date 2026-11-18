@@ -90,6 +90,9 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 ### Sørg for at alle kan varsles
 Inviterte personer godtar invitasjonen og legger deretter til et telefonnummer, en e-postadresse eller mobilappen de kan varsles på. **Vakt** > **Beredskap** viser hvem som ikke kan nås ennå.
 
+### Send et testoppkall
+Velg **Test denne policyen** i rapporten for å varsle en overført policy én gang, uten en hendelse: Hver melding sier TEST. Med flere policyer velger du først én.
+
 ### Fortsett hendelsesnumrene dine
 Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte etter det siste du hadde i incident.io: Under **Hendelser** > **Innstillinger** > **Nummerering** setter du **Neste hendelsesnummer** på kortet **Neste nummer** til nummeret etter det. Et nummer betyr da aldri to forskjellige hendelser.
 

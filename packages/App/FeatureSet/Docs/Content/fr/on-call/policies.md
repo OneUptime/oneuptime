@@ -12,15 +12,19 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 ## Créer une politique
 
 :::steps
-1. Allez dans **Astreinte → Politiques d'astreinte** et cliquez sur **Créer : Politique d'astreinte**.
+1. Allez dans **Astreinte → Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**.
 2. Saisissez un **Nom**, par exemple « Paiements principal ».
 3. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez les plannings d'astreinte, les équipes et les personnes à alerter en premier.
-4. Cliquez sur **Créer : Politique d'astreinte**. La politique s'ouvre sur sa page **Règles d'escalade**, avec **Level 1** déjà en place.
+4. Cliquez sur **Créer une politique d'astreinte**. La politique s'ouvre sur sa page **Règles d'escalade**, avec **Level 1** déjà en place.
 :::
 
 **Qui est alerté en premier ?** est facultatif, et n'est demandé qu'aux personnes autorisées à ajouter des règles d'escalade : laissé vide, la politique n'alerte personne tant qu'elle n'a pas de règle. **Description** et **Étiquettes** attendent sous **Plus de champs**. Pour ajouter les niveaux suivants, voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
-Pour la première politique d'un projet, le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaque nouvelle alerte**, activé au départ. Cela ajoute une règle sous **Incidents → Règles → Règles d'astreinte** et une autre sous **Alertes → Règles → Règles d'astreinte**, qui correspondent chacune à tout et exécutent cette politique. La question n'est posée qu'aux personnes autorisées à ajouter des règles d'astreinte, tant que le projet n'a ni politique d'astreinte ni règle d'astreinte.
+Le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaque nouvelle alerte** aux personnes autorisées à ajouter des règles d'astreinte. Cela ajoute une règle sous **Incidents → Règles → Règles d'astreinte** et une autre sous **Alertes → Règles → Règles d'astreinte**, qui correspondent chacune à tout et exécutent cette politique. C'est activé au départ pour la première politique d'un projet, tant que le projet n'a ni politique d'astreinte ni règle d'astreinte, et désactivé pour les suivantes : déclencher deux politiques pour chaque nouvel incident et chaque nouvelle alerte est un choix à faire. Désactivée, une politique n'alerte personne tant qu'une règle, un moniteur ou une personne ne l'exécute pas.
+
+![L'explication de la liste « Politiques d'astreinte » vide, avec « Configuration guidée » entouré](screen:on-call-policies-guided-setup)
+
+Pour être guidé pas à pas à la place, de votre téléphone jusqu'à une alerte de test, cliquez sur **Configuration guidée** : sur la liste **Politiques d'astreinte** vide, ou sous **Fonctionnement**. Voir [Être alerté par appel, SMS ou push](/docs/guides/paging).
 
 La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
 
@@ -96,6 +100,24 @@ Personne ne manque d'alerte pour n'avoir été alerté qu'une fois. Cette alerte
 Certaines alertes continuent après la prise en compte, jusqu'à ce qu'une personne qu'elles ont alertée réponde ou que ce soit résolu : une nouvelle alerte, une alerte aux observateurs, une alerte que quelqu'un a envoyée à des personnes depuis Slack ou Microsoft Teams, et une politique lancée à la main.
 
 Une politique lancée à la main est une politique lancée avec **Exécuter la politique d'astreinte**, ou par une alerte depuis Slack ou Microsoft Teams qui la nomme. Elle alerte niveau par niveau comme toute exécution, appels et notifications push répétées compris, et la prise en compte de l'incident par quelqu'un d'autre ne l'arrête pas : c'est ainsi que vous alertez une autre équipe sur un incident dont quelqu'un s'occupe déjà. La personne qu'elle a alertée répond depuis le message de son alerte, par un appel ou un SMS, ou en prenant elle-même l'incident en compte ; une fois l'incident pris en compte, sa page lui propose **Prendre en compte de nouveau**. **Escalader** la passe au niveau suivant. Sur un incident, une alerte ou un épisode résolu, rien n'est lancé, et on vous dit pourquoi : le tableau de bord désactive **Exécuter la politique d'astreinte** et en donne la raison. Ses notifications disent qui a lancé quelle politique, et reprennent le message envoyé avec une alerte depuis Slack ou Microsoft Teams.
+
+## Tester une politique
+
+**Tester cette politique**, dans les règles d'escalade d'une politique, appelle son premier niveau à titre de test, sans incident derrière : chaque message indique TEST, et aucune page de statut, aucun abonné ni aucun canal n'est informé. Activez **Parcourir chaque niveau d'escalade** pour appeler chaque niveau tour à tour, à 2 minutes d'intervalle au plus, jusqu'à ce que quelqu'un le prenne en compte. Avant tout envoi, la boîte de dialogue indique qui le test appelle et comment, et ce qu'il coûte sur OneUptime Cloud.
+
+**Envoyer l'appel de test** reste désactivé tant que le test n'atteindrait personne : chaque personne qu'il appelle s'est désabonnée de cette gravité, n'a aucune règle pour elle et rien vers quoi se replier, ou n'a que des méthodes non vérifiées ou désactivées dans le projet. Une ligne sous la liste indique pourquoi. Quand seul un niveau suivant peut être atteint, la ligne propose **Parcourir chaque niveau d'escalade** en un clic.
+
+La personne appelée prend le test en compte depuis n'importe lequel de ses messages : le lien d'un e-mail, d'un SMS ou d'un message de chat, le 1 d'un appel, ou sa notification push dans l'application OneUptime On-Call, dans les versions plus récentes que 1.6.0. Une politique peut être testée une fois toutes les 5 minutes, et un projet envoie au plus 20 tests par heure.
+
+### Lancer un exercice d'alerte sur un moniteur
+
+**Lancer un exercice d'alerte**, sur la carte **Quand il tombe en panne** d'un moniteur, répète l'une de ses pannes : un incident ou une alerte qu'ouvre l'un de ses critères, ou l'incident qu'une règle d'incident des alertes déclare à partir d'une telle alerte. Il teste chaque politique d'astreinte que cette panne appellerait, chacune comme **Tester cette politique** la teste, et rien de public ne se produit : aucun incident ni aucune alerte n'est créé, et aucune page de statut, aucun abonné ni aucun canal n'est informé. Avant tout envoi, la boîte de dialogue nomme la panne, chaque politique et qui cette politique appelle en ce moment. Pour un incident déclaré, elle nomme aussi la règle et combien de temps l'alerte reste ouverte avant : l'exercice teste aussitôt les politiques de l'incident, sans cette attente.
+
+Un exercice appelle le premier niveau de chaque politique. Sous **Plus de champs**, activez **Parcourir chaque niveau d'escalade** pour appeler les niveaux de chaque politique tour à tour, à 2 minutes d'intervalle au plus, jusqu'à ce que quelqu'un le prenne en compte : la boîte de dialogue liste alors chaque niveau que chaque politique atteint, et ce que le parcours coûte au plus. Quand personne aux premiers niveaux ne peut être atteint mais qu'un niveau suivant le peut, la ligne sous la liste propose **Parcourir chaque niveau d'escalade** en un clic.
+
+**Démarrer l'exercice d'alerte** reste désactivé tant que l'une de ces politiques est une politique que vous ne pouvez pas tester, parce que vous ne pouvez pas la modifier, ou tant que personne parmi ceux qu'elles appellent ne peut être atteint. Chaque politique d'un exercice compte comme un test à part : une politique testée dans les 5 dernières minutes bloque tout l'exercice, et un exercice de trois politiques prend trois des 20 tests par heure du projet.
+
+Une fois la boîte de dialogue fermée, **Dernier exercice d'alerte** sur la carte indique quelle panne le dernier exercice du moniteur a répétée, quand et par qui il a été démarré, et combien de ses tests ont été pris en compte. **Afficher les détails** liste le test de chaque politique : s'il a été pris en compte, par qui, par quel moyen et en combien de temps. Chaque test reste dans les journaux d'exécution de sa politique, marqué comme exercice d'alerte du moniteur. Les résultats d'un exercice s'affichent pour qui peut lire le moniteur et chacun de ces journaux d'exécution.
 
 ## Journaux d'exécution
 

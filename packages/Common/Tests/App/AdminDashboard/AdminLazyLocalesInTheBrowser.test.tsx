@@ -1,7 +1,10 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import fireEvent from "@testing-library/user-event";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import type { i18n as I18nInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import fs from "fs";
@@ -372,22 +375,19 @@ describe("a switch of language", () => {
       </I18nextProvider>,
     );
 
-    const menu: HTMLSelectElement = screen.getByRole(
-      "combobox",
-    ) as HTMLSelectElement;
+    // The menu is the shared Dropdown: each language by its own name.
+    const menu: HTMLElement = screen.getByRole("combobox");
 
-    expect(menu.value).toBe("en");
+    expect(getShownDropdownValue(menu)).toBe("English");
 
-    await act(async () => {
-      await fireEvent.selectOptions(menu, "de");
-    });
+    chooseDropdownOption(menu, "Deutsch");
 
     await waitFor(() => {
       expect(admin.i18n.language).toBe("de");
     });
 
     expect(admin.asked).toEqual(["de"]);
-    expect(menu.value).toBe("de");
+    expect(getShownDropdownValue(screen.getByRole("combobox"))).toBe("Deutsch");
     expect(languagesHeld(admin.i18n)).toEqual(["de", "en"]);
   });
 });

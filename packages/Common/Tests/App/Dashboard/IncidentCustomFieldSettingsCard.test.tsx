@@ -280,7 +280,7 @@ async function openEditor(name: string): Promise<HTMLElement> {
   const dialog: HTMLElement = await startEditing(name);
 
   await waitFor(() => {
-    expect(within(dialog).queryByTestId("component-loader")).toBeNull();
+    expect(within(dialog).queryByTestId("detail-skeleton")).toBeNull();
     expect(
       within(dialog).queryAllByRole("combobox").length +
         within(dialog).queryAllByRole("alert").length,
@@ -1051,7 +1051,7 @@ describe("editing from what is stored now, not what the page loaded", () => {
       "Edit Custom Fields on Create",
     );
 
-    expect(within(dialog).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(dialog).getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(within(dialog).queryByRole("combobox")).toBeNull();
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
 

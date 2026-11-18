@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ServiceCallsTable, {
@@ -12,7 +13,6 @@ import {
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getGlobalTranslator,
@@ -110,7 +110,7 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
       description="The application services that query this database, busiest first — from the database spans of your instrumented applications."
     >
       {props.isLoading ? (
-        <ComponentLoader />
+        <TableSkeleton rows={3} columns={3} hasHeader={false} />
       ) : props.services.length === 0 ? (
         <div
           data-testid="database-calling-services-empty"

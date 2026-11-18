@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,7 +23,6 @@ import Dropdown, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Input from "Common/UI/Components/Input/Input";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -286,7 +286,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="px-5 py-4">
-        {isLoading && <ComponentLoader />}
+        {isLoading && <DetailListSkeleton fields={2} columns={1} />}
 
         {!isLoading && !canArm && (
           <div

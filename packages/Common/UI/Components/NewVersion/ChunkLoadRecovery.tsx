@@ -1,4 +1,4 @@
-import PageLoader from "../Loader/PageLoader";
+import PageSkeleton from "../Page/PageSkeleton";
 import {
   ALERT_ICON_PATH,
   CLOUD_ICON_PATH,
@@ -491,7 +491,7 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
         data-variant={props.variant}
         data-step={step}
       >
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       </div>
     );
   }

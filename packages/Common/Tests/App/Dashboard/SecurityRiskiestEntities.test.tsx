@@ -236,8 +236,7 @@ describe("the card's body", () => {
       rows.map((row: HTMLElement): [string, string, string, string] => {
         return [
           within(row).getByRole("link").textContent || "",
-          (row.querySelector(".text-\\[11px\\]") as HTMLElement).textContent ||
-            "",
+          within(row).getByTestId("ranked-bar-hint").textContent || "",
           within(row).getByTestId(ENTITY_RISK_TEST_IDS.levelPill).textContent ||
             "",
           (row.querySelector(".tabular-nums") as HTMLElement).textContent || "",
@@ -418,7 +417,7 @@ describe("the card's body", () => {
       ).toBeTruthy();
       // The kind's line names the kind alone.
       expect(
-        (row.querySelector(".text-\\[11px\\]") as HTMLElement).textContent,
+        within(row).getByTestId("ranked-bar-hint").textContent,
       ).not.toContain("·");
     }
   });
@@ -434,7 +433,7 @@ describe("the card's body", () => {
       screen.getByTestId(RISKIEST_ENTITIES_TEST_IDS.list),
     ).getByRole("listitem");
 
-    expect(row.querySelector(".text-\\[11px\\]")).toBeNull();
+    expect(within(row).queryByTestId("ranked-bar-hint")).toBeNull();
     expect(
       within(row).getByTestId(ENTITY_RISK_TEST_IDS.levelPill),
     ).toHaveTextContent("Medium");

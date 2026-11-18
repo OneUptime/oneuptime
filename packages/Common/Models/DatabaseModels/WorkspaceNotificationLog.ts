@@ -149,6 +149,14 @@ export default class WorkspaceNotificationLog extends BaseModel {
   })
   public workspaceType?: WorkspaceType = undefined;
 
+  /*
+   * The channel's or chat's id as the workspace names it, whole (500
+   * characters): a Microsoft Teams personal chat's id runs to 130 and more.
+   * It is read back to find what a message in a channel is about
+   * (WorkspaceReactionNote, WorkspaceProjectResolution), so a cut one would
+   * match nothing (issue #9284). WorkspaceNotificationLogService keeps an id
+   * whole or leaves it out, never cut.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -162,15 +170,15 @@ export default class WorkspaceNotificationLog extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Channel ID",
     description: "Channel ID where the message was sent",
     canReadOnRelationQuery: false,
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public channelId?: string = undefined;
 
@@ -187,15 +195,15 @@ export default class WorkspaceNotificationLog extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Channel Name",
     description: "Channel Name where the message was sent",
     canReadOnRelationQuery: false,
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public channelName?: string = undefined;
 
@@ -212,15 +220,15 @@ export default class WorkspaceNotificationLog extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Thread ID",
     description: "Thread ID of the message in the channel (if any)",
     canReadOnRelationQuery: false,
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public threadId?: string = undefined;
 

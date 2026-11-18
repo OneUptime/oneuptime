@@ -115,6 +115,12 @@ const EXPECTED_TITLES: Record<string, Array<string>> = {
     "View Queue",
     "Documentation",
   ],
+  [PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS]: [
+    "Project",
+    "Queues",
+    "View Queue",
+    "Recommendations",
+  ],
   [PageMap.MESSAGE_QUEUE_VIEW_AUDIT_LOGS]: [
     "Project",
     "Queues",

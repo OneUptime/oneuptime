@@ -1,6 +1,7 @@
 import EncryptSnmpCredentials from "../../../FeatureSet/Workers/DataMigrations/EncryptSnmpCredentials";
 import EncryptWebhookAddresses from "../../../FeatureSet/Workers/DataMigrations/EncryptWebhookAddresses";
 import MaskWebhookAddressesInLogs from "../../../FeatureSet/Workers/DataMigrations/MaskWebhookAddressesInLogs";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import Entities from "Common/Models/DatabaseModels/Index";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -37,17 +38,19 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * does: the schema migration
  * (1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns), then
  * the EncryptWebhookAddresses, EncryptSnmpCredentials and
- * MaskWebhookAddressesInLogs data migrations. Every reader reads through
- * the real services all along:
+ * MaskWebhookAddressesInLogs data migrations, and a day later the
+ * CredentialsAtRest:EncryptInPlace job's pass (#9266). Every reader reads
+ * through the real services all along:
  *
- *   - before either, after the schema migration and after the data
- *     migrations, every address and credential reads as written - a URL as
- *     the URL written, a device's poll config with its keys, a scan's
- *     credential sets in their order and shape;
- *   - the schema migration keeps every value; the data migrations leave only
- *     ciphertext - in a JSON list, in each entry's secret fields alone - that
- *     decrypts to the value written, and the logs keep a webhook's address
- *     by its scheme and host;
+ *   - before any of it, after the schema migration, after the data
+ *     migrations and after the job, every address and credential reads as
+ *     written - a URL as the URL written, a device's poll config with its
+ *     keys, a scan's credential sets in their order and shape;
+ *   - the schema migration and the data migrations keep every credential as
+ *     written - what a server of the release before reads while the
+ *     upgrade rolls out - and the logs keep a webhook's address by its
+ *     scheme and host; the job leaves only ciphertext - in a JSON list, in
+ *     each entry's secret fields alone - that decrypts to the value written;
  *   - a second run changes nothing, byte for byte; two runs at once encrypt
  *     each value once;
  *   - an address or a credential saved through a service afterwards is
@@ -262,10 +265,20 @@ const AS_WRITTEN: ReadThroughServices = {
   scanCommunity: COMMUNITY,
 };
 
+/*
+ * The upgrade's data migrations. The two that name the credentials change
+ * nothing (#9266); the log mask masks.
+ */
 async function upgrade(): Promise<void> {
   await new EncryptWebhookAddresses().migrate();
   await new EncryptSnmpCredentials().migrate();
   await new MaskWebhookAddressesInLogs().migrate();
+}
+
+// A day later: the CredentialsAtRest:EncryptInPlace job's pass.
+async function aDayLater(): Promise<void> {
+  await encryptInPlaceADayLater(new EncryptWebhookAddresses().name);
+  await encryptInPlaceADayLater(new EncryptSnmpCredentials().name);
 }
 
 describePostgres(
@@ -662,8 +675,20 @@ describePostgres(
       expect(await storedValues()).toEqual(beforeSchema);
       expect(await readThroughServices()).toEqual(AS_WRITTEN);
 
-      // The data migrations leave only ciphertext, of the values written.
+      /*
+       * The data migrations change no credential: a server of the release
+       * before, still running while the upgrade rolls out, reads every one
+       * as stored, as written. Only the logs are masked.
+       */
       await upgrade();
+
+      expect((await storedValues()).slice(0, -3)).toEqual(
+        beforeSchema.slice(0, -3),
+      );
+      expect(await readThroughServices()).toEqual(AS_WRITTEN);
+
+      // A day later, the job leaves only ciphertext, of the values written.
+      await aDayLater();
 
       await expectEncryptedOnce();
 
@@ -689,6 +714,7 @@ describePostgres(
       const afterOne: Array<unknown> = await storedValues();
 
       await upgrade();
+      await aDayLater();
 
       expect(await storedValues()).toEqual(afterOne);
     });
@@ -698,6 +724,7 @@ describePostgres(
       await seedAsWritten();
 
       await Promise.all([upgrade(), upgrade()]);
+      await Promise.all([aDayLater(), aDayLater()]);
 
       await expectEncryptedOnce();
       expect(await readThroughServices()).toEqual(AS_WRITTEN);
@@ -707,6 +734,7 @@ describePostgres(
       await upgradeSchema();
       await seedAsWritten();
       await upgrade();
+      await aDayLater();
 
       // The address check a save runs, which asks DNS, is not what this is about.
       jest

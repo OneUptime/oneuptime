@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   Area,
   AreaChart,
@@ -23,15 +24,12 @@ import {
 } from "recharts";
 import API from "Common/UI/Utils/API/API";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
-import Icon from "Common/UI/Components/Icon/Icon";
-import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import useResizableColumns, {
   ResizableColumns,
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
@@ -51,6 +49,7 @@ import {
   buildFacetHelp,
 } from "Common/UI/Components/TelemetryViewer/FacetHelp";
 import FacetHelpButton from "Common/UI/Components/TelemetryViewer/components/FacetHelpButton";
+import AnalyticsQueryPicker from "Common/UI/Components/TelemetryViewer/components/AnalyticsQueryPicker";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -276,7 +275,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-500">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-xs font-medium text-gray-500">
         {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
@@ -741,34 +740,14 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         ) : (
           <></>
         )}
-        <div className="relative flex items-center">
-          <select
-            className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-            aria-label={caption}
-            value={value}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              onChange(e.target.value);
-            }}
-          >
-            {options.map((opt: SelectOption) => {
-              return (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              );
-            })}
-          </select>
-          {/*
-          The select's chevron: the product's own icon, inline and in the grey
-          of a control's icons (the dark theme lightens it), at the end of
-          the line whichever way the page reads - not an image of a grey
-          chevron pinned to the right.
-        */}
-          <Icon
-            icon={IconProp.ChevronDown}
-            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
-          />
-        </div>
+        <AnalyticsQueryPicker
+          ariaLabel={caption}
+          isAriaLabelTranslated={true}
+          value={value}
+          onChange={onChange}
+          options={options}
+          labels="translated"
+        />
       </div>
     );
   };
@@ -964,7 +943,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   backgroundColor: colorForSeries(key, index),
                 }}
               />
-              <span className="max-w-[280px] truncate text-[11px] text-gray-500">
+              <span className="max-w-[280px] truncate text-xs text-gray-500">
                 {key}
               </span>
             </div>
@@ -1241,7 +1220,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 key={index}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
               >
-                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-500">
+                <span className="w-5 text-right font-mono text-xs font-medium text-gray-500">
                   {index + 1}
                 </span>
                 <div
@@ -1275,7 +1254,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     )}
                   </span>
                   {isDuration && (
-                    <span className="w-20 text-right font-mono text-[11px] tabular-nums text-gray-500">
+                    <span className="w-20 text-right font-mono text-xs tabular-nums text-gray-500">
                       {translator.translateTemplate("{{count}} req", {
                         count: translator.formatNumber(item.count),
                       })}
@@ -1308,7 +1287,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     };
 
     const headerCell: string =
-      "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400";
+      "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500";
 
     return (
       <div className="p-5">
@@ -1365,7 +1344,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     key={index}
                     className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">
                       {index + 1}
                     </td>
                     {groupKeys.map((key: string) => {
@@ -1507,7 +1486,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           className="flex h-72 select-none items-center justify-center"
           {...(chartType === "timeseries" ? selection.placeholderProps : {})}
         >
-          <ComponentLoader />
+          <ChartSkeleton heightInPx={288} hasLegend={false} />
         </div>
       );
     }

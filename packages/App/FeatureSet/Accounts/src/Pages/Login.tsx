@@ -10,6 +10,7 @@ import {
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
@@ -70,7 +71,6 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import AuthenticatorAppSetupCode from "Common/UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import {
   MAGIC_LINK_ROUTE,
@@ -1153,7 +1153,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     Boolean(magicLinkToken) && !isMagicLinkTurnedOff;
 
   if (signInMethodsRead.isReading) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton />;
   }
 
   /*
@@ -1838,9 +1838,11 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 {twoFactorMethods.map(
                   (method: TwoFactorMethod, index: number) => {
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={index}
-                        className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        data-testid="two-factor-method"
+                        className="block w-full cursor-pointer rounded-lg border border-gray-300 p-4 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         onClick={() => {
                           if (method.type === "totp") {
                             setSelectedTotpAuth(method.item as UserTotpAuth);
@@ -1849,15 +1851,15 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                           }
                         }}
                       >
-                        <div className="font-medium">
+                        <span className="block font-medium">
                           {(method.item as any).name}
-                        </div>
-                        <div className="text-sm text-gray-500">
+                        </span>
+                        <span className="block text-sm text-gray-500">
                           {method.type === "totp"
                             ? t("login.twoFactor.authenticatorApp")
                             : t("login.twoFactor.securityKey")}
-                        </div>
-                      </div>
+                        </span>
+                      </button>
                     );
                   },
                 )}

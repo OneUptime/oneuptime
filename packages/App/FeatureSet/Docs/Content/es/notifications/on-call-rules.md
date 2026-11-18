@@ -34,7 +34,7 @@ La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y lo
 :::steps
 ### Añadir una forma de contactarte
 
-Haz clic en **Añadir** en un paso para enviar uno de tus métodos verificados en el momento de ese paso, o en **Añadir paso** para empezar un paso nuevo después del último. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**.
+Haz clic en **Añadir** en un paso para enviar uno de tus métodos verificados en el momento de ese paso, o en **Añadir paso** para empezar un paso nuevo después del último. Un número o una dirección que aún espera su código aparece en **Aún sin verificar**, con **Verificar**. Sin salir de la página, **Añadir tu teléfono** bajo los pasos envía un código a tu número y, en cuanto está verificado, el número te avisa por SMS y por llamada telefónica; **Usar este navegador** y **Obtener la app** añaden push de la misma forma.
 
 ### Elegir cuándo se usa
 
@@ -46,6 +46,8 @@ Haz clic en **Guardar cambios**, que aparece en cuanto algo ha cambiado. Escribe
 :::
 
 **Prueba tus avisos**, al pie de la página, te envía un aviso de prueba a través de ellas.
+
+Cuando tu servidor no puede enviar ahora mismo correos, SMS ni llamadas telefónicas, un paso de ese tipo aparece marcado con **No se envía ahora mismo**, y la página dice una sola vez quién puede configurarlo.
 
 Cuando una gravedad merece otra cosa, **Distinto para algunas gravedades**, el botón junto al título, abre las pestañas y tarjetas que se describen abajo. Una tarjeta que difiere de tu secuencia lleva la marca **Difiere de la secuencia**. La página sigue abriéndose en tus pasos y, debajo de ellos, lista cada tarjeta que difiere y qué hace en su lugar. **Guardar cambios** deja esas tarjetas como están; **Usar esta secuencia para cada gravedad**, al final de esa lista, les da también tu secuencia, después de nombrar las tarjetas que pierden su diferencia. Una gravedad que tu proyecto archivó conserva sus propias reglas.
 
@@ -68,7 +70,7 @@ Una gravedad que su proyecto archivó aparece después de las demás, marcada co
 
 ## Las reglas con las que empiezas
 
-Cada método que verificas recibe una regla en cada tarjeta de cada pestaña, enviada en cuanto te avisan. Tu correo de inicio de sesión las tiene desde el día en que te uniste, para que un aviso siempre te llegue. Verifica un número de teléfono para SMS, y cada aviso también te envía un SMS.
+Cada método que verificas recibe una regla en cada tarjeta de cada pestaña, enviada en cuanto te avisan. Tu correo de inicio de sesión las tiene desde el día en que te uniste, para que un aviso siempre te llegue. Verifica un número de teléfono para SMS, y cada aviso también te envía un SMS. Cuando tu proyecto tiene una secuencia predeterminada, cada método que verificas la sigue en su lugar: consulta [La secuencia predeterminada](#la-secuencia-predeterminada).
 
 Es un comienzo seguro, y normalmente demasiado. Recórtalo a lo que merece cada gravedad:
 
@@ -79,6 +81,18 @@ Es un comienzo seguro, y normalmente demasiado. Recórtalo a lo que merece cada 
 | Menor o baja | Un correo al instante |
 
 Tus propias reglas no tienen horas de silencio: deja las gravedades bajas en correo, o en una regla push configurada como **Estándar**, para que nunca te despierten. Para que el aviso de una gravedad baja espere al horario laboral para todos, configura la regla de guardia que lo activa como **Solo en horario laboral**: consulta [Reglas de guardia](/docs/alerts/settings#reglas-de-guardia).
+
+## La secuencia predeterminada
+
+Un proyecto puede tener una secuencia predeterminada: cómo se avisa a un miembro en cuanto verifica una forma de contactarlo. Un Propietario del proyecto o un Administrador del proyecto la define en **Secuencia predeterminada para nuevos miembros**, plegada en **Más ajustes** en **Ajustes del proyecto → Notificaciones → Canales de notificación**, con canales en lugar de los dispositivos de cada persona: por ejemplo, push al instante y una llamada telefónica a los 5 minutos.
+
+Con una secuencia predeterminada, un método que verificas recibe una regla en cada paso de su canal, en cada tarjeta de cada pestaña, y un canal que la secuencia deja fuera no recibe ninguna. Las reglas que ya tienes nunca cambian, y un aviso que no encuentra ninguna regla sigue recurriendo a tus métodos verificados.
+
+Para dársela a miembros que ya tienen reglas, un administrador usa **Aplicar secuencia predeterminada** en la página Preparación: consulta [Aplicar la secuencia predeterminada](/docs/on-call/readiness#aplicar-la-secuencia-predeterminada). Cada uno de ellos recibe un correo.
+
+Para seguirla tú mismo, haz clic en **Partir de la secuencia predeterminada**, junto a **Distinto para algunas gravedades**. Tus pasos pasan a ser los de la secuencia, con tus propios métodos verificados: una forma que no has verificado queda fuera y se nombra, y conservas tus propios pasos en su lugar. Nada cambia hasta que haces clic en **Guardar cambios**.
+
+**Teléfono para las personas de guardia**, a su lado, pide a todas las personas de guardia un número verificado de SMS, llamada telefónica o WhatsApp. Mientras no tengas ninguno, esta página lo dice encima de **Añadir tu teléfono**, y Preparación y Salud de la configuración te nombran. Nadie queda bloqueado.
 
 ## Añade una regla
 
@@ -121,7 +135,7 @@ Una regla push, para un teléfono o un navegador, también puede reenviar su pus
 
 ## Cuando una gravedad no tiene regla
 
-Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos, y un push que suena y se repite igual. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante.
+Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, hechas con lo que ya elegiste en esa pestaña: los mismos métodos, tras los mismos retrasos, y un push que suena y se repite igual. Si no tenías reglas en esa pestaña, recibe tu correo verificado, al instante. Cuando tu proyecto tiene una secuencia predeterminada, tu correo la sigue en su lugar: consulta [La secuencia predeterminada](#la-secuencia-predeterminada).
 
 Un aviso que aun así no encuentra regla se envía igualmente a tus métodos verificados, y recibes un correo al respecto; consulta [Cuando ninguna regla coincide](/docs/notifications/index#cuando-ninguna-regla-coincide).
 

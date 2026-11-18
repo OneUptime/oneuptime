@@ -376,7 +376,7 @@ function callsAxisSpan(): Array<string> {
 
 // Everything that says the drawer is refetching over the history it shows.
 function expectRefreshingOverLastHistory(): void {
-  expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   expect(
     within(historyHeader()).getByTestId("edge-history-refreshing"),
   ).toHaveTextContent("Refreshing");
@@ -385,7 +385,7 @@ function expectRefreshingOverLastHistory(): void {
 }
 
 function expectSettled(): void {
-  expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   expect(
     screen.queryByTestId("edge-history-refreshing"),
   ).not.toBeInTheDocument();
@@ -561,7 +561,7 @@ describe("Topology drawer: a zoom or a reset refetches over the history on scree
     await flush();
 
     expect(
-      within(historySection()).getByTestId("component-loader"),
+      within(historySection()).getByTestId("detail-skeleton"),
     ).toBeInTheDocument();
     expect(historySection()).toHaveAttribute("aria-busy", "true");
     expect(historyHeader()).toHaveTextContent("History");
@@ -673,7 +673,7 @@ describe("Topology drawer: a zoom or a reset refetches over the history on scree
     ).toBeInTheDocument();
     expect(within(historySection()).queryByRole("alert")).toBeNull();
     expect(screen.queryByTestId("edge-history-body")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   });
 
   test("a zoom, then a reset before the zoom's history lands: the older answer never lands", async () => {

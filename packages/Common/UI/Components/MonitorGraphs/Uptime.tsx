@@ -1,5 +1,5 @@
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import ChartSkeleton from "../Skeleton/ChartSkeleton";
 import DayUptimeGraph, {
   BarChartRule,
   DayReading,
@@ -182,7 +182,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   ]);
 
   if (props.isLoading) {
-    return <ComponentLoader />;
+    return <ChartSkeleton heightInPx={96} hasLegend={false} />;
   }
 
   if (props.error) {

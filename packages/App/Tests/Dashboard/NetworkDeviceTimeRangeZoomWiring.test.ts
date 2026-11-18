@@ -132,7 +132,7 @@ describe("Traffic pages: the traffic view's range is the page's", () => {
     expect(
       indexOfOrFail(
         code,
-        "{(!loaded && isLoading) || !isUsageSettled ? ( <ComponentLoader />",
+        "{(!loaded && isLoading) || !isUsageSettled ? ( <TableSkeleton />",
       ),
     ).toBeGreaterThan(open);
     // Both sides are inside the scope: the Meraki chart zooms the page too.
@@ -140,7 +140,7 @@ describe("Traffic pages: the traffic view's range is the page's", () => {
   });
 
   test("a refetch keeps the last data on screen: the loader and the full error are for the first load only", () => {
-    expect(code).not.toContain("{isLoading ? <ComponentLoader />");
+    expect(code).not.toContain("{isLoading ? <TableSkeleton />");
     expect(code).toContain(
       "{!loaded && !isLoading && error ? ( <ErrorMessage message={error} /> )",
     );

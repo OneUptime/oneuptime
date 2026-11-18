@@ -52,6 +52,9 @@
  *                              as a failure the server could not explain
  *                              does: a 500 naming the reference of its log
  *                              lines (1f0c9a2b)
+ *              who-is-told-recheck  the FIRST Recheck (refresh=true) of
+ *                              "When this goes down" fails as a gateway's
+ *                              502 does; the first read works (#7308)
  *   ?maintenance=1  the subject monitor has scheduled maintenance on its
  *              uptime strip: a completed database upgrade two days ago and
  *              load balancer patching in progress now. Without it the
@@ -89,6 +92,10 @@
  *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
  *              own locale files, its <html lang> and dir set by the
  *              production helper. English without it.
+ *   ?admin=1   the signed-in user is also this self-hosted server's master
+ *              admin, who is told where to look when the server fails: the
+ *              doctor's command, in code with a copy button (#7539), and
+ *              OneUptime Health. Not one without it.
  *   ?security= what Security Events says about the hosts the subject
  *              monitor checks, on its Security card (POST /security-case/
  *              resource-security): news (an open case, a week of events
@@ -114,7 +121,13 @@
  *              Shift has no members, and nobody is on call in schedule
  *              Holiday Cover now). Each "why them" and "who is not paged"
  *              comes as the server sends it: a code with its name, beside
- *              its English.
+ *              its English. own-rules (what a record's own rules make of
+ *              it: an incident a privacy rule makes private, labelled by a
+ *              label rule, naming two owners no email reaches, and an
+ *              alert an alert incident rule turns into an incident after
+ *              30 minutes, shown through the monitor group Checkout).
+ *              POST /who-is-told/draft (Create Monitor's criteria, #7055)
+ *              answers as this does, for the form's name.
  *   ?usedBy=   what "Used by" answers for a monitor (GET /used-by/
  *              monitor/:monitorId, and /:relation for See all's pages):
  *              none (default: nothing refers to it, so the card says what
@@ -380,6 +393,7 @@ const whoIsToldMode = [
   "hidden",
   "rules",
   "gaps",
+  "own-rules",
 ].includes(params.get("whoIsTold"))
   ? params.get("whoIsTold")
   : "pages";
@@ -2749,8 +2763,11 @@ function metricRows(aggregateBy) {
  * Identity and data-layer stubs
  * ---------------------------------------------------------------------------
  */
+// The server's master admin too, with ?admin=1 (#7539).
+const isServerMasterAdmin = params.get("admin") === "1";
+
 UserUtil.isMasterAdmin = () => {
-  return false;
+  return isServerMasterAdmin;
 };
 UserUtil.getUserId = () => {
   return people.maya.id;
@@ -3247,6 +3264,8 @@ AnalyticsModelAPI.aggregate = async (options) => {
 let hasFailedUptimeSummary = false;
 let hasFailedPreview = false;
 let hasFailedWhoIsTold = false;
+// ?fail=who-is-told-recheck: the first Recheck (refresh=true) fails (#7308).
+let hasFailedWhoIsToldRecheck = false;
 let hasFailedUsedBy = false;
 
 /*
@@ -3418,14 +3437,127 @@ function monitorSecurity(body) {
 }
 
 /*
+ * What a record's own rules make of what the Offline criteria opens
+ * (?whoIsTold=own-rules): an incident a privacy rule makes private - on no
+ * status page, though the monitor is on one - whose labels a label rule
+ * adds, and which names two owners no Created email reaches; and an alert
+ * that an alert incident rule turns into an incident after 30 minutes, the
+ * incident on a status page through the monitor group Checkout.
+ */
+function ownRulesEvents(monitorName, policy) {
+  return [
+    {
+      kind: "Incident",
+      title: `${monitorName} is offline`,
+      severityName: "Critical",
+      owners: {
+        source: "Named",
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+        notReached: [
+          {
+            kind: "User",
+            id: "5f000000-0000-4000-8000-0000000000f1",
+            name: "",
+            problem: "NotInProject",
+            addedBy: "Criteria",
+          },
+          {
+            kind: "Team",
+            id: "5f000000-0000-4000-8000-0000000000f2",
+            name: "Night Shift",
+            problem: "TeamHasNobodyInProject",
+            addedBy: "OwnerRule",
+            rule: {
+              id: "5f000000-0000-4000-8000-0000000000e1",
+              name: "Checkout monitors",
+            },
+          },
+        ],
+      },
+      ownerRules: [],
+      rules: [
+        { id: "5f000000-0000-4000-8000-0000000000b1", name: "Every incident" },
+      ],
+      policies: [policy],
+      statusPages: [],
+      isPrivate: true,
+      privacyRules: [
+        {
+          id: "5f000000-0000-4000-8000-0000000000f3",
+          name: "Payments are private",
+        },
+      ],
+      isPrivateOffStatusPages: true,
+      labelRules: [
+        { id: "5f000000-0000-4000-8000-0000000000f4", name: "Tag checkout" },
+      ],
+    },
+    {
+      kind: "Alert",
+      title: `${monitorName} is slow`,
+      severityName: "High",
+      owners: {
+        source: "ProjectOwners",
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+      },
+      ownerRules: [],
+      rules: [],
+      policies: [],
+      statusPages: [],
+      declares: {
+        rule: {
+          id: "5f000000-0000-4000-8000-0000000000f5",
+          name: "Lasting alerts",
+        },
+        waitInMinutes: 30,
+        incident: {
+          kind: "Incident",
+          title: `${monitorName} is slow`,
+          severityName: "Critical",
+          owners: {
+            source: "ProjectOwners",
+            userNames: ["Ana Lopez"],
+            teamNames: [],
+          },
+          ownerRules: [],
+          rules: [
+            {
+              id: "5f000000-0000-4000-8000-0000000000b1",
+              name: "Every incident",
+            },
+          ],
+          policies: [policy],
+          statusPages: [
+            {
+              id: "5f000000-0000-4000-8000-0000000000d2",
+              name: "Payments Status",
+              groups: [
+                {
+                  id: "5f000000-0000-4000-8000-0000000000f6",
+                  name: "Checkout",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  ];
+}
+
+/*
  * GET /who-is-told/monitor/:monitorId (?whoIsTold=): the chain from the
  * monitor to the people it reaches, as WhoIsToldService answers it, with
  * the breaks worked out by the same pure helper.
  */
-function whoIsTold(monitorId) {
+function whoIsTold(monitorId, draftName) {
   const monitor = table(Monitor).find((item) => {
     return String(item._id) === monitorId;
   });
+  // A monitor not created yet goes by the form's name (POST /who-is-told/draft).
+  const monitorName = monitor ? monitor.name : draftName || "Monitor";
   const isHidden = whoIsToldMode === "hidden";
   const hasOwnerRules = whoIsToldMode === "rules" || isHidden;
   // Nobody is paged: no rule matches, or (#7369) the project has no policy yet.
@@ -3450,6 +3582,8 @@ function whoIsTold(monitorId) {
    * English, as OnCallTestPageService.readFirstLevel writes them.
    */
   const isGaps = whoIsToldMode === "gaps";
+  // A record's own rules (?whoIsTold=own-rules, #7212 - #7572).
+  const isOwnRules = whoIsToldMode === "own-rules";
   const benReachedThroughCode = isGaps
     ? { code: "ScheduleNextInRotation", name: "Weekly Rotation" }
     : { code: "Schedule", name: "Weekly Rotation" };
@@ -3516,46 +3650,48 @@ function whoIsTold(monitorId) {
       statusName: "Offline",
       statusColor: "#ef4444",
       statusOwners: owners,
-      events: [
-        {
-          kind: "Incident",
-          title: `${monitor ? monitor.name : "Monitor"} is offline`,
-          severityName: "Critical",
-          owners: incidentOwners,
-          ownerRules: hasOwnerRules
-            ? [
-                {
-                  id: "5f000000-0000-4000-8000-0000000000e1",
-                  name: isHidden ? "" : "Checkout monitors",
-                },
-              ]
-            : [],
-          rules: isNobodyPaged
-            ? []
-            : [
-                {
-                  id: "5f000000-0000-4000-8000-0000000000b1",
-                  name: isHidden ? "" : "Every incident",
-                },
-              ],
-          policies: isNobodyPaged ? [] : [policy],
-          statusPages: [
+      events: isOwnRules
+        ? ownRulesEvents(monitorName, policy)
+        : [
             {
-              id: "5f000000-0000-4000-8000-0000000000d1",
-              name: "Public Status",
+              kind: "Incident",
+              title: `${monitorName} is offline`,
+              severityName: "Critical",
+              owners: incidentOwners,
+              ownerRules: hasOwnerRules
+                ? [
+                    {
+                      id: "5f000000-0000-4000-8000-0000000000e1",
+                      name: isHidden ? "" : "Checkout monitors",
+                    },
+                  ]
+                : [],
+              rules: isNobodyPaged
+                ? []
+                : [
+                    {
+                      id: "5f000000-0000-4000-8000-0000000000b1",
+                      name: isHidden ? "" : "Every incident",
+                    },
+                  ],
+              policies: isNobodyPaged ? [] : [policy],
+              statusPages: [
+                {
+                  id: "5f000000-0000-4000-8000-0000000000d1",
+                  name: "Public Status",
+                },
+                // Shows the monitor through a monitor group it is in.
+                ...(hasOwnerRules
+                  ? [
+                      {
+                        id: "5f000000-0000-4000-8000-0000000000d2",
+                        name: isHidden ? "" : "Payments Status",
+                      },
+                    ]
+                  : []),
+              ],
             },
-            // Shows the monitor through a monitor group it is in.
-            ...(hasOwnerRules
-              ? [
-                  {
-                    id: "5f000000-0000-4000-8000-0000000000d2",
-                    name: isHidden ? "" : "Payments Status",
-                  },
-                ]
-              : []),
           ],
-        },
-      ],
     },
   ];
   const channels = {
@@ -3802,7 +3938,30 @@ async function handleApi(method, options) {
       );
     }
 
+    /*
+     * A Recheck that fails (#7308): the first read worked, and the card
+     * keeps its answer while it says why checking again did not.
+     */
+    if (
+      failures.has("who-is-told-recheck") &&
+      !hasFailedWhoIsToldRecheck &&
+      parsed.searchParams.get("refresh") === "true"
+    ) {
+      hasFailedWhoIsToldRecheck = true;
+      return fail(502, "Bad Gateway");
+    }
+
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
+  }
+
+  /*
+   * Who a monitor not created yet would tell (#7055): Create Monitor's
+   * criteria, answered as the overview's monitor is, for the form's name.
+   */
+  if (method === "POST" && parsed.pathname.endsWith("/who-is-told/draft")) {
+    const name = typeof body.name === "string" ? body.name : "";
+
+    return ok({ ...whoIsTold("", name), monitorId: "", monitorName: name });
   }
 
   // What refers to a monitor (?usedBy=).

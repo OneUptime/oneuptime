@@ -433,7 +433,8 @@ export default class WorkspaceUtil {
         /*
          * What was thrown, readable whatever it is: Slack's and Microsoft
          * Graph's lookups throw their HTTP error response itself, which
-         * String() wrote as "[object Object]" (WorkspaceBase).
+         * String() wrote as "[object Object]" (WorkspaceBase), and a
+         * workspace's refusal is said in OneUptime's words (describeError).
          */
         responses.push({
           workspaceType: workspaceType,
@@ -443,7 +444,10 @@ export default class WorkspaceUtil {
               channel: WorkspaceUtil.describePayloadDestination(
                 messagePayloadByWorkspace,
               ),
-              error: WorkspaceBase.getSendErrorMessage(err),
+              error:
+                WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).describeError(
+                  err,
+                ),
             },
           ],
         });

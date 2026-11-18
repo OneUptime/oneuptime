@@ -39,6 +39,15 @@ import React, { ReactElement, useEffect, useMemo, useRef } from "react";
 import { Indigo500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
@@ -322,6 +331,13 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
   const views: Array<TemplatePickerViewInfo<C>> = useMemo(() => {
     return rules.getViews();
   }, [rules]);
+
+  // The categories, in the reader's language.
+  const viewOptions: Array<DropdownOption> = views.map(
+    (info: TemplatePickerViewInfo<C>): DropdownOption => {
+      return getTranslatedDropdownOption(String(info.view), tx(info.label));
+    },
+  );
 
   const list: TemplatePickerList<T, C> = useMemo(() => {
     return rules.getList(state);
@@ -695,24 +711,30 @@ const TemplatePicker: <T extends TemplatePickerRowTemplate, C extends string>(
               <></>
             )}
           </div>
-          <select
-            id={ids.viewSelect}
+          <div
             data-testid={ids.viewSelect}
-            aria-label={tx("Template categories")}
-            value={String(list.view)}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              selectView(event.target.value as TemplatePickerView<C>);
-            }}
-            className="w-full min-w-0 rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:col-start-2 sm:row-start-1 sm:w-auto lg:col-start-3"
+            className="w-full min-w-0 sm:col-start-2 sm:row-start-1 sm:w-56 lg:col-start-3"
           >
-            {views.map((info: TemplatePickerViewInfo<C>): ReactElement => {
-              return (
-                <option key={String(info.view)} value={String(info.view)}>
-                  {tx(info.label)}
-                </option>
-              );
-            })}
-          </select>
+            <Dropdown
+              inputId={ids.viewSelect}
+              className="relative w-full overflow-visible"
+              ariaLabel={tx("Template categories")}
+              isAriaLabelTranslated={true}
+              options={viewOptions}
+              value={findDropdownOption(viewOptions, String(list.view))}
+              // A list always shows a category, "All" among them.
+              isClearable={false}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
+
+                if (picked !== null && picked !== String(list.view)) {
+                  selectView(picked as TemplatePickerView<C>);
+                }
+              }}
+            />
+          </div>
         </div>
 
         <p className="sr-only" aria-live="polite" data-testid={ids.resultCount}>

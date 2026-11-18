@@ -495,7 +495,7 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       );
       // The hook is called with the others, before the page can return early.
       expect(code.indexOf("useShowcaseCreateForm({")).toBeLessThan(
-        code.indexOf("<PageLoader"),
+        code.indexOf("<PageSkeleton"),
       );
     });
 
@@ -567,8 +567,8 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
     test("retains the loading and error gates before mounting the table", () => {
       const tableStart: number = source.indexOf(modelTable);
 
-      expect(source.indexOf("<PageLoader")).toBeGreaterThan(-1);
-      expect(source.indexOf("<PageLoader")).toBeLessThan(tableStart);
+      expect(source.indexOf("<PageSkeleton")).toBeGreaterThan(-1);
+      expect(source.indexOf("<PageSkeleton")).toBeLessThan(tableStart);
       expect(source.indexOf("<ErrorMessage")).toBeGreaterThan(-1);
       expect(source.indexOf("<ErrorMessage")).toBeLessThan(tableStart);
     });

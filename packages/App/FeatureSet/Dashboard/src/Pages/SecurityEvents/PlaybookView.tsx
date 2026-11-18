@@ -446,7 +446,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
                       )}
                     </span>
                   ) : (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Any priority")}
                     </span>
                   );
@@ -462,7 +462,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
                   return source ? (
                     <span>{translator.translateText(source) || source}</span>
                   ) : (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Any source")}
                     </span>
                   );
@@ -487,7 +487,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
                       {OneUptimeDate.fromNow(item.lastRunAt)}
                     </span>
                   ) : (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Never")}
                     </span>
                   );

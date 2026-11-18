@@ -246,7 +246,7 @@ describe("a self-hosted server's register page", () => {
     });
     // Everything else answered and drawn: only the first-account answer is held.
     await settle();
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-page-skeleton")).toBeInTheDocument();
     // Asked, not answered: the loader, and none of the page.
     expect(screen.queryByTestId("password")).toBeNull();
     expect(screen.queryByTestId("register-subtitle")).toBeNull();

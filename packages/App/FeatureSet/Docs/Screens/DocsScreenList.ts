@@ -153,7 +153,11 @@ export interface DocsScreen {
   crop: string;
   // Space around the crop, in CSS pixels, kept inside the page.
   padding: number;
-  // What is ringed: a button by its English words, the next thing to press.
+  /*
+   * What is ringed, by its English words: the next thing to press (a button
+   * or a link), or - where no button has them - the field to fill in, by its
+   * label.
+   */
   highlight?: string | undefined;
 }
 
@@ -161,6 +165,8 @@ export interface DocsScreen {
 const ADDRESS: string = "https://acme-commerce.example";
 // Incident #1042 of the event overview fixture.
 const INCIDENT_1042_ID: string = "20000000-0000-4000-8000-000000001042";
+// The journeys fixture's ?seed=on-call-policy policy, with one level.
+const ON_CALL_POLICY_ID: string = "50000000-0000-4000-8000-000000000005";
 // The code the journeys fixture accepts in a Verify dialog.
 const VERIFICATION_CODE: string = "123456";
 
@@ -403,7 +409,7 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "paging-who-else",
-    shows: "The on-call guided setup: who else is on call",
+    shows: "The on-call guided setup: who is paged first",
     fixture: "Journeys",
     page: "ON_CALL_DUTY_GUIDED_SETUP",
     path: "/dashboard/:projectId/on-call-duty/setup",
@@ -500,6 +506,50 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
     crop: '[data-testid="guided-setup-summary"]',
     padding: 0,
     highlight: "Your own domain",
+  },
+  {
+    /*
+     * On-Call's empty list (#9419): its explanation offers the guided
+     * setup as its one primary button, with Create On-Call Policy beside it
+     * (#7148).
+     */
+    name: "on-call-policies-guided-setup",
+    shows:
+      "The empty On-Call Policies list's explanation, with Guided setup before Create On-Call Policy",
+    fixture: "Journeys",
+    page: "ON_CALL_DUTY_POLICIES",
+    path: "/dashboard/:projectId/on-call-duty/policies",
+    width: 1280,
+    height: 1000,
+    state: [{ waitFor: "product-showcase" }],
+    // The pitch, its steps and its buttons: the example beside it is not the point.
+    crop: '[data-testid="product-showcase"] [data-testid="resource-showcase-pitch"]',
+    padding: 12,
+    highlight: "Guided setup",
+  },
+  {
+    /*
+     * A policy's second level (#9419): Add Escalation Rule on a policy with
+     * one level asks when the new level is paged, starting from the wait of
+     * the level before (#7373).
+     */
+    name: "escalation-rule-paged-after",
+    shows:
+      "Add Escalation Rule on a policy with one level, asking Paged after (in minutes)",
+    fixture: "Journeys",
+    page: "ON_CALL_DUTY_POLICY_VIEW_ESCALATION",
+    path: "/dashboard/:projectId/on-call-duty/policies/:id/escalation",
+    params: { id: ON_CALL_POLICY_ID },
+    query: "?seed=on-call-policy",
+    width: 1280,
+    height: 1000,
+    state: [
+      { press: "Add Escalation Rule", exact: false },
+      { waitFor: "modal" },
+    ],
+    crop: '[data-testid="modal"]',
+    padding: 0,
+    highlight: "Paged after (in minutes)",
   },
   {
     /*

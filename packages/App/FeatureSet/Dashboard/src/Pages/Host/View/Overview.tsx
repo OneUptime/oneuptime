@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -14,7 +15,6 @@ import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -1516,7 +1516,7 @@ const HostOverview: FunctionComponent<
                       {hostIdentifier}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -1563,7 +1563,11 @@ const HostOverview: FunctionComponent<
     if (isInitialLoading) {
       return (
         <div className="mb-6">
-          <PageLoader isVisible={true} />
+          <StatTilesSkeleton
+            kind="golden"
+            count={3}
+            gridClassName="grid grid-cols-1 gap-4 sm:grid-cols-3"
+          />
         </div>
       );
     }

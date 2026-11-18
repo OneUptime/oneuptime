@@ -61,6 +61,48 @@ export function shouldBypassRecordPrivacy(
 }
 
 /*
+ * THE SAME RULE, FOR A PRIVATE RECORD HELD IN MEMORY: one not created yet,
+ * whose owners are known by id - the incident or alert a monitor's criteria
+ * would open, which "When this goes down" describes (WhoIsToldService,
+ * #7213). The caller may read it when they see every private record
+ * (shouldBypassRecordPrivacy), when they are one of its owners, or when
+ * they have accepted their invitation to a team of its owners: what the
+ * SQL rule reads (getIncidentSelfPrivacyRaw and its twins: the record's
+ * owner user rows, and its owner team rows joined to TeamMember with
+ * hasAcceptedInvitation), by id. A caller who is no person - an API key
+ * without Project Owner or Project Admin, a workflow's step - reads none.
+ */
+export function canReadPrivateRecordWithOwners(data: {
+  props: DatabaseCommonInteractionProps;
+  ownerUserIds: ReadonlyArray<string>;
+  ownerTeamIds: ReadonlyArray<string>;
+  // The teams whose invitation the caller has accepted, by lower-cased id.
+  callerAcceptedTeamIds: ReadonlySet<string>;
+}): boolean {
+  if (shouldBypassRecordPrivacy(data.props)) {
+    return true;
+  }
+
+  if (data.props.userType === UserType.Workflow || !data.props.userId) {
+    return false;
+  }
+
+  const callerId: string = data.props.userId.toString().toLowerCase();
+
+  if (
+    data.ownerUserIds.some((id: string): boolean => {
+      return id.toLowerCase() === callerId;
+    })
+  ) {
+    return true;
+  }
+
+  return data.ownerTeamIds.some((id: string): boolean => {
+    return data.callerAcceptedTeamIds.has(id.toLowerCase());
+  });
+}
+
+/*
  * Combines a caller-supplied filter value with a privacy Raw clause so that
  * BOTH apply. The privacy filters used to overwrite the caller's value, which
  * silently widened per-record queries (e.g. `incidentId: <id>` on the

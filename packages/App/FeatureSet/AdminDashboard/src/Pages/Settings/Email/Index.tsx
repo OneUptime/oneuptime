@@ -1,4 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
@@ -9,7 +10,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -30,6 +30,8 @@ import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
+import ServerAlertsCard from "./ServerAlertsCard";
+import ServerEmailLogCard from "./ServerEmailLogCard";
 import ServerEmailEnvironmentCard, {
   ServerEmailEnvironmentLoadingCard,
   ServerEmailEnvironmentUnusedAlert,
@@ -39,6 +41,8 @@ import ServerEmailEnvironmentCard, {
 import ServerTestCard, {
   SERVER_TEST_CARD_COPY,
 } from "../../../Components/ServerSetup/ServerTestCard";
+import { SERVER_SETUP_SET_UP_EMAIL_QUERY } from "../../../Components/ServerSetup/ServerSetupChecklist";
+import Navigation from "Common/UI/Utils/Navigation";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
 import { ServerSetupCheckId } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import {
@@ -129,10 +133,37 @@ export const getSmtpSignInText: (item: GlobalConfig) => string = (
   return getSmtpSignInSentence(item, GLOBAL_SMTP_CONFIG_FORM_COLUMNS);
 };
 
+/*
+ * Whether the page was opened to set email up (Server Setup's "Set up
+ * email", #7460): it then opens in the form of the server that sends the
+ * email - the mail server's, or the provider's - rather than on four cards
+ * whose Edit buttons each might be it.
+ */
+export const isSettingUpEmailRequested: () => boolean = (): boolean => {
+  return (
+    Navigation.getQueryStringByName(SERVER_SETUP_SET_UP_EMAIL_QUERY.name) ===
+    SERVER_SETUP_SET_UP_EMAIL_QUERY.value
+  );
+};
+
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   // Where email stands, for the test card, read again after a save.
   const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
+
+  /*
+   * Read once, and taken off the address: the page opened again, or
+   * reloaded, opens as it always does.
+   */
+  const [isSettingUpEmail] = React.useState<boolean>(isSettingUpEmailRequested);
+
+  useEffect(() => {
+    if (isSettingUpEmail) {
+      Navigation.setQueryString({
+        [SERVER_SETUP_SET_UP_EMAIL_QUERY.name]: null,
+      });
+    }
+  }, []);
 
   /*
    * Whether the GLOBAL_EMAIL_ environment variables set the server's email
@@ -188,7 +219,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -243,48 +274,6 @@ const Settings: FunctionComponent = (): ReactElement => {
         description={t(SERVER_TEST_CARD_COPY.emailDescription)}
         channels={[ServerSendingChannel.Email]}
         checklist={checklist}
-      />
-
-      <CardModelDetail
-        name="Admin Notification Email"
-        cardProps={{
-          title: t("pages.settings.email.adminNotificationCardTitle"),
-          description: t(
-            "pages.settings.email.adminNotificationCardDescription",
-          ),
-        }}
-        isEditable={true}
-        editButtonText={t("pages.settings.email.adminNotificationEditButton")}
-        // Titled like the button that opens it, not "Edit Global Config".
-        editModalTitle={t("pages.settings.email.adminNotificationEditButton")}
-        formFields={[
-          {
-            field: {
-              adminNotificationEmail: true,
-            },
-            title: "Admin Notification Email",
-            description:
-              "Where OneUptime writes about this server, such as when a probe goes offline.",
-            fieldType: FormFieldSchemaType.Email,
-            required: false,
-            disableSpellCheck: true,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-global-config",
-          fields: [
-            {
-              field: {
-                adminNotificationEmail: true,
-              },
-              title: "Admin Notification Email",
-              fieldType: FieldType.Email,
-              placeholder: "None",
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
       />
 
       {emailEnvironment.isLoading ? (
@@ -371,6 +360,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               editButtonText={t("pages.settings.email.smtpEditButton")}
               // Titled like the button that opens it, not "Edit Global Config".
               editModalTitle={t("pages.settings.email.smtpEditButton")}
+              // Server Setup's "Set up email" lands in this form (#7460).
+              startsEditing={isSettingUpEmail}
               onSaveSuccess={onSettingsSaved}
               formSteps={SMTP_HOST_FORM_STEPS}
               formFields={SMTP_HOST_FORM_FIELDS}
@@ -554,6 +545,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               editButtonText={t("pages.settings.email.sendgridEditButton")}
               // Titled like the button that opens it, not "Edit Global Config".
               editModalTitle={t("pages.settings.email.sendgridEditButton")}
+              startsEditing={isSettingUpEmail}
               onSaveSuccess={onSettingsSaved}
               formFields={[
                 {
@@ -670,6 +662,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                     onSaveSuccess={onSettingsSaved}
                     key={provider.transport}
                     transport={provider.transport}
+                    startsEditing={isSettingUpEmail}
                   />
                 );
               },
@@ -677,6 +670,65 @@ const Settings: FunctionComponent = (): ReactElement => {
           </>
         </>
       )}
+
+      {/*
+       * Where OneUptime writes about the server itself: for later, once
+       * email works, so after everything that makes it work (#7460).
+       */}
+      <CardModelDetail
+        name="Admin Notification Email"
+        cardProps={{
+          title: t("pages.settings.email.adminNotificationCardTitle"),
+          description: t(
+            "pages.settings.email.adminNotificationCardDescription",
+          ),
+        }}
+        isEditable={true}
+        editButtonText={t("pages.settings.email.adminNotificationEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.adminNotificationEditButton")}
+        formFields={[
+          {
+            field: {
+              adminNotificationEmail: true,
+            },
+            title: "Admin Notification Email",
+            description:
+              "Where OneUptime writes about this server, such as when a probe goes offline.",
+            fieldType: FormFieldSchemaType.Email,
+            required: false,
+            disableSpellCheck: true,
+          },
+        ]}
+        modelDetailProps={{
+          modelType: GlobalConfig,
+          id: "model-detail-global-config",
+          fields: [
+            {
+              field: {
+                adminNotificationEmail: true,
+              },
+              title: "Admin Notification Email",
+              fieldType: FieldType.Email,
+              placeholder: "None",
+            },
+          ],
+          modelId: ObjectID.getZeroObjectID(),
+        }}
+      />
+
+      {/*
+       * Where master admins are told when the server's email or its global
+       * probes stop working, and work again (#6879): beside the Admin
+       * Notification Email, which is told about the probes.
+       */}
+      <ServerAlertsCard />
+
+      {/*
+       * What the server sent, and what it failed to send, through these
+       * settings (#6878): where "did the reset email go out?" is answered.
+       */}
+      <ServerEmailLogCard />
     </Page>
   );
 };

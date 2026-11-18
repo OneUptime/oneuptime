@@ -1,4 +1,5 @@
 import Incident from "./Incident";
+import Monitor from "./Monitor";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
 import Project from "./Project";
@@ -23,6 +24,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallFireDrillFailureRecord } from "../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { OnCallTestPageRecordKind } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import Permission from "../../Types/Permission";
@@ -111,6 +113,15 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
  */
 @Index(["projectId", "createdAt"])
 @Index(["onCallDutyPolicyId", "createdAt"])
+/*
+ * A monitor's fire drills (#9386), newest first: its When this goes down
+ * card reads the last one. Only a fire drill's tests name a monitor, so the
+ * index holds a handful of rows, and serves the ON DELETE SET NULL of a
+ * monitor that is deleted as well.
+ */
+@Index(["testPageFireDrillMonitorId", "createdAt"], {
+  where: '"testPageFireDrillMonitorId" IS NOT NULL',
+})
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLog",
   singularName: "On-Call Policy Execution Log",
@@ -1890,4 +1901,147 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     default: false,
   })
   public testPageWalksEscalation?: boolean = undefined;
+
+  /*
+   * A FIRE DRILL'S TEST (#9386, Types/OnCallDutyPolicy/OnCallFireDrill): a
+   * test of an on-call policy that a monitor's fire drill started, beside
+   * the tests of the other policies the same failure pages. They say which
+   * drill (testPageFireDrillId, the same on every test it started), the
+   * monitor whose failure it rehearsed (testPageFireDrillMonitorId), and
+   * that failure as the drill's dialog named it (testPageFireDrillFailure):
+   * so the monitor's When this goes down card says how its last drill
+   * went, and the run's row in the policy's execution logs says it was part
+   * of one. Empty for every other run.
+   *
+   * The monitor's reference clears itself when the monitor is deleted (ON
+   * DELETE SET NULL): the policy's tests stay in its history.
+   *
+   * No caller may write them: OneUptime starts a fire drill
+   * (OnCallFireDrillService), once it has checked who may run it and how
+   * often.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Test Page Fire Drill ID",
+    description:
+      "For a test started by a monitor's fire drill: the drill, the same on the test of every on-call policy it started. Empty for every other run.",
+    canReadOnRelationQuery: true,
+    example: "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public testPageFireDrillId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "testPageFireDrillMonitorId",
+    type: TableColumnType.Entity,
+    modelType: Monitor,
+    title: "Test Page Fire Drill Monitor",
+    description:
+      "For a test started by a monitor's fire drill: the monitor whose failure the drill rehearsed.",
+    example: "3c4d5e6f-7a8b-4c9d-8e0f-2a3b4c5d6e7f",
+  })
+  @ManyToOne(
+    () => {
+      return Monitor;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "testPageFireDrillMonitorId" })
+  public testPageFireDrillMonitor?: Monitor = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Test Page Fire Drill Monitor ID",
+    description:
+      "For a test started by a monitor's fire drill: ID of the monitor whose failure the drill rehearsed. Empty for every other run, and once the monitor is deleted.",
+    canReadOnRelationQuery: true,
+    example: "3c4d5e6f-7a8b-4c9d-8e0f-2a3b4c5d6e7f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public testPageFireDrillMonitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Test Page Fire Drill Failure",
+    description:
+      "For a test started by a monitor's fire drill: the failure the drill rehearsed, as its dialog named it - the criteria's name, and how long an alert stays open before an alert incident rule declares the incident tested. Empty for every other run.",
+    example: { criteriaName: "Offline" },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public testPageFireDrillFailure?: OnCallFireDrillFailureRecord = undefined;
 }

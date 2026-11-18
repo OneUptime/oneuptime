@@ -3,6 +3,8 @@ import Domain from "../../Types/Domain";
 import logger, { LogAttributes } from "../Logger";
 import { issuesFreeCustomDomainCertificates } from "../../EnvironmentConfig";
 import TokenSigningKey from "../TokenSigningKey";
+import { ExpressRequest } from "../Express";
+import RequestTransport from "../RequestTransport";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -77,6 +79,42 @@ export default class CustomDomainServerReadiness {
     const nonce: string = crypto.randomBytes(16).toString("hex");
 
     return `${nonce}.${CustomDomainServerReadiness.sign(nonce)}`;
+  }
+
+  /*
+   * What the readiness address answers a valid proof: the proof, and how
+   * the request reached the app (#7050, #7051). `npm run doctor` and
+   * diagnose.sh ask it through HOST, so whatever stands in front of
+   * OneUptime - a reverse proxy, a load balancer, an ingress controller -
+   * carried that request, and they compare what arrived with what they
+   * sent:
+   *
+   *   - host: the host name the request named, by the Host header
+   *     OneUptime's ingress passed on (its $host: no port). A proxy that
+   *     does not pass on the browser's Host sends its own upstream's name,
+   *     and OneUptime's ingress then routes HOST's visitors as a status
+   *     page's custom domain.
+   *   - isHttps: whether the app took the request for HTTPS (req.secure:
+   *     the X-Forwarded-Proto the ingress wrote, https when it ended TLS
+   *     itself or the proxy in front said the visitor used https). A proxy
+   *     that ends TLS and sends no X-Forwarded-Proto makes the app write
+   *     http:// links and keep custom domains' cookies off HTTPS.
+   *
+   * Only what the caller's own request carried, and nothing of the
+   * installation's: a proof is made only by this installation, for the
+   * doctor (behind the cluster key) and its own readiness check.
+   */
+  public static answerTo(data: {
+    proof: string;
+    req: ExpressRequest;
+  }): JSONObject {
+    return {
+      proof: data.proof,
+      request: {
+        host: RequestTransport.requestHostnameOf(data.req),
+        isHttps: data.req.secure === true,
+      },
+    };
   }
 
   public static isValidProof(proof: string | undefined): boolean {

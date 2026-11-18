@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -15,7 +16,6 @@ import Button, {
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -185,7 +185,7 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
 
           {isLoadingRunbooks ? (
             <div className="flex justify-center py-6">
-              <PageLoader isVisible={true} />
+              <CardListSkeleton count={3} lines={1} />
             </div>
           ) : filteredRunbooks.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center">

@@ -32,11 +32,17 @@ Ihr Server braucht einen eigenen Hostnamen mit einem A-Eintrag, der auf ihn zeig
 
 Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Statusseite veröffentlichen**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Meine Kunden über eine Statusseite informieren** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `status page` ein und wählen Sie **Statusseite veröffentlichen**.
 
+Auch **Statusseiten** öffnet sie: Klicken Sie in der leeren Liste auf **Geführte Einrichtung** oder, sobald das Projekt eine Statusseite hat, unter **So funktioniert es**.
+
 ### Die Seite benennen und auswählen, was sie zeigt
 
 ![Der Schritt „Benennen Sie sie und wählen Sie aus, was sie zeigt“, „Statusseite erstellen“ ist markiert](screen:status-page-pick)
 
 Behalten Sie unter **Benennen Sie sie und wählen Sie aus, was sie zeigt** im Feld **Name der Statusseite** den Vorschlag bei oder geben Sie einen eigenen Namen ein. Haken Sie unter **Was sie zeigt** die Monitore an, die Ihre Kunden sehen sollen, oder klicken Sie auf **Alle auswählen**. Klicken Sie auf **Statusseite erstellen**. Ab diesem Moment ist die Seite unter ihrem Link öffentlich und zeigt nur die Monitore, die Sie angehakt haben.
+
+Hat das Projekt bereits eine Statusseite, fügt der Schritt ihr die Monitore hinzu, die Sie anhaken, und markiert die, die sie schon zeigt, als **Auf der Seite**. Bei mehreren Seiten wählen Sie eine unter **Statusseite**. Für eine neue Seite klicken Sie auf **Stattdessen eine neue Statusseite erstellen**.
+
+Bei vielen Monitoren tippen Sie einen Teil eines Namens in **Nach Name suchen** ein oder wählen eine Beschriftung unter **Alle Beschriftungen**: **Alle auswählen** hakt dann an, was die Liste zeigt. Eine Monitor-Gruppe erscheint auf der Seite als eine Zeile.
 
 ### Ansehen, was Ihre Kunden sehen
 

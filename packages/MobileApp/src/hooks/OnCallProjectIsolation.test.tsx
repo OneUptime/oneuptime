@@ -280,6 +280,56 @@ describe("On-call follows one global project", () => {
     });
   });
 
+  /*
+   * OneUptime/oneuptime#9037 read My On-Call as asking every project the
+   * person is in, at once. It asks only the project selected: one request,
+   * however many projects - here a member of 100 - with that project's
+   * tenant, never across tenants, which would put other projects' duty on a
+   * screen that says it is the selected project's.
+   */
+  test("a member of 100 projects asks for their duty once, in the selected project only", async (): Promise<void> => {
+    for (let index: number = 0; index < 98; index++) {
+      mockMemberships.push(
+        makeProject({
+          _id: `project-${index}`,
+          name: `Project ${index}`,
+        }),
+      );
+    }
+
+    try {
+      expect(mockMemberships).toHaveLength(100);
+
+      const { result } = await renderHook(
+        () => {
+          return useAllProjectOnCallPolicies();
+        },
+        {
+          wrapper: createQueryWrapper(client),
+        },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(fetchCurrentOnDutyEscalationPolicies).toHaveBeenCalledTimes(1);
+      expect(fetchCurrentOnDutyEscalationPolicies).toHaveBeenCalledWith(
+        "project-a",
+      );
+      expect(
+        result.current.projects.map(
+          (project: ProjectOnCallAssignments): string => {
+            return project.projectId;
+          },
+        ),
+      ).toEqual(["project-a"]);
+      expect(result.current.failedProjectCount).toBe(0);
+    } finally {
+      mockMemberships.splice(2);
+    }
+  });
+
   test("switching projects uses separate query data without showing the previous tenant", async (): Promise<void> => {
     const rendered: Awaited<
       ReturnType<typeof renderHook<ReturnType<typeof useOnCallViews>, unknown>>

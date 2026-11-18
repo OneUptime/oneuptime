@@ -21,6 +21,10 @@ import {
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ScheduleLayerChanges from "Common/Server/Utils/OnCall/ScheduleLayerChanges";
 import {
+  SCHEDULE_LAYERS_READ_ROUTE,
+  SCHEDULE_LAYERS_SAVE_ROUTE,
+} from "Common/Types/OnCallDutyPolicy/ScheduleLayersSave";
+import {
   menuSections,
   sectionByTitle,
   startsCollapsed,
@@ -113,6 +117,9 @@ const AWAY_LABELS: Array<string> = [
   "On-Call",
   "Advanced",
   "User Overrides",
+  // Its overlap, said beside the times (#7898), and End Now (#7899).
+  "Edit that override",
+  "End Now",
 ];
 
 /*
@@ -247,6 +254,33 @@ const LAYER_USERS_ROUTE: string = apiRoute(
 const USER_OVERRIDES_ROUTE: string = apiRoute(
   new OnCallDutyPolicyUserOverride().crudApiPath?.toString(),
 );
+
+/*
+ * Saving a schedule's layers in one call (#9038): the read that answers the
+ * layers as a save that changes nothing, and the save, under the schedule's
+ * own path.
+ */
+const SCHEDULE_ROUTE_FOR_ID: (route: string) => string = (
+  route: string,
+): string => {
+  return `\`${String(new OnCallDutyPolicySchedule().crudApiPath?.toString())}${route.replace(":id", "<schedule-id>")}\``;
+};
+const LAYERS_READ_ROUTE: string = SCHEDULE_ROUTE_FOR_ID(
+  SCHEDULE_LAYERS_READ_ROUTE,
+).replace("`", "`GET /api");
+const LAYERS_SAVE_ROUTE: string = SCHEDULE_ROUTE_FOR_ID(
+  SCHEDULE_LAYERS_SAVE_ROUTE,
+).replace("`", "`POST /api");
+const SAVE_LAYERS_FACTS: Array<string> = [
+  LAYERS_READ_ROUTE,
+  LAYERS_SAVE_ROUTE,
+  "`layerUserId`",
+  "`userId`",
+  "`deletedLayerIds`",
+  "`basedOnVersion`",
+  "409",
+  "`oneuptime_on_call_schedule_layers`",
+];
 
 // The API facts of the away section: a user override with nobody to cover.
 const AWAY_API_FACTS: Array<string> = [
@@ -557,6 +591,56 @@ describe("the On-Call Schedules docs page", () => {
      * A change written row by row through the API is told once its writes
      * are quiet (#7813): the page says how long, as the server waits it.
      */
+    it("gives the API that saves a schedule's layers in one call, all or nothing, held to the version read", () => {
+      const api: string = pageSections[3]!.body;
+
+      for (const fact of SAVE_LAYERS_FACTS) {
+        expect({ fact, found: api.includes(fact) }).toEqual({
+          fact,
+          found: true,
+        });
+      }
+
+      expect(LAYERS_READ_ROUTE).toBe(
+        "`GET /api/on-call-duty-policy-schedule/<schedule-id>/layers`",
+      );
+      expect(LAYERS_SAVE_ROUTE).toBe(
+        "`POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`",
+      );
+      expect(api).toContain("A save is written all or nothing");
+      expect(api).toContain("as the **Layers** page's **Save changes** does");
+      // The example sends what the read answers, changed.
+      for (const key of [
+        '"basedOnVersion"',
+        '"layers"',
+        '"layerId"',
+        '"users"',
+        '"layerUserId"',
+        '"deletedLayerIds"',
+      ]) {
+        expect(api).toContain(key);
+      }
+    });
+
+    it("says End Now brings someone back early, and that the form says an overlap as the times are picked", () => {
+      const away: string = pageSections[2]!.body;
+
+      expect(away).toContain(
+        "the form says so beside the times as you pick them, with **Edit that override** to change that one instead",
+      );
+      expect(readRepoFile(SKIP_MODAL_FILE)).toContain(
+        "<UserOverrideOverlapNotice",
+      );
+      expect(away).toContain(
+        "and with the schedule's user overrides on its **Layers** page, where **End Now** brings them back early",
+      );
+      expect(
+        readRepoFile(
+          "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx",
+        ),
+      ).toContain("title={USER_OVERRIDE_END_NOW_ACTION}");
+    });
+
     it("says a change made through the API is told once, after the quiet period the server waits", () => {
       const api: string = pageSections[3]!.body;
 
@@ -679,6 +763,7 @@ describe("the On-Call Schedules docs page", () => {
           "`rotation`",
           ROTATION_EXAMPLE,
           `**${getLayerName(1)}**`,
+          ...SAVE_LAYERS_FACTS,
         ]) {
           expect({ lang, fact, found: api.includes(fact) }).toEqual({
             lang,

@@ -1,4 +1,5 @@
 import StatusPageResourceName from "./StatusPageResourceName";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
 import {
   StatusPageResourceTargetType,
@@ -28,7 +29,6 @@ import BulkUpdateForm, {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -941,7 +941,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       chips.push(
         <span
           key="grid"
-          className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600"
+          className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-600"
           data-testid="status-page-resource-panel-grid-badge"
         >
           {translateString("Grid")}
@@ -1184,7 +1184,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
                */}
               {props.breadcrumbSteps.length > 0 ? (
                 <nav
-                  className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-400"
+                  className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-500"
                   aria-label={translator.translateText("Group path")}
                   data-testid="status-page-resource-panel-breadcrumb"
                 >
@@ -1483,7 +1483,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              */}
             {props.canEdit && !isGrid && filteredResources.length > 1 ? (
               <span
-                className="max-sm:hidden text-xs text-gray-400 sm:inline"
+                className="max-sm:hidden text-xs text-gray-500 sm:inline"
                 data-testid="status-page-resource-panel-reorder-hint"
               >
                 {translator.translateText(
@@ -1620,7 +1620,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   const getBody: GetBodyFunction = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (error) {

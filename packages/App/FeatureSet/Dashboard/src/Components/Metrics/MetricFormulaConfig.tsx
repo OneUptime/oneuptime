@@ -107,7 +107,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           aria-expanded={showDisplaySettings}
-          className="flex w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600"
+          className="flex w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:text-gray-600"
           onClick={() => {
             setShowDisplaySettings(!showDisplaySettings);
           }}

@@ -243,6 +243,37 @@ export function hasKeySentFirstData(data: {
   return Number.isFinite(new Date(data.lastUsedAtNow).getTime());
 }
 
+/**
+ * Whether only a new service can finish a telemetry guide's last step
+ * (#9456): the project had every first-data mark of the guide's signals
+ * when the step first looked, and the key the step watches - when it
+ * watches one - had sent before that look. Then neither a mark nor the
+ * key's first data is still to come, and data that names no service - a
+ * second FluentBit, beside the logs the project already has - cannot be
+ * told from the data that came before it. The step says so, and where that
+ * data shows, instead of waiting for "the first data" for good.
+ *
+ * Unknown until both first looks are in: a mark not looked for yet, a key
+ * not looked at yet.
+ */
+export function canOnlySpotNewService(data: {
+  // Every mark was kept at the first look; null before that look.
+  hadEveryMarkAtFirstLook: boolean | null;
+  isWatchingKey: boolean;
+  // The key's lastUsedAt at its first look; undefined before that look.
+  keyLastUsedAtFirstLook: Date | string | null | undefined;
+}): boolean {
+  if (data.hadEveryMarkAtFirstLook !== true) {
+    return false;
+  }
+
+  if (!data.isWatchingKey) {
+    return true;
+  }
+
+  return Boolean(data.keyLastUsedAtFirstLook);
+}
+
 // ---- what the guide says ---------------------------------------------------
 
 /*
@@ -297,6 +328,39 @@ export const RESOURCE_CONNECTION_CONNECTED: string = translationKey(
 export const RESOURCE_CONNECTION_DATA_ARRIVED: string = translationKey(
   "The first data arrived with the key {{name}}. It shows up within a minute or two.",
 );
+
+/*
+ * The project's first data of a telemetry guide's signal arrived, and no
+ * service registered (#7888): its first logs for the logs guide, whichever
+ * key sent them - a key that already sends traces too - and whether or not
+ * they name a service. Ingest keeps the mark once the data is stored, so it
+ * is there to view.
+ */
+export const RESOURCE_CONNECTION_FIRST_DATA_ARRIVED: string = translationKey(
+  "The first data arrived.",
+);
+
+/*
+ * The project receives the guide's data already, on the key the step
+ * watches (canOnlySpotNewService, #9456): only a new service finishes the
+ * step, and data that names none - a second shipper's - shows in the
+ * explorer, which the step links to.
+ */
+export const RESOURCE_CONNECTION_ALREADY_RECEIVING: string = translationKey(
+  "This project already receives this data, so this step finishes when a new service reports. Data that names no service shows up in the explorer as it arrives.",
+);
+
+/*
+ * A guide that only a service finishes (the telemetry guided setup alerts
+ * on that service) saw data arrive that names none (#7888): it says how to
+ * finish, and keeps waiting. {{attribute}} is service.name, drawn as code.
+ */
+export const RESOURCE_CONNECTION_DATA_NAMES_NO_SERVICE: string = translationKey(
+  "Data arrived, but it names no service. Set {{attribute}} in your app to finish this step.",
+);
+
+// The resource attribute that names a telemetry service.
+export const SERVICE_NAME_ATTRIBUTE: string = "service.name";
 
 /*
  * At the top of the guide that opens once a form has added a resource

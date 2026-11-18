@@ -488,7 +488,7 @@ export const ReplayPill: FunctionComponent<ReplayPillProps> = (
       title={props.title}
       data-testid={props.dataTestId}
       aria-hidden={props.isHiddenFromScreenReaders ? "true" : undefined}
-      className={`inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
+      className={`inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
         PILL_TONE_CLASS[tone]
       } ${props.className || ""}`}
     >
@@ -607,7 +607,7 @@ export const ReplayClock: FunctionComponent<ReplayClockProps> = (
        * asserted as one string ("0:12 / 10:00"), and two adjacent spans
        * with only a flex gap between them would read as "0:12/ 10:00".
        */}
-      <span className="text-xs text-gray-400">{` / ${props.totalText}`}</span>
+      <span className="text-xs text-gray-500">{` / ${props.totalText}`}</span>
     </div>
   );
 };

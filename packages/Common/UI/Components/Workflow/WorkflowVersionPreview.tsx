@@ -1,10 +1,10 @@
 import Workflow from "./Workflow";
+import ChartSkeleton from "../Skeleton/ChartSkeleton";
 import {
   WorkflowCanvasGraph,
   toWorkflowCanvasGraph,
 } from "./WorkflowCanvasGraph";
 import { WorkflowVersionCopy } from "./WorkflowVersionPresentation";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import API from "../../Utils/API/API";
@@ -168,7 +168,7 @@ const WorkflowVersionPreview: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <ChartSkeleton hasLegend={false} />;
     }
 
     if (error) {

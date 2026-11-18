@@ -82,7 +82,7 @@ Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, ka
 Open elke pagina onder **Statuspagina's** en vergelijk die met de pagina in Statuspage. Elk component is een handmatige monitor: wijzig de status in OneUptime als er iets verandert.
 
 ### Laat het adres van uw statuspagina naar OneUptime wijzen
-Open de pagina onder **Statuspagina's**, voeg uw domein toe onder **Aangepaste domeinen** en wijzig daarna het DNS-record. Uw bezoekers en abonnees komen dan op de nieuwe pagina.
+Open de pagina onder **Statuspagina's**, voeg uw domein toe onder **Aangepaste domeinen** en wijzig daarna het DNS-record. Uw bezoekers en abonnees komen dan op de nieuwe pagina. Tot die tijd toont het rapport waar elke overgenomen pagina live staat op OneUptime, met **Link kopiëren**.
 
 ### Schakel uw pagina in Atlassian Statuspage uit
 Zodra uw domein naar OneUptime wijst, sluit u de pagina in Statuspage, zodat de abonnees niet twee keer bericht krijgen.

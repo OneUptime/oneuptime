@@ -89,6 +89,8 @@ import {
   EventStatusFact,
 } from "../../../Components/EventView/EventStatusPanel";
 import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import WhoWasToldCard from "../../../Components/WhoWasTold/WhoWasToldCard";
+import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import useEventVideoCalls, {
   EventVideoCallsState,
   VideoCallEventKind,
@@ -1686,6 +1688,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             links={channelLinks}
             // Somebody added is a new feed entry.
             onChanged={refreshFeed}
+          />
+
+          {/*
+           * Who was told about the alert, by what, and what failed, as it
+           * happened (#7075): read again while it is open, and when the page
+           * does something that tells people.
+           */}
+          <WhoWasToldCard
+            recordKind={OnCallTestPageRecordKind.Alert}
+            recordId={modelId}
+            isLive={standing !== EventStanding.Resolved}
+            refreshToken={feedRefreshToken}
           />
 
           {/* Alert View  */}

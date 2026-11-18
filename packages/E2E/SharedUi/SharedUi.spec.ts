@@ -1,5 +1,6 @@
 import {
   expect,
+  JSHandle,
   Locator,
   Page,
   Route as PlaywrightRoute,
@@ -42,46 +43,31 @@ const LOCALES: string = path.resolve(
 const OUTLINE_STYLES: Array<string> = [
   "OUTLINE",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
 const ALL_STYLES: Array<string> = [
   "PRIMARY",
-  "SECONDARY",
   "OUTLINE",
   "NORMAL",
   "DANGER",
   "DANGER_OUTLINE",
-  "SUCCESS",
   "SUCCESS_OUTLINE",
-  "WARNING",
-  "WARNING_OUTLINE",
-  "ICON_LIGHT",
   "LINK",
   "SECONDARY_LINK",
   "ICON",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
 // The styles that draw a fill of their own.
-const FILLED_STYLES: Array<string> = [
-  "PRIMARY",
-  "SECONDARY",
-  "DANGER",
-  "SUCCESS",
-  "WARNING",
-];
+const FILLED_STYLES: Array<string> = ["PRIMARY", "DANGER"];
 
 // Tailwind 3.4's colours, as the browser reports them.
 const GRAY_50: string = "rgb(249, 250, 251)";
 const GRAY_100: string = "rgb(243, 244, 246)";
 const RED_50: string = "rgb(254, 242, 242)";
 const RED_700: string = "rgb(185, 28, 28)";
-const GREEN_50: string = "rgb(240, 253, 244)";
-const GREEN_700: string = "rgb(21, 128, 61)";
 const INDIGO_50: string = "rgb(238, 242, 255)";
 const INDIGO_700: string = "rgb(67, 56, 202)";
 
@@ -338,7 +324,6 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
     const hovers: Array<[string, string, string | undefined]> = [
       ["OUTLINE", GRAY_50, undefined],
       ["HOVER_DANGER_OUTLINE", RED_50, RED_700],
-      ["HOVER_SUCCESS_OUTLINE", GREEN_50, GREEN_700],
       ["HOVER_PRIMARY_OUTLINE", INDIGO_50, INDIGO_700],
     ];
 
@@ -2578,6 +2563,87 @@ test.describe("keyboard only", () => {
     await expect(bell).toBeFocused();
   });
 
+  /*
+   * "Finish setting up your notifications" (#7040), as the Dashboard's
+   * header draws it in the real bell: under On-Call, amber, with why under
+   * its title and Hide beside it - one box, two buttons, neither inside
+   * the other - on a laptop and on a phone, light and dark.
+   */
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [1280, 390] as const) {
+      test(`the bell's setup item reads, opens and hides at ${width} (${theme})`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+
+        await page.getByRole("button", { name: "View notifications" }).click();
+
+        const box: Locator = page.getByTestId(
+          "notification-bell-item-notificationSetup-box",
+        );
+
+        await expect(box).toBeVisible();
+        await expect(box).toContainText("Finish setting up your notifications");
+        await expect(
+          page.getByTestId(
+            "notification-bell-item-notificationSetup-description",
+          ),
+        ).toHaveText("Nothing can reach you yet.");
+
+        // Under On-Call, after the duty it is about.
+        const onCallHeading: Locator = page.getByText("On-Call", {
+          exact: true,
+        });
+        const headingBottom: number = (await onCallHeading.boundingBox())!.y;
+        const onCallItem: Locator = page.getByRole("button", {
+          name: "You are on call",
+        });
+        expect((await onCallItem.boundingBox())!.y).toBeGreaterThan(
+          headingBottom,
+        );
+        expect((await box.boundingBox())!.y).toBeGreaterThan(
+          (await onCallItem.boundingBox())!.y,
+        );
+
+        // Hide is a button of its own, a finger's size under a finger, inside the panel.
+        const hide: Locator = page.getByTestId(
+          "notification-bell-item-notificationSetup-dismiss",
+        );
+        const hideBox: { x: number; width: number } =
+          (await hide.boundingBox())!;
+        const panelBox: { x: number; width: number } =
+          (await box.boundingBox())!;
+
+        expect(hideBox.x + hideBox.width).toBeLessThanOrEqual(
+          panelBox.x + panelBox.width + 1,
+        );
+        expect(hideBox.width).toBeGreaterThanOrEqual(20);
+
+        // The page never scrolls sideways, on a phone neither.
+        expect(
+          await page.evaluate((): number => {
+            return (
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth
+            );
+          }),
+        ).toBeLessThanOrEqual(0);
+
+        await screenshot(page, `bell-setup-item-${width}-${theme}`, {
+          fullPage: false,
+        });
+
+        await hide.click();
+        await expect(page.getByTestId("keyboard-log")).toHaveText(
+          "bell-hide:notificationSetup",
+        );
+      });
+    }
+  }
+
   test("a form's steps: a finished step is reached with Tab and opened with Enter or Space", async ({
     page,
   }: {
@@ -2608,6 +2674,167 @@ test.describe("keyboard only", () => {
       "class",
       /text-indigo-600/,
     );
+  });
+
+  // #9223: a cell's help was a dialog opened by a click on the cell.
+  test("a table cell's help: Tab reaches its (i), focus shows the words, Escape hides them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const help: Locator = page
+      .getByTestId("keyboard-table")
+      .getByRole("button", { name: "About Quota" });
+
+    await tabTo(page, help, 80);
+    expect(await focusRingOf(help)).not.toBe("none");
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Counted since the first of the month.",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toBeHidden();
+    await expect(help).toBeFocused();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  // #9222: the diagram's bands and addresses answered only a click.
+  test("a network diagram: Tab reaches a band and an address, Enter and Space press them, the focus is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const band: Locator = page.getByRole("button", {
+      name: /^10\.0\.0\.5 to 10\.0\.0\.9: /,
+    });
+
+    await tabTo(page, band, 100);
+    const outline: string = await band.evaluate((element: Element): string => {
+      return window.getComputedStyle(element).getPropertyValue("outline-style");
+    });
+    expect(outline).not.toBe("none");
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "conversation:10.0.0.5>10.0.0.9",
+    );
+
+    const receiver: Locator = page.getByRole("button", {
+      name: /^8\.8\.8\.8 received /,
+    });
+
+    await tabTo(page, receiver, 20);
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("keyboard-log")).toContainText(
+      "destination:8.8.8.8",
+    );
+  });
+});
+
+/*
+ * #9224: the CSV upload said "drag and drop" and took no drop; the browser
+ * opened the file instead. A dropped file is read now, the area lights up
+ * under a drag, and anything but a .csv is refused out loud.
+ */
+async function dropFiles(
+  page: Page,
+  target: Locator,
+  files: Array<{ name: string; text: string }>,
+): Promise<void> {
+  const transfer: JSHandle<DataTransfer> = await page.evaluateHandle(
+    (list: Array<{ name: string; text: string }>): DataTransfer => {
+      const data: DataTransfer = new DataTransfer();
+      for (const file of list) {
+        data.items.add(new File([file.text], file.name, { type: "text/csv" }));
+      }
+      return data;
+    },
+    files,
+  );
+
+  await target.dispatchEvent("dragenter", { dataTransfer: transfer });
+  await target.dispatchEvent("dragover", { dataTransfer: transfer });
+  await target.dispatchEvent("drop", { dataTransfer: transfer });
+}
+
+test.describe("the CSV upload area", () => {
+  const CSV_TEXT: string =
+    "Email,Name\nada@example.com,Ada\ngrace@example.com,Grace\n";
+
+  test("a dragged file lights the area, and a dropped CSV is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    await dropArea.scrollIntoViewIfNeeded();
+    await expect(dropArea).toContainText(
+      "Click to upload CSV or drag and drop",
+    );
+
+    const transfer: JSHandle<DataTransfer> = await page.evaluateHandle(
+      (): DataTransfer => {
+        const data: DataTransfer = new DataTransfer();
+        data.items.add(new File(["x"], "people.csv", { type: "text/csv" }));
+        return data;
+      },
+    );
+    await dropArea.dispatchEvent("dragenter", { dataTransfer: transfer });
+    await expect(dropArea).toHaveAttribute("data-dragging", "true");
+    await expect(dropArea).toContainText("Drop the CSV file to upload it");
+    await screenshot(page, "csv-dragging", { fullPage: false });
+    await dropArea.dispatchEvent("dragleave", { dataTransfer: transfer });
+    await expect(dropArea).not.toHaveAttribute("data-dragging", "true");
+
+    await dropFiles(page, dropArea, [{ name: "people.csv", text: CSV_TEXT }]);
+    await expect(page.getByTestId("keyboard-log")).toHaveText("csv:2");
+    await expect(
+      page.getByText("people.csv - 2 rows ready to import"),
+    ).toBeVisible();
+    await expect(dropArea).not.toHaveAttribute("data-dragging", "true");
+  });
+
+  test("a file that is not a CSV is refused by name, and nothing is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    await dropFiles(page, dropArea, [{ name: "report.xlsx", text: "x" }]);
+
+    await expect(page.getByRole("alert")).toContainText(
+      "report.xlsx is not a CSV file. Choose or drop a file that ends in .csv.",
+    );
+    await expect(page.getByTestId("keyboard-log")).toHaveText("");
+  });
+
+  test("the keyboard reaches the area: its focus rings it, and a chosen CSV is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    const input: Locator = dropArea.locator("input[type=file]");
+
+    await tabTo(page, input, 120);
+    expect(await focusRingOf(dropArea)).not.toBe("none");
+
+    await input.setInputFiles({
+      name: "people.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(CSV_TEXT),
+    });
+    await expect(page.getByTestId("keyboard-log")).toHaveText("csv:2");
   });
 });
 
@@ -2998,4 +3225,110 @@ test.describe("empty and loading states keep the page still", () => {
       });
     }
   }
+});
+
+/*
+ * Content skeletons (#9220). A card that loaded drew one grey bar in a box
+ * as tall as an empty card, whatever it would show, so a card that loads
+ * into rows or a chart still grew when they arrived. Each shared skeleton
+ * now draws the shape of its content: the fixture puts each beside the
+ * content it stands in for, in the same card.
+ */
+test.describe("a card that loads draws the shape of its content", () => {
+  async function heightOf(locator: Locator): Promise<number> {
+    const box: { height: number } | null = await locator.boundingBox();
+
+    if (!box) {
+      throw new Error("Not drawn");
+    }
+
+    return box.height;
+  }
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`at ${width} pixels, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await open(
+          page,
+          `section=skeletons${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+
+        // Each card opens within a few pixels of the height it ends at.
+        for (const [loaded, loading, tolerance] of [
+          ["skeleton-loaded-tiles", "skeleton-loading-tiles", 8],
+          ["skeleton-loaded-details", "skeleton-loading-details", 16],
+          ["skeleton-loaded-table", "skeleton-loading-table", 16],
+          ["skeleton-loaded-cards", "skeleton-loading-cards", 16],
+        ] as Array<[string, string, number]>) {
+          const loadedHeight: number = await heightOf(page.getByTestId(loaded));
+          const loadingHeight: number = await heightOf(
+            page.getByTestId(loading),
+          );
+          expect(
+            Math.abs(loadedHeight - loadingHeight),
+            `${loading} is ${loadingHeight}px, ${loaded} ${loadedHeight}px`,
+          ).toBeLessThanOrEqual(tolerance);
+        }
+
+        // A chart's area is as tall as a chart group's plot.
+        expect(
+          await heightOf(page.getByTestId("chart-skeleton")),
+        ).toBeGreaterThanOrEqual(320);
+
+        // Every skeleton is a busy region named Loading, and no bar is drawn.
+        const statuses: Locator = page.getByRole("status", { name: "Loading" });
+        expect(await statuses.count()).toBeGreaterThanOrEqual(6);
+        for (const status of await statuses.all()) {
+          await expect(status).toHaveAttribute("aria-busy", "true");
+        }
+        await expect(
+          page.getByTestId("section-skeletons").getByTestId("bar-loader"),
+        ).toHaveCount(0);
+
+        // The bars can be seen on their card, in this theme.
+        const row: Locator = page.getByTestId("table-skeleton-row").first();
+        const barFill: Rgba = colourOf(
+          await row.evaluate((element: Element): string => {
+            const bar: Element | null = element.querySelector(
+              '[class~="bg-gray-100"]',
+            );
+            return bar
+              ? window.getComputedStyle(bar).backgroundColor
+              : "transparent";
+          }),
+        );
+        const cardFill: Rgba = await paintedBackground(row);
+        expect(contrast(barFill, cardFill)).toBeGreaterThan(1.04);
+
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `skeletons-${width}-${theme}`);
+      });
+    }
+  }
+
+  test("is still under reduced motion", async ({ page }: { page: Page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page, "section=skeletons");
+
+    const pulsing: Locator = page
+      .getByTestId("section-skeletons")
+      .locator('[class~="motion-safe:animate-pulse"]');
+    const names: Array<string> = await pulsing.evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).animationName;
+        });
+      },
+    );
+    expect(names.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(names)).toEqual(new Set(["none"]));
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    expect(
+      await pulsing.first().evaluate((element: Element): string => {
+        return window.getComputedStyle(element).animationName;
+      }),
+    ).toBe("pulse");
+  });
 });

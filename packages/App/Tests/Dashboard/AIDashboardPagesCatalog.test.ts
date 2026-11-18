@@ -3,12 +3,15 @@ import {
   fillPageSearchTitle,
   PageSearchAvailability,
   PageSearchCommandDescriptor,
+  PALETTE_LIST_CREATE_ACTIONS,
+  PaletteListCreateAction,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import { getPageSearchAreas } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import RouteMap from "../../FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import { isDashboardRouteTemplate } from "../../FeatureSet/Dashboard/src/Components/AIChat/AskAiPageLinks";
 import Route from "Common/Types/API/Route";
+import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import DashboardPageFinder, {
   AI_DASHBOARD_PAGES,
   AIDashboardPage,
@@ -231,6 +234,26 @@ const CREATE_PAGES: Array<{
   },
 ];
 
+/*
+ * The lists' create forms Search opens (#7035): Create Status Page, Create
+ * On-Call Policy, Create On-Call Schedule, Create Dashboard, Create Workflow
+ * and Invite User, each its list's address with ?create=1, which opens the
+ * form as the list's Create button does. Read from Search's own list
+ * (PALETTE_LIST_CREATE_ACTIONS), so the two never part.
+ */
+const LIST_CREATE_PAGES: Array<AIDashboardPage> =
+  PALETTE_LIST_CREATE_ACTIONS.map(
+    (action: PaletteListCreateAction): AIDashboardPage => {
+      return {
+        ...titledByKey(action.title),
+        where: asEnglishDraws(action.where),
+        keywords: asEnglishDraws(action.keywords),
+        path: `${getTemplate(action.page)!}${CREATE_FORM_QUERY_STRING}`,
+        kind: AIDashboardPageKind.Action,
+      };
+    },
+  );
+
 const DERIVED: Array<AIDashboardPage> = [
   ...CREATE_PAGES.map(
     (createPage: {
@@ -248,6 +271,7 @@ const DERIVED: Array<AIDashboardPage> = [
       };
     },
   ),
+  ...LIST_CREATE_PAGES,
   ...deriveCatalog(),
 ];
 
@@ -376,6 +400,90 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
         isBillingEnabled: true,
       });
       expect(found[0]?.path.split("?")[0]).toBe(expectation.path);
+    }
+  });
+
+  /*
+   * Ask AI's "how do I create a status page?" ends with a button that opens
+   * the form itself (#7035): the list with ?create=1, for each list Search
+   * opens a create form on.
+   */
+  test("finds each list's create form by its name, and opens it on its list with ?create=1", () => {
+    const expectations: Array<{ query: string; path: string }> = [
+      {
+        query: "Create Status Page",
+        path: "/dashboard/:projectId/status-pages?create=1",
+      },
+      {
+        query: "Create On-Call Policy",
+        path: "/dashboard/:projectId/on-call-duty/policies?create=1",
+      },
+      {
+        query: "Create On-Call Schedule",
+        path: "/dashboard/:projectId/on-call-duty/schedules?create=1",
+      },
+      {
+        query: "Create Dashboard",
+        path: "/dashboard/:projectId/dashboards?create=1",
+      },
+      {
+        query: "Create Workflow",
+        path: "/dashboard/:projectId/workflows?create=1",
+      },
+      {
+        query: "Invite User",
+        path: "/dashboard/:projectId/users?create=1",
+      },
+    ];
+
+    for (const expectation of expectations) {
+      expect({
+        query: expectation.query,
+        path: DashboardPageFinder.find({
+          query: expectation.query,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.path,
+      }).toEqual(expectation);
+    }
+
+    // The lists themselves are still found by their names.
+    expect(
+      DashboardPageFinder.find({
+        query: "Status Pages",
+        limit: 1,
+        isBillingEnabled: true,
+      })[0]?.path,
+    ).toBe("/dashboard/:projectId/status-pages");
+  });
+
+  /*
+   * Search offers the import from incident.io by its whole name (#7034), so
+   * Ask AI can send someone there too. Incidents' own words still find
+   * Incidents' pages: the import is never the page asked for by them.
+   */
+  test("finds the import from incident.io by the tool's name, and Incidents' pages by Incidents' words", () => {
+    for (const query of ["Import from incident.io", "incident.io"]) {
+      expect(
+        DashboardPageFinder.find({
+          query,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.path,
+      ).toBe(
+        "/dashboard/:projectId/settings/import?from=search&tool=IncidentIo",
+      );
+    }
+
+    for (const query of ["incidents", "incident", "Incidents"]) {
+      expect({
+        query,
+        first: DashboardPageFinder.find({
+          query,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.title,
+      }).toEqual({ query, first: expect.not.stringMatching(/^Import from/) });
     }
   });
 });

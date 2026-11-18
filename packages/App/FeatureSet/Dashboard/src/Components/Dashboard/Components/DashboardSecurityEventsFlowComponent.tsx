@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   ResponsiveContainer,
   Sankey,
@@ -27,7 +28,6 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
 import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -242,7 +242,7 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
       <div className="min-h-0 flex-1">
         {isLoading && flowRecords.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
+            <ChartSkeleton hasLegend={false} fillsHeight={true} />
           </div>
         )}
         {!isLoading &&

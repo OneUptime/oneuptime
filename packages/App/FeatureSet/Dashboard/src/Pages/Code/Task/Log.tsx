@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, {
@@ -39,7 +40,6 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -343,7 +343,7 @@ const LogEntryRow: FunctionComponent<{
         }`}
       />
       <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-wrap">
-        <span className="shrink-0 font-mono text-xs text-gray-400">
+        <span className="shrink-0 font-mono text-xs text-gray-500">
           {getValueOrQuietDash(formatTimestamp(entry.createdAt), {
             isSmall: true,
           })}
@@ -375,7 +375,7 @@ const LogEntryRow: FunctionComponent<{
           )}
         </span>
         {entry.durationInMs !== undefined ? (
-          <span className="ml-auto shrink-0 text-xs text-gray-400">
+          <span className="ml-auto shrink-0 text-xs text-gray-500">
             {formatMilliseconds(translator, entry.durationInMs)}
           </span>
         ) : (
@@ -536,7 +536,7 @@ const ContentPayloadView: FunctionComponent<{
       )}
 
       {payload.totalTokens !== undefined || payload.stopReason ? (
-        <p className="text-xs text-gray-400">{usageSentences.join(" ")}</p>
+        <p className="text-xs text-gray-500">{usageSentences.join(" ")}</p>
       ) : (
         <></>
       )}
@@ -554,7 +554,7 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
 
   return (
     <div className="flex items-center gap-x-3 gap-y-0.5 border-b border-gray-100 py-2 max-sm:flex-wrap">
-      <span className="shrink-0 font-mono text-xs text-gray-400">
+      <span className="shrink-0 font-mono text-xs text-gray-500">
         {getValueOrQuietDash(formatTimestamp(call.startedAt), {
           isSmall: true,
         })}
@@ -577,7 +577,7 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
       )}
       <span
         data-testid="code-log-call-tokens"
-        className="ml-auto shrink-0 text-xs text-gray-400"
+        className="ml-auto shrink-0 text-xs text-gray-500"
       >
         {/*
          * As the AI Logs count a call (AiTokenCount): a token the prompt
@@ -1034,7 +1034,7 @@ const CodeTaskLogPage: FunctionComponent<
       <div className="space-y-5">
         {header}
         {notOfTask}
-        <PageLoader isVisible={true} />
+        <TableSkeleton />
       </div>
     );
   }

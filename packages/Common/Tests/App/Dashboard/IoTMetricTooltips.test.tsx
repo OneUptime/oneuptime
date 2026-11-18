@@ -768,7 +768,8 @@ describe("IoT fleet overview", () => {
       "[data-testid='card']",
     ) as HTMLElement;
     const rows: Array<string> = Array.from(
-      card.querySelectorAll("div.py-3\\.5"),
+      // A line is a link to its device, or plain text when it has no ID.
+      card.querySelectorAll(".py-3\\.5"),
     ).map((row: Element): string => {
       return Array.from(row.querySelectorAll("span"))
         .map((span: Element) => {

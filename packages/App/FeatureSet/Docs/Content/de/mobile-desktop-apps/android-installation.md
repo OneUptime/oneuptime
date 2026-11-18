@@ -68,6 +68,8 @@ Die App registriert das Telefon dann in jedem Ihrer Projekte. Jedes Projekt füh
 
 Die App zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den Namen des Projekts, um zu wechseln. Ein Projekt, das Single Sign-On verlangt, ist unter **Settings → Manage Projects** als **SSO Required** markiert, bis Sie dort auf **Authenticate with SSO** tippen.
 
+Bei einer Neuinstallation öffnet die App danach einmal **Get Ready for On-Call**: drei Schritte, damit eine Alarmierung das Telefon erreicht, auch nachts bei „Bitte nicht stören“. Erlauben Sie Benachrichtigungen, tippen Sie auf **Turn On Critical Alerts**, dann auf **Send Test Page**, und bestätigen Sie den Testalarm über seine Benachrichtigung. **Not Now** legt den Bildschirm beiseite, und **Settings → Get Ready for On-Call** öffnet ihn jederzeit wieder. Muss der Zugriff auf „Bitte nicht stören“ in den Android-Einstellungen erlaubt werden, schalten sich kritische Warnungen ein, sobald Sie zur App zurückkehren.
+
 ## Prüfen, dass Alarme das Telefon erreichen
 
 :::steps

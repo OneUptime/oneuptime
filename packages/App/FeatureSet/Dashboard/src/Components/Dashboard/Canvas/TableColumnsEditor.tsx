@@ -184,7 +184,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   return (
     <div className="mt-2 space-y-3">
       {columns.length === 0 && (
-        <div className="text-xs text-gray-400 italic px-3 py-4 border border-dashed border-gray-200 rounded-lg text-center">
+        <div className="text-xs text-gray-500 italic px-3 py-4 border border-dashed border-gray-200 rounded-lg text-center">
           {translator.translateText(
             "No metrics or formulas yet. Add one below to get started.",
           )}
@@ -227,7 +227,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   {translator.translateText(isMetric ? "Metric" : "Formula")}
                 </span>
                 {!showAsColumn && (
-                  <span className="text-xs text-gray-400 italic">
+                  <span className="text-xs text-gray-500 italic">
                     {translator.translateText(
                       "(hidden — used by formulas only)",
                     )}
@@ -335,7 +335,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                       updateColumn(index, { formula: value });
                     }}
                   />
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-gray-500">
                     {referenceVariables
                       ? translator.translateTemplate(
                           "Available variables: {{variables}}",
@@ -387,7 +387,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                     }}
                   />
                   {isMetric && (
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-gray-500">
                       {translator.translateText(
                         "Leave blank to inherit the metric's native unit.",
                       )}

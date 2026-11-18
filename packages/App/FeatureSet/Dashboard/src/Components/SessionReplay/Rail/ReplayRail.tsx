@@ -1321,7 +1321,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       badge = (
         <span
-          className={`ml-1 rounded-full px-1 py-px text-[10px] font-semibold tabular-nums ${
+          className={`ml-1 rounded-full px-1 py-px text-xs font-semibold tabular-nums ${
             isSelected
               ? "bg-indigo-100 text-indigo-700"
               : "bg-gray-200/70 text-gray-500"
@@ -1379,7 +1379,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
     if (truncatedTabs.has(activeTab)) {
       notices.push(
-        <div key="truncated" className="text-[11px] text-amber-700">
+        <div key="truncated" className="text-xs text-amber-700">
           {translator.translateText(RAIL_KIND_CAP_NOTICE)}
         </div>,
       );
@@ -1389,7 +1389,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       notices.push(
         <div
           key="slot-truncated"
-          className="text-[11px] text-amber-700"
+          className="text-xs text-amber-700"
           data-testid="rail-slot-truncated"
         >
           {activeSlot.isTraceIdSetCapped
@@ -1408,7 +1408,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       rows.length > 0
     ) {
       notices.push(
-        <div key="errors-locked" className="text-[11px] text-gray-500">
+        <div key="errors-locked" className="text-xs text-gray-500">
           {translator.translateTemplate(RAIL_ERRORS_LOCKED_NOTICE, {
             permission: activeSlot.lockedPermission || "",
           })}
@@ -1425,7 +1425,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       notices.push(
         <div
           key="slot-error"
-          className="flex items-center gap-2 text-[11px] text-rose-700"
+          className="flex items-center gap-2 text-xs text-rose-700"
         >
           <span>{activeSlot.errorMessage}</span>
           <button
@@ -1505,7 +1505,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           {emptyDetail}
         </div>
         {emptyCopy.snippet && (
-          <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-2 font-mono text-[10px] leading-4 text-gray-700 ring-1 ring-inset ring-gray-100">
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-2 font-mono text-xs leading-4 text-gray-700 ring-1 ring-inset ring-gray-100">
             {emptyCopy.snippet}
           </pre>
         )}
@@ -1515,7 +1515,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               return (
                 <code
                   key={capability}
-                  className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
+                  className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600"
                 >
                   {capability}
                 </code>
@@ -1728,7 +1728,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           <p className="sr-only">{translator.translateText(RAIL_SUBTITLE)}</p>
           {alignmentNote && (
             <span
-              className="min-w-0 truncate text-[11px] text-gray-400"
+              className="min-w-0 truncate text-xs text-gray-500"
               data-testid="rail-alignment-note"
               title={alignmentNote}
             >
@@ -1775,7 +1775,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           )}
           {follow && (
             <span
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500"
               title={translator.translateText(
                 "The list follows the playhead; scroll to pause it",
               )}

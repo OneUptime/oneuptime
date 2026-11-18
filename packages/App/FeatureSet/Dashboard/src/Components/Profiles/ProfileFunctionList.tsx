@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
@@ -183,7 +183,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
     : 0;
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -340,7 +340,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 key={`${row.functionName}-${row.fileName}-${index}`}
                 className="grid grid-cols-[2.5rem_1fr_9rem_8rem] px-4 py-2.5 items-center border-t border-gray-100 hover:bg-gray-50/60 transition-colors"
               >
-                <div className="text-xs font-mono text-gray-400">
+                <div className="text-xs font-mono text-gray-500">
                   {index + 1}
                 </div>
 
@@ -386,7 +386,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                     )}
                   </div>
                   {row.fileName && (
-                    <div className="text-[11px] text-gray-400 ml-4 font-mono truncate">
+                    <div className="text-xs text-gray-500 ml-4 font-mono truncate">
                       {ProfileUtil.formatFileName(row.fileName, 80)}
                     </div>
                   )}
@@ -404,7 +404,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                   <div className="text-sm font-mono font-semibold text-gray-900">
                     {ProfileUtil.formatProfileValue(row.selfValue, unit)}
                   </div>
-                  <div className="text-[11px] text-gray-400">
+                  <div className="text-xs text-gray-500">
                     {translator.translateTemplate("{{percent}} of total", {
                       percent: ProfileUtil.formatPercent(selfSharePct),
                     })}
@@ -415,7 +415,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                   <div className="text-sm font-mono text-gray-700">
                     {ProfileUtil.formatProfileValue(row.totalValue, unit)}
                   </div>
-                  <div className="text-[11px] text-gray-400">
+                  <div className="text-xs text-gray-500">
                     {translator.translatePlural(
                       { one: "{{count}} sample", other: "{{count}} samples" },
                       row.sampleCount,

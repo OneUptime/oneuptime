@@ -1,9 +1,17 @@
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import {
   ConditionType,
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { PolicyNameConditionMatch } from "Common/Types/Workspace/NotificationRules/PolicyNameConditionSwitch";
+import { RuleCriteriaCopy } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  formatList,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A RULE'S CONDITION READS AS A SENTENCE.
@@ -208,10 +216,103 @@ export const getConditionValueHint: (
 };
 
 /*
- * What a rule's view says for an id its condition holds that names nothing
- * now: a person who has left the project, a team or an on-call policy since
- * deleted. The rule still loads, and the condition can be changed.
+ * What a rule's card and its Conditions step say for an id its condition
+ * holds that names nothing now: a person who has left the project, a team,
+ * a severity, a label, a monitor or an on-call policy since deleted
+ * (#7807). The rule still loads, and the condition can be changed. One key
+ * with the rules' criteria builder (RuleCriteriaCopy.valueNotFound), which
+ * says the same of a value its condition names.
  */
-export const VALUE_NOT_FOUND_NAME: string = translationKey(
-  "No longer in this project",
+export const VALUE_NOT_FOUND_NAME: string = RuleCriteriaCopy.valueNotFound;
+
+/*
+ * UNDER AN ON-CALL POLICY NAME CONDITION: WHAT ITS WORDS NAME NOW, AND THE
+ * SWITCH TO THE POLICIES THEMSELVES (#7806).
+ *
+ *   If  [On-Call Policy Name]  [contains]  [Primary                 ]
+ *       To keep matching a policy after it is renamed, use On-Call Policy.
+ *       Matches 2 policies now: Primary on-call, Primary on-call (EU).
+ *       Use On-Call Policy instead
+ *
+ * The line names the live policies the words match today, as the server
+ * compares them (PolicyNameConditionSwitch) - or, for "does not contain",
+ * the ones they leave out - and the action turns the condition into an
+ * On-Call Policy condition that keeps matching exactly those. Words that
+ * name no policy say so, and offer no switch.
+ */
+export const POLICY_NAME_SWITCH_ACTION: string = translationKey(
+  "Use On-Call Policy instead",
 );
+
+export const POLICY_NAME_MATCHES: PluralTemplate = {
+  one: "Matches {{count}} policy now: {{names}}.",
+  other: "Matches {{count}} policies now: {{names}}.",
+};
+
+export const POLICY_NAME_LEAVES_OUT: PluralTemplate = {
+  one: "Leaves out {{count}} policy now: {{names}}.",
+  other: "Leaves out {{count}} policies now: {{names}}.",
+};
+
+export const POLICY_NAME_MATCHES_NONE: string = translationKey(
+  "Matches no policy now.",
+);
+
+export const POLICY_NAME_LEAVES_OUT_NONE: string = translationKey(
+  "Leaves out no policy now.",
+);
+
+// The most policies named on the line; the rest are counted.
+export const POLICY_NAME_MATCH_MAX_NAMES: number = 5;
+
+// The same words a rule's note uses for a list cut short (RuleEmptiedLimitsNote).
+const NAMES_AND_MORE: PluralTemplate = {
+  one: "{{names}} and {{count}} more",
+  other: "{{names}} and {{count}} more",
+};
+
+/*
+ * The line under a name condition: the policies its words name now, by
+ * their names as the team wrote them, in the reader's language around
+ * them - the first few, and how many more.
+ */
+export const getPolicyNameMatchSentence: (data: {
+  match: PolicyNameConditionMatch;
+  translator: Translator;
+}) => string = (data: {
+  match: PolicyNameConditionMatch;
+  translator: Translator;
+}): string => {
+  const translator: Translator = data.translator;
+  const policies: Array<OnCallDutyPolicy> = data.match.policies;
+
+  if (policies.length === 0) {
+    const none: string = data.match.isLeavingOut
+      ? POLICY_NAME_LEAVES_OUT_NONE
+      : POLICY_NAME_MATCHES_NONE;
+
+    return translator.translateText(none) || none;
+  }
+
+  const names: Array<string> = policies.map(
+    (policy: OnCallDutyPolicy): string => {
+      return policy.name || "";
+    },
+  );
+  const shown: Array<string> = names.slice(0, POLICY_NAME_MATCH_MAX_NAMES);
+  const more: number = names.length - shown.length;
+
+  const namesText: string =
+    more > 0
+      ? translator.translatePlural(NAMES_AND_MORE, more, {
+          names: formatList(shown, translator),
+        })
+      : formatList(shown, translator);
+
+  return translator.translatePlural(
+    data.match.isLeavingOut ? POLICY_NAME_LEAVES_OUT : POLICY_NAME_MATCHES,
+    policies.length,
+    { names: namesText },
+    { setsValuesApart: true },
+  );
+};

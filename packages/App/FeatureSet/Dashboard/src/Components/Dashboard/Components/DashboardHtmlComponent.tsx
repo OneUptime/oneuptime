@@ -91,7 +91,7 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
   if (isEmpty) {
     return (
       <div className="flex items-center justify-center h-full">
-        <span className="text-gray-300 text-sm">
+        <span className="text-gray-500 text-sm">
           {translator.translateText("No HTML configured")}
         </span>
       </div>

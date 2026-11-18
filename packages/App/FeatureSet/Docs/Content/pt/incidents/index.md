@@ -196,6 +196,16 @@ O que cada uma contém:
 - **Notas privadas** e **Notas públicas** — o que foi dito à sua equipe e aos seus clientes. Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed).
 - **Campos personalizados**, **Configurações**, **Excluir incidente** — a página **Configurações** contém **Visível na página de status** e **Incidente privado**, o cartão **Escopo de páginas de status** que limita o incidente a algumas páginas de status, e o cartão **Lembretes**, cujo interruptor **Enviar lembretes** é salvo assim que você o altera e mostra quando sai o próximo lembrete.
 
+## Quem foi avisado
+
+A **Visão geral** de um incidente tem um cartão **Quem foi avisado**. Ele diz quem o OneUptime avisou sobre o incidente, por qual meio e o que falhou, lido do que aconteceu: as execuções das suas políticas de plantão e cada mensagem do Slack, Microsoft Teams ou Mattermost, e-mail, SMS, chamada, notificação push, mensagem de WhatsApp ou Telegram e webhook enviado sobre ele.
+
+- Suas primeiras palavras contam as pessoas e os canais avisados, dizem quem confirmou o incidente e quanto tempo depois do primeiro acionamento, e quantas notificações falharam.
+- Cada pessoa tem uma linha: como o acionamento a alcançou (a política de plantão, o nível, a equipe ou a escala), por qual meio e em que ponto está: **Confirmado**, **Notificado**, **Enviando**, **Falhou** ou **Não chamado**. **Mostrar detalhes** lista cada acionamento e cada notificação em ordem cronológica, com o motivo de uma falha ou de alguém não ter sido chamado.
+- Uma equipe ou escala que não alcançou ninguém, uma política que ainda não acionou (por exemplo, uma que espera o horário de trabalho), os canais em que publicou e os assinantes da página de status também têm uma linha cada. Um incidente movimentado lista suas primeiras pessoas, e as demais ficam a um clique.
+- Enquanto o incidente está aberto, o cartão é lido de novo a cada poucos segundos.
+- Ele mostra apenas o que você já pode ler: o cartão de um incidente privado é para quem pode abrir o incidente, e as notificações ou execuções de políticas de plantão que você não pode abrir são contadas sob a lista, nunca nomeadas. Os **Logs de notificação** têm cada mensagem completa.
+
 ## Como os incidentes se encaixam no resto do OneUptime
 
 - **Os monitores detectam o problema; os incidentes o registram.** Uma regra de critérios de monitor pode declarar um incidente automaticamente, preenchendo título, severidade, políticas de plantão, proprietários, rótulos e notas de remediação. Veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating) para as variáveis disponíveis.

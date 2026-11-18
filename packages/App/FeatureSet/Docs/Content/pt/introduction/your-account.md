@@ -134,7 +134,7 @@ Você pode pertencer a quantos projetos quiser. O seletor de projetos, no canto 
 
 ## O que cada projeto guarda para você
 
-As **Configurações do usuário**, à direita na barra abaixo da barra do topo, são só suas, e cada projeto tem as suas. Abra-as em cada projeto em que você está de plantão.
+As **Configurações do usuário**, à direita na barra abaixo da barra do topo, são só suas, e cada projeto tem as suas. Abra-as em cada projeto em que você está de plantão. Elas abrem em **Lista de configuração** enquanto houver algo a configurar, e em **Métodos de notificação** quando não faltar nada essencial.
 
 | Página | Para que serve | Saiba mais |
 | --- | --- | --- |

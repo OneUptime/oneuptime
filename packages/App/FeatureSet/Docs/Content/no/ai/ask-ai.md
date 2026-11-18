@@ -120,7 +120,7 @@ Spør AI setter opp fra én setning det de veiledede oppsettene setter opp: "Ove
 - **Hva som mangler.** Spør AI legger aldri til et telefonnummer eller mobilappen: Du legger dem til og bekrefter dem selv under **Brukerinnstillinger → Varslingsmetoder**. Ber du om SMS uten et bekreftet nummer, sier kortet det, og svaret lenker til siden. En del Spør AI ikke kan opprette, foreslås ikke, for eksempel når rollen din ikke tillater det, adressen ikke er en adresse eller monitorene ikke finnes: Svaret sier hva som trengs.
 - **Hva hver del trenger.** En monitor trenger tillatelse til å opprette monitorer. Utkalling trenger tillatelse til å opprette vaktpolicyer, eskaleringsreglene deres og vaktregler for hendelser og varsler. En statusside trenger tillatelse til å opprette statussider og legge til monitorer på dem. Prosjektets abonnementsgrenser gjelder, som i de veiledede oppsettene.
 - **Test det etterpå.** Når planen har kjørt, åpner hvert kort det som ble opprettet, og **Test denne policyen** (eller **Send meg et testoppkall**, for en monitor alene) under svaret sender et testoppkall som du bekrefter fra meldingen. Feiler en del, sier svaret hva som ble opprettet og hva som ikke ble det.
-- **Hvem som får beskjed.** Spør "hvem får beskjed når example.com er nede?", og Spør AI svarer fra den samme kjeden som monitorens side viser, og nevner hvert brudd.
+- **Hvem som får beskjed.** Spør "hvem får beskjed når example.com er nede?", og Spør AI svarer fra den samme kjeden som monitorens side viser, og nevner hvert brudd. Det nevner også tittelen på det monitoren åpner, vaktreglene som samsvarer og hvilken som kjører hver policy, og hvorfor noen ikke kan kalles opp, med ordene monitorens side bruker, og utelater det du ikke kan lese.
 
 ## Styr en samtale
 

@@ -1,10 +1,10 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import Select from "../../../Types/BaseDatabase/Select";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Card from "../Card/Card";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ModelSwitchRow, { ModelSwitchConfirmation } from "./ModelSwitchRow";
 import { subscribeToModelSwitchSaved } from "./ModelSwitchEvents";
@@ -425,7 +425,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !positions) {

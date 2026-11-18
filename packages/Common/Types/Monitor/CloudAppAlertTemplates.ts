@@ -1,19 +1,18 @@
 import { SpanStatus } from "../../Models/AnalyticsModels/Span";
 import Dictionary from "../Dictionary";
-import FilterCondition from "../Filter/FilterCondition";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import ObjectID from "../ObjectID";
-import RollingTime from "../RollingTime/RollingTime";
-import { CheckOn, FilterType } from "./CriteriaFilter";
-import MonitorCriteria from "./MonitorCriteria";
-import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import MonitorStep from "./MonitorStep";
-import MonitorType from "./MonitorType";
+import { FilterType } from "./CriteriaFilter";
 import {
-  buildHealthyCriteriaInstance,
-  buildUnhealthyCriteriaInstance,
-  getRecoveryFilterType,
-} from "./Recommendation/RecommendationCriteriaBuilder";
+  RequestHealthAlertTemplate,
+  RequestHealthAlertTemplateSeverity,
+  RequestHealthScope,
+  RequestLatencyAlertTemplateDefinition,
+  SpanCountAlertTemplateDefinition,
+  buildRequestLatencyAlertTemplate,
+  buildSpanCountAlertTemplate,
+  readRequestHealthTelemetryFilters,
+} from "./RequestHealthAlertTemplates";
 
 /*
  * THE MONITORS ONEUPTIME RECOMMENDS FOR AN APP PLATFORMS APP - an ECS
@@ -34,14 +33,17 @@ import {
  * spans, and the http.server.request.duration histogram its HTTP
  * instrumentation reports - so none needs anything set up beyond what the
  * app's page already shows. The thresholds and windows are a service's, so
- * an app and its service alert alike.
+ * an app and its service alert alike. The monitors themselves are built
+ * by the request-health builders every attribute-scoped product shares
+ * (RequestHealthAlertTemplates); this file says which ones an app is
+ * offered, and in an app's words.
  *
  * Pure and isomorphic: the catalog, the Dashboard and the tests read it.
  */
 
 export type CloudAppAlertTemplateCategory = "Errors" | "Latency" | "Throughput";
 
-export type CloudAppAlertTemplateSeverity = "Critical" | "Warning";
+export type CloudAppAlertTemplateSeverity = RequestHealthAlertTemplateSeverity;
 
 export interface CloudAppAlertTemplateArgs {
   // The CloudApp row's id.
@@ -60,18 +62,15 @@ export interface CloudAppAlertTemplateArgs {
   monitorName: string;
 }
 
-export interface CloudAppAlertTemplate {
-  // "cloud-app-<what>": stable, and unique in the catalog.
-  id: string;
-  name: string;
-  // One plain sentence: when it fires.
-  summary: string;
-  description: string;
-  category: CloudAppAlertTemplateCategory;
-  severity: CloudAppAlertTemplateSeverity;
-  monitorType: MonitorType;
-  getMonitorStep: (args: CloudAppAlertTemplateArgs) => MonitorStep;
-}
+/*
+ * One of an app's templates: "cloud-app-<what>", stable and unique in the
+ * catalog, built by the shared request-health builders
+ * (RequestHealthAlertTemplates).
+ */
+export type CloudAppAlertTemplate = RequestHealthAlertTemplate<
+  CloudAppAlertTemplateCategory,
+  CloudAppAlertTemplateArgs
+>;
 
 // The attribute an app's platform names it by is part of its own filter.
 const RESOURCE_PREFIX: string = "resource.";
@@ -90,19 +89,7 @@ export const CLOUD_APP_REQUEST_DURATION_METRIC: string =
 export function readCloudAppTelemetryFilters(
   value: unknown,
 ): Dictionary<string> {
-  const filters: Dictionary<string> = {};
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return filters;
-  }
-
-  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    if (key.trim() && typeof raw === "string" && raw.trim()) {
-      filters[key.trim()] = raw;
-    }
-  }
-
-  return filters;
+  return readRequestHealthTelemetryFilters(value);
 }
 
 export function isCloudAppTelemetryScoped(
@@ -124,242 +111,36 @@ export function isCloudAppTelemetryScoped(
   });
 }
 
-function emptyStep(
-  args: CloudAppAlertTemplateArgs,
-  type: MonitorType,
-): MonitorStep {
-  return MonitorStep.getDefaultMonitorStep({
-    monitorName: args.monitorName,
-    monitorType: type,
-    onlineMonitorStatusId: args.onlineMonitorStatusId,
-    offlineMonitorStatusId: args.offlineMonitorStatusId,
-    defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-    defaultAlertSeverityId: args.defaultAlertSeverityId,
-  });
+// How an app is named in the monitors made for it.
+const CLOUD_APP_SCOPE: RequestHealthScope = {
+  titlePrefix: "[App]",
+  resourceNoun: "app",
+};
+
+function spanCountTemplate(
+  data: SpanCountAlertTemplateDefinition<CloudAppAlertTemplateCategory>,
+): CloudAppAlertTemplate {
+  return buildSpanCountAlertTemplate<
+    CloudAppAlertTemplateCategory,
+    CloudAppAlertTemplateArgs
+  >({ ...data, scope: CLOUD_APP_SCOPE });
 }
 
-/*
- * A span count over a window, and its mirror: the pair a count needs, so a
- * monitor that fired comes back online once the count is back.
- */
-function buildSpanCountCriteria(data: {
-  args: CloudAppAlertTemplateArgs;
-  template: { name: string };
-  unhealthyFilterType: FilterType;
-  threshold: number;
-  criteriaName: string;
-  criteriaDescription: string;
-  incidentDescription: string;
-}): MonitorCriteria {
-  const title: string = `[App] ${data.template.name} - ${data.args.monitorName}`;
-
-  const unhealthy: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-  unhealthy.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: data.args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.SpanCount,
-        filterType: data.unhealthyFilterType,
-        value: data.threshold,
-      },
-    ],
-    incidents: [
-      {
-        title: title,
-        description: data.incidentDescription,
-        incidentSeverityId: data.args.defaultIncidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: title,
-        description: data.incidentDescription,
-        alertSeverityId: data.args.defaultAlertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: data.criteriaName,
-    description: data.criteriaDescription,
-  };
-
-  const healthy: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-  healthy.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: data.args.onlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.SpanCount,
-        filterType: getRecoveryFilterType(data.unhealthyFilterType),
-        value: data.threshold,
-      },
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: `${data.args.monitorName} is within its recommended threshold.`,
-  };
-
-  const criteria: MonitorCriteria = new MonitorCriteria();
-  criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-  return criteria;
-}
-
-function spanCountTemplate(data: {
-  id: string;
-  name: string;
-  summary: string;
-  description: string;
-  category: CloudAppAlertTemplateCategory;
-  severity: CloudAppAlertTemplateSeverity;
-  spanStatuses: Array<SpanStatus>;
-  lastXSecondsOfSpans: number;
-  unhealthyFilterType: FilterType;
-  threshold: number;
-  criteriaName: string;
-  criteriaDescription: string;
-  incidentDescription: string;
-}): CloudAppAlertTemplate {
-  const template: CloudAppAlertTemplate = {
-    id: data.id,
-    name: data.name,
-    summary: data.summary,
-    description: data.description,
-    category: data.category,
-    severity: data.severity,
-    monitorType: MonitorType.Traces,
-    getMonitorStep: (args: CloudAppAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = emptyStep(args, MonitorType.Traces);
-
-      step.setTraceMonitor({
-        // The app's own spans, as its Traces tab reads them.
-        attributes: { ...readCloudAppTelemetryFilters(args.telemetryFilters) },
-        spanName: "",
-        spanStatuses: data.spanStatuses,
-        telemetryServiceIds: [],
-        entityKeys: [],
-        lastXSecondsOfSpans: data.lastXSecondsOfSpans,
-      });
-
-      step.setMonitorCriteria(
-        buildSpanCountCriteria({
-          args,
-          template,
-          unhealthyFilterType: data.unhealthyFilterType,
-          threshold: data.threshold,
-          criteriaName: data.criteriaName,
-          criteriaDescription: data.criteriaDescription,
-          incidentDescription: data.incidentDescription,
-        }),
-      );
-
-      return step;
-    },
-  };
-
-  return template;
-}
-
-/*
- * A latency percentile of the app's requests, held for five minutes: a
- * property of the app, so read over every instance, never per instance.
- * Written in milliseconds: the worker converts the histogram's own unit
- * (seconds, by the semantic convention) to the alias's.
- */
-function latencyTemplate(data: {
-  id: string;
-  name: string;
-  summary: string;
-  description: string;
-  severity: CloudAppAlertTemplateSeverity;
-  alias: string;
-  aggregationType: MetricsAggregationType;
-  thresholdMs: number;
-  thresholdLabel: string;
-  incidentDescription: string;
-}): CloudAppAlertTemplate {
-  return {
-    id: data.id,
-    name: data.name,
-    summary: data.summary,
-    description: data.description,
+function latencyTemplate(
+  data: Omit<
+    RequestLatencyAlertTemplateDefinition<CloudAppAlertTemplateCategory>,
+    "category" | "metricName"
+  >,
+): CloudAppAlertTemplate {
+  return buildRequestLatencyAlertTemplate<
+    CloudAppAlertTemplateCategory,
+    CloudAppAlertTemplateArgs
+  >({
+    ...data,
+    scope: CLOUD_APP_SCOPE,
     category: "Latency",
-    severity: data.severity,
-    monitorType: MonitorType.Metrics,
-    getMonitorStep: (args: CloudAppAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = emptyStep(args, MonitorType.Metrics);
-
-      step.setMetricMonitor({
-        rollingTime: RollingTime.Past5Minutes,
-        metricViewConfig: {
-          queryConfigs: [
-            {
-              metricAliasData: {
-                metricVariable: data.alias,
-                title: data.name,
-                description: data.name,
-                legend: data.name,
-                legendUnit: "ms",
-              },
-              metricQueryData: {
-                filterData: {
-                  metricName: CLOUD_APP_REQUEST_DURATION_METRIC,
-                  attributes: {
-                    ...readCloudAppTelemetryFilters(args.telemetryFilters),
-                  },
-                  aggegationType: data.aggregationType,
-                  aggregateBy: {},
-                },
-              },
-            },
-          ],
-          formulaConfigs: [],
-        },
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = {
-        monitorCriteriaInstanceArray: [
-          buildUnhealthyCriteriaInstance({
-            offlineMonitorStatusId: args.offlineMonitorStatusId,
-            incidentSeverityId: args.defaultIncidentSeverityId,
-            alertSeverityId: args.defaultAlertSeverityId,
-            monitorName: args.monitorName,
-            metricAlias: data.alias,
-            filterType: FilterType.GreaterThanOrEqualTo,
-            value: data.thresholdMs,
-            incidentTitle: `[App] ${data.name} - ${args.monitorName}`,
-            incidentDescription: data.incidentDescription,
-            criteriaName: `${data.name} - ${data.thresholdLabel} or worse`,
-            criteriaDescription: `Triggers when ${CLOUD_APP_REQUEST_DURATION_METRIC} stays at ${data.thresholdLabel} or worse for the whole evaluation window.`,
-            resourceNoun: "app",
-          }),
-          buildHealthyCriteriaInstance({
-            onlineMonitorStatusId: args.onlineMonitorStatusId,
-            metricAlias: data.alias,
-            filterType: FilterType.LessThan,
-            value: data.thresholdMs,
-          }),
-        ],
-      };
-      step.setMonitorCriteria(criteria);
-
-      return step;
-    },
-  };
+    metricName: CLOUD_APP_REQUEST_DURATION_METRIC,
+  });
 }
 
 const CLOUD_APP_ALERT_TEMPLATES: ReadonlyArray<CloudAppAlertTemplate> = [

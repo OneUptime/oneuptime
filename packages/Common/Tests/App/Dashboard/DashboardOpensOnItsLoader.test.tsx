@@ -272,7 +272,7 @@ describe("a dashboard opens on its loader", () => {
     render(<DashboardViewer dashboardId={new ObjectID(DASHBOARD_ID)} />);
 
     // Its first frame, before any effect has run, is the loader.
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("canvas-stub")).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText("More dashboard options"),
@@ -292,7 +292,7 @@ describe("a dashboard opens on its loader", () => {
         return board.widgets === 2;
       }),
     ).toBe(true);
-    expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.getByLabelText("More dashboard options")).toBeInTheDocument();
   });
 
@@ -301,7 +301,7 @@ describe("a dashboard opens on its loader", () => {
 
     render(<DashboardViewer dashboardId={new ObjectID(DASHBOARD_ID)} />);
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(boardsDrawn).toEqual([]);
 
     await read.answer(dashboardWith(0));
@@ -349,7 +349,7 @@ describe("a dashboard opens on its loader", () => {
       />,
     );
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(boardsDrawn).toEqual([]);
 
     await read.answer(dashboardWith(3));

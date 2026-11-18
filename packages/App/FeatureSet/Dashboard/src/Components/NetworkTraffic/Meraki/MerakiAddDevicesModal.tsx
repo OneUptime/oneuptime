@@ -432,7 +432,7 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
                       <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-gray-900">
                         {translator.translateText(name) || name}
                         {productLine ? (
-                          <span className="ml-1.5 font-normal text-gray-400">
+                          <span className="ml-1.5 font-normal text-gray-500">
                             {productLine}
                           </span>
                         ) : (

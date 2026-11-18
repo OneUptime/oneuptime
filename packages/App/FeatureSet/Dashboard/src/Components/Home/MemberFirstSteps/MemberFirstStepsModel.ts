@@ -89,7 +89,6 @@ export const MEMBER_FIRST_STEPS_COPY: {
   reachedWithoutEmail: string;
   mobileAppTitle: string;
   mobileAppDescription: string;
-  mobileAppInstall: string;
   testPageTitle: string;
   testPageDescription: string;
 } = {
@@ -134,9 +133,6 @@ export const MEMBER_FIRST_STEPS_COPY: {
   mobileAppTitle: translationKey("Get the mobile app"),
   mobileAppDescription: translationKey(
     "Pages arrive as push notifications, and critical alerts ring even on Do Not Disturb.",
-  ),
-  mobileAppInstall: translationKey(
-    "Scan a code with your phone to install the app, sign in to {{serverUrl}}, and allow notifications and critical alerts when it asks.",
   ),
   testPageTitle: translationKey("Send yourself a test page"),
   testPageDescription: translationKey(

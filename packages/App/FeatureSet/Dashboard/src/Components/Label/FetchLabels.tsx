@@ -1,4 +1,5 @@
 import Label from "Common/Models/DatabaseModels/Label";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -8,7 +9,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
@@ -65,7 +65,7 @@ const FetchLabels: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <InlineValueSkeleton />;
   }
 
   return <LabelsElement labels={labels} />;

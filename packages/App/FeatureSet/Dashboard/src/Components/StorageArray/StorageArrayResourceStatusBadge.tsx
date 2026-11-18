@@ -39,7 +39,7 @@ const StorageArrayResourceStatusBadge: FunctionComponent<ComponentProps> = (
   // No status: the object's own words for that, or the quiet dash.
   if (!label) {
     return props.emptyText ? (
-      <span className="text-gray-400">{props.emptyText}</span>
+      <span className="text-gray-500">{props.emptyText}</span>
     ) : (
       <TableEmptyValue />
     );

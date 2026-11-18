@@ -7,9 +7,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Translator } from "../../../Utils/TranslateTemplate";
-import Icon from "../../Icon/Icon";
-import IconProp from "../../../../Types/Icon/IconProp";
+import ChartSkeleton from "../../Skeleton/ChartSkeleton";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import AnalyticsQueryPicker from "../../TelemetryViewer/components/AnalyticsQueryPicker";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
   BarChart,
@@ -40,7 +40,6 @@ import {
 } from "../../../../Types/Telemetry/ResourceEntityFacet";
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import useResizableColumns, {
   ResizableColumns,
 } from "../../Table/ColumnResize/useResizableColumns";
@@ -146,12 +145,64 @@ const CHART_COLORS_MUTED: Array<string> = [
   "rgba(132,204,22,0.15)",
 ];
 
+/*
+ * A log's own fields, named in English, keys of the locales: drawn in the
+ * reader's language. An attribute's key is drawn as written.
+ */
 const DIMENSION_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "severityText", label: "Severity" },
   { value: "primaryEntityId", label: "Service" },
   { value: "traceId", label: "Trace ID" },
   { value: "spanId", label: "Span ID" },
 ];
+
+/*
+ * The query builder's fixed choices, in English, keys of the locales: drawn
+ * in the reader's language (#9348).
+ */
+export const LOGS_ANALYTICS_CHART_OPTIONS: Array<{
+  value: string;
+  label: string;
+}> = [
+  { value: "timeseries", label: "Timeseries" },
+  { value: "toplist", label: "Top List" },
+  { value: "table", label: "Table" },
+];
+
+export const LOGS_ANALYTICS_MEASURE_OPTIONS: Array<{
+  value: string;
+  label: string;
+}> = [
+  { value: "count", label: "Count" },
+  { value: "unique", label: "Unique Count" },
+];
+
+const NO_FIELD_CHOICE: { value: string; label: string } = {
+  value: "",
+  label: "Select field...",
+};
+
+const NO_GROUP_CHOICE: { value: string; label: string } = {
+  value: "",
+  label: "None",
+};
+
+// The captions before each of the query builder's controls.
+export const LOGS_ANALYTICS_CAPTIONS: {
+  chart: string;
+  measure: string;
+  of: string;
+  groupBy: string;
+  thenBy: string;
+  limit: string;
+} = {
+  chart: translationKey("Chart"),
+  measure: translationKey("Measure"),
+  of: translationKey("of"),
+  groupBy: translationKey("Group by"),
+  thenBy: translationKey("then by"),
+  limit: translationKey("Limit"),
+};
 
 const TOP_LIST_LIMITS: Array<number> = [5, 10, 25, 50];
 
@@ -311,7 +362,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-500">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-xs font-medium text-gray-500">
         {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
@@ -339,7 +390,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
       </div>
       {entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
-          <span className="text-[11px] font-medium text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
@@ -355,6 +406,30 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   props: LogsAnalyticsViewProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The query builder's own words - its charts, its measures, a log's own
+   * fields, None - in the reader's language. An attribute's key and the
+   * Limit's numbers are drawn as written.
+   */
+  const translateOptions: (
+    options: ReadonlyArray<{ value: string | number; label: string }>,
+  ) => Array<{ value: string | number; label: string }> = (
+    options: ReadonlyArray<{ value: string | number; label: string }>,
+  ): Array<{ value: string | number; label: string }> => {
+    return options.map(
+      (option: {
+        value: string | number;
+        label: string;
+      }): { value: string | number; label: string } => {
+        return {
+          value: option.value,
+          label: translator.translateText(option.label) || option.label,
+        };
+      },
+    );
+  };
+
   const [chartType, setChartType] = useState<AnalyticsChartType>("timeseries");
   const [aggregation, setAggregation] = useState<AnalyticsAggregation>("count");
   const [aggregationField, setAggregationField] = useState<string>("");
@@ -417,8 +492,22 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             return { value: attr, label: attr };
           });
 
-      return [...DIMENSION_OPTIONS, ...attributeOptions];
-    }, [props.logAttributes]);
+      // A log's own fields in the reader's language; an attribute as written.
+      const logFieldOptions: Array<{ value: string; label: string }> =
+        DIMENSION_OPTIONS.map(
+          (option: {
+            value: string;
+            label: string;
+          }): { value: string; label: string } => {
+            return {
+              value: option.value,
+              label: translator.translateText(option.label) || option.label,
+            };
+          },
+        );
+
+      return [...logFieldOptions, ...attributeOptions];
+    }, [props.logAttributes, translator]);
 
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -705,38 +794,26 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     onChange: (val: string) => void,
     options: Array<{ value: string | number; label: string }>,
   ): ReactElement => {
+    // The caption is English, a key of the locales: drawn in the reader's language.
+    const caption: string = translator.translateText(label) || label;
+
     return (
       <div className="flex items-center">
         <span className="mr-2 text-[11px] font-medium uppercase tracking-wider text-gray-500">
-          {label}
+          {caption}
         </span>
-        <div className="relative flex items-center">
-          <select
-            className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-            value={value}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              onChange(e.target.value);
-            }}
-          >
-            {options.map((opt: { value: string | number; label: string }) => {
-              return (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              );
-            })}
-          </select>
-          {/*
-          The select's chevron: the product's own icon, inline and in the grey
-          of a control's icons (the dark theme lightens it), at the end of
-          the line whichever way the page reads - not an image of a grey
-          chevron pinned to the right.
-        */}
-          <Icon
-            icon={IconProp.ChevronDown}
-            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
-          />
-        </div>
+        {/*
+         * The choices come in the reader's language already (translateOptions),
+         * an attribute's key among them as written.
+         */}
+        <AnalyticsQueryPicker
+          ariaLabel={caption}
+          isAriaLabelTranslated={true}
+          value={value}
+          onChange={onChange}
+          options={options}
+          labels="translated"
+        />
       </div>
     );
   };
@@ -745,41 +822,34 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     return (
       <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 px-5 py-3">
         {renderSelectControl(
-          "Chart",
+          LOGS_ANALYTICS_CAPTIONS.chart,
           chartType,
           (val: string) => {
             setChartType(val as AnalyticsChartType);
           },
-          [
-            { value: "timeseries", label: "Timeseries" },
-            { value: "toplist", label: "Top List" },
-            { value: "table", label: "Table" },
-          ],
+          translateOptions(LOGS_ANALYTICS_CHART_OPTIONS),
         )}
 
         <div className="h-4 w-px bg-gray-200" />
 
         {renderSelectControl(
-          "Measure",
+          LOGS_ANALYTICS_CAPTIONS.measure,
           aggregation,
           (val: string) => {
             setAggregation(val as AnalyticsAggregation);
           },
-          [
-            { value: "count", label: "Count" },
-            { value: "unique", label: "Unique Count" },
-          ],
+          translateOptions(LOGS_ANALYTICS_MEASURE_OPTIONS),
         )}
 
         {aggregation === "unique" && (
           <>
             {renderSelectControl(
-              "of",
+              LOGS_ANALYTICS_CAPTIONS.of,
               aggregationField,
               (val: string) => {
                 setAggregationField(val);
               },
-              [{ value: "", label: "Select field..." }, ...allDimensionOptions],
+              [...translateOptions([NO_FIELD_CHOICE]), ...allDimensionOptions],
             )}
           </>
         )}
@@ -787,7 +857,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         <div className="h-4 w-px bg-gray-200" />
 
         {renderSelectControl(
-          "Group by",
+          LOGS_ANALYTICS_CAPTIONS.groupBy,
           groupByFields[0] || "",
           (val: string) => {
             setGroupByFields((prev: Array<string>) => {
@@ -798,13 +868,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
               });
             });
           },
-          [{ value: "", label: "None" }, ...allDimensionOptions],
+          [...translateOptions([NO_GROUP_CHOICE]), ...allDimensionOptions],
         )}
 
         {groupByFields[0] &&
           groupByFields[0].length > 0 &&
           renderSelectControl(
-            "then by",
+            LOGS_ANALYTICS_CAPTIONS.thenBy,
             groupByFields[1] || "",
             (val: string) => {
               setGroupByFields((prev: Array<string>) => {
@@ -820,7 +890,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
               });
             },
             [
-              { value: "", label: "None" },
+              ...translateOptions([NO_GROUP_CHOICE]),
               ...allDimensionOptions.filter((opt: { value: string }) => {
                 return opt.value !== groupByFields[0];
               }),
@@ -831,7 +901,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           <>
             <div className="h-4 w-px bg-gray-200" />
             {renderSelectControl(
-              "Limit",
+              LOGS_ANALYTICS_CAPTIONS.limit,
               topListLimit,
               (val: string) => {
                 setTopListLimit(Number(val));
@@ -889,7 +959,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
                 }}
               />
-              <span className="text-[11px] text-gray-500">
+              <span className="text-xs text-gray-500">
                 {seriesLabels[key] || key}
               </span>
             </div>
@@ -1181,7 +1251,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 key={index}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
               >
-                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-500">
+                <span className="w-5 text-right font-mono text-xs font-medium text-gray-500">
                   {index + 1}
                 </span>
                 <div
@@ -1211,7 +1281,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {item.count.toLocaleString(getReaderNumberLocale())}
                   </span>
-                  <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-500">
+                  <span className="w-10 text-right font-mono text-xs tabular-nums text-gray-500">
                     {sharePercent}%
                   </span>
                 </div>
@@ -1308,7 +1378,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     key={index}
                     className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">
                       {index + 1}
                     </td>
                     {groupKeys.map((key: string) => {
@@ -1387,7 +1457,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           className="flex h-72 select-none items-center justify-center"
           {...(chartType === "timeseries" ? selection.placeholderProps : {})}
         >
-          <ComponentLoader />
+          <ChartSkeleton heightInPx={288} hasLegend={false} />
         </div>
       );
     }

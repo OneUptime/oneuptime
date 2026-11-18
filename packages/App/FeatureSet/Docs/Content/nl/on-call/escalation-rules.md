@@ -45,7 +45,7 @@ Wanneer u op de pagina **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid maakt
 :::steps
 ### Open de escalatieregels van het beleid
 
-Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu ervan en klik op **Escalatieregel toevoegen**. Het dialoogvenster is één korte pagina.
+Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu ervan en klik op **Escalatieregel toevoegen**. Het dialoogvenster is één korte pagina. Het zegt welk niveau van het beleid de regel toevoegt.
 
 ### Kies wie op de hoogte wordt gesteld
 
@@ -61,6 +61,10 @@ Klik onder **Op de hoogte stellen** op **Ontvanger toevoegen**, zoek en kies zov
 ### Stel in hoe lang er wordt gewacht
 
 **Escaleren na (in minuten)** is hoe lang er op een bevestiging wordt gewacht voordat het volgende niveau wordt opgeroepen. Het begint op **30 minuten**; pas het aan wat bij het niveau past.
+
+![Het dialoogvenster "Escalatieregel toevoegen" van een beleid met één niveau, met "Opgeroepen na (in minuten)" omcirkeld](screen:escalation-rule-paged-after)
+
+Een regel die na de eerste wordt toegevoegd, vraagt in plaats daarvan **Opgeroepen na (in minuten)**: hoe lang het niveau ervoor op een bevestiging wacht voordat dit niveau wordt opgeroepen. Het begint op de wachttijd van dat niveau en wordt als die wachttijd opgeslagen; het nieuwe niveau wacht zelf 30 minuten totdat u er een na toevoegt. Wie regels mag toevoegen maar niet wijzigen, krijgt **Escaleren na (in minuten)**, en het dialoogvenster zegt wanneer het nieuwe niveau wordt opgeroepen.
 
 ### Geef de regel een naam, als u wilt
 
@@ -190,7 +194,7 @@ Een niveau kan de volgende persoon in de rotatie van een bereikbaarheidsschema o
 
 :::steps
 1. Zorg dat het eerste niveau van het beleid, **Level 1**, het bereikbaarheidsschema op de hoogte stelt.
-2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Regel maken**.
+2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Opgeroepen na (in minuten)** in en klik op **Regel maken**.
 3. Voeg nog een niveau toe voor het team of de manager die het daarna moet horen.
 :::
 

@@ -209,6 +209,7 @@ const PRINTER: ClassifiedDiscoveredDevice = discovered({
   ipAddress: "10.0.0.20",
   macAddress: "00:11:22:33:44:20",
   vendor: "Zebra",
+  hostname: "ZBR-BACKOFFICE",
   siteId: STORE_A,
   site: { id: STORE_A },
   seenOnDeviceId: SWITCH_ID,
@@ -556,6 +557,8 @@ describe("asking to add discovered devices to monitoring", () => {
           probeId: SWITCH_PROBE_ID,
           // What a naming rule's Vendor condition and {vendor} read (#6619).
           vendor: "Zebra",
+          // What its controller calls it, kept on the device (#9305).
+          hostname: "ZBR-BACKOFFICE",
         },
       },
     ]);

@@ -539,7 +539,7 @@ describe("the line under a tile's value", () => {
 
     expect(sublabels()).toEqual([]);
     expect(
-      document.querySelectorAll("[aria-busy] div.text-gray-400"),
+      document.querySelectorAll("[aria-busy] div.text-gray-500"),
     ).toHaveLength(1);
   });
 });

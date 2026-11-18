@@ -1,9 +1,9 @@
 import PageMap from "../../Utils/PageMap";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { getInventoryBreadcrumbs } from "../../Utils/Breadcrumbs";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import LayoutPageComponentProps from "../LayoutPageComponentProps";
 import SideMenu from "./SideMenu";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
@@ -30,7 +30,7 @@ const InventoryLayout: FunctionComponent<LayoutPageComponentProps> = (
   );
 
   const content: ReactElement = (
-    <Suspense fallback={<PageLoader isVisible={true} />}>
+    <Suspense fallback={<PageSkeleton />}>
       <Outlet />
     </Suspense>
   );

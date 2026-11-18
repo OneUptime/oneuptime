@@ -449,12 +449,12 @@ describe("the box", () => {
     });
 
     expect(sendButton()).toHaveAccessibleName("Start task");
-    expect(screen.getByTestId("code-composer-send-label").className).toContain(
+    // The shared Button's words a phone hides (isTitleHiddenOnPhone).
+    expect(within(sendButton()).getByText("Start task").className).toContain(
       "max-sm:sr-only",
     );
-    // A square the size of the other buttons in the row.
-    expect(sendButton().className).toContain("max-sm:w-8");
-    expect(sendButton().className).toContain("max-sm:px-0");
+    // A square round its arrow there, as a button with no words is.
+    expect(sendButton().className).toContain("max-sm:p-1");
     expect(sendButton().querySelector("svg")).not.toBeNull();
   });
 
@@ -491,10 +491,9 @@ describe("the box", () => {
     renderComposer({ sendLabel: "Send" });
 
     expect(sendButton()).toHaveAccessibleName("Send");
-    expect(
-      screen.getByTestId("code-composer-send-label").className,
-    ).not.toContain("sr-only");
-    expect(sendButton().className).not.toContain("max-sm:w-8");
+    expect(sendButton().querySelector(".max-sm\\:sr-only")).toBeNull();
+    expect(sendButton()).toHaveTextContent("Send");
+    expect(sendButton().className).not.toContain("max-sm:p-1");
   });
 
   /*

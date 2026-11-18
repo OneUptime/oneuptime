@@ -176,7 +176,7 @@ function NeighbourList(props: {
         />
       </p>
       {props.items.length === 0 ? (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-500">
           {translator.translateText("None in this range.")}
         </p>
       ) : (

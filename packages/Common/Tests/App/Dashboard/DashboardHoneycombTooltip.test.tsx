@@ -1113,8 +1113,8 @@ describe("a tile reached with the keyboard", () => {
       // Its last line, under the details, drawn as Click to open is.
       expect(hint.parentElement?.lastElementChild).toBe(hint);
       expect(hint).toHaveClass(
-        "text-[10px]",
-        "text-gray-400",
+        "text-xs",
+        "text-gray-500",
         "border-t",
         "border-gray-100",
       );

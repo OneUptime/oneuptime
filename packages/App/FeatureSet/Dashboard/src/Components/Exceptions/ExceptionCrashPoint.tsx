@@ -1,8 +1,8 @@
 import Route from "Common/Types/API/Route";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ResolvedStackFrame } from "Common/Types/Telemetry/SourceMap";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -142,7 +142,7 @@ const ExceptionCrashPoint: FunctionComponent<ComponentProps> = (
           className="flex min-h-24 items-center justify-center"
           data-testid={EXCEPTION_CRASH_POINT_TEST_IDS.loading}
         >
-          <ComponentLoader />
+          <TableSkeleton rows={2} hasHeader={false} />
         </div>
       );
     }

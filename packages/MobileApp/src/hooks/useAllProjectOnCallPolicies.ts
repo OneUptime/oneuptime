@@ -107,6 +107,15 @@ function toAssignments(
   return assignments;
 }
 
+/*
+ * The duty of the person signed in, in the project selected: `projectList`
+ * is the active project alone (useActiveProject), so this is one request,
+ * however many projects they are in - OnCallProjectIsolation holds it with
+ * a member of 100. It is never asked across tenants (is-multi-tenant-query):
+ * that would put other projects' duty on a screen that says it is the
+ * selected project's. The fan-out below and its failure count are for a
+ * list of more than one, should a screen ever hand it one.
+ */
 export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult {
   const { projectList, isLoadingProjects } = useActiveProject();
 

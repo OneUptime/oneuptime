@@ -1,5 +1,22 @@
 import AlertEpisodeOnCallRule from "../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertIncidentRule from "../../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../../Models/DatabaseModels/AlertLabelRule";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "../../../Models/DatabaseModels/AlertPrivacyRule";
+import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule";
+import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
+import IncidentPrivacyRule from "../../../Models/DatabaseModels/IncidentPrivacyRule";
+import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRuleEngineService";
+import AlertPrivacyRuleEngineService from "../../../Server/Services/AlertPrivacyRuleEngineService";
+import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
+import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
+import UserService from "../../../Server/Services/UserService";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
+import AlertLabelRuleEngineService from "../../../Server/Services/AlertLabelRuleEngineService";
+import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentEpisodeOnCallRule from "../../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -14,7 +31,27 @@ import RecommendationDismissal from "../../../Models/DatabaseModels/Recommendati
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
+import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import NetworkDeviceOwnerUserService, {
+  NetworkDeviceOwners,
+} from "../../../Server/Services/NetworkDeviceOwnerUserService";
+import TeamService from "../../../Server/Services/TeamService";
+import WhoIsToldService from "../../../Server/Services/WhoIsToldService";
+import IncidentStatusPageScope from "../../../Server/Utils/StatusPage/IncidentStatusPageScope";
+import WorkspaceRecordOwners from "../../../Server/Utils/Workspace/WorkspaceRecordOwners";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  WhoIsToldEvent as CardEvent,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
+  WhoIsToldResult,
+} from "../../../Types/Monitor/WhoIsTold";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
@@ -77,7 +114,10 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPagePreviewPerson } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPagePreviewPerson,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   OnCallShift,
   ScheduleCoverageStatus,
@@ -99,6 +139,7 @@ import {
   SetupHealthRecordKind,
   SetupHealthResponderReason,
   SetupHealthScheduleReason,
+  SetupHealthOwnerSubject,
   SetupHealthSummary,
 } from "../../../Types/SetupHealth/SetupHealth";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -110,6 +151,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * SETUP HEALTH'S FACTS (SetupHealthService, #6812): read once per project,
@@ -242,6 +284,27 @@ interface World {
   certificateStates: Map<string, CustomDomainCertificateState> | null;
   ingestionKeys: Array<TelemetryIngestionKey>;
   receivesTelemetry: boolean;
+  // The project's privacy and owner rules for incidents (#9370): none here.
+  incidentPrivacyRules: Array<IncidentPrivacyRule>;
+  incidentOwnerRules: Array<IncidentOwnerRule>;
+  // Who is a member of the project, of the people an owner rule names.
+  projectMemberIds: Array<string>;
+  // Primary's first level reaches nobody right now.
+  primaryReachesNobody: boolean;
+  /*
+   * OWNERS (#9407, #9371): more monitors, which open alerts or name
+   * owners; the alert on-call rules and owner rules; the project's teams
+   * and who is in each; who owns each network device; and the teams and
+   * owner rules a caller may read.
+   */
+  extraMonitors: Array<Monitor>;
+  alertRules: Array<AlertOnCallRule>;
+  alertOwnerRules: Array<AlertOwnerRule>;
+  projectTeams: Record<string, string>;
+  teamMemberIds: Record<string, Array<string>>;
+  deviceOwnerUserIds: Record<string, Array<string>>;
+  callerTeams: "all" | "none";
+  callerOwnerRules: "all" | "none";
 }
 
 let world: World;
@@ -260,6 +323,18 @@ function defaultWorld(): World {
     certificateStates: new Map<string, CustomDomainCertificateState>(),
     ingestionKeys: [],
     receivesTelemetry: true,
+    incidentPrivacyRules: [],
+    incidentOwnerRules: [],
+    projectMemberIds: [],
+    primaryReachesNobody: false,
+    extraMonitors: [],
+    alertRules: [],
+    alertOwnerRules: [],
+    projectTeams: {},
+    teamMemberIds: {},
+    deviceOwnerUserIds: {},
+    callerTeams: "all",
+    callerOwnerRules: "all",
   };
 }
 
@@ -312,9 +387,25 @@ function projectMonitors(): Array<Monitor> {
       isNoProbeEnabledOnThisMonitor: true,
     }),
     monitor({ id: ARCHIVED_MONITOR, name: "Archived", isArchived: true }),
+    ...world.extraMonitors,
   );
 
   return monitors;
+}
+
+// The ids a QueryHelper.any read asks for in one column.
+function idsAtColumn(query: unknown, column: string): Array<string> {
+  const value: unknown = (query as Record<string, unknown> | undefined)?.[
+    column
+  ];
+  const parameters: Record<string, unknown> =
+    ((value as { objectLiteralParameters?: Record<string, unknown> })
+      ?.objectLiteralParameters as Record<string, unknown>) || {};
+  const values: unknown = Object.values(parameters)[0];
+
+  return (Array.isArray(values) ? values : []).map((item: unknown): string => {
+    return String(item).toLowerCase();
+  });
 }
 
 function readinessUser(
@@ -600,7 +691,7 @@ function stubWorld(): void {
     AlertOnCallRuleService,
     "countBy",
     async () => {
-      return count(0);
+      return count(world.alertRules.length);
     },
   );
 
@@ -622,15 +713,202 @@ function stubWorld(): void {
     AlertOnCallRuleEngineService,
     "readEnabledRules",
     async (): Promise<Array<AlertOnCallRule>> => {
+      return world.alertRules;
+    },
+  );
+  /*
+   * The label rules (their labels change which on-call rules page) and the
+   * alert incident rules (an alert that becomes an incident that pages is
+   * no break): none here, read once for the project (#7212, #7216).
+   */
+  spy(
+    "IncidentLabelRuleEngineService.getEnabledRules",
+    IncidentLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentLabelRule>> => {
       return [];
     },
   );
+  spy(
+    "AlertLabelRuleEngineService.getEnabledRules",
+    AlertLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertLabelRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "AlertIncidentRuleEngineService.getEnabledRules",
+    AlertIncidentRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertIncidentRule>> => {
+      return [];
+    },
+  );
+  /*
+   * The privacy rules, read once for the project; the owner rules only for
+   * a private record's owners, who may read it (#9370).
+   */
+  spy(
+    "IncidentPrivacyRuleEngineService.getEnabledRules",
+    IncidentPrivacyRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentPrivacyRule>> => {
+      return world.incidentPrivacyRules;
+    },
+  );
+  spy(
+    "AlertPrivacyRuleEngineService.getEnabledRules",
+    AlertPrivacyRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertPrivacyRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "IncidentOwnerRuleEngineService.getEnabledRules",
+    IncidentOwnerRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentOwnerRule>> => {
+      return world.incidentOwnerRules;
+    },
+  );
+  spy(
+    "AlertOwnerRuleEngineService.getEnabledRules",
+    AlertOwnerRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertOwnerRule>> => {
+      return world.alertOwnerRules;
+    },
+  );
+  // What a caller may read of the owner rules an owner finding is about (#9371).
+  const readOwnerRules: (args: {
+    query: unknown;
+  }) => Promise<Array<IncidentOwnerRule>> = async (args: {
+    query: unknown;
+  }): Promise<Array<IncidentOwnerRule>> => {
+    if (world.callerOwnerRules === "none") {
+      throw new NotAuthorizedException("You may not read owner rules.");
+    }
+
+    return idsIn(args.query).map((id: string): IncidentOwnerRule => {
+      return withId(new IncidentOwnerRule(), id);
+    });
+  };
+
+  spy(
+    "IncidentOwnerRuleService.findBy",
+    IncidentOwnerRuleService,
+    "findBy",
+    readOwnerRules,
+  );
+  spy(
+    "AlertOwnerRuleService.findBy",
+    AlertOwnerRuleService,
+    "findBy",
+    readOwnerRules,
+  );
+  /*
+   * The project's teams (readTeamNames, read as OneUptime with the project)
+   * and what a caller may read of them (#9371).
+   */
+  spy(
+    "TeamService.findBy",
+    TeamService,
+    "findBy",
+    async (args: { query: unknown; props: DatabaseCommonInteractionProps }) => {
+      const asked: Array<string> = idsIn(args.query).map((id: string) => {
+        return id.toLowerCase();
+      });
+
+      if (!args.props.isRoot && world.callerTeams === "none") {
+        return [];
+      }
+
+      return asked
+        .filter((id: string): boolean => {
+          return Boolean(world.projectTeams[id]);
+        })
+        .map((id: string): Team => {
+          const team: Team = withId(new Team(), id);
+          team.name = world.projectTeams[id]!;
+          return team;
+        });
+    },
+  );
+  // Who owns each network device, every device at once (#9407).
+  spy(
+    "NetworkDeviceOwnerUserService.getDeviceOwnersForDevices",
+    NetworkDeviceOwnerUserService,
+    "getDeviceOwnersForDevices",
+    async (args: {
+      networkDeviceIds: Array<ObjectID>;
+    }): Promise<Map<string, NetworkDeviceOwners>> => {
+      const owners: Map<string, NetworkDeviceOwners> = new Map();
+
+      for (const id of args.networkDeviceIds) {
+        owners.set(id.toString().toLowerCase(), {
+          ownerUserIds: (
+            world.deviceOwnerUserIds[id.toString().toLowerCase()] || []
+          ).map((userId: string): ObjectID => {
+            return new ObjectID(userId);
+          }),
+          ownerTeamIds: [],
+        });
+      }
+
+      return owners;
+    },
+  );
+  spy(
+    "NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor",
+    NetworkDeviceOwnerUserService,
+    "getDeviceOwnersForMonitor",
+    async (args: { monitor: Monitor }): Promise<NetworkDeviceOwners> => {
+      const deviceId: string =
+        NetworkDeviceOwnerUserService.getDeviceIdForMonitor({
+          monitor: args.monitor,
+        })
+          ?.toString()
+          .toLowerCase() || "";
+
+      return {
+        ownerUserIds: (world.deviceOwnerUserIds[deviceId] || []).map(
+          (userId: string): ObjectID => {
+            return new ObjectID(userId);
+          },
+        ),
+        ownerTeamIds: [],
+      };
+    },
+  );
+  spy(
+    "TeamMemberService.getProjectMemberUserIds",
+    TeamMemberService,
+    "getProjectMemberUserIds",
+    async (args: { userIds: Array<string> }): Promise<Array<ObjectID>> => {
+      return args.userIds
+        .filter((id: string): boolean => {
+          return world.projectMemberIds.includes(id);
+        })
+        .map((id: string): ObjectID => {
+          return new ObjectID(id);
+        });
+    },
+  );
+  spy("UserService.findBy", UserService, "findBy", async () => {
+    return [];
+  });
 
   spy(
     "OnCallTestPageService.readFirstLevel",
     OnCallTestPageService,
     "readFirstLevel",
     async () => {
+      if (world.primaryReachesNobody) {
+        return { targets: [], notPaged: [], levelCount: 1 };
+      }
+
       return {
         targets: [
           { userId: new ObjectID(ANA) },
@@ -700,7 +978,7 @@ function stubWorld(): void {
     AlertOnCallRuleService,
     "findBy",
     async (): Promise<Array<AlertOnCallRule>> => {
-      return [];
+      return world.alertRules;
     },
   );
   spy(
@@ -875,7 +1153,33 @@ function stubWorld(): void {
     "TeamMemberService.findBy",
     TeamMemberService,
     "findBy",
-    async (): Promise<Array<TeamMember>> => {
+    async (args: { query: unknown }): Promise<Array<TeamMember>> => {
+      const query: Record<string, unknown> = args.query as Record<
+        string,
+        unknown
+      >;
+
+      // A caller's own teams, for who may read a private record: none.
+      if (query["userId"]) {
+        return [];
+      }
+
+      // The members of the teams named as owners (#7211, #9371).
+      if (query["teamId"]) {
+        return idsAtColumn(query, "teamId").flatMap(
+          (teamId: string): Array<TeamMember> => {
+            return (world.teamMemberIds[teamId] || []).map(
+              (userId: string): TeamMember => {
+                const member: TeamMember = new TeamMember();
+                member.teamId = new ObjectID(teamId);
+                member.userId = new ObjectID(userId);
+                return member;
+              },
+            );
+          },
+        );
+      }
+
       return [ANA, BEN, BEN].map((userId: string): TeamMember => {
         const member: TeamMember = new TeamMember();
         member.userId = new ObjectID(userId);
@@ -1088,6 +1392,18 @@ describe("SetupHealthService", () => {
     expect(thousand["MonitorService.findOneById"]).toBe(0);
     // Every responder's verified methods come from the project's Readiness.
     expect(thousand["OnCallReadinessService.getReadinessForUsers"]).toBe(0);
+    /*
+     * The privacy rules, once (#9370), and the owner rules, once (#9407,
+     * #9371): every record's owners are worked out. Naming nobody, the
+     * project reads nobody's membership.
+     */
+    expect(thousand["IncidentPrivacyRuleEngineService.getEnabledRules"]).toBe(
+      1,
+    );
+    expect(thousand["AlertPrivacyRuleEngineService.getEnabledRules"]).toBe(1);
+    expect(thousand["IncidentOwnerRuleEngineService.getEnabledRules"]).toBe(1);
+    expect(thousand["AlertOwnerRuleEngineService.getEnabledRules"]).toBe(1);
+    expect(thousand["TeamMemberService.getProjectMemberUserIds"]).toBe(0);
 
     const total: number = Object.values(thousand).reduce(
       (sum: number, value: number): number => {
@@ -1096,7 +1412,8 @@ describe("SetupHealthService", () => {
       0,
     );
 
-    expect(total).toBeLessThan(40);
+    // The owner rules of incidents and alerts are two of them (#9407).
+    expect(total).toBeLessThan(44);
   });
 
   test("a person sees only findings about records they may read", async () => {
@@ -1798,6 +2115,821 @@ describe("SetupHealthService", () => {
     });
   });
 
+  /*
+   * A PRIVATE RECORD A MONITOR WOULD OPEN (#9370). Its card tells a reader
+   * who could not read it once it exists only that it opens, and that it is
+   * private: nothing of whom it tells, and none of the breaks it would raise
+   * (#7213). The list says none of them to that reader either, and names no
+   * monitor of one as what a finding affects. Here Primary reaches nobody
+   * right now, and every monitor's incident would page it.
+   */
+  describe("a private record a monitor would open (#9370)", () => {
+    const ME: string = CALLER.userId!.toString();
+
+    // Makes private the incidents of the monitors whose name matches; every incident without one.
+    function privacyRule(monitorNamePattern?: string): IncidentPrivacyRule {
+      const rule: IncidentPrivacyRule = withId(
+        new IncidentPrivacyRule(),
+        "68120000-1111-4000-8000-0000000000b7",
+      );
+      rule.name = "Sensitive monitors";
+      rule.projectId = PROJECT_ID;
+
+      if (monitorNamePattern) {
+        rule.monitorNamePattern = monitorNamePattern;
+      }
+
+      return rule;
+    }
+
+    // An owner rule that adds this person as an owner of every incident.
+    function ownerRule(userId: string): IncidentOwnerRule {
+      const rule: IncidentOwnerRule = withId(
+        new IncidentOwnerRule(),
+        "68120000-1111-4000-8000-0000000000b8",
+      );
+      rule.name = "Payments team";
+      rule.projectId = PROJECT_ID;
+      rule.isEnabled = true;
+      rule.notifyOwners = true;
+      rule.monitors = [];
+      rule.incidentSeverities = [];
+      rule.incidentLabels = [];
+      rule.monitorLabels = [];
+      rule.ownerUsers = [withId(new User(), userId)];
+      rule.ownerTeams = [];
+      return rule;
+    }
+
+    function asAdmin(): DatabaseCommonInteractionProps {
+      return {
+        ...CALLER,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: PROJECT_ID,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectAdmin,
+                labelIds: [],
+                isBlockPermission: false,
+              } as UserPermission,
+            ],
+          },
+        } as never,
+      };
+    }
+
+    async function reachesNobody(
+      props: DatabaseCommonInteractionProps,
+    ): Promise<SetupHealthFinding | undefined> {
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: props,
+      });
+
+      return answer.findings.find((finding: SetupHealthFinding): boolean => {
+        return finding.check === SetupHealthCheck.PolicyReachesNobody;
+      });
+    }
+
+    // The monitors a finding says it affects.
+    function affected(finding: SetupHealthFinding | undefined): Array<string> {
+      return (finding?.related || [])
+        .filter((record: { kind: SetupHealthRecordKind }): boolean => {
+          return record.kind === SetupHealthRecordKind.Monitor;
+        })
+        .map((record: { id: string }): string => {
+          return record.id;
+        });
+    }
+
+    beforeEach(() => {
+      world.primaryReachesNobody = true;
+    });
+
+    test("with no private record, every member is told Primary reaches nobody, for every monitor that pages it", async () => {
+      const finding: SetupHealthFinding | undefined =
+        await reachesNobody(CALLER);
+
+      expect(finding?.record).toEqual({
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: PRIMARY,
+        name: "Primary",
+      });
+      expect(affected(finding)).toHaveLength(world.monitorCount + 1);
+      // The privacy rules and the owner rules are read once for the project.
+      expect(
+        reads["IncidentPrivacyRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+      expect(
+        reads["IncidentOwnerRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+    });
+
+    test("a reader who could not read the private incidents is told nothing they alone raise", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(checksOf(answer.findings)).not.toContain(
+        SetupHealthCheck.PolicyReachesNobody,
+      );
+      // What is wrong besides is still theirs, and every chain was looked at.
+      expect(checksOf(answer.findings)).toContain(
+        SetupHealthCheck.PolicyNotRun,
+      );
+      expect(checksOf(answer.findings)).toContain(SetupHealthCheck.OneOwner);
+      expect(answer.monitorCount).toBe(world.monitorCount + 1);
+    });
+
+    test("a Project Admin, who reads every private record, is told it", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      expect(affected(await reachesNobody(asAdmin()))).toHaveLength(
+        world.monitorCount + 1,
+      );
+    });
+
+    test("so is an owner of the private incidents, whom an owner rule adds; the owner rules are read once, for them", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+      world.incidentOwnerRules = [ownerRule(ME)];
+      world.projectMemberIds = [ME];
+
+      expect(affected(await reachesNobody(CALLER))).toHaveLength(
+        world.monitorCount + 1,
+      );
+      expect(
+        reads["IncidentOwnerRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+    });
+
+    test("somebody an owner rule names who is not in the project owns nothing, and reads nothing", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+      world.incidentOwnerRules = [ownerRule(ME)];
+      world.projectMemberIds = [];
+
+      expect(await reachesNobody(CALLER)).toBeUndefined();
+    });
+
+    test("a break a public incident raises too stays, affecting that incident's monitors alone", async () => {
+      world.incidentPrivacyRules = [privacyRule("^Monitor 3$")];
+
+      const finding: SetupHealthFinding | undefined =
+        await reachesNobody(CALLER);
+
+      expect(affected(finding)).toHaveLength(world.monitorCount);
+      expect(affected(finding)).toContain(monitorId(0));
+      expect(affected(finding)).not.toContain(monitorId(3));
+
+      // Who may read the private one is told it affects that monitor too.
+      expect(affected(await reachesNobody(asAdmin()))).toContain(monitorId(3));
+    });
+
+    test("the policy's own page says the same to the same reader", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      const forRecord: (
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<SetupHealthRecordAnswer> = async (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<SetupHealthRecordAnswer> => {
+        return await SetupHealthService.getForRecord({
+          projectId: PROJECT_ID,
+          props: props,
+          record: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: PRIMARY },
+        });
+      };
+
+      expect((await forRecord(CALLER)).findings).toEqual([]);
+      expect(checksOf((await forRecord(asAdmin())).findings)).toEqual([
+        SetupHealthCheck.PolicyReachesNobody,
+      ]);
+    });
+
+    test("the project is read once: each reader is handed theirs from the same facts", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      await reachesNobody(CALLER);
+      await reachesNobody(asAdmin());
+
+      expect(
+        reads["IncidentPrivacyRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+      expect(
+        reads["OnCallTestPageService.readFirstLevel"]!.mock.calls,
+      ).toHaveLength(1);
+    });
+  });
+
+  /*
+   * WHO OWNS WHAT THE MONITORS OPEN (#9407, #9371): an alert on-call rule
+   * can match on the alert's owners, and the owners no Created email reaches
+   * are worth fixing. Their monitors open alerts, or incidents, naming
+   * owners; the project's own monitors name nobody.
+   */
+  describe("owners", () => {
+    const ALERT_SEVERITY: string = "68120000-1111-4000-8000-0000000000c9";
+    const PAYMENTS: string = "68120000-1111-4000-8000-0000000000e5";
+    const EMPTY_TEAM: string = "68120000-1111-4000-8000-0000000000e6";
+    const ELSEWHERE_TEAM: string = "68120000-1111-4000-8000-0000000000e7";
+    const CARA: string = "68120000-1111-4000-8000-0000000000d4";
+    const DAN: string = "68120000-1111-4000-8000-0000000000d5";
+    const DEVICE: string = "68120000-1111-4000-8000-0000000000e8";
+    const OWNER_CONDITION_RULE: string = "68120000-1111-4000-8000-0000000000b4";
+    const OWNER_RULE: string = "68120000-1111-4000-8000-0000000000b5";
+
+    function ownedMonitor(data: {
+      id: string;
+      name: string;
+      opens: "incident" | "alert";
+      ownerUserIds?: Array<string>;
+      ownerTeamIds?: Array<string>;
+      networkDeviceId?: string | undefined;
+    }): Monitor {
+      const item: Monitor = monitor({ id: data.id, name: data.name });
+      const template: Record<string, unknown> = {
+        id: `${data.opens}-template`,
+        title: `${data.name} is down`,
+        description: "",
+        ownerUserIds: (data.ownerUserIds || []).map((id: string) => {
+          return new ObjectID(id);
+        }),
+        ownerTeamIds: (data.ownerTeamIds || []).map((id: string) => {
+          return new ObjectID(id);
+        }),
+      };
+      const criteria: MonitorCriteriaInstance = {
+        data: {
+          id: "offline",
+          name: "Offline",
+          filterCondition: "All",
+          filters: [],
+          description: "",
+          changeMonitorStatus: false,
+          createIncidents: data.opens === "incident",
+          createAlerts: data.opens === "alert",
+          incidents:
+            data.opens === "incident"
+              ? [{ ...template, incidentSeverityId: new ObjectID(CRITICAL) }]
+              : [],
+          alerts:
+            data.opens === "alert"
+              ? [{ ...template, alertSeverityId: new ObjectID(ALERT_SEVERITY) }]
+              : [],
+        },
+      } as unknown as MonitorCriteriaInstance;
+
+      item.monitorSteps = {
+        data: {
+          monitorStepsInstanceArray: [
+            {
+              data: {
+                ...(data.networkDeviceId
+                  ? {
+                      networkDeviceMonitor: {
+                        networkDeviceId: data.networkDeviceId,
+                      },
+                    }
+                  : {}),
+                monitorCriteria: {
+                  data: { monitorCriteriaInstanceArray: [criteria] },
+                },
+              },
+            },
+          ],
+        },
+      } as unknown as MonitorSteps;
+
+      return item;
+    }
+
+    function extraId(index: number): string {
+      return `68120000-3333-4000-8000-${index.toString().padStart(12, "0")}`;
+    }
+
+    // "Alert Owner is any of" (or "is none of") Payments: pages Secondary.
+    function ownerConditionRule(
+      operator: RuleCriteriaOperator,
+    ): AlertOnCallRule {
+      const rule: AlertOnCallRule = withId(
+        new AlertOnCallRule(),
+        OWNER_CONDITION_RULE,
+      );
+      rule.name = "Payments' alerts";
+      rule.criteria = {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          { field: "alertOwners", operator: operator, value: [PAYMENTS] },
+        ],
+      };
+      rule.onCallDutyPolicies = [withId(new OnCallDutyPolicy(), SECONDARY)];
+      return rule;
+    }
+
+    function pagesNobodyFor(
+      findings: Array<SetupHealthFinding>,
+    ): Array<string> {
+      return findings
+        .filter((finding: SetupHealthFinding): boolean => {
+          return (
+            finding.check === SetupHealthCheck.MonitorPagesNobody ||
+            finding.check === SetupHealthCheck.MonitorAlertsPageNobody
+          );
+        })
+        .map((finding: SetupHealthFinding): string => {
+          return finding.record.name;
+        })
+        .sort();
+    }
+
+    beforeEach(() => {
+      world.projectMemberIds = [ANA, BEN];
+      world.projectTeams = {
+        [PAYMENTS]: "Payments",
+        [EMPTY_TEAM]: "Night shift",
+      };
+      world.teamMemberIds = { [PAYMENTS]: [ANA], [EMPTY_TEAM]: [] };
+    });
+
+    test("a project with no owner condition, whose monitors name nobody, reads nobody's owners", async () => {
+      const ownerRows: SpyInstance<typeof WorkspaceRecordOwners.getOwnerIds> =
+        jest.spyOn(WorkspaceRecordOwners, "getOwnerIds");
+
+      const computed: Awaited<
+        ReturnType<typeof SetupHealthService.getProjectFindings>
+      > = await SetupHealthService.getProjectFindings({
+        projectId: PROJECT_ID,
+        refresh: true,
+      });
+
+      expect(
+        reads["TeamMemberService.getProjectMemberUserIds"]!.mock.calls,
+      ).toHaveLength(0);
+      expect(reads["TeamService.findBy"]!.mock.calls).toHaveLength(0);
+      expect(
+        reads["NetworkDeviceOwnerUserService.getDeviceOwnersForDevices"]!.mock
+          .calls,
+      ).toHaveLength(0);
+      expect(
+        reads["NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor"]!.mock
+          .calls,
+      ).toHaveLength(0);
+      expect(ownerRows).not.toHaveBeenCalled();
+      expect(
+        computed.findings.filter((finding: SetupHealthFinding): boolean => {
+          return finding.check === SetupHealthCheck.OwnerNotEmailed;
+        }),
+      ).toEqual([]);
+    });
+
+    describe("an alert on-call rule with an Alert Owner condition (#9407)", () => {
+      beforeEach(() => {
+        world.extraMonitors = [
+          ownedMonitor({
+            id: extraId(1),
+            name: "Payments API",
+            opens: "alert",
+            ownerTeamIds: [PAYMENTS],
+          }),
+          ownedMonitor({ id: extraId(2), name: "Search API", opens: "alert" }),
+        ];
+      });
+
+      test("is any of Payments: Payments' alerts page, the others page nobody - as their cards say", async () => {
+        world.alertRules = [ownerConditionRule(RuleCriteriaOperator.HasAnyOf)];
+
+        const computed: Awaited<
+          ReturnType<typeof SetupHealthService.getProjectFindings>
+        > = await SetupHealthService.getProjectFindings({
+          projectId: PROJECT_ID,
+          refresh: true,
+        });
+
+        expect(pagesNobodyFor(computed.findings)).toEqual(["Search API"]);
+      });
+
+      test("is none of Payments: Payments' alerts page nobody, the others page", async () => {
+        world.alertRules = [ownerConditionRule(RuleCriteriaOperator.HasNoneOf)];
+
+        const computed: Awaited<
+          ReturnType<typeof SetupHealthService.getProjectFindings>
+        > = await SetupHealthService.getProjectFindings({
+          projectId: PROJECT_ID,
+          refresh: true,
+        });
+
+        expect(pagesNobodyFor(computed.findings)).toEqual(["Payments API"]);
+      });
+
+      test("the owners of two hundred monitors cost the reads of ten: one of each kind for the whole project", async () => {
+        world.alertRules = [ownerConditionRule(RuleCriteriaOperator.HasAnyOf)];
+        world.alertOwnerRules = [];
+
+        const project: (count: number) => Array<Monitor> = (
+          count: number,
+        ): Array<Monitor> => {
+          const monitors: Array<Monitor> = [];
+
+          for (let index: number = 0; index < count; index++) {
+            monitors.push(
+              ownedMonitor({
+                id: extraId(100 + index),
+                name: `Owned ${index}`,
+                opens: index % 2 === 0 ? "alert" : "incident",
+                ownerTeamIds: [index % 3 === 0 ? PAYMENTS : EMPTY_TEAM],
+                ownerUserIds: [index % 2 === 0 ? CARA : ANA],
+                networkDeviceId: index % 5 === 0 ? DEVICE : undefined,
+              }),
+            );
+          }
+
+          return monitors;
+        };
+
+        world.deviceOwnerUserIds = { [DEVICE]: [DAN] };
+        world.extraMonitors = project(10);
+        await SetupHealthService.getProjectFindings({
+          projectId: PROJECT_ID,
+          refresh: true,
+        });
+        const ten: Record<string, number> = readCounts();
+
+        jest.restoreAllMocks();
+        SetupHealthService.clearCache();
+        stubWorld();
+        world.extraMonitors = project(200);
+        await SetupHealthService.getProjectFindings({
+          projectId: PROJECT_ID,
+          refresh: true,
+        });
+        const twoHundred: Record<string, number> = readCounts();
+
+        expect(twoHundred).toEqual(ten);
+        expect(twoHundred["TeamService.findBy"]).toBe(1);
+        expect(twoHundred["TeamMemberService.getProjectMemberUserIds"]).toBe(1);
+        expect(
+          twoHundred["NetworkDeviceOwnerUserService.getDeviceOwnersForDevices"],
+        ).toBe(1);
+        expect(
+          twoHundred["NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor"],
+        ).toBe(0);
+      });
+    });
+
+    /*
+     * THE OWNERS NO CREATED EMAIL REACHES (#9371), as each monitor's card
+     * says them (WhoIsToldOwners.notReached): Night shift, a team of the
+     * project with nobody in it; Cara, who left; a team of another
+     * project; Dan, who owns a network device and whom an owner rule adds.
+     */
+    describe("the owners no Created email reaches (#9371)", () => {
+      function ownerRule(): IncidentOwnerRule {
+        const rule: IncidentOwnerRule = withId(
+          new IncidentOwnerRule(),
+          OWNER_RULE,
+        );
+        rule.name = "Checkout routes";
+        rule.projectId = PROJECT_ID;
+        rule.isEnabled = true;
+        rule.notifyOwners = true;
+        rule.monitors = [];
+        rule.incidentSeverities = [];
+        rule.incidentLabels = [];
+        rule.monitorLabels = [];
+        rule.incidentTitlePattern = "^Checkout";
+        rule.ownerUsers = [withId(new User(), DAN)];
+        rule.ownerTeams = [];
+        return rule;
+      }
+
+      beforeEach(() => {
+        world.deviceOwnerUserIds = { [DEVICE]: [DAN] };
+        world.incidentOwnerRules = [ownerRule()];
+        world.extraMonitors = [
+          ownedMonitor({
+            id: extraId(1),
+            name: "Checkout API",
+            opens: "incident",
+            ownerTeamIds: [EMPTY_TEAM, PAYMENTS],
+            ownerUserIds: [CARA, ANA],
+          }),
+          ownedMonitor({
+            id: extraId(2),
+            name: "Checkout Web",
+            opens: "alert",
+            ownerTeamIds: [ELSEWHERE_TEAM, EMPTY_TEAM],
+          }),
+          ownedMonitor({
+            id: extraId(3),
+            name: "Core switch",
+            opens: "incident",
+            networkDeviceId: DEVICE,
+          }),
+        ];
+
+        // The cards read the monitors one at a time, and show no status page.
+        jest
+          .spyOn(MonitorService, "findOneBy")
+          .mockImplementation((async (args: { query: { _id?: string } }) => {
+            return (
+              projectMonitors().find((item: Monitor): boolean => {
+                return item.id!.toString() === args.query._id;
+              }) || null
+            );
+          }) as never);
+        jest.spyOn(MonitorService, "findOwners").mockResolvedValue([]);
+        jest
+          .spyOn(IncidentStatusPageScope, "resolvePagesForDraftIncident")
+          .mockResolvedValue({
+            statusPages: [],
+            statusPageToResources: {},
+            isScoped: false,
+            excludedStatusPages: [],
+          });
+        WhoIsToldService.clearCache();
+      });
+
+      afterEach(() => {
+        WhoIsToldService.clearCache();
+      });
+
+      // An owner as the card says it, keyed as Setup health would list it.
+      function keyOfCardOwner(data: {
+        monitorId: string;
+        event: CardEvent;
+        owner: WhoIsToldOwnerNotReached;
+      }): string {
+        const { monitorId, owner } = data;
+        const isPerson: boolean =
+          owner.problem === WhoIsToldOwnerProblem.NotInProject;
+
+        if (owner.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject) {
+          return `${SetupHealthOwnerSubject.TeamHasNobody}|${owner.id}|${monitorId}`;
+        }
+
+        if (owner.addedBy === WhoIsToldOwnerAddedBy.OwnerRule) {
+          const kind: string =
+            data.event.kind === OnCallTestPageRecordKind.Alert
+              ? SetupHealthRecordKind.AlertOwnerRule
+              : SetupHealthRecordKind.IncidentOwnerRule;
+
+          return `${
+            isPerson
+              ? SetupHealthOwnerSubject.OwnerRuleNotInProject
+              : SetupHealthOwnerSubject.OwnerRuleTeamOfAnotherProject
+          }|${kind}:${owner.rule?.id}|${monitorId}`;
+        }
+
+        if (owner.addedBy === WhoIsToldOwnerAddedBy.NetworkDevice) {
+          return `${
+            isPerson
+              ? SetupHealthOwnerSubject.NetworkDeviceNotInProject
+              : SetupHealthOwnerSubject.NetworkDeviceTeamOfAnotherProject
+          }|${monitorId}|${monitorId}`;
+        }
+
+        return `${
+          isPerson
+            ? SetupHealthOwnerSubject.CriteriaNotInProject
+            : SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject
+        }|${monitorId}|${monitorId}`;
+      }
+
+      // Each owner finding, once per monitor it concerns.
+      function keysOfFindings(
+        findings: Array<SetupHealthFinding>,
+      ): Array<string> {
+        const keys: Array<string> = [];
+
+        for (const finding of findings) {
+          if (finding.check !== SetupHealthCheck.OwnerNotEmailed) {
+            continue;
+          }
+
+          if (finding.record.kind === SetupHealthRecordKind.Monitor) {
+            keys.push(
+              `${finding.subject}|${finding.record.id}|${finding.record.id}`,
+            );
+            continue;
+          }
+
+          const recordId: string =
+            finding.record.kind === SetupHealthRecordKind.Team
+              ? finding.record.id
+              : `${finding.record.kind}:${finding.record.id}`;
+
+          for (const related of finding.related) {
+            keys.push(`${finding.subject}|${recordId}|${related.id}`);
+          }
+        }
+
+        return Array.from(new Set(keys)).sort();
+      }
+
+      async function keysOfCards(): Promise<Array<string>> {
+        const keys: Set<string> = new Set<string>();
+
+        for (const item of projectMonitors()) {
+          if (
+            item.isArchived ||
+            item.disableActiveMonitoring ||
+            item.monitorType === MonitorType.Manual
+          ) {
+            continue;
+          }
+
+          const card: WhoIsToldResult = await WhoIsToldService.resolve({
+            projectId: PROJECT_ID,
+            monitorId: item.id!,
+            refresh: true,
+          });
+
+          for (const criteria of card.criteria) {
+            for (const event of criteria.events) {
+              for (const owner of event.owners.notReached || []) {
+                keys.add(
+                  keyOfCardOwner({
+                    monitorId: card.monitorId,
+                    event: event,
+                    owner: owner,
+                  }),
+                );
+              }
+            }
+          }
+        }
+
+        return Array.from(keys).sort();
+      }
+
+      test("each is listed as the cards say it, and nothing the cards don't say", async () => {
+        const computed: Awaited<
+          ReturnType<typeof SetupHealthService.getProjectFindings>
+        > = await SetupHealthService.getProjectFindings({
+          projectId: PROJECT_ID,
+          refresh: true,
+        });
+
+        const listed: Array<string> = keysOfFindings(computed.findings);
+
+        expect(listed.length).toBeGreaterThan(4);
+        expect(listed).toEqual(await keysOfCards());
+      });
+
+      test("each finding is worth fixing, about what puts it right", async () => {
+        const findings: Array<SetupHealthFinding> = (
+          await SetupHealthService.getProjectFindings({
+            projectId: PROJECT_ID,
+            refresh: true,
+          })
+        ).findings.filter((finding: SetupHealthFinding): boolean => {
+          return finding.check === SetupHealthCheck.OwnerNotEmailed;
+        });
+
+        expect(
+          findings
+            .map((finding: SetupHealthFinding): string => {
+              return `${finding.level} ${finding.subject} ${finding.record.kind} ${finding.fix}`;
+            })
+            .sort(),
+        ).toEqual(
+          [
+            `${SetupHealthLevel.WorthFixing} ${SetupHealthOwnerSubject.TeamHasNobody} ${SetupHealthRecordKind.Team} TeamMembers`,
+            `${SetupHealthLevel.WorthFixing} ${SetupHealthOwnerSubject.CriteriaNotInProject} ${SetupHealthRecordKind.Monitor} MonitorCriteria`,
+            `${SetupHealthLevel.WorthFixing} ${SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject} ${SetupHealthRecordKind.Monitor} MonitorCriteria`,
+            `${SetupHealthLevel.WorthFixing} ${SetupHealthOwnerSubject.NetworkDeviceNotInProject} ${SetupHealthRecordKind.Monitor} NetworkDeviceOwners`,
+            `${SetupHealthLevel.WorthFixing} ${SetupHealthOwnerSubject.OwnerRuleNotInProject} ${SetupHealthRecordKind.IncidentOwnerRule} IncidentOwnerRules`,
+          ].sort(),
+        );
+
+        const team: SetupHealthFinding = findings.find(
+          (finding: SetupHealthFinding): boolean => {
+            return finding.record.kind === SetupHealthRecordKind.Team;
+          },
+        )!;
+
+        // Night shift, named by two monitors' records, is one finding about the team.
+        expect(team.record).toEqual({
+          kind: SetupHealthRecordKind.Team,
+          id: EMPTY_TEAM,
+          name: "Night shift",
+        });
+        expect(
+          team.related.map((record: { id: string }): string => {
+            return record.id;
+          }),
+        ).toEqual([extraId(1), extraId(2)]);
+        expect(team.fixRecordId).toBe(EMPTY_TEAM);
+      });
+
+      test("a reader of a private record they can't see is told nothing of its owners; one who may read it is", async () => {
+        // Checkout API's incidents are private.
+        const privacy: IncidentPrivacyRule = withId(
+          new IncidentPrivacyRule(),
+          "68120000-1111-4000-8000-0000000000b9",
+        );
+        privacy.name = "Checkout API is private";
+        privacy.projectId = PROJECT_ID;
+        privacy.monitorNamePattern = "^Checkout API$";
+        world.incidentPrivacyRules = [privacy];
+
+        const asSeenBy: (
+          props: DatabaseCommonInteractionProps,
+        ) => Promise<Array<SetupHealthFinding>> = async (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<SetupHealthFinding>> => {
+          return (
+            await SetupHealthService.getForCaller({
+              projectId: PROJECT_ID,
+              props: props,
+            })
+          ).findings.filter((finding: SetupHealthFinding): boolean => {
+            return finding.check === SetupHealthCheck.OwnerNotEmailed;
+          });
+        };
+
+        const caller: Array<SetupHealthFinding> = await asSeenBy(CALLER);
+
+        // Cara and the incident's owner rule's Dan were said of Checkout API alone.
+        expect(
+          caller.map((finding: SetupHealthFinding): string => {
+            return finding.subject;
+          }),
+        ).not.toContain(SetupHealthOwnerSubject.CriteriaNotInProject);
+        // Night shift is still named by Checkout Web's alert, a public one.
+        expect(
+          caller
+            .find((finding: SetupHealthFinding): boolean => {
+              return finding.record.kind === SetupHealthRecordKind.Team;
+            })
+            ?.related.map((record: { id: string }): string => {
+              return record.id;
+            }),
+        ).toEqual([extraId(2)]);
+        expect(JSON.stringify(caller)).not.toContain(extraId(1));
+
+        const admin: Array<SetupHealthFinding> = await asSeenBy({
+          ...CALLER,
+          userType: UserType.User,
+          userTenantAccessPermission: {
+            [PROJECT_ID.toString()]: {
+              _type: "UserTenantAccessPermission",
+              projectId: PROJECT_ID,
+              permissions: [
+                {
+                  _type: "UserPermission",
+                  permission: Permission.ProjectAdmin,
+                  labelIds: [],
+                  isBlockPermission: false,
+                } as UserPermission,
+              ],
+            },
+          } as never,
+        });
+
+        expect(
+          admin.map((finding: SetupHealthFinding): string => {
+            return finding.subject;
+          }),
+        ).toContain(SetupHealthOwnerSubject.CriteriaNotInProject);
+      });
+
+      test("a team or an owner rule the reader may not read is not shown to them", async () => {
+        world.callerTeams = "none";
+        world.callerOwnerRules = "none";
+
+        const findings: Array<SetupHealthFinding> = (
+          await SetupHealthService.getForCaller({
+            projectId: PROJECT_ID,
+            props: CALLER,
+          })
+        ).findings.filter((finding: SetupHealthFinding): boolean => {
+          return finding.check === SetupHealthCheck.OwnerNotEmailed;
+        });
+
+        expect(
+          findings.map((finding: SetupHealthFinding): string => {
+            return finding.record.kind;
+          }),
+        ).not.toContain(SetupHealthRecordKind.Team);
+        expect(
+          findings.map((finding: SetupHealthFinding): string => {
+            return finding.record.kind;
+          }),
+        ).not.toContain(SetupHealthRecordKind.IncidentOwnerRule);
+        // A monitor's own still is.
+        expect(findings.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
   test("reads only: nothing is created, updated or deleted", async () => {
     const writes: Array<unknown> = [
       jest.spyOn(MonitorService, "updateOneById"),
@@ -1874,6 +3006,34 @@ describe("the service's pure helpers", () => {
         readinessUser(ANA, "Ana", ReadinessStatus.PartiallyReady, ["SMS"]),
       ).isNotReachable,
     ).toBe(false);
+  });
+
+  test("a responder missing the phone method their project asks for, as Readiness answers it (#7449)", () => {
+    const missing: UserReadiness = readinessUser(
+      ANA,
+      "Ana",
+      ReadinessStatus.Ready,
+      ["Email"],
+    );
+    missing.isMissingPhoneMethod = true;
+
+    expect(toResponderFact(missing)).toEqual({
+      userId: ANA,
+      name: "Ana",
+      isNotReachable: false,
+      reason: SetupHealthResponderReason.NoVerifiedMethod,
+      isMissingPhoneMethod: true,
+    });
+
+    // Readiness's answer is read, never worked out again: no flag, no finding.
+    const asked: UserReadiness = readinessUser(
+      ANA,
+      "Ana",
+      ReadinessStatus.Ready,
+      ["Email"],
+    );
+
+    expect("isMissingPhoneMethod" in toResponderFact(asked)).toBe(false);
   });
 
   test("why nobody is on call in a schedule, from its coverage", () => {

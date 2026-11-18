@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 import type { PushPageActionRequest } from "../oncall/pushPageAction";
+import type { OnCallOverrideItem } from "../api/types";
 
 /*
  * A page's push opens its record with the action tapped under it -
@@ -80,6 +81,13 @@ export type SettingsStackParamList = {
 
   // The alarm critical pages play on this phone, and on an iPhone how loud.
   CriticalAlertSound: undefined;
+
+  /*
+   * The app's first steps (#7041): allow notifications, ring through
+   * silent mode, send yourself a test page. The same screen the on-call
+   * stack opens on a new install's first launch, pushed here from its row.
+   */
+  GetReady: undefined;
 };
 
 /**
@@ -102,6 +110,14 @@ export interface CreateOnCallOverrideParams {
 }
 
 /*
+ * The override the edit sheet opens on (#7897), as it was read: who is
+ * away, who covers, its policy and its times.
+ */
+export interface EditOnCallOverrideParams {
+  override: OnCallOverrideItem;
+}
+
+/*
  * The on-call stack starts on an OVERVIEW, not on the policy list. The list
  * answers "which escalation rules name me", which is a configuration question;
  * the overview answers "am I on call and until when", which is why anybody
@@ -118,8 +134,34 @@ export type OnCallStackParamList = {
    * prefilled when opened from a shift's "Get cover" (that shift's window).
    */
   CreateOnCallOverride: CreateOnCallOverrideParams | undefined;
+
+  /*
+   * Editing one override (#7897): the override as the list, or the refusal
+   * that offered it, read it - plain strings, so it travels as params.
+   */
+  EditOnCallOverride: EditOnCallOverrideParams;
   MyOnCallPages: undefined;
   OnCallCalendarFeed: undefined;
+
+  /*
+   * A test page (oncall/testPage.ts), opened from its push: the message's
+   * own row of the person's on-call timeline, its project - and, when the
+   * push was answered with "Acknowledge test page", an id of that tap, so
+   * the screen acknowledges it once.
+   */
+  TestPage: {
+    messageId: string;
+    projectId: string;
+    acknowledgeRequestId?: string | undefined;
+  };
+
+  /*
+   * The app's first steps (#7041), opened by itself on a new install's
+   * first launch (GetReadyFirstRun): a sheet over the on-call overview, so
+   * a test page's push opens its own sheet over it, and closing both comes
+   * back to the steps.
+   */
+  GetReady: undefined;
 };
 
 export type IncidentsStackParamList = {

@@ -126,6 +126,7 @@ import {
 import OnCallObserverPaging from "../Utils/OnCall/OnCallObserverPaging";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
+import AlertOnCallRulesOnOwnerChange from "../Utils/Alert/AlertOnCallRulesOnOwnerChange";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService, {
   doesWriteRemediationLinks,
@@ -1355,6 +1356,14 @@ export class Service extends ProjectReferencesService<Model> {
       });
     });
 
+    /*
+     * The owners this chain adds - picked on the form, or by owner rules -
+     * are in before the on-call rules below run, which see them: they run
+     * nothing again on their own (AlertOnCallRulesOnOwnerChange) until the
+     * on-call rules have.
+     */
+    AlertOnCallRulesOnOwnerChange.startCreating(createdItem.id);
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -1534,6 +1543,18 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
+          /*
+           * A rule with an Alert Owner condition matches on the alert's
+           * owners: those its creator and the code that made it add - a
+           * monitor's criteria's, the network device's - are waited for a
+           * moment first (AlertOnCallRulesOnOwnerChange).
+           */
+          await AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate({
+            createBy: onCreate.createBy,
+            alertId: createdItem.id!,
+            projectId: createdItem.projectId!,
+          });
+
           onCallRulesPaging =
             (await AlertOnCallRuleEngineService.applyRulesToAlert(
               createdItem,
@@ -1546,6 +1567,9 @@ export class Service extends ProjectReferencesService<Model> {
               alertId: createdItem.id?.toString(),
             } as LogAttributes,
           );
+        } finally {
+          // An owner changed from now on runs the on-call rules again.
+          AlertOnCallRulesOnOwnerChange.finishCreating(createdItem.id);
         }
 
         /*

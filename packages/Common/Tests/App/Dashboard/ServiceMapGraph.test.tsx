@@ -15,6 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -1286,16 +1287,16 @@ describe("connections", () => {
     expect(screen.getByTestId("map-edge-web->api")).toHaveTextContent(
       "Connection",
     );
-    fireEvent.change(
+    chooseDropdownOption(
       screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "errors" } },
+      2,
     );
     expect(screen.getByTestId("map-edge-web->api")).toHaveTextContent(
       "10.0% errors",
     );
-    fireEvent.change(
+    chooseDropdownOption(
       screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "latency" } },
+      3,
     );
     expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
       "25 ms",
@@ -1333,10 +1334,10 @@ describe("connections", () => {
     expect(hoveredConnection).toHaveTextContent("600/min");
     expectReadableMetricChip(hoveredConnection);
 
-    for (const metric of ["calls", "errors", "latency"]) {
-      fireEvent.change(
+    for (const metric of ["Request rate", "Error rate", "Average latency"]) {
+      chooseDropdownOption(
         screen.getByRole("combobox", { name: "Connection labels" }),
-        { target: { value: metric } },
+        metric,
       );
       expectReadableMetricChip(screen.getByTestId("map-edge-api->postgres"));
     }
@@ -1757,9 +1758,9 @@ describe("keeping the map on screen (issue #4117)", () => {
       Number(edgeById(connections, "api->postgres").style?.strokeWidth),
     );
 
-    fireEvent.change(
+    chooseDropdownOption(
       screen.getByRole("combobox", { name: "Connection labels" }),
-      { target: { value: "latency" } },
+      3,
     );
     expect(screen.getByTestId("map-edge-api->postgres")).toHaveTextContent(
       "25 ms",

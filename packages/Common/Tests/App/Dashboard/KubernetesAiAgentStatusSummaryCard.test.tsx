@@ -429,7 +429,7 @@ describe("handed the Overview's read", () => {
       />,
     );
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(postSpy).not.toHaveBeenCalled();
   });
 

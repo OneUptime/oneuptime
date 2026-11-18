@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -9,7 +10,6 @@ import {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import HealthLicenseRequired, {
@@ -72,7 +72,7 @@ const EmptyNote: FunctionComponent<{ text: string }> = (props: {
 }): ReactElement => {
   const translator: Translator = useTranslator();
   return (
-    <div className="mt-3 text-sm italic text-gray-400">
+    <div className="mt-3 text-sm italic text-gray-500">
       {translator.translateText(props.text) || props.text}
     </div>
   );
@@ -204,7 +204,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                     <span className="font-semibold text-red-400">
                       {String(rowObject["name"] || "")}
                     </span>{" "}
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       (×{String(rowObject["count"] || "0")})
                     </span>{" "}
                     <span>{String(rowObject["lastErrorMessage"] || "")}</span>
@@ -435,7 +435,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                 (key: string, index: number): ReactElement => {
                   return (
                     <div key={index} className="text-xs">
-                      <span className="text-gray-400">{key}: </span>
+                      <span className="text-gray-500">{key}: </span>
                       <span className="font-medium text-gray-700">
                         {String(stats[key] ?? "") || (
                           <TableEmptyValue isSmall={true} />
@@ -507,7 +507,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
           <></>
         )}
 
-        {!hasLoaded && isLoading ? <ComponentLoader /> : <></>}
+        {!hasLoaded && isLoading ? <TableSkeleton /> : <></>}
 
         {!hasLoaded && !isLoading ? (
           <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">

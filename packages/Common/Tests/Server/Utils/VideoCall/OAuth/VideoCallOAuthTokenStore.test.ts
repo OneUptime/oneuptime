@@ -60,6 +60,7 @@ const STALE: VideoCallOAuthSecrets = {
   accessToken: "access-old",
   accessTokenExpiresAt: minutesFromNow(1),
   tokensRefreshedAt: "2026-10-01T00:00:00.000Z",
+  signedInAt: "2026-09-01T08:00:00.000Z",
   apiBaseUrl: "https://api.zoom.us/v2",
   externalUserId: ACCOUNT_ID,
 };
@@ -167,6 +168,8 @@ describe("VideoCallOAuthTokenStore.getAccessToken", () => {
         accessToken: "access-new",
         externalUserId: ACCOUNT_ID,
         apiBaseUrl: "https://api.zoom.us/v2",
+        // A refresh keeps when the account signed in (ZoomTranscriptReconnect).
+        signedInAt: "2026-09-01T08:00:00.000Z",
       }),
     );
     expect(Semaphore.release).toHaveBeenCalledWith(mutex);

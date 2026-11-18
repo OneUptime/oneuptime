@@ -82,7 +82,7 @@ En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera o
 Öppna varje sida under **Statussidor** och jämför den med den i Statuspage. Varje komponent är en manuell monitor: ändra dess status i OneUptime när något ändras.
 
 ### Peka statussidans adress mot OneUptime
-Öppna sidan under **Statussidor**, lägg till din domän under **Anpassade domäner** och ändra sedan dess DNS-post. Då når dina besökare och prenumeranter den nya sidan.
+Öppna sidan under **Statussidor**, lägg till din domän under **Anpassade domäner** och ändra sedan dess DNS-post. Då når dina besökare och prenumeranter den nya sidan. Till dess visar rapporten var varje överförd sida är live på OneUptime, med **Kopiera länk**.
 
 ### Stäng av din sida i Atlassian Statuspage
 När din domän pekar mot OneUptime stänger du sidan i Statuspage, så att dess prenumeranter inte får besked två gånger.

@@ -302,7 +302,7 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
                 <span>{translator.translateText(tab.label)}</span>
                 {tab.badge ? (
                   <span
-                    className={`ms-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${badgeTone}`}
+                    className={`ms-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${badgeTone}`}
                   >
                     {tab.badge.text}
                   </span>

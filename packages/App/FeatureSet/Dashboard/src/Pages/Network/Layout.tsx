@@ -1,10 +1,10 @@
 import NetworkSideMenu from "../../Components/Network/NetworkSideMenu";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../Utils/PageMap";
 import { RouteUtil } from "../../Utils/RouteMap";
 import { getNetworkDeviceBreadcrumbs } from "../NetworkDevice/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../NetworkSite/Utils/Breadcrumbs";
 import Link from "Common/Types/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
@@ -67,7 +67,7 @@ const NetworkLayout: FunctionComponent = (): ReactElement => {
     ? getNetworkSiteBreadcrumbs(path)
     : getNetworkDeviceBreadcrumbs(path);
   const routeContent: ReactElement = (
-    <Suspense fallback={<PageLoader isVisible={true} />}>
+    <Suspense fallback={<PageSkeleton />}>
       <Outlet />
     </Suspense>
   );

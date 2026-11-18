@@ -486,6 +486,27 @@ jobs:
           Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
           --forceExit
 
+      # #7449, #7450: a project's default ladder. The migration's two Project
+      # columns as the model has them, added to an existing project's row
+      # rewriting nothing; a default saved through ProjectService stored
+      # tidied as jsonb and read back the same by the verify path, the
+      # admin's apply and Readiness's phone ask; a method verified with a
+      # default getting its rules at its waits, as rows; and the default
+      # applied to members rewriting their rows - one with none of its
+      # channels skipped, every row kept. On copies of the migrated tables.
+      - name: Test a project's default ladder on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DEFAULT_PAGING_LADDER_TESTS: "true"
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DefaultPagingLadderPostgres.test.ts
+          --forceExit
+
       # Clones the migrated on-call policy pages and their steps, runbook runs,
       # the email, SMS, call, push, WhatsApp, Telegram, webhook, Slack /
       # Microsoft Teams and AI request logs, the incidents, alerts and
@@ -661,7 +682,11 @@ jobs:
       # schedule's row locked, the layers read again under the lock, every
       # change written in one transaction - and a save that waited for
       # another one's lock refused, since the layers changed under it.
-      - name: Test saving a schedule's layers at once on migrated Postgres
+      # And who is on call is worked out from one snapshot of the layers
+      # and their people (#9316): a save committed in the middle of a page,
+      # a level, the roster refresh or the calendar resolver is seen whole
+      # or not at all, and the read takes no lock.
+      - name: Test saving a schedule's layers at once, and reading them in one snapshot, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
         env:
@@ -671,7 +696,9 @@ jobs:
           SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts
+          Tests/Server/Utils/OnCall/ScheduleLayersSnapshotPostgres.test.ts
+          --forceExit
 
       # #7813: a change to a schedule's layers made through the API holds
       # the schedule (rosterRefreshDueAt) until its writes are quiet, and the
@@ -706,6 +733,49 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallExecutionLogStepWritesPostgres.test.ts --forceExit
+
+      # #7012: a monitor's fire drill writes one test page run for each
+      # policy its failure pages - the Test Page event, the failure's kind
+      # and severity, its first level, no incident or alert behind it - and
+      # never an incident or an alert; a policy or severity that is not the
+      # project's stops it before any run. The drill runs as the API runs it
+      # on copies of the migrated tables in an isolated schema. #9385,
+      # #9397, #9386: a walked drill, the incident an alert incident rule
+      # declares, and what a drill keeps on each run (the drill, the
+      # monitor, the failure), read back as the monitor's last drill under
+      # the real permission rules; AddOnCallFireDrillResults' columns, index
+      # and ON DELETE SET NULL key on the migrated table and on the copies.
+      - name: Test a monitor's fire drill on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_FIRE_DRILL_TESTS: "true"
+          ON_CALL_FIRE_DRILL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_FIRE_DRILL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_FIRE_DRILL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallFireDrillPostgres.test.ts --forceExit
+
+      # #9407, #9371: When this goes down and Setup health work out who owns
+      # what each monitor opens - the project's teams and who is in them,
+      # every network device's owners, every monitor's own owners - in one
+      # read of each for the whole project. On copies of the migrated owner
+      # tables: an alert's owners are the rows its create would write, an
+      # Alert Owner rule matches them as the real engine matches a saved
+      # alert's rows, who isn't reached is said, another project's device
+      # owner is never read, and the statements do not grow with the monitors.
+      - name: Test who owns what a monitor opens, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_IS_TOLD_OWNERS_TESTS: "true"
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoIsToldOwnersPostgres.test.ts --forceExit
 
       # #9036, #9069: deleting an escalation rule, a schedule, a team or a
       # person keeps the on-call runs, their timelines and the pages that
@@ -1206,6 +1276,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkDeviceDiscoveredDetailsPostgres.test.ts --forceExit
+
+      # Clones the migrated NetworkDevice table into an isolated schema and
+      # runs the Vendor filter and sort of the device lists (issue #9363):
+      # the maker each device's Vendor / Model column shows, kept in
+      # NetworkDevice.manufacturer. Only a database shows that every chip
+      # operator finds exactly the devices whose column matches - a maker
+      # from discovery only among them - that the matching devices are
+      # counted and paged, that each write of what the maker is read from
+      # writes it again, and that a write landing in between is never undone.
+      - name: Test the network device Vendor filter and sort against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_MANUFACTURER_TESTS: "true"
+          NETWORK_DEVICE_MANUFACTURER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_MANUFACTURER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_MANUFACTURER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDeviceManufacturerPostgres.test.ts --forceExit
 
       # Clones the migrated NetworkEndpoint table into isolated schemas and
       # runs what walks and network controllers' client lists write to it.
@@ -3147,6 +3237,27 @@ jobs:
           Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
           --forceExit
 
+      # Clones the migrated user, project, team, team member, permission and
+      # custom role tables into an isolated schema and searches a project's
+      # people through POST /team-member/search-members (#7036), the real
+      # user middleware and the permission pipeline, as Cmd/Ctrl+K does: by
+      # part of a name and by an email, in the project's memberships only
+      # (someone in another project only is found by neither, with the
+      # answer an address nobody has gets), literally, a few at most; a
+      # member who may not see the project's people refused; emails neither
+      # searched nor answered where the Users page would not show them.
+      - name: Test Search's people on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MEMBER_SEARCH_TESTS: "true"
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ProjectMemberSearchPostgres.test.ts --forceExit
+
       # Clones the migrated team, custom role, API key, monitor (owners,
       # status timeline, tests), status page (owners, announcements and
       # templates) tables, and those of every other kind with owners of its
@@ -4086,12 +4197,14 @@ jobs:
       # A project's credentials through the upgrade that encrypts them
       # (#8989): on the tables as they were (the SMTP password a varchar(500),
       # the webhook signing secret a varchar(100)), with every credential
-      # stored as written, the schema migration widens the two in place and
-      # EncryptProjectCredentials leaves only ciphertext; every credential
-      # reads as written through the services before, between and after (a
-      # status page's SMTP config through its relation included); a second
-      # run changes nothing, two at once encrypt each value once, and a save
-      # afterwards is stored encrypted. Clones the migrated ProjectSMTPConfig,
+      # stored as written, the schema migration widens the two in place,
+      # EncryptProjectCredentials keeps every value as written (#9266) and
+      # the CredentialsAtRest:EncryptInPlace job's pass a day later leaves
+      # only ciphertext; every credential reads as written through the
+      # services before, between and after (a status page's SMTP config
+      # through its relation included); a second run changes nothing, two at
+      # once encrypt each value once, and a save afterwards is stored
+      # encrypted. Clones the migrated ProjectSMTPConfig,
       # StatusPage, WorkspaceProjectAuthToken, WorkspaceUserAuthToken,
       # UserWebhook and CodeRepository tables into an isolated schema.
       - name: Test project credentials' upgrade to encrypted on migrated Postgres
@@ -4112,9 +4225,11 @@ jobs:
       # notification method's address a varchar(500), a community string a
       # varchar(100)), with every address and credential stored as written,
       # the schema migration widens them in place, EncryptWebhookAddresses
-      # and EncryptSnmpCredentials leave only ciphertext - in a scan's
-      # credential sets, each entry's secret fields alone - and
-      # MaskWebhookAddressesInLogs keeps the logs' addresses by their host;
+      # and EncryptSnmpCredentials keep every value as written (#9266) and
+      # the CredentialsAtRest:EncryptInPlace job's pass a day later leaves
+      # only ciphertext - in a scan's credential sets, each entry's secret
+      # fields alone - and MaskWebhookAddressesInLogs keeps the logs'
+      # addresses by their host;
       # every value reads as written through the services before, between
       # and after; a second run changes nothing, two at once encrypt each
       # value once, and a save afterwards is stored encrypted. Clones the
@@ -4132,6 +4247,30 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
+          --forceExit
+
+      # Microsoft Teams chat ids through the upgrade that keeps them whole
+      # (#9284): on the tables as they were (every id of a message's place a
+      # varchar(100)), with each personal chat kept cut to its first 100
+      # characters, the schema migration widens the columns in place - every
+      # value kept, no row rewritten, the channelId index kept as it is -
+      # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
+      # whole, touching no Slack row, no other project's row and no name; a
+      # second run changes nothing, two at once come to the same, and down()
+      # narrows back without cutting an id. Clones the migrated
+      # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
+      # WorkspaceNotificationLog tables into an isolated schema.
+      - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_TEAMS_CHAT_IDS_TESTS: "true"
+          TEAMS_CHAT_IDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIdsPostgres.test.ts
           --forceExit
 
       # The keys presented to OneUptime through the upgrade that protects them
@@ -4159,6 +4298,36 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/PresentedKeysAtRestPostgres.test.ts
+          --forceExit
+
+      # Every credential the upgrade to 15 used to encrypt in place, through
+      # the upgrade that now leaves it readable by the release before
+      # (#9266): on the migrated tables, with every value stored as written,
+      # the data migrations change nothing - a server of the release before,
+      # reading each column as stored, and one of this release read every
+      # value as written, and a device whose v3 credentials were only in its
+      # legacy object (#9268) is walked by both - and what that server saves
+      # meanwhile stays as written; within the day the
+      # CredentialsAtRest:EncryptInPlace job changes nothing, a day later it
+      # encrypts every value (those saved meanwhile too, the logs' addresses
+      # masked) and records each migration once nothing is left; on an
+      # install that ran the migrations when they still encrypted at once it
+      # encrypts only what is left, every ciphertext byte for byte; two runs
+      # at once encrypt each value once; and a 500-character Twilio token is
+      # kept encrypted in its text column, where its varchar(500) refused the
+      # ciphertext (#9267). Clones the 18 migrated credential and log tables,
+      # and DataMigrations, into an isolated schema.
+      - name: Test credentials kept readable through the upgrade, and encrypted a day later, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_CREDENTIALS_AT_REST_TESTS: "true"
+          CREDENTIALS_AT_REST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CREDENTIALS_AT_REST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CREDENTIALS_AT_REST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/CredentialsAtRestPostgres.test.ts
           --forceExit
 
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
@@ -4373,6 +4542,104 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/UsedByPostgres.test.ts --forceExit
+
+      # #7075: who was told about an incident or an alert, read as each kind
+      # of reader through the real services on clones of the migrated
+      # records, runs, steps and logs: a private record's answer only by its
+      # owning team's members, its named owners, Project Owners and Project
+      # Admins - not found by another member, a pending invitee, the person
+      # paged, an API key or a workflow step; a public one by every member
+      # who reads logs; and someone who may read the record but not its logs
+      # or runs is told how many, never what.
+      - name: Test who was told on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_WAS_TOLD_TESTS: "true"
+          WHO_WAS_TOLD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_WAS_TOLD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_WAS_TOLD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoWasToldReadPostgres.test.ts --forceExit
+
+      # #7026: npm run backup tells the server it ran. GlobalConfig, cloned
+      # from the migrated schema as it was before AddBackupScriptLastRun: one
+      # nullable jsonb column added, the row a server has kept as it was and
+      # read as never told, a run written through the model read back whole
+      # and replaced by the next, and down() and up() again.
+      - name: Test the backup script's last run on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_BACKUP_SCRIPT_RUN_TESTS: "true"
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddBackupScriptLastRunPostgres.test.ts
+          --forceExit
+
+      # #6878: the server's own email log. AddServerEmailLog in a schema of
+      # its own: the table and its two indexes with no key to a project, a
+      # password reset's row written by MailService's writer with no link
+      # or token in it, the master admins' list newest first and failed
+      # only, each sort served by its index, rows older than 30 days
+      # deleted by the daily purge, and down() and up() again.
+      - name: Test the server's email log on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_EMAIL_LOG_TESTS: "true"
+          SERVER_EMAIL_LOG_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_EMAIL_LOG_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerEmailLogPostgres.test.ts
+          --forceExit
+
+      # The sample projects' removal on a database whose deletes of a "User"
+      # row outlast the session's statement timeout, as OneUptime Cloud's
+      # do (15.0.0's one DELETE timed out there and its migrate Job failed):
+      # RemoveSampleProject deletes one made-up person, then one sample, a
+      # statement, within OnlineDdl's long limits; a real project, person
+      # and incident stay; the columns, key and index stay for the release
+      # before; and KeepSampleProjectColumns puts them back where 15.0.0
+      # already dropped them. In a schema of its own.
+      - name: Test removing the sample projects on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SAMPLE_REMOVAL_TESTS: "true"
+          SAMPLE_REMOVAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SAMPLE_REMOVAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SAMPLE_REMOVAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/RemoveSampleProjectPostgres.test.ts
+          --forceExit
+
+      # #6879: master admins told when the server's email or its global
+      # probes stop working. GlobalConfig, cloned as it was before
+      # AddServerAlerts: three nullable columns added with the row kept as
+      # it was, then the job through GlobalConfigService on that row - its
+      # first look tells nobody, email that fails is told by push and SMS
+      # and written once, nothing more after - and down() and up() again.
+      # Shard 3: the job is App's, and App is installed there.
+      - name: Test telling master admins of outages on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVER_ALERTS_TESTS: "true"
+          SERVER_ALERTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVER_ALERTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVER_ALERTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddServerAlertsPostgres.test.ts
+          --forceExit
 
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and

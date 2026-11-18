@@ -122,7 +122,7 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
             <div className="flex items-center justify-between gap-2">
               <div
                 data-testid="ai-chat-resource-card-kind"
-                className={`min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide ${look.kind}`}
+                className={`min-w-0 truncate text-xs font-semibold uppercase tracking-wide ${look.kind}`}
               >
                 {card.kind}
               </div>
@@ -135,7 +135,7 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
                   onClick={() => {
                     navigateToCitationTarget(link);
                   }}
-                  className={`-my-1 -me-1.5 flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${look.open}`}
+                  className={`-my-1 -me-1.5 flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${look.open}`}
                 >
                   {translator.translateText("Open")}
                   <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
@@ -213,7 +213,7 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
                   >
                     <dt
                       data-testid="ai-chat-resource-card-fact-label"
-                      className="min-w-0 break-words text-[11px] font-medium text-gray-500"
+                      className="min-w-0 break-words text-xs font-medium text-gray-500"
                     >
                       {fact.label}
                     </dt>

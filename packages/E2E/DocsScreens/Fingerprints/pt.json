@@ -179,7 +179,7 @@
     "text": [
       "1",
       "O que devemos verificar?",
-      "O OneUptime verifica isso a cada 5 minutos. Um incidente é aberto quando todos os locais que o verificam o encontram fora do ar: sem resposta, ou com uma resposta de erro.",
+      "O OneUptime cria um monitor que o verifica a cada 5 minutos de 2 locais. Um incidente é aberto quando todos o encontram fora do ar: sem resposta, ou com uma resposta de erro.",
       "Endereço do site ou da API",
       "Este é um endpoint de API",
       "Começar a verificar",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incidente",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Começar a verificar",
@@ -209,8 +211,10 @@
       "Salvar e continuar"
     ],
     "outline": [
+      "link: Como me contatar",
       "button: Adicionar membros da equipe",
       "button: Remover Ada Lovelace",
+      "button: política de plantão",
       "button: Salvar e continuar"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Ativar SMS e chamadas",
       "App móvel ou navegador",
       "Não configurado.",
-      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
-      "Configurar o app ou este navegador",
+      "Receba acionamentos no celular com o app OneUptime On-Call, ou neste navegador.",
+      "Usar este navegador",
+      "Baixar o app",
       "Continuar",
       "Verificar de novo"
     ],
     "outline": [
       "button: Adicionar saldo",
       "button: Ativar SMS e chamadas",
-      "link: Configurar o app ou este navegador",
+      "button: Usar este navegador",
+      "button: Baixar o app",
       "button: Continuar",
       "button: Verificar de novo"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Enviar um código por SMS",
       "App móvel ou navegador",
       "Não configurado.",
-      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
-      "Configurar o app ou este navegador",
+      "Receba acionamentos no celular com o app OneUptime On-Call, ou neste navegador.",
+      "Usar este navegador",
+      "Baixar o app",
       "Continuar",
       "Verificar de novo",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Enviar um código por SMS",
-      "link: Configurar o app ou este navegador",
+      "button: Usar este navegador",
+      "button: Baixar o app",
       "button: Continuar",
       "button: Verificar de novo"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Quem mais está de plantão?",
+      "Quem é acionado primeiro?",
       "Isso cria a política de plantão \"Política de plantão padrão\". Ela aciona primeiro essas pessoas, a cada novo incidente e alerta deste projeto.",
       "Acionados primeiro",
       "Adicionar membros da equipe",
       "AL",
       "Ada Lovelace",
+      "Todos aqui são acionados ao mesmo tempo. Quem acionar só se ninguém responder fica para o próximo passo.",
+      "Convidar por e-mail",
       "Salvar e continuar"
     ],
     "outline": [
       "button: Adicionar membros da equipe",
       "button: Remover Ada Lovelace",
+      "button: Convidar por e-mail",
       "button: Salvar e continuar"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "O acionamento está configurado",
       "Quem é acionado",
-      "Todo novo incidente ou alerta executa \"Política de plantão padrão\", que aciona Ada Lovelace (E-mail, SMS, Chamada telefônica).",
+      "Todo novo incidente ou alerta executa \"Política de plantão padrão\", que aciona Ada Lovelace (e-mail, SMS e chamada telefônica imediatamente).",
       "Se ninguém responder",
       "Se ninguém confirmar em 30 minutos, Grace Hopper é acionado.",
       "Testado",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Plantão",
+      "A pessoa certa fica sabendo, sempre",
+      "1",
+      "Criar uma política de plantão",
+      "2",
+      "Adicionar escalas ou pessoas a cada regra de escalonamento",
+      "3",
+      "Conectá-la a monitores, incidentes e alertas",
+      "Configuração guiada",
+      "Criar política de plantão",
+      "Guia passo a passo",
+      "Documentação"
+    ],
+    "outline": [
+      "heading: A pessoa certa fica sabendo, sempre",
+      "button: Configuração guiada",
+      "button: Criar política de plantão",
+      "link: Guia passo a passo",
+      "link: Documentação"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Adicionar regra de escalonamento",
+      "Adiciona o nível 2 desta política: quem é acionado, e quando.",
+      "Notificar",
+      "Agendamentos de plantão acionam quem estiver de plantão; Próximo da rotação aciona a pessoa seguinte. Equipes acionam todos os membros.",
+      "Adicionar destinatário",
+      "Esta regra diz quem é chamado. Como cada pessoa é contatada, por qual método e depois de quanto tempo, é definido na página Como me contatar dela.",
+      "Acionado após (em minutos)",
+      "Quanto tempo Level 1 espera uma confirmação antes de este nível ser acionado. Salvo como a espera de Level 1.",
+      "Mais campos· Nome, Descrição",
+      "Cancelar",
+      "Criar regra",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Adicionar regra de escalonamento",
+      "button: Fechar",
+      "button: Adicionar destinatário",
+      "link: Como me contatar",
+      "field number: 30",
+      "button: Mais campos· Nome, Descrição",
+      "button: Cancelar",
+      "button: Criar regra"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Chaves de ingestão",
@@ -543,18 +607,13 @@
       "Mostrando 1-4 de 4",
       "Linhas por página",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Pesquisar: chaves de ingestão por nome, descrição…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Chaves de ingestão",
@@ -580,13 +639,13 @@
       "field checkbox: Selecionar Chave de ingestão: Marketing site",
       "button: Ver Chave de ingestão",
       "button: Mais ações para Chave de ingestão: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Ir para a página anterior",
       "button: Página 1",
       "button: Ir para a próxima página"
     ],
     "width": 940,
-    "height": 500
+    "height": 502
   },
   "incident-feed": {
     "text": [

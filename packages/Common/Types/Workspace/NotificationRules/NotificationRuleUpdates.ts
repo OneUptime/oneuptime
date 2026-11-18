@@ -43,7 +43,14 @@ import NotificationRuleWorkspaceChannel, {
  * on call for Payments until Fri at 5:50 PM" - that names who is next only
  * where a rule asks for it (OnCallHandoffPosts). A NEW on-call rule starts
  * with the key updates ticked (getNewRuleUpdatesToPost): who is on call
- * now, and when nobody is.
+ * now, and when nobody is - however it is made (issue #7971). The
+ * Dashboard's form starts there, and the server gives the same list to a
+ * rule the API, Terraform or a workflow creates without one
+ * (withNewRuleUpdates). An edit that leaves the list out keeps the rule's
+ * (withKeptUpdates): Terraform writes a rule's JSON as its configuration
+ * has it, so a rule made quiet would turn noisy at its first change.
+ * Every update is asked for with null there, which the Dashboard's Every
+ * update sends for such a rule (withChosenKinds).
  *
  * So does a security case rule (issue #7936), from the four notices a case
  * posts (SecurityCaseNotifications): a case that opens at, or rises to, a
@@ -302,7 +309,9 @@ const KEY_UPDATE_KINDS: Readonly<
  * every schedule, person and team added to the policy (issue #7549): a new
  * on-call rule starts on the key updates instead - who is on call now, and
  * when nobody is - and its Updates step offers the rest. Rules saved
- * before keep posting every update.
+ * before keep posting every update. A rule made through the API or with
+ * Terraform starts on the key updates too when it leaves updatesToPost out
+ * (issue #7971); one that sends null posts every update.
  */
 const NEW_RULE_UPDATE_KINDS: Readonly<
   Partial<
@@ -383,6 +392,110 @@ export default class NotificationRuleUpdates {
       this.getNewRuleUpdatesToPost(eventType);
 
     return kinds ? { updatesToPost: kinds } : {};
+  }
+
+  /*
+   * Whether a new rule of this kind starts on chosen updates rather than on
+   * every update (NEW_RULE_UPDATE_KINDS): an on-call policy's. Such a rule
+   * gets its kind's list when its JSON leaves updatesToPost out, and keeps
+   * its own on an edit that leaves it out (#7971).
+   */
+  public static hasNewRuleUpdates(
+    eventType: NotificationRuleEventType | undefined,
+  ): boolean {
+    return this.getNewRuleUpdatesToPost(eventType) !== undefined;
+  }
+
+  /*
+   * Whether a rule's JSON says which updates it posts: a list, or null for
+   * every update. A JSON that leaves updatesToPost out says nothing of them.
+   * Anything but an object - no JSON at all - says nothing either.
+   */
+  public static saysUpdatesToPost(rule: unknown): boolean {
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+      return false;
+    }
+
+    return (rule as Record<string, unknown>)["updatesToPost"] !== undefined;
+  }
+
+  /*
+   * A new rule's JSON as the server stores it (#7971): a rule of a kind that
+   * starts on chosen updates, whose JSON says none, gets its kind's list -
+   * an on-call policy rule made through the API, with Terraform or by a
+   * workflow starts on the key updates, as one made in the Dashboard does.
+   * A list the caller sent is kept, and so is null: every update, asked for.
+   */
+  public static withNewRuleUpdates<T>(data: {
+    rule: T;
+    eventType: NotificationRuleEventType | undefined;
+  }): T {
+    const kinds: Array<NotificationRuleUpdateKind> | undefined =
+      this.getNewRuleUpdatesToPost(data.eventType);
+
+    if (
+      !kinds ||
+      !data.rule ||
+      typeof data.rule !== "object" ||
+      Array.isArray(data.rule) ||
+      this.saysUpdatesToPost(data.rule)
+    ) {
+      return data.rule;
+    }
+
+    return { ...data.rule, updatesToPost: kinds };
+  }
+
+  /*
+   * What an edit leaves out keeps (#7971). A rule of a kind that starts on
+   * chosen updates goes on posting what it posts when the JSON an edit
+   * writes leaves updatesToPost out: Terraform writes a rule's JSON as its
+   * configuration has it, so an on-call rule that started on the key
+   * updates would turn to every update at its first change. `stored` is
+   * the rule's JSON as it is now; its updates are kept as they are, a list,
+   * null or none at all - a rule saved before rules chose updates goes on
+   * posting every update.
+   *
+   * A rule whose edit makes it another kind of rule is a new rule of that
+   * kind: it gets the kind's list (withNewRuleUpdates). Any other kind of
+   * rule, and a JSON that says which updates to post, is written as it is
+   * sent.
+   */
+  public static withKeptUpdates<T>(data: {
+    written: T;
+    // The kind of rule the edit leaves it: the kind it sends, or the rule's own.
+    eventType: NotificationRuleEventType | undefined;
+    // The rule as it is stored now, and its kind.
+    stored: StoredRuleUpdates;
+    storedEventType: NotificationRuleEventType | undefined;
+  }): T {
+    if (
+      !this.hasNewRuleUpdates(data.eventType) ||
+      !data.written ||
+      typeof data.written !== "object" ||
+      Array.isArray(data.written) ||
+      this.saysUpdatesToPost(data.written)
+    ) {
+      return data.written;
+    }
+
+    if (data.storedEventType !== data.eventType) {
+      return this.withNewRuleUpdates({
+        rule: data.written,
+        eventType: data.eventType,
+      });
+    }
+
+    const kept: unknown = data.stored?.updatesToPost;
+
+    if (kept === undefined) {
+      return data.written;
+    }
+
+    return {
+      ...data.written,
+      updatesToPost: Array.isArray(kept) ? [...kept] : kept,
+    };
   }
 
   // Key updates only, in the order the Updates step lists them.
@@ -467,6 +580,10 @@ export default class NotificationRuleUpdates {
    * Updates step lists them. Every update - no list, or every kind its
    * Updates step lists - takes the list out, so the rule goes on posting
    * every update, the kinds a later version adds included.
+   *
+   * A rule of a kind that starts on chosen updates (an on-call policy's)
+   * says every update with null instead: left out, the server would give a
+   * new rule its kind's list, and keep an edited rule's (#7971).
    */
   public static withChosenKinds<T extends RuleWithUpdates>(data: {
     rule: T | undefined;
@@ -486,7 +603,12 @@ export default class NotificationRuleUpdates {
       : undefined;
 
     if (!kinds || choosable.length === 0 || kinds.length === choosable.length) {
-      delete rule.updatesToPost;
+      if (this.hasNewRuleUpdates(data.eventType)) {
+        rule.updatesToPost = null;
+      } else {
+        delete rule.updatesToPost;
+      }
+
       return rule as T;
     }
 
@@ -654,7 +776,15 @@ export default class NotificationRuleUpdates {
     }
 
     if (!Array.isArray(data.updatesToPost)) {
-      return `updatesToPost is a list of the updates the rule posts, any of: ${choosable.join(", ")}. Leave it out to post every update.`;
+      /*
+       * Left out, a new rule of a kind that starts on chosen updates gets
+       * them (#7971): null is every update there.
+       */
+      const everyUpdate: string = this.hasNewRuleUpdates(data.eventType)
+        ? "Send null to post every update."
+        : "Leave it out to post every update.";
+
+      return `updatesToPost is a list of the updates the rule posts, any of: ${choosable.join(", ")}. ${everyUpdate}`;
     }
 
     for (const value of data.updatesToPost as Array<unknown>) {

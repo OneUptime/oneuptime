@@ -799,3 +799,137 @@ describe("facts", () => {
     expect(facts.emailSentThrough).toBeNull();
   });
 });
+
+/*
+ * #7026, #9378, #7028: what the checklist now reads besides - the last run
+ * npm run backup told the server of, how the server was installed, and
+ * whether push is turned off (no test push then).
+ */
+describe("npm run backup, how the server was installed, and push", () => {
+  const INSTALL_ENV: Array<string> = [
+    "INSTALLED_WITH",
+    "KUBERNETES_SERVICE_HOST",
+    "POD_NAME",
+  ];
+  let savedEnv: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    savedEnv = {};
+
+    for (const name of INSTALL_ENV) {
+      savedEnv[name] = process.env[name];
+      delete process.env[name];
+    }
+  });
+
+  afterEach(() => {
+    for (const name of INSTALL_ENV) {
+      if (savedEnv[name] === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = savedEnv[name];
+      }
+    }
+  });
+
+  test("the settings row is read with the backup script's last run", async () => {
+    storedConfig = {};
+
+    await ServerSetupChecklist.getAnswer();
+
+    const call: { select: Record<string, unknown> } = findOneById.mock
+      .calls[0]![0] as { select: Record<string, unknown> };
+
+    expect(call.select["backupScriptLastRun"]).toBe(true);
+    expect(SERVER_SETUP_CONFIG_SELECT["backupScriptLastRun"]).toBe(true);
+  });
+
+  test("a run the script told the server of is the Backups check's: done, made by npm run backup", async () => {
+    const at: string = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    storedConfig = {
+      backupScriptLastRun: { at: at, succeeded: true, sizeInBytes: 4096 },
+    };
+
+    const backups: ServerSetupCheckResult = find(
+      await ServerSetupChecklist.getAnswer(),
+      ServerSetupCheckId.Backups,
+    );
+
+    expect(backups).toMatchObject({
+      status: ServerSetupStatus.Done,
+      time: at,
+      backupMadeBy: "script",
+    });
+
+    storedConfig = {
+      backupScriptLastRun: { at: at, succeeded: false, sizeInBytes: null },
+    };
+
+    expect(
+      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.Backups)
+        .status,
+    ).toBe(ServerSetupStatus.Failing);
+  });
+
+  test("a damaged run reads as none: the checklist as it was", async () => {
+    storedConfig = { backupScriptLastRun: { succeeded: "maybe" } };
+
+    const facts: ServerSetupFacts = await ServerSetupChecklist.readFacts(
+      row(storedConfig),
+    );
+
+    expect(facts.lastScriptBackup).toBeNull();
+    expect(
+      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.Backups)
+        .status,
+    ).toBe(ServerSetupStatus.NotSetUp);
+  });
+
+  test("how the server was installed comes from its own environment", async () => {
+    expect((await ServerSetupChecklist.readFacts(row())).installKind).toBe(
+      "unknown",
+    );
+
+    process.env["INSTALLED_WITH"] = "docker-compose";
+
+    expect((await ServerSetupChecklist.readFacts(row())).installKind).toBe(
+      "docker-compose",
+    );
+
+    delete process.env["INSTALLED_WITH"];
+    process.env["KUBERNETES_SERVICE_HOST"] = "10.96.0.1";
+
+    storedConfig = {};
+
+    expect(
+      find(await ServerSetupChecklist.getAnswer(), ServerSetupCheckId.Backups)
+        .installKind,
+    ).toBe("kubernetes");
+  });
+
+  test("the test push is offered while push is on, and never once it is turned off", async () => {
+    storedConfig = { disablePushNotifications: false };
+
+    expect(
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.BrowserPush,
+      ).tests,
+    ).toEqual([ServerSendingChannel.Push]);
+
+    storedConfig = { disablePushNotifications: true };
+
+    const facts: ServerSetupFacts = await ServerSetupChecklist.readFacts(
+      row(storedConfig),
+    );
+
+    expect(facts.push?.state).toBe("not-set-up");
+    expect(
+      find(
+        await ServerSetupChecklist.getAnswer(),
+        ServerSetupCheckId.BrowserPush,
+      ).tests,
+    ).toEqual([]);
+  });
+});

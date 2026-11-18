@@ -4,6 +4,7 @@ import {
   getMonthTotalInUSD,
   parseMarketplaceUsage,
 } from "./MarketplaceUsage";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -17,7 +18,6 @@ import {
   MarketplaceUsageSummary,
 } from "Common/Types/Marketplace/MarketplaceUsageSummary";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -136,7 +136,7 @@ const MarketplaceUsageCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={3} />;
     }
 
     if (error) {

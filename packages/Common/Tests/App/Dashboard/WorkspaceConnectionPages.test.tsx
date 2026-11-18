@@ -501,7 +501,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
     );
     await renderOverview();
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByTestId("workspace-connections"),
     ).not.toBeInTheDocument();
@@ -809,7 +809,7 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
     async (_name: string, page: WorkspacePage) => {
       await renderPage(page);
 
-      expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
       expect(
         screen.queryByText(
           WORKSPACE_CONNECTION_COPY[page.workspaceType].notConnectedTitle,
@@ -918,7 +918,7 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
     );
     await renderPage(PAGES[0]!);
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("notification-rules")).not.toBeInTheDocument();
   });
 
@@ -934,7 +934,7 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
 
     await renderPage(PAGES[1]!);
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       answer([WorkspaceType.MicrosoftTeams]);

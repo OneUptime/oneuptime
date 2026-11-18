@@ -188,7 +188,7 @@ That channel is off in this project. The card says who can turn it on; see [Turn
 :::
 
 :::details The code never arrived
-Emails can take a few minutes, and sometimes land in spam; texts can take a minute. Wait a minute, then click **Send a new code** in the dialog. **Project Settings → Notifications → Notification Logs** shows what happened to the message.
+Emails can take a few minutes, and sometimes land in spam; texts can take a minute. Wait a minute, then click **Send a new code** in the dialog. **Project Settings → Notifications → Notification Logs** shows what happened to the message. Whoever may read those logs gets **Open Notification Logs** under the code, which opens the message's tab; anyone else is told to ask a Project Owner or Project Admin.
 :::
 
 :::details Adding my Slack account fails
@@ -198,6 +198,10 @@ Link your account under **User Settings → Workspace → Slack** first, then cl
 :::details My phone gets no push notifications
 Check that the phone is listed under **Push Notification Devices**, and send it a **Test Notification**. See [FAQ & Troubleshooting](/docs/mobile-desktop-apps/faq-troubleshooting#notifications).
 :::
+
+### The page says this server can't send SMS
+
+Your server has no working way to send SMS, or to make calls, right now: none is set up, or the one set up is failing. Until it works, the page says so, and you can't add a number for it. Ask your server's admin, who sees a link to the settings instead. A project with its own Twilio config sends through it, and is not affected. Email works the same way.
 
 ## Next steps
 

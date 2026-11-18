@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -37,7 +38,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -368,7 +368,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   if (props.isLoading && !hasData) {
     return (
       <Card title="Engine metrics" description={props.engineLabel}>
-        <ComponentLoader />
+        <StatTilesSkeleton />
       </Card>
     );
   }
@@ -527,7 +527,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                     ),
                   )}
                 </div>
-                <div className="mt-1 truncate font-mono text-xs text-gray-400">
+                <div className="mt-1 truncate font-mono text-xs text-gray-500">
                   {result.definition.metricName}
                 </div>
               </div>

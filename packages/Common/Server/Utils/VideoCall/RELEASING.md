@@ -42,8 +42,9 @@ So the order matters:
   and submit the update ([Submitting an update](#submitting-an-update-so-it-passes-review)).
   Plan for what follows Zoom's approval: every connection made before it
   lacks the scope, and stops working 90 days after the update goes live
-  unless someone reconnects it. The release notes must ask people to
-  reconnect, and OneUptime should ask too (#9269).
+  unless someone reconnects it. The release notes ask people to reconnect,
+  and so does OneUptime, once a maintainer has connected Zoom after the
+  update ([Once the update is live](#once-the-update-is-live)).
 - **Code that needs less**: deploy the code first, then remove the scope.
 - **A new URL or secret**: change the app and the server's configuration
   together. A Secret Token that differs between the two refuses every event.
@@ -91,6 +92,13 @@ test.oneuptime.com instead, so the review instructions must say so
   the meetings.
 - [Transcripts/ZoomTranscriptClient.ts](Transcripts/ZoomTranscriptClient.ts):
   reads a meeting's transcript.
+- [OAuth/ZoomTranscriptReconnect.ts](OAuth/ZoomTranscriptReconnect.ts):
+  which of a project's connections to sign in again for the transcript
+  scopes, answered by `GET /api/video-call-connection/zoom-transcript-reconnect`
+  ([API/VideoCallConnectionAPI.ts](../../API/VideoCallConnectionAPI.ts)) and
+  drawn as a warning on **Video Calls** (the Dashboard's
+  `ZoomTranscriptReconnectNotice`). See
+  [Once the update is live](#once-the-update-is-live).
 - The scope names are constants in
   [VideoCallProviderCatalog.ts](../../../Types/VideoCall/VideoCallProviderCatalog.ts)
   (`ZOOM_OAUTH_*`).
@@ -203,8 +211,11 @@ wherever Zoom asks why the app needs a scope.
 
 The two `cloud_recording` scopes came with call transcripts (PR #4959,
 October 2026), and were the update Zoom returned in November 2026. A sign-in
-made before them still starts calls, and cannot read transcripts until it is
+made before them cannot read transcripts. 90 days after the update goes live,
+Zoom stops accepting it, and its connection stops starting calls until it is
 reconnected ([user docs](../../../../App/FeatureSet/Docs/Content/en/workspace-connections/video-calls.md#connect-in-one-click)).
+**Project Settings** > **Workspace** > **Video Calls** asks for the
+reconnect ([Once the update is live](#once-the-update-is-live)).
 
 When a scope changes, change all of these together:
 
@@ -328,6 +339,33 @@ In the Zoom App Marketplace, open **Manage** > **Created Apps** >
   side alone. Zoom's docs do not say whether the app can be changed during a
   review; plan as if it cannot.
 
+### Once the update is live
+
+An update that adds scopes goes live when Zoom approves it, or when a
+maintainer activates it (**App activation**). From then on, every
+connection made before it has 90 days before Zoom stops accepting its
+sign-in.
+
+**Project Settings** > **Workspace** > **Video Calls** warns about each
+connection that lacks the transcript scopes, with a **Reconnect** button.
+The server cannot ask Zoom what its app grants, so it goes by its own
+sign-ins (`ZoomTranscriptReconnect`): it names a connection only once a Zoom
+sign-in on the same server, made after that connection's, holds a
+transcript scope. Before anyone connects Zoom after the update, oneuptime.com
+shows no warning, while the 90 days are already running. So, right after the
+update goes live, a maintainer:
+
+1. Connects a Zoom user once on oneuptime.com, in a project OneUptime owns,
+   and keeps that connection. While no customer has reconnected yet, it is
+   the only sign-in the server goes by: deleting it takes the warnings away
+   again.
+2. Opens **Video Calls** in a project with a Zoom connection made before the
+   update, and checks that the warning names it.
+3. Adds the outcome and the date it went live to [Review history](#review-history).
+
+The warning asks only about the transcript scopes. A later update that adds
+other scopes needs its own check in the code before it goes live.
+
 ### The reviewer's test plan
 
 Copy this into **Release notes for app reviewer**, fill in the lines in
@@ -436,7 +474,10 @@ and some of it a password. No agent can do these from the repository:
 4. Type the test account's password into **Test account and credentials**,
    press **Send Updates**, answer Zoom's review notes, and activate an update
    set to be activated by hand.
-5. Delete anything: a connection a customer made, the reviewer's account or
+5. Connect a Zoom user on oneuptime.com once the update is live, so the
+   Video Calls page starts asking older connections to reconnect
+   ([Once the update is live](#once-the-update-is-live)).
+6. Delete anything: a connection a customer made, the reviewer's account or
    project after the review, the app.
 
 An agent can do the rest: read the code and the docs, run the checks under
@@ -456,11 +497,6 @@ Add a row for every submission.
 
 Found while writing this guide on 17 November 2026:
 
-- Once Zoom approves the transcript scopes, connections made before them stop
-  starting calls 90 days after the update goes live, unless someone
-  reconnects them. The user docs say they start calls as before, and nothing
-  in OneUptime asks them to reconnect (#9269). Settle this before the update
-  goes live: **App activation** can hold it until a maintainer activates it.
 - The comments on the Zoom app in `config.example.env` and `values.yaml`
   list only `meeting:write:meeting` and `user:read:user`, as does the header
   comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).

@@ -74,17 +74,17 @@ Oppsettet for nettstedet har allerede opprettet **Standard vaktpolicy**, som til
 :::steps
 ### Åpne vaktoppsettet
 
-Trykk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` og velg **Varsle rett person når noe går ned**. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet.
+Klikk på **Få oppkall via SMS eller telefon** i oppsummeringen i oppsettet for nettstedet: Lenken åpner det veiledede oppsettet **Varsle rett person når noe går ned**. Vil du åpne det senere, trykker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger det. Så lenge sjekklisten ikke har krysset av **Sett opp en vaktpolicy**, åpner det steget det samme veiledede oppsettet. Når den har det, og så lenge bare e-post kan kalle deg opp, beholder Hjem **Få oppkall via SMS eller telefon** under det.
 
 ### Velg hvordan du nås
 
 ![Steget «Hvordan skal vi nå deg?», med «Slå på SMS og anrop» uthevet](screen:paging-reach-you)
 
-Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. For push-varslinger installerer du appen OneUptime On-Call fra App Store eller Google Play, logger inn og klikker på **Kontroller på nytt**. For også å få SMS og anrop klikker du på **Slå på SMS og anrop**, skriver nummeret ditt i **Telefonnummeret ditt** og klikker på **Send meg en kode på SMS**: På OneUptime Cloud betales SMS og anrop fra prosjektets saldo, så steget ber deg først fylle på. Klikk på **Fortsett**.
+Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. For push-varslinger installerer du appen OneUptime On-Call fra App Store eller Google Play, logger inn og klikker på **Kontroller på nytt**. **Hent appen** viser en kode å skanne for hver butikk, og **Bruk denne nettleseren** tilkaller også denne nettleseren. For også å få SMS og anrop klikker du på **Slå på SMS og anrop**, skriver nummeret ditt i **Telefonnummeret ditt** og klikker på **Send meg en kode på SMS**: På OneUptime Cloud betales SMS og anrop fra prosjektets saldo, så steget ber deg først fylle på. Klikk på **Fortsett**.
 
-### Velg hvem andre som tilkalles
+### Velg hvem som tilkalles først
 
-Under **Hvem andre har vakt?** beholder du **Standard vaktpolicy** under **Vaktpolicy**. For å tilkalle teammedlemmer sammen med deg legger du dem til under **Legg til i den første eskaleringsregelen**. Klikk på **Lagre og fortsett**.
+Under **Hvem tilkalles først?** beholder du **Standard vaktpolicy** under **Vaktpolicy**. For å tilkalle teammedlemmer samtidig med deg legger du dem til under **Legg til i den første eskaleringsregelen**, eller inviterer dem med **Inviter via e-post**. Klikk på **Lagre og fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 
@@ -100,7 +100,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**, velger en 
 
 To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Vaktregel for hendelser** for å legge til din egen.
 
-For i stedet å bygge en policy felt for felt åpner du **Vakt** fra menyen **Produkter** og klikker på **Opprett Vaktpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
+For i stedet å bygge en policy felt for felt åpner du **Vakt** fra menyen **Produkter** og klikker på **Opprett vaktpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
 
 For hvert skjermbilde i oppsettet, og hva du gjør når et oppkall ikke kommer frem, følger du [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 

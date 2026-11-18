@@ -9,7 +9,7 @@ import path from "path";
  * time picker, Refresh and Auto-refresh. The hero put the controls beside
  * the name from the md breakpoint and kept their whole width, and the hero
  * sits beside the host's side menu: at a 768px window the name vanished
- * under the time picker and the Auto-refresh select ran 35px past the
+ * under the time picker and the Auto-refresh picker ran 35px past the
  * window, and at 1024 the name read "a.." with "Last seen" one word a
  * line. Every resource hero now lays its top row out the way the
  * Kubernetes cluster's does (ResourceHeroLayout): the name keeps its room
@@ -184,7 +184,10 @@ async function measureHeader(page: Page): Promise<HeaderLayout> {
         hero.querySelector(`[data-testid='${pickerTestId}']`),
         hero.querySelector(`[data-testid='${resetTestId}']`),
         hero.querySelector("button[title='Refresh now']"),
-        hero.querySelector("select"),
+        // The Auto-refresh picker: the shared Dropdown's box around its text box.
+        hero
+          .querySelector("input[aria-label='Auto-refresh']")
+          ?.closest(".ou-select__control") || null,
       ].filter((element: Element | null): element is Element => {
         return element !== null;
       });

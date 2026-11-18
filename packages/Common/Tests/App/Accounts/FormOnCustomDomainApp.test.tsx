@@ -216,7 +216,9 @@ describe("on a form's own domain", () => {
     expect(footer).not.toBeNull();
     expect(footer.querySelectorAll("a")).toHaveLength(0);
     expect(footer).not.toHaveTextContent("©");
-    expect(footer.querySelector("select, button")).not.toBeNull();
+    expect(
+      footer.querySelector('[data-testid="language-picker"]'),
+    ).not.toBeNull();
   });
 
   test("is light whatever the visitor picked, and whatever the device does", async () => {

@@ -464,13 +464,20 @@ ModelAPI.getList = async ({ modelType }) => {
 ModelAPI.getCommonHeaders = () => ({});
 ModelAPI.getItem = async () => null;
 /*
- * Whether the project has received telemetry: services that have reported.
- * The map is drawn from its eight services' traces, so it has
- * (Components/ProductOnboarding explains Topology only to a project with
- * none).
+ * Whether the project has received telemetry. The map is drawn from its
+ * eight services' traces, so its first traces have arrived - the mark
+ * Topology reads (ProjectMilestone first_traces_received; Components/
+ * ProductOnboarding explains Topology only to a project without it) - and
+ * its services have reported.
  */
-ModelAPI.count = async ({ modelType }) => {
-  return new modelType().tableName === "Service" ? 8 : 0;
+ModelAPI.count = async ({ modelType, query }) => {
+  const tableName = new modelType().tableName;
+
+  if (tableName === "ProjectMilestone") {
+    return query && query.milestone === "first_traces_received" ? 1 : 0;
+  }
+
+  return tableName === "Service" ? 8 : 0;
 };
 API.post = async ({ url, data }) => {
   const route = url.toString();

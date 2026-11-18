@@ -1,7 +1,5 @@
-import IconProp from "Common/Types/Icon/IconProp";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import LanguagePicker from "Common/UI/Components/LanguagePicker/LanguagePicker";
 import React, {
-  ChangeEvent,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -9,7 +7,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import UserLanguageUtil from "Common/UI/Utils/UserLanguage";
-import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
+import { SUPPORTED_LANGUAGES } from "../../Utils/i18n";
 import { switchAdminDashboardLanguage } from "../../Utils/AdminDashboardLanguageSwitch";
 
 export interface ComponentProps {
@@ -36,10 +34,9 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
     };
   }, [i18n]);
 
-  const onChange: (event: ChangeEvent<HTMLSelectElement>) => void = (
-    event: ChangeEvent<HTMLSelectElement>,
+  const onChange: (nextLanguage: string) => void = (
+    nextLanguage: string,
   ): void => {
-    const nextLanguage: string = event.target.value;
     /*
      * The language's words are a lazy chunk, loaded before the switch
      * (AdminDashboardLanguageSwitch): the control shows the pick at once,
@@ -58,36 +55,14 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div
-      className={
-        props.className ||
-        "flex items-center gap-1.5 text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700"
-      }
-    >
-      <Icon
-        icon={IconProp.Language}
-        size={SizeProp.Small}
-        className="h-4 w-4"
-      />
-      <label htmlFor="admin-dashboard-language-switcher" className="sr-only">
-        {t("language.switchLanguage")}
-      </label>
-      <select
-        id="admin-dashboard-language-switcher"
-        aria-label={t("language.switchLanguage")}
-        value={currentLanguage}
-        onChange={onChange}
-        className="cursor-pointer rounded border-0 bg-transparent p-0 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-      >
-        {SUPPORTED_LANGUAGES.map((language: SupportedLanguage) => {
-          return (
-            <option key={language.code} value={language.code}>
-              {language.nativeName}
-            </option>
-          );
-        })}
-      </select>
-    </div>
+    <LanguagePicker
+      inputId="admin-dashboard-language-switcher"
+      label={t("language.switchLanguage")}
+      languages={SUPPORTED_LANGUAGES}
+      value={currentLanguage}
+      onChange={onChange}
+      className={props.className}
+    />
   );
 };
 

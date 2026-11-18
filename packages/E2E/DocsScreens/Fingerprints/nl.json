@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Wat moeten we controleren?",
-      "OneUptime controleert dit elke 5 minuten. Er wordt een incident geopend wanneer elke locatie die het controleert een storing ziet: geen antwoord, of een antwoord met een fout.",
+      "OneUptime maakt een monitor die dit elke 5 minuten controleert vanaf 2 locaties. Er wordt een incident geopend wanneer ze allemaal een storing zien: geen antwoord, of een antwoord met een fout.",
       "Adres van de website of API",
       "Dit is een API-endpoint",
       "Beginnen met controleren",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: monitor",
+      "button: incident",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Beginnen met controleren",
@@ -209,8 +211,10 @@
       "Opslaan en doorgaan"
     ],
     "outline": [
+      "link: Hoe ik bereikbaar ben",
       "button: Teamleden toevoegen",
       "button: Ada Lovelace verwijderen",
+      "button: bereikbaarheidsbeleid",
       "button: Opslaan en doorgaan"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "Sms en oproepen aanzetten",
       "Mobiele app of browser",
       "Niet ingericht.",
-      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
-      "De app of deze browser inrichten",
+      "Ontvang oproepen op je telefoon met de OneUptime On-Call-app, of in deze browser.",
+      "Deze browser gebruiken",
+      "Download de app",
       "Doorgaan",
       "Opnieuw controleren"
     ],
     "outline": [
       "button: Tegoed toevoegen",
       "button: Sms en oproepen aanzetten",
-      "link: De app of deze browser inrichten",
+      "button: Deze browser gebruiken",
+      "button: Download de app",
       "button: Doorgaan",
       "button: Opnieuw controleren"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Stuur me een code per sms",
       "Mobiele app of browser",
       "Niet ingericht.",
-      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
-      "De app of deze browser inrichten",
+      "Ontvang oproepen op je telefoon met de OneUptime On-Call-app, of in deze browser.",
+      "Deze browser gebruiken",
+      "Download de app",
       "Doorgaan",
       "Opnieuw controleren",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Stuur me een code per sms",
-      "link: De app of deze browser inrichten",
+      "button: Deze browser gebruiken",
+      "button: Download de app",
       "button: Doorgaan",
       "button: Opnieuw controleren"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Wie is er nog meer bereikbaar?",
+      "Wie wordt als eerste opgeroepen?",
       "Hiermee wordt het bereikbaarheidsbeleid \"Standaard bereikbaarheidsbeleid\" aangemaakt. Het roept eerst deze mensen op, bij elk nieuw incident en elke nieuwe waarschuwing in dit project.",
       "Eerst opgeroepen",
       "Teamleden toevoegen",
       "AL",
       "Ada Lovelace",
+      "Iedereen hier wordt tegelijk opgeroepen. Wie je alleen oproept als niemand antwoordt, kies je in de volgende stap.",
+      "Uitnodigen per e-mail",
       "Opslaan en doorgaan"
     ],
     "outline": [
       "button: Teamleden toevoegen",
       "button: Ada Lovelace verwijderen",
+      "button: Uitnodigen per e-mail",
       "button: Opslaan en doorgaan"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Oproepen zijn ingericht",
       "Wie wordt opgeroepen",
-      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Standaard bereikbaarheidsbeleid\" uit, dat Ada Lovelace (E-mail, SMS, Telefoonoproep) oproept.",
+      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Standaard bereikbaarheidsbeleid\" uit, dat Ada Lovelace (e-mail, SMS en telefoonoproep meteen) oproept.",
       "Als niemand antwoordt",
       "Als niemand binnen 30 minuten bevestigt, wordt Grace Hopper opgeroepen.",
       "Getest",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 682
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Bereikbaarheid",
+      "De juiste persoon hoort het, elke keer",
+      "1",
+      "Een bereikbaarheidsbeleid maken",
+      "2",
+      "Roosters of mensen aan elke escalatieregel toevoegen",
+      "3",
+      "Het koppelen aan monitoren, incidenten en waarschuwingen",
+      "Begeleide installatie",
+      "Bereikbaarheidsbeleid aanmaken",
+      "Stapsgewijze handleiding",
+      "Documentatie"
+    ],
+    "outline": [
+      "heading: De juiste persoon hoort het, elke keer",
+      "button: Begeleide installatie",
+      "button: Bereikbaarheidsbeleid aanmaken",
+      "link: Stapsgewijze handleiding",
+      "link: Documentatie"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Escalatieregel toevoegen",
+      "Voegt niveau 2 van dit beleid toe: wie wordt opgeroepen, en wanneer.",
+      "Op de hoogte stellen",
+      "Bereikbaarheidsschema's roepen op wie er dienst heeft; Volgende in de rotatie roept de persoon daarna op. Teams roepen elk lid op.",
+      "Ontvanger toevoegen",
+      "Deze regel bepaalt wie wordt opgeroepen. Hoe elke persoon wordt bereikt, met welke methode en na hoe lang, staat in diens eigen Hoe ik bereikbaar ben.",
+      "Opgeroepen na (in minuten)",
+      "Hoe lang Level 1 op een bevestiging wacht voordat dit niveau wordt opgeroepen. Opgeslagen als de wachttijd van Level 1.",
+      "Meer velden· Naam, Beschrijving",
+      "Annuleren",
+      "Regel maken",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Escalatieregel toevoegen",
+      "button: Sluiten",
+      "button: Ontvanger toevoegen",
+      "link: Hoe ik bereikbaar ben",
+      "field number: 30",
+      "button: Meer velden· Naam, Beschrijving",
+      "button: Annuleren",
+      "button: Regel maken"
+    ],
+    "width": 512,
+    "height": 548
+  },
   "ingestion-keys": {
     "text": [
       "Ingestiesleutels",
@@ -543,18 +607,13 @@
       "Items 1-4 van 4",
       "Rijen per pagina",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Ingestiesleutels zoeken op naam, beschrijving…",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ingestiesleutels",
@@ -580,13 +639,13 @@
       "field checkbox: Ingestiesleutel: Marketing site selecteren",
       "button: Ingestiesleutel bekijken",
       "button: Meer acties voor Ingestiesleutel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Ga naar de vorige pagina",
       "button: Pagina 1",
       "button: Ga naar de volgende pagina"
     ],
     "width": 940,
-    "height": 516
+    "height": 518
   },
   "incident-feed": {
     "text": [

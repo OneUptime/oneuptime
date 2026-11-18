@@ -62,7 +62,7 @@ Ouvrez **Astreinte** depuis le menu **Produits** et allez dans **Plannings d'ast
 
 ### Créer une politique
 
-Allez dans **Politiques d'astreinte** et cliquez sur **Créer : Politique d'astreinte**. Sous **Qui est alerté en premier ?**, choisissez le planning. Il devient la première règle d'escalade de la politique, **Level 1**, qui attend 30 minutes une prise en compte.
+Allez dans **Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**. Sous **Qui est alerté en premier ?**, choisissez le planning. Il devient la première règle d'escalade de la politique, **Level 1**, qui attend 30 minutes une prise en compte.
 
 ### Ajouter les niveaux suivants
 
@@ -70,7 +70,7 @@ Sur la page **Règles d'escalade** de la politique, cliquez sur **Ajouter une r�
 
 ### Exécuter la politique automatiquement
 
-La première politique d'un projet peut le faire dès sa création : laissez **La déclencher pour chaque nouvel incident et chaque nouvelle alerte** activé. Pour toute autre politique, allez dans **Incidents → Règles → Règles d'astreinte** ou **Alertes → Règles → Règles d'astreinte** et ajoutez une règle qui l'exécute pour les incidents ou les alertes qu'elle cible, par exemple chaque incident critique. Voir [Ce qui exécute une politique](/docs/on-call/policies#ce-qui-exécute-une-politique).
+La première politique d'un projet peut le faire dès sa création : laissez **La déclencher pour chaque nouvel incident et chaque nouvelle alerte** activé. Une politique suivante reçoit la même question, désactivée au départ. Pour exécuter une politique pour certains incidents ou certaines alertes seulement, par exemple chaque incident critique, allez dans **Incidents → Règles → Règles d'astreinte** ou **Alertes → Règles → Règles d'astreinte** et ajoutez une règle qui les cible. Voir [Ce qui exécute une politique](/docs/on-call/policies#ce-qui-exécute-une-politique).
 
 ### Vérifier que tout le monde est joignable
 

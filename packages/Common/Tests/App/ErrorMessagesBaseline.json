@@ -573,7 +573,7 @@
   "packages/Common/Server/Utils/Workspace/Slack/Messages/Monitor.ts": 1,
   "packages/Common/Server/Utils/Workspace/Slack/Messages/ScheduledMaintenance.ts": 1,
   "packages/Common/Server/Utils/Workspace/Slack/Slack.ts": 1,
-  "packages/Common/Server/Utils/Workspace/Slack/SlackOrganization.ts": 2,
+  "packages/Common/Server/Utils/Workspace/Slack/SlackOrganization.ts": 1,
   "packages/Common/Server/Utils/Workspace/Workspace.ts": 1,
   "packages/Common/Server/Utils/Workspace/WorkspaceActionAuthorization.ts": 4,
   "packages/Common/Server/Utils/Workspace/WorkspaceIncidentActions.ts": 1,

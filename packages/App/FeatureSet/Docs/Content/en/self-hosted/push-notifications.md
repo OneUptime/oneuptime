@@ -120,6 +120,10 @@ Device connectivity is a separate requirement. iOS devices need APNs access, typ
 
 For mobile pushes, OneUptime also reads Expo's delivery receipt about 15 minutes after each push: a push that never reached the device then shows as not delivered in the push log and, for an on-call page, on the on-call timeline.
 
+## Sending a Test Push
+
+A master admin can check push from the server's side: **Send test push**, in **Admin Dashboard > Settings > Push Notifications**, pushes a test to the phones and browsers they registered, and to nobody else. When nothing can go out, it says why: push is turned off, nothing is registered, or the server has no VAPID keys for a browser.
+
 ## Turning Push Off for the Whole Server
 
 If nothing may leave your network through Expo, the push relay or a browser's push service, a master admin can turn push off in **Admin Dashboard > Settings > Push Notifications**: turn **Send push notifications** off and confirm.
@@ -251,6 +255,10 @@ To bring the device back, open the mobile app on it while signed in. The app reg
 Through the push relay (no `EXPO_ACCESS_TOKEN`) this works the same way: the relay reports `DeviceNotRegistered` when it sends a push, and reads the delivery receipts your instance asks it about.
 
 If none of this helps, contact us at [hello@oneuptime.com](mailto:hello@oneuptime.com) with the errors from your OneUptime logs.
+
+### The Admin Dashboard says push is failing
+
+The Admin Dashboard says push is failing when the server's own push notifications have stopped going out: the push relay, Expo Push or Web Push refused them, or could not be reached. It says since when, and what was answered. A push one device refused, such as one to an app that was uninstalled, doesn't count. Once a push goes out again, push reads as working. Send a test push to check.
 
 ## Next steps
 

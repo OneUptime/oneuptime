@@ -179,7 +179,7 @@
     "text": [
       "1",
       "Was sollen wir prüfen?",
-      "OneUptime prüft es alle 5 Minuten. Ein Vorfall wird eröffnet, wenn jeder Standort, der es prüft, einen Ausfall feststellt: keine Antwort oder eine Fehlerantwort.",
+      "OneUptime erstellt einen Monitor, der es alle 5 Minuten von 2 Standorten aus prüft. Ein Vorfall wird eröffnet, wenn alle einen Ausfall feststellen: keine Antwort oder eine Fehlerantwort.",
       "Adresse der Website oder API",
       "Dies ist ein API-Endpunkt",
       "Prüfung starten",
@@ -188,6 +188,8 @@
       "checkbox: off"
     ],
     "outline": [
+      "button: Monitor",
+      "button: Vorfall",
       "field text: https://example.com",
       "field checkbox: ",
       "button: Prüfung starten",
@@ -209,8 +211,10 @@
       "Speichern und weiter"
     ],
     "outline": [
+      "link: Wie ich erreichbar bin",
       "button: Teammitglieder hinzufügen",
       "button: Ada Lovelace entfernen",
+      "button: Bereitschaftsrichtlinie",
       "button: Speichern und weiter"
     ],
     "width": 768,
@@ -275,20 +279,22 @@
       "SMS und Anrufe einschalten",
       "Mobile App oder Browser",
       "Nicht eingerichtet.",
-      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
-      "App oder diesen Browser einrichten",
+      "Erhalte Alarmierungen auf deinem Telefon mit der OneUptime On-Call App oder in diesem Browser.",
+      "Diesen Browser verwenden",
+      "App herunterladen",
       "Weiter",
       "Erneut prüfen"
     ],
     "outline": [
       "button: Guthaben aufladen",
       "button: SMS und Anrufe einschalten",
-      "link: App oder diesen Browser einrichten",
+      "button: Diesen Browser verwenden",
+      "button: App herunterladen",
       "button: Weiter",
       "button: Erneut prüfen"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +310,9 @@
       "Code per SMS senden",
       "Mobile App oder Browser",
       "Nicht eingerichtet.",
-      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
-      "App oder diesen Browser einrichten",
+      "Erhalte Alarmierungen auf deinem Telefon mit der OneUptime On-Call App oder in diesem Browser.",
+      "Diesen Browser verwenden",
+      "App herunterladen",
       "Weiter",
       "Erneut prüfen",
       "placeholder: +15551234567"
@@ -313,31 +320,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Code per SMS senden",
-      "link: App oder diesen Browser einrichten",
+      "button: Diesen Browser verwenden",
+      "button: App herunterladen",
       "button: Weiter",
       "button: Erneut prüfen"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Wer hat sonst Bereitschaft?",
+      "Wer wird zuerst alarmiert?",
       "Dadurch wird die Bereitschaftsrichtlinie „Standard-Bereitschaftsrichtlinie“ erstellt. Sie alarmiert zuerst diese Personen, bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt.",
       "Zuerst alarmiert",
       "Teammitglieder hinzufügen",
       "AL",
       "Ada Lovelace",
+      "Alle hier werden gleichzeitig alarmiert. Wen du nur alarmieren willst, wenn niemand antwortet, legst du im nächsten Schritt fest.",
+      "Per E-Mail einladen",
       "Speichern und weiter"
     ],
     "outline": [
       "button: Teammitglieder hinzufügen",
       "button: Ada Lovelace entfernen",
+      "button: Per E-Mail einladen",
       "button: Speichern und weiter"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +400,7 @@
     "text": [
       "Die Alarmierung ist eingerichtet",
       "Wer alarmiert wird",
-      "Jeder neue Vorfall und jede neue Warnung führt „Standard-Bereitschaftsrichtlinie“ aus, das Ada Lovelace (E-Mail, SMS, Telefonanruf) alarmiert.",
+      "Jeder neue Vorfall und jede neue Warnung führt „Standard-Bereitschaftsrichtlinie“ aus, das Ada Lovelace (E-Mail, SMS und Telefonanruf sofort) alarmiert.",
       "Wenn niemand antwortet",
       "Bestätigt niemand innerhalb von 30 Minuten, wird Grace Hopper alarmiert.",
       "Getestet",
@@ -506,6 +517,59 @@
     "width": 768,
     "height": 702
   },
+  "on-call-policies-guided-setup": {
+    "text": [
+      "Bereitschaft",
+      "Die richtige Person erfährt davon, jedes Mal",
+      "1",
+      "Bereitschaftsrichtlinie erstellen",
+      "2",
+      "Jeder Eskalationsregel Zeitpläne oder Personen hinzufügen",
+      "3",
+      "Mit Monitoren, Vorfällen und Warnungen verbinden",
+      "Geführte Einrichtung",
+      "Bereitschaftsrichtlinie erstellen",
+      "Schritt-für-Schritt-Anleitung",
+      "Dokumentation"
+    ],
+    "outline": [
+      "heading: Die richtige Person erfährt davon, jedes Mal",
+      "button: Geführte Einrichtung",
+      "button: Bereitschaftsrichtlinie erstellen",
+      "link: Schritt-für-Schritt-Anleitung",
+      "link: Dokumentation"
+    ],
+    "width": 417,
+    "height": 401
+  },
+  "escalation-rule-paged-after": {
+    "text": [
+      "Eskalationsregel hinzufügen",
+      "Fügt Stufe 2 dieser Richtlinie hinzu: wer alarmiert wird, und wann.",
+      "Benachrichtigen",
+      "Bereitschaftspläne benachrichtigen, wer gerade Bereitschaft hat; Nächste in der Rotation benachrichtigt die Person danach. Teams benachrichtigen jedes Mitglied.",
+      "Empfänger hinzufügen",
+      "Diese Regel legt fest, wer alarmiert wird. Wie jede Person erreicht wird, mit welcher Methode und nach welcher Zeit, legt sie selbst fest: Wie ich erreichbar bin.",
+      "Alarmiert nach (in Minuten)",
+      "Wie lange Level 1 auf eine Bestätigung wartet, bevor diese Stufe alarmiert wird. Wird als Wartezeit von Level 1 gespeichert.",
+      "Weitere Felder· Name, Beschreibung",
+      "Abbrechen",
+      "Regel erstellen",
+      "value: 30"
+    ],
+    "outline": [
+      "heading: Eskalationsregel hinzufügen",
+      "button: Schließen",
+      "button: Empfänger hinzufügen",
+      "link: Wie ich erreichbar bin",
+      "field number: 30",
+      "button: Weitere Felder· Name, Beschreibung",
+      "button: Abbrechen",
+      "button: Regel erstellen"
+    ],
+    "width": 512,
+    "height": 568
+  },
   "ingestion-keys": {
     "text": [
       "Ingestion-Schlüssel",
@@ -543,18 +607,13 @@
       "Einträge 1-4 von 4",
       "Zeilen pro Seite",
       "10",
-      "20",
-      "25",
-      "50",
-      "100",
       "1",
       "placeholder: Ingestion-Schlüssel nach Name, Beschreibung… durchsuchen",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
       "checkbox: off",
-      "checkbox: off",
-      "value: 10"
+      "checkbox: off"
     ],
     "outline": [
       "heading: Ingestion-Schlüssel",
@@ -580,13 +639,13 @@
       "field checkbox: Ingestion-Schlüssel: Marketing site auswählen",
       "button: Ingestion-Schlüssel anzeigen",
       "button: Weitere Aktionen für Ingestion-Schlüssel: Marketing site",
-      "field: 10 20 25 50 100",
+      "combobox: ",
       "button: Zur vorherigen Seite",
       "button: Seite 1",
       "button: Zur nächsten Seite"
     ],
     "width": 940,
-    "height": 540
+    "height": 542
   },
   "incident-feed": {
     "text": [

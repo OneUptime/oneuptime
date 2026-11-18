@@ -251,7 +251,7 @@ function createDeferred(): Deferred {
 
 async function waitForLoaderToGo(): Promise<void> {
   await waitFor(() => {
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("table-skeleton")).not.toBeInTheDocument();
   });
 }
 
@@ -951,7 +951,7 @@ describe("MicrosoftTeamsChatsCard — what a screen reader hears after Refresh C
     });
 
     // Loading: the list has been swapped for the loader...
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     /*
      * ...but the region is the same node, and it has been emptied so the

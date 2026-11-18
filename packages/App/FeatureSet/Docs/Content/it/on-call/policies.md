@@ -12,15 +12,19 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 ## Creare una policy
 
 :::steps
-1. Andate in **Reperibilità → Policy di reperibilità** e fate clic su **Crea: Policy di reperibilità**.
+1. Andate in **Reperibilità → Policy di reperibilità** e fate clic su **Crea policy di reperibilità**.
 2. Inserite un **Nome**, per esempio «Pagamenti primaria».
 3. In **Chi viene avvisato per primo?**, fate clic su **Aggiungi destinatario** e scegliete le pianificazioni di reperibilità, i team e le persone da avvisare per primi.
-4. Fate clic su **Crea: Policy di reperibilità**. La policy si apre sulla sua pagina **Regole di escalation**, con **Level 1** già al suo posto.
+4. Fate clic su **Crea policy di reperibilità**. La policy si apre sulla sua pagina **Regole di escalation**, con **Level 1** già al suo posto.
 :::
 
 **Chi viene avvisato per primo?** è facoltativo, e viene chiesto solo a chi può aggiungere regole di escalation: se resta vuoto, la policy non avvisa nessuno finché non ha una regola. **Descrizione** ed **Etichette** si trovano in **Altri campi**. Per aggiungere i livelli successivi, vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
-Per la prima policy di un progetto, il modulo chiede anche **Attivarla per ogni nuovo incidente e ogni nuovo avviso**, attivo all'inizio. Aggiunge una regola in **Incidenti → Regole → Regole di reperibilità** e una in **Avvisi → Regole → Regole di reperibilità**, che corrispondono a tutto ed eseguono questa policy. Viene chiesto solo a chi può aggiungere regole di reperibilità, finché il progetto non ha né una policy di reperibilità né una regola di reperibilità.
+Il modulo chiede anche **Attivarla per ogni nuovo incidente e ogni nuovo avviso** a chi può aggiungere regole di reperibilità. Aggiunge una regola in **Incidenti → Regole → Regole di reperibilità** e una in **Avvisi → Regole → Regole di reperibilità**, che corrispondono a tutto ed eseguono questa policy. È attivo all'inizio per la prima policy di un progetto, finché il progetto non ha né una policy di reperibilità né una regola di reperibilità, e disattivato per le successive: attivare due policy per ogni nuovo incidente e ogni nuovo avviso è una scelta da fare. Se resta disattivato, la policy non chiama nessuno finché una regola, un monitor o una persona non la esegue.
+
+![La spiegazione dell'elenco «Policy di reperibilità» vuoto, con «Configurazione guidata» evidenziato](screen:on-call-policies-guided-setup)
+
+Per farvi guidare passo dopo passo, dal telefono fino a una chiamata di prova, fate clic su **Configurazione guidata**: nell'elenco vuoto **Policy di reperibilità** o in **Come funziona**. Vedi [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 
 L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
 
@@ -96,6 +100,24 @@ Nessuno perde un avviso per essere stato avvisato una volta sola. Quell'unico av
 Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno che hanno avvisato o finché non viene risolto: un nuovo avviso, un avviso agli osservatori, un avviso che qualcuno ha mandato a delle persone da Slack o Microsoft Teams, e una policy avviata a mano.
 
 Una policy avviata a mano è una policy avviata con **Esegui policy di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché: la dashboard disattiva **Esegui policy di reperibilità** e ne mostra il motivo. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
+
+## Testare una policy
+
+**Testa questa policy**, nelle regole di escalation di una policy, chiama il suo primo livello come test, senza alcun incidente dietro: ogni messaggio dice TEST, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Attiva **Percorri ogni livello di escalation** per chiamare ogni livello a turno, a non più di 2 minuti l'uno dall'altro, finché qualcuno non lo riconosce. Prima di inviare qualsiasi cosa, la finestra di dialogo elenca chi chiama il test e come, e quanto costa su OneUptime Cloud.
+
+**Invia chiamata di test** resta disattivato finché il test non raggiungerebbe nessuno: ogni persona che chiama ha disattivato quella gravità, non ha alcuna regola per essa né nulla su cui ripiegare, oppure ha solo metodi non verificati o disattivati nel progetto. Una riga sotto l'elenco spiega perché. Quando si può raggiungere solo un livello successivo, la riga offre **Percorri ogni livello di escalation** con un clic.
+
+Chi viene chiamato riconosce il test da uno qualsiasi dei suoi messaggi: il link di un'email, di un SMS o di un messaggio di chat, l'1 di una chiamata, o la sua notifica push nell'app OneUptime On-Call, nelle versioni successive alla 1.6.0. Una policy può essere testata una volta ogni 5 minuti, e un progetto invia al massimo 20 test all'ora.
+
+### Fare un'esercitazione su un monitor
+
+**Fai un'esercitazione**, sulla scheda **Quando va giù** di un monitor, prova uno dei suoi guasti: un incidente o un avviso che apre uno dei suoi criteri, oppure l'incidente che una regola di incidente degli avvisi dichiara da un tale avviso. Testa ogni policy di reperibilità che quel guasto chiamerebbe, ognuna come la testa **Testa questa policy**, e non accade nulla di pubblico: non viene creato alcun incidente né avviso, e nessuna pagina di stato, nessun iscritto e nessun canale viene informato. Prima di inviare qualsiasi cosa, la finestra di dialogo nomina il guasto, ogni policy e chi quella policy chiama ora. Per un incidente dichiarato, nomina anche la regola e per quanto tempo l'avviso resta aperto prima: l'esercitazione testa subito le policy dell'incidente, senza quell'attesa.
+
+Un'esercitazione chiama il primo livello di ogni policy. In **Altri campi**, attiva **Percorri ogni livello di escalation** per chiamare a turno i livelli di ogni policy, a non più di 2 minuti l'uno dall'altro, finché qualcuno non riconosce: la finestra di dialogo elenca allora ogni livello che ogni policy raggiunge, e quanto costa al massimo il percorso. Quando nessuno ai primi livelli è raggiungibile ma un livello successivo sì, la riga sotto l'elenco offre **Percorri ogni livello di escalation** con un clic.
+
+**Avvia esercitazione** resta disattivato finché una di quelle policy è una che non puoi testare, perché non puoi modificarla, o finché nessuna delle persone che chiamano può essere raggiunta. Ogni policy di un'esercitazione conta come un test a sé: una policy testata negli ultimi 5 minuti blocca tutta l'esercitazione, e un'esercitazione di tre policy occupa tre dei 20 test all'ora del progetto.
+
+Chiusa la finestra di dialogo, **Ultima esercitazione** sulla scheda dice quale guasto ha provato l'ultima esercitazione del monitor, quando e da chi è stata avviata, e quanti dei suoi test sono stati riconosciuti. **Mostra dettagli** elenca il test di ogni policy: se è stato riconosciuto, da chi, con quale mezzo e in quanto tempo. Ogni test resta nei log di esecuzione della sua policy, segnato come esercitazione del monitor. I risultati di un'esercitazione li vede chi può leggere il monitor e ognuno di quei log di esecuzione.
 
 ## Log di esecuzione
 

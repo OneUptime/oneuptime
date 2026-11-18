@@ -17,9 +17,26 @@ import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import { parseMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
+import {
+  MessageQueueMetricDescriptor,
+  getMessageQueueMetricId,
+  getMessageQueueMetricsForSystem,
+} from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import {
+  MessageQueueAlertTemplate,
+  getAllMessageQueueAlertTemplates,
+} from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import OneUptimeDate from "Common/Types/Date";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { getCloudAppTelemetryFilters } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import { isCloudAppTelemetryScoped } from "Common/Types/Monitor/CloudAppAlertTemplates";
+import {
+  getServerlessFunctionTelemetryFilters,
+  isServerlessFunctionTelemetryScoped,
+} from "Common/Types/Monitor/ServerlessAlertTemplates";
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import {
   CloudAlertTemplate,
@@ -292,6 +309,166 @@ export function describeCloudAppRecommendationContext(
     : translateTemplate(
         "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.",
       );
+}
+
+/*
+ * What a serverless function's row says that decides its recommendations:
+ * its faas.name, the filter its own Traces tab reads its spans by.
+ */
+export function readServerlessFunctionRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  return {
+    serverlessFunctionTelemetryFilters: getServerlessFunctionTelemetryFilters(
+      record["functionIdentifier"],
+    ),
+  };
+}
+
+// Why a function is offered nothing, or undefined when it is offered them all.
+export function describeServerlessFunctionRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  if (
+    isServerlessFunctionTelemetryScoped(
+      context.serverlessFunctionTelemetryFilters,
+    )
+  ) {
+    return undefined;
+  }
+
+  return translateTemplate(
+    "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.",
+  );
+}
+
+/*
+ * How far back a queue's broker metrics are looked for: a week, as its
+ * Broker metrics card says when each last arrived. A metric not seen in a
+ * week is not one a monitor should be made over.
+ */
+export const MESSAGE_QUEUE_RECOMMENDATION_LOOKBACK_DAYS: number = 7;
+
+/*
+ * What a queue's row says that decides its recommendations: the queue its
+ * broker's series must resolve to. Which metrics its broker sends is read
+ * from its telemetry (loadMessageQueueRecommendationContext); read alone,
+ * a queue is offered nothing yet.
+ */
+export function readMessageQueueRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  const identifier: unknown = record["queueIdentifier"];
+
+  return {
+    messageQueueIdentity:
+      typeof identifier === "string" && identifier.trim()
+        ? parseMessageQueueIdentifier(identifier)
+        : null,
+    messageQueueObservedSeries: null,
+  };
+}
+
+/*
+ * The catalog entries of a queue's system a template exists for: the only
+ * metrics worth asking its telemetry about.
+ */
+export function getMessageQueueRecommendableMetrics(
+  messagingSystem: unknown,
+): Array<MessageQueueMetricDescriptor> {
+  const templated: Set<string> = new Set<string>(
+    getAllMessageQueueAlertTemplates().map(
+      (template: MessageQueueAlertTemplate): string => {
+        return template.metricId;
+      },
+    ),
+  );
+
+  return getMessageQueueMetricsForSystem(
+    typeof messagingSystem === "string" ? messagingSystem : null,
+  ).filter((descriptor: MessageQueueMetricDescriptor): boolean => {
+    return templated.has(getMessageQueueMetricId(descriptor));
+  });
+}
+
+/*
+ * The series the queue's broker reported in the last week for each metric
+ * a template reads, as its Overview reads them for "Create monitor"
+ * (fetchMessageQueueObservedSeries). A queue with no key, or a read that
+ * fails, keeps the row's context: nothing is offered, never an unscoped
+ * monitor.
+ */
+export async function loadMessageQueueRecommendationContext(data: {
+  model: BaseModel;
+  context: MonitorRecommendationContext;
+}): Promise<MonitorRecommendationContext> {
+  const record: Record<string, unknown> = data.model as unknown as Record<
+    string,
+    unknown
+  >;
+
+  // Imported here: the telemetry client reads the browser's config as it loads.
+  const scope: typeof import("../MessageQueue/MessageQueueTelemetryScope") =
+    await import("../MessageQueue/MessageQueueTelemetryScope");
+  const queries: typeof import("../MessageQueue/MessageQueueTelemetryQueries") =
+    await import("../MessageQueue/MessageQueueTelemetryQueries");
+  // The row's own project: what its telemetry key is made of.
+  const projectId: ObjectID | string | null =
+    (record["projectId"] as ObjectID | string | undefined) || null;
+  const keys: Array<string> = scope.getMessageQueueScopeKeys({
+    projectId: projectId,
+    queueIdentifier: record["queueIdentifier"] as string | undefined,
+  });
+
+  if (!scope.isMessageQueueScoped(keys)) {
+    return data.context;
+  }
+
+  const end: Date = OneUptimeDate.getCurrentDate();
+  const start: Date = OneUptimeDate.addRemoveDays(
+    end,
+    -MESSAGE_QUEUE_RECOMMENDATION_LOOKBACK_DAYS,
+  );
+
+  const observed: Record<string, Array<Record<string, string>>> = {};
+
+  await Promise.all(
+    getMessageQueueRecommendableMetrics(record["messagingSystem"]).map(
+      async (descriptor: MessageQueueMetricDescriptor): Promise<void> => {
+        const series: Array<Record<string, string>> =
+          await queries.fetchMessageQueueObservedSeries({
+            projectId: projectId,
+            keys: keys,
+            start: start,
+            end: end,
+            descriptor: descriptor,
+          });
+
+        if (series.length > 0) {
+          observed[getMessageQueueMetricId(descriptor)] = series;
+        }
+      },
+    ),
+  );
+
+  return { ...data.context, messageQueueObservedSeries: observed };
+}
+
+// Why a queue is offered nothing, or undefined when it is offered something.
+export function describeMessageQueueRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  const reported: number = Object.keys(
+    context.messageQueueObservedSeries || {},
+  ).length;
+
+  if (reported > 0) {
+    return undefined;
+  }
+
+  return translateTemplate(
+    "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.",
+  );
 }
 
 // Whether a cloud resource is an RDS DB instance: the one type with a connection limit.
@@ -1245,6 +1422,54 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         monitor: data.monitor,
         cloudResourceId: new ObjectID(data.context.cloudAppEnvironmentId),
       });
+    },
+  },
+  /*
+   * A serverless function: its telemetry is selected by its faas.name (the
+   * row's functionIdentifier), as its Traces tab selects it, so `_id` is
+   * the identifier and the faas.name is context - a function renamed in
+   * OneUptime keeps its monitors.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+    modelType: ServerlessFunction,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: ["functionIdentifier"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readServerlessFunctionRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    describeContext: describeServerlessFunctionRecommendationContext,
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.",
+      );
+    },
+  },
+  /*
+   * A message queue: its monitors filter on the series its broker reported
+   * for it, read from telemetry, so `_id` is the identifier and the queue's
+   * identifier and system are context.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.MessageQueue,
+    modelType: MessageQueue,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: ["queueIdentifier", "messagingSystem", "projectId"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readMessageQueueRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    loadContext: loadMessageQueueRecommendationContext,
+    describeContext: describeMessageQueueRecommendationContext,
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.",
+      );
     },
   },
 ];

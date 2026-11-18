@@ -296,12 +296,8 @@ function PeopleSearch(props: {
       onOpen={props.onOpen}
       dataTestId="product-analytics-people-search-slot"
     >
-      <div
+      <label
         className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-        onClick={(): void => {
-          props.inputRef.current?.focus();
-        }}
-        role="presentation"
       >
         <Icon
           icon={IconProp.Search}
@@ -353,7 +349,7 @@ function PeopleSearch(props: {
         ) : (
           <></>
         )}
-      </div>
+      </label>
     </TableHeaderSearchSlot>
   );
 }

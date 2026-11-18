@@ -168,7 +168,7 @@ describe("EnterprisePluginPage (Admin Dashboard)", () => {
       <EnterprisePluginPage plugin={makeLazyPlugin(true)} upsell={UPSELL} />,
     );
 
-    expect(await screen.findByTestId("component-loader")).toBeInTheDocument();
+    expect(await screen.findByTestId("page-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       releaseLazyPlugin?.();

@@ -1,4 +1,5 @@
 import FormsCopy from "./FormsCopy";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { FORM_EXAMPLE_DOMAIN, getFormShareLink } from "./FormShareLink";
 import {
   CustomDomainModel,
@@ -14,7 +15,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -160,7 +160,7 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
         description={FormsCopy.shareLinkDescription}
       >
         {isLoading ? (
-          <ComponentLoader />
+          <DetailListSkeleton fields={1} columns={1} />
         ) : (
           <ErrorMessage message={error || FormsCopy.shareLinkNotFound} />
         )}

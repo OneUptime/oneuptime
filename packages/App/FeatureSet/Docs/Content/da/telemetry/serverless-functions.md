@@ -188,6 +188,7 @@ Så snart funktionen sender et span, en log eller en metrik, vises den under **S
 - **Kald**, **fejlrate** og **p95-varighed**, beregnet ud fra dine traces over et tidsinterval, du vælger, med trenddiagrammer.
 - **Instanser**: en live liste over de `faas.instance`-værdier, funktionen rapporterer.
 - Fulde sider **Protokoller**, **Spor** og **Metrikker**, afgrænset til denne funktion.
+- **Anbefalinger**: færdige monitorer for funktionens mislykkede kald og fejlbølger, læst fra dens egne spans ud fra dens `faas.name`. Vælg dem, du vil have, og opret dem i ét trin.
 
 En funktion viser **Modtager data**, mens dens telemetri kommer, og **Ingen nylige kald** efter 15 minutter uden telemetri, hvilket er normalt mellem kørslerne: en funktion sender kun telemetri, mens den kører. En funktion, der er tilføjet via API'et, viser **Venter på data**, indtil dens første telemetri kommer.
 

@@ -47,7 +47,6 @@ describe("the resource showcase in the dark theme", () => {
         "text-gray-900",
         "text-gray-600",
         "text-gray-500",
-        "text-gray-400",
         // The eyebrow and the icons.
         "bg-indigo-50",
         "border-indigo-100",

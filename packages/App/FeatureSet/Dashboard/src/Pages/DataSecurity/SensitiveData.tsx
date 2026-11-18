@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
 import { downloadRecordOfProcessing } from "../../Components/DataSecurity/ComplianceExport";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
@@ -30,7 +31,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -331,7 +331,7 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
       />
     );
   } else if (!findings) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton />;
   } else if (rows.length === 0) {
     body = (
       <TableEmptyState

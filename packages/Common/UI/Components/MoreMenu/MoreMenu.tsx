@@ -13,6 +13,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import { consumePressForAnchoredPopup } from "../../Types/LayeredDismissal";
 import Icon from "../Icon/Icon";
+import Button, { ComponentProps as ButtonProps } from "../Button/Button";
 import { getMoreMenuBareTriggerClassName } from "./MoreMenuTriggerStyle";
 import DROPDOWN_MENU_Z_INDEX from "../Dropdown/DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
@@ -179,6 +180,17 @@ const MoreMenu: React.ForwardRefExoticComponent<
     const isNativeButtonTrigger: boolean = Boolean(
       customTrigger && customTrigger.type === "button",
     );
+    /*
+     * The shared Button as the trigger - an empty paging ladder's primary
+     * "Add a way to reach you" - drawn by Button, with the menu's id, aria
+     * and click handed to it, as a native <button> trigger is. It used to
+     * have to be a <button> drawn by hand in the Button's colours (#9195).
+     */
+    const isSharedButtonTrigger: boolean = Boolean(
+      customTrigger && customTrigger.type === Button,
+    );
+    const isButtonTrigger: boolean =
+      isNativeButtonTrigger || isSharedButtonTrigger;
     const { ref, isComponentVisible, setIsComponentVisible } =
       useComponentOutsideClick(false);
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
@@ -767,6 +779,41 @@ const MoreMenu: React.ForwardRefExoticComponent<
         });
       };
 
+    const getSharedButtonTrigger: () => ReactElement | null =
+      (): ReactElement | null => {
+        if (!customTrigger || !isSharedButtonTrigger) {
+          return null;
+        }
+
+        const trigger: ReactElement<ButtonProps> =
+          customTrigger as ReactElement<ButtonProps>;
+        const isTriggerDisabled: boolean = Boolean(
+          props.isDisabled || trigger.props.disabled,
+        );
+
+        return React.cloneElement(trigger, {
+          id: buttonId,
+          disabled: isTriggerDisabled,
+          className: [trigger.props.className, props.triggerClassName]
+            .filter(Boolean)
+            .join(" "),
+          ariaLabel: trigger.props.ariaLabel || ariaLabel || undefined,
+          isAriaLabelTranslated: trigger.props.ariaLabel
+            ? trigger.props.isAriaLabelTranslated
+            : true,
+          ariaHaspopup: "menu",
+          ariaExpanded: isComponentVisible,
+          ariaControls: isComponentVisible ? menuId : undefined,
+          onClick: (): void => {
+            trigger.props.onClick?.();
+
+            if (!isTriggerDisabled) {
+              setIsComponentVisible(!isDropdownVisible);
+            }
+          },
+        });
+      };
+
     const isMenuAbove: boolean = isMenuPortaled
       ? Boolean(portaledMenuPosition?.isAbove)
       : Boolean(props.isOpeningUpwards);
@@ -887,9 +934,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
         )}
 
         {getNativeButtonTrigger()}
+        {getSharedButtonTrigger()}
 
         {props.elementToBeShownInsteadOfButton &&
-          !isNativeButtonTrigger &&
+          !isButtonTrigger &&
           props.triggerClassName && (
             <button
               id={buttonId}
@@ -910,7 +958,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
           )}
 
         {props.elementToBeShownInsteadOfButton &&
-          !isNativeButtonTrigger &&
+          !isButtonTrigger &&
           !props.triggerClassName && (
             <div
               /*

@@ -1,4 +1,6 @@
 import PageComponentProps from "../../Pages/PageComponentProps";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -175,7 +177,6 @@ import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -184,7 +185,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -644,7 +644,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           {loadError ? (
             <ErrorMessage message={loadError} />
           ) : isLoading || !saved || !offered ? (
-            <ComponentLoader />
+            <DetailListSkeleton fields={3} columns={1} />
           ) : (
             <BasicForm
               ref={formRef}
@@ -1277,7 +1277,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     return (
       <Fragment>
         {heading}
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       </Fragment>
     );
   }

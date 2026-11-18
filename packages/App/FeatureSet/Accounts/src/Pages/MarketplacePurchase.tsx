@@ -3,6 +3,7 @@ import {
   MARKETPLACE_PURCHASE_DETAILS_API_URL,
   MARKETPLACE_PURCHASE_DISMISS_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import MarketplacePurchaseUtil from "../Utils/MarketplacePurchase";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -16,10 +17,17 @@ import {
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import API from "Common/UI/Utils/API/API";
 import MarketplacePendingPurchase from "Common/UI/Utils/MarketplacePendingPurchase";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -227,7 +235,7 @@ const MarketplacePurchase: () => JSX.Element = () => {
   };
 
   if (state.kind === "loading") {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={2} />;
   }
 
   if (state.kind === "redirecting") {
@@ -278,6 +286,45 @@ const MarketplacePurchase: () => JSX.Element = () => {
   const marketplace: string = details.marketplaceName;
   const eligibleProjects: Array<MarketplacePurchaseProject> =
     MarketplacePurchaseUtil.getEligibleProjects(details);
+  // Each plan with its price, in the reader's language.
+  const planOptions: Array<DropdownOption> = details.plans.map(
+    (plan: MarketplacePurchasePlan): DropdownOption => {
+      return {
+        value: plan.planId,
+        label:
+          plan.monthlyPricePerUserInUSD > 0
+            ? t("marketplacePurchase.planOption", {
+                name: plan.name,
+                price: MarketplacePurchaseUtil.formatPrice(
+                  plan.monthlyPricePerUserInUSD,
+                ),
+              })
+            : t("marketplacePurchase.planOptionFree", { name: plan.name }),
+        isUserContent: true,
+        isInPageDirection: true,
+      };
+    },
+  );
+  /*
+   * Each project by its name, drawn as written. One the person cannot link
+   * is listed but never picked, its words saying why.
+   */
+  const projectOptions: Array<DropdownOption> = details.projects.map(
+    (project: MarketplacePurchaseProject): DropdownOption => {
+      return {
+        value: project.id,
+        label: project.isEligible
+          ? project.name
+          : t(
+              `marketplacePurchase.projectRefusal.${project.refusal || "not_billing_manager"}`,
+              { name: project.name },
+            ),
+        isUserContent: true,
+        isInPageDirection: !project.isEligible,
+        isDisabled: !project.isEligible,
+      };
+    },
+  );
 
   if (details.linkedProjectId) {
     return renderCard(
@@ -453,39 +500,30 @@ const MarketplacePurchase: () => JSX.Element = () => {
                           >
                             {t("marketplacePurchase.planLabel")}
                           </label>
-                          <select
-                            id="marketplace-purchase-plan"
-                            data-testid="marketplace-purchase-plan"
-                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            value={planId}
-                            disabled={isSubmitting}
-                            onChange={(
-                              event: React.ChangeEvent<HTMLSelectElement>,
-                            ) => {
-                              setPlanId(event.target.value);
-                            }}
-                          >
-                            {details.plans.map(
-                              (plan: MarketplacePurchasePlan) => {
-                                return (
-                                  <option key={plan.planId} value={plan.planId}>
-                                    {plan.monthlyPricePerUserInUSD > 0
-                                      ? t("marketplacePurchase.planOption", {
-                                          name: plan.name,
-                                          price:
-                                            MarketplacePurchaseUtil.formatPrice(
-                                              plan.monthlyPricePerUserInUSD,
-                                            ),
-                                        })
-                                      : t(
-                                          "marketplacePurchase.planOptionFree",
-                                          { name: plan.name },
-                                        )}
-                                  </option>
-                                );
-                              },
-                            )}
-                          </select>
+                          <div data-testid="marketplace-purchase-plan">
+                            <Dropdown
+                              inputId="marketplace-purchase-plan"
+                              className="relative mt-1 w-full overflow-visible"
+                              options={planOptions}
+                              value={findDropdownOption(planOptions, planId)}
+                              // A new project always starts on a plan.
+                              isClearable={false}
+                              disabled={isSubmitting}
+                              onChange={(
+                                next:
+                                  | DropdownValue
+                                  | Array<DropdownValue>
+                                  | null,
+                              ): void => {
+                                const picked: string | null =
+                                  readPickedDropdownValue(next);
+
+                                if (picked !== null) {
+                                  setPlanId(picked);
+                                }
+                              }}
+                            />
+                          </div>
                         </span>
                       </div>
                     ) : (
@@ -516,41 +554,29 @@ const MarketplacePurchase: () => JSX.Element = () => {
                     </label>
                     {choice === "existing" ? (
                       <div className="mt-3 ms-7 text-sm">
-                        <select
-                          id="marketplace-purchase-project"
-                          data-testid="marketplace-purchase-project"
-                          aria-label={t("marketplacePurchase.projectLabel")}
-                          className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          value={projectId}
-                          disabled={isSubmitting}
-                          onChange={(
-                            event: React.ChangeEvent<HTMLSelectElement>,
-                          ) => {
-                            setProjectId(event.target.value);
-                          }}
-                        >
-                          <option value="">
-                            {t("marketplacePurchase.projectPlaceholder")}
-                          </option>
-                          {details.projects.map(
-                            (project: MarketplacePurchaseProject) => {
-                              return (
-                                <option
-                                  key={project.id}
-                                  value={project.id}
-                                  disabled={!project.isEligible}
-                                >
-                                  {project.isEligible
-                                    ? project.name
-                                    : t(
-                                        `marketplacePurchase.projectRefusal.${project.refusal || "not_billing_manager"}`,
-                                        { name: project.name },
-                                      )}
-                                </option>
-                              );
-                            },
-                          )}
-                        </select>
+                        <div data-testid="marketplace-purchase-project">
+                          <Dropdown
+                            inputId="marketplace-purchase-project"
+                            className="relative w-full overflow-visible"
+                            options={projectOptions}
+                            value={findDropdownOption(
+                              projectOptions,
+                              projectId,
+                            )}
+                            placeholder={t(
+                              "marketplacePurchase.projectPlaceholder",
+                            )}
+                            isPlaceholderTranslated={true}
+                            ariaLabel={t("marketplacePurchase.projectLabel")}
+                            isAriaLabelTranslated={true}
+                            disabled={isSubmitting}
+                            onChange={(
+                              next: DropdownValue | Array<DropdownValue> | null,
+                            ): void => {
+                              setProjectId(readPickedDropdownValue(next) || "");
+                            }}
+                          />
+                        </div>
                         <span className="mt-1 block text-xs text-gray-500">
                           {t("marketplacePurchase.existingProjectHelp", {
                             marketplace,

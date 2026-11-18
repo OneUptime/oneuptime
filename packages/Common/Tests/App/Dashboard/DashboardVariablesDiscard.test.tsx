@@ -15,6 +15,7 @@ import {
   test,
 } from "@jest/globals";
 import React, { act } from "react";
+import { pickDropdownOption } from "../../DropdownPicks";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardVariable, {
@@ -369,18 +370,11 @@ const saveVariablesModal: SaveVariablesModalFunction =
     });
   };
 
-type ToolbarCancelFunction = () => HTMLElement;
-
-// The editing toolbar's Cancel: a button, named by its words.
-const toolbarCancel: ToolbarCancelFunction = (): HTMLElement => {
-  return screen.getByRole("button", { name: "Cancel" });
-};
-
 type DiscardEditsFunction = () => Promise<void>;
 
 const discardEdits: DiscardEditsFunction = async (): Promise<void> => {
   await act(async () => {
-    fireEvent.click(toolbarCancel());
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   });
   await act(async () => {
     fireEvent.click(screen.getByText("Discard Changes"));
@@ -402,7 +396,7 @@ type CancelUnchangedEditFunction = () => Promise<void>;
 const cancelUnchangedEdit: CancelUnchangedEditFunction =
   async (): Promise<void> => {
     await act(async () => {
-      fireEvent.click(toolbarCancel());
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     });
     expect(screen.queryByText("Discard Changes")).toBeNull();
     await settle();
@@ -427,7 +421,7 @@ type KeepEditingFunction = () => Promise<void>;
 /** Open the cancel confirmation and then back out of it. */
 const keepEditing: KeepEditingFunction = async (): Promise<void> => {
   await act(async () => {
-    fireEvent.click(toolbarCancel());
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   });
   await act(async () => {
     fireEvent.click(screen.getByText("Keep Editing"));
@@ -708,16 +702,13 @@ describe("DashboardView — discarding edits reconciles dashboard variables", ()
       await renderDashboard();
 
       /*
-       * The selector fetches its options, and a <select> silently ignores a
-       * change to a value it has no <option> for — so picking before they
-       * arrive would assert nothing.
+       * The selector fetches its options, and the picker is locked until
+       * they arrive - so picking before then would assert nothing.
        */
-      await screen.findByRole("option", { name: ATTRIBUTE_VALUE });
-      await act(async () => {
-        fireEvent.change(screen.getByRole("combobox"), {
-          target: { value: ATTRIBUTE_VALUE },
-        });
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).not.toBeDisabled();
       });
+      await pickDropdownOption(screen.getByRole("combobox"), ATTRIBUTE_VALUE);
       expect(canvasVariableSelections()).toEqual(["cluster=prod"]);
 
       await enterEditMode();
@@ -732,12 +723,10 @@ describe("DashboardView — discarding edits reconciles dashboard variables", ()
     test("a selection made in view mode survives an edit that changed nothing, ended with Cancel", async () => {
       await renderDashboard();
 
-      await screen.findByRole("option", { name: ATTRIBUTE_VALUE });
-      await act(async () => {
-        fireEvent.change(screen.getByRole("combobox"), {
-          target: { value: ATTRIBUTE_VALUE },
-        });
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).not.toBeDisabled();
       });
+      await pickDropdownOption(screen.getByRole("combobox"), ATTRIBUTE_VALUE);
 
       await enterEditMode();
       await cancelUnchangedEdit();

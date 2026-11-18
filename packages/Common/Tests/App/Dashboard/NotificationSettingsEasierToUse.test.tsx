@@ -236,7 +236,7 @@ async function openTab(name: string): Promise<void> {
   });
 
   await waitFor(() => {
-    expect(screen.queryAllByTestId("component-loader")).toHaveLength(0);
+    expect(screen.queryAllByTestId("detail-skeleton")).toHaveLength(0);
   });
 }
 
@@ -428,7 +428,7 @@ describe("a channel that cannot reach you yet", () => {
       expect(getList).toHaveBeenCalled();
     });
 
-    expect(screen.getAllByTestId("component-loader").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("detail-skeleton").length).toBeGreaterThan(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
     expect(screen.queryByTestId("channels-not-set-up")).not.toBeInTheDocument();
 

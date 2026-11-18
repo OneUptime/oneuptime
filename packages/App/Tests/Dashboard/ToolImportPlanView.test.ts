@@ -7,6 +7,7 @@ import {
   getSelectedKeys,
   getToolImportItemsByKey,
   getToolImportPlanSections,
+  getToolImportReportRecords,
   getToolImportReportSections,
   hasTickedInvites,
   isToolImportRunInFlight,
@@ -21,6 +22,7 @@ import {
   ToolImportOutcome,
   ToolImportPlan,
   ToolImportPlanItem,
+  ToolImportReport,
   ToolImportReportItem,
 } from "Common/Types/ToolImport/ToolImportPlan";
 import ToolImportResourceKind, {
@@ -338,6 +340,139 @@ describe("the report's sections", () => {
       [ToolImportResourceKind.Person, ["Bea", "Amy", "Zed"]],
       [ToolImportResourceKind.OnCallPolicy, ["A policy", "B policy"]],
     ]);
+  });
+});
+
+/*
+ * What the report's next steps act on (#7032): the on-call policies a test
+ * page can page, the status pages whose addresses it shows. A record the
+ * import left in OneUptime, created or found, each once; never an item that
+ * failed or was not brought over.
+ */
+describe("the records the report's next steps act on", () => {
+  const ID_A: string = "5a000000-0000-4000-8000-0000000000a1";
+  const ID_B: string = "5a000000-0000-4000-8000-0000000000b2";
+  const ID_C: string = "5a000000-0000-4000-8000-0000000000c3";
+  const ID_D: string = "5a000000-0000-4000-8000-0000000000d4";
+
+  function reported(
+    kind: ToolImportResourceKind,
+    name: string,
+    outcome: ToolImportOutcome,
+    recordIds: Array<string>,
+  ): ToolImportReportItem {
+    return {
+      key: getToolImportItemKey(kind, name),
+      kind,
+      sourceId: name,
+      name,
+      outcome,
+      recordIds,
+      notes: [],
+    };
+  }
+
+  const POLICY: ToolImportResourceKind = ToolImportResourceKind.OnCallPolicy;
+
+  test("created first, then found, each by name", () => {
+    expect(
+      getToolImportReportRecords(
+        {
+          items: [
+            reported(POLICY, "Delta", ToolImportOutcome.AlreadyImported, [
+              ID_D,
+            ]),
+            reported(POLICY, "Charlie", ToolImportOutcome.Matched, [ID_C]),
+            reported(POLICY, "Bravo", ToolImportOutcome.Created, [ID_B]),
+            reported(POLICY, "Alpha", ToolImportOutcome.Created, [ID_A]),
+          ],
+        },
+        POLICY,
+      ),
+    ).toEqual([
+      { id: ID_A, name: "Alpha" },
+      { id: ID_B, name: "Bravo" },
+      { id: ID_C, name: "Charlie" },
+      { id: ID_D, name: "Delta" },
+    ]);
+  });
+
+  test("an item that failed, was skipped or invited names no record of the kind", () => {
+    expect(
+      getToolImportReportRecords(
+        {
+          items: [
+            reported(POLICY, "Failed", ToolImportOutcome.Failed, [ID_A]),
+            reported(POLICY, "Skipped", ToolImportOutcome.Skipped, []),
+            reported(POLICY, "Invited", ToolImportOutcome.Invited, [ID_B]),
+            reported(POLICY, "Kept", ToolImportOutcome.Created, [ID_C]),
+          ],
+        },
+        POLICY,
+      ),
+    ).toEqual([{ id: ID_C, name: "Kept" }]);
+  });
+
+  test("a record two items name is listed once, by the first", () => {
+    expect(
+      getToolImportReportRecords(
+        {
+          items: [
+            reported(POLICY, "Second", ToolImportOutcome.Matched, [ID_A]),
+            reported(POLICY, "First", ToolImportOutcome.Created, [ID_A]),
+          ],
+        },
+        POLICY,
+      ),
+    ).toEqual([{ id: ID_A, name: "First" }]);
+  });
+
+  test("only the kind asked for, and only an id that is one", () => {
+    const report: ToolImportReport = {
+      items: [
+        reported(
+          ToolImportResourceKind.StatusPage,
+          "Acme Status",
+          ToolImportOutcome.Created,
+          [ID_A],
+        ),
+        reported(POLICY, "Primary", ToolImportOutcome.Created, [ID_B]),
+        reported(POLICY, "Odd", ToolImportOutcome.Created, ["not-an-id"]),
+        reported(POLICY, "Nothing", ToolImportOutcome.Created, []),
+      ],
+    };
+
+    expect(
+      getToolImportReportRecords(report, ToolImportResourceKind.StatusPage),
+    ).toEqual([{ id: ID_A, name: "Acme Status" }]);
+    expect(getToolImportReportRecords(report, POLICY)).toEqual([
+      { id: ID_B, name: "Primary" },
+    ]);
+    expect(
+      getToolImportReportRecords(report, ToolImportResourceKind.Monitor),
+    ).toEqual([]);
+  });
+
+  test("a schedule that became several is named by its first record", () => {
+    expect(
+      getToolImportReportRecords(
+        {
+          items: [
+            reported(
+              ToolImportResourceKind.OnCallSchedule,
+              "Rota",
+              ToolImportOutcome.Created,
+              [ID_A, ID_B],
+            ),
+          ],
+        },
+        ToolImportResourceKind.OnCallSchedule,
+      ),
+    ).toEqual([{ id: ID_A, name: "Rota" }]);
+  });
+
+  test("an empty report has none", () => {
+    expect(getToolImportReportRecords({ items: [] }, POLICY)).toEqual([]);
   });
 });
 

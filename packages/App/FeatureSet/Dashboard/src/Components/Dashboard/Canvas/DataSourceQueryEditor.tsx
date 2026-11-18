@@ -274,7 +274,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
           }}
         />
         {selectedType && DataSourceTypeUtil.isDatabaseType(selectedType) && (
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-500">
             {translator.translateText(
               isTable
                 ? "Any read-only query works — rows render as-is."
@@ -348,7 +348,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
             </p>
           )}
           {!loadError && dataSources.length === 0 && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {translator.translateText(
                 "No data sources connected yet. Add one under Dashboards → Settings → Data Sources.",
               )}

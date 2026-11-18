@@ -91,9 +91,9 @@ const SLO_VIEW_TABS: Array<string> = [
 /*
  * A side-menu section's toggle, by its heading's text (the heading is drawn
  * in capitals by CSS). Rarely used sections start folded away in every menu:
- * Advanced on the SLO list (it holds Archived), and Configuration, Rules and
- * Management on an SLO's own page. Their rows are hidden, so getByRole does
- * not find them until the section is opened.
+ * Advanced on the SLO list (it holds Archived), and Rules and Management on
+ * an SLO's own page. Their rows are hidden, so getByRole does not find them
+ * until the section is opened.
  */
 type SectionLocatorFunction = (page: Page, title: string) => Locator;
 
@@ -150,14 +150,12 @@ const openSideMenuAdvanced: OpenSideMenuAdvancedFunction = async (
 
 /*
  * The SLO view menu's sections that start folded on its overview: its
- * monitors (Configuration), its Monitor Rules, Burn Rate Rules and Error
- * Budget Policy (Rules), and its owners, settings and the rest (Management).
+ * Monitor Rules, Burn Rate Rules and Error Budget Policy (Rules), and its
+ * owners, settings and the rest (Management). Its monitors sit in Overview,
+ * next to the overview itself, open: they had a Configuration section of
+ * their own, for that one entry (#9216).
  */
-const SLO_VIEW_FOLDED_SECTIONS: Array<string> = [
-  "Configuration",
-  "Rules",
-  "Management",
-];
+const SLO_VIEW_FOLDED_SECTIONS: Array<string> = ["Rules", "Management"];
 
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
 
@@ -537,8 +535,8 @@ test.describe("SLOs", () => {
     await expect(page.getByTestId("slo-kpi-strip")).toHaveCount(0);
     /*
      * The Configuration and Monitors cards are gone from the overview. Card
-     * titles are <h2>; the side menu's own "Configuration" section is an <h6>
-     * and must not count.
+     * titles are <h2>; the side menu's section headings are <h6> and must
+     * not count.
      */
     await expect(
       page.getByRole("heading", {
@@ -619,9 +617,9 @@ test.describe("SLOs", () => {
     });
 
     /*
-     * Configuration, Rules and Management are folded down to their titles on
-     * the overview, like every rarely used section: their pages are hidden
-     * until the section is opened.
+     * Rules and Management are folded down to their titles on the overview,
+     * like every rarely used section: their pages are hidden until the
+     * section is opened. Monitors is not: it sits in Overview, open.
      */
     for (const section of SLO_VIEW_FOLDED_SECTIONS) {
       await expect(sideMenuSectionToggle(page, section)).toHaveAttribute(
@@ -630,6 +628,9 @@ test.describe("SLOs", () => {
         { timeout: 30000 },
       );
     }
+    await expect(
+      sideMenu.getByRole("link", { name: "Monitors", exact: true }),
+    ).toBeVisible({ timeout: 30000 });
     const burnRateRulesRow: Locator = sideMenu.locator(
       "a[href$='/burn-rate-rules']",
     );
@@ -802,8 +803,9 @@ test.describe("SLOs", () => {
     ).toHaveCount(0);
 
     /*
-     * The monitors and settings live in the side menu instead, under
-     * Configuration and Management, which start folded on the overview.
+     * The monitors and settings live in the side menu instead: Monitors next
+     * to the overview, Settings under Management, which starts folded on the
+     * overview.
      */
     const sideMenu: Locator = page.getByRole("navigation", {
       name: "Main navigation",

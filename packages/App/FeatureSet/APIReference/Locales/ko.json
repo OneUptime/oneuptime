@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Master Admin API 전용",
       "masterAdminOnlyBody": "이 API는 Master API 토큰을 통해서만 접근할 수 있습니다. Admin Dashboard에서 토큰을 생성할 수 있습니다. 요청을 보내려면 <code>ApiKey</code> 헤더에 토큰을 추가하세요."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "레이어 읽기",
+      "scheduleLayersReadIntro": "이 엔드포인트는 스케줄의 레이어와 그 안의 사람들을 저장된 그대로 반환합니다. 스케줄이 유지하는 모든 레이어가 우선순위가 높은 순서로, 각 레이어에는 차례 순서로 사람들이 들어 있고, 현재 버전은 basedOnVersion에 들어 있습니다. 아무것도 바꾸지 않는 저장이므로, 바꾼 다음 레이어 저장으로 보내세요.",
+      "scheduleLayersReadRequestTitle": "레이어 읽기 요청",
+      "scheduleIdDescription": "온콜 스케줄의 ID",
+      "scheduleLayersSaveHeading": "레이어 저장",
+      "scheduleLayersSaveIntro": "이 엔드포인트는 스케줄 레이어에서 차례를 맡는 사람과 레이어의 우선순위를 한 번에, 하나의 트랜잭션으로 저장합니다. 전부 저장되거나 아무것도 저장되지 않습니다. 그런 다음 누가 당번인지 한 번만 계산되며, 변경이 있는 사람은 한 번만 알림을 받습니다. 레이어와 레이어 사용자 엔드포인트와 같은 권한과 검사가 적용됩니다. 이름이나 로테이션 같은 레이어 자체의 설정은 포함되지 않습니다.",
+      "scheduleLayersSaveRequestTitle": "레이어 저장 요청",
+      "basedOnVersionDescription": "변경의 기준이 된 레이어 버전으로, 레이어 읽기가 반환하는 값입니다.",
+      "layersDescription": "스케줄이 유지하는 모든 레이어를 우선순위가 높은 순서로, 각각 { layerId, users } 로 넣습니다. users 는 그 레이어에서 차례를 맡는 사람들로, 차례 순서로 넣습니다. 이미 레이어에 있는 사람은 { layerUserId, userId }, 추가하는 사람은 { userId } 입니다. 자기 레이어에서 빠진 사람은 그 레이어에서 제외됩니다.",
+      "deletedLayerIdsDescription": "삭제할 레이어로, 그 안의 사람들도 함께 삭제됩니다. 스케줄에는 레이어가 하나 이상 남습니다.",
+      "refusalsHeading": "거부",
+      "scheduleLayersConflict": "409 Conflict: 보낸 버전을 읽은 뒤에 레이어가 바뀌었으므로 아무것도 저장되지 않습니다. 레이어를 다시 읽고 지금 있는 내용에 변경을 적용하세요.",
+      "scheduleLayersBadRequest": "400 Bad Request: 저장이 스케줄의 모든 레이어를 layers 또는 deletedLayerIds 에서 정확히 한 번씩 지정하지 않았거나, 스케줄의 것이 아닌 레이어나 사람의 행을 지정했거나, 모든 레이어를 삭제합니다.",
+      "userOverrideEndNowHeading": "지금 종료",
+      "userOverrideEndNowIntro": "이 엔드포인트는 진행 중인 재정의를 서버 시계 기준으로 끝냅니다. 종료 시각이 지금이 되고, 그때부터 호출은 다시 부재 중이던 사람에게 갑니다. 업데이트와 같은 권한이 필요하며, 재정의의 새 endsAt 을 반환합니다.",
+      "userOverrideEndNowRequestTitle": "지금 종료 요청",
+      "userOverrideIdDescription": "사용자 재정의의 ID",
+      "userOverrideEndNowRefused": "400 Bad Request: 재정의가 아직 시작되지 않았거나 (대신 삭제하세요), 이미 끝났거나, 어차피 1분 안에 끝납니다."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "데이터 타입",

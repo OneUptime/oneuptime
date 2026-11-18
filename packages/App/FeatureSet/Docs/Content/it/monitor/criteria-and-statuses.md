@@ -93,6 +93,49 @@ flowchart TB
 
 Per vedere come è stato giudicato un controllo, aprite la **Panoramica** del monitor: la scheda **Riepilogo del monitor** mostra quale criterio ha corrisposto e cosa ha fatto ciascuno, compreso un incidente saltato perché ce n'era già uno aperto.
 
+## Chi viene avvisato quando va giù
+
+**Quando va giù** dice in poche frasi cosa succede quando il monitor si guasta e chi viene avvisato: lo stato che imposta, l'incidente o l'avviso che apre, chi riceve un'email e chi avvisa, per nome. Ogni cosa che impedirebbe di avvisare qualcuno è su una riga a sé, con un link alla pagina che la risolve. Si trova nella **Panoramica** di un monitor, sotto i suoi criteri nella pagina **Criteri**, nel passaggio dei criteri di **Crea monitor** per il monitor che stai configurando, e nella configurazione guidata dei siti web.
+
+Ricostruisce la catena come fa un vero incidente o avviso: con le regole del proprietario, le regole di privacy, le regole etichette e le regole di reperibilità del tuo progetto, la regola di incidente degli avvisi che trasforma un avviso in un incidente, e chi raggiunge in questo momento la prima regola di escalation di ogni policy di reperibilità. Una regola di reperibilità che chiede chi è il proprietario di un avviso (**Proprietario dell'avviso**) viene confrontata con i proprietari che l'avviso avrà: le persone e i team indicati dai suoi criteri, i proprietari del dispositivo di rete che il monitor controlla e quelli che aggiungono le regole del proprietario. Un segnaposto del titolo che solo un controllo compila viene mostrato così com'è scritto. **Mostra la catena** la apre riga per riga:
+
+| Riga | Cosa dice |
+| --- | --- |
+| **Stato** | Lo stato che i criteri impostano. |
+| **Apre** | L'incidente o l'avviso, la sua gravità tra parentesi e il suo titolo. |
+| **E-mail** | Chi raggiunge la sua email di creazione: i suoi proprietari, quelli che aggiungono le regole del proprietario, o i Proprietari del progetto se non ne ha. Chi viene raggiunto prima dall'avviso di reperibilità non riceve anche l'email come proprietario. |
+| **Regole del proprietario** | Le regole del proprietario che aggiungono i suoi proprietari. |
+| **Privato** | Perché è privato: una regola di privacy o i criteri. Un incidente privato non compare in nessuna pagina di stato e non avvisa nessun iscritto, e solo i suoi proprietari, i Proprietari del progetto e gli Amministratori del progetto possono vederlo. |
+| **Regole etichette** | Le regole etichette le cui etichette cambiano quali regole di reperibilità si attivano. |
+| **Regole di reperibilità** | Le regole di reperibilità che vi corrispondono. Per una regola che confronta chi è il proprietario di un avviso, indica quale proprietario la fa corrispondere. |
+| **Policy di reperibilità** | Ogni policy che quelle regole attivano: chi raggiunge in questo momento la sua prima regola di escalation e con quale mezzo, e chi non raggiunge, e perché. |
+| **Pagine di stato** | Le pagine di stato che lo mostrano, ciascuna con il gruppo di monitor attraverso cui mostra il monitor. |
+| **Regola di incidente** | Per un avviso: la regola di incidente degli avvisi che ne dichiara un incidente, subito o quando l'avviso è rimasto aperto, e quell'incidente, descritto come ogni incidente. |
+
+### Cosa impedisce di avvisare
+
+| Cosa lo impedisce | Link |
+| --- | --- |
+| Nessun criterio cambia lo stato o apre un incidente o un avviso. | **Apri criteri** |
+| Nessuno viene avvisato: nessuna regola di reperibilità corrisponde, o il progetto non ha ancora una policy di reperibilità. | **Configura gli avvisi di reperibilità** |
+| Il monitor apre avvisi, e solo gli incidenti hanno regole di reperibilità. | **Configura gli avvisi di reperibilità** |
+| Una policy di reperibilità non ha regole di escalation. | **Apri policy di reperibilità** |
+| Una policy di reperibilità non raggiunge nessuno in questo momento. | **Apri policy di reperibilità** |
+| Qualcuno che una policy avvisa non è raggiungibile: si è disiscritto, non ha metodi verificati, o non ha regole per la gravità in un progetto senza ripiego. | **Apri prontezza** |
+| SMS, chiamate, WhatsApp o Telegram sono disattivati nel progetto. | **Apri canali di notifica** |
+| Il progetto non ha più credito per SMS e chiamate (OneUptime Cloud). | **Apri fatturazione** |
+| Il server non può ancora inviare email o SMS, né fare chiamate. | **Apri il Pannello amministratore**, per gli amministratori del server |
+
+Un avviso che una regola di incidente degli avvisi trasforma in un incidente che avvisa qualcuno non è un'interruzione: vengono controllate le policy dell'incidente.
+
+I proprietari che non ricevono email sono elencati dopo le interruzioni, ciascuno con il motivo e il punto in cui è indicato: qualcuno che non è membro del progetto, un team senza nessun membro del progetto (**Apri team**), o un team di un altro progetto, indicato nei criteri (**Apri criteri**), sul dispositivo di rete che il monitor controlla (**Apri dispositivo di rete**) o da una regola del proprietario (**Apri regole del proprietario**). L'email parte comunque, ai proprietari che raggiunge o ai Proprietari del progetto, quindi non sono interruzioni. Anche lo stato della configurazione li elenca, come punti da correggere.
+
+### Ricontrollare, e cosa puoi vedere
+
+La risposta ha al massimo un minuto, e **Ricontrolla** la ricalcola. Quando un nuovo controllo non riesce, la scheda mantiene l'ultima risposta e dice sotto perché.
+
+La scheda nomina solo ciò che puoi leggere. Una policy di reperibilità, una regola, una pagina di stato o un gruppo di monitor che non puoi vedere mantiene il suo posto senza il nome, e un incidente o un avviso privato che non potrai vedere dice solo che si apre e che è privato.
+
 ## Che cosa conserva un incidente o un avviso del controllo
 
 Un incidente o un avviso aperto da un monitor conserva il controllo che lo ha aperto, così potete vedere il perché molto dopo che i log del monitor sono stati eliminati. Sotto la sua causa principale, la sezione **Dettagli della valutazione** indica il criterio che ha corrisposto e, per ogni filtro che ha corrisposto, che cosa ha trovato il controllo. **Mostra dettagli** aggiunge il resto delle prove, i filtri che non hanno corrisposto e il controllo stesso: la richiesta, quando è stato eseguito, da quale sonda e che cosa è tornato. Ciò che un filtro ha trovato può essere:

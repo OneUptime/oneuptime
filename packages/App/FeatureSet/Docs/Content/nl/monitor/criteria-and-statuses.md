@@ -93,6 +93,49 @@ flowchart TB
 
 Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de monitor: de kaart **Monitorsamenvatting** toont welk criterium overeenkwam en wat elk criterium deed, inclusief een incident dat werd overgeslagen omdat er al een open stond.
 
+## Wie bericht krijgt als hij uitvalt
+
+**Als dit uitvalt** zegt in een paar zinnen wat er gebeurt als de monitor uitvalt en wie bericht krijgt: de status die hij instelt, het incident of de waarschuwing die hij opent, wie een e-mail krijgt en wie hij oproept, bij naam. Alles wat zou verhinderen dat iemand bericht krijgt, staat op een eigen regel, met een link naar de pagina waar u het oplost. U vindt het in het **Overzicht** van een monitor, onder de criteria op de pagina **Criteria**, in de criteriastap van **Monitor maken** voor de monitor die u instelt, en in de begeleide installatie voor websites.
+
+Het stelt de keten vast zoals een echt incident of een echte waarschuwing dat doet: met de eigenaarsregels, privacyregels, labelregels en bereikbaarheidsregels van uw project, de incidentregel voor waarschuwingen die van een waarschuwing een incident maakt, en wie de eerste escalatieregel van elk bereikbaarheidsbeleid nu bereikt. Een bereikbaarheidsregel die vraagt wie de eigenaar van een waarschuwing is (**Eigenaar van waarschuwing**), wordt vergeleken met de eigenaren die de waarschuwing zal hebben: de personen en teams die de criteria noemen, de eigenaren van het netwerkapparaat dat de monitor bewaakt, en wie eigenaarsregels toevoegen. Een plaatshouder in de titel die pas een controle invult, wordt getoond zoals hij is geschreven. **Keten tonen** opent hem rij voor rij:
+
+| Rij | Wat hij zegt |
+| --- | --- |
+| **Status** | De status die de criteria instellen. |
+| **Opent** | Het incident of de waarschuwing, de ernst tussen haakjes en de titel. |
+| **E-mails** | Wie de e-mail bij het aanmaken bereikt: de eigenaren, de eigenaren die eigenaarsregels toevoegen, of de Projecteigenaren als er geen zijn. Wie de oproep van de bereikbaarheidsdienst eerst bereikt, krijgt niet ook nog de e-mail als eigenaar. |
+| **Eigenaarsregels** | De eigenaarsregels die eigenaren toevoegen. |
+| **Privé** | Waarom het privé is: een privacyregel of de criteria. Een privé-incident verschijnt op geen enkele statuspagina en informeert geen abonnees, en alleen de eigenaren, de Projecteigenaren en de Projectbeheerders kunnen het zien. |
+| **Labelregels** | De labelregels waarvan de labels veranderen welke bereikbaarheidsregels oproepen. |
+| **Bereikbaarheidsregels** | De bereikbaarheidsregels die erbij passen. Bij een regel die vergelijkt wie de eigenaar van een waarschuwing is, staat welke eigenaar hem laat overeenkomen. |
+| **Bereikbaarheidsbeleid** | Elk beleid dat die regels uitvoeren: wie de eerste escalatieregel nu bereikt en waarmee, en wie hij niet bereikt, en waarom. |
+| **Statuspagina's** | De statuspagina's die het tonen, elk met de monitorgroep waarlangs ze de monitor toont. |
+| **Incidentregel** | Bij een waarschuwing: de incidentregel voor waarschuwingen die er een incident van maakt, meteen of als de waarschuwing open blijft, en dat incident, beschreven zoals elk incident. |
+
+### Wat verhindert dat iemand bericht krijgt
+
+| Wat het verhindert | Link |
+| --- | --- |
+| Geen criteria wijzigen de status of openen een incident of waarschuwing. | **Criteria openen** |
+| Niemand wordt opgeroepen: geen bereikbaarheidsregel komt overeen, of het project heeft nog geen bereikbaarheidsbeleid. | **Oproepen instellen** |
+| De monitor opent waarschuwingen, en alleen incidenten hebben bereikbaarheidsregels. | **Oproepen instellen** |
+| Een bereikbaarheidsbeleid heeft geen escalatieregels. | **Bereikbaarheidsbeleid openen** |
+| Een bereikbaarheidsbeleid bereikt nu niemand. | **Bereikbaarheidsbeleid openen** |
+| Iemand die een beleid oproept, is niet bereikbaar: hij heeft zich afgemeld, heeft geen geverifieerde methode, of heeft geen regel voor de ernst in een project zonder terugvaloptie. | **Gereedheid openen** |
+| Sms, oproepen, WhatsApp of Telegram staan uit in het project. | **Meldingskanalen openen** |
+| Het project heeft geen tegoed meer voor sms en oproepen (OneUptime Cloud). | **Facturering openen** |
+| De server kan nog geen e-mail, sms of oproepen versturen. | **Admin-dashboard openen**, voor de beheerders van de server |
+
+Een waarschuwing die een incidentregel voor waarschuwingen omzet in een incident dat iemand oproept, is geen onderbreking: dan wordt het beleid van het incident gecontroleerd.
+
+Eigenaren die geen e-mail krijgen, staan na de onderbrekingen, elk met de reden en de plek waar ze zijn genoemd: iemand die geen lid is van het project, een team waarin niemand lid is (**Team openen**), of een team van een ander project, genoemd in de criteria (**Criteria openen**), bij het netwerkapparaat dat de monitor bewaakt (**Netwerkapparaat openen**) of door een eigenaarsregel (**Eigenaarsregels openen**). De e-mail gaat toch uit, naar de eigenaren die hij bereikt of naar de Projecteigenaren, dus het zijn geen onderbrekingen. De inrichtingsstatus noemt ze ook, als iets dat het oplossen waard is.
+
+### Opnieuw controleren, en wat u ziet
+
+Het antwoord is hooguit een minuut oud, en **Opnieuw controleren** stelt het opnieuw vast. Mislukt een nieuwe controle, dan houdt de kaart het laatste antwoord en zegt eronder waarom.
+
+De kaart noemt alleen wat u mag lezen. Een bereikbaarheidsbeleid, een regel, een statuspagina of een monitorgroep die u niet kunt zien, houdt zijn plaats zonder zijn naam, en een privé-incident of privé-waarschuwing die u niet zult kunnen zien, zegt alleen dat het wordt geopend en dat het privé is.
+
 ## Wat een incident of waarschuwing van de controle bewaart
 
 Een incident of waarschuwing die een monitor opent, bewaart de controle die het opende, zodat u nog lang nadat de logboeken van de monitor zelf zijn verdwenen kunt zien waarom. Onder de hoofdoorzaak noemt **Evaluatiedetails** het criterium dat overeenkwam en per filter dat overeenkwam wat de controle vond. **Details tonen** voegt de rest van het bewijs toe, de filters die niet overeenkwamen en de controle zelf: het verzoek, wanneer die liep, vanaf welke sonde en wat er terugkwam. Wat een filter vond, kan zijn:

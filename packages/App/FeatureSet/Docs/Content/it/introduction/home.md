@@ -15,7 +15,7 @@ Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto
 
 1. Una casella di ricerca, con accanto **Dichiara incidente** e **Crea**.
 2. Una riga che dice se qualcosa non va, sopra cinque numeri che contano ciò che richiede attenzione.
-3. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato.
+3. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato, poi **Altro da configurare** finché resta qualcosa.
 4. **Richiede attenzione**, ogni problema aperto in questo momento, per nome.
 5. **Il tuo progetto**, di cosa è fatto il progetto, e **Prossime manutenzioni** quando ce n'è qualcuna in programma.
 6. **Esplora OneUptime**, tutti i prodotti, una categoria alla volta.
@@ -40,7 +40,7 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 
 Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. La home segue anche ciò che conta mentre cambia: quando un incidente, un avviso, un monitor, un evento di manutenzione o uno SLO viene creato, modificato o eliminato, la riga, i numeri, **Richiede attenzione** e **Prossime manutenzioni** si aggiornano in pochi secondi, senza ricaricare. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
-Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**. Lo vede solo chi può creare monitor.
+Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre la configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, a meno che la checklist sotto offra già quel passaggio. Lo vede solo chi può creare monitor.
 
 ### I cinque numeri
 
@@ -68,13 +68,17 @@ Ogni passaggio si spunta da solo quando la cosa funziona, non quando esiste un r
 | **Crea il tuo primo monitor** | Arriva il suo primo controllo. | La configurazione guidata **Sapere quando il mio sito web o la mia API non funziona**, o l'elenco **Monitor** per chi non può creare monitor. |
 | **Collega un server o un cluster** | Arrivano le sue prime metriche. | **Host** |
 | **Invia i tuoi primi log, metriche o trace** | Arrivano i primi log, metriche, trace, eccezioni o profili del progetto. | La configurazione guidata **Invia log, metriche e tracce, poi ricevi avvisi** |
-| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
+| **Configura una policy di reperibilità** | Un avviso di prova viene confermato, un avviso raggiunge qualcuno, o una regola di reperibilità o un monitor esegue una policy che può raggiungere qualcuno. | La configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta** |
 | **Pubblica una pagina di stato** | Una pagina di stato mostra un monitor. | La configurazione guidata **Pubblica una pagina di stato**, o l'elenco **Pagine di stato** per chi non può creare pagine di stato. |
 | **Invita il tuo team** | Qualcuno accetta il tuo invito. | **Utenti** |
 
-Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted che non può ancora inviare email, gli amministratori del server vedono prima **Questo server non può ancora inviare email**, che apre la dashboard di amministrazione.
+Il passaggio da fare per primo è segnato con **Prossimo passaggio**. Con il piano Free di OneUptime Cloud, che include una persona, **Invita il tuo team** dice che serve il piano Growth e apre **Fatturazione**. Su un server self-hosted non ancora configurato, i suoi amministratori vedono invece la scheda del server sopra la checklist, con **Completa la configurazione**, che apre la dashboard di amministrazione.
 
 Ogni passaggio indica quanto tempo richiede circa, la checklist quanto tempo resta circa, e il passaggio successivo ha un proprio pulsante **Avvia**.
+
+Un passaggio il cui record esiste ma non funziona ancora dice perché sotto di sé, con le parole di **Stato della configurazione**: una pagina di stato che non mostra alcun monitor, un monitor che niente controlla, una policy di reperibilità che niente esegue o che non raggiunge nessuno, un invito che nessuno ha accettato. Il passaggio apre allora la pagina che lo risolve e, quando è il prossimo, il suo pulsante indica la soluzione, ad esempio **Aggiungi monitor**.
+
+Una volta spuntato **Configura una policy di reperibilità**, e finché solo l'email può avvisarti, sotto resta **Ricevere chiamate via SMS o telefono**: apre la configurazione guidata **Avvisare la persona giusta quando qualcosa si guasta**, per aggiungere il tuo telefono o l'app mobile. Lo vede solo chi può creare policy di reperibilità.
 
 Una configurazione guidata fa tutto il lavoro in una sola pagina, un passaggio alla volta, e termina con ciò che ha configurato e cosa fare dopo. Per riaprirne una più tardi, cerca il suo nome.
 
@@ -89,11 +93,13 @@ flowchart TB
     answered -->|"Sì"| hidden{"Nascosta<br/>da te?"}
     hidden -->|"Sì"| line["Una riga per<br/>mostrarla di nuovo"]
     hidden -->|"No"| done{"Tutti i passaggi<br/>fatti?"}
-    done -->|"Sì"| gone["Nessuna checklist"]
+    done -->|"Sì"| gone["Altro da configurare,<br/>finché resta qualcosa"]
     done -->|"No"| shown["La checklist, con<br/>i passaggi rimasti"]
 ```
 
 La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla prima, fai clic su **Nascondi**: resta nascosta solo per te, su ogni dispositivo, e rimane una riga con **Mostralo** e **Come funziona OneUptime**. Chi è stato invitato nel progetto come membro non vede la checklist. **Come funziona OneUptime** resta a un clic, in qualsiasi progetto: aprilo da **Aiuto** o con il pulsante accanto a **Esplora OneUptime**.
+
+Una volta completata la checklist, **Altro da configurare** prende il suo posto sotto il titolo, come una scheda tra le altre: i passaggi essenziali che i tuoi obiettivi non hanno portato, come una pagina di stato e il tuo team, ciascuno finché non funziona, con **Ricevere chiamate via SMS o telefono** per primo finché solo l'email può avvisarti. Il suo **Nascondi** la nasconde per te, senza lasciare alcuna riga.
 
 **Come funziona OneUptime** si apre su **Come si incastra tutto**: i quattro passaggi che un problema attraversa, **Rileva**, **Rispondi**, **Comunica** e **Migliora**, ognuno con i prodotti che lo svolgono. Poi vengono le categorie del menu **Prodotti**, ognuna con i suoi prodotti e a cosa serve ciascuno: scegline una, o passa alla successiva con i tasti freccia o **Avanti**. Fai clic su un prodotto per aprirlo. I prodotti che il tuo progetto nasconde non ci sono.
 
@@ -103,7 +109,7 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 ### Stato della configurazione
 
-Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che inizia con una riga nel colore del rilevamento più grave: quanti problemi impedirebbero di avvisare le persone, quante cose sono da correggere, oppure **Niente da correggere**. Più in basso, la pagina elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor, un dominio personalizzato il cui certificato SSL non è stato possibile emettere, una chiave di acquisizione con cui non è mai arrivato alcun dato. Ogni rilevamento dice in una frase cosa non va, con i nomi dei tuoi monitor, policy e persone in grassetto, i monitor o le policy che tocca dopo **Riguarda**, e subito sotto il pulsante che apre la sua correzione. Due si correggono lì stesso, dopo che una finestra di dialogo ha detto esattamente cosa cambierà: **Attiva SMS** (o le chiamate telefoniche, WhatsApp o Telegram), per chi può attivarlo, e **Crea regola di reperibilità**, che attiva la policy di reperibilità che scegli per un monitor che non avvisava nessuno. I rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**, e una policy di reperibilità che nulla esegue, o un dominio personalizzato che non apre la sua pagina di stato, lo dice anche in cima alla pagina della policy o della pagina di stato. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
+Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che inizia con una riga nel colore del rilevamento più grave: quanti problemi impedirebbero di avvisare le persone, quante cose sono da correggere, oppure **Niente da correggere**. Più in basso, la pagina elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor, un dominio personalizzato il cui certificato SSL non è stato possibile emettere, una chiave di acquisizione con cui non è mai arrivato alcun dato. Ogni rilevamento dice in una frase cosa non va, con i nomi dei tuoi monitor, policy e persone in grassetto, i monitor o le policy che tocca dopo **Riguarda**, e subito sotto il pulsante che apre la sua correzione. Due si correggono lì stesso, dopo che una finestra di dialogo ha detto esattamente cosa cambierà: **Attiva SMS** (o le chiamate telefoniche, WhatsApp o Telegram), per chi può attivarlo, e **Crea regola di reperibilità**, che attiva la policy di reperibilità che scegli per un monitor che non avvisava nessuno. I rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**, e una policy di reperibilità che nulla esegue, o un dominio personalizzato che non apre la sua pagina di stato, lo dice anche in cima alla pagina della policy o della pagina di stato. Ogni proprietario che, secondo la scheda, l'email di creazione non raggiunge mai è anche un rilevamento da correggere, con la stessa pagina per sistemarlo. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
 
 ### Il tuo progetto
 
@@ -113,7 +119,7 @@ Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le per
 
 ### Esplora OneUptime
 
-**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde non compaiono.
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde sono nella sua ultima scheda, **Altri prodotti**, con una nota che dice che funzionano ancora.
 
 ## Orientarsi
 
@@ -158,8 +164,10 @@ Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona
 
 - **Ogni pagina dei menu**, con il nome che il menu le dà: Chiavi API, Elimina progetto, Pianificazioni di reperibilità, Gravità incidente, i tuoi Metodi di notifica. Ogni risultato dice dove si trova, per esempio *Impostazioni del progetto › Avanzato*, così le pagine con lo stesso nome (Campi personalizzati in Incidenti, Avvisi e Monitor) si distinguono facilmente.
 - **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Configurazioni SMTP personalizzate* trova Canali di notifica. Digita il nome in inglese o nella tua lingua.
-- **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
+- **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Crea pagina di stato, Crea policy di reperibilità, Crea pianificazione di reperibilità, Crea dashboard, Crea flusso di lavoro e Invita utente aprono il modulo sul loro elenco. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
 - **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
+- **Le persone del tuo progetto**, per nome o email, sotto Utenti: ognuna apre la pagina di quella persona. Trovi le persone che la pagina Utenti ti mostra.
+- **Le pagine di un record**: su una pagina di stato, *sso* apre la sua pagina Single Sign-On. Altrove, aggiungi il nome del record o il suo tipo: *status page sso*, oppure *acme subscribers* per gli iscritti di una pagina di stato chiamata Acme. Vengono proposti solo i record che puoi vedere, e una pagina rinominata si trova ancora con il vecchio nome, come *advanced settings*.
 - **La documentazione**, in un gruppo *Documentazione* sotto tutto il resto: le pagine e le sezioni le cui parole corrispondono a ciò che digiti, nella tua lingua, anche con un errore di battitura. Ognuna si apre in una nuova scheda, così non perdi il punto in cui eri.
 
 La ricerca legge ciò che digiti come lo intendi:

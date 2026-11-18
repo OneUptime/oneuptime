@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -8,7 +9,6 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsageBar";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
@@ -288,7 +288,7 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
         )}
 
         {isInitialLoading && !data ? (
-          <ComponentLoader />
+          <DetailListSkeleton fields={4} />
         ) : (
           <div className="space-y-5">
             <div className="flex items-center justify-between">

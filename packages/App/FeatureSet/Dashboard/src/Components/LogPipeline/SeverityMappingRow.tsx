@@ -69,7 +69,7 @@ const SeverityMappingRow: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="col-span-1 flex justify-center">
-        <span className="text-gray-400 text-sm font-medium">
+        <span className="text-gray-500 text-sm font-medium">
           {translator.translateText("maps to")}
         </span>
       </div>

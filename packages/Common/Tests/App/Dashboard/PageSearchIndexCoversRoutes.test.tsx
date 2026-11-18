@@ -36,6 +36,10 @@ import { MOVED_ON_CALL_RULES_PATHS } from "../../../Types/NotificationRule/OnCal
  * palette's actions and quick links. A new page in RouteMap fails here
  * until it is one of those or is listed below, so a page cannot be added
  * that nobody can find by searching for it.
+ *
+ * A page that needs a record (a status page's Single Sign-On) is found
+ * through RecordPageSearchIndex.ts instead, which
+ * RecordPageSearchIndexCoversMenus holds to the records' menus (#9204).
  */
 
 jest.mock("react-i18next", () => {

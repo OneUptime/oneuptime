@@ -573,7 +573,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
 
     if (!lastPolledAt) {
       return (
-        <span className="text-gray-400">
+        <span className="text-gray-500">
           {translator.translateText("Not polled yet")}
         </span>
       );
@@ -683,7 +683,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                       )}
           </div>
           {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
-            <div className="mt-0.5 text-xs text-gray-400">
+            <div className="mt-0.5 text-xs text-gray-500">
               {translator.translateTemplate("Last polled {{time}}", {
                 time: OneUptimeDate.fromNow(lastPolledAt),
               })}
@@ -720,7 +720,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
               />
             ) : isUnbound ? (
               <div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-500">
                   {translator.translateText("No monitor bound")}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
@@ -802,7 +802,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
            */}
           {isMonitorBacked ? (
             <div
-              className="mt-1.5 text-sm text-gray-400"
+              className="mt-1.5 text-sm text-gray-500"
               title={translator.translateText(
                 "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
               )}
@@ -811,7 +811,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             </div>
           ) : hasNoSnmpInventory(device) ? (
             <div
-              className="mt-1.5 text-sm text-gray-400"
+              className="mt-1.5 text-sm text-gray-500"
               title={translator.translateText(NO_SNMP_INTERFACES_LABEL.tooltip)}
             >
               {translator.translateText(NO_SNMP_INTERFACES_LABEL.text)}
@@ -883,7 +883,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           />
           <div className="mt-1.5 text-sm text-gray-900">
             {uptimeText || (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translateText("Unknown")}
               </span>
             )}
@@ -901,7 +901,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 {device.site.name}
               </AppLink>
             ) : (
-              <span className="text-gray-400">
+              <span className="text-gray-500">
                 {translator.translateText("No site assigned")}
               </span>
             )}
@@ -918,7 +918,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                * for one to assign (#3447).
                */
               <span
-                className="text-gray-400"
+                className="text-gray-500"
                 title={translator.translateText(
                   "Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them.",
                 )}
@@ -927,7 +927,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
               </span>
             ) : (
               device.probe?.name || (
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {translator.translateText("No probe")}
                 </span>
               )

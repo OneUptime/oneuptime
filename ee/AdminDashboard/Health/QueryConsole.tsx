@@ -10,6 +10,15 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
@@ -284,7 +293,7 @@ const renderCell: (value: JSONValue) => ReactElement = (
   value: JSONValue,
 ): ReactElement => {
   if (value === null || value === undefined) {
-    return <span className="text-gray-300 italic">{SQL_NULL}</span>;
+    return <span className="text-gray-500 italic">{SQL_NULL}</span>;
   }
   if (typeof value === "object") {
     return <span className="font-mono text-xs">{JSON.stringify(value)}</span>;
@@ -330,6 +339,15 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const [readOnly, setReadOnly] = useState<boolean>(true);
   const readOnlySwitchId: string = useId();
   const [maxRows, setMaxRows] = useState<number>(100);
+  const rowLimitPickerId: string = useId();
+  const rowLimitOptions: Array<DropdownOption> = ROW_LIMIT_OPTIONS.map(
+    (option: number): DropdownOption => {
+      return getNamedDropdownOption(option, String(option));
+    },
+  );
+  const examplePickerId: string = useId();
+  // How many examples were loaded: the examples picker is drawn afresh after each.
+  const [examplesPicked, setExamplesPicked] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [history, setHistory] = useState<Array<HistoryEntry>>([]);
@@ -546,7 +564,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
             });
           }}
         />
-        <span className="text-xs text-gray-400 -ml-2">
+        <span className="text-xs text-gray-500 -ml-2">
           {translator.translateText("⌘ / Ctrl + ↵")}
         </span>
 
@@ -573,61 +591,72 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
 
         {config.tabular ? (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
+            <label htmlFor={rowLimitPickerId} className="text-sm text-gray-600">
               {translator.translateText("Row limit")}
-            </span>
-            <select
-              value={maxRows}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                setMaxRows(Number(event.target.value));
+            </label>
+            <Dropdown
+              inputId={rowLimitPickerId}
+              className="relative w-28 overflow-visible"
+              // A number of rows, drawn as it is.
+              options={rowLimitOptions}
+              value={findDropdownOption(rowLimitOptions, maxRows)}
+              // A query always returns at most some number of rows.
+              isClearable={false}
+              onChange={(
+                next: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const picked: string | null = readPickedDropdownValue(next);
+
+                if (picked !== null) {
+                  setMaxRows(Number(picked));
+                }
               }}
-              className="rounded-md border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              {ROW_LIMIT_OPTIONS.map((option: number): ReactElement => {
-                return (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                );
-              })}
-            </select>
+            />
           </div>
         ) : (
           <></>
         )}
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">
+          <label htmlFor={examplePickerId} className="text-sm text-gray-600">
             {translator.translateText("Examples")}
-          </span>
-          <select
-            value=""
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+          </label>
+          {/*
+           * Picking an example loads it and leaves the picker on its prompt
+           * again (a new key draws it afresh): it is an action, not a
+           * setting the console keeps.
+           */}
+          <Dropdown
+            key={`${engine}-${examplesPicked}`}
+            inputId={examplePickerId}
+            className="relative w-72 max-w-full overflow-visible"
+            placeholder={translator.translateText(
+              "Load an example… (replaces editor)",
+            )}
+            isPlaceholderTranslated={true}
+            options={config.samples.map(
+              (sample: { label: string; query: string }): DropdownOption => {
+                return getNamedDropdownOption(sample.label, sample.label);
+              },
+            )}
+            isClearable={false}
+            onChange={(
+              next: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
               const selected: EngineConfig["samples"][number] | undefined =
                 config.samples.find(
                   (sample: { label: string; query: string }): boolean => {
-                    return sample.label === event.target.value;
+                    return sample.label === readPickedDropdownValue(next);
                   },
                 );
               if (selected) {
                 setQueryForEngine(selected.query);
               }
+              setExamplesPicked((count: number): number => {
+                return count + 1;
+              });
             }}
-            className="rounded-md border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="">
-              {translator.translateText("Load an example… (replaces editor)")}
-            </option>
-            {config.samples.map(
-              (sample: { label: string; query: string }): ReactElement => {
-                return (
-                  <option key={sample.label} value={sample.label}>
-                    {sample.label}
-                  </option>
-                );
-              },
-            )}
-          </select>
+          />
         </div>
 
         <Button
@@ -766,7 +795,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           >
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-400 w-12">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-12">
                   #
                 </th>
                 {tableResult.columns.map(
@@ -790,7 +819,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                       >
                         <span>{column}</span>
                         {columnType ? (
-                          <span className="ml-1 font-normal text-gray-400">
+                          <span className="ml-1 font-normal text-gray-500">
                             {columnType.type}
                           </span>
                         ) : (
@@ -807,7 +836,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                 <tr>
                   <td
                     colSpan={tableResult.columns.length + 1}
-                    className="px-3 py-6 text-center text-sm text-gray-400"
+                    className="px-3 py-6 text-center text-sm text-gray-500"
                   >
                     {translator.translateText(
                       "0 rows — the query ran successfully but matched no rows.",
@@ -822,7 +851,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                   const rowObject: JSONObject = (row || {}) as JSONObject;
                   return (
                     <tr key={rowIndex} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-xs text-gray-300 tabular-nums">
+                      <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
                         {rowIndex + 1}
                       </td>
                       {tableResult.columns.map(
@@ -907,7 +936,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const renderResult: () => ReactElement = (): ReactElement => {
     if (!result) {
       return (
-        <div className="text-sm text-gray-400 py-8 text-center">
+        <div className="text-sm text-gray-500 py-8 text-center">
           {translator.translateText("Run a query to see results here.")}
         </div>
       );

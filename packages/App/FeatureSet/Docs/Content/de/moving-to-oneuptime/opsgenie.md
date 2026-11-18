@@ -87,6 +87,9 @@ Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eing
 ### Sicherstellen, dass alle alarmiert werden können
 Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer, eine E-Mail-Adresse oder die mobile App hinzu, über die sie alarmiert werden. **Bereitschaft** > **Einsatzbereitschaft** zeigt, wer noch nicht erreichbar ist.
 
+### Test-Alarmierung senden
+Wählen Sie im Bericht **Diese Richtlinie testen**, um eine übernommene Richtlinie einmal ohne Vorfall zu alarmieren: Jede Nachricht sagt TEST. Bei mehreren Richtlinien wählen Sie zuerst eine aus.
+
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in Opsgenie beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 

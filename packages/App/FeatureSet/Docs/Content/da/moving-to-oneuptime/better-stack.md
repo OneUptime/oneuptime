@@ -94,7 +94,7 @@ En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan mar
 Tilføj ejere til dine monitorer eller en vagtpolitik under **Vagt** > **Vagtpolitikker** til de hændelser, de åbner, så de rigtige personer får besked, når noget går ned.
 
 ### Peg din statussides adresse på OneUptime
-Åbn siden under **Statussider**, tilføj dit domæne under **Brugerdefinerede domæner**, og ret derefter dets DNS-post. Så når dine besøgende og abonnenter den nye side.
+Åbn siden under **Statussider**, tilføj dit domæne under **Brugerdefinerede domæner**, og ret derefter dets DNS-post. Så når dine besøgende og abonnenter den nye side. Indtil da viser rapporten, hvor hver overført side er live på OneUptime, med **Kopiér link**.
 
 ### Slå kontrollerne fra i Better Stack
 Når OneUptime kontrollerer de samme ting, så sæt dem på pause i Better Stack, så ingen får besked to gange.
