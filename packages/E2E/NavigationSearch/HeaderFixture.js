@@ -38,7 +38,9 @@ import EventName from "../../App/FeatureSet/Dashboard/src/Utils/EventName";
  * ?as=reader (who reads services and nothing else) is who is searching.
  *
  * The header's reads are answered here, with nothing sent: the counts, the
- * current on-call lookup, the global config and the live updates. What its
+ * current on-call lookup, whether the signed-in person (Morgan Lee) has
+ * notifications to finish setting up, the global config and the live
+ * updates; server.js draws their picture. What its
  * buttons open is counted on window.__headerFixture (Search, Ask AI and the
  * keyboard shortcuts open dialogs this page does not mount); Help's How
  * OneUptime works opens the production dialog, as App.tsx mounts it.
@@ -46,6 +48,9 @@ import EventName from "../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 export const PROJECT_ID = "00000000-0000-4000-8000-000000000001";
 export const PROJECT_NAME = "Acme Commerce Production";
+
+// The person signed in to the page: Morgan Lee, a member of the project.
+export const SIGNED_IN_USER_ID = "00000000-0000-4000-8000-0000000000f1";
 
 const query = new URLSearchParams(window.location.search);
 
@@ -269,11 +274,13 @@ export function installHeaderFixture() {
     return false;
   };
   /*
-   * No signed-in user: the profile button draws the blank picture, rather
-   * than one read from the server.
+   * Somebody is signed in, as on every Dashboard page: the profile button
+   * draws their picture (server.js answers /api/user/profile-picture/), and
+   * the bell asks whether they have notifications to finish setting up
+   * (#7040), which the API below answers.
    */
   UserUtil.getUserId = () => {
-    throw new Error("No user is signed in to the fixture");
+    return new ObjectID(SIGNED_IN_USER_ID);
   };
   ModelAPI.getCommonHeaders = () => {
     return { tenantid: PROJECT_ID };
@@ -296,9 +303,37 @@ export function installHeaderFixture() {
     counted.requests.push(`list ${options.modelType.name}`);
     return { data: [], count: 0, skip: 0, limit: 0 };
   };
-  // The current on-call lookup: nobody is on call.
   API.get = async (options) => {
     counted.requests.push(`GET ${options.url.toString()}`);
+
+    /*
+     * Whether the person can be reached when they are paged (GET
+     * /on-call-readiness/user/:userId), which the bell reads: they are on
+     * no on-call policy, so it asks nothing of them.
+     */
+    if (
+      options.url
+        .toString()
+        .includes(`/on-call-readiness/user/${SIGNED_IN_USER_ID}`)
+    ) {
+      return new HTTPResponse(
+        200,
+        {
+          userId: SIGNED_IN_USER_ID,
+          userName: "Morgan Lee",
+          userEmail: "morgan@acme.test",
+          status: "Ready",
+          methods: [],
+          coverage: [],
+          reasons: [],
+          reachedVia: [],
+          teams: [],
+        },
+        {},
+      );
+    }
+
+    // The current on-call lookup: nobody is on call.
     return new HTTPResponse(
       200,
       {
