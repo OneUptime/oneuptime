@@ -142,6 +142,7 @@ OneUptimeReplay.identify("support-user-42", {
 OneUptimeReplay.setTags({ build: "2026.09.13", experiment: "checkout-b" });
 OneUptimeReplay.addTag("region", "eu-west");
 OneUptimeReplay.track("checkout_opened", { cartSize: 3 });
+OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 // Call from the navigation container's state-change callback.
 await OneUptimeReplay.setRoute("/checkout?payment_token=discarded");
@@ -165,6 +166,53 @@ maps remain count/length bounded. Routes always drop query strings and
 fragments and are stored as `app://com.example.checkout/checkout`. The
 remaining path stays readable, so pass stable screen templates rather than
 account names, order numbers, or other sensitive path values.
+
+## Product analytics events and metrics
+
+With **Send product analytics events** on for the RUM application (its
+**Analytics Settings** page in OneUptime), the SDK also sends the
+application's product analytics: the session's start, each screen
+`setRoute()` names as a page view, every `track()` event, and the numbers
+the app measures with `metric()`:
+
+```ts
+OneUptimeReplay.track("checkout_opened", { cartSize: 3 });
+OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
+```
+
+They feed the application's **Events**, **Funnels** and **User Retention**
+pages, and a `metric()` point is a point of a metric of the application's,
+for charts, dashboards and Metrics monitors. They follow the browser
+recorder's contract (`Common/Types/Rum/ProductAnalyticsEvents.ts`, copied
+in `src/ProductAnalyticsContract.ts` and held to it by `ContractParity`):
+
+- **Every session, recorded or not.** The replay sample decides which
+  sessions are recorded, not which are counted: a session it leaves out
+  still sends its events (`start()` still resolves `false` for it, as
+  before), and those events are what keeps its session alive.
+- **Consent.** When the policy requires consent, events wait for
+  `grantConsent()`, at most 500 of them, and are then filed under the
+  session the grant opens; `revokeConsent()` drops them.
+- **Masked as the recording is.** The SDK always masks text, so property,
+  attribute and trait values arrive masked; event names, keys and metric
+  values are sent as written. A screen is its scrubbed route.
+- **Small batches.** Every 5 seconds and as the app leaves the foreground,
+  at most 100 events and 100 metric points each, one session's and one
+  person's per batch. A failed batch is retried with backoff up to 5 minutes
+  (a `Retry-After` is honoured up to 300 seconds), at once when the app
+  returns to the foreground or a `connectivity` source says the device is
+  back online, and nothing is tried while it says the device is offline.
+  Events are held in memory: an app killed while offline loses the ones it
+  had not sent. A 204, 400 or 403 stops them until the next `start()`.
+- **The context** is the one recorded sessions are filed under: `mobile`,
+  or `tablet` from a shorter side of 600 points; the system the native
+  module names; and the `appVersion` start option, or the binary's own.
+- **Diagnostics.** `getDiagnostics().productAnalytics` reports `state`
+  (`off`, `on`, or why they stopped), `pending` and `dropped`; the codes
+  `analytics-started`, `analytics-stopped`, `metric-analytics-off`,
+  `metric-name-refused` and `metric-value-refused` say what happened.
+
+`metric()` sends nothing while the events are off for the application.
 
 ## Manual and error capture
 
@@ -210,7 +258,8 @@ on a web page: the browser recorder detects those, and this SDK leaves them out.
 
 ```ts
 const diagnostics = OneUptimeReplay.getDiagnostics();
-// status, sessionId, sampled, triggered, consentState, pendingEvents, events
+// status, sessionId, sampled, triggered, consentState, pendingEvents,
+// productAnalytics, events
 ```
 
 Diagnostics contain recorder decisions and fixed reason codes, not view text.
