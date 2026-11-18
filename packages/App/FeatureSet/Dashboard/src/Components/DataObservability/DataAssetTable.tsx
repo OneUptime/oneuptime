@@ -3,8 +3,14 @@ import {
   getDataAssetKindText,
 } from "./DataAssetKindWords";
 import { formatRowCount, formatSize } from "./DataObservabilityFormat";
+import {
+  getTableFreshnessFacet,
+  STORE_TABLES_LIST_ID,
+  TABLES_LIST_ID,
+} from "./DataObservabilityListRoutes";
 import FreshnessPill from "./FreshnessPill";
 import OwnersCell from "../ResourceOwners/OwnersCell";
+import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -21,7 +27,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
@@ -46,8 +52,16 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
   const listKey: string = props.isDropped
     ? "data-observability-dropped"
     : props.dataStoreId
-      ? "data-observability-store-tables"
-      : "data-observability-tables";
+      ? STORE_TABLES_LIST_ID
+      : TABLES_LIST_ID;
+  /*
+   * Late or fresh now, asked of when each table is late (lateAt) on the
+   * server (#6550): the chip the Late Tables counts open the list with. A
+   * dropped table is collected no more, so it is neither.
+   */
+  const extraFacets: Array<ResourceFacet> = useMemo(() => {
+    return props.isDropped ? [] : [getTableFreshnessFacet()];
+  }, [props.isDropped]);
   const {
     onResourcesFetched,
     getOwnersForResource,
@@ -63,6 +77,7 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: DataAssetOwnerTeam,
     resourceIdField: "dataAssetId",
     showLabelsFacet: true,
+    extraFacets,
   });
 
   return (
@@ -230,10 +245,14 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
           },
         },
         {
-          field: { assetKind: true },
+          /*
+           * Sorted by when each table is late (lateAt): the most overdue
+           * first, then the next to go late, and last the views and tables
+           * whose rhythm is not known yet (#6550).
+           */
+          field: { lateAt: true },
           title: "Freshness",
           type: FieldType.Element,
-          disableSort: true,
           getElement: (asset: DataAsset): ReactElement => {
             return (
               <FreshnessPill

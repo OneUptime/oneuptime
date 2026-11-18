@@ -28,6 +28,10 @@ import {
   DataCheckDraft,
   validateDataCheck,
 } from "../Utils/DataObservability/DataCheckValidation";
+import DataCheckHealthSync, {
+  StoredDataCheckHealth,
+} from "../Utils/DataObservability/DataCheckHealthSync";
+import { DataCheckHealth } from "../../Types/DataObservability/DataObservabilityAttention";
 
 /*
  * The checks on a table's values. Every check is validated against the
@@ -55,6 +59,13 @@ const DBT_TEST_REFUSAL: string =
 
 const RECONCILIATION_REFUSAL: string =
   "This check reads one side of a reconciliation, which keeps it: change or delete it from the reconciliation, under Reconciliations.";
+
+// The fields of a check whose change moves how it stands (DataCheckHealthSync).
+const HEALTH_FIELDS: ReadonlyArray<string> = [
+  "isEnabled",
+  "monitorId",
+  "monitor",
+];
 
 // The fields of a check that decide what it runs.
 const RUN_FIELDS: ReadonlyArray<string> = [
@@ -146,7 +157,41 @@ export class Service extends ProjectReferencesService<Model> {
     // Run at the store's next collection.
     createBy.data.nextRunAt = OneUptimeDate.getCurrentDate();
 
+    /*
+     * How it stands before its first run, kept on it for Checks' order
+     * (DataCheckHealthSync, #6554): waiting, or off when made turned off.
+     */
+    const health: StoredDataCheckHealth = DataCheckHealthSync.toStored(
+      createBy.data.isEnabled === false
+        ? DataCheckHealth.Off
+        : DataCheckHealth.Waiting,
+    );
+    createBy.data.health = health.health;
+    createBy.data.healthRank = health.healthRank;
+
     return { createBy, carryForward: undefined };
+  }
+
+  /*
+   * A check turned on or off, or whose alert was set up or taken away, stands
+   * differently now: kept on it for Checks' order (DataCheckHealthSync,
+   * #6554). Never a reason the change fails.
+   */
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const data: JSONObject = onUpdate.updateBy.data as unknown as JSONObject;
+
+    if (
+      HEALTH_FIELDS.some((field: string) => {
+        return data[field] !== undefined;
+      })
+    ) {
+      await DataCheckHealthSync.refreshChecks({ checkIds: updatedItemIds });
+    }
+
+    return onUpdate;
   }
 
   protected override async onBeforeUpdate(

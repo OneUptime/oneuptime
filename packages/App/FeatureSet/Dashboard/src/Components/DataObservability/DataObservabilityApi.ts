@@ -21,6 +21,8 @@ import {
   DataObservabilityConnectStoreResponse,
   DataObservabilityDataProductBadgeResetResponse,
   DataObservabilityDataProductSyncResponse,
+  DataObservabilityIssuesRequest,
+  DataObservabilityIssuesResponse,
   DataObservabilityOverview,
   DataObservabilityReconciliationSyncResponse,
   DataObservabilityAiAppTable,
@@ -48,6 +50,7 @@ import { DataLineageMap } from "Common/Types/DataObservability/DataLineageMap";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { normalizeDataObservabilityIssues } from "./IssuesCopy";
 
 /*
  * The Dashboard's side of Data Observability's own routes (Server/API/
@@ -93,6 +96,30 @@ export default class DataObservabilityApi {
     return (await post(
       DATA_OBSERVABILITY_API_ROUTES.overview,
     )) as unknown as DataObservabilityOverview;
+  }
+
+  // How many things need someone now: the menu's count beside Overview.
+  public static async getAttentionCount(): Promise<number> {
+    const body: JSONObject = await post(
+      DATA_OBSERVABILITY_API_ROUTES.attentionCount,
+    );
+    const count: unknown = body["count"];
+
+    return typeof count === "number" && Number.isFinite(count) && count > 0
+      ? Math.floor(count)
+      : 0;
+  }
+
+  // A page of what needs someone, worst first, filtered: the Issues page.
+  public static async getIssues(
+    request: DataObservabilityIssuesRequest,
+  ): Promise<DataObservabilityIssuesResponse> {
+    return normalizeDataObservabilityIssues(
+      await post(
+        DATA_OBSERVABILITY_API_ROUTES.issues,
+        request as unknown as JSONObject,
+      ),
+    );
   }
 
   public static async getStores(): Promise<

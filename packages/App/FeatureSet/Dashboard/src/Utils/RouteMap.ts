@@ -1129,7 +1129,9 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: `pipelines/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: `pipelines/${RouteParams.ModelID}/audit-logs`,
+  [PageMap.DATA_OBSERVABILITY_ISSUES]: "issues",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
   [PageMap.DATA_OBSERVABILITY_SETTINGS]: "settings",
@@ -8950,6 +8952,20 @@ const RouteMap: Dictionary<Route> = {
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS
       ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_ISSUES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_ISSUES]
     }`,
   ),
 

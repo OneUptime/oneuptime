@@ -1063,6 +1063,8 @@ import { AddProbeChecksLate1809183650000 } from "./1809183650000-AddProbeChecksL
 import { AddProbeDevicePollsLate1809183760000 } from "./1809183760000-AddProbeDevicePollsLate";
 import { AddDocsFeedbackKeeping1809183800000 } from "./1809183800000-AddDocsFeedbackKeeping";
 import { AddEmailLogTemplateType1809183830000 } from "./1809183830000-AddEmailLogTemplateType";
+import { AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000 } from "./1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners";
+import { AddDataCheckMonitorIdIndex1809184560000 } from "./1809184560000-AddDataCheckMonitorIdIndex";
 
 export default [
   InitialMigration,
@@ -2130,4 +2132,6 @@ export default [
   AddProbeDevicePollsLate1809183760000,
   AddDocsFeedbackKeeping1809183800000,
   AddEmailLogTemplateType1809183830000,
+  AddDataObservabilityAttentionColumnsAndPipelineOwners1809184550000,
+  AddDataCheckMonitorIdIndex1809184560000,
 ];
