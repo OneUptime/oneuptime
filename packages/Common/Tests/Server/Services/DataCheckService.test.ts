@@ -6,6 +6,7 @@ import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
+import DataCheckHealthSync from "../../../Server/Utils/DataObservability/DataCheckHealthSync";
 import logger from "../../../Server/Utils/Logger";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
@@ -13,6 +14,10 @@ import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DataAssetColumn } from "../../../Types/DataObservability/DataAssetColumn";
 import { DataCheckType } from "../../../Types/DataObservability/DataCheckType";
+import {
+  DataCheckHealth,
+  getDataCheckHealthRank,
+} from "../../../Types/DataObservability/DataObservabilityAttention";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -800,5 +805,109 @@ describe("the table a new check reads", () => {
     const error: unknown = await refusalOf(hooks.onBeforeCreate(createOf({})));
 
     expect((error as Error).message).toBe("A check needs the table it reads.");
+  });
+});
+
+/*
+ * HOW A CHECK STANDS, KEPT ON IT FOR CHECKS' ORDER (#6554).
+ *
+ * Checks lists failing checks first, sorted on the server by the health
+ * kept on each check (DataCheckHealthSync). A new check is waiting for its
+ * first run - or off, made turned off - and a check turned on or off, or
+ * whose alert is set up or taken away, has its health worked out again. A
+ * change of anything else leaves it alone.
+ */
+describe("a check's kept health", () => {
+  const hooks: CreateHooks = DataCheckService as unknown as CreateHooks;
+
+  function createOf(data: Record<string, unknown>): CreateBy<DataCheck> {
+    const check: DataCheck = new DataCheck();
+
+    for (const [name, value] of Object.entries({
+      projectId: PROJECT_ID,
+      name: "Emails present",
+      checkType: DataCheckType.NullPercent,
+      columnName: "email",
+      dataAssetId: new ObjectID(ORDERS_ID),
+      ...data,
+    })) {
+      (check as unknown as Record<string, unknown>)[name] = value;
+    }
+
+    return {
+      data: check,
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    } as CreateBy<DataCheck>;
+  }
+
+  test("a new check waits for its first run, ranked with the checks that have nothing to say yet", async () => {
+    const createBy: CreateBy<DataCheck> = createOf({});
+
+    await hooks.onBeforeCreate(createBy);
+
+    expect(createBy.data.health).toBe(DataCheckHealth.Waiting);
+    expect(createBy.data.healthRank).toBe(
+      getDataCheckHealthRank(DataCheckHealth.Waiting),
+    );
+  });
+
+  test("a check made turned off is off, and listed last", async () => {
+    const createBy: CreateBy<DataCheck> = createOf({ isEnabled: false });
+
+    await hooks.onBeforeCreate(createBy);
+
+    expect(createBy.data.health).toBe(DataCheckHealth.Off);
+    expect(createBy.data.healthRank).toBe(
+      getDataCheckHealthRank(DataCheckHealth.Off),
+    );
+    expect(createBy.data.healthRank).toBeGreaterThan(
+      getDataCheckHealthRank(DataCheckHealth.Waiting),
+    );
+  });
+
+  describe("a change of the check", () => {
+    let refreshes: SpyInstance<typeof DataCheckHealthSync.refreshChecks>;
+
+    beforeEach(() => {
+      useInMemoryTable(DataCheckService, [checkRow(CHECK_ID, ORDERS_ID)]);
+      refreshes = jest
+        .spyOn(DataCheckHealthSync, "refreshChecks")
+        .mockResolvedValue(1);
+    });
+
+    test.each([
+      ["turned off", { isEnabled: false }],
+      ["turned on", { isEnabled: true }],
+      ["given an alert", { monitorId: new ObjectID(STORE_ID) }],
+      ["its alert taken away", { monitorId: null }],
+    ])(
+      "%s: its health is worked out again",
+      async (_what: string, data: Record<string, unknown>) => {
+        await DataCheckService.updateOneById({
+          id: new ObjectID(CHECK_ID),
+          data: data as never,
+          props: { isRoot: true },
+        });
+
+        expect(refreshes).toHaveBeenCalledTimes(1);
+        expect(
+          refreshes.mock.calls[0]![0].checkIds.map(
+            (id: ObjectID | string): string => {
+              return id.toString();
+            },
+          ),
+        ).toEqual([CHECK_ID]);
+      },
+    );
+
+    test("renamed, it stands as it stood: nothing is worked out", async () => {
+      await DataCheckService.updateOneById({
+        id: new ObjectID(CHECK_ID),
+        data: { name: "Statuses present" } as never,
+        props: { isRoot: true },
+      });
+
+      expect(refreshes).not.toHaveBeenCalled();
+    });
   });
 });

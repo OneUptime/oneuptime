@@ -45,6 +45,7 @@ import {
   DataObservabilityCheckHealthResponse,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityIssuesRequest,
   DataObservabilityIssuesResponse,
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
@@ -1808,6 +1809,9 @@ export default class DataObservabilityAPI extends BaseAPI<
     body: JSONObject,
     reader: DatabaseCommonInteractionProps,
   ): Promise<DataObservabilityIssuesResponse> {
+    // A filter it cannot read is refused before anything is read.
+    const request: DataObservabilityIssuesRequest =
+      DataObservabilityIssues.readRequest(body);
     const state: DataObservabilityAttentionState =
       await this.readAttentionState({
         projectId,
@@ -1816,7 +1820,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       });
 
     return await DataObservabilityIssues.answer({
-      request: DataObservabilityIssues.readRequest(body),
+      request,
       items: state.attention.items,
       storeIdByCheckId: state.attention.storeIdByCheckId,
       stores: state.stores,
