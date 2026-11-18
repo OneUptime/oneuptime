@@ -601,6 +601,8 @@ for (const each of [
     const createMonitor: Locator = page.getByTestId("logs-create-monitor");
 
     await expect(createMonitor).toBeVisible();
+    // In words beside the side menu, never a bell found by hovering (#9455).
+    await expect(createMonitor).toHaveText(words(each.lang, "Create monitor"));
     await look(page, each, "logs-service-create-monitor");
     await createMonitor.click();
 

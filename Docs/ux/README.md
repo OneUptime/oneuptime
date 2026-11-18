@@ -323,6 +323,14 @@ work out, starts from a default for everything else, and folds what most people 
   least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
   compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
   use judgement.
+- **A button keeps its words from a tablet to a wide screen.** A bell alone, named only by its
+  tooltip, is found by hovering: the Logs and Traces explorers drew Create monitor so from 768px
+  until their toolbars were 77rem wide, a service's Logs tab at 1280px too (#9455). A row with no
+  room for a button's words wraps, as the explorers' toolbars do, or folds its lesser actions into
+  ⋯, as a table's header does; it never hides the words at the middle widths to show them again
+  wider. On a phone a button may keep its icon alone beside what says what it does
+  (`isTitleHiddenOnPhone`). Enforced by
+  [ButtonWordsAtEveryWidthGuard](../../packages/Common/Tests/UI/ButtonWordsAtEveryWidthGuard.test.ts).
 - **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
   `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
   and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every

@@ -5,6 +5,9 @@ import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPol
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProductKey, {
+  OnboardedProductKey,
+} from "Common/Types/Product/ProductKey";
 import {
   getToolImportSourceDefinition,
   getToolImportSourcesThatFill,
@@ -33,7 +36,8 @@ import {
 } from "./ToolImportLinks";
 
 /*
- * "IMPORT FROM ..." UNDER AN EMPTY LIST (issue #6809).
+ * "IMPORT FROM ..." UNDER AN EMPTY LIST (issue #6809), AND IN THE LIST'S
+ * PRODUCT'S "HOW IT WORKS" (#7033, below).
  *
  * Someone with a PagerDuty account full of schedules, or an UptimeRobot
  * account full of checks, stands on an empty On-Call or Monitors list on
@@ -183,6 +187,72 @@ export function getToolImportEmptyStateAction(data: {
       Navigation.navigate(getToolImportOfferRoute(data.offer));
     },
   };
+}
+
+/*
+ * "MOVING FROM ANOTHER TOOL?" IN A PRODUCT'S HOW IT WORKS (issue #7033).
+ *
+ * The empty list's link is gone once the list has a record, and a team
+ * that made one monitor by hand, or was invited into a busy project, still
+ * has the rest of its setup in UptimeRobot or PagerDuty. The product's
+ * explanation, behind the ? beside its title, keeps one quiet line for
+ * them: "Moving from another tool?" and the same link the empty list
+ * offers, naming the same tools. Only the products whose lists an import
+ * fills have it - Monitors, On-Call (its policies and schedules) and
+ * Status Pages - and only for someone who may run that import, as the
+ * empty list's link is: the dialog opens for every member. Each says its
+ * own name as where the importer was opened from.
+ */
+export const PRODUCT_TOOL_IMPORT_OFFERS: Partial<
+  Record<OnboardedProductKey, ToolImportListOffer>
+> = {
+  [ProductKey.Monitors]: {
+    ...MONITORS_IMPORT_OFFER,
+    from: ToolImportEntryPoint.MonitorsHowItWorks,
+  },
+  /*
+   * On-Call's explanation is the same on its policies and its schedules:
+   * the tools that fill one fill the other, and a policy is what its
+   * guided setup makes and its first page lists.
+   */
+  [ProductKey.OnCall]: {
+    ...ON_CALL_POLICIES_IMPORT_OFFER,
+    from: ToolImportEntryPoint.OnCallHowItWorks,
+  },
+  [ProductKey.StatusPages]: {
+    ...STATUS_PAGES_IMPORT_OFFER,
+    from: ToolImportEntryPoint.StatusPagesHowItWorks,
+  },
+};
+
+export const TOOL_IMPORT_HOW_IT_WORKS_QUESTION: string = translationKey(
+  "Moving from another tool?",
+);
+
+export const TOOL_IMPORT_HOW_IT_WORKS_TEST_ID: string =
+  "product-about-tool-import";
+
+/*
+ * The import a product's How it works offers the person reading it, or
+ * nothing: for a product whose list no import fills, and for someone who
+ * may not create what it brings (a read-only member, or before the
+ * permissions have loaded).
+ */
+export function getProductToolImportOffer(
+  product: OnboardedProductKey,
+): ToolImportListOffer | undefined {
+  const offer: ToolImportListOffer | undefined =
+    PRODUCT_TOOL_IMPORT_OFFERS[product];
+
+  if (
+    !offer ||
+    getToolImportSourcesThatFill(offer.kind).length === 0 ||
+    !canRunToolImportFor(offer)
+  ) {
+    return undefined;
+  }
+
+  return offer;
 }
 
 // A list's empty state, with the link to the importer after its own actions.

@@ -84,14 +84,31 @@ export const LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
   "logs-viewer-filters-toggle";
 export const LOGS_VIEWER_EXPORT_MENU_TEST_ID: string =
   "logs-viewer-export-menu";
+export const LOGS_VIEWER_DISPLAY_CONTROLS_TEST_ID: string =
+  "logs-viewer-display-controls";
 
 /*
- * Create monitor's words: on a phone, where the toolbar wraps, and on a
- * toolbar 77rem wide or more (the toolbar is the container); between the
- * two the bell alone, so the row fits on one line.
+ * The toolbar's row: the view's controls (List and Analytics, the related
+ * signals, saved views, the count) and the display controls (columns,
+ * Create monitor, export, the time range, Live). They share the row while
+ * it has room for both; past that the display controls take a row of their
+ * own, whole - at 1280px beside a service's side menu, at 1024 and 768 -
+ * where each group used to break into ragged lines of its own. So no button
+ * gives up its words for room (#9455): Create monitor was a bare bell from
+ * md up until the toolbar was 77rem wide.
  */
-export const LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME: string =
-  "md:hidden [@container(min-width:77rem)]:inline";
+export const LOGS_VIEWER_TOOLBAR_CLASS_NAME: string =
+  "relative flex flex-wrap items-center justify-between gap-3";
+
+/*
+ * The display controls: at the end of whichever row they are on from md up,
+ * and start-aligned below md, on a row of their own under the view's
+ * controls. No wider than the toolbar (min-w-0 max-w-full), so the time
+ * range picker in it cuts a long custom range short instead of running past
+ * the card.
+ */
+export const LOGS_VIEWER_DISPLAY_CONTROLS_CLASS_NAME: string =
+  "flex min-w-0 max-w-full flex-wrap items-center justify-start gap-2 md:ms-auto md:justify-end";
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   props: LogsViewerToolbarProps,
@@ -119,11 +136,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
      * Below md the two groups wrap onto their own rows instead of sharing
      * one: side by side they squeezed each other on a phone. Wrapping moves
      * the triggers, so there every popover in the row spans the row (its
-     * positioning context) rather than hanging off its trigger. From md up it
-     * is the single unwrapped row it always was, popovers included.
+     * positioning context) rather than hanging off its trigger. From md up a
+     * popover hangs off its trigger, on whichever row the trigger is.
      */
     <div
-      className={`relative flex flex-wrap items-center justify-between gap-3 [container-type:inline-size] md:flex-nowrap ${props.className || ""}`}
+      className={`${LOGS_VIEWER_TOOLBAR_CLASS_NAME} ${props.className || ""}`}
       data-testid={LOGS_VIEWER_TOOLBAR_TEST_ID}
     >
       {/* Left group: View management + stats */}
@@ -284,13 +301,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
       </div>
 
-      {/*
-       * Right group: Display controls. Start-aligned below md, where it sits
-       * on its own row under the left group. No wider than the toolbar
-       * (min-w-0 max-w-full), so the time range picker in it cuts a long
-       * custom range short instead of running past the card.
-       */}
-      <div className="flex min-w-0 max-w-full flex-wrap items-center justify-start gap-2 md:justify-end">
+      {/* Right group: Display controls. */}
+      <div
+        className={LOGS_VIEWER_DISPLAY_CONTROLS_CLASS_NAME}
+        data-testid={LOGS_VIEWER_DISPLAY_CONTROLS_TEST_ID}
+      >
         {props.availableColumns &&
           props.selectedColumns &&
           props.onSelectedColumnsChange && (
@@ -304,25 +319,19 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         {props.onCreateMonitor && (
           <Tooltip text="Create monitor: get alerted about logs like these.">
             {/*
-             * Its words show where the row has room for them: on a phone,
-             * where the toolbar wraps onto rows of its own, and on a toolbar
-             * of 77rem and more. Between the two the bell alone keeps the
-             * row on one line - with the words, a 1280px window pushed Live
-             * and the result count onto a second row. The button is named
-             * Create monitor either way.
+             * Its words show at every width: a bell alone, named only by
+             * this tooltip, was found by hovering (#9455). Where the row has
+             * no room for them, the display controls take a row of their
+             * own (LOGS_VIEWER_TOOLBAR_CLASS_NAME).
              */}
             <button
               type="button"
-              aria-label={translator.translateText("Create monitor")}
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
               onClick={props.onCreateMonitor}
               data-testid="logs-create-monitor"
             >
               <Icon icon={IconProp.Bell} className="h-3.5 w-3.5" />
-              <span
-                className={LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME}
-                data-testid="logs-create-monitor-label"
-              >
+              <span data-testid="logs-create-monitor-label">
                 {translator.translateText("Create monitor")}
               </span>
             </button>

@@ -82,7 +82,7 @@ Uma pré-visualização é guardada por um dia. Só a pessoa que leu a conta pod
 Em **Páginas de status**, abra cada página e compare-a com a do Statuspage. Cada componente é um monitor manual: mude o status dele no OneUptime quando algo mudar.
 
 ### Aponte o endereço da sua página de status para o OneUptime
-Em **Páginas de status**, abra a página, adicione seu domínio em **Domínios personalizados** e depois altere o registro DNS dele. Assim, seus visitantes e assinantes chegam à nova página.
+Em **Páginas de status**, abra a página, adicione seu domínio em **Domínios personalizados** e depois altere o registro DNS dele. Assim, seus visitantes e assinantes chegam à nova página. Até lá, o relatório mostra onde cada página que você trouxe está no ar no OneUptime, com **Copiar link**.
 
 ### Desative sua página no Atlassian Statuspage
 Quando seu domínio apontar para o OneUptime, feche a página no Statuspage para que os assinantes dela não sejam avisados duas vezes.
