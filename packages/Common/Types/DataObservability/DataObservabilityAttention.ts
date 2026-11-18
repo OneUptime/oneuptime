@@ -82,6 +82,30 @@ export interface DataAttentionItem {
   alert: DataAttentionAlert | null;
 }
 
+/*
+ * WHAT AN ITEM'S OWNERS OWN: its table - a late table, a check's table - its
+ * pipeline (#6551), or its data product, as "asset:<id>", "pipeline:<id>" or
+ * "product:<id>". Null for what nothing owns here: a database, a
+ * reconciliation. The Overview's rows and the Issues page's owner filter
+ * read the same answer.
+ */
+export function getDataAttentionOwnerKey(
+  item: Pick<
+    DataAttentionItem,
+    "dataProductId" | "dataPipelineId" | "dataAssetId"
+  >,
+): string | null {
+  if (item.dataProductId) {
+    return `product:${item.dataProductId}`;
+  }
+
+  if (item.dataPipelineId) {
+    return `pipeline:${item.dataPipelineId}`;
+  }
+
+  return item.dataAssetId ? `asset:${item.dataAssetId}` : null;
+}
+
 function rankOf(kind: DataAttentionKind): number {
   const rank: number = DATA_ATTENTION_KIND_ORDER.indexOf(kind);
 

@@ -50,6 +50,10 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
 import logger from "../Logger";
 import { DataAlertScope, getDataAlertScope } from "./DataAlertCause";
+import DataObservabilityReadScope, {
+  DataObservabilityScope,
+  withConditions,
+} from "./DataObservabilityReadScope";
 import { isFailedState } from "./OpenLineageIngest";
 
 /*
@@ -79,6 +83,12 @@ export interface DataObservabilityAttention {
   // Checks a person made (a reconciliation's own two are not counted), and pipelines seen.
   checkCount: number;
   pipelineCount: number;
+  /*
+   * The database of each check told of, by the check's id: what Issues'
+   * database filter matches a check by. Kept off the item, whose database
+   * says whose alerts would tell of it - a check's own alert is its monitor.
+   */
+  storeIdByCheckId: Map<string, string>;
 }
 
 function toIso(value: Date | string | undefined | null): string | null {
@@ -139,8 +149,16 @@ export default class DataObservabilityAttentionReader {
     stores: Array<DataObservabilityStoreSummary>;
     // Every late table, as the Overview found them.
     lateAssets: Array<DataObservabilityOverviewAsset>;
+    /*
+     * What the reader may read of checks and pipelines (#6553): their
+     * reads narrowed as the generic routes narrow them. The whole project
+     * when left out.
+     */
+    scope?: DataObservabilityScope | undefined;
   }): Promise<DataObservabilityAttention> {
     const items: Array<DataAttentionItem> = [];
+    const scope: DataObservabilityScope =
+      data.scope || DataObservabilityReadScope.wholeProject(data.projectId);
 
     for (const store of data.stores) {
       if (store.isTableHealthEnabled && store.status === "Failed") {
@@ -169,7 +187,7 @@ export default class DataObservabilityAttentionReader {
       "pipelines",
       async () => {
         return await DataPipelineService.findBy({
-          query: { projectId: data.projectId },
+          query: scope.pipelineQuery,
           select: {
             _id: true,
             jobName: true,
@@ -193,15 +211,15 @@ export default class DataObservabilityAttentionReader {
     const checks: Array<DataCheck> = await readOrNothing("checks", async () => {
       return await DataCheckService.findBy({
         // A reconciliation's two checks are told of as the reconciliation.
-        query: {
-          projectId: data.projectId,
+        query: withConditions<DataCheck>(scope.checkQuery, {
           dataReconciliationId: QueryHelper.isNull(),
-        },
+        }),
         select: {
           _id: true,
           name: true,
           checkType: true,
           dataAssetId: true,
+          dataStoreId: true,
           dataAsset: { assetKey: true },
           isEnabled: true,
           lastRunAt: true,
@@ -222,6 +240,7 @@ export default class DataObservabilityAttentionReader {
         checks,
       });
     let failingCheckCount: number = 0;
+    const storeIdByCheckId: Map<string, string> = new Map();
 
     for (const check of checks) {
       const answer: DataCheckHealthAnswer | undefined = checkHealth.get(
@@ -230,6 +249,10 @@ export default class DataObservabilityAttentionReader {
 
       if (!answer) {
         continue;
+      }
+
+      if (check.id && check.dataStoreId) {
+        storeIdByCheckId.set(check.id.toString(), check.dataStoreId.toString());
       }
 
       if (answer.health === DataCheckHealth.Failing) {
@@ -335,6 +358,7 @@ export default class DataObservabilityAttentionReader {
         return check.checkType !== DataCheckType.DbtTest;
       }).length,
       pipelineCount: pipelines.length,
+      storeIdByCheckId,
     };
   }
 
