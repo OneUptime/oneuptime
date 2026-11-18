@@ -42,17 +42,17 @@ Une sonde qui a perdu sa propre connexion réseau ne rapporte aucun résultat, e
 
 Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, choisissez **Ping**.
 
-### Le nommer
-
-Saisissez un **Nom**, comme `Core router`, puis cliquez sur **Suivant**.
-
 ### Saisir l'hôte
 
 Dans **Nom d'hôte ou adresse IP**, saisissez le nom d'hôte ou l'adresse IPv4 ou IPv6 à pinger, comme `example.com` ou `192.168.1.1`. Saisissez seulement l'hôte, sans `http://` ni port.
 
+### Le nommer
+
+Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `example.com`. Gardez-le ou saisissez le vôtre, comme `Core router`, puis cliquez sur **Suivant**.
+
 ### Le tester
 
-Cliquez sur **Tester le moniteur**, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre les temps aller-retour et la perte de paquets que la sonde a constatés.
+Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre les temps aller-retour et la perte de paquets que la sonde a constatés. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 

@@ -49,17 +49,17 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 Gå til **Monitorer**, og klik på **Opret monitor**. Klik på **Flere monitortyper** under **Monitortype**, og vælg **IP** under **Grundlæggende overvågning**.
 
-### Navngiv den
-
-Angiv et **Navn**, som `Office gateway`, og klik så på **Næste**.
-
 ### Angiv adressen
 
 Angiv under **IP-adresse** den IPv4- eller IPv6-adresse, der skal tjekkes, som `192.168.1.1` eller `2001:db8::1`. Et værtsnavn accepteres ikke: feltet viser en fejl. For at pinge en vært på navn bruger du en [ping-monitor](/docs/monitor/ping-monitor).
 
+### Navngiv den
+
+**Navn** udfyldes ud fra det, du angav, som `192.168.1.1`. Behold det, eller angiv dit eget, som `Office gateway`, og klik så på **Næste**.
+
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så.
+Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser de rundturstider og det pakketab, sonden så. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 

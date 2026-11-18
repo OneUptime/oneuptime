@@ -16,9 +16,10 @@ import { describe, expect, test } from "@jest/globals";
  * them. The preview is the count a Logs, Traces or Exceptions monitor
  * compares, for every window of the same length back from now: these
  * tests pin that the read is bounded (a fixed number of windows, never
- * more than a week), that the windows are whole, that empty windows count
- * as 0, and how "would have fired" and the suggested threshold are worked
- * out.
+ * more than a week), that the windows are whole and the newest ends at now
+ * - the count the monitor's next check makes, so a service's first logs are
+ * in it (#7470) - that empty windows count as 0, and how "would have fired"
+ * and the suggested threshold are worked out.
  */
 
 const NOW: Date = new Date("2026-10-27T12:07:31.250Z");
@@ -44,13 +45,14 @@ const points: PointsFunction = (
 };
 
 describe("The windows a preview reads", () => {
-  test("a five-minute rule reads 144 whole windows: the last 12 hours, ending on the last whole window", () => {
+  test("a five-minute rule reads 144 whole windows: the last 12 hours, the newest ending now", () => {
     const fiveMinutes: TelemetryRulePreviewRange = range(300);
 
     expect(fiveMinutes.windowInSeconds).toBe(300);
-    expect(fiveMinutes.endTime.toISOString()).toBe("2026-10-27T12:05:00.000Z");
+    // Now, on its whole second: the windows the server counts start on one.
+    expect(fiveMinutes.endTime.toISOString()).toBe("2026-10-27T12:07:31.000Z");
     expect(fiveMinutes.startTime.toISOString()).toBe(
-      "2026-10-27T00:05:00.000Z",
+      "2026-10-27T00:07:31.000Z",
     );
     expect(
       (fiveMinutes.endTime.getTime() - fiveMinutes.startTime.getTime()) /
@@ -60,7 +62,7 @@ describe("The windows a preview reads", () => {
 
   test("a one-minute rule reads 2.4 hours, a 15-minute one 36 hours", () => {
     const oneMinute: TelemetryRulePreviewRange = range(60);
-    expect(oneMinute.endTime.toISOString()).toBe("2026-10-27T12:07:00.000Z");
+    expect(oneMinute.endTime.toISOString()).toBe("2026-10-27T12:07:31.000Z");
     expect(
       (oneMinute.endTime.getTime() - oneMinute.startTime.getTime()) / 3600000,
     ).toBeCloseTo(2.4);
@@ -83,7 +85,7 @@ describe("The windows a preview reads", () => {
       expect(spanInSeconds / windowInSeconds).toBeLessThanOrEqual(
         PREVIEW_WINDOW_COUNT,
       );
-      expect(read.endTime.getTime() % (windowInSeconds * 1000)).toBe(0);
+      expect(read.endTime.toISOString()).toBe("2026-10-27T12:07:31.000Z");
     }
 
     expect(
@@ -129,6 +131,41 @@ describe("The windows a preview reads", () => {
     }
   });
 
+  /*
+   * #7470: the newest window used to end on the last multiple of its length
+   * before now, so the window in progress was never read. At 21:27 a
+   * five-minute rule's windows ended at 21:25, and a service whose first
+   * error logs came at 21:26 had none in any of them: "Nothing matched in
+   * this time." The monitor, counting the last five minutes when it ran,
+   * alerted at once.
+   */
+  test("the newest window is the last N seconds before now: what the monitor's next check counts", () => {
+    const now: Date = new Date("2026-11-12T21:27:05.000Z");
+
+    for (const windowInSeconds of [60, 300, 900, 3600]) {
+      const read: TelemetryRulePreviewRange = TelemetryRulePreviewUtil.getRange(
+        { windowInSeconds, now },
+      );
+
+      expect(read.endTime.getTime()).toBe(now.getTime());
+      // Whole windows back from now: the newest starts N seconds before it.
+      expect(
+        (read.endTime.getTime() - read.startTime.getTime()) %
+          (windowInSeconds * 1000),
+      ).toBe(0);
+    }
+  });
+
+  test("a now between seconds is read from its whole second, never after it", () => {
+    const read: TelemetryRulePreviewRange = TelemetryRulePreviewUtil.getRange({
+      windowInSeconds: 300,
+      now: new Date("2026-11-12T21:27:05.999Z"),
+    });
+
+    expect(read.endTime.toISOString()).toBe("2026-11-12T21:27:05.000Z");
+    expect(read.startTime.getTime() % 1000).toBe(0);
+  });
+
   test("a window that is not a number of seconds reads as a minute", () => {
     expect(TelemetryRulePreviewUtil.clampWindow(Number.NaN)).toBe(60);
     expect(TelemetryRulePreviewUtil.clampWindow(-5)).toBe(60);
@@ -161,6 +198,31 @@ describe("Reading the server's answer", () => {
       ["2026-10-27T11:50:00.000Z", 0],
       ["2026-10-27T11:55:00.000Z", 7],
       ["2026-10-27T12:00:00.000Z", 3],
+    ]);
+  });
+
+  test("windows that end at now, off any multiple of their length, are read from the range's start", () => {
+    const answer: TelemetryRulePreviewAnswer = {
+      windowInSeconds: 300,
+      startTime: "2026-11-12T21:12:05.000Z",
+      endTime: "2026-11-12T21:27:05.000Z",
+      buckets: [
+        { time: "2026-11-12T21:17:05.000Z", value: 2 },
+        // Inside the newest window: the one that ends at now.
+        { time: "2026-11-12T21:24:59.000Z", value: 23 },
+      ],
+    };
+
+    expect(
+      TelemetryRulePreviewUtil.toPoints(answer).map(
+        (point: TelemetryRulePreviewPoint) => {
+          return [point.time.toISOString(), point.value];
+        },
+      ),
+    ).toEqual([
+      ["2026-11-12T21:12:05.000Z", 0],
+      ["2026-11-12T21:17:05.000Z", 2],
+      ["2026-11-12T21:22:05.000Z", 23],
     ]);
   });
 
@@ -283,6 +345,45 @@ describe("What the rule makes of the windows", () => {
     expect(summary.timesItWouldHaveFired).toBe(1);
     expect(summary.typical).toBe(12);
     expect(summary.lowest).toBe(0);
+  });
+
+  /*
+   * #7470, as the client reads it: the service's first error logs came a
+   * minute and a half ago, so they are in no window but the newest. The
+   * preview judges them - it does not say nothing matched - and a rule for
+   * more than 10 errors in 5 minutes would alert, as the monitor did once
+   * it was saved.
+   */
+  test("a service's first logs, younger than one window, are judged: the newest window holds them", () => {
+    const read: TelemetryRulePreviewRange = TelemetryRulePreviewUtil.getRange({
+      windowInSeconds: 300,
+      now: new Date("2026-11-12T21:27:30.000Z"),
+    });
+
+    const answer: TelemetryRulePreviewAnswer = {
+      windowInSeconds: read.windowInSeconds,
+      startTime: read.startTime.toISOString(),
+      endTime: read.endTime.toISOString(),
+      // 23 errors at 21:26, in the window that ends now, as the server counts.
+      buckets: [
+        {
+          time: new Date(read.endTime.getTime() - 300000).toISOString(),
+          value: 23,
+        },
+      ],
+    };
+
+    const summary: TelemetryRulePreviewSummary =
+      TelemetryRulePreviewUtil.summarize({
+        points: TelemetryRulePreviewUtil.toPoints(answer),
+        filterType: FilterType.GreaterThan,
+        threshold: 10,
+      });
+
+    expect(summary.hasData).toBe(true);
+    expect(summary.latest).toBe(23);
+    expect(summary.matchedWindowCount).toBe(1);
+    expect(summary.timesItWouldHaveFired).toBe(1);
   });
 
   test("nothing at all in any window: no data to judge", () => {

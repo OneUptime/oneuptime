@@ -7,9 +7,12 @@ import {
   useState,
 } from "react";
 
+// The page's own save, as its Save button runs it: rejects with why it did not save.
+export type SaveBeforeLeavingFunction = () => Promise<void>;
+
 /*
  * A step away from the page, waiting for the reader's answer while the page
- * shows its question (a ConfirmModal in the page's own words).
+ * shows its question (LeaveWithoutSavingQuestion, in the page's own words).
  */
 export interface LeavePrompt {
   // Someone tried to leave the page, and the page asks before they do.
@@ -18,6 +21,16 @@ export interface LeavePrompt {
   stay: () => void;
   // Discard Changes: the step goes ahead, and the unsaved work goes with the page.
   leave: () => void;
+  /*
+   * Save Changes: the page saves its work, and the step goes ahead only once
+   * the save worked. A save that is refused rejects with why, and the reader
+   * stays on the page, still asked, with nothing lost.
+   *
+   * The step is the one asked about when the save began. Saving lets the
+   * guard go - nothing is unsaved any more - and with it what it was asked;
+   * the step is taken all the same, as Discard Changes would have taken it.
+   */
+  saveAndLeave: (save: SaveBeforeLeavingFunction) => Promise<void>;
 }
 
 interface PendingLeave {
@@ -83,10 +96,28 @@ const useLeaveGuard: (hasUnsavedChanges: boolean) => LeavePrompt = (
     pending?.leave();
   }, []);
 
+  const saveAndLeave: (save: SaveBeforeLeavingFunction) => Promise<void> =
+    useCallback(async (save: SaveBeforeLeavingFunction): Promise<void> => {
+      /*
+       * Held from before the save: once it lands, the page draws with
+       * nothing unsaved and lets the guard go, which drops what is waiting
+       * on an answer (above) - often before this goes on.
+       */
+      const pending: PendingLeave | null = pendingLeaveRef.current;
+
+      // Refused: the step waits, and the question with it.
+      await save();
+
+      setPendingLeave(null);
+      pendingLeaveRef.current = null;
+      pending?.leave();
+    }, []);
+
   return {
     isAsking: hasUnsavedChanges && pendingLeave !== null,
     stay: stay,
     leave: leave,
+    saveAndLeave: saveAndLeave,
   };
 };
 

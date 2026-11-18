@@ -363,7 +363,7 @@ async function pressBrowserBack(): Promise<void> {
 }
 
 async function answer(
-  button: "Keep Editing" | "Discard Changes",
+  button: "Keep Editing" | "Discard Changes" | "Save Changes",
 ): Promise<void> {
   await act(async () => {
     fireEvent.click(within(queryLeaveDialog()!).getByText(button));
@@ -806,5 +806,77 @@ describe("after Save Steps", () => {
       within(dialogs[0]!).getByText("You no longer have permission."),
     ).toBeInTheDocument();
     expect(dialogs[1]).toBe(queryLeaveDialog());
+  });
+});
+
+describe("Save Changes in the question (issue #7402)", () => {
+  test("saves the steps as Save Steps does, then goes where the side menu was going", async () => {
+    await openStepsFromList();
+    await editTitle(0, "Check the graphs");
+    await clickSideMenuMonitors();
+
+    expect(
+      within(queryLeaveDialog()!).getByText("Save Changes"),
+    ).toBeInTheDocument();
+
+    await answer("Save Changes");
+
+    expect(saves).toHaveLength(1);
+    expect(saves[0]![0]!.title).toBe("Check the graphs");
+    expect(screen.getByText("All monitors")).toBeInTheDocument();
+    expect(window.location.pathname).toBe(MONITORS_PATH);
+    expect(queryLeaveDialog()).toBeNull();
+    expect(browserAsksBeforeUnload()).toBe(false);
+    // One "Changes saved", where the reader arrives - not one from each.
+    expect(
+      Toast.getToasts().map((toast: { title: string }): string => {
+        return toast.title;
+      }),
+    ).toEqual(["Changes saved"]);
+  });
+
+  test("Back, then Save Changes, saves the steps and goes back", async () => {
+    await openStepsFromList();
+    await editTitle(0, "Check the graphs");
+    await pressBrowserBack();
+
+    await answer("Save Changes");
+    await act(async () => {
+      await afterHistorySteps();
+    });
+    await settle();
+
+    expect(saves).toHaveLength(1);
+    expect(window.location.pathname).toBe(RUNBOOKS_PATH);
+    expect(queryLeaveDialog()).toBeNull();
+  });
+
+  test("a refused save stays with the steps, says why in the question - no second dialog - and loses nothing", async () => {
+    refuseSaves = true;
+
+    await openStepsFromList();
+    await editTitle(0, "Check the graphs");
+    await clickSideMenuMonitors();
+    await answer("Save Changes");
+
+    const dialog: HTMLElement | null = queryLeaveDialog();
+
+    expect(dialog).not.toBeNull();
+    expect(within(dialog!).getByTestId("modal-error")).toHaveTextContent(
+      "You no longer have permission.",
+    );
+    // The page's own "Could not save" waits for its own Save Steps.
+    expect(screen.queryByRole("dialog", { name: "Could not save" })).toBeNull();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(window.location.pathname).toBe(STEPS_PATH);
+    expect(stepTitles()[0]).toBe("Check the graphs");
+    expect(showsUnsaved()).toBe(true);
+    expect(browserAsksBeforeUnload()).toBe(true);
+
+    await answer("Keep Editing");
+
+    expect(queryLeaveDialog()).toBeNull();
+    expect(stepTitles()[0]).toBe("Check the graphs");
+    expect(showsUnsaved()).toBe(true);
   });
 });

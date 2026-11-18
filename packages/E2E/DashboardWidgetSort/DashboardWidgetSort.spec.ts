@@ -36,7 +36,13 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  *   - On a public dashboard the visitor's sort travels as widgetSort, and
  *     the server orders the list itself.
  *   - A board being edited is left at once while nothing changed; with a
- *     change unsaved, the side menu, Back and a reload ask first (#7173).
+ *     change unsaved, the side menu, Back and a reload ask first (#7173),
+ *     and Save Changes in that question saves the board, then goes on
+ *     (#7402). The toolbar says Unsaved changes once the board differs,
+ *     moving no button (#7403).
+ *   - A honeycomb's legend says what each tile colour means (#7344).
+ *   - A widget's Live Preview opens nothing a click on the board would
+ *     open: a row's page, a tile's, a Markdown link's (#7174).
  *
  * Screenshots of the sorted widgets (light, dark, German, the settings and
  * a phone) are saved for review under output/playwright/dashboard-widget-sort-ui.
@@ -89,6 +95,14 @@ const APP_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${DASHBOARD_ID}`;
 const PUBLIC_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
 // The dashboard's Overview, a stand-in in the fixture (Fixture/AppFixture.js).
 const OVERVIEW_PATH: string = `${APP_PATH}/overview`;
+/*
+ * The third dashboard: a monitor list as a table and as a honeycomb, and a
+ * Text widget with a Markdown link (Fixture/Boards.js buildPreviewConfig).
+ */
+const PREVIEW_BOARD_PATH: string = `${APP_PATH}?board=preview`;
+// Where its Text widget's link leads, and the words of that link.
+const PREVIEW_LINK_PATH: string = `/dashboard/${PROJECT_ID}/runbooks`;
+const PREVIEW_LINK_WORDS: string = "on-call runbook";
 
 // What the board asks before it is left with unsaved changes (#7173).
 const LEAVE_TITLE: string = "Leave without saving?";
@@ -1281,6 +1295,63 @@ test.describe("a honeycomb tile's tooltip", () => {
     await expect(ring).toHaveCount(1);
   });
 
+  /*
+   * What each colour means, under the tiles (#7344): a board on a wall
+   * screen, where nobody hovers, said Disabled only in a tooltip. Worst
+   * first, as Status sorts the list, Disabled last and gray. At 1280 and on
+   * a phone, where it wraps, in the light and the dark theme.
+   */
+  test("a legend under the tiles says what each colour means: worst first, Disabled last and gray", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page);
+
+    const legend: Locator = page.getByTestId("dashboard-honeycomb-legend");
+    const entries: Locator = legend.getByTestId(
+      "dashboard-honeycomb-legend-item",
+    );
+
+    await expect(entries).toHaveText([
+      "Offline",
+      "Degraded",
+      "Operational",
+      "Disabled",
+    ]);
+    expect(
+      await entries.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element.querySelector("span")!)
+            .backgroundColor;
+        });
+      }),
+    ).toEqual([
+      "rgb(239, 68, 68)",
+      "rgb(245, 158, 11)",
+      "rgb(16, 185, 129)",
+      GRAY,
+    ]);
+
+    // Inside the widget's card, all of it in view with its tiles.
+    const card: Locator = legend.locator(
+      "xpath=ancestor::*[starts-with(@id, 'dashboard-component-')][1]",
+    );
+    const cardBox: Box = await boxOf(card);
+    const legendBox: Box = await boxOf(legend);
+
+    expect(legendBox.left).toBeGreaterThanOrEqual(cardBox.left);
+    expect(legendBox.right).toBeLessThanOrEqual(cardBox.right);
+    expect(legendBox.bottom).toBeLessThanOrEqual(cardBox.bottom);
+
+    await legend.scrollIntoViewIfNeeded();
+    await shoot(page, testInfo, "honeycomb-legend", card);
+    await page.evaluate((): void => {
+      document.documentElement.classList.add("dark");
+    });
+    await shoot(page, testInfo, "honeycomb-legend-dark", card);
+  });
+
   test("in full screen the tooltip is drawn on the board, and leaving full screen takes it away", async ({
     page,
   }: {
@@ -1332,6 +1403,104 @@ test.describe("a honeycomb tile's tooltip", () => {
  * So a table that fitted its widget still fits it (#5122's UI review), and
  * the security events list keeps one line per event.
  */
+/*
+ * WHILE A BOARD IS EDITED, THE TOOLBAR SAYS WHETHER IT HOLDS UNSAVED CHANGES
+ * (#7403): Editing while it is as editing found it - a widget's settings
+ * closed with Done and nothing changed included - and Unsaved changes once
+ * it differs, in one chip whose words change, so no control moves. At 1280
+ * and on a phone, in the light and the dark theme (the dark theme is a
+ * class on <html>, Fixture/server.js).
+ */
+test.describe("the toolbar says when a board being edited has unsaved changes (#7403)", () => {
+  // Where each of the editing toolbar's controls is on the page, whatever its scroll.
+  const controlPlaces: (page: Page) => Promise<Array<string>> = async (
+    page: Page,
+  ): Promise<Array<string>> => {
+    const controls: Array<Locator> = [
+      page.getByTitle("Add Widget").first(),
+      page.getByTitle("Variables").first(),
+      toolbarButton(page, "Cancel"),
+      toolbarButton(page, "Save Changes"),
+    ];
+    const places: Array<string> = [];
+
+    for (const control of controls) {
+      places.push(
+        await control.evaluate((element: Element): string => {
+          const rect: DOMRect = element.getBoundingClientRect();
+
+          return [
+            rect.left + window.scrollX,
+            rect.top + window.scrollY,
+            rect.width,
+            rect.height,
+          ]
+            .map((value: number): number => {
+              return Math.round(value);
+            })
+            .join(",");
+        }),
+      );
+    }
+
+    return places;
+  };
+
+  const setDarkTheme: (page: Page, isDark: boolean) => Promise<void> = async (
+    page: Page,
+    isDark: boolean,
+  ): Promise<void> => {
+    await page.evaluate((dark: boolean): void => {
+      document.documentElement.classList.toggle("dark", dark);
+    }, isDark);
+  };
+
+  test("Editing until the board differs, then Unsaved changes, and no control moves", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page);
+    await enterEditMode(page);
+
+    const chip: Locator = page.getByTestId("dashboard-toolbar-edit-state");
+    const toolbar: Locator = page.getByTestId("dashboard-toolbar-row");
+
+    await expect(chip).toHaveText("Editing");
+    // Heard once, as the board first differs: a status is polite.
+    await expect(chip).toHaveAttribute("role", "status");
+
+    if (!test.info().project.use.isMobile) {
+      // A widget's settings closed with Done and nothing changed: still Editing.
+      await selectWidget(page, "Monitors");
+      await press(
+        page.getByTestId("modal").getByRole("button", { name: "Done" }),
+      );
+      await expect(page.getByTestId("modal")).toHaveCount(0);
+      await expect(chip).toHaveText("Editing");
+    }
+
+    await shoot(page, testInfo, "toolbar-editing", toolbar);
+    const before: Array<string> = await controlPlaces(page);
+
+    await addTextWidget(page);
+
+    await expect(chip).toHaveText("Unsaved changes");
+    await expect(chip).toHaveAttribute("data-has-unsaved-changes", "true");
+    expect(await controlPlaces(page)).toEqual(before);
+    await shoot(page, testInfo, "toolbar-unsaved-changes", toolbar);
+
+    await setDarkTheme(page, true);
+    await shoot(page, testInfo, "toolbar-unsaved-changes-dark", toolbar);
+    await setDarkTheme(page, false);
+
+    // Saved: out of edit mode, the chip with it.
+    await press(toolbarButton(page, "Save Changes"));
+    await expect(toolbarButton(page, "Save Changes")).toHaveCount(0);
+    await expect(chip).toHaveCount(0);
+  });
+});
+
 test.describe("the headers take no more room than plain ones", () => {
   interface TableBox {
     boxWidth: number;
@@ -1618,6 +1787,25 @@ const leaveDialog: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByRole("dialog", { name: LEAVE_TITLE });
 };
 
+// Where a control is drawn: its left and right edges.
+const edgesOf: (
+  control: Locator,
+) => Promise<{ left: number; right: number }> = async (
+  control: Locator,
+): Promise<{ left: number; right: number }> => {
+  return control.evaluate(
+    (
+      element: Element,
+    ): {
+      left: number;
+      right: number;
+    } => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right };
+    },
+  );
+};
+
 // The board's own text widget, as Add Widget adds it.
 const addedTextWidget: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByText("Hello, World!", { exact: true });
@@ -1772,6 +1960,68 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
     expect((await record(page)).saves || []).toEqual([]);
   });
 
+  test("Save Changes in the question saves the board, then goes where the side menu was going; the board opens as saved (#7402)", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await page.goto(OVERVIEW_PATH);
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH, {
+      timeout: 60000,
+    });
+    await press(sideMenuLink(page, "Dashboard"));
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible({
+      timeout: 60000,
+    });
+    await enterEditMode(page);
+    await addTextWidget(page);
+
+    await press(sideMenuLink(page, "Overview"));
+
+    const dialog: Locator = leaveDialog(page);
+    const saveChanges: Locator = dialog.getByRole("button", {
+      name: "Save Changes",
+    });
+    const keepEditing: Locator = dialog.getByRole("button", {
+      name: "Keep Editing",
+    });
+    const discard: Locator = dialog.getByRole("button", {
+      name: "Discard Changes",
+    });
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(LEAVE_DESCRIPTION);
+    // A stray Enter keeps editing: the focus starts on Keep Editing.
+    await expect(keepEditing).toBeFocused();
+
+    // Discard Changes apart at the footer's start; Keep Editing, then Save Changes.
+    const discardEdges: { left: number; right: number } =
+      await edgesOf(discard);
+    const keepEdges: { left: number; right: number } =
+      await edgesOf(keepEditing);
+    const saveEdges: { left: number; right: number } =
+      await edgesOf(saveChanges);
+
+    expect(discardEdges.right).toBeLessThan(keepEdges.left - 16);
+    expect(keepEdges.right).toBeLessThanOrEqual(saveEdges.left);
+    await shoot(page, testInfo, "leave-unsaved-dialog-save-changes", dialog);
+
+    await press(saveChanges);
+
+    await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
+    await expect(page).toHaveURL(OVERVIEW_PATH);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Said where the reader arrives.
+    await expect(page.getByText("Changes saved")).toBeVisible();
+    expect(((await record(page)).saves || []).length).toBe(1);
+
+    // The board, opened again, is the board as saved.
+    await page.goto(APP_PATH);
+    await expect(addedTextWidget(page)).toBeVisible({ timeout: 60000 });
+    await expect(toolbarButton(page, "Save Changes")).toHaveCount(0);
+  });
+
   test("a reload asks the browser's question while a change is unsaved, and after Save Changes nothing asks", async ({
     page,
   }: {
@@ -1817,6 +2067,133 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
     await press(sideMenuLink(page, "Overview"));
     await expect(elsewhere(page)).toHaveText(OVERVIEW_PATH);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+/*
+ * A WIDGET'S LIVE PREVIEW NEVER LEAVES THE PAGE (#7174, #6859).
+ *
+ * The preview draws a widget over a board whose changes are not saved yet,
+ * so nothing in it may open another page: a list's row names are their
+ * words, a honeycomb's tiles open nothing and a Markdown link is its words.
+ * jsdom checks how each is drawn (DashboardWidgetPreview* in
+ * packages/Common/Tests); here the real bundled app is clicked, with real
+ * click targets, focus and react-router. On the board, out of edit mode,
+ * the same clicks open their pages, so the preview's are not dead for
+ * another reason.
+ */
+test.describe("a widget's Live Preview never leaves the page (#7174)", () => {
+  // A widget's settings, opened by a click on the widget while editing.
+  const openSettings: (page: Page, words: string) => Promise<Locator> = async (
+    page: Page,
+    words: string,
+  ): Promise<Locator> => {
+    await page.getByText(words, { exact: true }).first().click({ force: true });
+
+    const modal: Locator = page.getByTestId("modal");
+
+    await expect(modal).toBeVisible();
+    return modal;
+  };
+
+  test("in the preview a row's name, a tile and a Markdown link open nothing; on the board each opens its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await page.goto(PREVIEW_BOARD_PATH);
+    await expect(page.getByTestId("dashboard-honeycomb-tile")).toHaveCount(
+      MONITORS_BY_NAME.length,
+      { timeout: 60000 },
+    );
+    await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
+
+    await enterEditMode(page);
+
+    const previews: Array<{
+      // What opens the widget's settings: a word of the widget on the board.
+      opener: string;
+      // What a click in the preview must not follow.
+      target: (preview: Locator) => Locator;
+    }> = [
+      {
+        opener: "Monitor table",
+        target: (preview: Locator): Locator => {
+          return preview.getByText("api-gateway", { exact: true });
+        },
+      },
+      {
+        opener: "Monitor tiles",
+        target: (preview: Locator): Locator => {
+          return preview.getByTestId("dashboard-honeycomb-tile").first();
+        },
+      },
+      {
+        opener: PREVIEW_LINK_WORDS,
+        target: (preview: Locator): Locator => {
+          return preview.getByText(PREVIEW_LINK_WORDS, { exact: true });
+        },
+      },
+    ];
+
+    for (const entry of previews) {
+      const modal: Locator = await openSettings(page, entry.opener);
+      const preview: Locator = modal.getByTestId("widget-settings-preview");
+      const target: Locator = entry.target(preview);
+
+      await expect(target).toBeVisible();
+      // The dialog opens on the preview: its body at its top.
+      expect(
+        await modal
+          .getByTestId("modal-content")
+          .evaluate((element: Element): number => {
+            return element.scrollTop;
+          }),
+      ).toBe(0);
+      // Nothing in the preview is a link.
+      await expect(preview.locator("a")).toHaveCount(0);
+
+      const address: string = page.url();
+
+      await target.click();
+
+      // Nothing opened: the board's address, and its settings, as they were.
+      await expect(page).toHaveURL(address);
+      await expect(modal).toBeVisible();
+      await expect(elsewhere(page)).toHaveCount(0);
+
+      await press(modal.getByRole("button", { name: "Done" }));
+      await expect(modal).toHaveCount(0);
+    }
+
+    // Nothing changed: Cancel leaves edit mode without a question.
+    await press(toolbarButton(page, "Cancel"));
+    await expect(toolbarButton(page, "Save Changes")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // On the board each opens its page.
+    await monitorsTable(page)
+      .getByRole("link", { name: "api-gateway", exact: true })
+      .click();
+    await expect(elsewhere(page)).toContainText(
+      `/dashboard/${PROJECT_ID}/monitors/`,
+    );
+    await page.goBack();
+    await expect(page.getByTestId("dashboard-honeycomb-tile")).toHaveCount(
+      MONITORS_BY_NAME.length,
+    );
+
+    await page.getByTestId("dashboard-honeycomb-tile").first().click();
+    await expect(elsewhere(page)).toContainText(
+      `/dashboard/${PROJECT_ID}/monitors/`,
+    );
+    await page.goBack();
+
+    await page
+      .getByRole("link", { name: PREVIEW_LINK_WORDS, exact: true })
+      .click();
+    await expect(elsewhere(page)).toHaveText(PREVIEW_LINK_PATH);
   });
 });
 

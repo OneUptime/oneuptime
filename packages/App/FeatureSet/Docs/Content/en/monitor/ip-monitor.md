@@ -49,17 +49,17 @@ A probe that has lost its own network connection reports no result, so it cannot
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, click **More monitor types** and pick **IP** under **Basic Monitoring**.
 
-### Name it
-
-Enter a **Name**, such as `Office gateway`, then click **Next**.
-
 ### Enter the address
 
 In **IP Address**, enter the IPv4 or IPv6 address to check, such as `192.168.1.1` or `2001:db8::1`. A host name is not accepted: the field shows an error. To ping a host by name, use a [Ping monitor](/docs/monitor/ping-monitor).
 
+### Name it
+
+The **Name** fills in from what you entered, such as `192.168.1.1`. Keep it or enter your own, such as `Office gateway`, then click **Next**.
+
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows the round-trip times and the packet loss the probe saw.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows the round-trip times and the packet loss the probe saw. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

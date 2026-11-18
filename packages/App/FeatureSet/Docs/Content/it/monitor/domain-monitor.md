@@ -60,7 +60,7 @@ Inserite il **Nome di dominio**, come `example.com`. Lasciate **Metodo di ricerc
 
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra la registrazione che la sonda ha letto, e se ha risposto RDAP o WHOIS.
+Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra la registrazione che la sonda ha letto, e se ha risposto RDAP o WHOIS. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 

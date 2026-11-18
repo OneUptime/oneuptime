@@ -29,6 +29,7 @@ import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Component
 import DashboardSecurityEventsListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceTableComponent";
 import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
+import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
 
 export const PROJECT_ID = "10000000-0000-4000-8000-0000000000e1";
 
@@ -202,6 +203,61 @@ export const buildNarrowConfig = () => {
       }),
     ],
     heightInDashboardUnits: 9,
+  };
+};
+
+/*
+ * A third dashboard (?board=preview) for a widget's Live Preview (#7174):
+ * what a click on a board opens - a list's row, a honeycomb's tile, a
+ * Markdown link to another page of the app - each in a widget of its own,
+ * whose settings' preview must open none of them.
+ */
+export const PREVIEW_WIDGETS = {
+  table: "c0000000-0000-4000-8000-0000000000a1",
+  tiles: "c0000000-0000-4000-8000-0000000000a2",
+  text: "c0000000-0000-4000-8000-0000000000a3",
+};
+
+// Where the Text widget's link leads: another page of the app.
+export const PREVIEW_LINK_PATH = `/dashboard/${PROJECT_ID}/runbooks`;
+
+export const buildPreviewConfig = () => {
+  return {
+    _type: "DashboardViewConfig",
+    components: [
+      place(DashboardMonitorListComponentUtil.getDefaultComponent(), {
+        id: PREVIEW_WIDGETS.table,
+        top: 0,
+        left: 0,
+        width: 6,
+        height: 4,
+        arguments: { title: "Monitor table", maxRows: 25 },
+      }),
+      place(DashboardMonitorListComponentUtil.getDefaultComponent(), {
+        id: PREVIEW_WIDGETS.tiles,
+        top: 0,
+        left: 6,
+        width: 6,
+        height: 4,
+        arguments: {
+          title: "Monitor tiles",
+          maxRows: 25,
+          viewMode: "honeycomb",
+        },
+      }),
+      place(DashboardTextComponentUtil.getDefaultComponent(), {
+        id: PREVIEW_WIDGETS.text,
+        top: 4,
+        left: 0,
+        width: 6,
+        height: 2,
+        arguments: {
+          text: `Escalations follow the [on-call runbook](${PREVIEW_LINK_PATH}).`,
+          isMarkdown: true,
+        },
+      }),
+    ],
+    heightInDashboardUnits: 6,
   };
 };
 

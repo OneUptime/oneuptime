@@ -54,12 +54,20 @@
  *         the first note posted on a case fails as
  *         notes-fail-with-reference's read does, with its reference; the
  *         next is saved.
+ *   notes-sort-held
+ *         CASE-142's notes in two pages, as notes-more-fail's, and the
+ *         first read of a case's notes oldest first - the sort's - waits
+ *         until the spec lets it answer
+ *         (window.__securityOperationsFixture.releaseHeldNotesRead), so the
+ *         feed can be read while the sort is on its way; every other read
+ *         answers at once.
  */
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseCustomField from "Common/Models/DatabaseModels/SecurityCaseCustomField";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseNoteTemplate from "Common/Models/DatabaseModels/SecurityCaseNoteTemplate";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
   ERROR_REFERENCE_FIELD,
@@ -93,6 +101,7 @@ export const CASE_SETUP_SCENARIOS = [
   "notes-more-fail",
   "notes-more-pages",
   "note-post-fail",
+  "notes-sort-held",
 ];
 
 /*
@@ -123,11 +132,15 @@ const FAILS_WITH_REFERENCE = [
   "note-post-fail",
 ];
 
-// The older notes ?casesetup=notes-more-fail and notes-more-pages give CASE-142.
+// The older notes ?casesetup=notes-more-fail, notes-more-pages and notes-sort-held give CASE-142.
 const OLDER_SPRAY_NOTES = {
   "notes-more-fail": 26,
   "notes-more-pages": 58,
+  "notes-sort-held": 26,
 };
+
+// The scenarios whose first read of a case's notes oldest first is held.
+const HOLDS_OLDEST_FIRST_NOTES = ["notes-sort-held"];
 
 // The reference a ?casesetup=fail-with-reference failure names.
 export const FAILED_READ_REFERENCE = "3f9a2c1b";
@@ -138,6 +151,9 @@ export function createCaseSetupFixture(options) {
   const readsSoFar = new Map();
   // The notes posted on a case so far.
   let notePostsSoFar = 0;
+  // ?casesetup=notes-sort-held: whether the sort's read is still to hold, and what lets it answer.
+  let isOldestFirstReadToHold = HOLDS_OLDEST_FIRST_NOTES.includes(scenario);
+  let releaseHeldRead = () => {};
 
   function tableName(modelType) {
     return new modelType().tableName;
@@ -196,9 +212,9 @@ export function createCaseSetupFixture(options) {
   }
 
   /*
-   * notes-more-fail and notes-more-pages: `count` shift-log notes older than
-   * CASE-142's two, 10 minutes apart - more than a page of its feed holds
-   * (NOTES_PAGE_SIZE, 25).
+   * notes-more-fail, notes-more-pages and notes-sort-held: `count`
+   * shift-log notes older than CASE-142's two, 10 minutes apart - more than
+   * a page of its feed holds (NOTES_PAGE_SIZE, 25).
    */
   function seedOlderSprayNotes(count) {
     const sprayNotes = table(SecurityCaseNote).filter((row) => {
@@ -311,6 +327,31 @@ export function createCaseSetupFixture(options) {
   }
 
   /*
+   * ?casesetup=notes-sort-held: the first read of a case's notes oldest
+   * first - the sort's - waits until releaseHeldRead; null for every other
+   * read, which answers at once.
+   */
+  function heldRead(modelName, sort) {
+    const isOldestFirst = Object.values(sort || {}).includes(
+      SortOrder.Ascending,
+    );
+
+    if (
+      !isOldestFirstReadToHold ||
+      modelName !== tableName(SecurityCaseNote) ||
+      !isOldestFirst
+    ) {
+      return null;
+    }
+
+    isOldestFirstReadToHold = false;
+
+    return new Promise((resolve) => {
+      releaseHeldRead = resolve;
+    });
+  }
+
+  /*
    * The answer of a read or a post that fails: a bare "Server Error", or,
    * with fail-with-reference and the notes' scenarios, what a server
    * answers for a failure it could not explain
@@ -334,5 +375,9 @@ export function createCaseSetupFixture(options) {
     failsRead,
     failsNotePost,
     failedAnswer,
+    heldRead,
+    releaseHeldRead: () => {
+      releaseHeldRead();
+    },
   };
 }

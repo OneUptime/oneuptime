@@ -7,7 +7,7 @@ import {
   clickCreateUntilMonitorView,
   clickNext,
   createMonitor,
-  fillDestination,
+  fillMonitorAddress,
   selectMonitorLabels,
   selectMonitorTypeCard,
   waitForCriteriaStepReady,
@@ -362,8 +362,12 @@ test.describe("First run: a brand-new project", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
-    // What to monitor comes first on Monitor Info, then the name.
+    /*
+     * The type comes first on What to Monitor, then where it is
+     * (#7463), then the name.
+     */
     await selectMonitorTypeCard({ page, cardValue: "Website" });
+    await fillMonitorAddress({ page, address: "https://example.com" });
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill(websiteMonitorName);
@@ -372,7 +376,6 @@ test.describe("First run: a brand-new project", () => {
     await clickNext({ page });
 
     await waitForCriteriaStepReady({ page });
-    await fillDestination({ page, value: "https://example.com" });
     /*
      * Every step after the criteria is optional, but Create Monitor is on
      * the last step only: Next walks on to look at the interval.

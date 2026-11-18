@@ -211,14 +211,27 @@ function renderMonitorPage(monitorType: MonitorType): void {
 }
 
 async function advanceMonitorInfo(): Promise<void> {
-  await userEvent.type(
-    await screen.findByPlaceholderText(
-      "Monitor Name",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    ),
-    "Marketing site",
+  const name: HTMLElement = await screen.findByPlaceholderText(
+    "Monitor Name",
+    {},
+    { timeout: WAIT_TIMEOUT },
   );
+
+  /*
+   * A type whose check is of one address - a Website, an API, an SSL
+   * certificate - asks it with the type, and the name follows it (#7463).
+   */
+  const address: HTMLElement | null = screen.queryByTestId(
+    "monitor-address-input",
+  );
+
+  if (address) {
+    await userEvent.type(address, "https://example.com");
+    expect(name).toHaveValue("example.com");
+  } else {
+    await userEvent.type(name, "Marketing site");
+  }
+
   await userEvent.click(screen.getByRole("button", { name: "Next" }));
 
   expect(

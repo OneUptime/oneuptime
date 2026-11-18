@@ -41,17 +41,17 @@ Quando un controllo fallisce, la sonda traccia anche il percorso verso l'host e 
 
 Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, scegliete **Porta**.
 
-### Dargli un nome
-
-Inserite un **Nome**, come `Orders database`, poi fate clic su **Avanti**.
-
 ### Inserire l'host e la porta
 
 In **Hostname o indirizzo IP**, inserite l'host su cui si trova la porta, come `db.example.com` o `10.0.0.12`. In **Porta**, inserite il numero di porta, come `5432`.
 
+### Dargli un nome
+
+Il **Nome** si compila con ciò che avete inserito, ad esempio `db.example.com:5432`. Tenetelo o inseritene uno vostro, come `Orders database`, poi fate clic su **Avanti**.
+
 ### Testarlo
 
-Fate clic su **Testa il monitor**, scegliete una sonda in **Seleziona sonda** e fate clic su **Esegui test**. **Risultato del test del monitor** mostra se la connessione si è aperta, e quanto è durata ogni parte.
+Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra se la connessione si è aperta, e quanto è durata ogni parte. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 

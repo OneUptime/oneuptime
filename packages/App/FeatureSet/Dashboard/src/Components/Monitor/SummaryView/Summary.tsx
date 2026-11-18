@@ -367,6 +367,20 @@ const Summary: FunctionComponent<ComponentProps> = (
                 monitorSteps={props.monitorSteps}
                 monitorType={props.monitorType}
                 probes={props.probes || []}
+                /*
+                 * Starts on the probe whose check the card shows, then the
+                 * monitor's other probes that are switched on (#7985).
+                 */
+                preferredProbeIds={[
+                  ...(selectedProbeId ? [selectedProbeId] : []),
+                  ...attachedProbes
+                    .filter((probe: AttachedProbe): boolean => {
+                      return probe.isEnabled;
+                    })
+                    .map((probe: AttachedProbe): string => {
+                      return probe.id;
+                    }),
+                ]}
                 buttonSize={ButtonSize.Normal}
               />,
             ]

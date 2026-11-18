@@ -4,6 +4,7 @@ import MonitorType, {
 } from "../../../Types/Monitor/MonitorType";
 import {
   getMonitorDestinationFieldCopy,
+  getMonitorTargetAddress,
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
   NTP_PORT_FIELD_DESCRIPTION,
@@ -154,5 +155,72 @@ describe("the address field of a probe check", () => {
     for (const monitorType of DESTINATION_TYPES) {
       expect(MonitorTypeHelper.isProbableMonitor(monitorType)).toBe(true);
     }
+  });
+});
+
+/*
+ * What Create Monitor's Criteria step says it checks, once the address was
+ * asked with the type (#7463): "Checks {{address}}.".
+ */
+describe("the address Monitor Target says it checks", () => {
+  test("a bare host's URL as it was typed, without the slash its root adds", () => {
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.Website,
+        destination: "https://example.com/",
+      }),
+    ).toBe("https://example.com");
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.SSLCertificate,
+        destination: "https://example.com:8443/",
+      }),
+    ).toBe("https://example.com:8443");
+  });
+
+  test("a URL with a path, a query or a fragment as it is", () => {
+    for (const destination of [
+      "https://example.com/shop/",
+      "https://api.example.com/health",
+      "https://example.com/?cb={{timestamp}}",
+      "https://example.com/#status",
+    ]) {
+      expect(
+        getMonitorTargetAddress({
+          monitorType: MonitorType.Website,
+          destination,
+        }),
+      ).toBe(destination);
+    }
+  });
+
+  test("a host or an IP address as it is, and a Port monitor's with its port", () => {
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.Ping,
+        destination: "router.example.com",
+      }),
+    ).toBe("router.example.com");
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.Port,
+        destination: "db.example.com",
+        port: "5432",
+      }),
+    ).toBe("db.example.com:5432");
+    // Another type's port is not its address's.
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.NTP,
+        destination: "time.example.com",
+        port: "1123",
+      }),
+    ).toBe("time.example.com");
+    expect(
+      getMonitorTargetAddress({
+        monitorType: MonitorType.Port,
+        destination: "db.example.com",
+      }),
+    ).toBe("db.example.com");
   });
 });

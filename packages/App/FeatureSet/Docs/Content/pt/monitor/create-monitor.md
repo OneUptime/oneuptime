@@ -7,14 +7,14 @@ Para um site ou uma API, uma configuração guiada leva você do endereço até 
 > [!NOTE]
 > Para criar um monitor, você precisa da função Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou de uma função personalizada com a permissão Create Monitor.
 
-## Informações do Monitor
+## O que monitorar
 
-A primeira etapa pergunta o que monitorar e como chamar o monitor.
+A primeira etapa pergunta o que monitorar, onde está e como chamar o monitor.
 
 :::steps
 ### Abrir Criar monitor
 
-Acesse **Monitores** e clique em **Criar monitor**. O formulário abre na primeira etapa, **Informações do Monitor**.
+Acesse **Monitores** e clique em **Criar monitor**. O formulário abre na primeira etapa, **O que monitorar**.
 
 ### Escolher o tipo de monitor
 
@@ -26,9 +26,13 @@ A primeira pergunta é o **Tipo de monitor**: o que você quer monitorar?
 
 O tipo escolhido encolhe para uma linha. Clique em **Alterar** para escolher outro; pressione **Escape** durante a escolha para manter o tipo que você tinha.
 
+### Informar onde está
+
+Um tipo cuja verificação é de um endereço pede por ele logo depois do tipo: a **URL do site** de um site ou de um certificado SSL, a **URL da API** de uma API, o host ou o endereço IP para o ping, um host e sua **Porta**, ou um servidor NTP. A caixa mostra um exemplo. Sob o endereço de um site ou de uma API, **Ignorar caches a cada verificação** mostra como colocar nele um valor que muda a cada verificação. Os outros tipos perguntam onde olhar na próxima etapa, como o domínio de um monitor DNS ou a conexão de um banco de dados.
+
 ### Dar um nome ao monitor
 
-Preencha o **Nome**. Ele é usado nos alertas e nos títulos dos incidentes. **Descrição** e **Rótulos** são opcionais e ficam em **Mais campos**.
+Preencha o **Nome**. Depois de um endereço ele se preenche sozinho, por exemplo com `example.com`, até você escrever um seu. Ele é usado nos alertas e nos títulos dos incidentes. **Descrição** e **Rótulos** são opcionais e ficam em **Mais campos**.
 
 Um monitor **Manual** não precisa de mais nada, então **Criar monitor** está nesta etapa. Para qualquer outro tipo, clique em **Próximo**.
 :::
@@ -40,9 +44,9 @@ A segunda etapa pergunta o que verificar e decide o que conta como um problema.
 :::steps
 ### Informar o que verificar
 
-Esta etapa abre no que verificar. Para um site, é a URL dele, com um exemplo na caixa; outros tipos pedem um host, uma consulta, um cluster ou um filtro de logs. As configurações que a maioria dos monitores nunca altera, como tempos limite e novas tentativas, ficam recolhidas em **Mais campos**.
+Esta etapa abre no restante do que a verificação lê. Um monitor de um endereço o mostra em **Alvo do monitor**, com o que mais ele precisa, como o método de requisição de uma API; outros tipos pedem aqui um domínio, uma consulta, um cluster ou um filtro de logs. As configurações que a maioria dos monitores nunca altera, como tempos limite e novas tentativas, ficam recolhidas em **Mais campos**.
 
-Para um monitor que as sondas verificam, **Testar monitor** executa a verificação uma vez antes de você salvar: escolha uma sonda em **Selecionar Sonda** e clique em **Executar teste**. A resposta abre em **Resultado do Teste do Monitor**.
+Para um monitor que as sondas verificam, **Testar monitor** executa a verificação uma vez antes de você salvar, em uma sonda que verifica o monitor: clique em **Executar teste**, ou escolha antes outra sonda em **Selecionar Sonda**. **Resultado do Teste do Monitor** diz qual critério a resposta atende e o que viria a seguir (o status, o incidente ou alerta e quem é avisado), e depois mostra o que a sonda encontrou.
 
 ### Revisar os critérios
 

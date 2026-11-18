@@ -9,22 +9,27 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *
  * The dashboard "Create Monitor" form (#create-monitor-form) is a multi-step
  * ModelForm:
- *   1. monitor-info  — the monitorType picker first (six common types, the
- *                      rest behind "More monitor types" or its search box; a
- *                      picked type shrinks to one line with Change), then the
- *                      name, then the optional description and labels folded
+ *   1. monitor-info  — "What to Monitor": the monitorType picker first (six
+ *                      common types, the rest behind "More monitor types" or
+ *                      its search box; a picked type shrinks to one line with
+ *                      Change), then where it is for a type whose check is of
+ *                      one address (#7463: a Website's or an API's URL, a
+ *                      host, an IP address, a Port monitor's host and port, an
+ *                      NTP server), then the name - which the address fills in
+ *                      - then the optional description and labels folded
  *                      under More fields at the end of the step (the one step
  *                      every monitor type walks)
- *   2. criteria      — per-monitor-type destination/config form (skipped for
- *                      Manual). A default offline/online criteria pair is
- *                      pre-populated, each folded to its one-line header, so
- *                      only the type-specific destination / config fields
- *                      need filling.
+ *   2. criteria      — per-monitor-type config form (skipped for Manual): a
+ *                      type of one address says what it checks under Monitor
+ *                      Target; the others ask where to look here. A default
+ *                      offline/online criteria pair is pre-populated, each
+ *                      folded to its one-line header, so only the
+ *                      type-specific config fields need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
  *
  * Every step but the last shows a plain Next (#create-monitor-form-next-button,
  * test id form-next-button); Create Monitor (test id "Create Monitor") is on
- * the last step the type shows only - Monitor Info for a Manual monitor,
+ * the last step the type shows only - What to Monitor for a Manual monitor,
  * Criteria for a type without probes, Probes & Interval otherwise. The
  * recipes walk with Next (clickNext) and create on that last step.
  */
@@ -47,10 +52,17 @@ export interface MonitorTypeRecipe {
    */
   intervalLabel?: string | undefined;
   /*
-   * true for monitor types that skip criteria and interval: Monitor Info is
-   * then their only step, and the create happens there.
+   * true for monitor types that skip criteria and interval: What to Monitor
+   * is then their only step, and the create happens there.
    */
   skipsCriteria?: boolean;
+  /*
+   * Where a type whose check is of one address checks - a URL, a host, an
+   * IP address, an NTP server - and a Port monitor's port: asked with the
+   * type on What to Monitor (#7463), before the name it fills in.
+   */
+  address?: string | undefined;
+  port?: string | undefined;
   /*
    * Fills the criteria step's required fields. Omit for types whose defaults
    * already satisfy validation (Manual, telemetry types, ...).
@@ -279,7 +291,33 @@ const selectMonitoringInterval: (data: {
 };
 
 /*
- * Selects zero or more monitor labels on Monitor Info, where they fold under
+ * Fills where a type whose check is of one address checks, and a Port
+ * monitor's port, on What to Monitor: right after the type, before the name
+ * it fills in (#7463).
+ */
+export const fillMonitorAddress: (data: {
+  page: Page;
+  address: string;
+  port?: string | undefined;
+}) => Promise<void> = async (data: {
+  page: Page;
+  address: string;
+  port?: string | undefined;
+}): Promise<void> => {
+  const form: Locator = data.page.locator(monitorCreateFormSelector);
+  const input: Locator = form.getByTestId("monitor-address-input");
+  await input.waitFor({ state: "visible", timeout: 30000 });
+  await input.fill(data.address);
+
+  if (data.port !== undefined) {
+    const port: Locator = form.getByRole("textbox", { name: /^Port/ });
+    await port.waitFor({ state: "visible", timeout: 30000 });
+    await port.fill(data.port);
+  }
+};
+
+/*
+ * Selects zero or more monitor labels on What to Monitor, where they fold under
  * More fields, beside the description, at the end of the step. Opening the
  * section and waiting for the combobox even when no labels are requested
  * makes every create recipe prove the field is reachable on the step every
@@ -401,10 +439,20 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   });
 
   /*
-   * Step 1: what to monitor, then the name, and the labels under More fields
-   * at its end - in the order the step asks.
+   * Step 1: what to monitor, where it is, then the name - over the one the
+   * address filled in - and the labels under More fields at its end, in the
+   * order the step asks.
    */
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
+
+  if (data.recipe.address) {
+    await fillMonitorAddress({
+      page,
+      address: data.recipe.address,
+      port: data.recipe.port,
+    });
+  }
+
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorLabels({ page, labelNames: data.labelNames });
 
@@ -432,26 +480,6 @@ export const createMonitor: CreateMonitorFunction = async (data: {
 
   const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
-};
-
-/*
- * Fills the bare destination Input on the criteria step (Website / API / Ping
- * / IP / Port / SSL). It has no placeholder or test id, but it is the first
- * textbox rendered on the criteria step (inside the "Monitor Target" card).
- */
-export const fillDestination: (data: {
-  page: Page;
-  value: string;
-}) => Promise<void> = async (data: {
-  page: Page;
-  value: string;
-}): Promise<void> => {
-  const input: Locator = data.page
-    .locator(monitorCreateFormSelector)
-    .getByRole("textbox")
-    .first();
-  await input.waitFor({ state: "visible", timeout: 30000 });
-  await input.fill(data.value);
 };
 
 /*

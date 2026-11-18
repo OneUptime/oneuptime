@@ -1997,8 +1997,19 @@ describe("changing a monitor's criteria", () => {
       });
     }
 
+    /*
+     * The test starts on a probe that checks the monitor (#7985), and its
+     * result says which criteria the answer matches and what would follow
+     * (#7074).
+     */
+    expect(CRITERIA_PAGE).toContain("preferredProbeIds={monitorProbeIds}");
+    expect(MONITOR_TEST_FORM).toContain(
+      "initialValues: startingProbeId ? { probe: startingProbeId } : {},",
+    );
+    expect(MONITOR_TEST_FORM).toContain("<MonitorTestVerdict");
+
     expect(steps).toContain(
-      "On a monitor that probes check, click **Test Monitor** on the card, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows what the check found.",
+      "On a monitor that probes check, click **Test Monitor** on the card: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the check found. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.",
     );
   });
 

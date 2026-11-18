@@ -78,7 +78,7 @@ Changes to who takes turns wait until you save them, so you can make several and
 - Each layer, and the final schedule, show the rotation as it will be. The final schedule is marked **Includes unsaved changes**.
 - A bar at the foot of the page names the changes, with **Save changes** and **Discard**.
 
-**Save changes** saves every change at once. Who is on call is then worked out once, for the layers as saved: someone who goes on or off call, or is next, hears it once, not once for each change. **Discard** puts the layers back as they were last saved. Leaving the page before you save asks first: **Keep Editing** stays on it, **Discard Changes** leaves without saving.
+**Save changes** saves every change at once. Who is on call is then worked out once, for the layers as saved: someone who goes on or off call, or is next, hears it once, not once for each change. **Discard** puts the layers back as they were last saved. Leaving the page before you save asks first: **Save Changes** saves and then leaves, **Keep Editing** stays on it, and **Discard Changes** leaves without saving.
 
 If someone else changed the layers after you opened the page, your changes are not saved over theirs. The bar says so, and **Reload layers** shows the layers as they are now, for you to make your changes again. **Add Layer** adds its layer at once, and a layer's settings are saved with its own **Save Layer** button.
 

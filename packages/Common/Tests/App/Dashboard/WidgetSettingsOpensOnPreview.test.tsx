@@ -22,8 +22,12 @@ import React from "react";
  * pixels down, past the preview. (Folded, the field then turned invisible
  * and the focus fell out of the dialog.) Below a table's columns or a Data
  * Source widget's query, which are the first things to fill in there, the
- * first section's Title did the same. Only the first field of the settings
- * takes the focus now, and only when nothing is drawn above its section.
+ * first section's Title did the same. Then only the first field of the
+ * settings took it, which a browser showed scrolling too: a Monitor List's
+ * Title, below its preview, opened the dialog 391 pixels down (#7174,
+ * packages/E2E/DashboardWidgetSort). No field takes the focus now: the
+ * dialog starts on itself (ComponentSettingsModal), and a form that draws
+ * late leaves it there (Modal's isInitialFocusOnDialog).
  *
  * And the widget in the preview is drawn as wide as its box is inside the
  * box's padding: it came out 32 pixels narrower, with three times the gap
@@ -147,6 +151,12 @@ const WIDGETS_OPENED_ON_NO_FIELD: Array<WidgetCase> = [
       return DashboardTableComponentUtil.getDefaultComponent();
     },
   ],
+  [
+    "an SLO list: the Title of its first section, open",
+    (): DashboardBaseComponent => {
+      return DashboardSloListComponentUtil.getDefaultComponent();
+    },
+  ],
 ];
 
 const ORIGINAL_RESIZE_OBSERVER: unknown = (
@@ -180,17 +190,12 @@ describe("the field that takes the focus as a widget's settings open", () => {
     },
   );
 
-  test("an SLO list's Title, the first field of its first section, takes it", () => {
-    openSettingsForm(DashboardSloListComponentUtil.getDefaultComponent());
-
-    expect(screen.getByLabelText(TITLE_LABEL)).toHaveFocus();
-  });
-
-  test("a text widget's Text, the first field of its first section, takes it", () => {
+  test("a text widget's Text, the first field of its first section, does not take it either", () => {
     openSettingsForm(DashboardTextComponentUtil.getDefaultComponent());
 
-    expect(document.activeElement?.tagName).toBe("TEXTAREA");
-    expect(focusedFieldLabel()).toMatch(/^Text\b/);
+    expect(document.activeElement?.tagName).not.toBe("TEXTAREA");
+    expect(focusedFieldLabel()).toBe("");
+    expect(document.body).toHaveFocus();
   });
 });
 

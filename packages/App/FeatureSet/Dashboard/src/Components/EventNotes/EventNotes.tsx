@@ -65,6 +65,7 @@ import {
 import EventNoteComposer from "./EventNoteComposer";
 import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
+import NotesReads, { NotesRead } from "./NotesReads";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
@@ -310,10 +311,14 @@ function EventNotes<TNote extends BaseModel>(
   });
 
   /*
-   * Every fetch takes a number and drops its answer if a newer one started,
-   * so a slow page of results can never overwrite a newer search or refresh.
+   * Every read takes a token, and its answer is drawn only while no read
+   * that wins over it has started since (NotesReads), so a slow answer
+   * never overwrites a newer one - and Load more never drops a sort asked
+   * for before it (#7707).
    */
-  const fetchGeneration: React.MutableRefObject<number> = useRef<number>(0);
+  const [reads] = useState<NotesReads>(() => {
+    return new NotesReads();
+  });
   const loadedCount: React.MutableRefObject<number> = useRef<number>(0);
   loadedCount.current = notes.length;
   // The banner on screen, for a read that answers while it is up.
@@ -321,14 +326,37 @@ function EventNotes<TNote extends BaseModel>(
     useRef<NotesActionError | null>(null);
   shownActionError.current = actionError;
   /*
-   * The order the sort button asked for, until a read answers: a read from
-   * the top started meanwhile - a search, the refresh after a note is
-   * posted - reads in it too, so the sort is not lost to it. A read that
-   * fails drops it, as the button never took it up: the button names the
-   * order on screen, and pressing it asks for the other one again.
+   * The order the sort button asked for, until the latest read from the
+   * top is over: one started meanwhile - a search, the refresh after a note
+   * is posted - reads in it too, so the sort is not lost to it, and Load
+   * more, which goes on in the order on screen, leaves it be. A read from
+   * the top that fails drops it, as the button never took it up: the button
+   * names the order on screen, and pressing it asks for the other one
+   * again.
    */
   const askedSortOrder: React.MutableRefObject<NoteSortOrder | null> =
     useRef<NoteSortOrder | null>(null);
+
+  /*
+   * The first note the last Load more brought, which takes the keyboard's
+   * focus once that page is drawn and Load more is gone (#7793); null when
+   * the page brought none.
+   */
+  const firstNewNoteId: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
+  /*
+   * The feed's body holds the focus on Load more's behalf: taken from Load
+   * more as it reads (loadMoreNotes) or as a read from the top locks it
+   * (holdFocusOffLockedLoadMore), or from a Load more banner taken away
+   * while Load more cannot be pressed (moveFocusOffBanner). Once it can be,
+   * or its last page is drawn, the focus goes on (the layout effect after
+   * loadMoreNotes); a focus that moves on from the body meanwhile is the
+   * reader's again (letGoOfFocus).
+   */
+  const isFocusWaitingForLoadMore: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   // The feed's body, and its Try again while a failed load is drawn.
   const feedBodyRef: React.RefObject<HTMLDivElement> =
@@ -420,6 +448,79 @@ function EventNotes<TNote extends BaseModel>(
 
     if (event.target === element && document.activeElement !== element) {
       element.removeAttribute("tabindex");
+
+      // The focus is the reader's again: nothing gives it to Load more.
+      if (element === feedBodyRef.current) {
+        isFocusWaitingForLoadMore.current = false;
+      }
+    }
+  };
+
+  /*
+   * The first note the last page brought takes the focus from Load more,
+   * which that page took away (#7793): a keyboard or screen reader user goes
+   * on reading where the notes they asked for start, and the next Tab goes
+   * into that note. Left on the feed's body, just before the notes, the
+   * next Tab went back to the first note, and on through every note before
+   * the new ones. Focusable from script alone, only while it holds the
+   * focus (as the feed's body is), and focused where it is: the reader is
+   * at the foot of the feed, where the new notes begin, and the page stays
+   * still. Only a note drawn wholly out of the window - Load more pressed
+   * while it was out of sight, as it is once the page before has kept the
+   * page still - is brought just into it, so the focus is never somewhere
+   * the reader cannot see. A note no longer drawn leaves the focus on the
+   * feed's body.
+   */
+  const holdFocusOnNote: (noteId: string) => void = (noteId: string): void => {
+    const card: Element | undefined = Array.from(
+      feedBodyRef.current?.querySelectorAll("[data-note-id]") || [],
+    ).find((element: Element): boolean => {
+      return element.getAttribute("data-note-id") === noteId;
+    });
+    const note: HTMLElement | null =
+      card?.querySelector<HTMLElement>("article") || null;
+
+    if (!note) {
+      return;
+    }
+
+    const letGo: () => void = (): void => {
+      // A window sent to the back keeps it, to give the focus back to.
+      if (document.activeElement === note) {
+        return;
+      }
+
+      note.removeAttribute("tabindex");
+      note.removeEventListener("blur", letGo);
+    };
+
+    note.addEventListener("blur", letGo);
+    holdFocus(note, { preventScroll: true });
+
+    const box: DOMRect = note.getBoundingClientRect();
+    const isOutOfSight: boolean =
+      box.height > 0 && (box.top >= window.innerHeight || box.bottom <= 0);
+
+    if (isOutOfSight) {
+      note.scrollIntoView?.({ block: "nearest" });
+    }
+  };
+
+  /*
+   * Load more is locked while the notes are read from the top (a search,
+   * the sort, a refresh), and a focus on it fell to the page in Firefox as
+   * it was locked - the next Tab started over at the top of the page. The
+   * feed's body holds it while they are read, with the page left where it
+   * is, and gives it back to Load more once it can be pressed again
+   * (below). A focus that was not on Load more is left where it is.
+   */
+  const holdFocusOffLockedLoadMore: () => void = (): void => {
+    const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+    const body: HTMLDivElement | null = feedBodyRef.current;
+
+    if (loadMore && body && document.activeElement === loadMore) {
+      holdFocus(body, { preventScroll: true });
+      isFocusWaitingForLoadMore.current = true;
     }
   };
 
@@ -430,8 +531,9 @@ function EventNotes<TNote extends BaseModel>(
    * instead: to Load more after Load more failed, so trying again is one
    * key away, and after the others to the feed's body, just before the
    * notes (the refresh button, when no feed is drawn). While Load more
-   * reads once more, the feed's body holds it until the read is over
-   * (below). A focus that was not on the banner is left where it is.
+   * reads once more, or is locked while the notes are read from the top,
+   * the feed's body holds it until it can be pressed again (below). A focus
+   * that was not on the banner is left where it is.
    */
   const moveFocusOffBanner: (action: NotesAction) => void = (
     action: NotesAction,
@@ -449,6 +551,8 @@ function EventNotes<TNote extends BaseModel>(
       loadMore.focus();
     } else if (body) {
       holdFocus(body);
+      isFocusWaitingForLoadMore.current =
+        action === "more" && Boolean(loadMore);
     } else {
       refreshButtonRef.current?.focus();
     }
@@ -476,7 +580,36 @@ function EventNotes<TNote extends BaseModel>(
     limit?: number | undefined;
     replacing?: "search" | "sort" | undefined;
   }): Promise<void> => {
-    const generation: number = ++fetchGeneration.current;
+    const read: NotesRead = reads.start(
+      options.mode === "more"
+        ? "more"
+        : options.mode === "silent"
+          ? "background"
+          : "top",
+    );
+
+    // Only the Load more that brings it names the page's first note.
+    firstNewNoteId.current = null;
+
+    /*
+     * The read is over, drawn or not: the latest of its kind ends what it
+     * started. A sort asked for is taken up with the latest read from the
+     * top, or dropped with it; Load more leaves it be.
+     */
+    const endRead: () => void = (): void => {
+      if (!reads.isLatestOfItsKind(read)) {
+        return;
+      }
+
+      if (read.kind === "top") {
+        askedSortOrder.current = null;
+        setIsLoading(false);
+        setIsRefreshing(false);
+      } else if (read.kind === "more") {
+        setIsLoadingMore(false);
+      }
+    };
+
     const skip: number = options.mode === "more" ? loadedCount.current : 0;
     const limit: number = options.limit || NOTES_PAGE_SIZE;
     /*
@@ -497,6 +630,8 @@ function EventNotes<TNote extends BaseModel>(
     if (options.mode === "initial") {
       setIsLoading(true);
     } else if (options.mode === "refresh" || options.mode === "replace") {
+      // Load more is locked while they are read (getFeedBody).
+      holdFocusOffLockedLoadMore();
       setIsRefreshing(true);
     } else if (options.mode === "more") {
       setIsLoadingMore(true);
@@ -522,7 +657,8 @@ function EventNotes<TNote extends BaseModel>(
         skip,
       });
 
-      if (generation !== fetchGeneration.current) {
+      if (!reads.isCurrent(read)) {
+        endRead();
         return;
       }
 
@@ -536,7 +672,16 @@ function EventNotes<TNote extends BaseModel>(
       // What they were read for is the notes' own now, and the toolbar's.
       setShownSearchText(readSearchText);
       setSortOrder(readSortOrder);
-      askedSortOrder.current = null;
+
+      reads.drawn(read);
+
+      if (read.kind === "more") {
+        const firstNewNote: TNote | undefined = result.data[0];
+
+        firstNewNoteId.current = firstNewNote
+          ? getNoteId(firstNewNote as NoteRecord)
+          : null;
+      }
 
       /*
        * A read the reader started that answers ends the banner of a
@@ -562,11 +707,10 @@ function EventNotes<TNote extends BaseModel>(
         setActionError(null);
       }
     } catch (err) {
-      if (generation !== fetchGeneration.current) {
+      if (!reads.isCurrent(read)) {
+        endRead();
         return;
       }
-
-      askedSortOrder.current = null;
 
       if (options.mode === "initial") {
         setLoadError(API.getFriendlyMessage(err));
@@ -583,9 +727,7 @@ function EventNotes<TNote extends BaseModel>(
       }
     }
 
-    setIsLoading(false);
-    setIsRefreshing(false);
-    setIsLoadingMore(false);
+    endRead();
   };
 
   // Keeps the notes already on screen, however many pages that is.
@@ -629,6 +771,7 @@ function EventNotes<TNote extends BaseModel>(
 
     if (button && body && document.activeElement === button) {
       holdFocus(body, { preventScroll: true });
+      isFocusWaitingForLoadMore.current = true;
     }
 
     fetchNotes({ mode: "more" });
@@ -655,31 +798,47 @@ function EventNotes<TNote extends BaseModel>(
   }, [isLoading, loadError]);
 
   /*
-   * Load more's read is over with the focus on the feed's body, where Load
-   * more (loadMoreNotes) or a Dismiss meanwhile put it: it goes to the
-   * banner if the read failed, which comes into view to say what failed
+   * The feed's body held the focus for Load more - while it read (Load
+   * more's own press, or a Dismiss meanwhile), or while it was locked by a
+   * read from the top - and that read is over: the focus goes to the banner
+   * if Load more's read failed, which comes into view to say what failed
    * and why (its Dismiss puts the focus back on Load more); back to Load
-   * more when more notes are left, so the next page is one key away, with
-   * the page left on the notes that came; and it stays on the feed's body,
-   * just before the notes, once the last page has taken Load more away. A
-   * layout effect, so it moves as the notes or the failure are drawn.
+   * more when it can be pressed again, so the next page is one key away,
+   * with the page left on the notes that came; to the first note of the
+   * last page once that page has taken Load more away (holdFocusOnNote);
+   * and it stays on the feed's body, just before the notes, when the last
+   * page brought none. A layout effect, so it moves as the notes or the
+   * failure are drawn.
    */
   useLayoutEffect(() => {
     const body: HTMLDivElement | null = feedBodyRef.current;
 
-    if (isLoadingMore || !body || document.activeElement !== body) {
+    if (
+      isLoadingMore ||
+      isRefreshing ||
+      !isFocusWaitingForLoadMore.current ||
+      !body ||
+      document.activeElement !== body
+    ) {
       return;
     }
 
+    isFocusWaitingForLoadMore.current = false;
+
     const banner: HTMLDivElement | null = actionErrorRef.current;
     const loadMore: HTMLButtonElement | null = loadMoreButtonRef.current;
+    const newNoteId: string | null = firstNewNoteId.current;
+
+    firstNewNoteId.current = null;
 
     if (banner && actionError?.action === "more") {
       holdFocus(banner);
     } else if (loadMore && !loadMore.disabled) {
       loadMore.focus({ preventScroll: true });
+    } else if (newNoteId) {
+      holdFocusOnNote(newNoteId);
     }
-  }, [isLoadingMore]);
+  }, [isLoadingMore, isRefreshing]);
 
   // Dismiss takes the banner away, moving a focus on it first.
   const dismissActionError: () => void = (): void => {
@@ -1170,16 +1329,26 @@ function EventNotes<TNote extends BaseModel>(
 
         {hasMore && (
           <div className="flex justify-center">
+            {/*
+             * Locked while the notes are read from the top - a search, the
+             * sort, a refresh - whose answer takes the place of the notes
+             * this page would go on from: pressed then, Load more dropped a
+             * sort asked for just before it (#7707). Busy while it reads.
+             */}
             <button
               ref={loadMoreButtonRef}
               type="button"
               data-testid="notes-load-more"
-              disabled={isLoadingMore}
+              disabled={isLoadingMore || isRefreshing}
               onClick={() => {
                 loadMoreNotes();
               }}
               className={`inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition ${getHandDrawnButtonStateClassName(
-                { isBusy: isLoadingMore, hoverClassName: "hover:bg-gray-50" },
+                {
+                  isBusy: isLoadingMore,
+                  isLocked: isRefreshing,
+                  hoverClassName: "hover:bg-gray-50",
+                },
               )}`}
             >
               {isLoadingMore && (

@@ -48,6 +48,14 @@ export interface HoneycombTile {
 export interface HoneycombLegendItem {
   label: string;
   color: string;
+  /*
+   * The label is drawn as given, never looked up, as a tile's status is
+   * (isStatusUserContent): words the list already put in the reader's
+   * language - a monitor status's name read by its list, Disabled worded
+   * by the Monitor List. Left out, the label is the product's words in
+   * English, looked up ("Connected").
+   */
+  isLabelUserContent?: boolean | undefined;
 }
 
 /*
@@ -65,6 +73,11 @@ export interface DashboardResourceHoneycombProps {
 export const HONEYCOMB_TILE_TEST_ID: string = "dashboard-honeycomb-tile";
 
 export const HONEYCOMB_TOOLTIP_TEST_ID: string = "dashboard-honeycomb-tooltip";
+
+// The legend under the tiles, and each of its entries.
+export const HONEYCOMB_LEGEND_TEST_ID: string = "dashboard-honeycomb-legend";
+export const HONEYCOMB_LEGEND_ITEM_TEST_ID: string =
+  "dashboard-honeycomb-legend-item";
 
 // The ring round a tile that has the keyboard's focus.
 export const HONEYCOMB_FOCUS_RING_TEST_ID: string =
@@ -665,55 +678,79 @@ const DashboardResourceHoneycomb: FunctionComponent<
     };
   }, [isTooltipOpen]);
 
+  /*
+   * The tiles scroll under a legend that stays in view: a board on a wall
+   * screen, its widget full of tiles, kept the legend below the fold, where
+   * nobody scrolls (#7344). The tiles' room is what is measured: a scroll
+   * bar there narrows it, and the tiles with it.
+   */
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full overflow-auto flex flex-col"
-    >
-      <div className="flex-1 px-2 pt-2 pb-1">
-        {rows.map((row: Array<HoneycombTile>, rowIdx: number) => {
-          return (
-            <div
-              key={rowIdx}
-              className="flex"
-              style={{
-                gap: `${HEX_GAP}px`,
-                marginTop:
-                  rowIdx === 0 ? 0 : `${-hexHeight * ROW_VERTICAL_OVERLAP}px`,
-                paddingInlineStart:
-                  rowIdx % 2 === 1 ? `${(hexWidth + HEX_GAP) / 2}px` : 0,
-              }}
-            >
-              {row.map((tile: HoneycombTile) => {
-                return (
-                  <Hex
-                    key={tile.id}
-                    tile={tile}
-                    width={hexWidth}
-                    height={hexHeight}
-                    describedById={
-                      tooltipState?.tile.id === tile.id ? tooltipId : undefined
-                    }
-                    onHoverStart={onHoverStart}
-                    onHoverEnd={onHoverEnd}
-                  />
-                );
-              })}
-            </div>
-          );
-        })}
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+      >
+        <div className="px-2 pt-2 pb-1">
+          {rows.map((row: Array<HoneycombTile>, rowIdx: number) => {
+            return (
+              <div
+                key={rowIdx}
+                className="flex"
+                style={{
+                  gap: `${HEX_GAP}px`,
+                  marginTop:
+                    rowIdx === 0 ? 0 : `${-hexHeight * ROW_VERTICAL_OVERLAP}px`,
+                  paddingInlineStart:
+                    rowIdx % 2 === 1 ? `${(hexWidth + HEX_GAP) / 2}px` : 0,
+                }}
+              >
+                {row.map((tile: HoneycombTile) => {
+                  return (
+                    <Hex
+                      key={tile.id}
+                      tile={tile}
+                      width={hexWidth}
+                      height={hexHeight}
+                      describedById={
+                        tooltipState?.tile.id === tile.id
+                          ? tooltipId
+                          : undefined
+                      }
+                      onHoverStart={onHoverStart}
+                      onHoverEnd={onHoverEnd}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
+      {/*
+       * What each colour means, in a line under the tiles that wraps on a
+       * narrow widget or a phone, and reads the board's way on an Arabic or
+       * Persian one.
+       */}
       {props.legend && props.legend.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 pb-2 pt-1 border-t border-gray-100 bg-gray-50/50">
+        <div
+          className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 pb-2 pt-1 border-t border-gray-100 bg-gray-50/50"
+          data-testid={HONEYCOMB_LEGEND_TEST_ID}
+        >
           {props.legend.map((item: HoneycombLegendItem, i: number) => {
             return (
-              <div key={i} className="flex items-center gap-1.5">
+              <div
+                key={i}
+                className="flex min-w-0 items-center gap-1.5"
+                data-testid={HONEYCOMB_LEGEND_ITEM_TEST_ID}
+              >
                 <span
-                  className="inline-block w-2 h-2 rounded-full"
+                  className="inline-block w-2 h-2 shrink-0 rounded-full"
                   style={{ backgroundColor: item.color }}
                 ></span>
                 <span className="text-xs text-gray-500">
-                  {translator.translateText(item.label)}
+                  {item.isLabelUserContent
+                    ? item.label
+                    : translator.translateText(item.label)}
                 </span>
               </div>
             );

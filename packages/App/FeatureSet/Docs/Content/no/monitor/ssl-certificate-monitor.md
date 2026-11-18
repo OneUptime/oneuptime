@@ -40,17 +40,17 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **SSL-sertifikat** under **Monitortype**.
 
-### Gi den et navn
-
-Angi et **Navn**, som `example.com certificate`, og klikk så på **Neste**.
-
 ### Angi URL-en
 
 Angi nettstedet som skal få sertifikatet sitt sjekket, i **Nettsted-URL**, som `https://example.com`. For en tjeneste på en annen port tar du med porten: `https://example.com:8443`.
 
+### Gi den et navn
+
+**Navn** fylles ut fra det du anga, som `example.com`. Behold det, eller angi ditt eget, som `example.com certificate`, og klikk så på **Neste**.
+
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen.
+Klikk på **Test monitor**: testen starter på en sonde som sjekker monitoren. Velg en annen under **Velg sonde** om du vil, og klikk så på **Kjør test**. **Resultat av monitortest** viser sertifikatet sonden fikk, med utstederen og utløpsdatoen. Det sier også hvilket kriterium svaret oppfyller og hva som ville fulgt: statusen, hendelsen eller varselet, og hvem som får beskjed.
 
 ### Gå gjennom kriteriene
 

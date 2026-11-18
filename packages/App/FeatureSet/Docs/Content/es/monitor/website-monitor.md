@@ -46,17 +46,17 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, elija **Sitio web**.
 
-### Ponerle nombre
-
-Introduzca un **Nombre**, como `Marketing site`, y haga clic en **Siguiente**.
-
 ### Introducir la URL
 
-En **URL del sitio web**, introduzca la dirección completa de la página, incluido `https://`, como `https://example.com`. Para cambiar las redirecciones, los certificados, el tiempo de espera o los reintentos, abra **Más campos** debajo (consulte [Opciones de configuración](#opciones-de-configuración)).
+En **URL del sitio web**, introduzca la dirección completa de la página, incluido `https://`, como `https://example.com`.
+
+### Ponerle nombre
+
+El **Nombre** se rellena con lo que introdujo, por ejemplo `example.com`. Consérvelo o introduzca uno propio, como `Marketing site`, y haga clic en **Siguiente**.
 
 ### Probarlo
 
-Haga clic en **Probar monitor**, elija una sonda en **Seleccionar sonda** y haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que recibió la sonda.
+Para cambiar las redirecciones, los certificados, el tiempo de espera o los reintentos, abra **Más campos** en **Destino del monitor** (consulte [Opciones de configuración](#opciones-de-configuración)). Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que recibió la sonda. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 
 ### Revisar los criterios
 
@@ -99,7 +99,7 @@ Use `{{random}}` de la misma manera: `https://example.com/health?nocache={{rando
 
 ### Más campos
 
-Estos ajustes están plegados en **Más campos**, debajo de la URL. El encabezado plegado los enumera y muestra cuáles ha cambiado.
+Estos ajustes están plegados en **Más campos**, dentro de **Destino del monitor**. El encabezado plegado los enumera y muestra cuáles ha cambiado.
 
 | Campo | Predeterminado | Qué hace |
 | --- | --- | --- |

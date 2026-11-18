@@ -41,17 +41,17 @@ Schlägt eine Prüfung fehl, verfolgt die Sonde außerdem die Route zum Host, sc
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Wählen Sie unter **Monitortyp** den Typ **Port**.
 
-### Ihn benennen
-
-Geben Sie einen **Name** ein, etwa `Orders database`, und klicken Sie dann auf **Weiter**.
-
 ### Den Host und den Port eingeben
 
 Geben Sie unter **Hostname oder IP-Adresse** den Host ein, auf dem der Port liegt, etwa `db.example.com` oder `10.0.0.12`. Geben Sie unter **Port** die Portnummer ein, etwa `5432`.
 
+### Ihn benennen
+
+Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `db.example.com:5432`. Behalten Sie ihn oder geben Sie einen eigenen ein, etwa `Orders database`, und klicken Sie dann auf **Weiter**.
+
 ### Ihn testen
 
-Klicken Sie auf **Monitor testen**, wählen Sie unter **Sonde auswählen** eine Sonde und klicken Sie auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, ob sich die Verbindung geöffnet hat und wie lange jeder Teil gedauert hat.
+Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, ob sich die Verbindung geöffnet hat und wie lange jeder Teil gedauert hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 

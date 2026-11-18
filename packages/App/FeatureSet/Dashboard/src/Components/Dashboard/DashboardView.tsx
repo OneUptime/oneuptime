@@ -82,6 +82,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import Toast, { CHANGES_SAVED } from "Common/UI/Utils/Toast";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
@@ -127,11 +130,12 @@ export interface ComponentProps {
 
 type SaveDashboardViewConfigFunction = (
   configToSave: DashboardViewConfig,
-) => Promise<boolean>;
+) => Promise<void>;
 
 const DashboardViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(
     DashboardMode.View,
   );
@@ -262,25 +266,27 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    * caller hands over - a setState is not visible to the closure that
    * scheduled it.
    *
-   * Returns whether the write actually happened, so the caller can keep the
-   * user in edit mode with their work intact when it did not.
+   * Rejects when the write did not happen, with why - which the board says
+   * above itself too - so the caller can keep the user in edit mode with
+   * their work intact.
    */
   const saveDashboardViewConfig: SaveDashboardViewConfigFunction = async (
     configToSave: DashboardViewConfig,
-  ): Promise<boolean> => {
+  ): Promise<void> => {
     /*
      * Belt and braces: edit mode is already gated, but nothing should be able
      * to reach the write path without the permission the write needs.
      */
     if (!canEditDashboard) {
-      setSaveError(
+      const reason: string =
         editGate.disabledReason ||
-          PermissionGate.getMissingPermissionMessage(
-            new Dashboard(),
-            ModelAction.Update,
-          ),
-      );
-      return false;
+        PermissionGate.getMissingPermissionMessage(
+          new Dashboard(),
+          ModelAction.Update,
+        );
+
+      setSaveError(reason);
+      throw new BadDataException(reason);
     }
 
     try {
@@ -297,11 +303,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       // A failed save leaves the board on screen, in edit mode, and says why.
       setSaveError(API.getFriendlyErrorMessage(err as Error));
       setIsSaving(false);
-      return false;
+      throw err;
     }
 
     setIsSaving(false);
-    return true;
   };
 
   useEffect(() => {
@@ -533,6 +538,32 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    * tab. Leaving it used to drop every unsaved widget without a word.
    */
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsavedChanges);
+
+  /*
+   * Save Changes, from the toolbar or from the question leaving asks: the
+   * board as it was edited, its defaults included - and only those. Save
+   * Changes used to stamp whatever auto-refresh the editor had last picked
+   * while viewing onto the dashboard, so an editor who had turned refresh
+   * off for a while turned it off for every viewer with an unrelated save
+   * (issue #5080). The defaults change only through the editing row
+   * (onDashboardDefaultsChange).
+   *
+   * Edit mode ends only once the board is actually persisted: dropping
+   * straight back to view mode meant a refused save looked exactly like a
+   * successful one. A refused save rejects with why, and the board says it
+   * above itself (saveError).
+   */
+  const saveChanges: PromiseVoidFunction = async (): Promise<void> => {
+    const configToSave: DashboardViewConfig = dashboardViewConfig;
+
+    await saveDashboardViewConfig(configToSave);
+
+    // An editor who changed a default sees it at once: their own pick of that setting gives way to it.
+    viewerSettings.applySavedDefaults(configToSave, {
+      followChangedDefaults: true,
+    });
+    setDashboardMode(DashboardMode.View);
+  };
 
   useEffect(() => {
     handleResize();
@@ -768,35 +799,19 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         hasUnsavedChanges={hasUnsavedChanges}
         isSaving={isSaving}
         onSaveClick={() => {
-          /*
-           * The board as it was edited, its defaults included - and only
-           * those. Save Changes used to stamp whatever auto-refresh the
-           * editor had last picked while viewing onto the dashboard, so an
-           * editor who had turned refresh off for a while turned it off for
-           * every viewer with an unrelated save (issue #5080). The defaults
-           * change only through the editing row (onDashboardDefaultsChange).
-           */
-          const configToSave: DashboardViewConfig = dashboardViewConfig;
-
-          saveDashboardViewConfig(configToSave)
-            .then((didSave: boolean) => {
+          saveChanges()
+            .then(() => {
               /*
-               * Only leave edit mode once the board is actually persisted.
-               * Dropping straight back to view mode meant a refused save
-               * looked exactly like a successful one.
+               * Said in the corner as edit mode ends, as a save says it
+               * worked anywhere (#9120); the toolbar said Unsaved changes
+               * until now (#7403). The leave question says it itself.
                */
-              if (didSave) {
-                /*
-                 * An editor who changed a default sees it at once: their
-                 * own pick of that setting gives way to it.
-                 */
-                viewerSettings.applySavedDefaults(configToSave, {
-                  followChangedDefaults: true,
-                });
-                setDashboardMode(DashboardMode.View);
-              }
+              Toast.success(
+                translator.translateText(CHANGES_SAVED) || CHANGES_SAVED,
+              );
             })
             .catch((err: Error) => {
+              // The board says why above itself, in edit mode, its work kept.
               setSaveError(API.getFriendlyErrorMessage(err));
             });
         }}
@@ -1267,13 +1282,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       {canvas}
       {/*
        * Someone is leaving the board while it has unsaved changes: the
-       * toolbar's Cancel question, put for leaving. Keep Editing stays on
-       * the board, as it was; Discard Changes goes where they were going.
-       * Last, so it opens above any dialog that is open on the board.
+       * toolbar's Cancel question, put for leaving. Save Changes saves the
+       * board as the toolbar's does, then goes where they were going; Keep
+       * Editing stays on the board, as it was; Discard Changes goes without
+       * saving. Last, so it opens above any dialog that is open on the
+       * board.
        */}
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description="You have unsaved changes to this dashboard. If you leave now, they will be lost."
+        onSaveChanges={saveChanges}
       />
     </div>
   );

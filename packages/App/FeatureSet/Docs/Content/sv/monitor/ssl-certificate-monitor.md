@@ -40,17 +40,17 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **SSL-certifikat** under **Monitortyp**.
 
-### Namnge den
-
-Ange ett **Namn**, som `example.com certificate`, och klicka sedan på **Nästa**.
-
 ### Ange URL:en
 
 Ange webbplatsen vars certifikat ska kontrolleras i **Webbplats-URL**, som `https://example.com`. För en tjänst på en annan port tar du med porten: `https://example.com:8443`.
 
+### Namnge den
+
+**Namn** fylls i utifrån det du angav, som `example.com`. Behåll det eller ange ett eget, som `example.com certificate`, och klicka sedan på **Nästa**.
+
 ### Testa den
 
-Klicka på **Testa monitor**, välj en sond under **Välj sond** och klicka på **Kör test**. **Resultat av övervakningstest** visar certifikatet som sonden fick, med dess utfärdare och utgångsdatum.
+Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar certifikatet som sonden fick, med dess utfärdare och utgångsdatum. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 

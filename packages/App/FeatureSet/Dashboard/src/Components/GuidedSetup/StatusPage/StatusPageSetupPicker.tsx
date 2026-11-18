@@ -17,6 +17,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Input from "Common/UI/Components/Input/Input";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -329,9 +330,7 @@ const StatusPageSetupPicker: FunctionComponent<ComponentProps> = (
         )}
       </ul>
       {props.error ? (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {props.error}
-        </p>
+        <FieldError message={props.error} className="mt-2 text-sm" />
       ) : (
         <></>
       )}

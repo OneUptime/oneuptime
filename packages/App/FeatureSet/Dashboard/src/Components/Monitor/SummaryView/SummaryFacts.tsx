@@ -1,3 +1,4 @@
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import EmptyValue, { isDashText } from "Common/UI/Components/Detail/EmptyValue";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -237,6 +238,12 @@ export interface SummaryFactProps {
   value?: string | ReactElement | undefined;
   // A fact that reads as a sentence - an address, an error - takes the row.
   isWide?: boolean | undefined;
+  /*
+   * An address - a URL, a host, an IP address - reads left to right on
+   * every page. On a right-to-left one the slash of a URL's root path was
+   * drawn before it ("/https://example.com"), in Test Monitor's result too.
+   */
+  readsLeftToRight?: boolean | undefined;
   // What the value means, in an (i) beside the title.
   tooltip?: string | undefined;
   dataTestId?: string | undefined;
@@ -266,6 +273,7 @@ export const SummaryFact: FunctionComponent<SummaryFactProps> = (
   props: SummaryFactProps,
 ): ReactElement => {
   const isInThrees: boolean = useContext(SummaryFactsInThreesContext);
+  const value: string | ReactElement = getSummaryFactValue(props.value);
 
   return (
     <InfoCard
@@ -277,7 +285,15 @@ export const SummaryFact: FunctionComponent<SummaryFactProps> = (
       )}`}
       textClassName={SUMMARY_FACT_VALUE_CLASS_NAME}
       title={props.title}
-      value={getSummaryFactValue(props.value)}
+      value={
+        props.readsLeftToRight && typeof value === "string" ? (
+          <span dir="ltr">
+            <BreakableName text={value} />
+          </span>
+        ) : (
+          value
+        )
+      }
       tooltip={props.tooltip}
       dataTestId={props.dataTestId || SUMMARY_FACT_TEST_ID}
       paddingClassName={SUMMARY_FACT_PADDING_CLASS_NAME}

@@ -46,17 +46,17 @@ A probe that has lost its own network connection reports no result, so it cannot
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, pick **Website**.
 
-### Name it
-
-Enter a **Name**, such as `Marketing site`, then click **Next**.
-
 ### Enter the URL
 
-In **Website URL**, enter the full address of the page, including `https://`, such as `https://example.com`. To change redirects, certificates, the timeout or retries, open **More fields** below it (see [Configuration options](#configuration-options)).
+In **Website URL**, enter the full address of the page, including `https://`, such as `https://example.com`.
+
+### Name it
+
+The **Name** fills in from what you entered, such as `example.com`. Keep it or enter your own, such as `Marketing site`, then click **Next**.
 
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows what the probe got back.
+To change redirects, certificates, the timeout or retries, open **More fields** under **Monitor Target** (see [Configuration options](#configuration-options)). Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the probe got back. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 
@@ -99,7 +99,7 @@ Use `{{random}}` the same way: `https://example.com/health?nocache={{random}}`.
 
 ### More fields
 
-These settings are folded under **More fields**, below the URL. The folded header lists them and shows which ones you changed.
+These settings are folded under **More fields**, in **Monitor Target**. The folded header lists them and shows which ones you changed.
 
 | Field | Default | What it does |
 | --- | --- | --- |

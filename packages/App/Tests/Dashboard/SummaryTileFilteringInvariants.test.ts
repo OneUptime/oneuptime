@@ -410,12 +410,14 @@ describe("no Devices column filter collides with a chip", () => {
   /*
    * ...and the popup is still the only home for what no chip can express, so
    * emptying it in the name of the rule above would cost the user free-text
-   * search over the columns nothing else filters.
+   * search over the columns nothing else filters. The Vendor filter reads
+   * the maker the server keeps on each device (`manufacturer`), the one its
+   * Vendor / Model column shows, not the `vendor` column alone (#9363).
    */
   test("the popup still offers the free-text filters it alone provides", () => {
     expect(filters).toContain("name: true");
     expect(filters).toContain("hostname: true");
-    expect(filters).toContain("vendor: true");
+    expect(filters).toContain("manufacturer: true");
   });
 });
 

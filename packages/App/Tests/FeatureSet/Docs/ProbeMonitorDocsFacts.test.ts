@@ -81,6 +81,8 @@ const API_CRITERIA_FILE: string =
   "Common/Server/Utils/Monitor/Criteria/APIRequestCriteria.ts";
 const MONITOR_STEP_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorStep.tsx";
+const MONITOR_ADDRESS_FIELD_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorAddressField.tsx";
 const CRITERIA_FILTER_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaFilter.tsx";
 const CRITERIA_INSTANCE_FORM_FILE: string =
@@ -1277,14 +1279,34 @@ describe("port checks", () => {
   const page: string = englishPage(PORT);
 
   it("names the port field as the form does, and its upper bound", () => {
+    /*
+     * Create Monitor asks the port with the host, on its first step (#7463);
+     * a saved monitor's Criteria page keeps it beside the host.
+     */
     const form: string = readRepoFile(MONITOR_STEP_FORM_FILE);
     const portField: string = sourceBetween(
       form,
-      "props.monitorType === MonitorType.Port && (",
+      "props.monitorType === MonitorType.Port &&\n              !props.isAddressAskedFirst && (",
       "/>",
     );
 
     expect(portField).toContain('title={"Port"}');
+
+    const createField: string = readRepoFile(MONITOR_ADDRESS_FIELD_FILE);
+    const createPortField: string = sourceBetween(
+      createField,
+      "overrideFieldKey: MONITOR_ADDRESS_PORT_FIELD_KEY,",
+      "customValidation",
+    );
+
+    expect(createPortField).toContain('title: "Port",');
+    expect(createPortField).toContain(
+      "return typeOf(values) === MonitorType.Port;",
+    );
+    expect(createField).toContain(
+      'portInvalid: translationKey("Enter a port from 1 to 65535."),',
+    );
+
     expect(page).toContain("In **Port**, enter the port number");
     expect(Port.isValid(65535)).toBe(true);
     expect(Port.isValid(65536)).toBe(false);

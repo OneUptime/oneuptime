@@ -997,9 +997,13 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  const save: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * The steps, in their order, as Save Steps writes them - and Save Changes
+   * in the question leaving them asks. Rejects with why they were not
+   * saved, which each says its own way.
+   */
+  const saveSteps: () => Promise<void> = async (): Promise<void> => {
     setIsSaving(true);
-    setError("");
     try {
       const normalized: RunbookStep[] = steps.map(
         (s: RunbookStep, i: number) => {
@@ -1018,12 +1022,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * is still unsaved.
        */
       setSavedStepsSignature(getRunbookStepsSignature(normalized));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const save: () => Promise<void> = async (): Promise<void> => {
+    setError("");
+    try {
+      await saveSteps();
       // Said in the corner: a "Saved" dialog had to be clicked away (#9120).
       Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -2650,13 +2661,16 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       )}
 
       {/*
-       * Someone is leaving the steps while they have unsaved changes. Keep
-       * Editing stays with the steps as they are; Discard Changes goes
-       * where they were going. Last, so it opens above any other dialog.
+       * Someone is leaving the steps while they have unsaved changes. Save
+       * Changes saves them as Save Steps does, then goes where they were
+       * going - a refusal is said in the question, not in a second dialog;
+       * Keep Editing stays with the steps as they are; Discard Changes goes
+       * without saving. Last, so it opens above any other dialog.
        */}
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description="You have unsaved changes to this runbook's steps. If you leave now, they will be lost."
+        onSaveChanges={saveSteps}
       />
     </Fragment>
   );

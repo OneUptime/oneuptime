@@ -59,7 +59,10 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, {
+  LeavePrompt,
+  SaveBeforeLeavingFunction,
+} from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -337,7 +340,11 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     props.onStartFromDefault?.(defaultStart);
   };
 
-  const save: (keepDifferences: boolean) => Promise<void> = async (
+  /*
+   * The steps saved into the cards: rejects with why they were not, which
+   * the editor says under them, or the question leaving it asks says.
+   */
+  const saveSteps: (keepDifferences: boolean) => Promise<void> = async (
     keepDifferences: boolean,
   ): Promise<void> => {
     setIsConfirming(false);
@@ -346,13 +353,22 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
 
     try {
       await props.onSave(normalizePagingLadderSteps(draft), keepDifferences);
-      setSavedKeptDifferences(keepDifferences);
-      setSavedNote(true);
+    } finally {
+      setIsSaving(false);
+    }
+
+    setSavedKeptDifferences(keepDifferences);
+    setSavedNote(true);
+  };
+
+  const save: (keepDifferences: boolean) => Promise<void> = async (
+    keepDifferences: boolean,
+  ): Promise<void> => {
+    try {
+      await saveSteps(keepDifferences);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
-
-    setIsSaving(false);
   };
 
   // Save Changes: the cards that differ, if any, keep their own rules.
@@ -361,6 +377,17 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
       // save() reports its own failure.
     });
   };
+
+  /*
+   * Save Changes in the question leaving the steps asks: the bar's own,
+   * offered while the bar offers it - a ladder with no steps saves nothing.
+   */
+  const saveBeforeLeaving: (() => Promise<void>) | undefined =
+    draft.length > 0
+      ? (): Promise<void> => {
+          return saveSteps(hasDifferences);
+        }
+      : undefined;
 
   const openGrid: () => void = (): void => {
     if (!props.onOpenGrid) {
@@ -961,14 +988,24 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
             discard();
             props.onOpenGrid?.();
           },
+          // Saved first, the grid opens on the ladder as saved.
+          saveAndLeave: async (
+            saveBeforeOpening: SaveBeforeLeavingFunction,
+          ): Promise<void> => {
+            await saveBeforeOpening();
+            setIsAskingToOpenGrid(false);
+            props.onOpenGrid?.();
+          },
         }}
         description={PAGING_LADDER_COPY.leaveDescription}
+        onSaveChanges={saveBeforeLeaving}
       />
 
       {/* Last, so it opens above any other dialog. */}
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={PAGING_LADDER_COPY.leaveDescription}
+        onSaveChanges={saveBeforeLeaving}
       />
     </div>
   );

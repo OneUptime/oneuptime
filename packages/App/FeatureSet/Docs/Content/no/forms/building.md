@@ -39,7 +39,7 @@ Dra et kort i håndtaket for å flytte det, eller bruk **Flytt opp** og **Flytt 
 
 ### Lagre skjemaet
 
-**Lagre endringer** lagrer alle endringer på én gang. Til du lagrer, sier byggeren **Ulagrede endringer** og tilbyr **Forkast endringer**. Å forlate byggeren før du har lagret, spør først. En lenke i sidemenyen, brødsmulestien eller topplinjen, eller nettleserens Tilbake- og Fremover-knapper, åpner **Forlate uten å lagre?** med to valg: **Fortsett å redigere** blir i byggeren med endringene dine, og **Forkast endringer** går videre til siden du var på vei til. Lukker eller laster du inn fanen på nytt, spør nettleseren med sin egen dialog.
+**Lagre endringer** lagrer alle endringer på én gang. Til du lagrer, sier byggeren **Ulagrede endringer** og tilbyr **Forkast endringer**. Å forlate byggeren før du har lagret, spør først. En lenke i sidemenyen, brødsmulestien eller topplinjen, eller nettleserens Tilbake- og Fremover-knapper, åpner **Forlate uten å lagre?** med tre valg: **Lagre endringer** lagrer spørsmålene og går deretter videre til siden du var på vei til, **Fortsett å redigere** blir i byggeren med endringene dine, og **Forkast endringer** går videre uten å lagre. Lukker eller laster du inn fanen på nytt, spør nettleseren med sin egen dialog.
 :::
 
 - **Skjemaets overskrift** viser navnet og beskrivelsen slik den offentlige siden vil gjøre. **Rediger navn og beskrivelse** endrer dem.

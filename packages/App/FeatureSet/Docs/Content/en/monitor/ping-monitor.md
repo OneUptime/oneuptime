@@ -42,17 +42,17 @@ A probe that has lost its own network connection reports no result, so it cannot
 
 Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, pick **Ping**.
 
-### Name it
-
-Enter a **Name**, such as `Core router`, then click **Next**.
-
 ### Enter the host
 
 In **Hostname or IP Address**, enter the host name or the IPv4 or IPv6 address to ping, such as `example.com` or `192.168.1.1`. Enter the host only, without `http://` or a port.
 
+### Name it
+
+The **Name** fills in from what you entered, such as `example.com`. Keep it or enter your own, such as `Core router`, then click **Next**.
+
 ### Test it
 
-Click **Test Monitor**, pick a probe under **Select Probe** and click **Run Test**. **Monitor Test Result** shows the round-trip times and the packet loss the probe saw.
+Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows the round-trip times and the packet loss the probe saw. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 

@@ -11,13 +11,17 @@
  * for the tab (sessionStorage), so Save Changes followed by a reload opens
  * what was saved. Steered by the query string, read before the app starts:
  *
- *   - lang=de       the Dashboard's German words
+ *   - lang=de       the Dashboard's German words; lang=fa its Persian, read
+ *                   right to left
  *   - theme=dark    (read by server.js) the dark theme
  *   - board=narrow  the second dashboard: a narrow metric table and the
  *                   security events list (Boards.js buildNarrowConfig)
  *   - titles=long   the first incident's title a long sentence, as an
  *                   incident's often is (Boards.js incidents)
  *   - view=honeycomb  the monitor list drawn as a honeycomb (#6966)
+ *   - board=preview the third dashboard: a monitor list as a table and as a
+ *                   honeycomb, and a Text widget with a Markdown link, for
+ *                   a widget's Live Preview (Boards.js buildPreviewConfig)
  *
  * The side menu's other pages (Overview, Settings...) and the breadcrumbs'
  * addresses open a stand-in that says only where it is (fixture-elsewhere),
@@ -59,6 +63,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import UserUtil from "Common/UI/Utils/User";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
@@ -69,6 +74,7 @@ import {
   REQUESTS_BY_SERVICE,
   buildConfig,
   buildNarrowConfig,
+  buildPreviewConfig,
   describePhase,
   incidents,
   monitors,
@@ -82,18 +88,24 @@ const USER_ID = "40000000-0000-4000-8000-0000000000e4";
 const SERVER_KEY = "dashboard-widget-sort-fixture-server";
 
 const params = new URLSearchParams(window.location.search);
-const language = params.get("lang") === "de" ? "de" : "en";
+const language = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 // ?board=narrow: the second dashboard (Boards.js buildNarrowConfig).
 const isNarrowBoard = params.get("board") === "narrow";
+// ?board=preview: the third dashboard (Boards.js buildPreviewConfig).
+const isPreviewBoard = params.get("board") === "preview";
 // ?titles=long: an incident's title a long sentence (Boards.js incidents).
 const hasLongTitles = params.get("titles") === "long";
 // ?view=honeycomb: the monitor list drawn as a honeycomb (Boards.js buildConfig).
 const isHoneycomb = params.get("view") === "honeycomb";
 const BOARD_KEY = isNarrowBoard
   ? `${SERVER_KEY}-narrow`
-  : isHoneycomb
-    ? `${SERVER_KEY}-honeycomb`
-    : SERVER_KEY;
+  : isPreviewBoard
+    ? `${SERVER_KEY}-preview`
+    : isHoneycomb
+      ? `${SERVER_KEY}-honeycomb`
+      : SERVER_KEY;
 
 // The fixture's clock: rows are minutes and hours before it.
 const NOW = Date.now();
@@ -123,6 +135,10 @@ function storedConfig() {
     }
   } catch {
     // Nothing kept: the dashboard as created.
+  }
+
+  if (isPreviewBoard) {
+    return buildPreviewConfig();
   }
 
   return isNarrowBoard ? buildNarrowConfig() : buildConfig({ isHoneycomb });
@@ -422,6 +438,9 @@ const LOCALE_LOADERS = {
   de: () => {
     return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
   },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
 };
 
 await i18next.use(initReactI18next).init({
@@ -439,6 +458,8 @@ await i18next.use(initReactI18next).init({
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
 document.documentElement.lang = language;
+// Persian reads right to left, as the Dashboard sets it (Common/UI/Utils/PageLanguage).
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 // ---- the page ------------------------------------------------------------------
 
@@ -498,19 +519,24 @@ function ElsewhereShell() {
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
- * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters). The
+ * toasts' region beside the router, as there: Save Changes in the leave
+ * question says "Changes saved" where the reader arrives (#7402).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
-    <Routes>
-      <PageRoute
-        path="/dashboard/:projectId/dashboards/:id"
-        element={<LayoutShell />}
-      >
-        <PageRoute index element={<Page />} />
-        <PageRoute path="*" element={<ElsewherePage />} />
-      </PageRoute>
-      <PageRoute path="*" element={<ElsewhereShell />} />
-    </Routes>
-  </BrowserRouter>,
+  <>
+    <BrowserRouter useTransitions={false}>
+      <Routes>
+        <PageRoute
+          path="/dashboard/:projectId/dashboards/:id"
+          element={<LayoutShell />}
+        >
+          <PageRoute index element={<Page />} />
+          <PageRoute path="*" element={<ElsewherePage />} />
+        </PageRoute>
+        <PageRoute path="*" element={<ElsewhereShell />} />
+      </Routes>
+    </BrowserRouter>
+    <ToastRegion />
+  </>,
 );

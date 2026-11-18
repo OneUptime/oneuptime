@@ -109,7 +109,17 @@ record's own rules make of it: an incident a privacy rule makes private, labelle
 rule and naming two owners no Created email reaches, and an alert an alert incident rule turns
 into an incident after 30 minutes, shown on a status page through the monitor group Checkout
 (#7212 - #7572). `POST /who-is-told/draft`, which Create Monitor's criteria ask (#7055), answers
-as the default does, for the form's name.
+as the default does, for the form's name, its online and offline criteria under the draft's
+own criteria ids.
+
+`?monitorTest=` shapes what Test Monitor's probe answers on Create Monitor's criteria step
+(#7985, #7074): `online` (default: a 200 in 182 ms) or `offline` (a 503). The test row is
+created as `MonitorTest` creates it and answers on its first read, judged by the tested
+steps' criteria as the server judges it (`MonitorTestEvaluation`): the first criteria, top to
+bottom, whose name says online for an answer that is up, or offline for one that is down.
+
+A monitor's last fire drill (`GET /on-call-test-page/fire-drill/last/:monitorId`, #9386), which
+When this goes down reads under its chain, answers that none was run.
 
 `?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
 already an owner of this monitor."), as the server refuses a second row for an owner.
@@ -318,7 +328,8 @@ model, and on any request the network fence had to abort.
 `window.__monitorOverviewFixture` holds `getItemRequests`, `listRequests` (analytics lists
 carry `analytics: true`), `countRequests`, `aggregateRequests`, `apiRequests` (with
 `headers`), `updates`, `creates` (Create Monitor's create: the monitor's JSON and its misc
-data, such as the probes picked; and a manual monitor's status events) and `unhandled`,
+data, such as the probes picked; Test Monitor's test row; and a manual monitor's status
+events) and `unhandled`,
 plus `monitors` (id, name and secret key per type). A monitor create is answered with the
 id `70000000-0000-4000-8000-000000000100`, whose page is a stub
 (`data-page="created-monitor"`). A status event is recorded the way the server records one:

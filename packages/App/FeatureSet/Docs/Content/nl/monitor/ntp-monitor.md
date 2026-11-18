@@ -43,17 +43,17 @@ Een server die antwoordt, wordt niet opnieuw gevraagd, ook niet als hij antwoord
 
 Ga naar **Monitoren** en klik op **Monitor maken**. Typ onder **Monitortype** `ntp` in het zoekvak en kies **NTP**. Hij staat ook onder **Meer monitortypen**, in de groep Netwerk.
 
-### Een naam geven
-
-Voer een **Naam** in, zoals `GPS-tijdserver`, en klik op **Volgende**.
-
 ### De server invoeren
 
-Voer bij **NTP-server** de hostnaam of het IP-adres van de server in, zoals `time.example.com` of `192.168.1.10`. Het verzoek gaat naar poort 123. Open **Meer velden** en vul **Poort** in om een andere poort te gebruiken.
+Voer bij **NTP-server** de hostnaam of het IP-adres van de server in, zoals `time.example.com` of `192.168.1.10`. Het verzoek gaat naar poort 123.
+
+### Een naam geven
+
+De **Naam** wordt ingevuld met wat u invulde, zoals `time.example.com`. Houd die of vul uw eigen naam in, zoals `GPS-tijdserver`, en klik dan op **Volgende**.
 
 ### Testen
 
-Klik op **Monitor testen**, kies een sonde onder **Selecteer sonde** en klik op **Test uitvoeren**. **Testresultaat van monitor** laat zien of de server antwoordde, of hij gesynchroniseerd is, wat zijn stratum is en hoe ver zijn klok afwijkt.
+Open **Meer velden** onder **Monitordoel** en vul **Poort** in om een andere poort te gebruiken. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** laat zien of de server antwoordde, of hij gesynchroniseerd is, wat zijn stratum is en hoe ver zijn klok afwijkt. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 

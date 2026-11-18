@@ -170,7 +170,7 @@ Cliquez sur **Enregistrer les modifications**. La vérification suivante est jug
 
 ### Tester le moniteur
 
-Sur un moniteur vérifié par des sondes, cliquez sur **Tester le moniteur** sur la carte, choisissez une sonde sous **Sélectionner la sonde** et cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que la vérification a trouvé.
+Sur un moniteur vérifié par des sondes, cliquez sur **Tester le moniteur** sur la carte : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que la vérification a trouvé. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 :::
 
 Un moniteur manuel n'a pas de critères : vous définissez son statut vous-même. Voir [Mettre à jour le statut](/docs/monitor/manual-monitor#mettre-à-jour-létat).

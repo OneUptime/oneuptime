@@ -76,8 +76,17 @@ describe("every entry point into a dashboard write is permission-gated", () => {
       "dashboardMode === DashboardMode.Edit && canEditDashboard",
     );
 
-    /* And the write path refuses on its own, not only because of the UI. */
-    expect(source).toContain("if (!canEditDashboard) { setSaveError(");
+    /*
+     * And the write path refuses on its own, not only because of the UI:
+     * it says why on the board, and rejects, so whoever saved - the
+     * toolbar, or the question leaving asks (#7402) - knows it did not.
+     */
+    expect(source).toContain(
+      "if (!canEditDashboard) { const reason: string = editGate.disabledReason ||",
+    );
+    expect(source).toContain(
+      "setSaveError(reason); throw new BadDataException(reason); }",
+    );
   });
 
   test("the toolbar renders no write controls without the permission", () => {
@@ -165,22 +174,35 @@ describe("every entry point into a dashboard write is permission-gated", () => {
 
     /*
      * Only a save that happened leaves edit mode - and moves an editor who
-     * changed a default onto it (issue #5080) - in that order.
+     * changed a default onto it (issue #5080) - in that order: a refused
+     * write rejects (it says why on the board first), so what follows the
+     * awaited save never runs.
      */
+    const saved: string = "await saveDashboardViewConfig(configToSave);";
     const onSaved: string = source.slice(
-      source.indexOf("if (didSave) {"),
-      source.indexOf("if (didSave) {") + 700,
+      source.indexOf(saved),
+      source.indexOf(saved) + 700,
     );
 
-    expect(source.indexOf("if (didSave) {")).toBeGreaterThan(-1);
+    expect(source.indexOf(saved)).toBeGreaterThan(-1);
     expect(onSaved).toContain(
-      "viewerSettings.applySavedDefaults(configToSave, { followChangedDefaults: true, });",
+      "viewerSettings.applySavedDefaults(configToSave, { followChangedDefaults: true, }); setDashboardMode(DashboardMode.View); };",
     );
-    expect(
-      onSaved.indexOf(
-        "viewerSettings.applySavedDefaults(configToSave, { followChangedDefaults: true, }); setDashboardMode(DashboardMode.View); }",
-      ),
-    ).toBeGreaterThan(-1);
+    // The write's own refusal: why on the board, then a rejection.
+    expect(source).toContain(
+      "setSaveError(API.getFriendlyErrorMessage(err as Error)); setIsSaving(false); throw err;",
+    );
+    /*
+     * The toolbar's Save Changes and the leave question's both run that one
+     * save; the toolbar's says it worked, and shows why it did not.
+     */
+    expect(source).toContain(
+      "onSaveClick={() => { saveChanges() .then(() => {",
+    );
+    expect(source).toContain(
+      "Toast.success( translator.translateText(CHANGES_SAVED) || CHANGES_SAVED, ); }) .catch((err: Error) => {",
+    );
+    expect(source).toContain("onSaveChanges={saveChanges}");
     expect(source).not.toContain(
       "saveDashboardViewConfig().catch((err: Error) => { setError(",
     );

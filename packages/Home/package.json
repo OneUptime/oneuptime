@@ -45,6 +45,7 @@
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^4.3.2"
     },
-    "postcss-selector-parser": "^7.1.6"
+    "postcss-selector-parser": "^7.1.6",
+    "sucrase": "^3.35.1"
   }
 }

@@ -78,7 +78,7 @@ Los cambios en quién se turna esperan a que los guardes, así que puedes hacer 
 - Cada capa y la programación final muestran la rotación como quedará. La programación final aparece marcada con **Incluye cambios sin guardar**.
 - Una barra al pie de la página enumera los cambios, con **Guardar cambios** y **Descartar**.
 
-**Guardar cambios** guarda todos los cambios a la vez. Quién está de guardia se calcula entonces una sola vez, para las capas tal como quedan guardadas: quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada cambio. **Descartar** devuelve las capas a como estaban la última vez que se guardaron. Salir de la página antes de guardar te pregunta primero: **Seguir editando** te deja en ella, y **Descartar cambios** sale sin guardar.
+**Guardar cambios** guarda todos los cambios a la vez. Quién está de guardia se calcula entonces una sola vez, para las capas tal como quedan guardadas: quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada cambio. **Descartar** devuelve las capas a como estaban la última vez que se guardaron. Salir de la página antes de guardar te pregunta primero: **Guardar cambios** guarda y luego sale, **Seguir editando** te deja en ella, y **Descartar cambios** sale sin guardar.
 
 Si otra persona cambió las capas después de que abrieras la página, tus cambios no se guardan encima de los suyos. La barra lo indica, y **Recargar capas** muestra las capas como están ahora, para que vuelvas a hacer tus cambios. **Añadir capa** añade su capa al momento, y los ajustes de una capa se guardan con su propio botón **Guardar capa**.
 
