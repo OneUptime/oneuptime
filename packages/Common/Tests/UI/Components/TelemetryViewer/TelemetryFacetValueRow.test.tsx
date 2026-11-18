@@ -489,7 +489,7 @@ describe("the exclude button lies over the count", () => {
 
     expect(row()).toHaveClass("[container-type:inline-size]");
     expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).className).toBe(
-      "w-10 [@media(hover:none)]:[@container(max-width:18rem)]:hidden",
+      "w-9 [@media(hover:none)]:[@container(max-width:18rem)]:hidden",
     );
     // The bar stands right before the count.
     expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).nextElementSibling).toBe(
@@ -513,9 +513,7 @@ describe("the exclude button lies over the count", () => {
     ) => {
       mount(overrides, handlers(), options);
 
-      expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).className).toBe(
-        "w-10",
-      );
+      expect(screen.getByTestId(FACET_VALUE_BAR_TEST_ID).className).toBe("w-9");
     },
   );
 
