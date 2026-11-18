@@ -27,6 +27,9 @@ import {
 } from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIMemory from "./AIMemory";
+import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import InvestigationAccessForAudience from "./InvestigationAccessForAudience";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
@@ -351,7 +354,20 @@ export default class AIAlertInvestigationRunner {
     const contextNotes: Array<AIRunEventResultSummary> = [];
     // When the alert started: where a check for its logs begins.
     let subjectStartedAt: Date | undefined = undefined;
+    /*
+     * Who reads the report: everyone who may see the alert. The starting
+     * context and every tool read only what all of them may read (#9576).
+     * Worked out first: a run that cannot tell who its readers are does not
+     * read for them as OneUptime - it is retried, as a context that cannot
+     * be read is.
+     */
+    let readAudience: ReadAudience;
     try {
+      readAudience = await ReadAudienceReader.forSubject({
+        projectId,
+        alertId,
+      });
+
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
@@ -372,6 +388,7 @@ export default class AIAlertInvestigationRunner {
         await AIMemory.getPriorSimilarAlertsContext({
           projectId,
           currentAlertId: alertId,
+          readAudience,
         });
 
       contextSummary =
@@ -389,6 +406,7 @@ export default class AIAlertInvestigationRunner {
         linked = await LinkedInfrastructureContext.readForAlert({
           projectId,
           alertId,
+          readAudience,
         });
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
@@ -415,6 +433,7 @@ export default class AIAlertInvestigationRunner {
           await InvestigationImpactContext.readForAlert({
             projectId,
             alertId,
+            readAudience,
           }),
         );
       } catch (error) {
@@ -436,6 +455,7 @@ export default class AIAlertInvestigationRunner {
             subjectKind: "alert",
             subjectId: alertId,
             linked,
+            readAudience,
           });
         const changesNote: AIRunEventResultSummary | null =
           RecentChangesContext.buildActivityNote(recentChanges);
@@ -458,11 +478,15 @@ export default class AIAlertInvestigationRunner {
        * is exactly what it did before clusters could be reached at all.
        */
       try {
-        clusterStatuses =
-          await KubernetesClusterAiAccessService.getStatusesForSubject({
-            projectId,
-            alertId,
-          });
+        clusterStatuses = await InvestigationAccessForAudience.keepClusters({
+          statuses: await KubernetesClusterAiAccessService.getStatusesForSubject(
+            {
+              projectId,
+              alertId,
+            },
+          ),
+          readAudience,
+        });
       } catch (error) {
         logger.error(
           `AI: could not resolve cluster access for alert ${alertId.toString()}; investigating with OneUptime data only: ${error}`,
@@ -480,9 +504,12 @@ export default class AIAlertInvestigationRunner {
        */
       try {
         const statuses: Array<ResourceAiAccessStatus> =
-          await ResourceAiAccessService.getStatusesForSubject({
-            projectId,
-            alertId,
+          await InvestigationAccessForAudience.keepResources({
+            statuses: await ResourceAiAccessService.getStatusesForSubject({
+              projectId,
+              alertId,
+            }),
+            readAudience,
           });
         const section: string =
           ResourceAccessContext.buildContextSection(statuses);
@@ -508,6 +535,7 @@ export default class AIAlertInvestigationRunner {
             : [],
           focusText: `${contextData.alert.title || ""}\n${contextData.alert.rootCause || ""}`,
           seriesLabels: contextData.alert.seriesLabels,
+          readAudience,
         });
       } catch (error) {
         logger.error(
@@ -526,6 +554,7 @@ export default class AIAlertInvestigationRunner {
           projectId,
           alertId,
           now: OneUptimeDate.getCurrentDate(),
+          readAudience,
         });
       } catch (error) {
         logger.error(
@@ -695,6 +724,7 @@ export default class AIAlertInvestigationRunner {
         extraTools,
         codeRepositoryAllowance,
         aiContextRules,
+        readAudience,
       });
     } finally {
       // Every session the run opened ends with it.
@@ -721,6 +751,8 @@ export default class AIAlertInvestigationRunner {
     codeRepositoryAllowance: CodeRepositoryAllowance;
     // The matching AI rules' AI context, read after the project's.
     aiContextRules: Array<AiContextRule>;
+    // Everyone who may see the alert: the tools read what all of them may.
+    readAudience: ReadAudience;
   }): Promise<void> {
     const {
       aiRunId,
@@ -736,6 +768,7 @@ export default class AIAlertInvestigationRunner {
       extraTools,
       codeRepositoryAllowance,
       aiContextRules,
+      readAudience,
     } = data;
 
     await AIInvestigationEngine.executeRun({
@@ -762,6 +795,8 @@ export default class AIAlertInvestigationRunner {
         recordImpactNumbers: true,
         // What it saw, kept for a replay after a prompt or model change.
         recordForReplay: true,
+        // Everyone who may see the alert reads the report (#9576).
+        readAudience,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "alert",

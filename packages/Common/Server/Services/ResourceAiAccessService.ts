@@ -1382,6 +1382,14 @@ export class ResourceAiAccessServiceClass {
     return kept.slice(0, MAX_RESOURCES_PER_SUBJECT);
   }
 
+  /*
+   * The service a kind of resource is read with: an investigation keeps the
+   * resources it may reach to the ones its readers may read (#9576).
+   */
+  public getResourceService(resourceType: AiResourceType): AnyDatabaseService {
+    return MODEL_SPECS[resourceType].service;
+  }
+
   @CaptureSpan()
   public async getStatusesForSubject(data: {
     projectId: ObjectID;

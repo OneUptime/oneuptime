@@ -90,10 +90,16 @@ function distinctPermissions(
 }
 
 export default class ReadAudienceReader {
-  // The audience of an incident's or an alert's readers.
+  /*
+   * The audience of an incident's or an alert's readers. `withTelemetry`
+   * false leaves out the telemetry-owning resources it sets apart, for a
+   * decision that reads no telemetry (whether an alert is one they may
+   * read): those are looked up only when some read is narrowed.
+   */
   @CaptureSpan()
   public static async forSubject(
     subject: ReadAudienceSubject,
+    options?: { withTelemetry?: boolean | undefined },
   ): Promise<ReadAudience> {
     const [narrowing, named]: [
       ReadNarrowingPermissions,
@@ -113,7 +119,10 @@ export default class ReadAudienceReader {
     };
 
     // A project that narrows nobody sets no resource apart: nothing to look up.
-    if (!ReadAudiencePermission.narrowsNobody(audience)) {
+    if (
+      options?.withTelemetry !== false &&
+      !ReadAudiencePermission.narrowsNobody(audience)
+    ) {
       audience.telemetryBlockedIds =
         await ReadAudienceReader.readTelemetryBlockedIds(audience);
     }
@@ -244,6 +253,62 @@ export default class ReadAudienceReader {
     }
 
     return result;
+  }
+
+  /*
+   * Of some records of one model, the ones the audience reads, by id (lower
+   * case): a read of them with the audience's props, so the permission layer
+   * keeps what the subject names and leaves out what is set apart. For a
+   * record named by another one the audience reads (a monitor's services,
+   * read through the monitor) before it is named in turn. No read at all
+   * when the audience reads every record of the model.
+   */
+  public static async readReadableIds(data: {
+    service: {
+      modelType: { new (): BaseModel };
+      findBy: (findBy: never) => Promise<Array<BaseModel>>;
+    };
+    ids: Array<ObjectID | string>;
+    audience: ReadAudience;
+  }): Promise<Set<string>> {
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.ids
+          .map((id: ObjectID | string): string => {
+            return id.toString().toLowerCase();
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (ids.length === 0) {
+      return new Set<string>();
+    }
+
+    if (
+      ReadAudiencePermission.getConditions(
+        data.service.modelType,
+        data.audience,
+      ).length === 0
+    ) {
+      return new Set<string>(ids);
+    }
+
+    const rows: Array<BaseModel> = await data.service.findBy({
+      query: { _id: QueryHelper.any(ids) },
+      select: { _id: true },
+      limit: ids.length,
+      skip: 0,
+      props: ReadAudiencePermission.getReadProps(data.audience),
+    } as never);
+
+    return new Set<string>(
+      rows
+        .map((row: BaseModel): string => {
+          return row.id?.toString().toLowerCase() || "";
+        })
+        .filter(Boolean),
+    );
   }
 
   /*

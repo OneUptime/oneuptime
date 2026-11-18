@@ -39,6 +39,9 @@ import { LinkedAffectedResourceType } from "../../AffectedResources/LinkedAffect
 import CloudChangeLookBack from "../../CloudConnection/CloudChangeLookBack";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
+import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ChangeImpact,
   ChangeImpactVerdict,
@@ -516,6 +519,14 @@ export default class RecentChangesContext {
    * The changes recorded around an incident or an alert, checked. `linked`
    * is what LinkedInfrastructureContext read for it, when it could; null
    * when the subject cannot be read.
+   *
+   * An investigation reads them for the subject's readers (`readAudience`,
+   * #9576): a change of a service, host or cloud resource set apart by an
+   * owner or a label from somebody who reads its report - where some role
+   * reads those only by owner or label - is left out with the resource's
+   * telemetry (ReadAudiencePermission.getTelemetryScope), never listed or
+   * counted, and a service it names is named only when they may read it.
+   * Left out - a remediation round - every change is read as OneUptime.
    */
   @CaptureSpan()
   public static async read(data: {
@@ -523,7 +534,12 @@ export default class RecentChangesContext {
     subjectKind: "incident" | "alert";
     subjectId: ObjectID;
     linked: LinkedInfrastructure | null;
+    readAudience?: ReadAudience | undefined;
   }): Promise<RecentChanges | null> {
+    const readProps: DatabaseCommonInteractionProps = data.readAudience
+      ? ReadAudiencePermission.getReadProps(data.readAudience)
+      : { isRoot: true };
+
     const subjectCreatedAt: Date | null =
       data.linked?.subjectCreatedAt ||
       (await RecentChangesContext.readSubjectCreatedAt(data));
@@ -610,7 +626,7 @@ export default class RecentChangesContext {
             sort: { time: SortOrder.Descending } as never,
             limit: scope.limit,
             skip: 0,
-            props: { isRoot: true },
+            props: readProps,
           });
         },
       ),
@@ -653,6 +669,7 @@ export default class RecentChangesContext {
       projectId: data.projectId,
       changes: listed,
       linked: data.linked,
+      readProps,
     });
 
     await RecentChangesContext.checkImpact({
@@ -882,6 +899,8 @@ export default class RecentChangesContext {
     projectId: ObjectID;
     changes: Array<RecentChange>;
     linked: LinkedInfrastructure | null;
+    // Who reads what is written: a service set apart from them is not named.
+    readProps: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const known: Dictionary<string> = {};
 
@@ -917,7 +936,7 @@ export default class RecentChangesContext {
           select: { _id: true, name: true },
           limit: unknownIds.length,
           skip: 0,
-          props: { isRoot: true },
+          props: data.readProps,
         });
 
         for (const service of services) {
