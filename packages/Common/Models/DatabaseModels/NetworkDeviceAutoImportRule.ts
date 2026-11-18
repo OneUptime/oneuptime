@@ -534,7 +534,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
     modelType: MonitorTemplate,
     title: "Monitor Template",
     description:
-      "Optional Network Device monitor template to apply to devices imported by this rule",
+      "Optional monitor template each device this rule imports gets a monitor from: a Network Device template, whose monitor reads the device's polls, or a Ping, IP, Port or NTP template, whose monitor checks the device's address",
   })
   @ManyToOne(
     () => {
@@ -579,7 +579,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor Template ID",
     description:
-      "ID of the optional Network Device monitor template to apply to devices imported by this rule",
+      "ID of the optional monitor template (Network Device, Ping, IP, Port or NTP) each device this rule imports gets a monitor from",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -915,3 +915,85 @@ describe("DeviceMonitorTemplateUtil.readPorts", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * What an auto import rule checks of a Ping, IP, Port or NTP template when
+ * it is saved (issue #9510): a step to check each device with, and a port in
+ * every step of a Port template - said then, not by every monitor the rule
+ * would fail to make.
+ */
+describe("DeviceMonitorTemplateUtil.assertAddressTemplateSteps", () => {
+  it("accepts a Ping, IP or NTP template with a step, and a Port template whose steps name their ports", () => {
+    for (const monitorType of [MonitorType.Ping, MonitorType.IP]) {
+      expect(() => {
+        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+          monitorType: monitorType,
+          monitorSteps: buildSteps(monitorType),
+        });
+      }).not.toThrow();
+    }
+
+    expect(() => {
+      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        monitorType: MonitorType.NTP,
+        // An NTP step that names no port asks on 123.
+        monitorSteps: buildSteps(MonitorType.NTP),
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        monitorType: MonitorType.Port,
+        monitorSteps: buildSteps(MonitorType.Port, [
+          { destination: IP.fromString(TEMPLATE_ADDRESS), port: 22 },
+          { destination: IP.fromString(TEMPLATE_ADDRESS), port: 443 },
+        ]).toJSON(),
+      });
+    }).not.toThrow();
+  });
+
+  it("refuses a template with no steps, saying what to do", () => {
+    const empty: MonitorSteps = new MonitorSteps();
+    empty.data = {
+      monitorStepsInstanceArray: [],
+      defaultMonitorStatusId: ONLINE_ID,
+    };
+
+    for (const monitorSteps of [empty, undefined, null]) {
+      expectBadData(() => {
+        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+          monitorType: MonitorType.Ping,
+          monitorSteps: monitorSteps,
+        });
+      }, "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.");
+    }
+  });
+
+  it("refuses a Port template with a step that names no port", () => {
+    expectBadData(() => {
+      DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+        monitorType: MonitorType.Port,
+        monitorSteps: buildSteps(MonitorType.Port, [
+          { destination: IP.fromString(TEMPLATE_ADDRESS), port: 22 },
+          { destination: IP.fromString(TEMPLATE_ADDRESS) },
+        ]),
+      });
+    }, "Every step of a Port monitor template must name the port it checks. Add the port to the template, then pick it again.");
+  });
+
+  it("refuses a template of a kind that does not check an address", () => {
+    for (const monitorType of [
+      MonitorType.NetworkDevice,
+      MonitorType.Website,
+      MonitorType.Manual,
+      MonitorType.IncomingRequest,
+    ]) {
+      expectBadData(() => {
+        DeviceMonitorTemplateUtil.assertAddressTemplateSteps({
+          monitorType: monitorType,
+          monitorSteps: buildSteps(MonitorType.Ping),
+        });
+      }, DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
+    }
+  });
+});

@@ -18,7 +18,8 @@ import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil
  * A MONITOR FOR ONE NETWORK DEVICE, FROM A TEMPLATE (OneUptime issue #5145).
  *
  * A discovery import gives every device it brings in one monitor from a
- * template the person picks. Two kinds of template can do that, because two
+ * template the person picks, and so does an auto import rule for every host
+ * it imports (issue #9510). Two kinds of template can do that, because two
  * kinds of monitor can check a device:
  *
  *   - A Network Device template: its monitor reads the device's own polls -
@@ -32,11 +33,13 @@ import NetworkDeviceMonitorTemplateUtil from "./NetworkDeviceMonitorTemplateUtil
  *     NTP template asks on, timeouts, retries and every criterion.
  *
  * Until #5145 the import offered Network Device templates only, so a
- * customer's own Ping template never showed. Templates of any other type
- * stay out: a Website, API or SSL Certificate template checks a URL, a DNS
- * or Domain template a name, a database template a connection with its own
- * credentials, a telemetry template a query - none of them has an address
- * the device's can stand in for.
+ * customer's own Ping template never showed, and an auto import rule did
+ * the same until #9510. Templates of any other type stay out of both: a
+ * Website, API or SSL Certificate template checks a URL, a DNS or Domain
+ * template a name, a database template a connection with its own
+ * credentials, a telemetry template a query, a Manual or Incoming Request
+ * template checks nothing at all - none of them has an address the device's
+ * can stand in for.
  *
  * Both kinds of monitor carry the same provenance: the template they were
  * made from and the device they were made for (autoProvisionedNetworkDeviceId).
@@ -317,6 +320,45 @@ export default class DeviceMonitorTemplateUtil {
     monitor.autoProvisionedNetworkDeviceId = new ObjectID(device.id.toString());
 
     return monitor;
+  }
+
+  /*
+   * What a Ping, IP, Port or NTP template must have before a rule may give
+   * devices monitors from it (issue #9510): a step to check each device's
+   * address with, and, in a Port template, the port each step asks on - a
+   * Port monitor with none checks nothing. Said when the rule is saved,
+   * rather than by every monitor the rule then fails to make.
+   */
+  public static assertAddressTemplateSteps(data: {
+    monitorType: MonitorType | string | null | undefined;
+    monitorSteps: MonitorSteps | JSONObject | null | undefined;
+  }): void {
+    if (!isDeviceAddressMonitorType(data.monitorType)) {
+      throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
+    }
+
+    const steps: Array<MonitorStep> = this.readSteps(data.monitorSteps);
+
+    if (steps.length === 0) {
+      throw new BadDataException(
+        "This monitor template has no steps, so a monitor made from it would check nothing. Add a step to the template, then pick it again.",
+      );
+    }
+
+    if (
+      data.monitorType === MonitorType.Port &&
+      steps.some((step: MonitorStep): boolean => {
+        const port: number = Number(
+          step.data?.monitorDestinationPort?.toNumber?.(),
+        );
+
+        return !Number.isInteger(port) || port <= 0;
+      })
+    ) {
+      throw new BadDataException(
+        "Every step of a Port monitor template must name the port it checks. Add the port to the template, then pick it again.",
+      );
+    }
   }
 
   /*
