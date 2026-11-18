@@ -128,6 +128,27 @@ export const MEMBERSHIPS_OF_PERSON_STATEMENT: string =
 // How many people the Free plan allows: the project's owner.
 export const ALLOWED_PEOPLE_IN_FREE_PLAN: number = 1;
 
+/*
+ * Someone the caller's Remove from Project would leave in the project
+ * (getTeamsOutOfRemovalReach): the teams the caller's own delete does not
+ * reach, and whether it reaches any of theirs.
+ */
+export interface TeamsOutOfRemovalReach {
+  userId: ObjectID;
+  teamIds: Array<ObjectID>;
+  // Memberships out of reach that name no team: counted, as the check counts them.
+  membershipsWithoutTeam: number;
+  hasTeamInReach: boolean;
+}
+
+// One person's memberships, as getTeamsOutOfRemovalReach groups them.
+interface PersonsMembershipsInReach {
+  userId: ObjectID;
+  teamIds: Map<string, ObjectID>;
+  membershipsWithoutTeam: number;
+  hasTeamInReach: boolean;
+}
+
 // The limits on people a membership create is held to.
 export interface ProjectPeopleLimits {
   // The plan's seats, when it has a number of them.
@@ -1667,6 +1688,131 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         Errors.TeamMemberService.REMOVE_FROM_SOME_TEAMS_ONLY,
       );
     }
+  }
+
+  /*
+   * WHOM THE CALLER'S REMOVE FROM PROJECT WOULD LEAVE IN THE PROJECT (#6599):
+   * of these people, the ones assertCallerMayRemoveUserFromProject would
+   * refuse to remove, each with the teams the caller's own delete does not
+   * reach - read the way that check reads them (the memberships as
+   * OneUptime, then those ModelPermission.checkDeleteQueryPermission hands
+   * the caller), so the Users list's lock and the refusal never disagree.
+   * Someone whose every membership the caller reaches is left out, and so
+   * is everyone for OneUptime's own reads and a master admin's, whom the
+   * check never refuses. A caller who may delete no membership at all is
+   * refused by the permission check itself, as the removal would be.
+   *
+   * Team ids only: the route names the teams the caller may read.
+   */
+  @CaptureSpan()
+  public async getTeamsOutOfRemovalReach(data: {
+    userIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<TeamsOutOfRemovalReach>> {
+    if (
+      data.props.isRoot ||
+      data.props.isMasterAdmin ||
+      data.userIds.length === 0
+    ) {
+      return [];
+    }
+
+    const query: Query<TeamMember> = {
+      userId: QueryHelper.any(data.userIds),
+      projectId: data.projectId,
+    } as Query<TeamMember>;
+
+    const memberships: Array<TeamMember> = await this.findBy({
+      query: query,
+      select: {
+        _id: true,
+        userId: true,
+        teamId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // The same memberships, as far as the caller's own delete reaches.
+    const reachableQuery: Query<TeamMember> =
+      await ModelPermission.checkDeleteQueryPermission(
+        TeamMember,
+        query,
+        data.props,
+      );
+
+    const reachable: Array<TeamMember> = await this.findBy({
+      query: reachableQuery,
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const reachableIds: Set<string> = new Set<string>(
+      reachable
+        .map((membership: TeamMember): string => {
+          return membership.id?.toString().toLowerCase() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    const byUser: Map<string, PersonsMembershipsInReach> = new Map();
+
+    for (const membership of memberships) {
+      if (!membership.id || !membership.userId) {
+        continue;
+      }
+
+      const userKey: string = membership.userId.toString().toLowerCase();
+      const person: PersonsMembershipsInReach = byUser.get(userKey) || {
+        userId: membership.userId,
+        teamIds: new Map<string, ObjectID>(),
+        membershipsWithoutTeam: 0,
+        hasTeamInReach: false,
+      };
+
+      if (reachableIds.has(membership.id.toString().toLowerCase())) {
+        person.hasTeamInReach = true;
+      } else if (membership.teamId) {
+        person.teamIds.set(
+          membership.teamId.toString().toLowerCase(),
+          membership.teamId,
+        );
+      } else {
+        // Counted by the check all the same, so counted here.
+        person.membershipsWithoutTeam += 1;
+      }
+
+      byUser.set(userKey, person);
+    }
+
+    const people: Array<TeamsOutOfRemovalReach> = [];
+
+    for (const person of byUser.values()) {
+      if (person.teamIds.size === 0 && person.membershipsWithoutTeam === 0) {
+        continue;
+      }
+
+      people.push({
+        userId: person.userId,
+        teamIds: Array.from(person.teamIds.values()),
+        membershipsWithoutTeam: person.membershipsWithoutTeam,
+        hasTeamInReach: person.hasTeamInReach,
+      });
+    }
+
+    return people;
   }
 
   /*
