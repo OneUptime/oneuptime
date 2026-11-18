@@ -2879,7 +2879,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "Public lists",
       THREAT_INTEL,
-      "Feodo Tracker, Emerging Threats and the Tor exit nodes, in one click.",
+      "Feodo Tracker, Emerging Threats, NetAPI and the Tor exit nodes, in one click.",
     ),
   ],
   "security-events/change/chat-steps": [
