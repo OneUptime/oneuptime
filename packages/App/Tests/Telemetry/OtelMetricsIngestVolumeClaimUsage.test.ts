@@ -9,7 +9,7 @@ import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A persistent volume claim's used, free and capacity at ingest (#9539).
@@ -53,12 +53,8 @@ const DISCOVERIES_RETURNING_NULL: Array<string> = [
 ];
 
 interface Spies {
-  volumeStats: jest.SpiedFunction<
-    typeof KubernetesResourceService.bulkUpdateLatestVolumeStats
-  >;
-  resourceMetrics: jest.SpiedFunction<
-    typeof KubernetesResourceService.bulkUpdateLatestMetrics
-  >;
+  volumeStats: jest.SpyInstance;
+  resourceMetrics: jest.SpyInstance;
 }
 
 function request(blocks: Array<JSONObject>): TelemetryRequest {
@@ -186,7 +182,11 @@ function writtenVolumes(spies: Spies): Array<ResourceLatestVolumeStats> {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
     volumes: Array<ResourceLatestVolumeStats>;
-  } = spies.volumeStats.mock.calls[0]![0];
+  } = spies.volumeStats.mock.calls[0]![0] as {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    volumes: Array<ResourceLatestVolumeStats>;
+  };
   expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
   expect(call.kubernetesClusterId.toString()).toBe(CLUSTER_ID.toString());
   return call.volumes;

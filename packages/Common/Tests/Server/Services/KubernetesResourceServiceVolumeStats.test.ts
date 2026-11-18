@@ -3,7 +3,7 @@ import KubernetesResourceService, {
 } from "../../../Server/Services/KubernetesResourceService";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A persistent volume claim's latest usage, mirrored onto its row (#9539):
@@ -36,14 +36,8 @@ function volume(
   };
 }
 
-function captureQueries(): jest.Mock<
-  (sql: string, params: Array<unknown>) => Promise<Array<unknown>>
-> {
-  const query: jest.Mock<
-    (sql: string, params: Array<unknown>) => Promise<Array<unknown>>
-  > = jest.fn(async (): Promise<Array<unknown>> => {
-    return [];
-  });
+function captureQueries(): jest.Mock {
+  const query: jest.Mock = jest.fn().mockResolvedValue([]);
   jest
     .spyOn(KubernetesResourceService, "getRepository")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
