@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "{{count}} monitor lagt til",
   "Is Sample Project": "Er et eksempelprosjekt",
   "Sample Project": "Eksempelprosjekt",
-  "Sample Project ID": "Eksempelprosjekt-ID"
+  "Sample Project ID": "Eksempelprosjekt-ID",
+  "Your changes were not saved.": "Endringene dine ble ikke lagret."
 }

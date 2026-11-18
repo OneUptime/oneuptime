@@ -78,7 +78,7 @@ För att ändra vilket lager som kommer först använder du pilarna på ett lage
 - Varje lager och det slutliga schemat visar rotationen som den blir. Det slutliga schemat är märkt **Innehåller osparade ändringar**.
 - En list längst ned på sidan räknar upp ändringarna, med **Spara ändringar** och **Kasta**.
 
-**Spara ändringar** sparar alla ändringar på en gång. Vem som har jour räknas sedan ut en gång, för lagren som de sparades: den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per ändring. **Kasta** återställer lagren till hur de senast sparades. Om du lämnar sidan innan du sparar får du en fråga först: **Fortsätt redigera** stannar kvar på sidan, **Kasta ändringar** lämnar den utan att spara.
+**Spara ändringar** sparar alla ändringar på en gång. Vem som har jour räknas sedan ut en gång, för lagren som de sparades: den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per ändring. **Kasta** återställer lagren till hur de senast sparades. Om du lämnar sidan innan du sparar får du en fråga först: **Spara ändringar** sparar och lämnar sedan sidan, **Fortsätt redigera** stannar kvar på sidan, och **Kasta ändringar** lämnar den utan att spara.
 
 Om någon annan ändrade lagren efter att du öppnade sidan sparas inte dina ändringar över deras. Listen säger det, och **Läs in lager igen** visar lagren som de är nu, så att du kan göra dina ändringar igen. **Lägg till lager** lägger till lagret direkt, och ett lagers inställningar sparas med lagrets egen knapp **Spara lager**.
 

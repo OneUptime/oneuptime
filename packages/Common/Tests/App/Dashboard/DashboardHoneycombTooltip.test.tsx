@@ -25,16 +25,21 @@ import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import DashboardMonitorListComponentElement, {
   ComponentProps as MonitorListProps,
+  getMonitorListHoneycombLegend,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardMonitorListComponent";
 import DashboardResourceHoneycomb, {
   getHoneycombTooltipContainer,
   HONEYCOMB_FOCUS_RING,
   HONEYCOMB_FOCUS_RING_TEST_ID,
+  HONEYCOMB_LEGEND_ITEM_TEST_ID,
+  HONEYCOMB_LEGEND_TEST_ID,
   HONEYCOMB_TILE_TEST_ID,
   HONEYCOMB_TOOLTIP_TEST_ID,
+  HoneycombLegendItem,
   HoneycombTile,
   getHoneycombFocusRingPoints,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceHoneycomb";
+import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import { setPublicDashboardContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import Route from "../../../Types/API/Route";
@@ -215,6 +220,7 @@ function monitor(data: {
   color: string;
   monitorType: MonitorType;
   disableActiveMonitoring: boolean;
+  priority?: number | undefined;
 }): Monitor {
   const value: Monitor = new Monitor();
   value._id = ObjectID.generate().toString();
@@ -225,6 +231,9 @@ function monitor(data: {
   const status: MonitorStatus = new MonitorStatus();
   status.name = data.status;
   status.color = Color.fromString(data.color);
+  if (data.priority !== undefined) {
+    status.priority = data.priority;
+  }
   value.currentMonitorStatus = status;
 
   return value;
@@ -289,6 +298,22 @@ function tiles(): Array<HTMLElement> {
       `[data-testid="${HONEYCOMB_TILE_TEST_ID}"]`,
     ),
   );
+}
+
+// The legend under the tiles, as it reads: each entry's words and dot.
+function legendEntries(): Array<{ label: string; color: string }> {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `[data-testid="${HONEYCOMB_LEGEND_ITEM_TEST_ID}"]`,
+    ),
+  ).map((entry: HTMLElement): { label: string; color: string } => {
+    const dot: HTMLElement = entry.querySelector("span") as HTMLElement;
+
+    return {
+      label: (entry.textContent || "").trim(),
+      color: dot.style.backgroundColor,
+    };
+  });
 }
 
 function openTooltips(): Array<HTMLElement> {
@@ -1652,5 +1677,321 @@ describe("one tooltip for every honeycomb on a board", () => {
     expect(valueBeside(tooltip, "Namespace")).toBe("payments");
     // No page to open: nothing says it opens one.
     expect(within(tooltip).queryByText("Click to open")).toBeNull();
+  });
+});
+
+/*
+ * THE LEGEND UNDER THE TILES (issue #7344).
+ *
+ * A tooltip was the only place a gray tile said Disabled: a board on a wall
+ * screen, where nobody hovers, showed gray tiles beside red and green ones
+ * with nothing to say gray is neither an outage nor a state nobody knows.
+ * The Monitor List's honeycomb now draws a legend: one entry per colour its
+ * tiles show, in the words their tooltips say, worst first as Status sorts
+ * the list, Disabled last and gray.
+ */
+describe("the legend under the tiles (issue #7344)", () => {
+  test("on the board from the issue: Offline, Operational, then Disabled in gray - one entry per colour the tiles draw", async () => {
+    await drawBoard();
+
+    expect(legendEntries()).toEqual([
+      { label: "Offline", color: toRgb(RED) },
+      { label: "Operational", color: toRgb(GREEN) },
+      { label: "Disabled", color: toRgb(Gray500.toString()) },
+    ]);
+
+    // Every colour a tile is drawn in has its entry.
+    const tileColors: Set<string> = new Set<string>(
+      tiles().map((tile: HTMLElement): string => {
+        return tile.style.backgroundColor;
+      }),
+    );
+    const legendColors: Set<string> = new Set<string>(
+      legendEntries().map((entry: { color: string }): string => {
+        return entry.color;
+      }),
+    );
+
+    expect(legendColors).toEqual(tileColors);
+  });
+
+  test("an entry says what its tiles' tooltips say", async () => {
+    await drawBoard();
+
+    for (const tile of tiles()) {
+      fireEvent.mouseEnter(tile);
+      const status: string = valueBeside(openTooltip(), "Status");
+      const color: string = tile.style.backgroundColor;
+      fireEvent.mouseLeave(tile);
+
+      expect(legendEntries()).toContainEqual({ label: status, color: color });
+    }
+  });
+
+  test("it stays in view under the tiles, which scroll above it", async () => {
+    await drawBoard();
+
+    const legend: HTMLElement = document.querySelector(
+      `[data-testid="${HONEYCOMB_LEGEND_TEST_ID}"]`,
+    ) as HTMLElement;
+    const firstTile: HTMLElement = tiles()[0]!;
+    // The tiles' room: the box that scrolls them.
+    let tilesRoom: HTMLElement | null = firstTile.parentElement;
+
+    while (tilesRoom && !tilesRoom.className.includes("overflow-y-auto")) {
+      tilesRoom = tilesRoom.parentElement;
+    }
+
+    expect(tilesRoom).not.toBeNull();
+    expect(tilesRoom!.contains(legend)).toBe(false);
+    expect(legend.parentElement).toBe(tilesRoom!.parentElement);
+    expect(legend.className).toContain("shrink-0");
+    // It wraps on a narrow widget or a phone, never past the card's edge.
+    expect(legend.className).toContain("flex-wrap");
+  });
+
+  test("a monitor list drawn as a table has no legend", async () => {
+    const props: MonitorListProps = honeycombProps();
+    props.component.arguments = {
+      ...props.component.arguments,
+      viewMode: "list",
+    } as MonitorListProps["component"]["arguments"];
+
+    render(
+      <InCard>
+        <DashboardMonitorListComponentElement {...props} />
+      </InCard>,
+    );
+
+    await waitFor(() => {
+      expect(
+        document.querySelectorAll("[data-testid='monitor-list-status']"),
+      ).toHaveLength(MONITORS.length);
+    });
+
+    expect(
+      document.querySelector(`[data-testid="${HONEYCOMB_LEGEND_TEST_ID}"]`),
+    ).toBeNull();
+  });
+
+  describe("in the order Status sorts the list, worst first", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+
+    function labels(monitors: Array<Monitor>): Array<string> {
+      return getMonitorListHoneycombLegend(monitors, translator).map(
+        (item: HoneycombLegendItem): string => {
+          return item.label;
+        },
+      );
+    }
+
+    test("by the statuses' priority, the highest first, and Disabled last whatever it was frozen at", () => {
+      expect(
+        labels([
+          monitor({
+            name: "a",
+            status: "Operational",
+            color: GREEN,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 1,
+          }),
+          monitor({
+            name: "b",
+            status: "Offline",
+            color: RED,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: true,
+            priority: 3,
+          }),
+          monitor({
+            name: "c",
+            status: "Degraded",
+            color: "#f59e0b",
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 2,
+          }),
+          monitor({
+            name: "d",
+            status: "Offline",
+            color: RED,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 3,
+          }),
+          monitor({
+            name: "e",
+            status: "Operational",
+            color: GREEN,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 1,
+          }),
+        ]),
+      ).toEqual(["Offline", "Degraded", "Operational", "Disabled"]);
+    });
+
+    test("a status with no priority read comes after those with one, in the order its tiles do", () => {
+      expect(
+        labels([
+          monitor({
+            name: "a",
+            status: "Paging",
+            color: "#3b82f6",
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+          }),
+          monitor({
+            name: "b",
+            status: "Operational",
+            color: GREEN,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 1,
+          }),
+          monitor({
+            name: "c",
+            status: "Maintenance",
+            color: "#6366f1",
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+          }),
+        ]),
+      ).toEqual(["Operational", "Paging", "Maintenance"]);
+    });
+
+    test("one entry per colour: two statuses of one name in two colours are two entries", () => {
+      const legend: Array<HoneycombLegendItem> = getMonitorListHoneycombLegend(
+        [
+          monitor({
+            name: "a",
+            status: "Down",
+            color: RED,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 3,
+          }),
+          monitor({
+            name: "b",
+            status: "Down",
+            color: "#b91c1c",
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 3,
+          }),
+          monitor({
+            name: "c",
+            status: "Down",
+            color: RED,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+            priority: 3,
+          }),
+        ],
+        translator,
+      );
+
+      expect(legend).toHaveLength(2);
+      expect(
+        legend.every((item: HoneycombLegendItem): boolean => {
+          return item.isLabelUserContent === true;
+        }),
+      ).toBe(true);
+    });
+
+    test("no tiles, no legend", () => {
+      expect(getMonitorListHoneycombLegend([], translator)).toEqual([]);
+    });
+  });
+
+  describe("in the reader's language", () => {
+    const instances: Record<string, i18n> = {};
+
+    beforeAll(async () => {
+      for (const language of DASHBOARD_LANGUAGES) {
+        const instance: i18n = createInstance();
+        await instance.init({
+          lng: language,
+          resources: {
+            [language]: {
+              translation: readDashboardLocale(language),
+            },
+          },
+          interpolation: { escapeValue: false },
+          keySeparator: false,
+          nsSeparator: false,
+        });
+        instances[language] = instance;
+      }
+    });
+
+    function inLanguage(
+      language: string,
+    ): (node: ReactElement) => ReactElement {
+      const wrapInLanguage: (node: ReactElement) => ReactElement = (
+        node: ReactElement,
+      ): ReactElement => {
+        return (
+          <I18nextProvider i18n={instances[language]!}>{node}</I18nextProvider>
+        );
+      };
+
+      return wrapInLanguage;
+    }
+
+    test.each([...DASHBOARD_LANGUAGES])(
+      "in %s the legend says the Dashboard's words, as the tiles' tooltips do",
+      async (language: string) => {
+        const words: Record<string, string> = readDashboardLocale(language);
+
+        await drawBoard(inLanguage(language));
+
+        expect(
+          legendEntries().map((entry: { label: string }): string => {
+            return entry.label;
+          }),
+        ).toEqual([
+          words["Offline"] || "Offline",
+          words["Operational"] || "Operational",
+          words["Disabled"]!,
+        ]);
+        expect(words["Disabled"]).not.toBe("Disabled");
+      },
+    );
+
+    test("a status the project named itself reads as written, never looked up again", async () => {
+      // "Open" is a key of its own in Spanish ("Abrir"): a status named so stays "Open".
+      expect(readDashboardLocale("es")["Open"]).toBeTruthy();
+      expect(readDashboardLocale("es")["Open"]).not.toBe("Open");
+
+      listMock.mockResolvedValue({
+        data: [
+          monitor({
+            name: "search",
+            status: "Open",
+            color: RED,
+            monitorType: MonitorType.API,
+            disableActiveMonitoring: false,
+          }),
+        ],
+        count: 1,
+      });
+
+      render(
+        <I18nextProvider i18n={instances["es"]!}>
+          <InCard>
+            <DashboardMonitorListComponentElement {...honeycombProps()} />
+          </InCard>
+        </I18nextProvider>,
+      );
+
+      await waitFor(() => {
+        expect(tiles()).toHaveLength(1);
+      });
+
+      expect(legendEntries()).toEqual([{ label: "Open", color: toRgb(RED) }]);
+    });
   });
 });

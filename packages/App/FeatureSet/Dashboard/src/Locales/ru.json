@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "{{count}} монитор добавлен",
   "Is Sample Project": "Является демонстрационным проектом",
   "Sample Project": "Демонстрационный проект",
-  "Sample Project ID": "Идентификатор демонстрационного проекта"
+  "Sample Project ID": "Идентификатор демонстрационного проекта",
+  "Your changes were not saved.": "Ваши изменения не сохранены."
 }

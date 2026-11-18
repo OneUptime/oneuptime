@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "モニターを {{count}} 件追加しました",
   "Is Sample Project": "サンプルプロジェクトかどうか",
   "Sample Project": "サンプルプロジェクト",
-  "Sample Project ID": "サンプルプロジェクト ID"
+  "Sample Project ID": "サンプルプロジェクト ID",
+  "Your changes were not saved.": "変更は保存されませんでした。"
 }

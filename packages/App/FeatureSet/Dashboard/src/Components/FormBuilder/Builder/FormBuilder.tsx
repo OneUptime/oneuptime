@@ -48,6 +48,7 @@ import { readFormTargetSettings } from "Common/Types/Form/FormTargetSettings";
 import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -370,19 +371,22 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const save: () => Promise<void> = async (): Promise<void> => {
+  /*
+   * The questions as Save Changes writes them - the builder's, and the one
+   * in the question leaving the builder asks. Rejects with why they were
+   * not saved: a question to fix first, or the server's refusal.
+   */
+  const saveFields: () => Promise<void> = async (): Promise<void> => {
     const problem: string | null = validateFormFields({
       value: fields,
       targetType: targetType,
     });
 
     if (problem) {
-      setSaveError(problem);
-      return;
+      throw new BadDataException(problem);
     }
 
     setIsSaving(true);
-    setSaveError("");
 
     try {
       await ModelAPI.updateById<Form>({
@@ -392,14 +396,22 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           fields: fields as unknown as JSONArray,
         },
       });
+    } finally {
+      setIsSaving(false);
+    }
 
-      setSavedFields(fields);
-      setHasJustSaved(true);
+    setSavedFields(fields);
+    setHasJustSaved(true);
+  };
+
+  const save: () => Promise<void> = async (): Promise<void> => {
+    setSaveError("");
+
+    try {
+      await saveFields();
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     }
-
-    setIsSaving(false);
   };
 
   const onDragEnd: (result: DropResult) => void = (
@@ -825,13 +837,16 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
 
       {/*
        * Someone is leaving the builder while its questions have unsaved
-       * changes. Keep Editing stays with the draft as it is; Discard Changes
-       * goes where they were going. Last, so it opens above the preview or
-       * any other dialog the builder has open.
+       * changes. Save Changes saves them as the builder's does, then goes
+       * where they were going; Keep Editing stays with the draft as it is;
+       * Discard Changes goes without saving. Someone who may not change the
+       * form is not offered a save the server would refuse. Last, so it
+       * opens above the preview or any other dialog the builder has open.
        */}
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description="You have unsaved changes to this form's questions. If you leave now, they will be lost."
+        onSaveChanges={isReadOnly ? undefined : saveFields}
       />
     </>
   );

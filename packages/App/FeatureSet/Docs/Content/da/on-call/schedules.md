@@ -78,7 +78,7 @@ For at ændre, hvilket lag der kommer først, skal du bruge pilene på et lags k
 - Hvert lag og den endelige vagtplan viser rotationen, som den bliver. Den endelige vagtplan er markeret **Indeholder ikke-gemte ændringer**.
 - En bjælke nederst på siden nævner ændringerne, med **Gem ændringer** og **Kasser**.
 
-**Gem ændringer** gemmer alle ændringerne på én gang. Hvem der har vagt, beregnes derefter én gang, for lagene som gemt: Den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hver ændring. **Kasser** sætter lagene tilbage til, som de sidst blev gemt. Hvis du forlader siden, før du gemmer, bliver du spurgt først: **Fortsæt med at redigere** bliver på siden, **Kassér ændringer** forlader den uden at gemme.
+**Gem ændringer** gemmer alle ændringerne på én gang. Hvem der har vagt, beregnes derefter én gang, for lagene som gemt: Den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hver ændring. **Kasser** sætter lagene tilbage til, som de sidst blev gemt. Hvis du forlader siden, før du gemmer, bliver du spurgt først: **Gem ændringer** gemmer og forlader derefter siden, **Fortsæt med at redigere** bliver på siden, og **Kassér ændringer** forlader den uden at gemme.
 
 Hvis en anden har ændret lagene, efter du åbnede siden, gemmes dine ændringer ikke oven i deres. Bjælken siger det, og **Genindlæs lag** viser lagene, som de er nu, så du kan foretage dine ændringer igen. **Tilføj lag** tilføjer laget med det samme, og et lags indstillinger gemmes med lagets egen knap **Gem lag**.
 

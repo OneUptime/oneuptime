@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "已添加 {{count}} 个监视器",
   "Is Sample Project": "是否为示例项目",
   "Sample Project": "示例项目",
-  "Sample Project ID": "示例项目 ID"
+  "Sample Project ID": "示例项目 ID",
+  "Your changes were not saved.": "您的更改未保存。"
 }

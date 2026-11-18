@@ -56851,5 +56851,6 @@
   "{{count}} monitors added_one": "{{count}} monitor aggiunto",
   "Is Sample Project": "È un progetto di esempio",
   "Sample Project": "Progetto di esempio",
-  "Sample Project ID": "ID del progetto di esempio"
+  "Sample Project ID": "ID del progetto di esempio",
+  "Your changes were not saved.": "Le tue modifiche non sono state salvate."
 }

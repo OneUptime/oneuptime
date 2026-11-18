@@ -598,6 +598,8 @@ describe("what a row reads", () => {
         color: true,
         isOperationalState: true,
         isOfflineState: true,
+        // Orders a honeycomb's legend as Status sorts the list (#7344).
+        priority: true,
       },
     });
   });

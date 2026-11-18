@@ -1953,7 +1953,8 @@ describe("personal on-call rules", () => {
       functionSource(
         editor,
         "const startFromDefault: () => void",
-        "const save: (keepDifferences: boolean)",
+        // The next function: the save the bar and the leave question run.
+        "const saveSteps: (keepDifferences: boolean)",
       ),
     ).not.toContain("onSave");
     expect(
