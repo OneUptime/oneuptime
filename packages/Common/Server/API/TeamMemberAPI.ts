@@ -14,6 +14,7 @@ import TeamMemberService, {
 import UserService from "../Services/UserService";
 import ProjectMemberSearch from "../Utils/Team/ProjectMemberSearch";
 import ReadableTeamNames from "../Utils/Team/ReadableTeamNames";
+import InvitationEmailsNotSent from "../Utils/TeamMember/InvitationEmailsNotSent";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 import {
   ExpressRequest,
@@ -43,6 +44,11 @@ import {
   readProjectRemovalReachRequest,
   toProjectRemovalReachAnswerJSON,
 } from "../../Types/Team/ProjectRemovalReach";
+import {
+  InvitationEmailNotSent,
+  readInvitationEmailsNotSentRequest,
+  toInvitationEmailsNotSentAnswerJSON,
+} from "../../Types/Team/InvitationEmailsNotSent";
 
 export default class TeamMemberAPI extends BaseAPI<
   TeamMember,
@@ -295,6 +301,52 @@ export default class TeamMemberAPI extends BaseAPI<
               return id.toString();
             }),
           });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /team-member/invitation-emails-not-sent - of the pending people
+     * on a page of the Users list, a person's Teams or a team's Members, the
+     * ones whose latest invitation email was not sent, with the mail
+     * service's answer (#9511, Types/Team/InvitationEmailsNotSent). Read
+     * from the project's Email Logs with the caller's own permissions
+     * (Utils/TeamMember/InvitationEmailsNotSent), in the request's project,
+     * so a page says Email Not Sent - and why - only to someone who could
+     * read it under Notification Logs > Email. One read per page. Reads
+     * only: nothing is written or cached.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/invitation-emails-not-sent`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const userIds: Array<ObjectID> = readInvitationEmailsNotSentRequest(
+            req.body,
+          );
+
+          const notSent: Array<InvitationEmailNotSent> =
+            await InvitationEmailsNotSent.read({
+              projectId: projectId,
+              userIds: userIds,
+              props: props,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toInvitationEmailsNotSentAnswerJSON(notSent),
+          );
         } catch (err) {
           return next(err);
         }
