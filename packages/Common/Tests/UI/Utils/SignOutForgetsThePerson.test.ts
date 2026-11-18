@@ -1,5 +1,5 @@
-import API from "../../../UI/Utils/API/API";
 import { KEYS_KEPT_AFTER_SIGN_OUT } from "../../../UI/Utils/KeptAfterSignOut";
+import SignOutRequest from "../../../UI/Utils/SignOutRequest";
 import ThemeUtil, {
   DARK_COLOR_SCHEME_MEDIA_QUERY,
   Theme,
@@ -9,8 +9,6 @@ import UserUtil from "../../../UI/Utils/User";
 import Timezone from "../../../Types/Timezone";
 import OneUptimeDate from "../../../Types/Date";
 import CookieName from "../../../Types/CookieName";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
-import { JSONObject } from "../../../Types/JSON";
 import {
   afterEach,
   beforeEach,
@@ -25,7 +23,8 @@ import {
  * KeptAfterSignOut.ts).
  *
  * Everything here is the real UserUtil.logout() on the browser's own storage;
- * only its call to the server is answered here. Issue #5404: it emptied local
+ * only its call to the server - the page's fetch, keepalive (UI/Utils/
+ * SignOutRequest) - is answered here. Issue #5404: it emptied local
  * storage, so a person's theme was gone before the sign-in page could read
  * it, and a device set the other way drew the sign-in page and the app in the
  * wrong theme from then on.
@@ -147,18 +146,43 @@ const THE_PERSONS_OWN: Record<string, string> = {
   ph_phc_project_posthog: "{}",
 };
 
+type FetchAnswer = (address: string, init: RequestInit) => Promise<Response>;
+
+// The page's fetch, which the sign-out is sent with.
+let fetchSpy: jest.Mock<FetchAnswer>;
+
+const installFetch: (answer: FetchAnswer) => void = (
+  answer: FetchAnswer,
+): void => {
+  fetchSpy = jest.fn<FetchAnswer>(answer);
+
+  Object.defineProperty(window, "fetch", {
+    configurable: true,
+    writable: true,
+    value: fetchSpy,
+  });
+};
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   DEVICE.prefersDark = false;
-  jest
-    .spyOn(API, "post")
-    .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+  SignOutRequest.forgetSignOutsOnTheirWayForTests();
+  // The server answers the sign-out.
+  installFetch((): Promise<Response> => {
+    return Promise.resolve({ ok: true, status: 200 } as Response);
+  });
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+  SignOutRequest.forgetSignOutsOnTheirWayForTests();
+  Object.defineProperty(window, "fetch", {
+    configurable: true,
+    writable: true,
+    value: undefined,
+  });
 });
 
 describe("the theme a person picked (issue #5404)", () => {
@@ -365,19 +389,23 @@ describe("the rest of signing out is as it was", () => {
     expect(UserUtil.isLoggedIn()).toBe(false);
   });
 
-  test("the server is told, once", () => {
-    UserUtil.logout();
+  test("the server is told, once, by a request no page change cancels (issue #9508)", async () => {
+    await UserUtil.logout();
 
-    expect(API.post).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ method: "POST", keepalive: true }),
+    );
   });
 
   test("the browser is left as it should be when the server cannot be told", async () => {
-    jest.spyOn(API, "post").mockRejectedValue(new Error("Network down"));
+    jest.spyOn(console, "error").mockImplementation((): void => {});
+    installFetch((): Promise<Response> => {
+      return Promise.reject(new TypeError("Failed to fetch"));
+    });
     fillBrowser({ ...THE_BROWSERS_OWN, ...THE_PERSONS_OWN });
 
-    UserUtil.logout();
-
-    await Promise.resolve();
+    await expect(UserUtil.logout()).resolves.toBeUndefined();
 
     expect(whatTheBrowserKeeps()).toEqual(THE_BROWSERS_OWN);
   });
