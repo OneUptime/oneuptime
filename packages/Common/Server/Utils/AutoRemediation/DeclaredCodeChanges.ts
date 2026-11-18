@@ -82,6 +82,7 @@ import CloudAiTargets, {
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import RemediationFixProducts from "./RemediationFixProducts";
 
 /*
  * A FIX THAT LASTS: A PULL REQUEST TO THE CODE THAT DECLARES THE RESOURCE.
@@ -474,6 +475,15 @@ export default class DeclaredCodeChanges {
       suggestion: step.suggestion,
       action: OPEN_FIX_PULL_REQUEST_ACTION,
     });
+
+    /*
+     * Its record's feed and channels get the pull request: not while the
+     * record's product is switched off on the server (#9489). Code is the
+     * route's to refuse.
+     */
+    await RemediationFixProducts.assertMayActOn(
+      RemediationFixProducts.ofSubject(step.suggestion),
+    );
 
     // A step whose task is on its way, or done, gets that one back.
     const existing: Array<AIRun> = await DeclaredCodeChanges.findTasks({

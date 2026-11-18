@@ -18,6 +18,8 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import ServerProductRoutes from "Common/Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "Common/Server/Utils/ServerProducts/ProductsOfRequest";
 
 /*
  * ------------------------------------------------------------------
@@ -29,6 +31,10 @@ import Response from "Common/Server/Utils/Response";
  * page monitor rules. Those rules fire when a resource is created, so a
  * rule written after its resources exist never reaches them; this runs
  * one rule against the resources that already exist.
+ *
+ * A run changes the records of the rule's product, and its rule type is
+ * the rule's table: it is refused while the server has every product that
+ * table serves switched off (#9489), as a write of the rule itself is.
  *
  * One request is one bounded pass (see RuleRunner). The body carries:
  *
@@ -109,6 +115,9 @@ export default class RuleRunAPI {
     router.post(
       "/rule-run/:ruleType/:ruleId/run",
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileRecordTableIsOff(
+        ProductsOfRequest.ruleTable,
+      ),
       async (
         req: ExpressRequest,
         res: ExpressResponse,

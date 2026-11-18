@@ -103,6 +103,9 @@ import {
 } from "../Utils/AI/SRE/InvestigationEvidenceRerun";
 import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
 import logger from "../Utils/Logger";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
+import ProductKey from "../../Types/Product/ProductKey";
 
 // Where they lived before; tests and callers still import them from here.
 export {
@@ -111,6 +114,15 @@ export {
   rerunInvestigationEvidence,
 };
 
+/*
+ * OneUptime AI on a record of a product switched off on the server (#9489):
+ * it reads as before, and starts nothing. Starting an investigation, trying
+ * it again, a verdict on it and the fix it asks for name the product of the
+ * incident or alert the request is about (ProductsOfRequest.incidentOrAlert):
+ * each writes to it, as the server once it has checked the caller. A fix
+ * task names Code too: it opens a pull request in Code's repositories. The
+ * runs themselves are refused again where every AI run starts (AIRunService).
+ */
 const router: ExpressRouter = Express.getRouter();
 
 const MAX_EVENTS: number = 500;
@@ -1121,6 +1133,7 @@ async function readSubjectViewerMayInvestigate(
 router.post(
   "/ai-investigation/investigate-now",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1167,6 +1180,7 @@ router.post(
 router.post(
   "/ai-investigation/try-again",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1359,6 +1373,7 @@ router.post(
 router.post(
   "/ai-investigation/verdict",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1475,6 +1490,8 @@ router.post(
 router.post(
   "/ai-investigation/create-fix-task",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1733,6 +1750,7 @@ router.post(
 router.post(
   "/ai-investigation/create-performance-fix-task",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1977,6 +1995,7 @@ router.post(
 router.post(
   "/ai-investigation/create-profile-fix-task",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -2144,6 +2163,7 @@ router.post(
 router.post(
   "/ai-investigation/create-telemetry-improvement-task",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

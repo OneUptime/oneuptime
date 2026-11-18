@@ -27,6 +27,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { countRefusals, withoutRefusals } from "./RouteRefusals";
 
 /*
  * The three routes beside the cloud connections' CRUD: "Test connection"
@@ -249,7 +250,11 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route(method, uri).handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route(method, uri).handlers)).toHaveLength(3);
+      expect(countRefusals(route(method, uri).handlers)).toBe(
+        method === "post" ? 1 : 0,
+      );
     },
   );
 });

@@ -27,6 +27,8 @@ import {
   TelemetryAiLane,
   isTelemetryAiLaneScanTick,
 } from "../../../../../Types/AI/TelemetryAi";
+import ServerProducts from "../../../ServerProducts/ServerProducts";
+import ProductKey from "../../../../../Types/Product/ProductKey";
 
 /*
  * AI Insights — the scan orchestration (the "watch loop").
@@ -62,6 +64,14 @@ export default class InsightScanner {
    */
   @CaptureSpan()
   public static async scanAllProjects(): Promise<void> {
+    /*
+     * No finding is looked for, nor written, while the server has AI
+     * Insights switched off (#9489): its inbox's records would change.
+     */
+    if (await ServerProducts.getOffReasonOfServerWork(ProductKey.AIInsights)) {
+      return;
+    }
+
     let projects: Array<Project> = [];
 
     try {

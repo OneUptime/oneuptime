@@ -27,6 +27,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * The routes behind a case's AI card and Draft with AI: who may call each,
@@ -158,7 +159,8 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(found?.handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(found!.handlers)).toHaveLength(3);
     },
   );
 });

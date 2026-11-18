@@ -41,6 +41,7 @@ import {
   FeedEntryLead,
   getFeedEntryText,
 } from "../../../UI/Components/Feed/FeedEntryText";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * The routes of an incident call's transcript (issue #4875).
@@ -300,7 +301,8 @@ describe("the routes", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(route!.handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(route!.handlers)).toHaveLength(3);
     },
   );
 });

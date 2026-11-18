@@ -15,6 +15,8 @@ import CodeRepositoryConnector, {
 import { CODE_REPOSITORY_CONNECTION_API_PATH } from "../../Types/CodeRepository/CodeHostConnect";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * CODE: CONNECTING REPOSITORIES THAT ARE NOT ON GITHUB.
@@ -41,6 +43,13 @@ import { JSONObject } from "../../Types/JSON";
  * token with the Git server through the guarded transport, and keeps it
  * encrypted. No route ever answers with a token.
  */
+// What a route answers, for a person who may add code repositories.
+type ConnectionRouteHandler = (
+  body: JSONObject,
+  caller: GitHubConnectCaller,
+  req: ExpressRequest,
+) => Promise<JSONObject>;
+
 export default class CodeRepositoryConnectionAPI {
   public router!: ExpressRouter;
 
@@ -54,7 +63,7 @@ export default class CodeRepositoryConnectionAPI {
   }
 
   private initRoutes(): void {
-    this.route(
+    this.read(
       "/repositories",
       async (
         body: JSONObject,
@@ -72,7 +81,7 @@ export default class CodeRepositoryConnectionAPI {
       },
     );
 
-    this.route(
+    this.change(
       "/connect",
       async (
         body: JSONObject,
@@ -99,7 +108,7 @@ export default class CodeRepositoryConnectionAPI {
       },
     );
 
-    this.route(
+    this.change(
       "/connect-git",
       async (
         body: JSONObject,
@@ -116,7 +125,7 @@ export default class CodeRepositoryConnectionAPI {
       },
     );
 
-    this.route(
+    this.read(
       "/list",
       async (
         _body: JSONObject,
@@ -130,7 +139,7 @@ export default class CodeRepositoryConnectionAPI {
       },
     );
 
-    this.route(
+    this.change(
       "/:connectionId/token",
       async (
         body: JSONObject,
@@ -147,40 +156,57 @@ export default class CodeRepositoryConnectionAPI {
     );
   }
 
-  private route(
-    path: string,
-    handler: (
-      body: JSONObject,
-      caller: GitHubConnectCaller,
-      req: ExpressRequest,
-    ) => Promise<JSONObject>,
-  ): void {
+  // What a route reads: the repositories a token reaches, the connections.
+  private read(path: string, handler: ConnectionRouteHandler): void {
     this.router.post(
       `${CODE_REPOSITORY_CONNECTION_API_PATH}${path}`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        try {
-          const caller: GitHubConnectCaller =
-            await GitHubConnectAccess.assertMayStart(req);
-
-          const body: JSONObject =
-            req.body && typeof req.body === "object" && !Array.isArray(req.body)
-              ? (req.body as JSONObject)
-              : {};
-
-          Response.sendJsonObjectResponse(
-            req,
-            res,
-            await handler(body, caller, req),
-          );
-        } catch (err) {
-          next(err);
-        }
-      },
+      this.answerWith(handler),
     );
+  }
+
+  /*
+   * What a route changes - a repository connected, a token replaced:
+   * refused while the server has Code switched off (#9489).
+   */
+  private change(path: string, handler: ConnectionRouteHandler): void {
+    this.router.post(
+      `${CODE_REPOSITORY_CONNECTION_API_PATH}${path}`,
+      UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Code),
+      this.answerWith(handler),
+    );
+  }
+
+  private answerWith(
+    handler: ConnectionRouteHandler,
+  ): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const caller: GitHubConnectCaller =
+          await GitHubConnectAccess.assertMayStart(req);
+
+        const body: JSONObject =
+          req.body && typeof req.body === "object" && !Array.isArray(req.body)
+            ? (req.body as JSONObject)
+            : {};
+
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          await handler(body, caller, req),
+        );
+      } catch (err) {
+        next(err);
+      }
+    };
   }
 }

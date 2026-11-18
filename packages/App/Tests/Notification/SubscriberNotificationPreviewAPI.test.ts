@@ -149,6 +149,10 @@ jest.mock("../../FeatureSet/Notification/Services/MailService", () => {
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import "../../FeatureSet/Notification/API/SubscriberNotificationPreview";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
+import ProductSwitchedOffException from "Common/Types/Exception/ProductSwitchedOffException";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 
 const PREVIEW_ROUTE: string = SubscriberNotificationPreview.previewPath;
 const SEND_TEST_ROUTE: string = SubscriberNotificationPreview.sendTestPath;
@@ -395,8 +399,50 @@ describe("the routes", () => {
     expect(sendTest.middlewares).toEqual([
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
+      // Refused while Status Pages is switched off on the server (#9489).
+      expect.any(Function),
       RATE_LIMIT_MIDDLEWARE,
     ]);
+  });
+
+  /*
+   * A test send is a status page's subscriber email: while the server has
+   * Status Pages switched off it is refused, with who can switch it on,
+   * before the rate limit counts it (#9489). A preview sends nothing, and
+   * goes on.
+   */
+  test("a test send is refused while Status Pages is switched off on the server, and a preview is not", async () => {
+    // Put back by the suite's restoreAllMocks.
+    jest.spyOn(ServerProducts, "getOff").mockResolvedValue({
+      [ProductKey.StatusPages]: ServerProductOffReason.SwitchedOff,
+    });
+
+    const refusal: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = mockRouter.match("post", SEND_TEST_ROUTE)
+      .middlewares[2] as unknown as (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void>;
+    const handedOn: Array<unknown> = [];
+
+    await refusal(
+      { body: {}, params: {} } as unknown as ExpressRequest,
+      {} as ExpressResponse,
+      ((err?: unknown): void => {
+        handedOn.push(err);
+      }) as NextFunction,
+    );
+
+    expect(handedOn).toHaveLength(1);
+    expect(handedOn[0]).toBeInstanceOf(ProductSwitchedOffException);
+    expect((handedOn[0] as Error).message).toBe(
+      "Status Pages is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.",
+    );
+    expect(mockRouter.match("post", PREVIEW_ROUTE).middlewares).toHaveLength(3);
   });
 
   test.each([PREVIEW_ROUTE, SEND_TEST_ROUTE])(

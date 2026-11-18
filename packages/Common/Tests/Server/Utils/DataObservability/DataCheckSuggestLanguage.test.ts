@@ -104,7 +104,7 @@ function member(): DatabaseCommonInteractionProps {
   };
 }
 
-// The route's own handler, past the session middleware, from the router the API builds.
+// The route's own handler, past the session middleware and the product's refusal.
 function suggestHandler(): RouteHandler {
   const router: ExpressRouter = new DataObservabilityAPI().getRouter();
   const layer: RouterLayer | undefined = (
@@ -116,9 +116,13 @@ function suggestHandler(): RouteHandler {
     );
   });
 
-  expect(layer?.route?.stack).toHaveLength(3);
+  /*
+   * The session's middlewares, the refusal while Data Observability is
+   * switched off on the server (#7479), and the handler last.
+   */
+  expect(layer?.route?.stack).toHaveLength(4);
 
-  return layer!.route!.stack[2]!.handle;
+  return layer!.route!.stack[3]!.handle;
 }
 
 // The prompt an English reader's request sends: no language at all.

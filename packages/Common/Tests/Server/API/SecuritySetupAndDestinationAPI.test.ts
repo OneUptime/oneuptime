@@ -23,6 +23,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import SecurityEventDestinationProvider from "../../../Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
+import { withoutRefusals } from "./RouteRefusals";
 
 /*
  * The routes of the one-click setup (the Overview's "Get started") and the
@@ -150,7 +151,8 @@ describe("route registration", () => {
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);
-      expect(found?.handlers).toHaveLength(3);
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(withoutRefusals(found!.handlers)).toHaveLength(3);
     },
   );
 });

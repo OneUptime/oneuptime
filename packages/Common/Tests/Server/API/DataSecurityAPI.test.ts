@@ -111,6 +111,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -581,7 +582,10 @@ describe("routes and who may call them", () => {
   test.each(ROUTES)(
     "$name is a POST under its path, behind the user middleware and sign-in",
     (route: RouteCase) => {
-      expect(mockRouter.match("POST", route.path).middlewares).toEqual([
+      // Its chain as it was, beside the refusal while its product is off (#7479).
+      expect(
+        withoutRefusals(mockRouter.match("POST", route.path).middlewares),
+      ).toEqual([
         UserMiddleware.getUserMiddleware,
         UserMiddleware.requireUserAuthentication,
       ]);

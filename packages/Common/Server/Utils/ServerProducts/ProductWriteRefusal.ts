@@ -24,6 +24,14 @@ import { getProductsOfRecordTable } from "../../../Types/Product/ProductRecordTa
  * keeps running" is the promise of switching a product off. A master admin
  * is refused like anybody: they switch the product on first.
  *
+ * What the server would start anew on a product that is off is refused
+ * where it starts instead (#9489), since it writes as root: OneUptime AI's
+ * runs - an investigation, a chat, a code fix, a plan - and the claim of
+ * one (AIRunService, InvestigationQueue), its postmortem drafts, insights
+ * and pull request reviews, auto-remediation and the fixes it proposes
+ * (AutoRemediationRuleEngineService, RemediationFixProducts), and a runbook
+ * started from inside OneUptime while Runbooks is off (RunbookStarter).
+ *
  * A table of no product is answered without reading anything. Without a
  * database to read the products from (a unit test of a service) nothing is
  * refused: no write could reach one either.

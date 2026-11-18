@@ -33,6 +33,8 @@ import FeedMarkdown, {
 } from "../../../../Utils/Markdown/FeedMarkdown";
 import { AiContextActivity } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
+import ServerProducts from "../../ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
 
 /*
  * AI SRE — auto-draft postmortem on resolve (Phase 3, "close the loop").
@@ -158,6 +160,18 @@ export default class AIIncidentPostmortemRunner {
   }
 
   /*
+   * OneUptime AI drafts no postmortem while the server has Incidents
+   * switched off (#9489): the draft is written to the incident. A resolve
+   * then drafts nothing, and a draft that waited for its calls is not
+   * written; the incident is left as it is.
+   */
+  public static async isIncidentsSwitchedOff(): Promise<boolean> {
+    return Boolean(
+      await ServerProducts.getOffReasonOfServerWork(ProductKey.Incidents),
+    );
+  }
+
+  /*
    * The two switches: AI on, and drafting on (=== true: unset reads as
    * off). The cheap half of isEnabledForProject, asked before the incident
    * and its rules are read.
@@ -180,6 +194,11 @@ export default class AIIncidentPostmortemRunner {
     const { incidentId, projectId } = data;
 
     try {
+      // Not while the server has Incidents switched off (see the helper).
+      if (await AIIncidentPostmortemRunner.isIncidentsSwitchedOff()) {
+        return;
+      }
+
       // The switches first: with drafting off, nothing else is read.
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
@@ -283,6 +302,11 @@ export default class AIIncidentPostmortemRunner {
     now?: Date | undefined;
   }): Promise<void> {
     const now: Date = data.now || new Date();
+
+    // A draft that waited is not written while Incidents is switched off.
+    if (await AIIncidentPostmortemRunner.isIncidentsSwitchedOff()) {
+      return;
+    }
 
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,

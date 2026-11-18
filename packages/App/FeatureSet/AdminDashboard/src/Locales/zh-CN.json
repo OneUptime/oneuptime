@@ -2510,6 +2510,7 @@
   "Nothing is deleted. A product switched on again comes back as it was.": "不会删除任何内容。重新开启的产品会恢复原样。",
   "What already runs keeps running: monitors keep checking, published status pages stay up, and telemetry keeps arriving unless you also stop ingestion.": "已在运行的内容会继续运行：监控会继续检查，已发布的状态页面保持在线，遥测数据也会继续到达，除非您同时停止摄取。",
   "The API, workflows and the Slack, Microsoft Teams and Mattermost apps refuse to create, change or delete its records, and Ask AI leaves it out.": "API、工作流以及 Slack、Microsoft Teams 和 Mattermost 应用会拒绝创建、更改或删除其记录，“询问 AI”也会将其排除在外。",
+  "OneUptime AI starts no work on it, and while Runbooks is off a runbook runs only by its own schedule, webhook and rules.": "OneUptime AI 不会对其启动任何工作；在运行手册关闭期间，运行手册只会按其自身的计划、Webhook 和规则运行。",
   "Set by SERVER_PRODUCTS={{value}} in this server's configuration, until you change it here.": "由此服务器配置中的 SERVER_PRODUCTS={{value}} 设置，直到您在此处更改为止。",
   "SERVER_PRODUCTS names {{names}}, which is neither a preset nor a product, so it was left out.": "SERVER_PRODUCTS 中指定的 {{names}} 既不是预设也不是产品，因此已被忽略。",
   "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so Logs, Metrics, Traces, Profiles and Exceptions are off. To switch them on, set it to false and restart OneUptime.": "此服务器上的遥测数据摄取已停止（DISABLE_TELEMETRY_INGESTION），因此日志、指标、追踪、性能配置和异常均已关闭。要开启它们，请将该值设置为 false 并重启 OneUptime。",

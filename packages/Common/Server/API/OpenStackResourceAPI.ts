@@ -70,6 +70,8 @@ import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
 import OpenStackAcrossProducts from "../Utils/OpenStack/OpenStackAcrossProducts";
 import { getOpenStackListSeekReads } from "../Utils/OpenStack/OpenStackListSeekQuery";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 
 /*
  * ------------------------------------------------------------------
@@ -399,7 +401,7 @@ export default class OpenStackResourceAPI extends BaseAPI<
         return this.getStoragePoolCeph(req, res);
       },
     );
-    this.registerCloudRead(
+    this.registerCloudChange(
       "storage-pool-ceph-confirm",
       (req: ExpressRequest, res: ExpressResponse) => {
         return this.confirmStoragePoolCeph(req, res);
@@ -976,6 +978,29 @@ export default class OpenStackResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await read(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
+
+  /*
+   * A cloud's route that keeps an answer - what a cloud is built on: refused
+   * while the server has OpenStack switched off (#9489), as a change of the
+   * cloud is.
+   */
+  private registerCloudChange(
+    path: string,
+    change: (req: ExpressRequest, res: ExpressResponse) => Promise<void>,
+  ): void {
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/${path}/:cloudId`,
+      UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.OpenStack),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await change(req, res);
         } catch (err) {
           next(err);
         }

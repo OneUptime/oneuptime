@@ -36,6 +36,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../../Types/Product/ProductKey";
 
 /*
  * The public note approval routes (issue #5720): approving and rejecting
@@ -55,6 +57,8 @@ type Handler = (
 interface Route {
   path: string;
   middleware: unknown;
+  // Between the user middleware and the handler: a switched-off product's refusal.
+  refusals: Array<unknown>;
   handler: Handler;
 }
 
@@ -150,8 +154,13 @@ beforeEach(() => {
   props = member();
 
   const router: ExpressRouter = {
-    post: (path: string, middleware: unknown, handler: Handler): void => {
-      routes.push({ path, middleware, handler });
+    post: (path: string, ...functions: Array<unknown>): void => {
+      routes.push({
+        path,
+        middleware: functions[0],
+        refusals: functions.slice(1, -1),
+        handler: functions[functions.length - 1] as Handler,
+      });
     },
   } as unknown as ExpressRouter;
 
@@ -161,6 +170,7 @@ beforeEach(() => {
     getHost: () => {
       return HOST;
     },
+    product: ProductKey.Incidents,
   });
 
   getJestSpyOn(
@@ -196,6 +206,31 @@ describe("PublicNoteApprovalRoutes.register", () => {
     for (const registered of routes) {
       expect(registered.middleware).toBe(UserMiddleware.getUserMiddleware);
     }
+  });
+
+  /*
+   * A decision, sending a note again and withdrawing an edit are refused
+   * while the server has the notes' product switched off (#7479); where
+   * each note stands and who approves are reads.
+   */
+  test("its writes each hold the refusal of the notes' product, and its reads none", () => {
+    expect(
+      routes.map((registered: Route): [string, number] => {
+        return [
+          registered.path,
+          registered.refusals.filter((refusal: unknown): boolean => {
+            return ServerProductRoutes.isRefusal(refusal);
+          }).length,
+        ];
+      }),
+    ).toEqual([
+      [`${BASE}/:noteId/approve`, 1],
+      [`${BASE}/:noteId/reject`, 1],
+      [`${BASE}/:noteId/resubmit`, 1],
+      [`${BASE}/:noteId/discard-edit`, 1],
+      [`${BASE}/approval/notes`, 0],
+      [`${BASE}/approval/policy`, 0],
+    ]);
   });
 });
 

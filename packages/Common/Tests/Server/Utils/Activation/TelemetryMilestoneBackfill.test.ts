@@ -303,7 +303,7 @@ describe("TelemetryMilestoneBackfill", () => {
     test("each table by the row's own time: the column its days are partitioned by", () => {
       for (const table of TELEMETRY_MILESTONE_BACKFILL_TABLES) {
         const model: AnalyticsBaseModel = new MODELS[table.tableName]!();
-        const column: AnalyticsTableColumn | undefined = model.getTableColumn(
+        const column: AnalyticsTableColumn | null = model.getTableColumn(
           table.timeColumn,
         );
 
@@ -634,7 +634,7 @@ describe("TelemetryMilestoneBackfill", () => {
             ? Object.assign(new Error("too many rows"), { code: "158" })
             : null;
         },
-        failProject: (table: string, projectId: string): unknown => {
+        failProject: (_table: string, projectId: string): unknown => {
           return projectId === failing ? new Error("Timeout") : null;
         },
       });

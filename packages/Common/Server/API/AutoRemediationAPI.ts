@@ -38,6 +38,9 @@ import {
   DECLARED_CODE_CHANGES_PATH,
   DECLARED_CODE_OWNER_PATH,
 } from "../../Utils/AiRemediation/DeclaredCodeChange";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductsOfRequest from "../Utils/ServerProducts/ProductsOfRequest";
+import ProductKey from "../../Types/Product/ProductKey";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -48,6 +51,14 @@ const router: ExpressRouter = Express.getRouter();
  * RemediationApproval's (Utils/AutoRemediation), which a Slack or Microsoft
  * Teams press on the fix's message goes through too: the routes only read
  * who is asking and what they asked about.
+ *
+ * While the server has switched off the product of the incident or alert a
+ * fix is for - or Runbooks, for a fix that starts a runbook - nothing here
+ * acts on it (#9489): a route that names its record or its product says so
+ * at once (ServerProductRoutes), and one that names only the fix says so
+ * once the fix is read, in RemediationApproval, RemediationRound and
+ * DeclaredCodeChanges (RemediationFixProducts). Reading a fix is not
+ * refused.
  */
 
 async function getLoggedInProps(
@@ -200,6 +211,7 @@ router.post(
 router.post(
   "/auto-remediation/save-as-runbook",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Runbooks),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -326,6 +338,7 @@ export async function findTryAgainSubject(data: {
 router.post(
   "/auto-remediation/try-again",
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOffFor(ProductsOfRequest.incidentOrAlert),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -511,6 +524,7 @@ router.post(
 router.post(
   DECLARED_CODE_CHANGE_PATH,
   UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Code),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

@@ -76,21 +76,19 @@ const mockRoutes: Array<MockRoute> = [];
 
 const registerRoute: (
   method: string,
-) => (
-  uri: string,
-  middleware: RouterFunction,
-  handlerFunction: RouterFunction,
-) => void = (method: string) => {
-  return (
-    uri: string,
-    middleware: RouterFunction,
-    handlerFunction: RouterFunction,
-  ): void => {
+) => (uri: string, ...functions: Array<RouterFunction>) => void = (
+  method: string,
+) => {
+  /*
+   * The user middleware first and the handler last; between them, only a
+   * refusal while a product is switched off on the server (#9489).
+   */
+  return (uri: string, ...functions: Array<RouterFunction>): void => {
     mockRoutes.push({
       method: method.toUpperCase(),
       uri,
-      middleware,
-      handlerFunction,
+      middleware: functions[0]!,
+      handlerFunction: functions[functions.length - 1]!,
     });
   };
 };

@@ -20,6 +20,7 @@ import {
 } from "../../../Types/OnCallDutyPolicy/ScheduleLayersSave";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { withoutRefusals } from "./RouteRefusals";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -157,7 +158,8 @@ describe("POST /on-call-duty-policy-schedule/:id/save-layers", () => {
       ) as { middlewares: Array<unknown> } | undefined;
 
     expect(route).toBeDefined();
-    expect(route!.middlewares).toEqual([
+    // Its chain as it was, beside the refusal while its product is off (#7479).
+    expect(withoutRefusals(route!.middlewares)).toEqual([
       UserMiddleware.getUserMiddleware,
       UserMiddleware.requireUserAuthentication,
     ]);
