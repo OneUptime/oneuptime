@@ -2249,12 +2249,12 @@ async function postStatusChangeToWorkspaces(data: {
   now: Date;
   measurement: SloFeedStatusMeasurement;
 }): Promise<void> {
-  const sloId: ObjectID | undefined = data.slo.id;
-  const projectId: ObjectID | undefined = data.slo.projectId;
-
-  if (!sloId || !projectId) {
+  if (!data.slo.id || !data.slo.projectId) {
     return;
   }
+
+  const sloId: ObjectID = data.slo.id;
+  const projectId: ObjectID = data.slo.projectId;
 
   try {
     await SloWorkspaceNotifications.postStatusChange({

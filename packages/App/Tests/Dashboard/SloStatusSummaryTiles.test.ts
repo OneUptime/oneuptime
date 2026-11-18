@@ -490,9 +490,9 @@ describe("the facet bar the tiles move", () => {
     );
     const notFrozen: Record<string, unknown> = queryFromChips(bar);
     expect(notFrozen["deploymentsAllowed"]).toBeInstanceOf(NotEqual);
-    expect((notFrozen["deploymentsAllowed"] as NotEqual).toString()).toBe(
-      "false",
-    );
+    expect(
+      (notFrozen["deploymentsAllowed"] as NotEqual<string>).toString(),
+    ).toBe("false");
 
     bar.setFacetSelection(SLO_DEPLOYMENTS_FACET_KEY, []);
     expect(queryFromChips(bar)).toEqual({ isArchived: false });
