@@ -86,7 +86,7 @@ OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，�
 
 删除连接后，一旦没有其他连接使用该登录，OneUptime 在 Zoom 和 Google 的访问权限就会被撤销。对于 Microsoft，请在该账户的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中从您的 Zoom 账户移除 OneUptime，会从所有以该账户登录的连接中删除其登录，这些连接在重新连接之前都会显示 **异常**。
 
-OneUptime 已读取的转录会保留在其事件上：删除连接会保留它开始的通话及其转录，在 Zoom、Google 或 Microsoft 中从账户移除 OneUptime 也是如此。通话上的 **删除转录** 会删除其转录以及 OneUptime AI 从中读取的内容，但不会删除 OneUptime AI 发布到事件动态及其频道的内容。删除事件会删除其通话及其转录。
+从您的 Zoom 账户移除 OneUptime，还会在几分钟内删除 OneUptime 通过其登录读取的通话转录，以及 OneUptime AI 从中读取的内容：从它们的通话、事件动态，以及 OneUptime 在事件的 Slack、Microsoft Teams 和 Mattermost 频道中发布的消息中删除。每个事件的动态都会说明这一点，有人添加的转录会保留。删除连接会保留它开始的通话及其转录，从 Google 或 Microsoft 账户移除 OneUptime 也是如此。通话上的 **删除转录** 会从同样的地方删除其转录以及 OneUptime AI 从中读取的内容。如果 OneUptime 因工作区已断开或应用已从频道移除而无法再删除某条消息，它会说明该消息保留在哪里。有人根据通话写下的根本原因或事后分析会保留。删除事件会删除其通话及其转录。
 
 ### 如果 Microsoft 要求管理员
 
@@ -100,7 +100,7 @@ OneUptime 已读取的转录会保留在其事件上：删除连接会保留它�
 
 事件或警报页面上的 **Video Call** 卡片有 **Start call** （已有通话时为 **Start another** ）。选择项目的某个连接、事件 Slack 频道的 huddle，或粘贴您自己的会议链接。该通话会像规则开始的通话一样发布到事件的频道和动态中。
 
-卡片上的 **移除** 会把通话从事件页面上移除。会议本身不会被删除，拥有链接的任何人仍然可以加入。
+卡片上的 **移除** 会把通话连同其转录以及 OneUptime AI 从中读取的内容一起从事件页面上移除。会议本身不会被删除，拥有链接的任何人仍然可以加入。
 
 开始和移除通话需要处理事件（或警报）的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 或 **事件成员**，或自定义角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能读取该事件的每个人都能看到它的通话。
 
@@ -152,7 +152,7 @@ Microsoft 只允许应用读取日历上的 Teams 会议的转录，因此 OneUp
 
 ### OneUptime AI 读取什么
 
-读取转录和调查一样是 AI 工作：只在项目开启 AI 时运行，并计入项目的 AI 用量和每日限额（参见 [成本控制](/docs/ai/ai-sre#成本控制)）。较长的转录会分段读取。关闭 AI 时，转录会保留，卡片会说明它未被读取。删除转录会删除 OneUptime AI 从中读取的内容，并保留事件的根本原因。AI 生成的事后分析草稿也会读取事件通话中说过的内容（参见 [事后分析](/docs/incidents/postmortems)）。
+读取转录和调查一样是 AI 工作：只在项目开启 AI 时运行，并计入项目的 AI 用量和每日限额（参见 [成本控制](/docs/ai/ai-sre#成本控制)）。较长的转录会分段读取。关闭 AI 时，转录会保留，卡片会说明它未被读取。删除转录会从通话、事件动态及其频道中删除 OneUptime AI 从中读取的内容，并保留事件的根本原因。AI 生成的事后分析草稿也会读取事件通话中说过的内容（参见 [事后分析](/docs/incidents/postmortems)）。
 
 ## 提供商
 
