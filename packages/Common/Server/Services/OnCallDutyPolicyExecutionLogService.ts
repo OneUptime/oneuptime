@@ -254,10 +254,10 @@ export class Service extends ProjectReferencesService<Model> {
    * rule is about to be deleted (issue #9036).
    *
    * Deleting the rule keeps those runs and clears it from them (ON DELETE
-   * SET NULL); each then goes on from the place it recorded - to the level
-   * that moves up into the deleted one's - once the wait it started is over
+   * SET NULL); each then goes on from the place it recorded - to the first
+   * level at that place or after it - once the wait it started is over
    * (OnCallRunLevel). The place a run recorded when it reached the level is
-   * out of date if a level before it was added or deleted since, so it is
+   * out of date if the rule was given another number since, so it is
    * written again from the rule as it is now. One statement, found by the
    * rule's own index (lastExecutedEscalationRuleId) - never by the place,
    * which no index holds (OnCallExecutionLogStepColumnReads); runs already

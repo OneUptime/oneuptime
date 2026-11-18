@@ -1399,6 +1399,45 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
  * log has caught up with the next level yet.
  */
 describe("a level passed at once because it had nobody to page", () => {
+  /*
+   * A policy's levels can leave gaps - a deleted level leaves its gap, and
+   * no write moves another level (issue #9573) - so the level the run moved
+   * on to is the next in the policy's order, never "the one numbered one
+   * more": with the levels at 1 and 4, the message used to say nothing of
+   * where the run went.
+   */
+  test("names the next level the run moved on to, whatever its number", () => {
+    const gappy: Array<OnCallDutyPolicyEscalationRule> = [
+      rule(RULE_1, 1, "fhirst", 5),
+      rule(RULE_3, 4, "third", 6),
+    ];
+
+    const built: OnCallPolicyRun = build({
+      log: executionLog({
+        ruleId: RULE_3,
+        ruleOrder: 4,
+        executeNextInMinutes: 6,
+      }),
+      rules: gappy,
+      timeline: [
+        step({
+          status: SKIPPED,
+          ruleId: RULE_1,
+          statusMessage: ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE,
+        }),
+        movedOnTo(RULE_3),
+      ],
+    });
+
+    expect(built.notPaged).toEqual([
+      {
+        rule: { order: 1, name: "fhirst" },
+        reason: "nobody to page",
+        movedOnTo: { order: 4, name: "third" },
+      },
+    ]);
+  });
+
   test("a level that names nobody: its line in the list says the next level was paged at once, and so does its alarm", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({
