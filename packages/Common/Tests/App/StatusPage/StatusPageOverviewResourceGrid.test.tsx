@@ -144,18 +144,29 @@ jest.mock(
   },
 );
 
-// The status page's own English words, as a visitor reads them.
+/*
+ * The page's language: English, unless a test reads it in Arabic, a
+ * language read right to left (mockReaderLanguage).
+ */
+let mockReaderLanguage: "en" | "ar" = "en";
+
+// The status page's own words, as a visitor reads them.
 jest.mock("react-i18next", () => {
-  const english: Record<string, unknown> = jest.requireActual(
-    "../../../../App/FeatureSet/StatusPage/src/Locales/en.json",
-  ) as Record<string, unknown>;
+  const locales: Record<string, Record<string, unknown>> = {
+    en: jest.requireActual(
+      "../../../../App/FeatureSet/StatusPage/src/Locales/en.json",
+    ) as Record<string, unknown>,
+    ar: jest.requireActual(
+      "../../../../App/FeatureSet/StatusPage/src/Locales/ar.json",
+    ) as Record<string, unknown>,
+  };
 
   const lookUp: (key: string, isFlatKey: boolean) => string | undefined = (
     key: string,
     isFlatKey: boolean,
   ): string | undefined => {
     const path: Array<string> = isFlatKey ? [key] : key.split(".");
-    let node: unknown = english;
+    let node: unknown = locales[mockReaderLanguage];
 
     for (const part of path) {
       if (!node || typeof node !== "object") {
@@ -204,7 +215,10 @@ jest.mock("react-i18next", () => {
     useTranslation: () => {
       return {
         t: t,
-        i18n: { resolvedLanguage: "en", language: "en" },
+        i18n: {
+          resolvedLanguage: mockReaderLanguage,
+          language: mockReaderLanguage,
+        },
       };
     },
   };
@@ -719,14 +733,103 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
     expect(
       within(dashboardInEu).queryByTestId("status-page-grid-cell-status"),
     ).not.toBeInTheDocument();
-    const dash: HTMLElement = dashboardInEu.lastElementChild as HTMLElement;
+    const empty: HTMLElement = dashboardInEu.lastElementChild as HTMLElement;
 
-    expect(dash.className).toBe(layout.cellEmpty);
-    expect(dash).toHaveAttribute("aria-hidden", "true");
+    expect(empty).toHaveAttribute("data-testid", "status-page-grid-cell-empty");
+    expect(empty.className).toBe(layout.cellEmpty);
     expect(
       textOf(within(dashboardInEu).getByTestId("status-page-grid-cell-label")),
     ).toBe("EU");
     expect(dashboardInEu.getAttribute("style")).toBeNull();
+  });
+
+  /*
+   * #7431: the dash is read as nothing, so a screen reader heard the
+   * column's name in the stack and then the next cell, and a blank cell in
+   * the matrix. The cell says what the dash means, to a screen reader only.
+   */
+  test("an empty cell's dash is for the eye, and a screen reader hears that it has no resources", async () => {
+    await renderOverview();
+
+    const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+    const dashboardInEu: HTMLElement = childrenTagged(rows[1]!, "TD")[1]!;
+    const empty: HTMLElement = within(dashboardInEu).getByTestId(
+      "status-page-grid-cell-empty",
+    );
+
+    // The cell itself is read: only its dash is hidden.
+    expect(empty).not.toHaveAttribute("aria-hidden");
+    expect(dashboardInEu.closest("[aria-hidden='true']")).toBeNull();
+
+    const [dash, words] = Array.from(empty.children) as Array<HTMLElement>;
+
+    expect(dash).toHaveAttribute("aria-hidden", "true");
+    expect(textOf(dash!)).toBe("");
+    expect(words!.tagName).toBe("SPAN");
+    expect(tokensOf(words!.className)).toEqual(["sr-only"]);
+    expect(textOf(words!)).toBe("No resources");
+
+    // In the stack, after the name of its column: "EU, No resources".
+    expect(textOf(dashboardInEu)).toBe("EUNo resources");
+  });
+
+  test("a cell with resources says nothing of being empty, to anyone", async () => {
+    await renderOverview();
+
+    const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+
+    rows.forEach((row: HTMLElement, rowIndex: number) => {
+      childrenTagged(row, "TD").forEach(
+        (cell: HTMLElement, columnIndex: number) => {
+          const isDashboardInEu: boolean = rowIndex === 1 && columnIndex === 1;
+
+          expect(
+            within(cell).queryAllByTestId("status-page-grid-cell-empty"),
+          ).toHaveLength(isDashboardInEu ? 1 : 0);
+          expect(textOf(cell).includes("No resources")).toBe(isDashboardInEu);
+          expect(cell.querySelectorAll(".sr-only")).toHaveLength(
+            isDashboardInEu ? 1 : 0,
+          );
+        },
+      );
+    });
+  });
+
+  describe("in Arabic, a language read right to left", () => {
+    beforeEach(() => {
+      mockReaderLanguage = "ar";
+    });
+
+    afterEach(() => {
+      mockReaderLanguage = "en";
+    });
+
+    test("an empty cell says it has no resources in the page's own words", async () => {
+      const arabic: Record<string, Record<string, string>> = jest.requireActual(
+        "../../../../App/FeatureSet/StatusPage/src/Locales/ar.json",
+      ) as Record<string, Record<string, string>>;
+
+      await renderOverview();
+
+      const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+      const dashboardInEu: HTMLElement = childrenTagged(rows[1]!, "TD")[1]!;
+      const words: HTMLElement = within(dashboardInEu)
+        .getByTestId("status-page-grid-cell-empty")
+        .querySelector(".sr-only") as HTMLElement;
+
+      expect(textOf(words)).toBe("لا توجد موارد");
+      expect(textOf(words)).toBe(arabic["overview"]!["gridCellEmpty"]);
+      expect(textOf(words)).not.toBe("No resources");
+    });
+
+    test("a grid with no row axis name heads its rows in the page's own word, not English's Resource", async () => {
+      await renderOverview();
+
+      const head: HTMLElement = partsOf(gridOf("Gulf")).head;
+
+      expect(textOf(head)).toContain("المورد");
+      expect(textOf(head)).not.toContain("Resource");
+    });
   });
 
   test("a one-column grid has its own query, and with no axis names the rows' heading says Resource and no column axis row is drawn", async () => {
