@@ -1,4 +1,4 @@
-import { NotificationMethodChoice } from "./OnCallRulesTable";
+import { NotificationMethodChoice } from "./NotificationMethodChoice";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import OnCallRulesTabs, { OnCallRulesPerson } from "./OnCallRulesTabs";
 import {

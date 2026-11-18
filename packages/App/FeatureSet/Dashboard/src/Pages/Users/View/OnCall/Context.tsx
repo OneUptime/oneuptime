@@ -1,4 +1,4 @@
-import { NotificationMethodChoice } from "../../../../Components/NotificationRule/OnCallRulesTable";
+import { NotificationMethodChoice } from "../../../../Components/NotificationRule/NotificationMethodChoice";
 import {
   ReadinessDeliveryContext,
   ReadinessSummaryWire,
