@@ -7,9 +7,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * "Create monitor" in the logs explorer's toolbar: a monitor watching what
  * the explorer shows. The shared logs viewer draws the button only for a
- * host that hands it a way to create one (the Dashboard's Logs page, for a
- * reader who may create monitors) - every other logs view (a service's
- * logs, an incident's, an embedded one) shows no such button.
+ * host that hands it a way to create one (the Dashboard's Logs page and a
+ * service's Logs tab, for a reader who may create monitors) - every other
+ * logs view (an incident's, an embedded one) shows no such button.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
