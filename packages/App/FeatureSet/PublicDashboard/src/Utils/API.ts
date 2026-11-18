@@ -31,8 +31,10 @@ export default class API extends BaseAPI {
     return new Route(`${basePath}/`);
   }
 
-  public static override logoutUser(): void {
+  // No session to end on the server: the master password is asked again.
+  public static override logoutUser(): Promise<void> {
     PublicDashboardUtil.setMasterPasswordValidated(false);
+    return Promise.resolve();
   }
 
   /*

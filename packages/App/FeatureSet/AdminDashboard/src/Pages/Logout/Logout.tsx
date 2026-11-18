@@ -18,7 +18,13 @@ const Logout: FunctionComponent = (): ReactElement => {
 
   const logout: PromiseVoidFunction = async (): Promise<void> => {
     UiAnalytics.logout();
-    UserUtil.logout();
+    /*
+     * The sign-in page opens only once the server has signed this browser
+     * out, or the wait for it is over (issue #9508): opened at once, it
+     * cancelled the sign-out in Firefox, which left the session's cookies
+     * behind for the next person on the browser.
+     */
+    await UserUtil.logout();
     Navigation.navigate(ACCOUNTS_URL);
   };
 
