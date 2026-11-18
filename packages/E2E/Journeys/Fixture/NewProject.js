@@ -29,6 +29,10 @@
  *               older showing two monitors - and five services reporting
  *               telemetry; what the status page and telemetry guided
  *               setups are looked at as a busy project
+ *   - status-page-grid   a status page whose Resources are two grids,
+ *               Service by Region, of three regions and of six, with long
+ *               monitor names and two resources off the grid: what its
+ *               Resources screen is measured at (#7239, #7430)
  *
  * Also here: the API routes the journeys' pages call beyond ModelAPI, and
  * what the server does after a create that a journey's next page shows.
@@ -57,6 +61,8 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
@@ -223,6 +229,113 @@ export const BUSY_SERVICES = [
   "inventory-worker",
   "storefront-web",
 ];
+
+/*
+ * ?seed=status-page-grid (#7239, #7430): a status page whose resources are
+ * laid out in grids, as its Resources screen edits them. "Regions" is a
+ * Service by Region grid of three columns (US, EU, Asia Pacific), its cells
+ * holding monitors with long English names, with nothing in the Dashboard's
+ * EU cell, and two resources whose axis values are off the grid. "Regions
+ * worldwide" is the same by six regions, a grid no laptop's box fits.
+ */
+export const GRID_STATUS_PAGE_ID = "66000000-0000-4000-8000-000000007239";
+export const GRID_GROUPS = [
+  {
+    _id: "66000000-0000-4000-8000-000000000001",
+    name: "Regions",
+    columns: ["US", "EU", "Asia Pacific"],
+  },
+  {
+    _id: "66000000-0000-4000-8000-000000000002",
+    name: "Regions worldwide",
+    columns: ["US East", "US West", "EU", "Asia Pacific", "South America", "Africa"],
+  },
+];
+export const GRID_ROWS = ["API", "Dashboard"];
+
+// The id of the grid page's monitor at `index`.
+export function gridMonitorId(index) {
+  return `67000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+}
+
+function seedStatusPageGrid(store, statuses) {
+  store.insert(StatusPage, {
+    _id: GRID_STATUS_PAGE_ID,
+    name: "Acme Regions Status",
+    isArchived: false,
+    createdByUserId: new ObjectID(ADA_ID),
+    createdAt: new Date("2026-10-20T09:00:00.000Z"),
+  });
+
+  let monitorIndex = 0;
+  let order = 0;
+
+  const addResource = (group, name, row, column) => {
+    const monitorId = gridMonitorId(monitorIndex);
+    monitorIndex += 1;
+    order += 1;
+    store.insert(Monitor, {
+      _id: monitorId,
+      name,
+      monitorType: MonitorType.Website,
+      currentMonitorStatusId: new ObjectID(statuses[0]._id),
+      currentMonitorStatus: statuses[0],
+      createdByUserId: new ObjectID(ADA_ID),
+      isAllProbesDisconnectedFromThisMonitor: false,
+      isNoProbeEnabledOnThisMonitor: false,
+      disableActiveMonitoring: false,
+      labels: [],
+    });
+    store.insert(StatusPageResource, {
+      statusPageId: new ObjectID(GRID_STATUS_PAGE_ID),
+      statusPageGroupId: new ObjectID(group._id),
+      monitorId: new ObjectID(monitorId),
+      displayName: name,
+      order,
+      rowAxisValue: row,
+      columnAxisValue: column,
+      showCurrentStatus: true,
+      showUptimePercent: true,
+      showStatusHistoryChart: true,
+    });
+  };
+
+  GRID_GROUPS.forEach((group, groupIndex) => {
+    store.insert(StatusPageGroup, {
+      _id: group._id,
+      name: group.name,
+      statusPageId: new ObjectID(GRID_STATUS_PAGE_ID),
+      order: groupIndex + 1,
+      isExpandedByDefault: true,
+      viewMode: StatusPageGroupViewMode.Grid,
+      rowAxisLabel: "Service",
+      rowAxisValues: GRID_ROWS.join(", "),
+      columnAxisLabel: "Region",
+      columnAxisValues: group.columns.join(", "),
+    });
+
+    for (const row of GRID_ROWS) {
+      for (const column of group.columns) {
+        // Nothing in the Dashboard's EU cell.
+        if (row === "Dashboard" && column === "EU") {
+          continue;
+        }
+        addResource(
+          group,
+          row === "API"
+            ? `Public REST API health check in ${column}`
+            : `Customer dashboard sign-in in ${column}`,
+          row,
+          column,
+        );
+      }
+    }
+  });
+
+  // Off the grid: a service and a region the group does not define.
+  addResource(GRID_GROUPS[0], "Search indexer in Asia Pacific", "Search", "Asia Pacific");
+  addResource(GRID_GROUPS[0], "Billing API on Mars", "API", "Mars");
+}
 
 // The id of the busy project's monitor at `index` (0 to 99).
 export function busyMonitorId(index) {
@@ -612,6 +725,10 @@ export function seedNewProject(options) {
 
   if (options.seeds.includes("busy")) {
     seedBusyProject(store, statuses);
+  }
+
+  if (options.seeds.includes("status-page-grid")) {
+    seedStatusPageGrid(store, statuses);
   }
 
   if (options.seeds.includes("ingestion-keys")) {
