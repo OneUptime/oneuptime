@@ -121,6 +121,7 @@
     "test-first-on-call-policy-ui": "playwright test --config playwright.first-on-call-policy-ui.config.ts",
     "test-on-call-guided-setup-ui": "playwright test --config playwright.on-call-guided-setup-ui.config.ts",
     "test-website-down-guided-setup-ui": "playwright test --config playwright.website-down-guided-setup-ui.config.ts",
+    "test-status-page-telemetry-guided-setups-ui": "playwright test --config playwright.status-page-telemetry-guided-setups-ui.config.ts",
     "test-journeys-ui": "playwright test --config playwright.journeys-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",

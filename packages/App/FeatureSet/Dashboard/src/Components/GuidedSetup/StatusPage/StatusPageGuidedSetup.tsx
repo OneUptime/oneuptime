@@ -636,6 +636,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             translator: translator,
             name: statusPage.name,
             monitorCount: shown.count,
+            hasMonitorGroups: (shown.monitorGroupIds || []).length > 0,
           })}
         </p>
         <div className={`${ACTIONS_CLASS_NAME} gap-x-4`}>
@@ -888,6 +889,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             translator: translator,
             name: statusPage.name,
             monitorCount: shown.count,
+            hasMonitorGroups: (shown.monitorGroupIds || []).length > 0,
           })
         : undefined,
       content: pickContent,

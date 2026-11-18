@@ -56743,5 +56743,7 @@
   "On the page": "On the page",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "This project already has {{count}} status page. The monitors you pick are added to the one you choose."
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "This project already has {{count}} status page. The monitors you pick are added to the one you choose.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "\"{{name}}\" shows {{count}} monitors and monitor groups.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "\"{{name}}\" shows {{count}} monitor group."
 }

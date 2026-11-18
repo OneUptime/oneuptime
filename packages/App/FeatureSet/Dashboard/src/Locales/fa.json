@@ -56743,5 +56743,7 @@
   "On the page": "در صفحه",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "این پروژه از قبل یک صفحهٔ وضعیت به نام «{{name}}» دارد. مانیتورهایی که انتخاب کنید به آن افزوده می‌شوند.",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "این پروژه از قبل {{count}} صفحهٔ وضعیت دارد. مانیتورهایی که انتخاب کنید به صفحه‌ای که برگزینید افزوده می‌شوند.",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "این پروژه از قبل {{count}} صفحهٔ وضعیت دارد. مانیتورهایی که انتخاب کنید به صفحه‌ای که برگزینید افزوده می‌شوند."
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "این پروژه از قبل {{count}} صفحهٔ وضعیت دارد. مانیتورهایی که انتخاب کنید به صفحه‌ای که برگزینید افزوده می‌شوند.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "«{{name}}» {{count}} مانیتور و گروه مانیتور را نمایش می‌دهد.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "«{{name}}» {{count}} گروه مانیتور را نمایش می‌دهد."
 }

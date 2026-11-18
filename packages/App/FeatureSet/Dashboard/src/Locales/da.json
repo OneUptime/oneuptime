@@ -56743,5 +56743,7 @@
   "On the page": "På siden",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "Dette projekt har allerede en statusside, \"{{name}}\". De valgte monitorer føjes til den.",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "Dette projekt har allerede {{count}} statussider. De valgte monitorer føjes til den side, du vælger.",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "Dette projekt har allerede {{count}} statusside. De valgte monitorer føjes til den side, du vælger."
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "Dette projekt har allerede {{count}} statusside. De valgte monitorer føjes til den side, du vælger.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "\"{{name}}\" viser {{count}} monitorer og monitorgrupper.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "\"{{name}}\" viser {{count}} monitorgruppe."
 }

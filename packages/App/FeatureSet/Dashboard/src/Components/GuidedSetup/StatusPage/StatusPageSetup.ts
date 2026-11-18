@@ -679,16 +679,35 @@ export const STATUS_PAGE_NAME_SENTENCE: SentenceOptions = {
   setsValuesApart: true,
 };
 
-// Step 1's line once it is done: '"Acme Status" shows 3 monitors.'
+/*
+ * Step 1's line once it is done: '"Acme Status" shows 3 monitors.' - or,
+ * once the page shows a monitor group (#7147), its rows are not all
+ * monitors, and the line says so: '"Acme Status" shows 13 monitors and
+ * monitor groups.'
+ */
 export const getPickDoneLine: (data: {
   translator: Translator;
   name: string;
   monitorCount: number;
+  hasMonitorGroups?: boolean | undefined;
 }) => string = (data: {
   translator: Translator;
   name: string;
   monitorCount: number;
+  hasMonitorGroups?: boolean | undefined;
 }): string => {
+  if (data.hasMonitorGroups) {
+    return data.translator.translatePlural(
+      {
+        one: '"{{name}}" shows {{count}} monitor group.',
+        other: '"{{name}}" shows {{count}} monitors and monitor groups.',
+      },
+      data.monitorCount,
+      { name: data.name },
+      STATUS_PAGE_NAME_SENTENCE,
+    );
+  }
+
   return data.translator.translatePlural(
     {
       one: '"{{name}}" shows {{count}} monitor.',

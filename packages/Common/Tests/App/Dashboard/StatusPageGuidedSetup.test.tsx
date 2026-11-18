@@ -2026,6 +2026,23 @@ describe("a busy project's list (#7147)", () => {
     });
   });
 
+  test("once the page shows a group, step 1's line counts monitors and monitor groups, never all as monitors", async () => {
+    api["loadShownMonitors"]!.mockResolvedValue({
+      count: 2,
+      names: ["Checkout", "search-150"],
+      monitorIds: ["m-150"],
+      monitorGroupIds: ["g-checkout"],
+    });
+    await renderSetup();
+    await press("guided-setup-monitor-group-g-checkout");
+    await press("guided-setup-monitor-m-150");
+    await press("guided-setup-create-status-page");
+
+    expect(
+      screen.getByTestId("guided-setup-step-pick-done-line"),
+    ).toHaveTextContent('"Acme Status" shows 2 monitors and monitor groups.');
+  });
+
   test("a group alone is something to show: the page is made with it", async () => {
     await renderSetup();
     await press("guided-setup-monitor-group-g-search");

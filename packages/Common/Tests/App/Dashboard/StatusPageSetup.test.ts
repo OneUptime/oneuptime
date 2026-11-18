@@ -403,6 +403,52 @@ describe("the summary's lines", () => {
     ).toBe('"Acme" shows 3 monitors.');
   });
 
+  // #7147: a monitor group is a row of the page, and no monitor.
+  test("step 1's line says so once the page shows a monitor group", () => {
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 13,
+        hasMonitorGroups: true,
+      }),
+    ).toBe('"Acme" shows 13 monitors and monitor groups.');
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 1,
+        hasMonitorGroups: true,
+      }),
+    ).toBe('"Acme" shows 1 monitor group.');
+    expect(
+      getPickDoneLine({
+        translator: english,
+        name: "Acme",
+        monitorCount: 2,
+        hasMonitorGroups: false,
+      }),
+    ).toBe('"Acme" shows 2 monitors.');
+
+    for (const language of ["ar", "fa", "de"]) {
+      const line: string = getPickDoneLine({
+        translator: dashboardTranslator(language),
+        name: "Acme Status",
+        monitorCount: 13,
+        hasMonitorGroups: true,
+      });
+
+      expect({ language, english: line.includes("monitor groups") }).toEqual({
+        language,
+        english: false,
+      });
+      expect({
+        language,
+        setApart: line.includes(isolated("Acme Status")),
+      }).toEqual({ language, setApart: language !== "de" });
+    }
+  });
+
   /*
    * In an Arabic or Persian sentence a name in Latin letters, and the count
    * after it, are set apart: without it the bidi algorithm pulled the 1 into
@@ -578,6 +624,9 @@ describe("the words", () => {
     '"{{name}}" shows {{count}} monitors.',
     '"{{name}}" shows {{count}} monitors._one',
     "{{count}} of {{total}} picked",
+    // A page that shows a monitor group (#7147).
+    '"{{name}}" shows {{count}} monitors and monitor groups.',
+    '"{{name}}" shows {{count}} monitors and monitor groups._one',
     // The project's pages, counted (#7517).
     "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.",
     "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one",

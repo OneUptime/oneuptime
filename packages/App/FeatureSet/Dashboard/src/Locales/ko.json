@@ -56743,5 +56743,7 @@
   "On the page": "페이지에 표시됨",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "이 프로젝트에는 이미 \"{{name}}\" 상태 페이지가 있습니다. 선택한 모니터는 이 페이지에 추가됩니다.",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "이 프로젝트에는 이미 상태 페이지가 {{count}}개 있습니다. 선택한 모니터는 지정한 페이지에 추가됩니다.",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "이 프로젝트에는 이미 상태 페이지가 {{count}}개 있습니다. 선택한 모니터는 지정한 페이지에 추가됩니다."
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "이 프로젝트에는 이미 상태 페이지가 {{count}}개 있습니다. 선택한 모니터는 지정한 페이지에 추가됩니다.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "\"{{name}}\" 페이지에 모니터와 모니터 그룹 {{count}}개가 표시됩니다.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "\"{{name}}\" 페이지에 모니터 그룹 {{count}}개가 표시됩니다."
 }

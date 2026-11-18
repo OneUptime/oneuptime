@@ -56743,5 +56743,7 @@
   "On the page": "पृष्ठ पर है",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "इस प्रोजेक्ट में पहले से एक स्थिति पृष्ठ है, \"{{name}}\"। आपके चुने मॉनिटर उसमें जोड़े जाते हैं।",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "इस प्रोजेक्ट में पहले से {{count}} स्थिति पृष्ठ हैं। आपके चुने मॉनिटर उस पृष्ठ में जोड़े जाते हैं जिसे आप चुनते हैं।",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "इस प्रोजेक्ट में पहले से {{count}} स्थिति पृष्ठ है। आपके चुने मॉनिटर उस पृष्ठ में जोड़े जाते हैं जिसे आप चुनते हैं।"
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "इस प्रोजेक्ट में पहले से {{count}} स्थिति पृष्ठ है। आपके चुने मॉनिटर उस पृष्ठ में जोड़े जाते हैं जिसे आप चुनते हैं।",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "\"{{name}}\" पर {{count}} मॉनिटर और मॉनिटर समूह दिख रहे हैं।",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "\"{{name}}\" पर {{count}} मॉनिटर समूह दिख रहा है।"
 }

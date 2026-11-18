@@ -56743,5 +56743,7 @@
   "On the page": "Sur la page",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "Ce projet a déjà une page de statut, « {{name}} ». Les moniteurs que vous choisissez y sont ajoutés.",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "Ce projet a déjà {{count}} pages de statut. Les moniteurs que vous choisissez sont ajoutés à celle que vous sélectionnez.",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "Ce projet a déjà {{count}} page de statut. Les moniteurs que vous choisissez sont ajoutés à celle que vous sélectionnez."
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "Ce projet a déjà {{count}} page de statut. Les moniteurs que vous choisissez sont ajoutés à celle que vous sélectionnez.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "« {{name}} » affiche {{count}} moniteurs et groupes de moniteurs.",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "« {{name}} » affiche {{count}} groupe de moniteurs."
 }

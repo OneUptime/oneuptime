@@ -56743,5 +56743,7 @@
   "On the page": "已在页面上",
   "This project already has a status page, \"{{name}}\". The monitors you pick are added to it.": "此项目已有一个状态页面“{{name}}”。您选择的监视器将添加到该页面。",
   "This project already has {{count}} status pages. The monitors you pick are added to the one you choose.": "此项目已有 {{count}} 个状态页面。您选择的监视器将添加到您指定的页面。",
-  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "此项目已有 {{count}} 个状态页面。您选择的监视器将添加到您指定的页面。"
+  "This project already has {{count}} status pages. The monitors you pick are added to the one you choose._one": "此项目已有 {{count}} 个状态页面。您选择的监视器将添加到您指定的页面。",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups.": "“{{name}}”显示 {{count}} 个监视器和监视器组。",
+  "\"{{name}}\" shows {{count}} monitors and monitor groups._one": "“{{name}}”显示 {{count}} 个监视器组。"
 }
