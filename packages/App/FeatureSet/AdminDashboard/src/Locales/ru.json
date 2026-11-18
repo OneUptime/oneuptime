@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Отправьте тестовый push на свои телефоны и браузеры, чтобы убедиться, что push-уведомления до них доходят.",
   "Check Gateway": "Проверить шлюз",
   "Checking your gateway…": "Проверка вашего шлюза…",
-  "Your gateway answered the test request.": "Ваш шлюз ответил на тестовый запрос."
+  "Your gateway answered the test request.": "Ваш шлюз ответил на тестовый запрос.",
+  "Nothing is set up under Settings > Emails yet.": "В разделе «Настройки > Электронные письма» пока ничего не настроено.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: поле «{{field}}» не заполнено в разделе «Настройки > Электронные письма».",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "В разделе «Настройки > Звонки и SMS» не настроены ни аккаунт Twilio, ни SMS-шлюз.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "В разделе «Настройки > Звонки и SMS» не настроены ни аккаунт Twilio, ни шлюз для звонков.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "Эта конфигурация Twilio используется только для SMS, поэтому звонков она не совершает.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "Эта конфигурация Twilio используется только для звонков, поэтому SMS она не отправляет.",
+  "This Twilio config has no number to send SMS from.": "У этой конфигурации Twilio нет номера, с которого отправлять SMS.",
+  "This Twilio config has no number to make calls from.": "У этой конфигурации Twilio нет номера, с которого звонить.",
+  "Region (an AWS Region code, such as us-east-1)": "Регион (код региона AWS, например us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "Домен (домен отправителя, например mg.example.com)"
 }

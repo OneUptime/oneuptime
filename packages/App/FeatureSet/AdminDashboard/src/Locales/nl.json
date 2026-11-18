@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Stuur een testpush naar uw eigen telefoons en browsers om te zien of pushmeldingen aankomen.",
   "Check Gateway": "Gateway controleren",
   "Checking your gateway…": "Uw gateway wordt gecontroleerd…",
-  "Your gateway answered the test request.": "Uw gateway heeft op het testverzoek geantwoord."
+  "Your gateway answered the test request.": "Uw gateway heeft op het testverzoek geantwoord.",
+  "Nothing is set up under Settings > Emails yet.": "Onder Instellingen > E-mails is nog niets ingesteld.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: het veld '{{field}}' is niet ingevuld onder Instellingen > E-mails.",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "Onder Instellingen > Bellen en SMS is geen Twilio-account of sms-gateway ingesteld.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "Onder Instellingen > Bellen en SMS is geen Twilio-account of belgateway ingesteld.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "Deze Twilio-configuratie wordt alleen voor sms gebruikt en doet dus geen oproepen.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "Deze Twilio-configuratie wordt alleen voor oproepen gebruikt en verstuurt dus geen sms-berichten.",
+  "This Twilio config has no number to send SMS from.": "Deze Twilio-configuratie heeft geen nummer om sms-berichten vanaf te versturen.",
+  "This Twilio config has no number to make calls from.": "Deze Twilio-configuratie heeft geen nummer om vanaf te bellen.",
+  "Region (an AWS Region code, such as us-east-1)": "Regio (een AWS-regiocode, zoals us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "Domein (het verzenddomein, zoals mg.example.com)"
 }

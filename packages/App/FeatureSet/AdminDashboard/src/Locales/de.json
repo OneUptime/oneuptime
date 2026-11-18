@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Senden Sie einen Test-Push an Ihre eigenen Telefone und Browser, um sicherzugehen, dass Push-Benachrichtigungen sie erreichen.",
   "Check Gateway": "Gateway prüfen",
   "Checking your gateway…": "Ihr Gateway wird geprüft…",
-  "Your gateway answered the test request.": "Ihr Gateway hat auf die Testanfrage geantwortet."
+  "Your gateway answered the test request.": "Ihr Gateway hat auf die Testanfrage geantwortet.",
+  "Nothing is set up under Settings > Emails yet.": "Unter Einstellungen > E-Mails ist noch nichts eingerichtet.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: Das Feld „{{field}}“ ist unter Einstellungen > E-Mails nicht ausgefüllt.",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "Unter Einstellungen > Anruf und SMS ist kein Twilio-Konto und kein SMS-Gateway eingerichtet.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "Unter Einstellungen > Anruf und SMS ist kein Twilio-Konto und kein Anruf-Gateway eingerichtet.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "Diese Twilio-Konfiguration wird nur für SMS verwendet und tätigt daher keine Anrufe.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "Diese Twilio-Konfiguration wird nur für Anrufe verwendet und sendet daher keine SMS.",
+  "This Twilio config has no number to send SMS from.": "Diese Twilio-Konfiguration hat keine Nummer, von der SMS gesendet werden.",
+  "This Twilio config has no number to make calls from.": "Diese Twilio-Konfiguration hat keine Nummer, von der angerufen wird.",
+  "Region (an AWS Region code, such as us-east-1)": "Region (ein AWS-Regionscode, etwa us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "Domäne (die Absenderdomäne, etwa mg.example.com)"
 }

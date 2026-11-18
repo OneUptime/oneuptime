@@ -123,9 +123,15 @@ import {
   SERVER_TEST_PUSH_REASONS,
   SERVER_TEST_SEND_WORDS,
 } from "../../../Types/ServerSetup/ServerTestSend";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  SERVER_SET_UP_PROBLEMS,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
 import {
   fillTemplate,
   getTemplatePlaceholders,
+  TemplateValues,
 } from "../../../Types/Translator";
 import ServerSetupChecklistLoader from "../../../UI/Utils/ServerSetupChecklist";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
@@ -267,10 +273,7 @@ function row(
   })!;
 }
 
-function words(sentence: {
-  template: string;
-  values: Record<string, string>;
-}): string {
+function words(sentence: { template: string; values: TemplateValues }): string {
   return fillTemplate(sentence.template, sentence.values);
 }
 
@@ -1315,6 +1318,153 @@ describe("the page", () => {
 });
 
 /*
+ * #9437: the Email row says what its settings are missing in the reader's
+ * language - the server sends it as words, a sentence of the Admin
+ * Dashboard's locales and what fills it - with the provider as written and
+ * the setting as the settings form names it. It read "Nothing is set up
+ * under Settings > Emails yet." in English under a German title. From an
+ * older server, which sends the sentence alone, the sentence as it came.
+ */
+describe("what Email's settings are missing, in the reader's language", () => {
+  const withoutIsolates: (text: string) => string = (text: string): string => {
+    return text.replace(/[⁦-⁩]/g, "");
+  };
+
+  const notSetUp: (problem: ServerSetUpProblemWords) => ServerChannelStatus = (
+    problem: ServerSetUpProblemWords,
+  ): ServerChannelStatus => {
+    return channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp, {
+      setUpProblem: ServerSetUpProblem.toEnglish(problem),
+      setUpProblemWords: problem,
+    });
+  };
+
+  test.each(["de", "fa"])(
+    "in %s, nothing set up: the reader's words, not English",
+    async (language: string) => {
+      const locale: Locale = readLocale(language);
+      const checklist: HTMLElement = await renderIn(
+        language,
+        answerFor({
+          email: notSetUp(
+            ServerSetUpProblem.of(SERVER_SET_UP_PROBLEMS.emailNotSetUp),
+          ),
+        }),
+      );
+
+      const line: HTMLElement = within(checklist).getAllByTestId(
+        "server-setup-email-checked",
+      )[0]!;
+
+      expect(withoutIsolates(line.textContent || "")).toBe(
+        locale[SERVER_SET_UP_PROBLEMS.emailNotSetUp] as string,
+      );
+      expect(line.textContent).not.toContain("Nothing is set up");
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "in %s, a setting left blank: the provider as written, the setting as the settings form names it",
+    async (language: string) => {
+      const locale: Locale = readLocale(language);
+      const checklist: HTMLElement = await renderIn(
+        language,
+        answerFor({
+          email: notSetUp(
+            ServerSetUpProblem.emailSettingNotSet(
+              "Mailgun",
+              SERVER_EMAIL_SETTING_NAMES.mailgunDomain,
+            ),
+          ),
+        }),
+      );
+
+      const line: string = withoutIsolates(
+        within(checklist).getAllByTestId("server-setup-email-checked")[0]!
+          .textContent || "",
+      );
+
+      expect(line).toBe(
+        fillTemplate(
+          locale[SERVER_SET_UP_PROBLEMS.emailSettingNotSet] as string,
+          {
+            provider: "Mailgun",
+            field: locale[SERVER_EMAIL_SETTING_NAMES.mailgunDomain] as string,
+          },
+        ),
+      );
+      expect(line).toContain("mg.example.com");
+      expect(line).not.toContain("is not set under");
+    },
+  );
+
+  test("a sentence sent with no words - an environment variable's problem - as it came", async () => {
+    const problem: string =
+      "The email settings set by environment variables cannot send: GLOBAL_EMAIL_SMTP_HOST is not set.";
+    const checklist: HTMLElement = await renderIn(
+      "de",
+      answerFor({
+        email: channel(
+          ServerSendingChannel.Email,
+          ServerSendingState.NotSetUp,
+          { setUpProblem: problem },
+        ),
+      }),
+    );
+
+    expect(
+      within(checklist).getAllByTestId("server-setup-email-checked")[0],
+    ).toHaveTextContent(problem);
+  });
+
+  test("an older server's sentence, which is one of the keys, still reads in the reader's language", async () => {
+    const de: Locale = readLocale("de");
+    const checklist: HTMLElement = await renderIn("de", answerFor());
+
+    expect(
+      withoutIsolates(
+        within(checklist).getAllByTestId("server-setup-email-checked")[0]!
+          .textContent || "",
+      ),
+    ).toBe(de[SERVER_SET_UP_PROBLEMS.emailNotSetUp] as string);
+  });
+
+  test("in English, the row says what the server said, word for word", () => {
+    const email: ServerSetupRow = row(
+      rowsFor(
+        answerFor({
+          email: notSetUp(
+            ServerSetUpProblem.emailSettingNotSet(
+              "Postmark",
+              SERVER_EMAIL_SETTING_NAMES.serverApiToken,
+            ),
+          ),
+        }),
+      ),
+      ServerSetupCheckId.Email,
+    );
+
+    expect(email.checked.map(words)).toEqual([
+      "Postmark: the Server API Token is not set under Settings > Emails.",
+    ]);
+  });
+
+  test("every setting a problem names is a word of every language the Admin Dashboard speaks", () => {
+    for (const language of ["en", ...ADMIN_DASHBOARD_LANGUAGES]) {
+      const locale: Locale = readLocale(language);
+
+      for (const name of Object.values(SERVER_EMAIL_SETTING_NAMES)) {
+        expect({ language, name, type: typeof locale[name] }).toEqual({
+          language,
+          name,
+          type: "string",
+        });
+      }
+    }
+  });
+});
+
+/*
  * Every word the Server setup page, its test sends and its cards say: the
  * catalogue's titles and status lines, what each was checked against, the
  * page's own words, the test dialogs' and the settings pages' cards'.
@@ -1354,6 +1504,10 @@ const ALL_WORDS: Array<string> = Array.from(
     SERVER_TEST_PUSH_DESCRIPTION,
     // Settings > Call and SMS's check of its own gateway (#7029).
     ...Object.values(CHECK_GATEWAY_COPY),
+    // What a channel's settings are missing (#9437), and the settings it names that no form drew before.
+    ...Object.values(SERVER_SET_UP_PROBLEMS),
+    SERVER_EMAIL_SETTING_NAMES.awsRegion,
+    SERVER_EMAIL_SETTING_NAMES.mailgunDomain,
   ]),
 );
 
@@ -1415,6 +1569,9 @@ describe("its words, in every language the Admin Dashboard speaks", () => {
           "OneUptime On-Call",
           "Docker Compose",
           "Kubernetes",
+          "Twilio",
+          "us-east-1",
+          "mg.example.com",
         ]) {
           if (word.includes(literal)) {
             expect({

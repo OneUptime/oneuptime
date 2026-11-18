@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "یک اعلان پوش آزمایشی به گوشی‌ها و مرورگرهای خودتان بفرستید تا مطمئن شوید اعلان‌های پوش به آن‌ها می‌رسند.",
   "Check Gateway": "بررسی گیت‌وی",
   "Checking your gateway…": "در حال بررسی گیت‌وی شما…",
-  "Your gateway answered the test request.": "گیت‌وی شما به درخواست آزمایشی پاسخ داد."
+  "Your gateway answered the test request.": "گیت‌وی شما به درخواست آزمایشی پاسخ داد.",
+  "Nothing is set up under Settings > Emails yet.": "هنوز چیزی در تنظیمات > ایمیل‌ها راه‌اندازی نشده است.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: فیلد «{{field}}» در تنظیمات > ایمیل‌ها پر نشده است.",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "هیچ حساب Twilio یا درگاه پیامکی در تنظیمات > تماس و پیامک راه‌اندازی نشده است.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "هیچ حساب Twilio یا درگاه تماسی در تنظیمات > تماس و پیامک راه‌اندازی نشده است.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "این پیکربندی Twilio فقط برای پیامک به کار می‌رود، پس تماسی برقرار نمی‌کند.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "این پیکربندی Twilio فقط برای تماس به کار می‌رود، پس پیامکی نمی‌فرستد.",
+  "This Twilio config has no number to send SMS from.": "این پیکربندی Twilio شماره‌ای برای فرستادن پیامک ندارد.",
+  "This Twilio config has no number to make calls from.": "این پیکربندی Twilio شماره‌ای برای برقراری تماس ندارد.",
+  "Region (an AWS Region code, such as us-east-1)": "منطقه (کد یک منطقهٔ AWS، مانند us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "دامنه (دامنهٔ فرستنده، مانند mg.example.com)"
 }

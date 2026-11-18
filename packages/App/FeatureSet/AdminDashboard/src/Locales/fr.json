@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Envoyez une notification push de test à vos propres téléphones et navigateurs pour vérifier que les notifications push leur parviennent.",
   "Check Gateway": "Vérifier la passerelle",
   "Checking your gateway…": "Vérification de votre passerelle…",
-  "Your gateway answered the test request.": "Votre passerelle a répondu à la requête de test."
+  "Your gateway answered the test request.": "Votre passerelle a répondu à la requête de test.",
+  "Nothing is set up under Settings > Emails yet.": "Rien n'est encore configuré dans Paramètres > E-mails.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}} : le champ « {{field}} » n'est pas renseigné dans Paramètres > E-mails.",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "Aucun compte Twilio ni aucune passerelle SMS n'est configuré dans Paramètres > Appel et SMS.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "Aucun compte Twilio ni aucune passerelle d'appel n'est configuré dans Paramètres > Appel et SMS.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "Cette configuration Twilio sert uniquement aux SMS, elle ne passe donc aucun appel.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "Cette configuration Twilio sert uniquement aux appels, elle n'envoie donc aucun SMS.",
+  "This Twilio config has no number to send SMS from.": "Cette configuration Twilio n'a aucun numéro depuis lequel envoyer des SMS.",
+  "This Twilio config has no number to make calls from.": "Cette configuration Twilio n'a aucun numéro depuis lequel passer des appels.",
+  "Region (an AWS Region code, such as us-east-1)": "Région (un code de région AWS, comme us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "Domaine (le domaine d'envoi, comme mg.example.com)"
 }

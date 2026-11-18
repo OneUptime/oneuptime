@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "自分の電話とブラウザーにテストプッシュを送り、プッシュ通知が届くか確かめます。",
   "Check Gateway": "ゲートウェイを確認",
   "Checking your gateway…": "ゲートウェイを確認しています…",
-  "Your gateway answered the test request.": "ゲートウェイがテストリクエストに応答しました。"
+  "Your gateway answered the test request.": "ゲートウェイがテストリクエストに応答しました。",
+  "Nothing is set up under Settings > Emails yet.": "[設定] > [メール] にはまだ何も設定されていません。",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: [設定] > [メール] の「{{field}}」が入力されていません。",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "[設定] > [通話と SMS] に Twilio アカウントも SMS ゲートウェイも設定されていません。",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "[設定] > [通話と SMS] に Twilio アカウントも通話ゲートウェイも設定されていません。",
+  "This Twilio config is used for SMS only, so it makes no calls.": "この Twilio 設定は SMS 専用のため、通話を発信しません。",
+  "This Twilio config is used for calls only, so it sends no SMS.": "この Twilio 設定は通話専用のため、SMS を送信しません。",
+  "This Twilio config has no number to send SMS from.": "この Twilio 設定には SMS の送信元番号がありません。",
+  "This Twilio config has no number to make calls from.": "この Twilio 設定には発信元番号がありません。",
+  "Region (an AWS Region code, such as us-east-1)": "リージョン (us-east-1 などの AWS リージョンコード)",
+  "Domain (the sending domain, such as mg.example.com)": "ドメイン (mg.example.com などの送信ドメイン)"
 }

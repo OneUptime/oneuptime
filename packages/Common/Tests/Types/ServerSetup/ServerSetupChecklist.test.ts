@@ -28,6 +28,10 @@ import ServerSetupChecklistUtil, {
   ServerSetupFacts,
   ServerSetupStatus,
 } from "../../../Types/ServerSetup/ServerSetupChecklist";
+import ServerSetUpProblem, {
+  SERVER_EMAIL_SETTING_NAMES,
+  ServerSetUpProblemWords,
+} from "../../../Types/ServerSending/ServerSetUpProblem";
 import { getTemplatePlaceholders } from "../../../Types/Translator";
 import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
 
@@ -1776,5 +1780,104 @@ describe("the test push", () => {
 
     expect(read!.checks[0]!.tests).toEqual([ServerSendingChannel.Push]);
     expect(read!.checks[1]!.tests).toEqual([ServerSendingChannel.Email]);
+  });
+});
+
+/*
+ * #9437: what Email's settings are missing reaches a page as words too - a
+ * sentence every language the Admin Dashboard speaks has, and what fills
+ * it - beside the English sentence, which a page of an older version and
+ * `npm run doctor` keep reading. A failure's reason is the provider's own,
+ * and has none.
+ */
+describe("what is missing, in words a page says in its reader's language", () => {
+  const missingApiKey: ServerSetUpProblemWords =
+    ServerSetUpProblem.emailSettingNotSet(
+      "SendGrid",
+      SERVER_EMAIL_SETTING_NAMES.apiKey,
+    );
+
+  const notSetUpEmail: () => ServerChannelStatus = (): ServerChannelStatus => {
+    return channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp, {
+      setUpProblem: ServerSetUpProblem.toEnglish(missingApiKey),
+      setUpProblemWords: missingApiKey,
+    });
+  };
+
+  test("Email not set up carries the words of what its settings are missing", () => {
+    const email: ServerSetupCheckResult = check(
+      freshFacts({ email: notSetUpEmail() }),
+      ServerSetupCheckId.Email,
+    );
+
+    expect(email.reason).toBe(
+      "SendGrid: the API Key is not set under Settings > Emails.",
+    );
+    expect(email.reasonWords).toEqual(missingApiKey);
+  });
+
+  test("a failure's reason is the provider's own, with no words; nor has a problem sent without any", () => {
+    expect(
+      check(
+        freshFacts({
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+            { setUpProblemWords: missingApiKey },
+          ),
+        }),
+        ServerSetupCheckId.Email,
+      ).reasonWords,
+    ).toBeUndefined();
+
+    // An older server's status, or an environment variable's problem: the sentence alone.
+    expect(
+      check(freshFacts(), ServerSetupCheckId.Email).reasonWords,
+    ).toBeUndefined();
+  });
+
+  test("a browser reads the words back beside their sentence, and only words it knows", () => {
+    const email: ServerSetupCheckResult = check(
+      freshFacts({ email: notSetUpEmail() }),
+      ServerSetupCheckId.Email,
+    );
+
+    const read: ServerSetupChecklistAnswer | null =
+      ServerSetupChecklistUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ checks: [email] })),
+      );
+
+    expect(read!.checks[0]!.reasonWords).toEqual(missingApiKey);
+    expect(read!.checks[0]!.channels[0]!.setUpProblemWords).toEqual(
+      missingApiKey,
+    );
+
+    for (const reasonWords of [
+      { template: "Something new.", values: {} },
+      { ...missingApiKey, values: { provider: "Postfix", field: "API Key" } },
+      "SendGrid: the API Key is not set under Settings > Emails.",
+    ]) {
+      expect(
+        ServerSetupChecklistUtil.parseAnswer({
+          checks: [
+            {
+              id: "email",
+              status: "not-set-up",
+              reason: "SendGrid: the API Key is not set.",
+              reasonWords: reasonWords,
+            },
+          ],
+        })!.checks[0]!.reasonWords,
+      ).toBeUndefined();
+    }
+
+    // Words with no sentence beside them say nothing.
+    expect(
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [
+          { id: "email", status: "not-set-up", reasonWords: missingApiKey },
+        ],
+      })!.checks[0]!.reasonWords,
+    ).toBeUndefined();
   });
 });

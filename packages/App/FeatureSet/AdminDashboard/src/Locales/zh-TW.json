@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "向你自己的手機和瀏覽器傳送測試推播，確認推播通知能夠送達。",
   "Check Gateway": "檢查閘道",
   "Checking your gateway…": "正在檢查你的閘道…",
-  "Your gateway answered the test request.": "你的閘道已回應測試要求。"
+  "Your gateway answered the test request.": "你的閘道已回應測試要求。",
+  "Nothing is set up under Settings > Emails yet.": "「設定 > 電子郵件」中還沒有設定任何內容。",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}：「設定 > 電子郵件」中的「{{field}}」未填寫。",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "「設定 > 電話和簡訊」中沒有設定 Twilio 帳戶或簡訊閘道。",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "「設定 > 電話和簡訊」中沒有設定 Twilio 帳戶或電話閘道。",
+  "This Twilio config is used for SMS only, so it makes no calls.": "此 Twilio 設定僅用於簡訊，因此不會撥打電話。",
+  "This Twilio config is used for calls only, so it sends no SMS.": "此 Twilio 設定僅用於電話，因此不會傳送簡訊。",
+  "This Twilio config has no number to send SMS from.": "此 Twilio 設定沒有用來傳送簡訊的號碼。",
+  "This Twilio config has no number to make calls from.": "此 Twilio 設定沒有用來撥打電話的號碼。",
+  "Region (an AWS Region code, such as us-east-1)": "區域（AWS 區域代碼，例如 us-east-1）",
+  "Domain (the sending domain, such as mg.example.com)": "網域（寄件網域，例如 mg.example.com）"
 }

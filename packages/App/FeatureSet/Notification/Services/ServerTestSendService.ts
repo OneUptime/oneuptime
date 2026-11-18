@@ -9,7 +9,9 @@ import PushNotificationService from "Common/Server/Services/PushNotificationServ
 import UserPushService from "Common/Server/Services/UserPushService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import ServerChannelSetup from "Common/Server/Utils/ServerSending/ServerChannelSetup";
+import ServerChannelSetup, {
+  ServerSetUpProblemReading,
+} from "Common/Server/Utils/ServerSending/ServerChannelSetup";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import {
   getCallAndSmsSentThrough,
@@ -80,6 +82,28 @@ const refusedBecause: (err: unknown) => string = (err: unknown): string => {
 };
 
 export default class ServerTestSendService {
+  /*
+   * Nothing went out: what the settings are missing, in English and - for a
+   * sentence of OneUptime's own - in words the Admin Dashboard says in its
+   * reader's language (#9437).
+   */
+  public static notSetUp(
+    answer: ServerTestSendAnswer,
+    problem: ServerSetUpProblemReading,
+  ): ServerTestSendAnswer {
+    const notSetUp: ServerTestSendAnswer = {
+      ...answer,
+      result: ServerTestSendResult.NotSetUp,
+      message: problem.english,
+    };
+
+    if (problem.words) {
+      notSetUp.messageWords = problem.words;
+    }
+
+    return notSetUp;
+  }
+
   // The server's settings, and what takes each channel's sends.
   private static async readConfig(): Promise<GlobalConfig | null> {
     return await ServerSendingStatus.readConfig();
@@ -89,8 +113,8 @@ export default class ServerTestSendService {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
     const sentThrough: string | null = getEmailSentThrough(config);
-    const problem: string | null =
-      ServerChannelSetup.getEmailSetUpProblem(config);
+    const problem: ServerSetUpProblemReading | null =
+      ServerChannelSetup.readEmailSetUpProblem(config);
 
     const answer: ServerTestSendAnswer = {
       channel: ServerSendingChannel.Email,
@@ -101,11 +125,7 @@ export default class ServerTestSendService {
     };
 
     if (problem) {
-      return {
-        ...answer,
-        result: ServerTestSendResult.NotSetUp,
-        message: problem,
-      };
+      return ServerTestSendService.notSetUp(answer, problem);
     }
 
     const mail: EmailMessage = {
@@ -139,10 +159,8 @@ export default class ServerTestSendService {
   public static async sendSms(to: Phone): Promise<ServerTestSendAnswer> {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
-    const problem: string | null = ServerChannelSetup.getSetUpProblem(
-      ServerSendingChannel.SMS,
-      config,
-    );
+    const problem: ServerSetUpProblemReading | null =
+      ServerChannelSetup.readSetUpProblem(ServerSendingChannel.SMS, config);
 
     const answer: ServerTestSendAnswer = {
       channel: ServerSendingChannel.SMS,
@@ -153,11 +171,7 @@ export default class ServerTestSendService {
     };
 
     if (problem) {
-      return {
-        ...answer,
-        result: ServerTestSendResult.NotSetUp,
-        message: problem,
-      };
+      return ServerTestSendService.notSetUp(answer, problem);
     }
 
     try {
@@ -184,10 +198,8 @@ export default class ServerTestSendService {
   public static async makeCall(to: Phone): Promise<ServerTestSendAnswer> {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
-    const problem: string | null = ServerChannelSetup.getSetUpProblem(
-      ServerSendingChannel.Call,
-      config,
-    );
+    const problem: ServerSetUpProblemReading | null =
+      ServerChannelSetup.readSetUpProblem(ServerSendingChannel.Call, config);
 
     const answer: ServerTestSendAnswer = {
       channel: ServerSendingChannel.Call,
@@ -198,11 +210,7 @@ export default class ServerTestSendService {
     };
 
     if (problem) {
-      return {
-        ...answer,
-        result: ServerTestSendResult.NotSetUp,
-        message: problem,
-      };
+      return ServerTestSendService.notSetUp(answer, problem);
     }
 
     const callRequest: CallRequest = {
@@ -303,10 +311,8 @@ export default class ServerTestSendService {
   ): Promise<ServerTestSendAnswer> {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
-    const problem: string | null = ServerChannelSetup.getSetUpProblem(
-      ServerSendingChannel.Push,
-      config,
-    );
+    const problem: ServerSetUpProblemReading | null =
+      ServerChannelSetup.readSetUpProblem(ServerSendingChannel.Push, config);
 
     const answer: ServerTestSendAnswer = {
       channel: ServerSendingChannel.Push,
@@ -317,11 +323,7 @@ export default class ServerTestSendService {
     };
 
     if (problem) {
-      return {
-        ...answer,
-        result: ServerTestSendResult.NotSetUp,
-        message: problem,
-      };
+      return ServerTestSendService.notSetUp(answer, problem);
     }
 
     const devices: Array<ServerTestPushDevice> =

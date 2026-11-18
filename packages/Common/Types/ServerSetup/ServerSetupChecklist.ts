@@ -6,6 +6,9 @@ import ServerSendingStatusUtil, {
   ServerSendingChannel,
   ServerSendingState,
 } from "../ServerSending/ServerSendingStatus";
+import ServerSetUpProblem, {
+  ServerSetUpProblemWords,
+} from "../ServerSending/ServerSetUpProblem";
 
 /*
  * WHAT A NEW SELF-HOSTED SERVER NEEDS, AND WHERE EACH STANDS.
@@ -568,6 +571,12 @@ export interface ServerSetupCheckResult {
   sentThrough: string | null;
   // Why it fails, in the provider's words, or what its settings are missing.
   reason: string | null;
+  /*
+   * What its settings are missing, in words every language has
+   * (ServerSetUpProblem, #9437): beside `reason`, while it is one of
+   * OneUptime's own sentences. Left out by an older server.
+   */
+  reasonWords?: ServerSetUpProblemWords | undefined;
   // Per channel, for SMS and calls: what went out when.
   channels: Array<ServerChannelStatus & { sentThrough: string | null }>;
   choice: ServerSetupChoice | null;
@@ -809,6 +818,7 @@ export default class ServerSetupChecklistUtil {
     time?: string | null | undefined;
     sentThrough?: string | null | undefined;
     reason?: string | null | undefined;
+    reasonWords?: ServerSetUpProblemWords | null | undefined;
     channels?: ServerSetupCheckResult["channels"] | undefined;
     tests?: Array<ServerSendingChannel> | undefined;
     /*
@@ -843,6 +853,10 @@ export default class ServerSetupChecklistUtil {
       time: data.time || null,
       sentThrough: data.sentThrough || null,
       reason: data.reason || null,
+      // Words only beside the sentence they say.
+      ...(data.reason && data.reasonWords
+        ? { reasonWords: data.reasonWords }
+        : {}),
       channels: data.channels || [],
       choice: choice,
       /*
@@ -879,6 +893,11 @@ export default class ServerSetupChecklistUtil {
           : status === ServerSetupStatus.NotSetUp
             ? facts.email.setUpProblem
             : null,
+      // What is missing, in words every language has (#9437); a provider's answer has none.
+      reasonWords:
+        status === ServerSetupStatus.NotSetUp
+          ? facts.email.setUpProblemWords
+          : null,
       tests:
         status === ServerSetupStatus.NotSetUp
           ? []
@@ -1322,6 +1341,12 @@ export default class ServerSetupChecklistUtil {
         });
       }
 
+      const reason: string | null = readText(row["reason"]);
+      // Words only beside the sentence they say, and only ones this page knows.
+      const reasonWords: ServerSetUpProblemWords | null = reason
+        ? ServerSetUpProblem.parse(row["reasonWords"])
+        : null;
+
       checks.push({
         id: id,
         tier: definition.tier,
@@ -1329,7 +1354,8 @@ export default class ServerSetupChecklistUtil {
         isFinished: ServerSetupChecklistUtil.isFinished(status),
         time: readDate(row["time"]),
         sentThrough: readText(row["sentThrough"], 200),
-        reason: readText(row["reason"]),
+        reason: reason,
+        ...(reasonWords ? { reasonWords: reasonWords } : {}),
         channels: channels,
         choice:
           isObject(storedChoice) &&

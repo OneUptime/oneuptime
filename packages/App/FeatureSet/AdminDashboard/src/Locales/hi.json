@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "अपने फ़ोन और ब्राउज़र पर एक टेस्ट पुश भेजें ताकि पक्का हो कि पुश सूचनाएँ उन तक पहुँचती हैं।",
   "Check Gateway": "गेटवे जाँचें",
   "Checking your gateway…": "आपका गेटवे जाँचा जा रहा है…",
-  "Your gateway answered the test request.": "आपके गेटवे ने टेस्ट अनुरोध का जवाब दिया।"
+  "Your gateway answered the test request.": "आपके गेटवे ने टेस्ट अनुरोध का जवाब दिया।",
+  "Nothing is set up under Settings > Emails yet.": "सेटिंग्स > ईमेल में अभी कुछ भी सेट अप नहीं है।",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: सेटिंग्स > ईमेल में फ़ील्ड “{{field}}” भरा नहीं गया है।",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "सेटिंग्स > कॉल और SMS में कोई Twilio खाता या SMS गेटवे सेट अप नहीं है।",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "सेटिंग्स > कॉल और SMS में कोई Twilio खाता या कॉल गेटवे सेट अप नहीं है।",
+  "This Twilio config is used for SMS only, so it makes no calls.": "यह Twilio कॉन्फ़िगरेशन केवल SMS के लिए इस्तेमाल होता है, इसलिए यह कोई कॉल नहीं करता।",
+  "This Twilio config is used for calls only, so it sends no SMS.": "यह Twilio कॉन्फ़िगरेशन केवल कॉल के लिए इस्तेमाल होता है, इसलिए यह कोई SMS नहीं भेजता।",
+  "This Twilio config has no number to send SMS from.": "इस Twilio कॉन्फ़िगरेशन में SMS भेजने के लिए कोई नंबर नहीं है।",
+  "This Twilio config has no number to make calls from.": "इस Twilio कॉन्फ़िगरेशन में कॉल करने के लिए कोई नंबर नहीं है।",
+  "Region (an AWS Region code, such as us-east-1)": "क्षेत्र (एक AWS क्षेत्र कोड, जैसे us-east-1)",
+  "Domain (the sending domain, such as mg.example.com)": "डोमेन (भेजने वाला डोमेन, जैसे mg.example.com)"
 }

@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "向你自己的手机和浏览器发送测试推送，确认推送通知能够到达。",
   "Check Gateway": "检查网关",
   "Checking your gateway…": "正在检查你的网关…",
-  "Your gateway answered the test request.": "你的网关已回应测试请求。"
+  "Your gateway answered the test request.": "你的网关已回应测试请求。",
+  "Nothing is set up under Settings > Emails yet.": "“设置 > 邮件”中还没有设置任何内容。",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}：“设置 > 邮件”中的“{{field}}”未填写。",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "“设置 > 电话和短信”中没有设置 Twilio 账户或短信网关。",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "“设置 > 电话和短信”中没有设置 Twilio 账户或电话网关。",
+  "This Twilio config is used for SMS only, so it makes no calls.": "此 Twilio 配置仅用于短信，因此不会拨打电话。",
+  "This Twilio config is used for calls only, so it sends no SMS.": "此 Twilio 配置仅用于电话，因此不会发送短信。",
+  "This Twilio config has no number to send SMS from.": "此 Twilio 配置没有用于发送短信的号码。",
+  "This Twilio config has no number to make calls from.": "此 Twilio 配置没有用于拨打电话的号码。",
+  "Region (an AWS Region code, such as us-east-1)": "区域（AWS 区域代码，例如 us-east-1）",
+  "Domain (the sending domain, such as mg.example.com)": "域名（发件域名，例如 mg.example.com）"
 }

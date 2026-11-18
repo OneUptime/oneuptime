@@ -4192,5 +4192,15 @@
   "Send a test push to your own phones and browsers to make sure push notifications reach them.": "내 휴대폰과 브라우저로 테스트 푸시를 보내 푸시 알림이 도착하는지 확인하세요.",
   "Check Gateway": "게이트웨이 확인",
   "Checking your gateway…": "게이트웨이를 확인하는 중…",
-  "Your gateway answered the test request.": "게이트웨이가 테스트 요청에 응답했습니다."
+  "Your gateway answered the test request.": "게이트웨이가 테스트 요청에 응답했습니다.",
+  "Nothing is set up under Settings > Emails yet.": "설정 > 이메일에 아직 아무것도 설정되지 않았습니다.",
+  "{{provider}}: the {{field}} is not set under Settings > Emails.": "{{provider}}: 설정 > 이메일의 '{{field}}' 항목이 비어 있습니다.",
+  "No Twilio account or SMS gateway is set up under Settings > Call and SMS.": "설정 > 전화 및 SMS에 Twilio 계정이나 SMS 게이트웨이가 설정되어 있지 않습니다.",
+  "No Twilio account or call gateway is set up under Settings > Call and SMS.": "설정 > 전화 및 SMS에 Twilio 계정이나 전화 게이트웨이가 설정되어 있지 않습니다.",
+  "This Twilio config is used for SMS only, so it makes no calls.": "이 Twilio 구성은 SMS 전용이므로 전화를 걸지 않습니다.",
+  "This Twilio config is used for calls only, so it sends no SMS.": "이 Twilio 구성은 전화 전용이므로 SMS를 보내지 않습니다.",
+  "This Twilio config has no number to send SMS from.": "이 Twilio 구성에는 SMS를 보낼 번호가 없습니다.",
+  "This Twilio config has no number to make calls from.": "이 Twilio 구성에는 전화를 걸 번호가 없습니다.",
+  "Region (an AWS Region code, such as us-east-1)": "리전 (us-east-1 같은 AWS 리전 코드)",
+  "Domain (the sending domain, such as mg.example.com)": "도메인 (mg.example.com 같은 발신 도메인)"
 }
