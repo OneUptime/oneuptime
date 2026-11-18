@@ -557,6 +557,11 @@ export const getPickedMonitorGroups: (data: {
 export interface StatusPageSetupPage {
   id: string;
   name: string;
+  /*
+   * Its Page Title, if it has one: the name its visitors read
+   * (StatusPagePublicName), which the preview of step 2 shows (#7467).
+   */
+  pageTitle?: string | undefined;
   // The labels it carries, by id: a grant limited to labels reaches it by them.
   labelIds?: Array<string> | undefined;
 }

@@ -144,18 +144,29 @@ jest.mock(
   },
 );
 
-// The status page's own English words, as a visitor reads them.
+/*
+ * The page's language: English, unless a test reads it in Arabic, a
+ * language read right to left (mockReaderLanguage).
+ */
+let mockReaderLanguage: "en" | "ar" = "en";
+
+// The status page's own words, as a visitor reads them.
 jest.mock("react-i18next", () => {
-  const english: Record<string, unknown> = jest.requireActual(
-    "../../../../App/FeatureSet/StatusPage/src/Locales/en.json",
-  ) as Record<string, unknown>;
+  const locales: Record<string, Record<string, unknown>> = {
+    en: jest.requireActual(
+      "../../../../App/FeatureSet/StatusPage/src/Locales/en.json",
+    ) as Record<string, unknown>,
+    ar: jest.requireActual(
+      "../../../../App/FeatureSet/StatusPage/src/Locales/ar.json",
+    ) as Record<string, unknown>,
+  };
 
   const lookUp: (key: string, isFlatKey: boolean) => string | undefined = (
     key: string,
     isFlatKey: boolean,
   ): string | undefined => {
     const path: Array<string> = isFlatKey ? [key] : key.split(".");
-    let node: unknown = english;
+    let node: unknown = locales[mockReaderLanguage];
 
     for (const part of path) {
       if (!node || typeof node !== "object") {
@@ -204,7 +215,10 @@ jest.mock("react-i18next", () => {
     useTranslation: () => {
       return {
         t: t,
-        i18n: { resolvedLanguage: "en", language: "en" },
+        i18n: {
+          resolvedLanguage: mockReaderLanguage,
+          language: mockReaderLanguage,
+        },
       };
     },
   };
@@ -448,8 +462,8 @@ async function renderOverview(): Promise<void> {
  * ---------------------------------------------------------------------------
  */
 
-// The grid of a status page group, by the group's name.
-function gridOf(groupName: string): HTMLElement {
+// A status page group's section, by the group's name.
+function sectionOf(groupName: string): HTMLElement {
   const section: HTMLElement | undefined = screen
     .getAllByTestId("status-page-group-header")
     .map((header: HTMLElement): HTMLElement => {
@@ -469,7 +483,12 @@ function gridOf(groupName: string): HTMLElement {
     throw new Error(`No status page group is named ${groupName}.`);
   }
 
-  return within(section).getByTestId("status-page-grid");
+  return section;
+}
+
+// The grid of a status page group, by the group's name.
+function gridOf(groupName: string): HTMLElement {
+  return within(sectionOf(groupName)).getByTestId("status-page-grid");
 }
 
 // An element's children with this tag.
@@ -719,14 +738,103 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
     expect(
       within(dashboardInEu).queryByTestId("status-page-grid-cell-status"),
     ).not.toBeInTheDocument();
-    const dash: HTMLElement = dashboardInEu.lastElementChild as HTMLElement;
+    const empty: HTMLElement = dashboardInEu.lastElementChild as HTMLElement;
 
-    expect(dash.className).toBe(layout.cellEmpty);
-    expect(dash).toHaveAttribute("aria-hidden", "true");
+    expect(empty).toHaveAttribute("data-testid", "status-page-grid-cell-empty");
+    expect(empty.className).toBe(layout.cellEmpty);
     expect(
       textOf(within(dashboardInEu).getByTestId("status-page-grid-cell-label")),
     ).toBe("EU");
     expect(dashboardInEu.getAttribute("style")).toBeNull();
+  });
+
+  /*
+   * #7431: the dash is read as nothing, so a screen reader heard the
+   * column's name in the stack and then the next cell, and a blank cell in
+   * the matrix. The cell says what the dash means, to a screen reader only.
+   */
+  test("an empty cell's dash is for the eye, and a screen reader hears that it has no resources", async () => {
+    await renderOverview();
+
+    const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+    const dashboardInEu: HTMLElement = childrenTagged(rows[1]!, "TD")[1]!;
+    const empty: HTMLElement = within(dashboardInEu).getByTestId(
+      "status-page-grid-cell-empty",
+    );
+
+    // The cell itself is read: only its dash is hidden.
+    expect(empty).not.toHaveAttribute("aria-hidden");
+    expect(dashboardInEu.closest("[aria-hidden='true']")).toBeNull();
+
+    const [dash, words] = Array.from(empty.children) as Array<HTMLElement>;
+
+    expect(dash).toHaveAttribute("aria-hidden", "true");
+    expect(textOf(dash!)).toBe("");
+    expect(words!.tagName).toBe("SPAN");
+    expect(tokensOf(words!.className)).toEqual(["sr-only"]);
+    expect(textOf(words!)).toBe("No resources");
+
+    // In the stack, after the name of its column: "EU, No resources".
+    expect(textOf(dashboardInEu)).toBe("EUNo resources");
+  });
+
+  test("a cell with resources says nothing of being empty, to anyone", async () => {
+    await renderOverview();
+
+    const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+
+    rows.forEach((row: HTMLElement, rowIndex: number) => {
+      childrenTagged(row, "TD").forEach(
+        (cell: HTMLElement, columnIndex: number) => {
+          const isDashboardInEu: boolean = rowIndex === 1 && columnIndex === 1;
+
+          expect(
+            within(cell).queryAllByTestId("status-page-grid-cell-empty"),
+          ).toHaveLength(isDashboardInEu ? 1 : 0);
+          expect(textOf(cell).includes("No resources")).toBe(isDashboardInEu);
+          expect(cell.querySelectorAll(".sr-only")).toHaveLength(
+            isDashboardInEu ? 1 : 0,
+          );
+        },
+      );
+    });
+  });
+
+  describe("in Arabic, a language read right to left", () => {
+    beforeEach(() => {
+      mockReaderLanguage = "ar";
+    });
+
+    afterEach(() => {
+      mockReaderLanguage = "en";
+    });
+
+    test("an empty cell says it has no resources in the page's own words", async () => {
+      const arabic: Record<string, Record<string, string>> = jest.requireActual(
+        "../../../../App/FeatureSet/StatusPage/src/Locales/ar.json",
+      ) as Record<string, Record<string, string>>;
+
+      await renderOverview();
+
+      const rows: Array<HTMLElement> = partsOf(gridOf("Regions")).rows;
+      const dashboardInEu: HTMLElement = childrenTagged(rows[1]!, "TD")[1]!;
+      const words: HTMLElement = within(dashboardInEu)
+        .getByTestId("status-page-grid-cell-empty")
+        .querySelector(".sr-only") as HTMLElement;
+
+      expect(textOf(words)).toBe("لا توجد موارد");
+      expect(textOf(words)).toBe(arabic["overview"]!["gridCellEmpty"]);
+      expect(textOf(words)).not.toBe("No resources");
+    });
+
+    test("a grid with no row axis name heads its rows in the page's own word, not English's Resource", async () => {
+      await renderOverview();
+
+      const head: HTMLElement = partsOf(gridOf("Gulf")).head;
+
+      expect(textOf(head)).toContain("المورد");
+      expect(textOf(head)).not.toContain("Resource");
+    });
   });
 
   test("a one-column grid has its own query, and with no axis names the rows' heading says Resource and no column axis row is drawn", async () => {
@@ -844,28 +952,214 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
     expect(found).toEqual([]);
   });
 
-  test("a grid group with no rows or no columns still says so, instead of an empty grid", async () => {
-    serve(
-      overviewPayload({
-        groups: [
-          gridGroupJson({
-            id: UNSET_ID,
-            name: "Unset",
-            order: 1,
-            rows: ["API"],
-            columns: [],
-          }),
-        ],
-        resources: [],
-      }),
-    );
-    await renderOverview();
+  /*
+   * A grid group with no rows or no columns yet has no cells (#9476). It
+   * drew, for every visitor, the owner's "no row or column values are
+   * configured" as an error: a visitor cannot add the axes, and read it as
+   * the status page failing. A visitor reads it as a list group: its
+   * resources, or its own empty line. The sentence is the owner's, on the
+   * Dashboard's preview, as a quiet note above the list.
+   */
+  describe("a grid group with no rows or no columns yet (#9476)", () => {
+    const AXES_NOT_CONFIGURED: string =
+      "This group is set to grid view but no row or column values are configured.";
 
-    expect(
-      screen.getByText(
-        "This group is set to grid view but no row or column values are configured.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("status-page-grid")).not.toBeInTheDocument();
+    const PREVIEW_PATH: string = `/status-page/${STATUS_PAGE_ID}`;
+
+    // Unset: a grid group with these rows and columns, and these resources.
+    function serveUnset(data: {
+      rows: Array<string>;
+      columns: Array<string>;
+      resources: Array<JSONObject>;
+    }): void {
+      serve(
+        overviewPayload({
+          groups: [
+            gridGroupJson({
+              id: UNSET_ID,
+              name: "Unset",
+              order: 1,
+              rows: data.rows,
+              columns: data.columns,
+            }),
+          ],
+          resources: data.resources,
+        }),
+      );
+    }
+
+    // One resource placed in a cell before the axes went, one never placed.
+    function unsetResources(): Array<JSONObject> {
+      return [
+        resourceJson({
+          name: "API in US",
+          statusId: OPERATIONAL_STATUS_ID,
+          statusPageGroupId: UNSET_ID,
+          row: "API",
+          column: "US",
+        }),
+        resourceJson({
+          name: "Checkout",
+          statusId: DEGRADED_STATUS_ID,
+          statusPageGroupId: UNSET_ID,
+          row: "",
+          column: "",
+        }),
+      ];
+    }
+
+    // The resources a group's section lists, by their lines' words.
+    function listedIn(section: HTMLElement): Array<string> {
+      return within(section)
+        .queryAllByTestId("status-page-resource-header")
+        .map(textOf);
+    }
+
+    test.each([
+      ["rows but no columns", ["API"], []],
+      ["columns but no rows", [], ["US"]],
+      ["neither", [], []],
+      ["rows that are only commas and spaces", [" ", ""], ["US"]],
+    ] as Array<[string, Array<string>, Array<string>]>)(
+      "with %s, a visitor reads its resources as a list group's, with no grid and no error",
+      async (_axes: string, rows: Array<string>, columns: Array<string>) => {
+        serveUnset({
+          rows: rows,
+          columns: columns,
+          resources: unsetResources(),
+        });
+        await renderOverview();
+
+        const section: HTMLElement = sectionOf("Unset");
+
+        expect(listedIn(section)).toEqual([
+          expect.stringContaining("API in US"),
+          expect.stringContaining("Checkout"),
+        ]);
+        expect(
+          within(section).queryByTestId("status-page-grid"),
+        ).not.toBeInTheDocument();
+        expect(
+          within(section).queryByTestId("status-page-group-empty"),
+        ).not.toBeInTheDocument();
+        expect(textOf(document.body)).not.toContain(AXES_NOT_CONFIGURED);
+        expect(
+          screen.queryByTestId("status-page-grid-axes-not-configured"),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    test("with no resources either, a visitor reads the group's own empty line, and no error", async () => {
+      serveUnset({ rows: ["API"], columns: [], resources: [] });
+      await renderOverview();
+
+      const section: HTMLElement = sectionOf("Unset");
+
+      expect(
+        textOf(within(section).getByTestId("status-page-group-empty")),
+      ).toBe("No resources added to this group.");
+      expect(
+        within(section).queryByTestId("status-page-grid"),
+      ).not.toBeInTheDocument();
+      expect(textOf(document.body)).not.toContain(AXES_NOT_CONFIGURED);
+    });
+
+    test("its resources' history bars keep a list's time axis under them, which a grid has none of", async () => {
+      serveUnset({
+        rows: [],
+        columns: [],
+        resources: [
+          {
+            ...resourceJson({
+              name: "API in US",
+              statusId: OPERATIONAL_STATUS_ID,
+              statusPageGroupId: UNSET_ID,
+              row: "API",
+              column: "US",
+            }),
+            showStatusHistoryChart: true,
+          },
+        ],
+      });
+      await renderOverview();
+
+      expect(
+        within(sectionOf("Unset")).getByTestId("uptime-time-axis"),
+      ).toBeInTheDocument();
+    });
+
+    test("on the Dashboard's preview, its owner reads why, as a quiet note above the list rather than an error", async () => {
+      window.history.replaceState({}, "", PREVIEW_PATH);
+      serveUnset({ rows: ["API"], columns: [], resources: unsetResources() });
+      await renderOverview();
+
+      const section: HTMLElement = sectionOf("Unset");
+      const note: HTMLElement = within(section).getByTestId(
+        "status-page-grid-axes-not-configured",
+      );
+
+      expect(textOf(note)).toBe(AXES_NOT_CONFIGURED);
+
+      // The empty line's quiet gray and size, not an error's block.
+      expect(tokensOf(note.className)).toEqual(
+        expect.arrayContaining(["text-sm", "text-gray-500"]),
+      );
+      expect(within(section).getAllByText(AXES_NOT_CONFIGURED)).toHaveLength(1);
+
+      // Above the list it explains, which is the one its visitors read.
+      const lines: Array<HTMLElement> = within(section).getAllByTestId(
+        "status-page-resource-header",
+      );
+
+      expect(lines).toHaveLength(2);
+      expect(
+        note.compareDocumentPosition(lines[0]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        within(section).queryByTestId("status-page-grid"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on the preview, a grid with its rows and columns, and a list group with none, draw no note", async () => {
+      window.history.replaceState({}, "", PREVIEW_PATH);
+      serve(
+        overviewPayload({
+          groups: [
+            REGIONS_GROUP,
+            {
+              ...gridGroupJson({
+                id: UNSET_ID,
+                name: "Plain",
+                order: 2,
+                rows: [],
+                columns: [],
+              }),
+              viewMode: StatusPageGroupViewMode.List,
+            },
+          ],
+          resources: [
+            ...regionsResources(),
+            resourceJson({
+              name: "Status API",
+              statusId: OPERATIONAL_STATUS_ID,
+              statusPageGroupId: UNSET_ID,
+              row: "",
+              column: "",
+            }),
+          ],
+        }),
+      );
+      await renderOverview();
+
+      expect(gridOf("Regions")).toBeInTheDocument();
+      expect(listedIn(sectionOf("Plain"))).toEqual([
+        expect.stringContaining("Status API"),
+      ]);
+      expect(
+        screen.queryByTestId("status-page-grid-axes-not-configured"),
+      ).not.toBeInTheDocument();
+      expect(textOf(document.body)).not.toContain(AXES_NOT_CONFIGURED);
+    });
   });
 });

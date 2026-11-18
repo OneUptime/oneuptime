@@ -30,8 +30,26 @@ and `first-telemetry-guided` count what each job costs a newcomer. This suite lo
   monitor ticked and nothing else
 - a Project Viewer (`?as=viewer`): offered neither setup, and told why at the setup's address
 
-The fixture's query parameters this suite uses: `seed=monitor`, `seed=busy`, `as=viewer` and
-`theme=dark`. The reader's language is set where the Dashboard keeps it (`oneuptimeLang`).
+`StatusPageResourcesGrid.spec.ts` measures a status page's **Resources** screen, whose groups
+in grid view are edited as the matrix visitors see, and drawn as a stack where the matrix would
+not fit its box (`Common/UI/Components/StatusPage/ResourceGridLayout.ts`; #7239, #7430). Over
+`?seed=status-page-grid` (**Regions**: Service by three Regions, long monitor names and two
+resources off the grid; **Regions worldwide**: by six), in English and Arabic:
+
+- at 390, 768, 1024, 1280, 1440 and 1920 pixels, neither the grid's box nor the page scrolls
+  sideways; the three-region grid is a stack up to 1280 and a matrix from 1440, each cell naming
+  its column only in the stack
+- the stack's tiles share a line where they fit: one in a phone's, a tablet's and a 1024px
+  window's box, two at 1280 and 1440, four at 1920 for six regions
+- a chip's name keeps at least 140px while its **Edit** and **⋯** wait; hovered, they sit inside
+  the chip; where nothing can hover (`hasTouch`), they are always drawn
+- in Arabic the tiles run from the right, and a resource off the grid keeps both its axes, the
+  second on a line of its own at 390px
+- each look, English and Arabic, light and dark, at 390 and 1280: `grid-<language>-<theme>-<width>.png`
+
+The fixture's query parameters this suite uses: `seed=monitor`, `seed=busy`,
+`seed=status-page-grid`, `as=viewer` and `theme=dark`. The reader's language is set where the
+Dashboard keeps it (`oneuptimeLang`).
 
 ## Run it
 

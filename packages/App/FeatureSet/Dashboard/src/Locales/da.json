@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "Angiv den adresse, der skal tjekkes.",
   "Enter the port to check, like 443.": "Angiv den port, der skal tjekkes, f.eks. 443.",
   "It changes no status and opens nothing.": "Det ændrer ingen status og åbner intet.",
+  "None. The status page's name is used.": "Ingen. Statussidens navn bruges.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "Vælg, hvad der skal overvåges, og giv det et navn. Alt andet starter med standardværdier, som du kan ændre. Når noget går galt, åbner OneUptime en hændelse eller advarsel, og det næste trin viser, hvem der får besked.",
   "Runs one check now, and shows what it finds.": "Kører ét tjek nu og viser, hvad det finder.",
   "The check runs from {{probe}}.": "Tjekket køres fra {{probe}}.",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "Dette resultat opfylder {{criteria}}.",
   "What one check found, and what would follow.": "Hvad ét tjek fandt, og hvad der ville følge.",
   "What to Monitor": "Hvad der skal overvåges",
-  "Where the check runs from.": "Hvorfra tjekket køres."
+  "Where the check runs from.": "Hvorfra tjekket køres.",
+  "{{count}} monitor groups added": "{{count}} monitorgrupper tilføjet",
+  "{{count}} monitor groups added_one": "{{count}} monitorgruppe tilføjet",
+  "{{count}} monitors added": "{{count}} monitorer tilføjet",
+  "{{count}} monitors added_one": "{{count}} monitor tilføjet",
+  "Is Sample Project": "Er et eksempelprojekt",
+  "Sample Project": "Eksempelprojekt",
+  "Sample Project ID": "Eksempelprojekt-ID"
 }

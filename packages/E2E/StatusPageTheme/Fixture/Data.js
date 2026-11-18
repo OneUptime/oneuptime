@@ -13,6 +13,13 @@
  * which a phone draws as a stack (StatusPageResourceGrid.spec.ts). With
  * wideGrid (the query's grid=wide) the grid has six columns: 1,000px of
  * matrix, which even a laptop draws as a stack, three tiles to a line.
+ * With hasNoLogo (the query's logo=none) the page has no logo, as a page
+ * made by Create Status Page or the guided setup has none: its header names
+ * it by the name the server sends (#7467).
+ * With notMonitored (the query's notMonitored=1) some resources are ones
+ * nothing checks - their monitor's monitoring is off - which the page draws
+ * as Not monitored, in gray: a group of its own, "Legacy", whose one row
+ * and whose rollup say so, and the grid's API cell in Asia Pacific (#6989).
  * Colours are the product's defaults for new projects.
  */
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -92,10 +99,12 @@ const darkLogoFile = () => {
  * JSON.stringify writes as { type: "Buffer", data: [...] }.
  */
 const withLogoBytes = (statusPageJson) => {
-  statusPageJson.logoFile.file = {
-    _type: "Buffer",
-    value: { type: "Buffer", data: logoBytes(LOGO_DATA_URL) },
-  };
+  if (statusPageJson.logoFile) {
+    statusPageJson.logoFile.file = {
+      _type: "Buffer",
+      value: { type: "Buffer", data: logoBytes(LOGO_DATA_URL) },
+    };
+  }
 
   if (statusPageJson.darkThemeLogoFile) {
     statusPageJson.darkThemeLogoFile.file = {
@@ -184,6 +193,24 @@ const gridGroup = Object.assign(new StatusPageGroup(), {
   columnAxisValues: "US, EU, Asia Pacific",
   order: 2,
 });
+
+/*
+ * notMonitored's group: one resource, whose monitor nothing checks, so the
+ * group's rollup reads Not monitored too.
+ */
+const legacyGroup = Object.assign(new StatusPageGroup(), {
+  _id: id(12),
+  name: "Legacy",
+  isExpandedByDefault: true,
+  showCurrentStatus: true,
+  showUptimePercent: true,
+  order: 3,
+});
+
+const LEGACY_RESOURCE = { name: "Status probe (retired)", outages: [] };
+
+// The grid cell notMonitored draws as Not monitored.
+const NOT_MONITORED_GRID_RESOURCE = "API in Asia Pacific";
 
 // The same group by six regions (wideGrid): a matrix no laptop fits.
 const WIDE_GRID_COLUMNS = [
@@ -288,6 +315,8 @@ export const buildFixture = (data) => {
   const monitors = [];
   const resources = [];
   const timelines = [];
+  // What the page draws as Not monitored (notMonitored): their resources' ids.
+  const notMonitoredResourceIds = [];
 
   LIST_RESOURCES.forEach((entry, index) => {
     const monitor = Object.assign(new Monitor(), {
@@ -376,7 +405,50 @@ export const buildFixture = (data) => {
         startsAt: new Date(now - 80 * DAY),
       }),
     );
+
+    if (data.notMonitored && entry.name === NOT_MONITORED_GRID_RESOURCE) {
+      notMonitoredResourceIds.push(id(250 + index));
+    }
   });
+
+  if (data.notMonitored) {
+    const monitor = Object.assign(new Monitor(), {
+      _id: id(170),
+      name: LEGACY_RESOURCE.name,
+      currentMonitorStatusId: OPERATIONAL.id,
+      disableActiveMonitoring: true,
+    });
+    monitors.push(monitor);
+
+    resources.push(
+      Object.assign(new StatusPageResource(), {
+        _id: id(270),
+        displayName: LEGACY_RESOURCE.name,
+        monitor,
+        monitorId: monitor.id,
+        statusPageGroupId: legacyGroup.id,
+        showStatusHistoryChart: true,
+        showCurrentStatus: true,
+        showUptimePercent: true,
+        order: 0,
+      }),
+    );
+    notMonitoredResourceIds.push(id(270));
+
+    timelines.push(
+      Object.assign(new MonitorStatusTimeline(), {
+        _id: id(1700),
+        monitorId: monitor.id,
+        monitorStatusId: OPERATIONAL.id,
+        monitorStatus: OPERATIONAL,
+        startsAt: new Date(now - 80 * DAY),
+      }),
+    );
+  }
+
+  const groupsShown = data.notMonitored
+    ? [listGroup, gridGroupShown, legacyGroup]
+    : [listGroup, gridGroupShown];
 
   const statusPage = Object.assign(new StatusPage(), {
     _id: PAGE_ID,
@@ -386,15 +458,20 @@ export const buildFixture = (data) => {
     theme: data.theme,
     // The page's default language, which a visitor who never chose one reads.
     ...(data.language ? { defaultLanguage: data.language } : {}),
-    logoFile: logoFile(),
-    logoFileId: new ObjectID(id(900)),
+    /*
+     * A page made by Create Status Page or the guided setup has no logo
+     * (hasNoLogo, the query's logo=none): its header names it (#7467).
+     */
+    ...(data.hasNoLogo
+      ? {}
+      : { logoFile: logoFile(), logoFileId: new ObjectID(id(900)) }),
     ...(data.hasDarkLogo
       ? {
           darkThemeLogoFile: darkLogoFile(),
           darkThemeLogoFileId: new ObjectID(id(901)),
         }
       : {}),
-    logoAltText: "Acme Cloud",
+    ...(data.hasNoLogo ? {} : { logoAltText: "Acme Cloud" }),
     copyrightText: "Acme, Inc.",
     overviewPageDescription:
       "Live status of **Acme Cloud**. For help, write to [support](https://example.com/support).",
@@ -506,7 +583,7 @@ export const buildFixture = (data) => {
     },
     overview: {
       statusPage: json(statusPage, StatusPage),
-      resourceGroups: jsonArray([listGroup, gridGroupShown], StatusPageGroup),
+      resourceGroups: jsonArray(groupsShown, StatusPageGroup),
       statusPageResources: sharedResources,
       monitorStatuses: jsonArray(STATUSES, MonitorStatus),
       monitorStatusTimelines: jsonArray(timelines, MonitorStatusTimeline),
@@ -538,6 +615,8 @@ export const buildFixture = (data) => {
       ),
       monitorsInGroup: {},
       monitorGroupCurrentStatuses: {},
+      // As the server sends them: the resources nothing checks right now.
+      notMonitoredResourceIds: notMonitoredResourceIds,
     },
     incidents: {
       incidents: jsonArray([incident], Incident),
@@ -582,7 +661,7 @@ export const buildFixture = (data) => {
     },
     resources: {
       statusPageResources: sharedResources,
-      resourceGroups: jsonArray([listGroup, gridGroupShown], StatusPageGroup),
+      resourceGroups: jsonArray(groupsShown, StatusPageGroup),
     },
   };
 };

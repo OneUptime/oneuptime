@@ -19,7 +19,98 @@ import Redis from "./Redis";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 import logger from "../Utils/Logger";
 
+/*
+ * A QUEUE WORKER TAKES NO JOB UNTIL ITS PROCESS HAS STARTED.
+ *
+ * A worker built by getWorker() does not take jobs from its queue when it is
+ * built. It waits for startProcessingJobs(), which the process calls once it
+ * is connected to every datastore its jobs use and has started
+ * (App/Index.ts, where it opens the StartupGate). A worker built after that
+ * starts at once.
+ *
+ * Some workers are built when their module is imported - the telemetry
+ * worker (ProcessTelemetry) - and their process then takes a while before it
+ * can run a job: it waits for the migrate Job to apply the schema migrations
+ * its code needs (up to DATABASE_MIGRATION_WAIT_TIMEOUT_MS), and only then
+ * connects to Valkey and ClickHouse. A worker that took jobs meanwhile
+ * failed every one of them ("Database not connected", "Redis not
+ * connected") at its full concurrency, as fast as it could take them, and
+ * after three attempts each was dropped. In one rollout a migration that
+ * could not finish held the new worker pods at that wait for hours, and
+ * they threw away the probes' results - and the logs, metrics and traces -
+ * that the older pods, still running, would have recorded.
+ */
+interface WorkerWaitingToStart {
+  queueName: QueueName;
+  worker: Worker;
+}
+
 export default class QueueWorker {
+  private static jobsMayBeProcessed: boolean = false;
+  private static workersWaitingToStart: Array<WorkerWaitingToStart> = [];
+
+  /*
+   * From now on the queue workers take jobs: those built so far start, and
+   * every one built later starts as it is built. Called once the process is
+   * connected to its datastores and started; calling it again does nothing.
+   */
+  public static startProcessingJobs(): void {
+    if (QueueWorker.jobsMayBeProcessed) {
+      return;
+    }
+
+    QueueWorker.jobsMayBeProcessed = true;
+
+    const waiting: Array<WorkerWaitingToStart> =
+      QueueWorker.workersWaitingToStart;
+
+    QueueWorker.workersWaitingToStart = [];
+
+    for (const entry of waiting) {
+      QueueWorker.runWorker(entry.worker);
+    }
+
+    if (waiting.length > 0) {
+      logger.info(
+        `Queue workers now take jobs: ${waiting
+          .map((entry: WorkerWaitingToStart) => {
+            return entry.queueName;
+          })
+          .join(", ")}.`,
+      );
+    }
+  }
+
+  // Whether startProcessingJobs() has been called.
+  public static isProcessingJobs(): boolean {
+    return QueueWorker.jobsMayBeProcessed;
+  }
+
+  /*
+   * The queues of the workers still waiting for startProcessingJobs(), in
+   * the order they were built.
+   */
+  public static getQueuesWaitingToStart(): Array<QueueName> {
+    return QueueWorker.workersWaitingToStart.map(
+      (entry: WorkerWaitingToStart) => {
+        return entry.queueName;
+      },
+    );
+  }
+
+  /*
+   * Starts a worker's fetch loop, as BullMQ's own autorun would - outside
+   * every span (see getWorker), and with a failure to run reported as the
+   * worker's "error" event.
+   */
+  private static runWorker(worker: Worker): void {
+    context.with(ROOT_CONTEXT, () => {
+      worker.run().catch((error: Error) => {
+        worker.emit("error", error);
+      });
+    });
+  }
+
   @CaptureSpan()
   public static getWorker(
     queueName: QueueName,
@@ -194,17 +285,19 @@ export default class QueueWorker {
     };
 
     /*
-     * Built outside every span. BullMQ starts its fetch loop in this
-     * constructor, so the loop - every job handler call, every "failed"
-     * listener and the log lines they write - runs in the context it was
-     * built in for the life of the process. That context holds this
-     * method's own span (and a caller's, when one starts a worker), so every
-     * job used to join the trace of a span that ended at startup.
+     * Built, and run (runWorker), outside every span. The fetch loop BullMQ
+     * starts - every job handler call, every "failed" listener and the log
+     * lines they write - runs in the context it was started in for the life
+     * of the process. That context held this method's own span (and a
+     * caller's, when one starts a worker), so every job used to join the
+     * trace of a span that ended at startup.
      */
     const worker: Worker = context.with(ROOT_CONTEXT, () => {
       return new Worker(queueName, instrumentedJobHandler, {
         connection: Redis.getRedisOptions(),
         concurrency: options.concurrency,
+        // Started by runWorker, never by the constructor (see the top).
+        autorun: false,
         // Only set these values if provided so we do not override BullMQ defaults
         ...(options.lockDuration ? { lockDuration: options.lockDuration } : {}),
         ...(options.maxStalledCount !== undefined
@@ -242,6 +335,15 @@ export default class QueueWorker {
         return worker.close();
       },
     );
+
+    if (QueueWorker.jobsMayBeProcessed) {
+      QueueWorker.runWorker(worker);
+    } else {
+      QueueWorker.workersWaitingToStart.push({
+        queueName: queueName,
+        worker: worker,
+      });
+    }
 
     return worker;
   }

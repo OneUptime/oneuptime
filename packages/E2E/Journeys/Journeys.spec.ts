@@ -405,7 +405,10 @@ journey(
 /*
  * 4. Publish a status page that shows the monitor: Status Pages, Create
  * Status Page with a name, then the monitor added from its Overview (the
- * Quickstart's "Publish a status page").
+ * Quickstart's "Publish a status page"), in a dialog right there, beside
+ * the link to the page. Add Monitors opened the page's Resources, where a
+ * second Add opened the picker, and the link was back on the Overview
+ * (#7466).
  */
 journey(
   "status-page",
@@ -419,9 +422,11 @@ journey(
     await person.type("Name", "Acme Status");
     await person.submit("Create Status Page");
     await person.press(/Add Monitors/);
-    await person.press("Add Monitor");
-    await person.pick(/^Monitor/, /Acme website/);
-    await person.submit("Add Monitor");
+    await person.pick(/^Monitors/, /Acme website/);
+    await person.submit("Add Monitors");
+    // Added: the Overview gives way to the link to the page.
+    await expect(page.getByTestId("status-page-first-step")).toHaveCount(0);
+    await expect(page.getByTestId("status-page-link")).toBeVisible();
   },
   (log: FixtureLog) => {
     const [statusPage] = writesTo(log, "StatusPage");

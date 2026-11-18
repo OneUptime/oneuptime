@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "请输入要检查的地址。",
   "Enter the port to check, like 443.": "请输入要检查的端口，例如 443。",
   "It changes no status and opens nothing.": "它不会更改状态，也不会打开任何内容。",
+  "None. The status page's name is used.": "无。使用状态页的名称。",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "选择要监控的对象并为其命名。其余内容均使用可更改的默认值。一旦出现问题，OneUptime 会创建事件或警报，下一步会显示通知谁。",
   "Runs one check now, and shows what it finds.": "现在运行一次检查，并显示检查结果。",
   "The check runs from {{probe}}.": "检查从 {{probe}} 运行。",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "此结果符合标准 {{criteria}}。",
   "What one check found, and what would follow.": "一次检查发现了什么，以及接下来会发生什么。",
   "What to Monitor": "监控什么",
-  "Where the check runs from.": "运行检查的位置。"
+  "Where the check runs from.": "运行检查的位置。",
+  "{{count}} monitor groups added": "已添加 {{count}} 个监视器组",
+  "{{count}} monitor groups added_one": "已添加 {{count}} 个监视器组",
+  "{{count}} monitors added": "已添加 {{count}} 个监视器",
+  "{{count}} monitors added_one": "已添加 {{count}} 个监视器",
+  "Is Sample Project": "是否为示例项目",
+  "Sample Project": "示例项目",
+  "Sample Project ID": "示例项目 ID"
 }

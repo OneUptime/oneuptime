@@ -155,10 +155,21 @@ function makeGroup(data: {
   parentId?: ObjectID | undefined;
   order?: number | undefined;
   viewMode?: StatusPageGroupViewMode | undefined;
+  // A grid group's comma separated rows and columns.
+  rowAxisValues?: string | undefined;
+  columnAxisValues?: string | undefined;
 }): StatusPageGroup {
   const group: StatusPageGroup = new StatusPageGroup();
   group._id = data.id.toString();
   group.name = data.name;
+
+  if (data.rowAxisValues !== undefined) {
+    group.rowAxisValues = data.rowAxisValues;
+  }
+
+  if (data.columnAxisValues !== undefined) {
+    group.columnAxisValues = data.columnAxisValues;
+  }
 
   if (data.parentId) {
     group.parentStatusPageGroupId = data.parentId;
@@ -1140,6 +1151,81 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
     });
   });
 
+  /*
+   * A grid group with no rows or no columns yet has no cells, so it is
+   * drawn as a list group is: its visitors cannot add the axes, and the
+   * error drawn in their place read as the page failing (#9476).
+   */
+  describe("isDrawnAsGrid", () => {
+    function gridGroup(data: {
+      rowAxisValues?: string | undefined;
+      columnAxisValues?: string | undefined;
+      viewMode?: StatusPageGroupViewMode | undefined;
+    }): StatusPageGroup {
+      return makeGroup({
+        id: CORPORATE,
+        name: "Corporate",
+        order: 1,
+        viewMode: data.viewMode || StatusPageGroupViewMode.Grid,
+        rowAxisValues: data.rowAxisValues,
+        columnAxisValues: data.columnAxisValues,
+      });
+    }
+
+    test("a grid group with a row and a column is drawn as a grid", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(
+          gridGroup({ rowAxisValues: "API", columnAxisValues: "US, EU" }),
+        ),
+      ).toBe(true);
+    });
+
+    test.each([
+      ["rows but no columns", "API, Dashboard", undefined],
+      ["columns but no rows", undefined, "US"],
+      ["neither", undefined, undefined],
+      ["rows and columns that are only commas and spaces", " , ", ",,"],
+      ["rows, and columns that are only spaces", "API", "   "],
+    ] as Array<[string, string | undefined, string | undefined]>)(
+      "a grid group with %s is drawn as a list",
+      (
+        _axes: string,
+        rowAxisValues: string | undefined,
+        columnAxisValues: string | undefined,
+      ) => {
+        expect(
+          StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(
+            gridGroup({
+              rowAxisValues: rowAxisValues,
+              columnAxisValues: columnAxisValues,
+            }),
+          ),
+        ).toBe(false);
+      },
+    );
+
+    test("a list group is drawn as a list, whatever axes it kept from being a grid", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(
+          gridGroup({
+            viewMode: StatusPageGroupViewMode.List,
+            rowAxisValues: "API",
+            columnAxisValues: "US",
+          }),
+        ),
+      ).toBe(false);
+      expect(
+        StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(
+          makeGroup({ id: CORPORATE, name: "Corporate", order: 1 }),
+        ),
+      ).toBe(false);
+    });
+
+    test("the ungrouped block is a list", () => {
+      expect(StatusPageGroupNestingLayoutUtil.isDrawnAsGrid(null)).toBe(false);
+    });
+  });
+
   describe("shouldRenderTimeAxis", () => {
     const CHARTED: ObjectID = new ObjectID(
       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -1218,6 +1304,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
         name: "Corporate",
         order: 1,
         viewMode: StatusPageGroupViewMode.Grid,
+        rowAxisValues: "API",
+        columnAxisValues: "US, EU",
       });
 
       expect(
@@ -1233,6 +1321,35 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           ],
         }),
       ).toBe(false);
+    });
+
+    /*
+     * With no rows or no columns yet, a grid group draws its resources as a
+     * list (isDrawnAsGrid, #9476): bars over a window, and the axis that
+     * labels them.
+     */
+    test("a grid view group with no columns yet is drawn as a list, and draws a list's axis", () => {
+      const gridGroup: StatusPageGroup = makeGroup({
+        id: CORPORATE,
+        name: "Corporate",
+        order: 1,
+        viewMode: StatusPageGroupViewMode.Grid,
+        rowAxisValues: "API",
+      });
+
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderTimeAxis({
+          statusPageGroup: gridGroup,
+          statusPageResources: [
+            makeResource({
+              id: CHARTED,
+              name: "Corporate API",
+              groupId: CORPORATE,
+              showStatusHistoryChart: true,
+            }),
+          ],
+        }),
+      ).toBe(true);
     });
 
     test("a list view group draws one", () => {

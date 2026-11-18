@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "チェックするアドレスを入力してください。",
   "Enter the port to check, like 443.": "チェックするポートを入力してください (例: 443)。",
   "It changes no status and opens nothing.": "ステータスは変わらず、何も作成されません。",
+  "None. The status page's name is used.": "なし。ステータスページの名前が使われます。",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "監視する対象を選んで名前を付けてください。それ以外はすべて、変更できるデフォルト値から始まります。問題が起きると、OneUptime がインシデントまたはアラートを作成します。誰に通知されるかは次のステップに表示されます。",
   "Runs one check now, and shows what it finds.": "今すぐ 1 回チェックを実行し、結果を表示します。",
   "The check runs from {{probe}}.": "チェックは {{probe}} から実行されます。",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "この結果は {{criteria}} に一致します。",
   "What one check found, and what would follow.": "1 回のチェックで見つかったことと、その後に起こること。",
   "What to Monitor": "監視する対象",
-  "Where the check runs from.": "チェックを実行する場所。"
+  "Where the check runs from.": "チェックを実行する場所。",
+  "{{count}} monitor groups added": "モニターグループを {{count}} 件追加しました",
+  "{{count}} monitor groups added_one": "モニターグループを {{count}} 件追加しました",
+  "{{count}} monitors added": "モニターを {{count}} 件追加しました",
+  "{{count}} monitors added_one": "モニターを {{count}} 件追加しました",
+  "Is Sample Project": "サンプルプロジェクトかどうか",
+  "Sample Project": "サンプルプロジェクト",
+  "Sample Project ID": "サンプルプロジェクト ID"
 }

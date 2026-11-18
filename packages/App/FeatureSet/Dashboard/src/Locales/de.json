@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "Geben Sie die zu prüfende Adresse ein.",
   "Enter the port to check, like 443.": "Geben Sie den zu prüfenden Port ein, z. B. 443.",
   "It changes no status and opens nothing.": "Es ändert keinen Status und öffnet nichts.",
+  "None. The status page's name is used.": "Keiner. Der Name der Statusseite wird verwendet.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "Wählen Sie, was überwacht werden soll, und geben Sie ihm einen Namen. Alles andere beginnt mit Standardwerten, die Sie ändern können. Wenn etwas schiefläuft, eröffnet OneUptime einen Vorfall oder eine Warnung, und der nächste Schritt zeigt, wer benachrichtigt wird.",
   "Runs one check now, and shows what it finds.": "Führt jetzt eine Prüfung aus und zeigt, was sie ergibt.",
   "The check runs from {{probe}}.": "Die Prüfung läuft von {{probe}} aus.",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "Dieses Ergebnis erfüllt das Kriterium {{criteria}}.",
   "What one check found, and what would follow.": "Was eine Prüfung ergeben hat und was daraus folgen würde.",
   "What to Monitor": "Was überwacht wird",
-  "Where the check runs from.": "Von wo aus die Prüfung läuft."
+  "Where the check runs from.": "Von wo aus die Prüfung läuft.",
+  "{{count}} monitor groups added": "{{count}} Monitor-Gruppen hinzugefügt",
+  "{{count}} monitor groups added_one": "{{count}} Monitor-Gruppe hinzugefügt",
+  "{{count}} monitors added": "{{count}} Monitore hinzugefügt",
+  "{{count}} monitors added_one": "{{count}} Monitor hinzugefügt",
+  "Is Sample Project": "Ist ein Beispielprojekt",
+  "Sample Project": "Beispielprojekt",
+  "Sample Project ID": "Beispielprojekt-ID"
 }

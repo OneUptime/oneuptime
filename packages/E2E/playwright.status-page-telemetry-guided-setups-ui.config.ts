@@ -13,15 +13,21 @@ import path from "path";
  * ways in from Status Pages and Logs (#7142), the monitor the website setup
  * hands in, and a Project Viewer. Each must fit the window; their pictures
  * are written to output/playwright/status-page-telemetry-guided-setups-ui
- * (StatusPageTelemetryGuidedSetups/README.md). The fixture runs on a port of
- * its own, so the journeys' suites may run beside it.
+ * (StatusPageTelemetryGuidedSetups/README.md). And a status page's
+ * Resources screen, whose grids are measured at real widths, in English and
+ * Arabic, light and dark (?seed=status-page-grid, #7239, #7430:
+ * StatusPageResourcesGrid.spec.ts). The fixture runs on a port of its own,
+ * so the journeys' suites may run beside it.
  */
 const port: string =
   process.env["STATUS_PAGE_TELEMETRY_GUIDED_SETUPS_FIXTURE_PORT"] || "4866";
 
 export default defineConfig({
   testDir: "./StatusPageTelemetryGuidedSetups",
-  testMatch: ["StatusPageTelemetryGuidedSetups.spec.ts"],
+  testMatch: [
+    "StatusPageTelemetryGuidedSetups.spec.ts",
+    "StatusPageResourcesGrid.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 180000,

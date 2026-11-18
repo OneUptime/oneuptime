@@ -112,6 +112,8 @@ function fake(options: {
   foreignKey?: Array<Array<ForeignKeyRow>>;
   /* Makes a raw-client statement fail. */
   clientError?: (text: string) => Error | null;
+  /* What node-postgres answers for a raw-client statement ([] by default). */
+  clientResult?: (text: string) => unknown;
 }): Fake {
   const log: Array<string> = [];
   const index: Array<Array<IndexRow>> = [...(options.index || [MISSING])];
@@ -141,16 +143,21 @@ function fake(options: {
       return {
         query: async (config: {
           text: string;
+          values?: Array<unknown>;
           query_timeout: number;
         }): Promise<unknown> => {
-          log.push(`client: ${config.text} (${config.query_timeout})`);
+          log.push(
+            config.values
+              ? `client: ${config.text} ${JSON.stringify(config.values)} (${config.query_timeout})`
+              : `client: ${config.text} (${config.query_timeout})`,
+          );
           const error: Error | null = options.clientError
             ? options.clientError(config.text)
             : null;
           if (error) {
             throw error;
           }
-          return [];
+          return options.clientResult ? options.clientResult(config.text) : [];
         },
       };
     },
@@ -479,6 +486,157 @@ describe("OnlineDdl", () => {
       await expect(
         OnlineDdl.dropIndex(fake({}).queryRunner, GENERATED_INDEX, LIMITS),
       ).rejects.toThrow("expects a DROP INDEX statement");
+    });
+  });
+
+  /*
+   * A statement that may take long but blocks no read or write of the
+   * app's: a DELETE of a "User" row, which Postgres checks against over a
+   * thousand referencing columns by scanning them - about 12 s a user on
+   * OneUptime Cloud, so a handful of users in one statement ran out of the
+   * 30 s statement timeout and failed the release's migrate Job.
+   */
+  describe("runLongStatement", () => {
+    const DELETE_PERSON: string = `DELETE FROM "User" WHERE "_id" = $1 AND "sampleProjectId" IS NOT NULL`;
+    const PERSON: string = "c2a86c90-3fe0-4452-b59b-6e3f0e5a9803";
+
+    test("runs within its own bounds, with its parameters, then gives the connection its settings back", async () => {
+      const f: Fake = fake({
+        clientResult: () => {
+          return { rowCount: 1, rows: [] };
+        },
+      });
+
+      const changed: number = await OnlineDdl.runLongStatement(
+        f.queryRunner,
+        DELETE_PERSON,
+        [PERSON],
+        LIMITS,
+      );
+
+      expect(changed).toBe(1);
+      expect(f.log).toEqual([
+        ...SET_LIMITS,
+        `client: ${DELETE_PERSON} ["${PERSON}"] (660000)`,
+        ...RESTORE,
+      ]);
+    });
+
+    test("the client waits past the statement timeout, so Postgres - not the client - ends an overlong statement", async () => {
+      const f: Fake = fake({});
+
+      await OnlineDdl.runLongStatement(
+        f.queryRunner,
+        DELETE_PERSON,
+        [PERSON],
+        LIMITS,
+      );
+
+      const clientTimeout: number = Number(
+        f.log
+          .find((line: string): boolean => {
+            return line.startsWith("client:");
+          })!
+          .match(/\((\d+)\)$/)![1],
+      );
+
+      expect(clientTimeout).toBe(
+        LIMITS.statementTimeoutInMs + LIMITS.clientTimeoutMarginInMs,
+      );
+      expect(clientTimeout).toBeGreaterThan(LIMITS.statementTimeoutInMs);
+    });
+
+    test("long enough by default for a delete that scans every table referencing a user", async () => {
+      const f: Fake = fake({});
+
+      await OnlineDdl.runLongStatement(f.queryRunner, DELETE_PERSON, [PERSON]);
+
+      // ONLINE_DDL_LIMITS: half an hour, far past the 30 s pool timeout.
+      expect(f.log[0]).toBe("SET statement_timeout = 1800000");
+      expect(f.log).toContain(
+        `client: ${DELETE_PERSON} ["${PERSON}"] (1860000)`,
+      );
+      expect(f.log.slice(-2)).toEqual(RESTORE);
+    });
+
+    test("a statement without parameters is sent without any", async () => {
+      const f: Fake = fake({});
+
+      await OnlineDdl.runLongStatement(
+        f.queryRunner,
+        `DELETE FROM "Project" WHERE "isSampleProject" = true`,
+        [],
+        LIMITS,
+      );
+
+      expect(f.log).toContain(
+        `client: DELETE FROM "Project" WHERE "isSampleProject" = true (660000)`,
+      );
+    });
+
+    test("refuses to run inside a transaction, before touching anything: the transaction would keep its locks until it commits", async () => {
+      const f: Fake = fake({ inTransaction: true });
+
+      await expect(
+        OnlineDdl.runLongStatement(
+          f.queryRunner,
+          DELETE_PERSON,
+          [PERSON],
+          LIMITS,
+        ),
+      ).rejects.toThrow("public transaction: boolean = false;");
+      expect(f.log).toEqual([]);
+    });
+
+    test("a statement that fails still gives the connection its settings back, and the failure is the caller's", async () => {
+      const f: Fake = fake({
+        clientError: () => {
+          return pgError(
+            "canceling statement due to statement timeout",
+            "57014",
+          );
+        },
+      });
+
+      await expect(
+        OnlineDdl.runLongStatement(
+          f.queryRunner,
+          DELETE_PERSON,
+          [PERSON],
+          LIMITS,
+        ),
+      ).rejects.toThrow("canceling statement due to statement timeout");
+      expect(f.log.slice(-2)).toEqual(RESTORE);
+    });
+
+    test("answers how many rows changed, and none when the driver says nothing about it", async () => {
+      const deleted: Fake = fake({
+        clientResult: () => {
+          return { rowCount: 3 };
+        },
+      });
+      const unknown: Fake = fake({
+        clientResult: () => {
+          return undefined;
+        },
+      });
+
+      expect(
+        await OnlineDdl.runLongStatement(
+          deleted.queryRunner,
+          DELETE_PERSON,
+          [PERSON],
+          LIMITS,
+        ),
+      ).toBe(3);
+      expect(
+        await OnlineDdl.runLongStatement(
+          unknown.queryRunner,
+          DELETE_PERSON,
+          [PERSON],
+          LIMITS,
+        ),
+      ).toBe(0);
     });
   });
 

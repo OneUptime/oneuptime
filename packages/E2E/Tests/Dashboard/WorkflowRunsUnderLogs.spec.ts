@@ -62,13 +62,16 @@ const sectionTitles: SectionTitlesFunction = async (
 };
 
 /*
- * Workflow runs are listed under Logs → Runs: in the Workflows menu, and in a
- * workflow's own menu, where they used to sit under Advanced, named for both
- * runs and logs. Real navigation against a real project: a workflow is
- * created through the API, both menus are read, both Runs pages are opened
- * from them and again from their URLs, which did not change. A temporary
- * project isolates it and is deleted even when the test fails. Growth,
- * because workflows are a Growth feature when billing is on.
+ * Workflow runs are listed in each workflow menu's first section, open: in
+ * the Workflows menu under Workflows, and in a workflow's own menu under
+ * Basic, after the Builder. They had a Logs section of their own (#9216),
+ * which one-page sections whose heading nearly repeats the page no longer
+ * get; before that they sat under Advanced, named for both runs and logs.
+ * Real navigation against a real project: a workflow is created through the
+ * API, both menus are read, both Runs pages are opened from them and again
+ * from their URLs, which did not change. A temporary project isolates it and
+ * is deleted even when the test fails. Growth, because workflows are a
+ * Growth feature when billing is on.
  *
  * The workflow's menu is also the one the maintainer asked to fold Advanced
  * away in, so it is checked here: folded on the Overview and on Runs, open
@@ -78,8 +81,8 @@ const sectionTitles: SectionTitlesFunction = async (
  *   npx playwright test Tests/Dashboard/WorkflowRunsUnderLogs.spec.ts \
  *   --project=chromium --retries=0
  */
-test.describe("Workflow runs live under Logs → Runs", () => {
-  test("both workflow menus list Runs in a Logs section, and both Runs pages open", async ({
+test.describe("Workflow runs live in each workflow menu's first section", () => {
+  test("both workflow menus list Runs in their first section, and both Runs pages open", async ({
     page,
   }: {
     page: Page;
@@ -133,7 +136,7 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       const workflowPath: string = `${workflowsPath}/${workflows[0]!._id}`;
       const workflowRunsPath: string = `${workflowPath}/logs`;
 
-      // The Workflows menu: Logs, holding Runs, comes right after Workflows.
+      // The Workflows menu: Runs, in its first section, Workflows.
       await gotoProjectPage({
         page,
         projectId,
@@ -141,21 +144,19 @@ test.describe("Workflow runs live under Logs → Runs", () => {
         ready: desktopMenu(page).locator(`a[href='${allRunsPath}']`),
       });
       const productSections: Array<string> = await sectionTitles(page);
-      expect(productSections).toContain("Logs");
-      expect(productSections.indexOf("Logs")).toBe(
-        productSections.indexOf("Workflows") + 1,
-      );
+      expect(productSections[0]).toBe("Workflows");
+      expect(productSections).not.toContain("Logs");
 
-      const allRuns: Locator = menuSection(page, "Logs").getByRole("link", {
-        name: "Runs",
-        exact: true,
-      });
+      const allRuns: Locator = menuSection(page, "Workflows").getByRole(
+        "link",
+        { name: "Runs", exact: true },
+      );
       await expect(allRuns).toBeVisible();
       await expect(allRuns).toHaveAttribute("href", allRunsPath);
-      await expect(menuSection(page, "Logs").getByRole("link")).toHaveCount(1);
+      // Listed once, there and nowhere else.
       await expect(
-        menuSection(page, "Workflows").locator(`a[href='${allRunsPath}']`),
-      ).toHaveCount(0);
+        desktopMenu(page).locator(`a[href='${allRunsPath}']`),
+      ).toHaveCount(1);
 
       // It opens the project's runs, under its old URL.
       await allRuns.click();
@@ -163,7 +164,7 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       await expect(breadcrumb).toContainText("Runs", SERVER);
       await expect(runsCard(page)).toBeVisible(SERVER);
 
-      // A workflow's own menu: Logs comes right after Basic, before Advanced.
+      // A workflow's own menu: Runs, in Basic after the Builder, before Advanced.
       await gotoProjectPage({
         page,
         projectId,
@@ -171,15 +172,22 @@ test.describe("Workflow runs live under Logs → Runs", () => {
         ready: desktopMenu(page).locator(`a[href='${workflowRunsPath}']`),
       });
       const workflowSections: Array<string> = await sectionTitles(page);
-      expect(workflowSections).toContain("Logs");
-      expect(workflowSections.indexOf("Logs")).toBe(
-        workflowSections.indexOf("Basic") + 1,
-      );
+      expect(workflowSections[0]).toBe("Basic");
+      expect(workflowSections).not.toContain("Logs");
       expect(workflowSections.indexOf("Advanced")).toBeGreaterThan(
-        workflowSections.indexOf("Logs"),
+        workflowSections.indexOf("Basic"),
       );
 
-      const workflowRuns: Locator = menuSection(page, "Logs").getByRole(
+      const basicLinks: Array<string> = (
+        await menuSection(page, "Basic").getByRole("link").allTextContents()
+      ).map((title: string): string => {
+        return title.trim();
+      });
+      expect(basicLinks.indexOf("Runs")).toBeGreaterThan(
+        basicLinks.indexOf("Builder"),
+      );
+
+      const workflowRuns: Locator = menuSection(page, "Basic").getByRole(
         "link",
         { name: "Runs", exact: true },
       );

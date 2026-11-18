@@ -1058,6 +1058,7 @@ import { AddBackupScriptLastRun1809183200000 } from "./1809183200000-AddBackupSc
 import { AddProjectDefaultPagingLadder1809183250000 } from "./1809183250000-AddProjectDefaultPagingLadder";
 import { AddServerEmailLog1809183300000 } from "./1809183300000-AddServerEmailLog";
 import { AddServerAlerts1809183400000 } from "./1809183400000-AddServerAlerts";
+import { KeepSampleProjectColumns1809183500000 } from "./1809183500000-KeepSampleProjectColumns";
 
 export default [
   InitialMigration,
@@ -2120,4 +2121,5 @@ export default [
   AddProjectDefaultPagingLadder1809183250000,
   AddServerEmailLog1809183300000,
   AddServerAlerts1809183400000,
+  KeepSampleProjectColumns1809183500000,
 ];

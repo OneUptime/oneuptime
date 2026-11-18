@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "जाँचने के लिए पता दर्ज करें।",
   "Enter the port to check, like 443.": "जाँचने के लिए पोर्ट दर्ज करें, जैसे 443।",
   "It changes no status and opens nothing.": "यह कोई स्थिति नहीं बदलता और कुछ नहीं खोलता।",
+  "None. The status page's name is used.": "कोई नहीं। स्थिति पृष्ठ का नाम इस्तेमाल होता है।",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "चुनें कि किसकी निगरानी करनी है और उसे एक नाम दें। बाकी सब कुछ डिफ़ॉल्ट मानों से शुरू होता है, जिन्हें आप बदल सकते हैं। कुछ गड़बड़ होने पर OneUptime एक घटना या अलर्ट खोलता है, और अगला चरण दिखाता है कि किसे बताया जाता है।",
   "Runs one check now, and shows what it finds.": "अभी एक जाँच चलाता है और दिखाता है कि उसे क्या मिला।",
   "The check runs from {{probe}}.": "जाँच {{probe}} से चलती है।",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "यह परिणाम {{criteria}} से मेल खाता है।",
   "What one check found, and what would follow.": "एक जाँच में क्या मिला, और आगे क्या होगा।",
   "What to Monitor": "किसकी निगरानी करें",
-  "Where the check runs from.": "जाँच कहाँ से चलती है।"
+  "Where the check runs from.": "जाँच कहाँ से चलती है।",
+  "{{count}} monitor groups added": "{{count}} मॉनिटर समूह जोड़े गए",
+  "{{count}} monitor groups added_one": "{{count}} मॉनिटर समूह जोड़ा गया",
+  "{{count}} monitors added": "{{count}} मॉनिटर जोड़े गए",
+  "{{count}} monitors added_one": "{{count}} मॉनिटर जोड़ा गया",
+  "Is Sample Project": "नमूना प्रोजेक्ट है",
+  "Sample Project": "नमूना प्रोजेक्ट",
+  "Sample Project ID": "नमूना प्रोजेक्ट ID"
 }

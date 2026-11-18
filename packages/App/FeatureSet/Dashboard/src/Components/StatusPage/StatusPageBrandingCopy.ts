@@ -67,6 +67,11 @@ export const StatusPageBrandingCopy: {
   titleCardTitle: string;
   titleDescription: string;
   pageTitlePlaceholder: string;
+  /*
+   * The Page Title's line while it has none: the page goes by its name
+   * then, in its header and its tab (StatusPagePublicName, #7467).
+   */
+  pageTitleEmpty: string;
   pageDescriptionPlaceholder: string;
   faviconDescription: string;
   headerLinksDescription: string;
@@ -135,6 +140,7 @@ export const StatusPageBrandingCopy: {
     "Its name in the browser tab and in subscriber emails, and the description search engines show.",
   ),
   pageTitlePlaceholder: translationKey("e.g., Acme Status"),
+  pageTitleEmpty: translationKey("None. The status page's name is used."),
   pageDescriptionPlaceholder: translationKey(
     "e.g., Live status of Acme's website and API.",
   ),

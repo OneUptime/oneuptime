@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "Введите адрес для проверки.",
   "Enter the port to check, like 443.": "Введите порт для проверки, например 443.",
   "It changes no status and opens nothing.": "Он не меняет статус и ничего не открывает.",
+  "None. The status page's name is used.": "Нет. Используется название страницы статуса.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "Выберите, что отслеживать, и дайте этому название. Всё остальное начинается со значений по умолчанию, которые можно изменить. Если что-то пойдёт не так, OneUptime откроет инцидент или оповещение, а на следующем шаге видно, кому сообщат.",
   "Runs one check now, and shows what it finds.": "Выполняет одну проверку сейчас и показывает, что она нашла.",
   "The check runs from {{probe}}.": "Проверка выполняется с зонда {{probe}}.",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "Этот результат соответствует критерию {{criteria}}.",
   "What one check found, and what would follow.": "Что нашла одна проверка и что последовало бы за ней.",
   "What to Monitor": "Что отслеживать",
-  "Where the check runs from.": "Откуда выполняется проверка."
+  "Where the check runs from.": "Откуда выполняется проверка.",
+  "{{count}} monitor groups added": "Добавлено групп мониторов: {{count}}",
+  "{{count}} monitor groups added_one": "{{count}} группа мониторов добавлена",
+  "{{count}} monitors added": "Добавлено мониторов: {{count}}",
+  "{{count}} monitors added_one": "{{count}} монитор добавлен",
+  "Is Sample Project": "Является демонстрационным проектом",
+  "Sample Project": "Демонстрационный проект",
+  "Sample Project ID": "Идентификатор демонстрационного проекта"
 }

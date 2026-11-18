@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "نشانی‌ای را که باید بررسی شود وارد کنید.",
   "Enter the port to check, like 443.": "پورتی را که باید بررسی شود وارد کنید، مثلاً 443.",
   "It changes no status and opens nothing.": "هیچ وضعیتی را تغییر نمی‌دهد و چیزی باز نمی‌کند.",
+  "None. The status page's name is used.": "هیچ. نام صفحه وضعیت به کار می‌رود.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "انتخاب کنید چه چیزی پایش شود و برایش نامی بگذارید. بقیه با مقادیر پیش‌فرضی شروع می‌شود که می‌توانید تغییرشان دهید. وقتی مشکلی پیش بیاید، OneUptime یک حادثه یا هشدار باز می‌کند و مرحله بعد نشان می‌دهد چه کسی مطلع می‌شود.",
   "Runs one check now, and shows what it finds.": "همین حالا یک بررسی اجرا می‌کند و نشان می‌دهد چه یافت.",
   "The check runs from {{probe}}.": "بررسی از {{probe}} اجرا می‌شود.",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "این نتیجه با {{criteria}} مطابقت دارد.",
   "What one check found, and what would follow.": "یک بررسی چه یافت و پس از آن چه رخ می‌دهد.",
   "What to Monitor": "چه چیزی پایش شود",
-  "Where the check runs from.": "بررسی از کجا اجرا می‌شود."
+  "Where the check runs from.": "بررسی از کجا اجرا می‌شود.",
+  "{{count}} monitor groups added": "{{count}} گروه مانیتور اضافه شد",
+  "{{count}} monitor groups added_one": "{{count}} گروه مانیتور اضافه شد",
+  "{{count}} monitors added": "{{count}} مانیتور اضافه شد",
+  "{{count}} monitors added_one": "{{count}} مانیتور اضافه شد",
+  "Is Sample Project": "پروژه نمونه است",
+  "Sample Project": "پروژه نمونه",
+  "Sample Project ID": "شناسه پروژه نمونه"
 }

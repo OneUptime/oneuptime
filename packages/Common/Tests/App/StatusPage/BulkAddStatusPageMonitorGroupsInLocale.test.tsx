@@ -94,6 +94,7 @@ import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
 import useTranslator from "../../../UI/Utils/UseTranslator";
 import {
@@ -126,6 +127,11 @@ const NEW_KEYS: ReadonlyArray<string> = [
   "Monitor Groups Added",
   "These monitor groups are already on this status page, so they were left as they are.",
   "Unknown monitor group",
+  // The toast that says an add went as asked (#7466).
+  "{{count}} monitor groups added",
+  "{{count}} monitor groups added_one",
+  "{{count}} monitors added",
+  "{{count}} monitors added_one",
 ];
 
 const ZH_CN: Record<string, string> = readDashboardLocale("zh-CN");
@@ -354,6 +360,7 @@ describe.each(DIALOG_LANGUAGES)(
     beforeEach(() => {
       cleanup();
       jest.clearAllMocks();
+      Toast.dismissAll();
 
       mockGetList.mockImplementation(async (data: any): Promise<any> => {
         if (data.modelType === StatusPageResource) {
@@ -395,6 +402,16 @@ describe.each(DIALOG_LANGUAGES)(
       expect(view.queryByText("Add Monitors instead.")).toBeNull();
     });
 
+    // What the toast of an add that went as asked says.
+    const toastWords: () => Array<{
+      title: string;
+      description: unknown;
+    }> = (): Array<{ title: string; description: unknown }> => {
+      return Toast.getToasts().map((toast: ToastItem) => {
+        return { title: toast.title, description: toast.description };
+      });
+    };
+
     test("counts what was added and what was already there", async () => {
       mockBulkAddGroups.mockResolvedValue({
         succeeded: [PAYMENTS],
@@ -406,6 +423,7 @@ describe.each(DIALOG_LANGUAGES)(
 
       await addBoth(view, word("Add Monitor Groups"));
 
+      // A report of what it added and what it skipped, in the reader's words.
       expect(
         await view.findByText(word("Monitor Groups Added")),
       ).toBeInTheDocument();
@@ -428,13 +446,7 @@ describe.each(DIALOG_LANGUAGES)(
       expect(view.getByTestId("bulk-add-result-added")).toHaveTextContent(
         `${word("Added")} (1)`,
       );
-      expect(
-        view.getByText(
-          word(
-            "These monitor groups are already on this status page, so they were left as they are.",
-          ),
-        ),
-      ).toBeInTheDocument();
+      expect(toastWords()).toEqual([]);
     });
 
     test("says one picked monitor group in its one form", async () => {
@@ -448,14 +460,55 @@ describe.each(DIALOG_LANGUAGES)(
 
       await addBoth(view, word("Add Monitor Groups"));
 
+      await waitFor(() => {
+        expect(toastWords()).toEqual([
+          {
+            title: counted("{{count}} monitor groups added", { count: 1 }),
+            description: undefined,
+          },
+        ]);
+      });
+      expect(toastWords()[0]!.title).not.toBe("1 monitor group added");
+    });
+
+    test("says why nothing was added when every one was already there", async () => {
+      mockBulkAddGroups.mockResolvedValue({
+        succeeded: [],
+        failed: [],
+        skipped: [SEARCH, PAYMENTS],
+      } as BulkAddStatusPageMonitorGroupsResult);
+
+      const view: ReturnType<typeof render> = renderModal();
+
+      await addBoth(view, word("Add Monitor Groups"));
+
       expect(
-        await view.findByText(
-          counted("Added {{added}} of {{count}} selected monitor groups.", {
-            added: 1,
-            count: 1,
-          }),
+        await view.findByText(word("Monitor Groups Added")),
+      ).toBeInTheDocument();
+
+      const summary: string = [
+        counted("Added {{added}} of {{count}} selected monitor groups.", {
+          added: 0,
+          count: 2,
+        }),
+        counted(
+          "{{count}} monitor groups were already on this status page and were skipped.",
+          { count: 2 },
+        ),
+      ].join(" ");
+
+      expect(view.getByText(summary)).toBeInTheDocument();
+      expect(view.getByTestId("bulk-add-result-skipped")).toHaveTextContent(
+        `${word("Already Added")} (2)`,
+      );
+      expect(
+        view.getByText(
+          word(
+            "These monitor groups are already on this status page, so they were left as they are.",
+          ),
         ),
       ).toBeInTheDocument();
+      expect(Toast.getToasts()).toHaveLength(0);
     });
 
     test("titles a summary with failures in the reader's words", async () => {

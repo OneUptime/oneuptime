@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "점검할 주소를 입력하세요.",
   "Enter the port to check, like 443.": "점검할 포트를 입력하세요 (예: 443).",
   "It changes no status and opens nothing.": "상태를 바꾸지 않고 아무것도 열지 않습니다.",
+  "None. The status page's name is used.": "없음. 상태 페이지의 이름이 사용됩니다.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "모니터링할 대상을 고르고 이름을 지정하세요. 나머지는 모두 변경할 수 있는 기본값으로 시작합니다. 문제가 생기면 OneUptime이 인시던트나 경고를 열고, 누구에게 알리는지는 다음 단계에 표시됩니다.",
   "Runs one check now, and shows what it finds.": "지금 한 번 점검을 실행하고 결과를 보여 줍니다.",
   "The check runs from {{probe}}.": "점검은 {{probe}}에서 실행됩니다.",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "이 결과는 {{criteria}} 기준과 일치합니다.",
   "What one check found, and what would follow.": "한 번의 점검에서 찾은 내용과 그다음에 일어날 일.",
   "What to Monitor": "모니터링할 대상",
-  "Where the check runs from.": "점검이 실행되는 위치."
+  "Where the check runs from.": "점검이 실행되는 위치.",
+  "{{count}} monitor groups added": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitor groups added_one": "모니터 그룹 {{count}}개를 추가했습니다",
+  "{{count}} monitors added": "모니터 {{count}}개를 추가했습니다",
+  "{{count}} monitors added_one": "모니터 {{count}}개를 추가했습니다",
+  "Is Sample Project": "샘플 프로젝트 여부",
+  "Sample Project": "샘플 프로젝트",
+  "Sample Project ID": "샘플 프로젝트 ID"
 }

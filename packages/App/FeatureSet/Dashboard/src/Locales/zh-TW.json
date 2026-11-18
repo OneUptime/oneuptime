@@ -56833,6 +56833,7 @@
   "Enter the address to check.": "請輸入要檢查的位址。",
   "Enter the port to check, like 443.": "請輸入要檢查的連接埠，例如 443。",
   "It changes no status and opens nothing.": "它不會變更狀態，也不會開啟任何項目。",
+  "None. The status page's name is used.": "無。使用狀態頁面的名稱。",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the next step shows who is told.": "選擇要監測的對象並為其命名。其餘內容皆使用可變更的預設值。一旦發生問題，OneUptime 會建立事件或警示，下一步會顯示通知誰。",
   "Runs one check now, and shows what it finds.": "現在執行一次檢查，並顯示檢查結果。",
   "The check runs from {{probe}}.": "檢查從 {{probe}} 執行。",
@@ -56843,5 +56844,12 @@
   "This result matches {{criteria}}.": "此結果符合條件 {{criteria}}。",
   "What one check found, and what would follow.": "一次檢查發現了什麼，以及接下來會發生什麼。",
   "What to Monitor": "要監測什麼",
-  "Where the check runs from.": "執行檢查的位置。"
+  "Where the check runs from.": "執行檢查的位置。",
+  "{{count}} monitor groups added": "已新增 {{count}} 個監測器群組",
+  "{{count}} monitor groups added_one": "已新增 {{count}} 個監測器群組",
+  "{{count}} monitors added": "已新增 {{count}} 個監測器",
+  "{{count}} monitors added_one": "已新增 {{count}} 個監測器",
+  "Is Sample Project": "是否為範例專案",
+  "Sample Project": "範例專案",
+  "Sample Project ID": "範例專案 ID"
 }
