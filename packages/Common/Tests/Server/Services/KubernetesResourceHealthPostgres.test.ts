@@ -14,7 +14,10 @@ import {
 } from "../../../Types/Kubernetes/KubernetesInventoryExtractor";
 import {
   KubernetesHealthSeverity,
+  KubernetesPodStatusBucket,
+  KubernetesPodStatusBucketOf,
   getKubernetesHealthSeverity,
+  getKubernetesPodStatusBucket,
 } from "../../../Types/Kubernetes/KubernetesHealth";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -879,6 +882,186 @@ describePostgres("KubernetesResource health on Postgres", () => {
 
       expect(result.get("shop/nightly-report")?.cpuPercent).toBe(9);
       expect(result.get("reports/nightly-report")?.cpuPercent).toBe(4);
+    });
+  });
+
+  /*
+   * The hero counts each pod once, as kubectl's STATUS says it (#9537): a
+   * pod ingest flagged critical is named in SQL by a JSON path that has to
+   * agree with the rules' word for it (getKubernetesPodStatusBucket).
+   */
+  describe("the hero's pod counts", () => {
+    function podIn(
+      name: string,
+      phase: string,
+      containers: Array<Record<string, unknown>>,
+      initContainers: Array<Record<string, unknown>> = [],
+    ): ParsedKubernetesResource {
+      return resource({
+        kind: "Pod",
+        name: name,
+        phase: phase,
+        resourceCreationTimestamp: ago(30),
+        spec: { nodeName: "node-1", containers: [] } as unknown as JSONObject,
+        status: {
+          phase: phase,
+          conditions: [
+            {
+              type: "Ready",
+              status: phase === "Running" ? "True" : "False",
+              reason: "",
+              message: "",
+              lastTransitionTime: ago(10).toISOString(),
+            },
+          ],
+          containerStatuses: containers,
+          initContainerStatuses: initContainers,
+        } as unknown as JSONObject,
+      });
+    }
+
+    function waiting(
+      reason: string,
+      name: string = "app",
+    ): Record<string, unknown> {
+      return {
+        name: name,
+        ready: false,
+        restartCount: 4,
+        state: "waiting",
+        reason: reason,
+        image: "app:1",
+      };
+    }
+
+    function ended(
+      reason: string,
+      exitCode: number,
+      name: string = "app",
+    ): Record<string, unknown> {
+      return {
+        name: name,
+        ready: false,
+        restartCount: 0,
+        state: "terminated",
+        reason: reason,
+        exitCode: exitCode,
+        image: "app:1",
+      };
+    }
+
+    const running: Record<string, unknown> = {
+      name: "app",
+      ready: true,
+      restartCount: 0,
+      state: "running",
+      reason: "",
+      image: "app:1",
+    };
+
+    test("names each pod that cannot run as the rules do, and counts the rest by phase", async () => {
+      const pods: Array<ParsedKubernetesResource> = [
+        podIn("web-1", "Running", [running]),
+        podIn("web-2", "Running", [running]),
+        podIn("web-3", "Running", [running]),
+        podIn("crash-1", "Running", [waiting("CrashLoopBackOff")]),
+        podIn("crash-2", "Running", [
+          running,
+          waiting("CrashLoopBackOff", "sidecar"),
+        ]),
+        podIn("pull-1", "Pending", [waiting("ImagePullBackOff")]),
+        podIn(
+          "init-crash",
+          "Pending",
+          [waiting("PodInitializing")],
+          [waiting("CrashLoopBackOff", "migrate")],
+        ),
+        podIn(
+          "init-error",
+          "Pending",
+          [waiting("PodInitializing")],
+          [ended("Completed", 0, "wait"), ended("Error", 1, "migrate")],
+        ),
+        podIn("starting", "Pending", [waiting("ContainerCreating")]),
+        podIn("failed", "Failed", [ended("Error", 1)]),
+        podIn("done", "Succeeded", [ended("Completed", 0)]),
+        podIn("lost", "Unknown", []),
+      ];
+      await upsert(pods);
+
+      const summary: Awaited<
+        ReturnType<typeof KubernetesResourceService.getInventorySummary>
+      > = await KubernetesResourceService.getInventorySummary({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+      });
+
+      expect(summary.podStatusCounts).toEqual({
+        running: 3,
+        pending: 1,
+        failed: 1,
+        succeeded: 1,
+        unknown: 1,
+        cannotRun: [
+          { reason: "CrashLoopBackOff", count: 2 },
+          { reason: "ImagePullBackOff", count: 1 },
+          { reason: "Init:CrashLoopBackOff", count: 1 },
+          { reason: "Init:Error", count: 1 },
+        ],
+      });
+
+      // The SQL's word for each is the rules' word for it.
+      const byRules: Map<string, number> = new Map<string, number>();
+      for (const pod of pods) {
+        const of: KubernetesPodStatusBucketOf =
+          getKubernetesPodStatusBucket(pod);
+        if (of.bucket === KubernetesPodStatusBucket.CannotRun) {
+          byRules.set(of.reason || "", (byRules.get(of.reason || "") || 0) + 1);
+        }
+      }
+      expect(
+        new Map<string, number>(
+          summary.podStatusCounts.cannotRun.map(
+            (row: { reason: string; count: number }): [string, number] => {
+              return [row.reason, row.count];
+            },
+          ),
+        ),
+      ).toEqual(byRules);
+
+      // The phases are still the phases.
+      expect(summary.podPhaseCounts).toEqual({
+        running: 5,
+        pending: 4,
+        failed: 1,
+        succeeded: 1,
+        unknown: 1,
+      });
+    });
+
+    test("leaves another cluster's and a deleted pod out", async () => {
+      await upsert([
+        podIn("crash-1", "Running", [waiting("CrashLoopBackOff")]),
+      ]);
+      await upsert(
+        [podIn("crash-2", "Running", [waiting("CrashLoopBackOff")])],
+        OTHER_CLUSTER_ID,
+      );
+      await upsert([podIn("crash-3", "Running", [waiting("ErrImagePull")])]);
+      await database.query(
+        `UPDATE "${schema}"."${TABLE}" SET "deletedAt" = now() WHERE "name" = 'crash-3'`,
+      );
+
+      const summary: Awaited<
+        ReturnType<typeof KubernetesResourceService.getInventorySummary>
+      > = await KubernetesResourceService.getInventorySummary({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+      });
+
+      expect(summary.podStatusCounts.cannotRun).toEqual([
+        { reason: "CrashLoopBackOff", count: 1 },
+      ]);
     });
   });
 });

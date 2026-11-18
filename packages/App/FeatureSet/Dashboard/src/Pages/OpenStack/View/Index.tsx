@@ -75,10 +75,10 @@ import {
 } from "../../../Components/ResourcePart/ResourceAttention";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
-import {
-  getResourceConnectionLabel,
-  getResourceHealthLabel,
-} from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
+import ResourceHealthPill, {
+  ResourceHealthDialogWords,
+} from "../../../Components/ResourcePart/ResourceHealthPill";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -463,27 +463,10 @@ function formatPercent(percent: number | null, translator: Translator): string {
     : `${translator.formatNumber(Math.round(percent))}%`;
 }
 
-const HEALTH_CLASS_NAMES: Record<
-  ResourceHealth,
-  { pill: string; dot: string }
-> = {
-  Healthy: {
-    pill: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    dot: "bg-emerald-500",
-  },
-  Degraded: {
-    pill: "bg-amber-50 text-amber-700 ring-amber-200",
-    dot: "bg-amber-500",
-  },
-  Unhealthy: {
-    pill: "bg-red-50 text-red-700 ring-red-200",
-    dot: "bg-red-500",
-  },
-};
-
-const UNKNOWN_HEALTH_CLASS_NAMES: { pill: string; dot: string } = {
-  pill: "bg-gray-50 text-gray-600 ring-gray-200",
-  dot: "bg-gray-400",
+// What a Degraded or Unhealthy cloud's pill opens (ResourceHealthPill).
+export const OPENSTACK_HEALTH_WORDS: ResourceHealthDialogWords = {
+  degradedTitle: translationKey("Why this cloud is Degraded"),
+  unhealthyTitle: translationKey("Why this cloud is Unhealthy"),
 };
 
 const OpenStackCloudOverview: FunctionComponent<
@@ -972,9 +955,6 @@ const OpenStackCloudOverview: FunctionComponent<
     isConnected &&
     attention !== null &&
     (health !== "Healthy" || accessGaps.length === 0);
-  const healthClassNames: { pill: string; dot: string } = isHealthKnown
-    ? HEALTH_CLASS_NAMES[health]
-    : UNKNOWN_HEALTH_CLASS_NAMES;
 
   const groups: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
     apis: apisInScope,
@@ -1187,20 +1167,18 @@ const OpenStackCloudOverview: FunctionComponent<
                */}
               {!isConnected || attention || attentionError ? (
                 <span className="inline-flex items-center gap-1">
-                  <span
-                    data-testid="openstack-overview-health"
-                    data-health={isHealthKnown ? health : "Unknown"}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthClassNames.pill}`}
-                  >
-                    <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${healthClassNames.dot}`}
-                    />
-                    {getResourceHealthLabel({
-                      translator: translator,
-                      health: health,
-                      isConnected: isHealthKnown,
-                    })}
-                  </span>
+                  {/*
+                   * Health Unknown in grey until it can be known; Degraded
+                   * or Unhealthy opens why - what needs attention below
+                   * (ResourceHealthPill).
+                   */}
+                  <ResourceHealthPill
+                    health={health}
+                    isConnected={isHealthKnown}
+                    items={items}
+                    testId="openstack-overview-health"
+                    words={OPENSTACK_HEALTH_WORDS}
+                  />
                   <InfoTooltip
                     label="Health"
                     text={OPENSTACK_METRIC_DESCRIPTIONS.health}

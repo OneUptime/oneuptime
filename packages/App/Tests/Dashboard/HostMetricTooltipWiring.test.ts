@@ -351,13 +351,15 @@ describe("Host overview", () => {
   });
 
   test("the hero's health pill carries its (i)", () => {
+    // The shared pill (ResourceHealthPill), which opens why when it is not Healthy.
     const pill: string = between(
       code,
-      'data-testid="host-hero-health"',
+      "<ResourceHealthPill",
       "text={HOST_METRIC_DESCRIPTIONS.hostHealth}",
     );
 
-    expect(pill).toContain("{healthLabel}");
+    expect(pill).toContain('testId="host-hero-health"');
+    expect(pill).toContain("items={getAttentionItems(host)}");
     expect(pill).toContain('<InfoTooltip label="Host Health"');
   });
 

@@ -38,6 +38,13 @@ import {
 } from "./ResourceHeroLayout";
 import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
 import { ResourceOverviewHealth } from "./ResourceOverviewHealth";
+import ResourceAttentionPill from "../ResourcePart/ResourceAttentionPill";
+import {
+  RESOURCE_HEALTH_DEGRADED_DESCRIPTION,
+  RESOURCE_HEALTH_EMPTY_MESSAGE,
+  RESOURCE_HEALTH_HINT,
+  RESOURCE_HEALTH_UNHEALTHY_DESCRIPTION,
+} from "../ResourcePart/ResourceHealthPill";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
@@ -391,6 +398,18 @@ const HEALTH_TONE_CLASSES: Record<
   },
 };
 
+/*
+ * Whether the health pill opens why: it says something is wrong, and there
+ * is something to list under the page's title for it.
+ */
+export function isHealthExplained(health: ResourceOverviewHealth): boolean {
+  return (
+    (health.tone === "warning" || health.tone === "danger") &&
+    Boolean(health.dialogTitle) &&
+    (health.items?.length ?? 0) > 0
+  );
+}
+
 const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
   props: ResourceOverviewTile,
 ): ReactElement => {
@@ -698,21 +717,55 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                   </span>
                   {props.health ? (
                     <span className="inline-flex items-center gap-1">
-                      <span
-                        data-testid="resource-overview-health"
-                        data-health={props.health.state}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                          HEALTH_TONE_CLASSES[props.health.tone].badge
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            HEALTH_TONE_CLASSES[props.health.tone].dot
-                          }`}
+                      {/*
+                       * A pill that says something is wrong opens why: what
+                       * needs attention, as every hero's health pill does
+                       * (#9537). Anything else only says its word.
+                       */}
+                      {isHealthExplained(props.health) ? (
+                        <ResourceAttentionPill
+                          label={
+                            translator.translateText(props.health.label) ||
+                            props.health.label
+                          }
+                          tone={props.health.tone}
+                          testId="resource-overview-health"
+                          dataAttributes={
+                            props.health.state
+                              ? { "data-health": props.health.state }
+                              : undefined
+                          }
+                          hint={RESOURCE_HEALTH_HINT}
+                          dialog={{
+                            title:
+                              translator.translateText(
+                                props.health.dialogTitle as string,
+                              ) || (props.health.dialogTitle as string),
+                            description:
+                              props.health.tone === "danger"
+                                ? RESOURCE_HEALTH_UNHEALTHY_DESCRIPTION
+                                : RESOURCE_HEALTH_DEGRADED_DESCRIPTION,
+                            items: props.health.items,
+                            emptyMessage: RESOURCE_HEALTH_EMPTY_MESSAGE,
+                          }}
                         />
-                        {translator.translateText(props.health.label) ||
-                          props.health.label}
-                      </span>
+                      ) : (
+                        <span
+                          data-testid="resource-overview-health"
+                          data-health={props.health.state}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                            HEALTH_TONE_CLASSES[props.health.tone].badge
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              HEALTH_TONE_CLASSES[props.health.tone].dot
+                            }`}
+                          />
+                          {translator.translateText(props.health.label) ||
+                            props.health.label}
+                        </span>
+                      )}
                       {props.health.description ? (
                         <InfoTooltip
                           label={props.health.descriptionLabel || "Health"}
