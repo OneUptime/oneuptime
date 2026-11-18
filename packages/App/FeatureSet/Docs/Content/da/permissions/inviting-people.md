@@ -155,7 +155,7 @@ På en selvhostet server, der endnu ikke kan sende e-mails, kan en tilmelding he
 :::
 
 :::details En person viser E-mail ikke sendt
-Mailtjenesten afviste personens seneste invitationsmail, så intet nåede frem. Peg på **E-mail ikke sendt**, eller tryk på den, for at se hvorfor, sådan som fanen **E-mail** under projektets **Notifikationslogs** siger det. Tjek den adresse, du inviterede, og når e-mail virker, så fjern personen og invitér vedkommende igen. På en selvhostet server kan serverens administrator i stedet sende personen sit invitationslink: En masteradministrator åbner rækkemenuen for personen under **Brugere**, **⋯**, og klikker på **Hent invitationslink**.
+Mailtjenesten afviste personens seneste invitationsmail, så intet nåede frem. Peg på **E-mail ikke sendt**, eller tryk på den, for at se hvorfor, sådan som fanen **E-mail** under projektets **Notifikationslogs** siger det. Tjek den adresse, du inviterede, og når e-mail virker, så åbn rækkemenuen for personen under **Brugere**, **⋯**, og klik på **Send invitation igen**: Personen vises som **Invitation sendt** igen, når den er sendt. På en selvhostet server kan serverens administrator i stedet sende personen sit invitationslink: En masteradministrator klikker på **Hent invitationslink** i samme menu.
 :::
 
 :::details Inviter bruger siger, at brugerne styres af SCIM Push Groups

@@ -155,7 +155,7 @@ På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke regist
 :::
 
 :::details En person viser E-post ikke sendt
-E-posttjenesten avviste den siste invitasjonsmeldingen, så ingenting nådde personen. Pek på **E-post ikke sendt**, eller trykk på den, for å se hvorfor, slik fanen **E-post** under prosjektets **Varslingslogger** sier det. Sjekk adressen du inviterte, og når e-post virker, fjerner du personen og inviterer vedkommende på nytt. På en selvhostet server kan serverens administrator sende personen invitasjonslenken i stedet: En hovedadministrator åpner radmenyen til personen under **Brukere**, **⋯**, og klikker på **Hent invitasjonslenke**.
+E-posttjenesten avviste den siste invitasjonsmeldingen, så ingenting nådde personen. Pek på **E-post ikke sendt**, eller trykk på den, for å se hvorfor, slik fanen **E-post** under prosjektets **Varslingslogger** sier det. Sjekk adressen du inviterte, og når e-post virker, åpner du radmenyen til personen under **Brukere**, **⋯**, og klikker på **Send invitasjon på nytt**: Personen vises som **Invitasjon sendt** igjen når den er sendt. På en selvhostet server kan serverens administrator sende personen invitasjonslenken i stedet: En hovedadministrator klikker på **Hent invitasjonslenke** i samme meny.
 :::
 
 :::details Inviter bruker sier at brukerne styres av SCIM Push Groups

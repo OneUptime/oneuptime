@@ -155,7 +155,7 @@ Em um servidor auto-hospedado que ainda não consegue enviar e-mails, o cadastro
 :::
 
 :::details Uma pessoa mostra E-mail não enviado
-O serviço de e-mail recusou o último e-mail de convite dela, então nada chegou até ela. Aponte para **E-mail não enviado**, ou toque nele, para ver o motivo, como a guia **E-mail** dos **Logs de notificação** do projeto o mostra. Confira o endereço convidado e, quando o e-mail funcionar, remova a pessoa e convide-a de novo. Em um servidor auto-hospedado, o administrador do servidor pode enviar a ela o link de convite em vez disso: um administrador mestre abre o menu da linha da pessoa em **Usuários**, **⋯**, e clica em **Obter link de convite**.
+O serviço de e-mail recusou o último e-mail de convite dela, então nada chegou até ela. Aponte para **E-mail não enviado**, ou toque nele, para ver o motivo, como a guia **E-mail** dos **Logs de notificação** do projeto o mostra. Confira o endereço convidado e, quando o e-mail funcionar, abra o menu da linha da pessoa em **Usuários**, **⋯**, e clique em **Reenviar convite**: ela volta a aparecer como **Convite enviado** assim que ele sai. Em um servidor auto-hospedado, o administrador do servidor pode enviar a ela o link de convite em vez disso: um administrador mestre clica em **Obter link de convite** no mesmo menu.
 :::
 
 :::details Convidar Usuário diz que os usuários são gerenciados pelo SCIM Push Groups
