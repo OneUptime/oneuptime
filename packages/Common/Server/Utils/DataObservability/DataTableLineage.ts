@@ -1226,8 +1226,15 @@ export default class DataTableLineageReader {
     let carried: number = 0;
 
     for (const write of writes) {
-      const written: Array<string> =
-        writtenColumns.get(write.target.slice(TABLE_NODE_PREFIX.length)) || [];
+      // Each into itself, at most what one arrow holds, as every arrow's columns are kept.
+      const written: Array<DataColumnMapping> = mergeColumnMappings(
+        [],
+        (
+          writtenColumns.get(write.target.slice(TABLE_NODE_PREFIX.length)) || []
+        ).map((column: string): DataColumnMapping => {
+          return { upstreamColumn: column, downstreamColumn: column };
+        }),
+      );
 
       if (
         written.length === 0 ||
@@ -1236,11 +1243,7 @@ export default class DataTableLineageReader {
         continue;
       }
 
-      write.columnMappings = written.map(
-        (column: string): DataColumnMapping => {
-          return { upstreamColumn: column, downstreamColumn: column };
-        },
-      );
+      write.columnMappings = written;
       carried += written.length;
     }
 
