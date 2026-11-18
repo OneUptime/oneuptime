@@ -77,6 +77,7 @@ import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import WriteProgress from "../Utils/Database/WriteProgress";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
@@ -888,6 +889,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<DatabaseCommonInteractionProps> {
     if (type !== DatabaseRequestType.Read) {
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+      /*
+       * A record of a product switched off on the server is not written by
+       * anyone but the server itself, a master admin included (#7479). See
+       * ProductWriteRefusal.
+       */
+      await ProductWriteRefusal.refuseWhileProductIsOff({
+        tableName: this.getModel().tableName,
+        props: props,
+      });
     }
 
     if (props.isRoot || props.isMasterAdmin) {

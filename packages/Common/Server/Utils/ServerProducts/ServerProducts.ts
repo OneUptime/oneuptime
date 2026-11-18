@@ -7,9 +7,13 @@ import logger from "../Logger";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import ForbiddenException from "../../../Types/Exception/ForbiddenException";
+import ProductSwitchedOffException from "../../../Types/Exception/ProductSwitchedOffException";
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey, { isProductKey } from "../../../Types/Product/ProductKey";
+import {
+  getOffProductOfRecordTable,
+  getProductsOfRecordTable,
+} from "../../../Types/Product/ProductRecordTables";
 import {
   ServerProductOffReason,
   ServerProductsOff,
@@ -18,7 +22,6 @@ import {
   ServerProductsStartingValue as StartingValue,
   getOffProducts,
   getPresetOf,
-  getProductOffMessage,
   getServerProductsOff,
   isServerProductsPreset,
   isSwitchableProduct,
@@ -158,17 +161,63 @@ export class ServerProductsClass {
 
   /*
    * Refuses what cannot be done because a product is off, with what
-   * happened and what to do next (getProductOffMessage): the API's writes,
-   * Ask AI's tools.
+   * happened and what to do next (ProductSwitchedOffException): the API's
+   * writes, Ask AI's tools, a chat's button.
    */
   public async assertProductIsOn(product: ProductKey): Promise<void> {
     const reason: ServerProductOffReason | null =
       await this.getOffReason(product);
 
     if (reason) {
-      throw new ForbiddenException(
-        getProductOffMessage({ product: product, reason: reason }),
-      );
+      throw new ProductSwitchedOffException({
+        product: product,
+        reason: reason,
+      });
+    }
+  }
+
+  /*
+   * The product a write to this table is refused for, with its reason:
+   * every product the table serves is off (ProductRecordTables). Null while
+   * one of them is on, and for a table of no product - which is answered
+   * without reading what is off.
+   */
+  public async getOffProductOfTable(
+    tableName: string | null | undefined,
+  ): Promise<{ product: ProductKey; reason: ServerProductOffReason } | null> {
+    if (getProductsOfRecordTable(tableName).length === 0) {
+      return null;
+    }
+
+    const off: ServerProductsOff = await this.getOff();
+    const product: ProductKey | null = getOffProductOfRecordTable({
+      tableName: tableName,
+      isOff: (candidate: ProductKey): boolean => {
+        return Boolean(off[candidate]);
+      },
+    });
+
+    if (!product) {
+      return null;
+    }
+
+    return { product: product, reason: off[product]! };
+  }
+
+  /*
+   * Refuses a create, change or delete of a record of a product that is
+   * off (#7479): any table of it, not only its main record.
+   */
+  public async assertRecordTableIsOn(
+    tableName: string | null | undefined,
+  ): Promise<void> {
+    const offProduct: {
+      product: ProductKey;
+      reason: ServerProductOffReason;
+    } | null = await this.getOffProductOfTable(tableName);
+
+    if (offProduct) {
+      throw new ProductSwitchedOffException(offProduct);
     }
   }
 
